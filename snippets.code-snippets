@@ -1,0 +1,156 @@
+{
+  // Place your notebooks workspace snippets here. Each snippet is defined under a snippet name and has a scope, prefix, body and
+  // description. Add comma separated ids of the languages where the snippet is applicable in the scope field. If scope
+  // is left empty or omitted, the snippet gets applied to all languages. The prefix is what is
+  // used to trigger the snippet and the body will be expanded and inserted. Possible variables are:
+  // $1, $2 for tab stops, $0 for the final cursor position, and ${1:label}, ${2:another} for placeholders.
+  // Placeholders with the same ids are connected.
+  // Example:
+  // "Print to console": {
+  // 	"scope": "javascript,typescript",
+  // 	"prefix": "log",
+  // 	"body": [
+  // 		"console.log('$1');",
+  // 		"$2"
+  // 	],
+  // 	"description": "Log output to console"
+  // }
+  "Import deephaven UI": {
+    "scope": "python",
+    "prefix": "ui",
+    "body": ["from deephaven import ui"],
+    "description": "Import deephaven UI"
+  },
+  "Deephaven UI Counter": {
+    "scope": "python",
+    "prefix": "ui_counter",
+    "body": [
+      "from deephaven import ui",
+      "",
+      "",
+      "# Deephaven UI Counter Sample",
+      "@ui.component",
+      "def ${1:ui_counter}():",
+      "    count, set_count = ui.use_state(0)",
+      "    return ui.button(",
+      "        f\"Pressed {count} times\",",
+      "        on_press=lambda: set_count(count + 1))",
+      "",
+      "",
+      "counter = $1()"
+    ],
+    "description": "Deephaven UI Counter"
+  },
+  "Deephaven UI Dashboard": {
+    "scope": "python",
+    "prefix": "ui_dashboard",
+    "body": [
+      "from deephaven import ui",
+      "",
+      "",
+      "@ui.component",
+      "def ${1:ui_dashboard}():",
+      "    return ui.dashboard(",
+      "        ui.button(\"Click Me!\")",
+      "    )",
+      "",
+      "",
+      "dashboard = $1()"
+    ]
+  },
+  "Deephaven UI Picker": {
+    "scope": "python",
+    "prefix": "ui_picker",
+    "body": [
+      "from deephaven import ui",
+      "",
+      "",
+      "# Deephaven UI Picker Sample",
+      "@ui.component",
+      "def ${1:ui_picker}():",
+      "    selected_key, on_change = ui.use_state(\"\")",
+      "",
+      "    picker = ui.picker(",
+      "        \"Option 1\",",
+      "        \"Option 2\",",
+      "        \"Option 3\",",
+      "        selected_key=selected_key,",
+      "        on_change=on_change",
+      "    )",
+      "",
+      "    text = ui.text(f\"Selected: {selected_key}\")",
+      "",
+      "    return picker, text",
+      "",
+      "",
+      "picker = $1()"
+    ],
+    "description": "Deephaven UI Picker"
+  },
+  "Deephaven UI ListView - Table": {
+    "scope": "python",
+    "prefix": "ui_listview_table",
+    "body": [
+      "from deephaven import time_table, ui",
+      "import datetime",
+      "",
+      "# Ticking table with initial row count of 200 that adds a row every second",
+      "initial_row_count = 200",
+      "column_types = time_table(",
+      "    \"PT1S\",",
+      "    start_time=datetime.datetime.now() - datetime.timedelta(seconds=initial_row_count),",
+      ").update(",
+      "    [",
+      "        \"Id=new Integer(i)\",",
+      "        \"Display=new String(`Display `+i)\",",
+      "    ]",
+      ")",
+      "",
+      "",
+      "@ui.component",
+      "def ui_list_view_table():",
+      "    value, set_value = ui.use_state([2, 4, 5])",
+      "",
+      "    lv = ui.list_view(",
+      "        column_types,",
+      "        key_column=\"Id\",",
+      "        label_column=\"Display\",",
+      "        aria_label=\"List View\",",
+      "        on_change=set_value,",
+      "        selected_keys=value,",
+      "    )",
+      "",
+      "    text = ui.text(\"Selection: \" + \", \".join(map(str, value)))",
+      "",
+      "    return lv, text",
+      "",
+      "",
+      "lv_table = ui_list_view_table()"
+    ],
+    "description": "Deephaven UI ListView - Table"
+  },
+  "Deephaven UI Table Filter": {
+    "scope": "python",
+    "prefix": "ui_table_text_filter",
+    "body": [
+      "from deephaven import ui",
+      "import deephaven.plot.express as dx",
+      "",
+      "",
+      "stocks = dx.data.stocks()",
+      "",
+      "@ui.component",
+      "def ${1:ui_table_text_filter}(source, column):",
+      "    value, set_value = ui.use_state(\"FISH\")",
+      "    t = source if value==\"\" else source.where(f\"{column}=`{value}`\")",
+      "",
+      "    return ui.text_field(",
+      "        label=\"Sym Filter\",",
+      "        value=value,",
+      "        on_change=set_value), t",
+      "",
+      "",
+      "${2:table_text_filter} = $1(stocks, \"sym\")"
+    ]
+  }
+}

@@ -1,0 +1,112 @@
+{
+  "name": "vscode-deephaven",
+  "displayName": "Deephaven in VS Code",
+  "description": "",
+  "publisher": "bmingles",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/deephaven/vscode-deephaven"
+  },
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.87.0"
+  },
+  "categories": [
+    "Data Science",
+    "Snippets"
+  ],
+  "activationEvents": [
+    "onFileSystem:dhfs",
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "Deephaven in VS Code",
+      "properties": {
+        "vscode-deephaven.core-servers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "http://localhost:10000/"
+          ],
+          "description": "Deephaven Core servers"
+        }
+      }
+    },
+    "snippets": [
+      {
+        "language": "python",
+        "path": "./snippets.code-snippets"
+      }
+    ],
+    "commands": [
+      {
+        "command": "vscode-deephaven.runCode",
+        "title": "Run Deephaven File",
+        "icon": "$(run-all)"
+      },
+      {
+        "command": "vscode-deephaven.runSelection",
+        "title": "Run Deephaven Selected Lines",
+        "icon": "$(run)"
+      },
+      {
+        "command": "vscode-deephaven.selectConnection",
+        "title": "Deephaven: Select Connection"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "vscode-deephaven.runCode",
+          "when": "false"
+        },
+        {
+          "command": "vscode-deephaven.runSelection",
+          "when": "false"
+        }
+      ],
+      "editor/title/run": [
+        {
+          "command": "vscode-deephaven.runCode",
+          "group": "navigation",
+          "when": "editorLangId == python"
+        },
+        {
+          "command": "vscode-deephaven.runSelection",
+          "group": "navigation",
+          "when": "editorLangId == python"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "package": "vsce package -o releases/ && vsce package -o releases/vscode-deephaven-latest.vsix",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.1",
+    "@types/node": "16.x",
+    "@types/vscode": "^1.87.0",
+    "@types/ws": "^8.5.10",
+    "@typescript-eslint/eslint-plugin": "^6.4.1",
+    "@typescript-eslint/parser": "^6.4.1",
+    "@vscode/test-electron": "^2.3.4",
+    "eslint": "^8.47.0",
+    "glob": "^10.3.3",
+    "mocha": "^10.2.0",
+    "typescript": "^5.1.6",
+    "@vscode/vsce": "^2.26.1"
+  },
+  "dependencies": {
+    "ws": "^8.16.0"
+  }
+}
