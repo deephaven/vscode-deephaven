@@ -41,6 +41,20 @@ export function activate(context: vscode.ExtensionContext) {
 
   const dhcServiceRegistry = new DhServiceRegistry(DhcService, outputChannel);
 
+  dhcServiceRegistry.addEventListener('disconnect', () => {
+    clearConnection();
+  });
+
+  /*
+   * Clear connection data
+   */
+  function clearConnection() {
+    selectedConnectionUrl = null;
+    selectedDhService = null;
+    connectStatusBarItem.text = createConnectText(STATUS_BAR_DISCONNECTED_TEXT);
+    dhcServiceRegistry.clearCache();
+  }
+
   /**
    * Get currently active DH service.
    * @autoActivate If true, auto-activate a service if none is active.
@@ -75,16 +89,6 @@ export function activate(context: vscode.ExtensionContext) {
 
   // recreate tmp dir that will be used to dowload JS Apis
   getTempDir(true /*recreate*/);
-
-  /*
-   * Clear connection data
-   */
-  function clearConnection() {
-    selectedConnectionUrl = null;
-    selectedDhService = null;
-    connectStatusBarItem.text = createConnectText(STATUS_BAR_DISCONNECTED_TEXT);
-    dhcServiceRegistry.clearCache();
-  }
 
   /**
    * Handle connection selection

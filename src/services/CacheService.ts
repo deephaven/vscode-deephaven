@@ -1,9 +1,16 @@
-export class CacheService<T> {
+import { EventDispatcher } from './EventDispatcher';
+
+export class CacheService<
+  T,
+  TEventName extends string
+> extends EventDispatcher<TEventName> {
   constructor(
     label: string,
     loader: (key: string | null) => Promise<T>,
     normalizeKey: (key: string | null) => string | null
   ) {
+    super();
+
     this.label = label;
     this.loader = loader;
     this.normalizeKey = normalizeKey;

@@ -4,6 +4,7 @@ import { hasErrorCode } from '../util/typeUtils';
 import { ConnectionAndSession } from '../common';
 import { formatTimestamp } from '../util';
 import { PanelFocusManager } from './PanelFocusManager';
+import { EventDispatcher } from './EventDispatcher';
 
 /* eslint-disable @typescript-eslint/naming-convention */
 const icons = {
@@ -26,8 +27,13 @@ type CommandResultBase = {
   error: string;
 };
 
-export abstract class DhService<TDH, TClient> {
+export abstract class DhService<
+  TDH,
+  TClient
+> extends EventDispatcher<'disconnect'> {
   constructor(serverUrl: string, outputChannel: vscode.OutputChannel) {
+    super();
+
     this.serverUrl = serverUrl;
     this.outputChannel = outputChannel;
   }
@@ -129,6 +135,8 @@ export abstract class DhService<TDH, TClient> {
             vscode.window.showInformationMessage(
               `Disconnected from Deephaven server: ${this.serverUrl}`
             );
+
+            this.dispatchEvent('disconnect');
           })
         );
       }
