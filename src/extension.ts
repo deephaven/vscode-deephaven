@@ -76,6 +76,16 @@ export function activate(context: vscode.ExtensionContext) {
   // recreate tmp dir that will be used to dowload JS Apis
   getTempDir(true /*recreate*/);
 
+  /*
+   * Clear connection data
+   */
+  function clearConnection() {
+    selectedConnectionUrl = null;
+    selectedDhService = null;
+    connectStatusBarItem.text = createConnectText(STATUS_BAR_DISCONNECTED_TEXT);
+    dhcServiceRegistry.clearCache();
+  }
+
   /**
    * Handle connection selection
    */
@@ -94,15 +104,6 @@ export function activate(context: vscode.ExtensionContext) {
     const option = connectionOptions.find(
       option => option.url === connectionUrl
     );
-
-    function clearConnection() {
-      selectedConnectionUrl = null;
-      selectedDhService = null;
-      connectStatusBarItem.text = createConnectText(
-        STATUS_BAR_DISCONNECTED_TEXT
-      );
-      dhcServiceRegistry.clearCache();
-    }
 
     // Disconnect option was selected, or connectionUrl that no longer exists
     if (connectionUrl == null || !option) {
