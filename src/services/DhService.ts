@@ -84,7 +84,7 @@ export abstract class DhService<TDH, TClient> {
     return this.cachedInitApi != null;
   }
 
-  public async initDh() {
+  public async initDh(): Promise<boolean> {
     try {
       if (this.cachedInitApi == null) {
         this.outputChannel.appendLine(
@@ -101,10 +101,10 @@ export abstract class DhService<TDH, TClient> {
       this.clearCaches();
       console.error(err);
       this.outputChannel.appendLine(
-        `Failed to initialize Deephaven API: ${err}`
+        `Failed to initialize Deephaven API${err == null ? '.' : `: ${err}`}`
       );
       vscode.window.showErrorMessage('Failed to initialize Deephaven API');
-      return;
+      return false;
     }
 
     if (this.cachedCreateClient == null) {
@@ -160,10 +160,14 @@ export abstract class DhService<TDH, TClient> {
       vscode.window.showErrorMessage(
         `Failed to create Deephaven session: ${this.serverUrl}`
       );
+
+      return false;
     } else {
       vscode.window.showInformationMessage(
         `Created Deephaven session: ${this.serverUrl}`
       );
+
+      return true;
     }
   }
 

@@ -13,6 +13,7 @@ import {
   RUN_CODE_COMMAND,
   RUN_SELECTION_COMMAND,
   SELECT_CONNECTION_COMMAND,
+  STATUS_BAR_CONNECTING_TEXT,
   STATUS_BAR_DISCONNECTED_TEXT,
 } from './common';
 
@@ -94,28 +95,31 @@ export function activate(context: vscode.ExtensionContext) {
       option => option.url === connectionUrl
     );
 
-    // Disconnect option was selected, or connectionUrl that no longer exists
-    if (connectionUrl == null || !option) {
+    function clearConnection() {
       selectedConnectionUrl = null;
       selectedDhService = null;
       connectStatusBarItem.text = createConnectText(
         STATUS_BAR_DISCONNECTED_TEXT
       );
       dhcServiceRegistry.clearCache();
+    }
+
+    // Disconnect option was selected, or connectionUrl that no longer exists
+    if (connectionUrl == null || !option) {
+      clearConnection();
       return;
     }
 
+    connectStatusBarItem.text = createConnectText(STATUS_BAR_CONNECTING_TEXT);
+
     selectedConnectionUrl = connectionUrl;
-
-    connectStatusBarItem.text = createConnectText(option.label);
-
     selectedDhService = await dhcServiceRegistry.get(selectedConnectionUrl);
 
-    if (selectedDhService.isInitialized) {
+    if (selectedDhService.isInitialized || (await selectedDhService.initDh())) {
+      connectStatusBarItem.text = createConnectText(option.label);
       outputChannel.appendLine(`Initialized: ${selectedConnectionUrl}`);
     } else {
-      await selectedDhService.initDh();
-      outputChannel.appendLine(`Initialized: ${selectedConnectionUrl}`);
+      clearConnection();
     }
   }
 }
