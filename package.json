@@ -2,12 +2,12 @@
   "name": "vscode-deephaven",
   "displayName": "Deephaven in VS Code",
   "description": "",
-  "publisher": "bmingles",
+  "publisher": "Deephaven Data Labs",
   "repository": {
     "type": "git",
     "url": "https://github.com/deephaven/vscode-deephaven"
   },
-  "version": "0.0.1",
+  "version": "0.0.2",
   "engines": {
     "vscode": "^1.87.0"
   },
