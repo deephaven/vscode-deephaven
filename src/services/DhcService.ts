@@ -10,6 +10,13 @@ import {
 } from '../dh/dhc';
 import { getPanelHtml } from '../util';
 import { ConnectionAndSession } from '../common';
+import { PanelRegistry } from './PanelRegistry';
+
+export type DhcServiceConstructor<T extends DhcService> = new (
+  serverUrl: string,
+  panelRegistry: PanelRegistry,
+  outputChannel: vscode.OutputChannel
+) => T;
 
 export class DhcService extends DhService<typeof DhcType, DhcType.CoreClient> {
   private psk?: string;

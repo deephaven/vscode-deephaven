@@ -7,7 +7,7 @@ import {
   createConnectionQuickPick,
   getTempDir,
 } from './util';
-import { DhcService } from './services';
+import { DhcService, PanelRegistry } from './services';
 import { DhServiceRegistry } from './services';
 import {
   RUN_CODE_COMMAND,
@@ -39,7 +39,11 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions
   );
 
-  const dhcServiceRegistry = new DhServiceRegistry(DhcService, outputChannel);
+  const dhcServiceRegistry = new DhServiceRegistry(
+    DhcService,
+    new PanelRegistry(),
+    outputChannel
+  );
 
   dhcServiceRegistry.addEventListener('disconnect', () => {
     clearConnection();
