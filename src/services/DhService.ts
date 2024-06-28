@@ -5,6 +5,7 @@ import { ConnectionAndSession } from '../common';
 import { formatTimestamp } from '../util';
 import { PanelFocusManager } from './PanelFocusManager';
 import { EventDispatcher } from './EventDispatcher';
+import { PanelRegistry } from './PanelRegistry';
 
 /* eslint-disable @typescript-eslint/naming-convention */
 const icons = {
@@ -31,10 +32,15 @@ export abstract class DhService<
   TDH,
   TClient
 > extends EventDispatcher<'disconnect'> {
-  constructor(serverUrl: string, outputChannel: vscode.OutputChannel) {
+  constructor(
+    serverUrl: string,
+    panelRegistry: PanelRegistry,
+    outputChannel: vscode.OutputChannel
+  ) {
     super();
 
     this.serverUrl = serverUrl;
+    this.panelRegistry = panelRegistry;
     this.outputChannel = outputChannel;
   }
 
@@ -42,8 +48,7 @@ export abstract class DhService<
   protected readonly subscriptions: (() => void)[] = [];
 
   protected outputChannel: vscode.OutputChannel;
-  private panels = new Map<string, vscode.WebviewPanel>();
-  private panelFocusManager = new PanelFocusManager();
+  private panelRegistry: PanelRegistry;
   private cachedCreateClient: Promise<TClient> | null = null;
   private cachedCreateSession: Promise<ConnectionAndSession<
     DhcType.IdeConnection,
@@ -259,7 +264,7 @@ export abstract class DhService<
         return;
       }
 
-      if (!this.panels.has(title)) {
+      if (!this.panelRegistry.has(title)) {
         const panel = vscode.window.createWebviewPanel(
           'dhPanel', // Identifies the type of the webview. Used internally
           title,
@@ -270,11 +275,11 @@ export abstract class DhService<
           }
         );
 
-        this.panels.set(title, panel);
+        this.panelRegistry.set(title, panel);
 
         // If panel gets disposed, remove it from the caches
         panel.onDidDispose(() => {
-          this.panels.delete(title);
+          this.panelRegistry.delete(title);
         });
 
         // See @deprecated comment in PanelFocusManager.onDidChangeViewState
@@ -284,9 +289,12 @@ export abstract class DhService<
         // );
       }
 
-      const panel = this.panels.get(title)!;
+      const panel = this.panelRegistry.get(title)!;
       lastPanel = panel;
-      this.panelFocusManager.initialize(panel);
+
+      // See @deprecated comment in PanelFocusManager.onDidChangeViewState
+      // Ensure focus is not stolen when panel is loaded
+      // this.panelFocusManager.initialize(panel);
 
       panel.webview.html = this.getPanelHtml(title);
 
@@ -295,9 +303,9 @@ export abstract class DhService<
       panel.webview.onDidReceiveMessage(({ data }) => {
         this.handlePanelMessage(
           data,
-          this.panels
+          this.panelRegistry
             .get(title)!
-            .webview.postMessage.bind(this.panels.get(title)!.webview)
+            .webview.postMessage.bind(this.panelRegistry.get(title)!.webview)
         );
       });
 
