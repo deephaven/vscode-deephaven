@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import {
   ConnectionOption,
   createConnectStatusBarItem,
-  createConnectText,
+  createConnectTextAndTooltip,
   createConnectionOptions,
   createConnectionQuickPick,
   getTempDir,
@@ -51,7 +51,9 @@ export function activate(context: vscode.ExtensionContext) {
   function clearConnection() {
     selectedConnectionUrl = null;
     selectedDhService = null;
-    connectStatusBarItem.text = createConnectText(STATUS_BAR_DISCONNECTED_TEXT);
+    const { text, tooltip } = createConnectTextAndTooltip('disconnected');
+    connectStatusBarItem.text = text;
+    connectStatusBarItem.tooltip = tooltip;
     dhcServiceRegistry.clearCache();
   }
 
@@ -115,13 +117,20 @@ export function activate(context: vscode.ExtensionContext) {
       return;
     }
 
-    connectStatusBarItem.text = createConnectText(STATUS_BAR_CONNECTING_TEXT);
+    const { text, tooltip } = createConnectTextAndTooltip('connecting', option);
+    connectStatusBarItem.text = text;
+    connectStatusBarItem.tooltip = tooltip;
 
     selectedConnectionUrl = connectionUrl;
     selectedDhService = await dhcServiceRegistry.get(selectedConnectionUrl);
 
     if (selectedDhService.isInitialized || (await selectedDhService.initDh())) {
-      connectStatusBarItem.text = createConnectText(option.label);
+      const { text, tooltip } = createConnectTextAndTooltip(
+        'connected',
+        option
+      );
+      connectStatusBarItem.text = text;
+      connectStatusBarItem.tooltip = tooltip;
       outputChannel.appendLine(`Initialized: ${selectedConnectionUrl}`);
     } else {
       clearConnection();

@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import {
   ConnectionType,
   SELECT_CONNECTION_COMMAND,
+  STATUS_BAR_CONNECTING_TEXT,
   STATUS_BAR_DISCONNECTED_TEXT,
   STATUS_BAR_DISCONNECT_TEXT,
 } from '../common';
@@ -33,7 +34,7 @@ export async function createConnectionQuickPick(
   selectedUrl?: string | null
 ): Promise<ConnectionOption | DisconnectOption | undefined> {
   function padLabel(label: string, isSelected: boolean) {
-    return isSelected ? `$(circle-filled) ${label}` : `      ${label}`;
+    return isSelected ? `$(vm-connect) ${label}` : `$(blank) ${label}`;
   }
 
   const options: (ConnectionOption | DisconnectOption)[] = [
@@ -62,7 +63,9 @@ export function createConnectStatusBarItem() {
     100
   );
   statusBarItem.command = SELECT_CONNECTION_COMMAND;
-  statusBarItem.text = createConnectText(STATUS_BAR_DISCONNECTED_TEXT);
+  const { text, tooltip } = createConnectTextAndTooltip('disconnected');
+  statusBarItem.text = text;
+  statusBarItem.tooltip = tooltip;
   statusBarItem.show();
 
   return statusBarItem;
@@ -73,7 +76,7 @@ export function createConnectStatusBarItem() {
  * @param type The type of connection
  */
 export function createConnectionOption(type: ConnectionType) {
-  return (serverUrl: string) => {
+  return (serverUrl: string): ConnectionOption => {
     const url = new URL(serverUrl ?? '');
     const label = `${type}: ${url.hostname}:${url.port}`;
 
@@ -95,11 +98,38 @@ export function createConnectionOptions(): ConnectionOption[] {
 }
 
 /**
- * Create display text for the connection status bar item.
- * @param connectionDisplay The connection display text
+ * Create display text and tooltip for the connection status bar item.
+ * @param status The connection status
+ * @param option The connection option
  */
-export function createConnectText(connectionDisplay: string) {
-  return `$(debug-disconnect) ${connectionDisplay.trim()}`;
+export function createConnectTextAndTooltip(
+  status: 'connecting' | 'connected' | 'disconnected',
+  option?: ConnectionOption
+): { text: string; tooltip: string } {
+  const icon = {
+    connecting: '$(sync~spin)',
+    connected: '$(vm-connect)',
+    disconnected: '$(debug-disconnect)',
+  }[status];
+
+  const label = {
+    connecting: STATUS_BAR_CONNECTING_TEXT,
+    connected: option?.label,
+    disconnected: STATUS_BAR_DISCONNECTED_TEXT,
+  }[status];
+
+  const tooltip = {
+    connecting: `Connecting to ${option?.url}...`,
+    connected: `Connected to ${option?.url}`,
+    disconnected: 'Connect to Deephaven',
+  }[status];
+
+  const text = `${icon} ${label}`;
+
+  return {
+    text,
+    tooltip,
+  };
 }
 
 // Copied from @deephaven/console `ConsoleUtils`
