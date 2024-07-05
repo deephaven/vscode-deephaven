@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import {
   ConnectionOption,
   createConnectStatusBarItem,
-  createConnectText,
+  createConnectTextAndTooltip,
   createConnectionOptions,
   createConnectionQuickPick,
   getTempDir,
@@ -13,6 +13,7 @@ import {
   RUN_CODE_COMMAND,
   RUN_SELECTION_COMMAND,
   SELECT_CONNECTION_COMMAND,
+  STATUS_BAR_CONNECTING_TEXT,
   STATUS_BAR_DISCONNECTED_TEXT,
 } from './common';
 
@@ -39,6 +40,22 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   const dhcServiceRegistry = new DhServiceRegistry(DhcService, outputChannel);
+
+  dhcServiceRegistry.addEventListener('disconnect', () => {
+    clearConnection();
+  });
+
+  /*
+   * Clear connection data
+   */
+  function clearConnection() {
+    selectedConnectionUrl = null;
+    selectedDhService = null;
+    const { text, tooltip } = createConnectTextAndTooltip('disconnected');
+    connectStatusBarItem.text = text;
+    connectStatusBarItem.tooltip = tooltip;
+    dhcServiceRegistry.clearCache();
+  }
 
   /**
    * Get currently active DH service.
@@ -96,26 +113,27 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Disconnect option was selected, or connectionUrl that no longer exists
     if (connectionUrl == null || !option) {
-      selectedConnectionUrl = null;
-      selectedDhService = null;
-      connectStatusBarItem.text = createConnectText(
-        STATUS_BAR_DISCONNECTED_TEXT
-      );
-      dhcServiceRegistry.clearCache();
+      clearConnection();
       return;
     }
 
+    const { text, tooltip } = createConnectTextAndTooltip('connecting', option);
+    connectStatusBarItem.text = text;
+    connectStatusBarItem.tooltip = tooltip;
+
     selectedConnectionUrl = connectionUrl;
-
-    connectStatusBarItem.text = createConnectText(option.label);
-
     selectedDhService = await dhcServiceRegistry.get(selectedConnectionUrl);
 
-    if (selectedDhService.isInitialized) {
+    if (selectedDhService.isInitialized || (await selectedDhService.initDh())) {
+      const { text, tooltip } = createConnectTextAndTooltip(
+        'connected',
+        option
+      );
+      connectStatusBarItem.text = text;
+      connectStatusBarItem.tooltip = tooltip;
       outputChannel.appendLine(`Initialized: ${selectedConnectionUrl}`);
     } else {
-      await selectedDhService.initDh();
-      outputChannel.appendLine(`Initialized: ${selectedConnectionUrl}`);
+      clearConnection();
     }
   }
 }

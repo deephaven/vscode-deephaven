@@ -8,3 +8,4 @@ export const SELECT_CONNECTION_COMMAND = `${CONFIG_KEY}.selectConnection`;
 
 export const STATUS_BAR_DISCONNECTED_TEXT = 'Deephaven: Disconnected';
 export const STATUS_BAR_DISCONNECT_TEXT = 'Deephaven: Disconnect';
+export const STATUS_BAR_CONNECTING_TEXT = 'Deephaven: Connecting...';

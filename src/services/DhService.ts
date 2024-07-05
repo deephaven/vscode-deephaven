@@ -4,6 +4,7 @@ import { hasErrorCode } from '../util/typeUtils';
 import { ConnectionAndSession } from '../common';
 import { formatTimestamp } from '../util';
 import { PanelFocusManager } from './PanelFocusManager';
+import { EventDispatcher } from './EventDispatcher';
 
 /* eslint-disable @typescript-eslint/naming-convention */
 const icons = {
@@ -26,8 +27,13 @@ type CommandResultBase = {
   error: string;
 };
 
-export abstract class DhService<TDH, TClient> {
+export abstract class DhService<
+  TDH,
+  TClient
+> extends EventDispatcher<'disconnect'> {
   constructor(serverUrl: string, outputChannel: vscode.OutputChannel) {
+    super();
+
     this.serverUrl = serverUrl;
     this.outputChannel = outputChannel;
   }
@@ -84,7 +90,7 @@ export abstract class DhService<TDH, TClient> {
     return this.cachedInitApi != null;
   }
 
-  public async initDh() {
+  public async initDh(): Promise<boolean> {
     try {
       if (this.cachedInitApi == null) {
         this.outputChannel.appendLine(
@@ -101,10 +107,10 @@ export abstract class DhService<TDH, TClient> {
       this.clearCaches();
       console.error(err);
       this.outputChannel.appendLine(
-        `Failed to initialize Deephaven API: ${err}`
+        `Failed to initialize Deephaven API${err == null ? '.' : `: ${err}`}`
       );
       vscode.window.showErrorMessage('Failed to initialize Deephaven API');
-      return;
+      return false;
     }
 
     if (this.cachedCreateClient == null) {
@@ -129,6 +135,8 @@ export abstract class DhService<TDH, TClient> {
             vscode.window.showInformationMessage(
               `Disconnected from Deephaven server: ${this.serverUrl}`
             );
+
+            this.dispatchEvent('disconnect');
           })
         );
       }
@@ -160,10 +168,14 @@ export abstract class DhService<TDH, TClient> {
       vscode.window.showErrorMessage(
         `Failed to create Deephaven session: ${this.serverUrl}`
       );
+
+      return false;
     } else {
       vscode.window.showInformationMessage(
         `Created Deephaven session: ${this.serverUrl}`
       );
+
+      return true;
     }
   }
 

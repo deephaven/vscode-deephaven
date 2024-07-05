@@ -3,7 +3,10 @@ import { CacheService } from './CacheService';
 import { DhcService } from './DhcService';
 import { ensureHasTrailingSlash } from '../util';
 
-export class DhServiceRegistry<T extends DhcService> extends CacheService<T> {
+export class DhServiceRegistry<T extends DhcService> extends CacheService<
+  T,
+  'disconnect'
+> {
   constructor(
     serviceFactory: new (
       serverUrl: string,
@@ -18,7 +21,13 @@ export class DhServiceRegistry<T extends DhcService> extends CacheService<T> {
           throw new Error(`${serviceFactory.name} server url is null.`);
         }
 
-        return new serviceFactory(serverUrl, outputChannel);
+        const dhService = new serviceFactory(serverUrl, outputChannel);
+
+        dhService.addEventListener('disconnect', () => {
+          this.dispatchEvent('disconnect');
+        });
+
+        return dhService;
       },
       ensureHasTrailingSlash
     );
