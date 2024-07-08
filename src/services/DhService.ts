@@ -2,10 +2,8 @@ import * as vscode from 'vscode';
 import type { dh as DhcType } from '../dh/dhc-types';
 import { hasErrorCode } from '../util/typeUtils';
 import { ConnectionAndSession } from '../common';
-import { formatTimestamp } from '../util';
-import { PanelFocusManager } from './PanelFocusManager';
+import { ExtendedMap, formatTimestamp } from '../util';
 import { EventDispatcher } from './EventDispatcher';
-import { PanelRegistry } from './PanelRegistry';
 
 /* eslint-disable @typescript-eslint/naming-convention */
 const icons = {
@@ -34,7 +32,7 @@ export abstract class DhService<
 > extends EventDispatcher<'disconnect'> {
   constructor(
     serverUrl: string,
-    panelRegistry: PanelRegistry,
+    panelRegistry: ExtendedMap<string, vscode.WebviewPanel>,
     outputChannel: vscode.OutputChannel
   ) {
     super();
@@ -48,7 +46,7 @@ export abstract class DhService<
   protected readonly subscriptions: (() => void)[] = [];
 
   protected outputChannel: vscode.OutputChannel;
-  private panelRegistry: PanelRegistry;
+  private panelRegistry: ExtendedMap<string, vscode.WebviewPanel>;
   private cachedCreateClient: Promise<TClient> | null = null;
   private cachedCreateSession: Promise<ConnectionAndSession<
     DhcType.IdeConnection,
@@ -289,7 +287,7 @@ export abstract class DhService<
         // );
       }
 
-      const panel = this.panelRegistry.get(title)!;
+      const panel = this.panelRegistry.getOrThrow(title);
       lastPanel = panel;
 
       // See @deprecated comment in PanelFocusManager.onDidChangeViewState
@@ -305,7 +303,9 @@ export abstract class DhService<
           data,
           this.panelRegistry
             .get(title)!
-            .webview.postMessage.bind(this.panelRegistry.get(title)!.webview)
+            .webview.postMessage.bind(
+              this.panelRegistry.getOrThrow(title).webview
+            )
         );
       });
 

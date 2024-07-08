@@ -8,13 +8,12 @@ import {
   initDhcApi,
   initDhcSession,
 } from '../dh/dhc';
-import { getPanelHtml } from '../util';
+import { ExtendedMap, getPanelHtml } from '../util';
 import { ConnectionAndSession } from '../common';
-import { PanelRegistry } from './PanelRegistry';
 
 export type DhcServiceConstructor<T extends DhcService> = new (
   serverUrl: string,
-  panelRegistry: PanelRegistry,
+  panelRegistry: ExtendedMap<string, vscode.WebviewPanel>,
   outputChannel: vscode.OutputChannel
 ) => T;
 

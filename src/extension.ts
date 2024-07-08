@@ -1,20 +1,19 @@
 import * as vscode from 'vscode';
 import {
   ConnectionOption,
+  ExtendedMap,
   createConnectStatusBarItem,
   createConnectTextAndTooltip,
   createConnectionOptions,
   createConnectionQuickPick,
   getTempDir,
 } from './util';
-import { DhcService, PanelRegistry } from './services';
+import { DhcService } from './services';
 import { DhServiceRegistry } from './services';
 import {
   RUN_CODE_COMMAND,
   RUN_SELECTION_COMMAND,
   SELECT_CONNECTION_COMMAND,
-  STATUS_BAR_CONNECTING_TEXT,
-  STATUS_BAR_DISCONNECTED_TEXT,
 } from './common';
 
 export function activate(context: vscode.ExtensionContext) {
@@ -41,7 +40,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   const dhcServiceRegistry = new DhServiceRegistry(
     DhcService,
-    new PanelRegistry(),
+    new ExtendedMap<string, vscode.WebviewPanel>(),
     outputChannel
   );
 
