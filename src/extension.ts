@@ -44,20 +44,23 @@ export function activate(context: vscode.ExtensionContext) {
     outputChannel
   );
 
-  dhcServiceRegistry.addEventListener('disconnect', () => {
+  dhcServiceRegistry.addEventListener('disconnect', serverUrl => {
+    vscode.window.showInformationMessage(
+      `Disconnected from Deephaven server: ${serverUrl}`
+    );
     clearConnection();
   });
 
   /*
    * Clear connection data
    */
-  function clearConnection() {
+  async function clearConnection() {
     selectedConnectionUrl = null;
     selectedDhService = null;
     const { text, tooltip } = createConnectTextAndTooltip('disconnected');
     connectStatusBarItem.text = text;
     connectStatusBarItem.tooltip = tooltip;
-    dhcServiceRegistry.clearCache();
+    await dhcServiceRegistry.clearCache();
   }
 
   /**
@@ -85,6 +88,7 @@ export function activate(context: vscode.ExtensionContext) {
   const connectStatusBarItem = createConnectStatusBarItem();
 
   context.subscriptions.push(
+    dhcServiceRegistry,
     outputChannel,
     runCodeCmd,
     runSelectionCmd,

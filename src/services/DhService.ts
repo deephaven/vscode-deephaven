@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '../dh/dhc-types';
 import { hasErrorCode } from '../util/typeUtils';
-import { ConnectionAndSession } from '../common';
+import { ConnectionAndSession, Disposable } from '../common';
 import { ExtendedMap, formatTimestamp } from '../util';
 import { EventDispatcher } from './EventDispatcher';
 
@@ -26,10 +26,10 @@ type CommandResultBase = {
   error: string;
 };
 
-export abstract class DhService<
-  TDH,
-  TClient
-> extends EventDispatcher<'disconnect'> {
+export abstract class DhService<TDH, TClient>
+  extends EventDispatcher<'disconnect'>
+  implements Disposable
+{
   constructor(
     serverUrl: string,
     panelRegistry: ExtendedMap<string, vscode.WebviewPanel>,
@@ -82,11 +82,21 @@ export abstract class DhService<
     this.cachedCreateSession = null;
     this.cachedInitApi = null;
     this.client = null;
+
+    if (this.cn != null) {
+      this.cn.close();
+      this.dispatchEvent('disconnect', this.serverUrl);
+    }
     this.cn = null;
+
     this.dh = null;
     this.session = null;
 
     this.subscriptions.forEach(dispose => dispose());
+  }
+
+  public async dispose(): Promise<void> {
+    this.clearCaches();
   }
 
   public get isInitialized(): boolean {
@@ -134,12 +144,6 @@ export abstract class DhService<
         this.subscriptions.push(
           cn.addEventListener('disconnect', () => {
             this.clearCaches();
-
-            vscode.window.showInformationMessage(
-              `Disconnected from Deephaven server: ${this.serverUrl}`
-            );
-
-            this.dispatchEvent('disconnect');
           })
         );
       }
