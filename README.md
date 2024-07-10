@@ -12,7 +12,13 @@ Deephaven in VS Code
 
 ## Installation
 
-This extension is not yet published to the marketplace, but you can install a `.vsix` directly. To get a `.vsix`, you can either:
+TODO: Document marketplace instructions.
+
+> Note: There are some `vscode` bugs that cause some flakiness with the `run` button. vscode `v90` introduced an optional `workbench.editor.alwaysShowEditorActions` setting. Setting this to `true` improves the experience here. Namely the run button will not disappear when running commands or selecting its dropdown. See https://github.com/deephaven/vscode-deephaven/issues/1 for more details.
+
+### Installation from .VSIX
+
+This extension can also be installed directly from a `.vsix`. To get a `.vsix`, you can either:
 
 Download one from the [releases/](releases/) folder.
 
@@ -22,8 +28,6 @@ Build a .vsix locally via `npm run package`
 
 Then install in vscode:
 ![Install Deephaven in VS Code](docs/install.png)
-
-> Note: There are some `vscode` bugs that cause some flakiness with the `run` button. vscode `v90` introduced an optional `workbench.editor.alwaysShowEditorActions` setting. Setting this to `true` improves the experience here. Namely the run button will not disappear when running commands or selecting its dropdown. See https://github.com/deephaven/vscode-deephaven/issues/1 for more details.
 
 ## Connecting to a Server
 
@@ -61,7 +65,7 @@ Scripts will be run against the active connection or default to the first connec
 
    ![Deephaven: Run](docs/run.png)
 
-Note that `vscode` will remember your selection so you can just click the `run` button (play icon) the next time.
+> Note that `vscode` should remember your selection so you can just click the `run` button (play icon) the next time; however, we have observed cases where this does not always work.
 
 ### Run a selection
 
@@ -70,13 +74,25 @@ Note that `vscode` will remember your selection so you can just click the `run` 
 
    ![Deephaven: Run Selection](docs/run-selection.png)
 
-Note that `vscode` will remember your selection so you can just click the `run` button (play icon) the next time.
+> Note that `vscode` should remember your selection so you can just click the `run` button (play icon) the next time; however, we have observed cases where this does not always work.
 
 ## Code Snippets
 
 The `vscode-deephaven` extension comes with some predefined `python` snippets. These insert pre-defined code snippets into an editor. To use, simply type `ui` to see available snippets.
 
 ![Code Snippets](docs/code-snippets.png)
+
+## Releases
+
+We are following the official `vscode` extension publishing guidance.
+
+- Pre-release versions use `major.ODD_NUMBER.patch` version scheme (e.g. `1.1.3`)
+- Release versions use `major.EVEN_NUMBER.patch` versions scheme (e.g. `1.2.3`)
+
+> Note that `vscode` will always install a later release version instead of pre-release, so it's important to always have a pre-release version that is later than the release version if we want to allow pre-release users to stay on the latest pre-release.
+
+You can find additional details here:
+https://code.visualstudio.com/api/working-with-extensions/publishing-extension#prerelease-extensions
 
 ## Implementation Notes
 
@@ -98,7 +114,7 @@ On subsequent script runs, the session will be re-used and only steps 4 and 5 wi
 
 ### Downloading JS API
 
-The extension dynamically downloads and loads the DH JS API from a DH Core server.
+The extension dynamically downloads and loads the DH JS API from a running DH Core server.
 
 - `src/jsApi.downloadDhFromServer()`
   At runtime, `dh-internal.js` and `dh-core.js` are downloaded from the running DH server (default http://localhost:10000). The files are saved to `out/tmp` as `.cjs` modules, and import / export are converted to cjs compatible ones.
