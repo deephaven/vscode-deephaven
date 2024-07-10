@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import {
   ConnectionOption,
+  ExtendedMap,
   createConnectStatusBarItem,
   createConnectTextAndTooltip,
   createConnectionOptions,
@@ -13,8 +14,6 @@ import {
   RUN_CODE_COMMAND,
   RUN_SELECTION_COMMAND,
   SELECT_CONNECTION_COMMAND,
-  STATUS_BAR_CONNECTING_TEXT,
-  STATUS_BAR_DISCONNECTED_TEXT,
 } from './common';
 
 export function activate(context: vscode.ExtensionContext) {
@@ -39,7 +38,11 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions
   );
 
-  const dhcServiceRegistry = new DhServiceRegistry(DhcService, outputChannel);
+  const dhcServiceRegistry = new DhServiceRegistry(
+    DhcService,
+    new ExtendedMap<string, vscode.WebviewPanel>(),
+    outputChannel
+  );
 
   dhcServiceRegistry.addEventListener('disconnect', () => {
     clearConnection();
