@@ -94,6 +94,15 @@ We are following the official `vscode` extension publishing guidance.
 You can find additional details here:
 https://code.visualstudio.com/api/working-with-extensions/publishing-extension#prerelease-extensions
 
+## PNG Generation
+
+Logo .pngs were generated from .svgs using `rsvg-convert`
+
+```
+rsvg-convert -w 128 -h 128 images/dh-community-on-dark-128.svg -o images/dh-community-on-dark-128.png
+rsvg-convert -w 128 -h 128 images/dh-community-on-light-128.svg -o images/dh-community-on-light-128.png
+```
+
 ## Implementation Notes
 
 ### Server Connection
