@@ -1,9 +1,11 @@
+import { Disposable } from '../common';
+import { isDisposable } from '../util';
 import { EventDispatcher } from './EventDispatcher';
 
-export class CacheService<
-  T,
-  TEventName extends string
-> extends EventDispatcher<TEventName> {
+export class CacheService<T, TEventName extends string>
+  extends EventDispatcher<TEventName>
+  implements Disposable
+{
   constructor(
     label: string,
     loader: (key: string | null) => Promise<T>,
@@ -35,7 +37,25 @@ export class CacheService<
     return this.cachedPromises.get(normalizeKey)!;
   }
 
-  public clearCache(): void {
+  public async clearCache(): Promise<void> {
+    try {
+      const allValues = await Promise.all([...this.cachedPromises.values()]);
+
+      // Since the cache is responsible for creating the promises, it is also
+      // responsible for disposing of them.
+      allValues.forEach(value => {
+        if (isDisposable(value)) {
+          value.dispose();
+        }
+      });
+    } catch (err) {
+      console.error('An error occurred while disposing cached values:', err);
+    }
+
     this.cachedPromises.clear();
+  }
+
+  public async dispose(): Promise<void> {
+    await this.clearCache();
   }
 }

@@ -25,8 +25,9 @@ export class DhServiceRegistry<T extends DhcService> extends CacheService<
           outputChannel
         );
 
-        dhService.addEventListener('disconnect', () => {
-          this.dispatchEvent('disconnect');
+        // Propagate service events as registry events.
+        dhService.addEventListener('disconnect', event => {
+          this.dispatchEvent('disconnect', event);
         });
 
         return dhService;

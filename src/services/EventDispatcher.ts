@@ -34,6 +34,8 @@ export class EventDispatcher<TEventName extends string> {
    * @param event The event to dispatch to all listeners
    */
   dispatchEvent = <TEvent>(eventName: TEventName, event?: TEvent): void => {
-    this.listeners.get(eventName)?.forEach(listener => listener(event));
+    this.listeners.get(eventName)?.forEach(listener => {
+      listener(event);
+    });
   };
 }
