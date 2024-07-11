@@ -103,6 +103,15 @@ rsvg-convert -w 128 -h 128 images/dh-community-on-dark-128.svg -o images/dh-comm
 rsvg-convert -w 128 -h 128 images/dh-community-on-light-128.svg -o images/dh-community-on-light-128.png
 ```
 
+## Publishing the Extension
+
+Publishing a vscode extension requires
+
+- Azure AD organization - https://dev.azure.com/deephaven-oss/
+- Marketplace publisher - https://marketplace.visualstudio.com/publishers/deephaven
+- Personal access token - associated with a user in the Azure AD organization
+  > NOTE: This can be set in `VSCE_PAT` env variable
+
 ## Implementation Notes
 
 ### Server Connection
