@@ -82,7 +82,4 @@ On subsequent script runs, the session will be re-used and only steps 4 and 5 wi
 
 ### Downloading JS API
 
-The extension dynamically downloads and loads the DH JS API from a running DH Core server.
-
-- `src/dh/dhc.getDhc()`
-  At runtime, `dh-internal.js` and `dh-core.js` are downloaded from the running DH server (default http://localhost:10000). The files are saved to `out/util/tmp` as `.cjs` modules, and import / export are converted to cjs compatible ones.
+The extension dynamically downloads and loads the DH JS API from a running DH Core server. At runtime, `dh-internal.js` and `dh-core.js` are downloaded from the running DH server (default http://localhost:10000). The files are saved to `out/util/tmp` as `.cjs` modules, and import / export are converted to cjs compatible ones. For implementation details, see [src/dh/dhc.ts#getDhc](https://github.com/deephaven/vscode-deephaven/blob/main/src/dh/dhc.ts#L62).
