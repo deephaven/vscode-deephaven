@@ -2,8 +2,10 @@ import * as vscode from 'vscode';
 import type { dh as DhcType } from '../dh/dhc-types';
 import { hasErrorCode } from '../util/typeUtils';
 import { ConnectionAndSession, Disposable } from '../common';
-import { ExtendedMap, formatTimestamp } from '../util';
+import { ExtendedMap, formatTimestamp, Logger } from '../util';
 import { EventDispatcher } from './EventDispatcher';
+
+const logger = new Logger('DhService');
 
 /* eslint-disable @typescript-eslint/naming-convention */
 const icons = {
@@ -118,7 +120,7 @@ export abstract class DhService<TDH, TClient>
       );
     } catch (err) {
       this.clearCaches();
-      console.error(err);
+      logger.error(err);
       this.outputChannel.appendLine(
         `Failed to initialize Deephaven API${err == null ? '.' : `: ${err}`}`
       );
@@ -192,7 +194,7 @@ export abstract class DhService<TDH, TClient>
   ): Promise<void> {
     if (editor.document.languageId !== 'python') {
       // This should not actually happen
-      console.log(`languageId '${editor.document.languageId}' not supported.`);
+      logger.info(`languageId '${editor.document.languageId}' not supported.`);
       return;
     }
 
@@ -220,7 +222,7 @@ export abstract class DhService<TDH, TClient>
 
     const text = editor.document.getText(selectionRange);
 
-    console.log('Sending text to dh:', text);
+    logger.info('Sending text to dh:', text);
 
     let result: CommandResultBase;
     let error: string | null = null;
@@ -243,7 +245,7 @@ export abstract class DhService<TDH, TClient>
     }
 
     if (error) {
-      console.error(error);
+      logger.error(error);
       this.outputChannel.show(true);
       this.outputChannel.appendLine(error);
       vscode.window.showErrorMessage(

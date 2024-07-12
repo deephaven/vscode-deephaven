@@ -2,6 +2,9 @@ import * as fs from 'node:fs';
 import * as http from 'node:http';
 import * as https from 'node:https';
 import * as path from 'node:path';
+import { Logger } from './Logger';
+
+const logger = new Logger('downloadUtils');
 
 export function getTempDir(recreate = false) {
   const tempDir = path.join(__dirname, 'tmp');
@@ -60,12 +63,12 @@ export async function downloadFromURL(
         });
       })
       .on('timeout', () => {
-        console.error('Failed download of url:', url);
+        logger.error('Failed download of url:', url);
         reject();
       })
       .on('error', e => {
         if (retries > 0) {
-          console.error('Retrying url:', url);
+          logger.error('Retrying url:', url);
           setTimeout(
             () =>
               downloadFromURL(url, retries - 1, retryDelay).then(
@@ -75,10 +78,10 @@ export async function downloadFromURL(
             retryDelay
           );
         } else {
-          console.error(
+          logger.error(
             `Hit retry limit. Stopping attempted include from ${url} with error`
           );
-          console.error(e);
+          logger.error(e);
           reject();
         }
       });

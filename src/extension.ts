@@ -7,6 +7,7 @@ import {
   createConnectionOptions,
   createConnectionQuickPick,
   getTempDir,
+  Logger,
 } from './util';
 import { DhcService } from './services';
 import { DhServiceRegistry } from './services';
@@ -16,8 +17,10 @@ import {
   SELECT_CONNECTION_COMMAND,
 } from './common';
 
+const logger = new Logger('extension');
+
 export function activate(context: vscode.ExtensionContext) {
-  console.log(
+  logger.info(
     'Congratulations, your extension "vscode-deephaven" is now active!'
   );
 
@@ -26,6 +29,15 @@ export function activate(context: vscode.ExtensionContext) {
   let connectionOptions = createConnectionOptions();
 
   const outputChannel = vscode.window.createOutputChannel('Deephaven', 'log');
+  const debugOutputChannel = vscode.window.createOutputChannel(
+    'Deephaven Debug',
+    'log'
+  );
+
+  // Configure log handlers
+  Logger.addConsoleHandler();
+  Logger.addOutputChannelHandler(debugOutputChannel);
+
   outputChannel.appendLine('Deephaven extension activated');
 
   // Update connection options when configuration changes
