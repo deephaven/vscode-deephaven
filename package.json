@@ -1,13 +1,18 @@
 {
   "name": "vscode-deephaven",
+  "version": "0.1.2",
   "displayName": "Deephaven in VS Code",
   "description": "",
-  "publisher": "Deephaven Data Labs",
+  "publisher": "deephaven",
+  "icon": "images/dh-community-on-dark-128.png",
+  "galleryBanner": {
+    "color": "#040427",
+    "theme": "dark"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/deephaven/vscode-deephaven"
   },
-  "version": "0.0.2",
   "engines": {
     "vscode": "^1.87.0"
   },

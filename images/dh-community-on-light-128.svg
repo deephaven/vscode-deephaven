@@ -1,0 +1,13 @@
+<!-- 
+    Modified logo to be 128x128 without partial pixels:
+    25 25 25 25 25
+    25 26 26 26 25
+    25 26 26 26 25
+    25 26 26 26 25
+    25 25 25 25 25
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128"><defs><style>.a{fill:#f9c82d;}.b{fill:#88c24e;}.c{fill:#e82757;}.d{fill:#14a5c3;}</style></defs>
+<rect class="a" x="25" y="77" width="26" height="26"/>
+<rect class="b" x="51" y="77" width="26" height="26"/>
+<rect class="c" x="77" y="51" width="26" height="26"/>
+<polygon class="d" points="51 25 25 25 25 77 51 77 51 51 77 51 77 25 51 25"/></svg>
