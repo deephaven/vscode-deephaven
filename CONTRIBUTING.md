@@ -84,5 +84,5 @@ On subsequent script runs, the session will be re-used and only steps 4 and 5 wi
 
 The extension dynamically downloads and loads the DH JS API from a running DH Core server.
 
-- `src/jsApi.downloadDhFromServer()`
-  At runtime, `dh-internal.js` and `dh-core.js` are downloaded from the running DH server (default http://localhost:10000). The files are saved to `out/tmp` as `.cjs` modules, and import / export are converted to cjs compatible ones.
+- `src/dh/dhc.getDhc()`
+  At runtime, `dh-internal.js` and `dh-core.js` are downloaded from the running DH server (default http://localhost:10000). The files are saved to `out/util/tmp` as `.cjs` modules, and import / export are converted to cjs compatible ones.
