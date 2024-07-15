@@ -1,6 +1,8 @@
 import { Disposable } from '../common';
-import { isDisposable } from '../util';
+import { isDisposable, Logger } from '../util';
 import { EventDispatcher } from './EventDispatcher';
+
+const logger = new Logger('CacheService');
 
 export class CacheService<T, TEventName extends string>
   extends EventDispatcher<TEventName>
@@ -27,7 +29,7 @@ export class CacheService<T, TEventName extends string>
     const normalizeKey = this.normalizeKey(key);
 
     if (!this.cachedPromises.has(normalizeKey)) {
-      console.log(`${this.label}: caching key: ${normalizeKey}`);
+      logger.info(`${this.label}: caching key: ${normalizeKey}`);
       // Note that we cache the promise itself, not the result of the promise.
       // This helps ensure the loader is only called the first time `get` is
       // called.
@@ -49,7 +51,7 @@ export class CacheService<T, TEventName extends string>
         }
       });
     } catch (err) {
-      console.error('An error occurred while disposing cached values:', err);
+      logger.error('An error occurred while disposing cached values:', err);
     }
 
     this.cachedPromises.clear();

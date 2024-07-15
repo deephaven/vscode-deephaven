@@ -1,4 +1,7 @@
 import * as vscode from 'vscode';
+import { Logger } from '../util';
+
+const logger = new Logger('PanelFocusManager');
 
 /*
  * Panels steal focus when they finish loading which causes the run
@@ -26,7 +29,7 @@ export class PanelFocusManager {
   >();
 
   initialize(panel: vscode.WebviewPanel): void {
-    console.log('Initializing panel:', panel.title, 2);
+    logger.info('Initializing panel:', panel.title, 2);
 
     // Only count the last panel initialized
     this.panelsPendingInitialFocus = new WeakMap();
@@ -59,7 +62,7 @@ export class PanelFocusManager {
 
       const pendingChangeCount = this.panelsPendingInitialFocus.get(panel) ?? 0;
 
-      console.log('Panel view state changed:', {
+      logger.info('Panel view state changed:', {
         panelTitle: panel.title,
         activeEditorViewColumn,
         activeTabGroupViewColumn,
