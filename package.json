@@ -1,6 +1,6 @@
 {
   "name": "vscode-deephaven",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "displayName": "Deephaven in VS Code",
   "description": "",
   "publisher": "deephaven",
@@ -14,7 +14,7 @@
     "url": "https://github.com/deephaven/vscode-deephaven"
   },
   "engines": {
-    "vscode": "^1.87.0"
+    "vscode": "^1.91.0"
   },
   "categories": [
     "Data Science",
