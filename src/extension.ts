@@ -126,6 +126,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     if (uri != null) {
       toaster.showInfoMessage(`Downloaded logs to ${uri.fsPath}`);
+      vscode.window.showTextDocument(uri);
     }
   }
 
