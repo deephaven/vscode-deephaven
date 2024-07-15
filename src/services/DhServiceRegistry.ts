@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { CacheService } from './CacheService';
 import { DhcService, DhcServiceConstructor } from './DhcService';
-import { ensureHasTrailingSlash, ExtendedMap } from '../util';
+import { ensureHasTrailingSlash, ExtendedMap, Toaster } from '../util';
 
 export class DhServiceRegistry<T extends DhcService> extends CacheService<
   T,
@@ -10,7 +10,8 @@ export class DhServiceRegistry<T extends DhcService> extends CacheService<
   constructor(
     serviceFactory: DhcServiceConstructor<T>,
     panelRegistry: ExtendedMap<string, vscode.WebviewPanel>,
-    outputChannel: vscode.OutputChannel
+    outputChannel: vscode.OutputChannel,
+    toaster: Toaster
   ) {
     super(
       serviceFactory.name,
@@ -22,7 +23,8 @@ export class DhServiceRegistry<T extends DhcService> extends CacheService<
         const dhService = new serviceFactory(
           serverUrl,
           panelRegistry,
-          outputChannel
+          outputChannel,
+          toaster
         );
 
         // Propagate service events as registry events.

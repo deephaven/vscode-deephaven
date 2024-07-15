@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import type { dh as DhcType } from '../dh/dhc-types';
 import { hasErrorCode } from '../util/typeUtils';
 import { ConnectionAndSession, Disposable } from '../common';
-import { ExtendedMap, formatTimestamp, Logger } from '../util';
+import { ExtendedMap, formatTimestamp, Logger, Toaster } from '../util';
 import { EventDispatcher } from './EventDispatcher';
 
 const logger = new Logger('DhService');
@@ -35,19 +35,22 @@ export abstract class DhService<TDH, TClient>
   constructor(
     serverUrl: string,
     panelRegistry: ExtendedMap<string, vscode.WebviewPanel>,
-    outputChannel: vscode.OutputChannel
+    outputChannel: vscode.OutputChannel,
+    toaster: Toaster
   ) {
     super();
 
     this.serverUrl = serverUrl;
     this.panelRegistry = panelRegistry;
     this.outputChannel = outputChannel;
+    this.toaster = toaster;
   }
 
   public readonly serverUrl: string;
   protected readonly subscriptions: (() => void)[] = [];
 
   protected outputChannel: vscode.OutputChannel;
+  protected toaster: Toaster;
   private panelRegistry: ExtendedMap<string, vscode.WebviewPanel>;
   private cachedCreateClient: Promise<TClient> | null = null;
   private cachedCreateSession: Promise<ConnectionAndSession<
@@ -124,7 +127,7 @@ export abstract class DhService<TDH, TClient>
       this.outputChannel.appendLine(
         `Failed to initialize Deephaven API${err == null ? '.' : `: ${err}`}`
       );
-      vscode.window.showErrorMessage('Failed to initialize Deephaven API');
+      this.toaster.showErrorMessage('Failed to initialize Deephaven API');
       return false;
     }
 
@@ -174,13 +177,13 @@ export abstract class DhService<TDH, TClient>
     if (this.cn == null || this.session == null) {
       this.clearCaches();
 
-      vscode.window.showErrorMessage(
+      this.toaster.showErrorMessage(
         `Failed to create Deephaven session: ${this.serverUrl}`
       );
 
       return false;
     } else {
-      vscode.window.showInformationMessage(
+      this.toaster.showInfoMessage(
         `Created Deephaven session: ${this.serverUrl}`
       );
 
@@ -237,7 +240,7 @@ export abstract class DhService<TDH, TClient>
       // clear the caches on connection disconnect
       if (hasErrorCode(err, 16)) {
         this.clearCaches();
-        vscode.window.showErrorMessage(
+        this.toaster.showErrorMessage(
           'Session is no longer invalid. Please re-run the command to reconnect.'
         );
         return;
@@ -248,9 +251,7 @@ export abstract class DhService<TDH, TClient>
       logger.error(error);
       this.outputChannel.show(true);
       this.outputChannel.appendLine(error);
-      vscode.window.showErrorMessage(
-        'An error occurred when running a command'
-      );
+      this.toaster.showErrorMessage('An error occurred when running a command');
 
       return;
     }

@@ -4,5 +4,6 @@ export * from './isDisposable';
 export * from './Logger';
 export * from './panelUtils';
 export * from './polyfillUtils';
+export * from './Toaster';
 export * from './uiUtils';
 export * from './urlUtils';

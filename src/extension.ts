@@ -8,14 +8,17 @@ import {
   createConnectionQuickPick,
   getTempDir,
   Logger,
+  Toaster,
 } from './util';
 import { DhcService } from './services';
 import { DhServiceRegistry } from './services';
 import {
+  DOWNLOAD_LOGS_CMD,
   RUN_CODE_COMMAND,
   RUN_SELECTION_COMMAND,
   SELECT_CONNECTION_COMMAND,
 } from './common';
+import { OutputChannelWithHistory } from './util/OutputChannelWithHistory';
 
 const logger = new Logger('extension');
 
@@ -29,10 +32,11 @@ export function activate(context: vscode.ExtensionContext) {
   let connectionOptions = createConnectionOptions();
 
   const outputChannel = vscode.window.createOutputChannel('Deephaven', 'log');
-  const debugOutputChannel = vscode.window.createOutputChannel(
-    'Deephaven Debug',
-    'log'
+  const debugOutputChannel = new OutputChannelWithHistory(
+    context,
+    vscode.window.createOutputChannel('Deephaven Debug', 'log')
   );
+  const toaster = new Toaster();
 
   // Configure log handlers
   Logger.addConsoleHandler();
@@ -53,13 +57,12 @@ export function activate(context: vscode.ExtensionContext) {
   const dhcServiceRegistry = new DhServiceRegistry(
     DhcService,
     new ExtendedMap<string, vscode.WebviewPanel>(),
-    outputChannel
+    outputChannel,
+    toaster
   );
 
   dhcServiceRegistry.addEventListener('disconnect', serverUrl => {
-    vscode.window.showInformationMessage(
-      `Disconnected from Deephaven server: ${serverUrl}`
-    );
+    toaster.showInfoMessage(`Disconnected from Deephaven server: ${serverUrl}`);
     clearConnection();
   });
 
@@ -91,15 +94,19 @@ export function activate(context: vscode.ExtensionContext) {
   }
 
   /** Register extension commands */
-  const { runCodeCmd, runSelectionCmd, selectConnectionCmd } = registerCommands(
-    () => connectionOptions,
-    getActiveDhService,
-    onConnectionSelected
-  );
+  const { downloadLogsCmd, runCodeCmd, runSelectionCmd, selectConnectionCmd } =
+    registerCommands(
+      () => connectionOptions,
+      getActiveDhService,
+      onConnectionSelected,
+      onDownloadLogs
+    );
 
   const connectStatusBarItem = createConnectStatusBarItem();
 
   context.subscriptions.push(
+    debugOutputChannel,
+    downloadLogsCmd,
     dhcServiceRegistry,
     outputChannel,
     runCodeCmd,
@@ -110,6 +117,17 @@ export function activate(context: vscode.ExtensionContext) {
 
   // recreate tmp dir that will be used to dowload JS Apis
   getTempDir(true /*recreate*/);
+
+  /**
+   * Handle download logs command
+   */
+  async function onDownloadLogs() {
+    const uri = await debugOutputChannel.downloadHistoryToFile();
+
+    if (uri != null) {
+      toaster.showInfoMessage(`Downloaded logs to ${uri.fsPath}`);
+    }
+  }
 
   /**
    * Handle connection selection
@@ -175,8 +193,14 @@ async function ensureUriEditorIsActive(uri: vscode.Uri) {
 function registerCommands(
   getConnectionOptions: () => ConnectionOption[],
   getActiveDhService: (autoActivate: boolean) => Promise<DhcService | null>,
-  onConnectionSelected: (connectionUrl: string | null) => void
+  onConnectionSelected: (connectionUrl: string | null) => void,
+  onDownloadLogs: () => void
 ) {
+  const downloadLogsCmd = vscode.commands.registerCommand(
+    DOWNLOAD_LOGS_CMD,
+    onDownloadLogs
+  );
+
   /** Run all code in active editor */
   const runCodeCmd = vscode.commands.registerCommand(
     RUN_CODE_COMMAND,
@@ -225,5 +249,5 @@ function registerCommands(
     }
   );
 
-  return { runCodeCmd, runSelectionCmd, selectConnectionCmd };
+  return { downloadLogsCmd, runCodeCmd, runSelectionCmd, selectConnectionCmd };
 }

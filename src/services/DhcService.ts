@@ -8,7 +8,7 @@ import {
   initDhcApi,
   initDhcSession,
 } from '../dh/dhc';
-import { ExtendedMap, getPanelHtml, Logger } from '../util';
+import { ExtendedMap, getPanelHtml, Logger, Toaster } from '../util';
 import { ConnectionAndSession } from '../common';
 
 const logger = new Logger('DhcService');
@@ -16,7 +16,8 @@ const logger = new Logger('DhcService');
 export type DhcServiceConstructor<T extends DhcService> = new (
   serverUrl: string,
   panelRegistry: ExtendedMap<string, vscode.WebviewPanel>,
-  outputChannel: vscode.OutputChannel
+  outputChannel: vscode.OutputChannel,
+  toaster: Toaster
 ) => T;
 
 export class DhcService extends DhService<typeof DhcType, DhcType.CoreClient> {
