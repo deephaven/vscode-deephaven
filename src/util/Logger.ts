@@ -28,11 +28,11 @@ export class Logger {
   static addConsoleHandler = () => {
     Logger.handlers.add({
       /* eslint-disable no-console */
-      error: (label, ...args) => console.error(`[${label}] ERROR:`, ...args),
-      warn: (label, ...args) => console.warn(`[${label}] WARN:`, ...args),
-      info: (label, ...args) => console.info(`[${label}] INFO:`, ...args),
-      debug: (label, ...args) => console.debug(`[${label}] DEBUG:`, ...args),
-      debug2: (label, ...args) => console.debug(`[${label}] DEBUG2:`, ...args),
+      error: console.error.bind(console),
+      warn: console.warn.bind(console),
+      info: console.info.bind(console),
+      debug: console.debug.bind(console),
+      debug2: console.debug.bind(console),
       /* eslint-enable no-console */
     });
   };
@@ -56,7 +56,7 @@ export class Logger {
     });
   };
 
-  constructor(private label: string) {}
+  constructor(private readonly label: string) {}
 
   /**
    * Handle log args for a given level

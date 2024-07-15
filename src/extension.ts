@@ -23,10 +23,6 @@ import { OutputChannelWithHistory } from './util/OutputChannelWithHistory';
 const logger = new Logger('extension');
 
 export function activate(context: vscode.ExtensionContext) {
-  logger.info(
-    'Congratulations, your extension "vscode-deephaven" is now active!'
-  );
-
   let selectedConnectionUrl: string | null = null;
   let selectedDhService: DhcService | null = null;
   let connectionOptions = createConnectionOptions();
@@ -41,6 +37,10 @@ export function activate(context: vscode.ExtensionContext) {
   // Configure log handlers
   Logger.addConsoleHandler();
   Logger.addOutputChannelHandler(debugOutputChannel);
+
+  logger.info(
+    'Congratulations, your extension "vscode-deephaven" is now active!'
+  );
 
   outputChannel.appendLine('Deephaven extension activated');
 
