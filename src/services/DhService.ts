@@ -127,7 +127,7 @@ export abstract class DhService<TDH, TClient>
       this.outputChannel.appendLine(
         `Failed to initialize Deephaven API${err == null ? '.' : `: ${err}`}`
       );
-      this.toaster.showErrorMessage('Failed to initialize Deephaven API');
+      this.toaster.error('Failed to initialize Deephaven API');
       return false;
     }
 
@@ -177,15 +177,13 @@ export abstract class DhService<TDH, TClient>
     if (this.cn == null || this.session == null) {
       this.clearCaches();
 
-      this.toaster.showErrorMessage(
+      this.toaster.error(
         `Failed to create Deephaven session: ${this.serverUrl}`
       );
 
       return false;
     } else {
-      this.toaster.showInfoMessage(
-        `Created Deephaven session: ${this.serverUrl}`
-      );
+      this.toaster.info(`Created Deephaven session: ${this.serverUrl}`);
 
       return true;
     }
@@ -240,7 +238,7 @@ export abstract class DhService<TDH, TClient>
       // clear the caches on connection disconnect
       if (hasErrorCode(err, 16)) {
         this.clearCaches();
-        this.toaster.showErrorMessage(
+        this.toaster.error(
           'Session is no longer invalid. Please re-run the command to reconnect.'
         );
         return;
@@ -251,7 +249,7 @@ export abstract class DhService<TDH, TClient>
       logger.error(error);
       this.outputChannel.show(true);
       this.outputChannel.appendLine(error);
-      this.toaster.showErrorMessage('An error occurred when running a command');
+      this.toaster.error('An error occurred when running a command');
 
       return;
     }

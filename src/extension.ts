@@ -62,7 +62,7 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   dhcServiceRegistry.addEventListener('disconnect', serverUrl => {
-    toaster.showInfoMessage(`Disconnected from Deephaven server: ${serverUrl}`);
+    toaster.info(`Disconnected from Deephaven server: ${serverUrl}`);
     clearConnection();
   });
 
@@ -125,7 +125,7 @@ export function activate(context: vscode.ExtensionContext) {
     const uri = await debugOutputChannel.downloadHistoryToFile();
 
     if (uri != null) {
-      toaster.showInfoMessage(`Downloaded logs to ${uri.fsPath}`);
+      toaster.info(`Downloaded logs to ${uri.fsPath}`);
       vscode.window.showTextDocument(uri);
     }
   }

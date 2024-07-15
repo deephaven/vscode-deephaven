@@ -11,7 +11,7 @@ export class OutputChannelWithHistory implements vscode.OutputChannel {
   ) {
     this.name = outputChannel.name;
 
-    // Have to bind this explicilty since function overloads prevent using
+    // Have to bind this explicitly since function overloads prevent using
     // lexical binding via arrow function.
     this.show = this.show.bind(this);
   }

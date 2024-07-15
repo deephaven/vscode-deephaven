@@ -44,15 +44,15 @@ export class Logger {
   static addOutputChannelHandler = (outputChannel: vscode.OutputChannel) => {
     Logger.handlers.add({
       error: (label, ...args) =>
-        outputChannel.appendLine(`[${label}] ERROR: ${args.join(', ')}`),
+        outputChannel.appendLine(`${label} ERROR: ${args.join(', ')}`),
       warn: (label, ...args) =>
-        outputChannel.appendLine(`[${label}] WARN: ${args.join(', ')}`),
+        outputChannel.appendLine(`${label} WARN: ${args.join(', ')}`),
       info: (label, ...args) =>
-        outputChannel.appendLine(`[${label}] INFO: ${args.join(', ')}`),
+        outputChannel.appendLine(`${label} INFO: ${args.join(', ')}`),
       debug: (label, ...args) =>
-        outputChannel.appendLine(`[${label}] DEBUG: ${args.join(', ')}`),
+        outputChannel.appendLine(`${label} DEBUG: ${args.join(', ')}`),
       debug2: (label, ...args) =>
-        outputChannel.appendLine(`[${label}] DEBUG2: ${args.join(', ')}`),
+        outputChannel.appendLine(`${label} DEBUG2: ${args.join(', ')}`),
     });
   };
 
@@ -64,7 +64,9 @@ export class Logger {
    * @param args The arguments to log
    */
   private handle = (level: LogLevel, ...args: unknown[]) => {
-    Logger.handlers.forEach(handler => handler[level](this.label, ...args));
+    Logger.handlers.forEach(handler =>
+      handler[level](`[${this.label}]`, ...args)
+    );
   };
 
   debug = (...args: unknown[]): void => {
