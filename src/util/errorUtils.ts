@@ -30,7 +30,7 @@ export function parseServerError(error: string): ParsedError {
 
     const [key, value] = line.split(':');
 
-    if (key && value) {
+    if (key.length) {
       // Once we hit the Traceback, accumulate remaining lines
       if (key === 'Traceback (most recent call last)') {
         errorDetails.traceback = [value, ...lines].join('\n');
@@ -39,6 +39,18 @@ export function parseServerError(error: string): ParsedError {
 
       errorDetails[key.toLowerCase()] =
         key === 'Line' ? Number(value.trim()) : value.trim();
+    }
+  }
+
+  // If top-level error isn't associated with File: "<string>", look for the
+  // first match in the traceback.
+  if (errorDetails.file !== '<string>' && errorDetails.traceback != null) {
+    const fileStringRegEx = /\s+File "<string>", line (\d+), in <module>/;
+    const [, lineNumberStr] =
+      fileStringRegEx.exec(errorDetails.traceback) ?? [];
+
+    if (lineNumberStr != null) {
+      errorDetails.line = Number(lineNumberStr);
     }
   }
 
