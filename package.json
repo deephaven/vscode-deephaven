@@ -30,7 +30,7 @@
     "clean": "rm -rf out",
     "compile": "npm run clean && tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
+    "pretest": "npm run clean && npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "package": "vsce package -o releases/ && vsce package -o releases/vscode-deephaven-latest.vsix",
     "publish:pre": "vsce publish --pre-release",
