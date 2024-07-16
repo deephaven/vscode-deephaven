@@ -27,6 +27,9 @@ export function activate(context: vscode.ExtensionContext) {
   let selectedDhService: DhcService | null = null;
   let connectionOptions = createConnectionOptions();
 
+  const diagnosticsCollection =
+    vscode.languages.createDiagnosticCollection('python');
+
   const outputChannel = vscode.window.createOutputChannel('Deephaven', 'log');
   const debugOutputChannel = new OutputChannelWithHistory(
     context,
@@ -54,9 +57,15 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions
   );
 
+  // Clear diagnostics on save
+  vscode.workspace.onDidSaveTextDocument(doc => {
+    diagnosticsCollection.set(doc.uri, []);
+  });
+
   const dhcServiceRegistry = new DhServiceRegistry(
     DhcService,
     new ExtendedMap<string, vscode.WebviewPanel>(),
+    diagnosticsCollection,
     outputChannel,
     toaster
   );

@@ -16,6 +16,7 @@ const logger = new Logger('DhcService');
 export type DhcServiceConstructor<T extends DhcService> = new (
   serverUrl: string,
   panelRegistry: ExtendedMap<string, vscode.WebviewPanel>,
+  diagnosticsCollection: vscode.DiagnosticCollection,
   outputChannel: vscode.OutputChannel,
   toaster: Toaster
 ) => T;

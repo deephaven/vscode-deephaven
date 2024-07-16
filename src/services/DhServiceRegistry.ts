@@ -10,6 +10,7 @@ export class DhServiceRegistry<T extends DhcService> extends CacheService<
   constructor(
     serviceFactory: DhcServiceConstructor<T>,
     panelRegistry: ExtendedMap<string, vscode.WebviewPanel>,
+    diagnosticsCollection: vscode.DiagnosticCollection,
     outputChannel: vscode.OutputChannel,
     toaster: Toaster
   ) {
@@ -23,6 +24,7 @@ export class DhServiceRegistry<T extends DhcService> extends CacheService<
         const dhService = new serviceFactory(
           serverUrl,
           panelRegistry,
+          diagnosticsCollection,
           outputChannel,
           toaster
         );
