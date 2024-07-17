@@ -27,8 +27,9 @@ jobs:
         with:
           run: npm run test:e2e
       - name: Upload reports
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         # if: failure()
         with:
           name: logs
           path: e2e/reports
+          retention-days: 1
