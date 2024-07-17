@@ -18,9 +18,8 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: 20
-      - run: yarn
-      - run: yarn build
+      - run: npm install
       - name: Run tests
         uses: GabrielBB/xvfb-action@v1.0
         with:
-          run: npx wdio run ./e2e/wdio.conf.ts
+          run: test:e2e
