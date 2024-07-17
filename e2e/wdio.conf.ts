@@ -146,12 +146,7 @@ export const config: Options.Testrunner = {
   // see also: https://webdriver.io/docs/dot-reporter
   reporters: [
     'spec',
-    [
-      'junit',
-      {
-        outputDir: path.join(__dirname, 'reports'),
-      },
-    ],
+    ['ctrf-json', { outputDir: path.join(__dirname, 'reports') }],
   ],
 
   // Setting this allows `vscode` auto attach a debugger if "Auto Attach: With Flag" is set
