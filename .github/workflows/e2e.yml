@@ -22,4 +22,4 @@ jobs:
       - name: Run tests
         uses: GabrielBB/xvfb-action@v1.0
         with:
-          run: test:e2e
+          run: npm run test:e2e
