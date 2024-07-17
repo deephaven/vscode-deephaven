@@ -11,15 +11,29 @@ on:
 
 jobs:
   build:
-    # Not sure why this is targetting macos, just following the link referenced above
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: 20
-      - run: npm install
+          node-version: '20.x'
+      - run: npm ci
       - name: Run tests
-        uses: GabrielBB/xvfb-action@v1.0
+        uses: coactions/setup-xvfb@v1
         with:
           run: npm run test:e2e
+
+    # Not sure why this is targetting macos, just following the link referenced above
+    # runs-on: macos-latest
+    # steps:
+    #   - uses: actions/checkout@v2
+    #   - uses: actions/setup-node@v2
+    #     with:
+    #       node-version: 20
+    #   - run: npm install
+    #   - name: Run tests
+    #     uses: coactions/setup-xvfb@v1
+    #     with:
+    #       run: npm run test:e2e
