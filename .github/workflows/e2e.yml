@@ -1,4 +1,4 @@
-# This configuration is based on documentation here:
+# This configuration is loosely based on documentation here:
 # https://github.com/stateful/vscode-awesome-ux/blob/main/docs/TestingExtensions.md#run-tests-in-cicd
 name: End-to-end Tests
 on:
@@ -21,19 +21,8 @@ jobs:
           node-version: '20.x'
       - run: npm ci
       - name: Run tests
+        # XVFB is used to provide virtual display:
+        # https://github.com/coactions/setup-xvfb
         uses: coactions/setup-xvfb@v1
         with:
           run: npm run test:e2e
-
-    # Not sure why this is targetting macos, just following the link referenced above
-    # runs-on: macos-latest
-    # steps:
-    #   - uses: actions/checkout@v2
-    #   - uses: actions/setup-node@v2
-    #     with:
-    #       node-version: 20
-    #   - run: npm install
-    #   - name: Run tests
-    #     uses: coactions/setup-xvfb@v1
-    #     with:
-    #       run: npm run test:e2e
