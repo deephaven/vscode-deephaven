@@ -8,11 +8,11 @@ import { SELECT_CONNECTION_COMMAND } from '../../common';
 
 suite('Extension Test Suite', () => {
   test('can open connection selector', () => {
-    // This is probably better tested in an e2e test, but it's at least an
-    // example of how we can make use of `vscode` apis in integration tests
-    // until we get some better precedence in place. Namely, there doesn't seem
-    // to be a straightforward way to assert it actually succeeded except that
-    // it didn't throw an error.
+    // I originally set this up based on the `vscode` extension docs, but I'm
+    // inclined to remove it since `wdio-vscode-service` seems to be able to
+    // do all of this and more. For example, there's not a straightforward way
+    // to verify that this succeeded other than it didn't throw an error.
+    // See https://github.com/webdriverio-community/wdio-vscode-service/issues/129
     vscode.commands.executeCommand(SELECT_CONNECTION_COMMAND);
   });
 });
