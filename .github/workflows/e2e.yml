@@ -28,10 +28,13 @@ jobs:
           run: npm run test:e2e
       - name: Merge reports
         run: npx ctrf merge e2e/reports --output ctrf-report.json
-      - name: Upload reports
-        uses: actions/upload-artifact@v4
-        # if: failure()
-        with:
-          name: reports
-          path: e2e/reports/ctrf-report.json
-          retention-days: 1
+      # - name: Upload reports
+      #   uses: actions/upload-artifact@v4
+      #   # if: failure()
+      #   with:
+      #     name: reports
+      #     path: e2e/reports/ctrf-report.json
+      #     retention-days: 1
+      - name: Publish Test Summary Results
+        run: npx github-actions-ctrf e2e/reports/ctrf-report.json
+        # TODO: retention?
