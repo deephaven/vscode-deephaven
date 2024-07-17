@@ -1,5 +1,40 @@
 # Contributing to Deephaven in VS Code
 
+## Development
+
+### Unit / Integration Testing
+
+Unit and integration tests are configured to run via `@vscode/test-electron`. This allows importing and testing actual code from the extension + has access to `vscode` apis. See [End-to-end Testing](#end-to-end-testing) for details on end-to-end tests.
+
+Configuration is based on official vscode extension documentation: [Advanced setup: Your own runner](https://code.visualstudio.com/api/working-with-extensions/testing-extension#advanced-setup-your-own-runner).
+
+To run unit / integration tests:
+
+```sh
+npm test
+```
+
+Tests can also be run in `vscode` debugger:
+
+1. Select the `Run and Debug` icon in the `Activity Bar` (leftmost sidebar by default)
+1. Select the `Unit / Integration Tests` launch configuration
+1. Run the debugger
+
+   ![Debugging Unit / Integration Tests](docs/debug-tests.png)
+
+### End-to-end Testing
+
+End-to-end tests are configured to run via `wdio-vscode-service`. This allows
+testing workflows and has better abstractions for ui testing than `@vscode/test-electron`.
+
+See [wdio-vscode-service](https://www.npmjs.com/package/wdio-vscode-service) for more details.
+
+To run end-to-end tests:
+
+```sh
+npm run test:e2e
+```
+
 ## Installation from .VSIX
 
 This extension can also be installed directly from a `.vsix`. To get a `.vsix`, you can either:
