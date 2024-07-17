@@ -35,6 +35,27 @@ To run end-to-end tests:
 npm run test:e2e
 ```
 
+To run using `vscode` debugger:
+
+1. Set a breakpoint in a test
+2. Either
+
+   Enable auto attach with flag (`Command palette -> Debug: Toggle Auto Attach -> Only With Flag`).
+
+   > Note you may need to open a new terminal for this to take effect.
+
+   or
+
+   Open `Javascript Debug Terminal` (Click the dropdown arrow beside the + button for adding a new terminal)
+
+3. Run the script:
+
+   ```sh
+   npm run test:e2e
+   ```
+
+4. You should see the tests start and `vscode` stop at the breakpoint.
+
 ## Installation from .VSIX
 
 This extension can also be installed directly from a `.vsix`. To get a `.vsix`, you can either:
