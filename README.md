@@ -24,8 +24,8 @@ e.g. `.vscode/settings.json`
   // Core servers
   "vscode-deephaven.core-servers": [
     "http://localhost:10000/",
-    "http://localhost:10001"
-  ]
+    "http://localhost:10001",
+  ],
 }
 ```
 

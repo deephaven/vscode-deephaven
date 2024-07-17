@@ -119,6 +119,7 @@
     "eslint": "^8.57.0",
     "glob": "^11.0.0",
     "mocha": "^10.6.0",
+    "prettier": "^3.3.3",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.3",
     "wdio-vscode-service": "^6.1.0"
