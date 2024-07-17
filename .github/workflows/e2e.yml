@@ -26,8 +26,9 @@ jobs:
         uses: coactions/setup-xvfb@v1
         with:
           run: npm run test:e2e
-      - uses: actions/upload-artifact@v1
-          # if: failure()
-          with:
-            name: logs
-            path: e2e/reports
+      - name: Upload reports
+        uses: actions/upload-artifact@v1
+        # if: failure()
+        with:
+          name: logs
+          path: e2e/reports
