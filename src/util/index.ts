@@ -1,4 +1,5 @@
 export * from './downloadUtils';
+export * from './errorUtils';
 export * from './ExtendedMap';
 export * from './isDisposable';
 export * from './Logger';

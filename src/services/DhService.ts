@@ -2,7 +2,13 @@ import * as vscode from 'vscode';
 import type { dh as DhcType } from '../dh/dhc-types';
 import { hasErrorCode } from '../util/typeUtils';
 import { ConnectionAndSession, Disposable } from '../common';
-import { ExtendedMap, formatTimestamp, Logger, Toaster } from '../util';
+import {
+  ExtendedMap,
+  formatTimestamp,
+  Logger,
+  parseServerError,
+  Toaster,
+} from '../util';
 import { EventDispatcher } from './EventDispatcher';
 
 const logger = new Logger('DhService');
@@ -35,6 +41,7 @@ export abstract class DhService<TDH, TClient>
   constructor(
     serverUrl: string,
     panelRegistry: ExtendedMap<string, vscode.WebviewPanel>,
+    diagnosticsCollection: vscode.DiagnosticCollection,
     outputChannel: vscode.OutputChannel,
     toaster: Toaster
   ) {
@@ -42,6 +49,7 @@ export abstract class DhService<TDH, TClient>
 
     this.serverUrl = serverUrl;
     this.panelRegistry = panelRegistry;
+    this.diagnosticsCollection = diagnosticsCollection;
     this.outputChannel = outputChannel;
     this.toaster = toaster;
   }
@@ -49,9 +57,10 @@ export abstract class DhService<TDH, TClient>
   public readonly serverUrl: string;
   protected readonly subscriptions: (() => void)[] = [];
 
-  protected outputChannel: vscode.OutputChannel;
-  protected toaster: Toaster;
-  private panelRegistry: ExtendedMap<string, vscode.WebviewPanel>;
+  protected readonly outputChannel: vscode.OutputChannel;
+  protected readonly toaster: Toaster;
+  private readonly panelRegistry: ExtendedMap<string, vscode.WebviewPanel>;
+  private readonly diagnosticsCollection: vscode.DiagnosticCollection;
   private cachedCreateClient: Promise<TClient> | null = null;
   private cachedCreateSession: Promise<ConnectionAndSession<
     DhcType.IdeConnection,
@@ -199,9 +208,8 @@ export abstract class DhService<TDH, TClient>
       return;
     }
 
-    // this.outputChannel.appendLine(
-    //   `Sending${selectionOnly ? ' selected' : ''} code to: ${this.serverUrl}`
-    // );
+    // Clear previous diagnostics when cmd starts running
+    this.diagnosticsCollection.set(editor.document.uri, []);
 
     if (this.session == null) {
       await this.initDh();
@@ -250,6 +258,35 @@ export abstract class DhService<TDH, TClient>
       this.outputChannel.show(true);
       this.outputChannel.appendLine(error);
       this.toaster.error('An error occurred when running a command');
+
+      const { line, value } = parseServerError(error);
+
+      if (line != null) {
+        // If selectionOnly is true, the line number in the error will be
+        // relative to the selection (Python line numbers are 1 based. vscode
+        // line numbers are zero based.)
+        const fileLine =
+          (selectionOnly ? line + editor.selection.start.line : line) - 1;
+
+        // There seems to be an error for certain Python versions where line
+        // numbers are shown as -1. In such cases, we'll just mark the first
+        // token on the first line to at least flag the file as having an error.
+        const startLine = Math.max(0, fileLine);
+
+        // Zero length will flag a token instead of a line
+        const lineLength =
+          fileLine < 0 ? 0 : editor.document.lineAt(fileLine).text.length;
+
+        // Diagnostic representing the line of code that produced the server error
+        const diagnostic: vscode.Diagnostic = {
+          message: value == null ? error : `${value}\n${error}`,
+          severity: vscode.DiagnosticSeverity.Error,
+          range: new vscode.Range(startLine, 0, startLine, lineLength),
+          source: 'deephaven',
+        };
+
+        this.diagnosticsCollection.set(editor.document.uri, [diagnostic]);
+      }
 
       return;
     }
