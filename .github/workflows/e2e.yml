@@ -1,0 +1,26 @@
+# This configuration is based on documentation here:
+# https://github.com/stateful/vscode-awesome-ux/blob/main/docs/TestingExtensions.md#run-tests-in-cicd
+name: End-to-end Tests
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    # Not sure why this is targetting macos, just following the link referenced above
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 20
+      - run: yarn
+      - run: yarn build
+      - name: Run tests
+        uses: GabrielBB/xvfb-action@v1.0
+        with:
+          run: npx wdio run ./e2e/wdio.conf.ts
