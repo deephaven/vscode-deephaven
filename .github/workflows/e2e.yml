@@ -30,10 +30,8 @@ jobs:
         run: |
           npm run gh:ctrf -- e2e/reports/ctrf-report.json
           cp $GITHUB_STEP_SUMMARY e2e-summary.html
-          # echo "STEP_SUMMARY_CONTENT=\"$(cat $GITHUB_STEP_SUMMARY)\"" >> $GITHUB_ENV
-      - name: PR comment with file
+      - name: Publish Summary as PR Comment
         uses: thollander/actions-comment-pull-request@v2
         with:
-          # message: ${{ env.STEP_SUMMARY_CONTENT }}
           filePath: e2e-summary.html
           comment_tag: summary
