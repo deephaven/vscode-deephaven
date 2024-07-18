@@ -15,5 +15,5 @@
     "esModuleInterop": true
   },
   // Override ../tsconfig.json `exclude`
-  "exclude": []
+  "exclude": ["node_modules"]
 }

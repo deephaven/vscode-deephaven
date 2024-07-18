@@ -19,7 +19,11 @@
     {
       "files": ["*.ts"],
       "parserOptions": {
-        "project": ["./tsconfig.json"]
+        "project": [
+          "./tsconfig.json",
+          "./e2e/tsconfig.json",
+          "./tsconfig.test.json"
+        ]
       },
 
       "rules": {
