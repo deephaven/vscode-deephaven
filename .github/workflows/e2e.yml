@@ -33,5 +33,5 @@ jobs:
       - name: PR comment with file
         uses: thollander/actions-comment-pull-request@v2
         with:
-          message: ${{ env.STEP_SUMMARY_CONTENT }}
+          message: '${{ env.STEP_SUMMARY_CONTENT }}'
           comment_tag: summary
