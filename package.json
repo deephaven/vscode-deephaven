@@ -35,7 +35,7 @@
     "publish:pre": "vsce publish --pre-release",
     "test": "npm run compile && npm run lint && node ./out/test/runTest.js",
     "test:e2e": "npm run compile && cd e2e && wdio run ./wdio.conf.ts",
-    "gh:ctrf": "github-actions-ctrf --"
+    "gh:ctrf": "github-actions-ctrf"
   },
   "contributes": {
     "configuration": {
