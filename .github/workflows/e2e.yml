@@ -27,16 +27,18 @@ jobs:
       - name: Publish Test Summary Results
         description: |
           Publish an HTML summary report. This will be automatically shown in the actions summary.
-          Also copy the summary to the e2e/reports directory so it can be uploaded as an artifact.
+          Also copy the summary to the pr-comment directory so it can be uploaded as an artifact 
+          to be consumed by pr-comment.yml workflow.
         run: |
           npm run gh:ctrf -- e2e/reports/ctrf-report.json
-          cp $GITHUB_STEP_SUMMARY e2e/reports/e2e-summary.html
+          mkdir -p ./pr-comment
+          cp $GITHUB_STEP_SUMMARY pr-comment/pr-comment.html
       - name: Save PR Number
-        run: echo ${{ github.event.number }} > e2e/reports/PR-number.txt
+        run: echo ${{ github.event.number }} > pr-comment/PR-number.txt
       - name: Upload Summary as Artifact
         description: Upload all e2e reports as an artifact
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-reports
-          path: e2e/reports/
+          name: pr-comment
+          path: pr-comment/
           retention-days: 1
