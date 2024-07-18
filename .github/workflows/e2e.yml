@@ -19,16 +19,10 @@ jobs:
           node-version: '20.x'
       - run: npm ci
       - name: Run end-to-end tests
-        description: Run end-to-end tests using xvfb since we need a display context
         run: xvfb-run npm run test:e2e
       - name: Merge reports
-        description: Merge all e2e reports into a single JSON file
         run: npx ctrf merge e2e/reports --output ctrf-report.json
       - name: Publish Test Summary Results
-        description: |
-          Publish an HTML summary report. This will be automatically shown in the actions summary.
-          Also copy the summary to the pr-comment directory so it can be uploaded as an artifact 
-          to be consumed by pr-comment.yml workflow.
         run: |
           npm run gh:ctrf -- e2e/reports/ctrf-report.json
           mkdir -p ./pr-comment
@@ -36,7 +30,6 @@ jobs:
       - name: Save PR Number
         run: echo ${{ github.event.number }} > pr-comment/PR-number.txt
       - name: Upload Summary as Artifact
-        description: Upload all e2e reports as an artifact
         uses: actions/upload-artifact@v4
         with:
           name: pr-comment
