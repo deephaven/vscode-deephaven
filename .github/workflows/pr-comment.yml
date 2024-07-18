@@ -46,7 +46,6 @@ jobs:
             fs.writeFileSync('${{github.workspace}}/pr-comment.zip', Buffer.from(download.data));
       - run: unzip pr-comment.zip
       - name: 'Comment on PR'
-        description: Creates or updates a PR comment with generated summary
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
