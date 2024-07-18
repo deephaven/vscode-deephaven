@@ -19,55 +19,24 @@ jobs:
           node-version: '20.x'
       - run: npm ci
       - name: Run end-to-end tests
+        description: Run end-to-end tests using xvfb since we need a display context
         run: xvfb-run npm run test:e2e
       - name: Merge reports
+        description: Merge all e2e reports into a single JSON file
         run: npx ctrf merge e2e/reports --output ctrf-report.json
       - name: Publish Test Summary Results
+        description: |
+          Publish an HTML summary report. This will be automatically shown in the actions summary.
+          Also copy the summary to the e2e/reports directory so it can be uploaded as an artifact.
         run: |
           npm run gh:ctrf -- e2e/reports/ctrf-report.json
           cp $GITHUB_STEP_SUMMARY e2e/reports/e2e-summary.html
       - name: Save PR Number
         run: echo ${{ github.event.number }} > e2e/reports/PR-number.txt
       - name: Upload Summary as Artifact
+        description: Upload all e2e reports as an artifact
         uses: actions/upload-artifact@v4
         with:
           name: e2e-reports
           path: e2e/reports/
           retention-days: 1
-      - name: 'Comment on PR'
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const fs = require('fs');
-
-            const prNumber = 57;
-            const comments = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber,
-            })
-
-            const marker = '<!-- DH GH Action Comment -->';
-            const summaryContent = String(fs.readFileSync('e2e/reports/e2e-summary.html'));
-            const contentWithMarker = `${marker}\n${summaryContent}`;
-
-            const existingComment = comments.data.find(comment => comment.body.startsWith(marker));
-
-            if (existingComment) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: existingComment.id,
-                body: contentWithMarker,
-              });
-              return;
-            }
-            else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: prNumber,
-                body: contentWithMarker,
-              });
-            }
