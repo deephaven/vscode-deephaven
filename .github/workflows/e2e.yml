@@ -29,7 +29,11 @@ jobs:
         # days here, but we can configure it in the repository settings.
         run: |
           npm run gh:ctrf -- e2e/reports/ctrf-report.json
-          echo "STEP_SUMMARY_CONTENT=$(cat $GITHUB_STEP_SUMMARY)" >> $GITHUB_ENV
+          {
+            echo 'STEP_SUMMARY_CONTENT<<EOF'
+            cat $GITHUB_STEP_SUMMARY
+            echo EOF
+          } >> "$GITHUB_ENV"
       - name: PR comment with file
         uses: thollander/actions-comment-pull-request@v2
         with:
