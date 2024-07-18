@@ -1,5 +1,6 @@
 {
   "extends": "./tsconfig.json",
   "include": ["src/**/*.spec.ts"],
+  // Override ./tsconfig `exclude` so that *.spec.ts files are included
   "exclude": ["node_modules"]
 }

@@ -22,7 +22,7 @@
         "project": [
           "./tsconfig.json",
           "./e2e/tsconfig.json",
-          "./tsconfig.test.json"
+          "./tsconfig.unit.json"
         ]
       },
 

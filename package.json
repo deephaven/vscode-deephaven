@@ -32,7 +32,7 @@
     "test:lint": "eslint . --ext ts",
     "test:unit": "vitest",
     "ts:build": "npm run clean && tsc -p ./tsconfig.json",
-    "ts:check": "tsc -p ./tsconfig.json --noEmit --module preserve --moduleResolution bundler && tsc -p tsconfig.test.json --noEmit --module preserve --moduleResolution bundler && tsc -p e2e/tsconfig.json --noEmit --skipLibCheck",
+    "ts:check": "tsc -p ./tsconfig.json --noEmit --module preserve --moduleResolution bundler && tsc -p tsconfig.unit.json --noEmit --module preserve --moduleResolution bundler && tsc -p e2e/tsconfig.json --noEmit --skipLibCheck",
     "ts:watch": "npm run ts:build -- --watch",
     "package": "vsce package -o releases/ && vsce package -o releases/vscode-deephaven-latest.vsix",
     "publish:pre": "vsce publish --pre-release",
