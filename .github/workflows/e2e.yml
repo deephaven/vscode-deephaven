@@ -31,8 +31,8 @@ jobs:
       - name: Upload Summary as Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-summary
-          path: e2e-summary.html
+          name: e2e-reports
+          path: e2e/reports/
           retention-days: 1
       - name: Publish Summary as PR Comment
         uses: thollander/actions-comment-pull-request@v2
