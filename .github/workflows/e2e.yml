@@ -47,16 +47,33 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
-            const result = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: 57,
-            })
-            console.log('Result:', result);
-            const summaryContent = String(fs.readFileSync('e2e/reports/e2e-summary.html'));
-            await github.rest.issues.createComment({
+
+            const prNumber = 57;
+            const comments = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: prNumber,
-              body: summaryContent,
-            });
+            })
+            console.log('Result:', comments);
+            const marker = '<!-- DH GH Action Comment -->';
+            const summaryContent = String(fs.readFileSync('e2e/reports/e2e-summary.html'));
+
+            const existingComment = comments.data.find(comment => comment.body.startsWith(marker));
+
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: summaryContent,
+              });
+              return;
+            }
+            else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: summaryContent,
+              });
+            }
