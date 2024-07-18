@@ -1,5 +1,3 @@
-# This configuration is loosely based on documentation here:
-# https://github.com/stateful/vscode-awesome-ux/blob/main/docs/TestingExtensions.md#run-tests-in-cicd
 name: End-to-end Tests
 on:
   push:
@@ -36,11 +34,6 @@ jobs:
           name: e2e-reports
           path: e2e/reports/
           retention-days: 1
-      # - name: Publish Summary as PR Comment
-      #   uses: thollander/actions-comment-pull-request@v2
-      #   with:
-      #     filePath: e2e/reports/e2e-summary.html
-      #     comment_tag: summary
       - name: 'Comment on PR'
         uses: actions/github-script@v7
         with:
@@ -54,7 +47,7 @@ jobs:
               repo: context.repo.repo,
               issue_number: prNumber,
             })
-            console.log('Result:', comments);
+
             const marker = '<!-- DH GH Action Comment -->';
             const summaryContent = String(fs.readFileSync('e2e/reports/e2e-summary.html'));
             const contentWithMarker = `${marker}\n${summaryContent}`;
