@@ -25,11 +25,15 @@ jobs:
       - name: Merge reports
         run: npx ctrf merge e2e/reports --output ctrf-report.json
       - name: Publish Test Summary Results
-        # There doesn't seem to be a way to configure the number of retention
-        # days here, but we can configure it in the repository settings.
         run: |
           npm run gh:ctrf -- e2e/reports/ctrf-report.json
           cp $GITHUB_STEP_SUMMARY e2e-summary.html
+      - name: Upload Summary as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-summary
+          path: e2e-summary.html
+          retention-days: 1
       - name: Publish Summary as PR Comment
         uses: thollander/actions-comment-pull-request@v2
         with:
