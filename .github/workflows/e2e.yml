@@ -21,11 +21,12 @@ jobs:
           node-version: '20.x'
       - run: npm ci
       - name: Run tests
-        # XVFB is used to provide virtual display:
-        # https://github.com/coactions/setup-xvfb
-        uses: coactions/setup-xvfb@v1
-        with:
-          run: npm run test:e2e
+        run: npm run test:e2e
+        # # XVFB is used to provide virtual display:
+        # # https://github.com/coactions/setup-xvfb
+        # uses: coactions/setup-xvfb@v1
+        # with:
+        #   run: npm run test:e2e
       - name: Merge reports
         run: npx ctrf merge e2e/reports --output ctrf-report.json
       - name: Publish Test Summary Results
