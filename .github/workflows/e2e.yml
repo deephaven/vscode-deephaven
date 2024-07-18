@@ -20,12 +20,8 @@ jobs:
         with:
           node-version: '20.x'
       - run: npm ci
-      - name: Install xvfb
-        run: |
-          sudo apt-get update
-          sudo apt-get -y install xvfb
       - name: Run end-to-end tests
-        run: xvfb-run run test:e2e
+        run: xvfb-run npm run test:e2e
       - name: Merge reports
         run: npx ctrf merge e2e/reports --output ctrf-report.json
       - name: Publish Test Summary Results
