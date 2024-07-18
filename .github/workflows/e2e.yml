@@ -31,4 +31,4 @@ jobs:
       - name: Publish Test Summary Results
         # There doesn't seem to be a way to configure the number of retention
         # days here, but we can configure it in the repository settings.
-        run: npx github-actions-ctrf e2e/reports/ctrf-report.json
+        run: npm run gh:ctrf e2e/reports/ctrf-report.json
