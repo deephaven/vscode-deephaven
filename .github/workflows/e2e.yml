@@ -27,6 +27,9 @@ jobs:
       - name: Publish Test Summary Results
         # There doesn't seem to be a way to configure the number of retention
         # days here, but we can configure it in the repository settings.
-        run: |
-          npm run gh:ctrf -- e2e/reports/ctrf-report.json
-          echo $GITHUB_STEP_SUMMARY
+        run: npm run gh:ctrf -- e2e/reports/ctrf-report.json
+      - name: PR comment with file
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          filePath: $GITHUB_STEP_SUMMARY
+          comment_tag: summary
