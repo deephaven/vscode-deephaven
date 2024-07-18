@@ -2,25 +2,9 @@
 
 ## Development
 
-### Unit / Integration Testing
+### Unit Testing
 
-Unit and integration tests are configured to run via `@vscode/test-electron`. This allows importing and testing actual code from the extension + has access to `vscode` apis. See [End-to-end Testing](#end-to-end-testing) for details on end-to-end tests.
-
-Configuration is based on official vscode extension documentation: [Advanced setup: Your own runner](https://code.visualstudio.com/api/working-with-extensions/testing-extension#advanced-setup-your-own-runner).
-
-To run unit / integration tests:
-
-```sh
-npm test
-```
-
-Tests can also be run in `vscode` debugger:
-
-1. Select the `Run and Debug` icon in the `Activity Bar` (leftmost sidebar by default)
-1. Select the `Unit / Integration Tests` launch configuration
-1. Run the debugger
-
-   ![Debugging Unit / Integration Tests](docs/debug-tests.png)
+TODO:
 
 ### End-to-end Testing
 
