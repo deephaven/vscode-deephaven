@@ -21,7 +21,7 @@ jobs:
           node-version: '20.x'
       - run: npm ci
       - name: Run tests
-        run: npm run test:e2e
+        run: xvfb-run run test:e2e
         # # XVFB is used to provide virtual display:
         # # https://github.com/coactions/setup-xvfb
         # uses: coactions/setup-xvfb@v1
