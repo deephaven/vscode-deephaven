@@ -47,14 +47,14 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
-            const result = await github.issues.listComments({
+            const result = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: 57,
             })
             console.log('Result:', result);
             const summaryContent = String(fs.readFileSync('e2e/reports/e2e-summary.html'));
-            await github.issues.createComment({
+            await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: prNumber,
