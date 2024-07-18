@@ -65,7 +65,3 @@ Scripts will be run against the active connection or default to the first connec
 The `vscode-deephaven` extension comes with some predefined `python` snippets. These insert pre-defined code snippets into an editor. To use, simply type `ui` to see available snippets.
 
 ![Code Snippets](docs/code-snippets.png)
-
-## Testing
-
-Integration testing is performed using the `wdio-vscode-service` https://webdriver.io/docs/extension-testing/vscode-extensions.
