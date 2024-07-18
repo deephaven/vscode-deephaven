@@ -57,6 +57,7 @@ jobs:
             console.log('Result:', comments);
             const marker = '<!-- DH GH Action Comment -->';
             const summaryContent = String(fs.readFileSync('e2e/reports/e2e-summary.html'));
+            const contentWithMarker = `${marker}\n${summaryContent}`;
 
             const existingComment = comments.data.find(comment => comment.body.startsWith(marker));
 
@@ -65,7 +66,7 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 comment_id: existingComment.id,
-                body: summaryContent,
+                body: contentWithMarker,
               });
               return;
             }
@@ -74,6 +75,6 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: prNumber,
-                body: summaryContent,
+                body: contentWithMarker,
               });
             }
