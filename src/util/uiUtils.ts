@@ -51,7 +51,7 @@ export async function createConnectionQuickPick(
     });
   }
 
-  return await vscode.window.showQuickPick(options);
+  return vscode.window.showQuickPick(options);
 }
 
 /**
