@@ -2,14 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { ExtendedMap } from './ExtendedMap';
 
 describe('ExtendedMap Test Suite', () => {
-  it('CI test', () => {
-    throw new Error('This is testing CI');
-  });
-
-  it('CI test 2', () => {
-    expect(4).toBe(5);
-  });
-
   it('getOrThrow', () => {
     const map = new ExtendedMap<string, number>();
 
