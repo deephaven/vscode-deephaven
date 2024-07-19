@@ -37,7 +37,7 @@
     "ts:watch": "npm run ts:build -- --watch",
     "package": "vsce package -o releases/ && vsce package -o releases/vscode-deephaven-latest.vsix",
     "publish:pre": "vsce publish --pre-release",
-    "gh:ctrf": "github-actions-ctrf",
+    "gh:ctrf": "github-actions-ctrf e2e/reports/ctrf-report.json ; npm run gh:prcomment",
     "gh:prcomment": "mkdir -p ./pr-comment && cp $GITHUB_STEP_SUMMARY pr-comment/pr-comment.html",
     "vscode:prepublish": "npm run ts:build"
   },

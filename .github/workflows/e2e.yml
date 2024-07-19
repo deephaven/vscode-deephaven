@@ -24,10 +24,7 @@ jobs:
         run: npx ctrf merge e2e/reports --output ctrf-report.json
       - name: Publish Test Summary Results
         if: ${{ always() }}
-        run: |
-          npm run gh:ctrf -- e2e/reports/ctrf-report.json
-          mkdir -p ./pr-comment
-          cp $GITHUB_STEP_SUMMARY pr-comment/pr-comment.html
+        run: run gh:ctrf
       - name: Save PR Number
         if: ${{ always() }}
         run: echo ${{ github.event.number }} > pr-comment/PR-number.txt
