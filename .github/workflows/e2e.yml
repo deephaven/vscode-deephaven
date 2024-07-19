@@ -22,9 +22,9 @@ jobs:
       - name: Publish Test Summary Results
         if: ${{ always() }}
         run: |
-          npm run gh:ctrfmerge
-          npm run gh:ctrfsummary
-          npm run gh:prcomment
+          npm run report:ctrfmerge
+          npm run report:ctrfsummary
+          npm run report:prcomment
       - name: Save PR Number
         if: ${{ always() }}
         run: echo ${{ github.event.number }} > pr-comment/PR-number.txt
