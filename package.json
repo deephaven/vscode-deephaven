@@ -37,7 +37,8 @@
     "ts:watch": "npm run ts:build -- --watch",
     "package": "vsce package -o releases/ && vsce package -o releases/vscode-deephaven-latest.vsix",
     "publish:pre": "vsce publish --pre-release",
-    "gh:ctrf": "github-actions-ctrf test-reports/ctrf-report.json",
+    "gh:ctrfmerge": "ctrf merge e2e/reports --output-dir test-reports --output ctrf-report.json",
+    "gh:ctrfsummary": "github-actions-ctrf test-reports/ctrf-report.json",
     "gh:junit2ctrf": "junit-to-ctrf test-reports/vitest.junit.xml --output test-reports/ctrf-report.json",
     "gh:prcomment": "mkdir -p ./pr-comment && cp $GITHUB_STEP_SUMMARY pr-comment/pr-comment.html",
     "vscode:prepublish": "npm run ts:build"
@@ -120,6 +121,7 @@
     "@wdio/local-runner": "^8.39.1",
     "@wdio/mocha-framework": "^8.39.0",
     "@wdio/spec-reporter": "^8.39.0",
+    "ctrf": "^0.0.9",
     "eslint": "^8.57.0",
     "github-actions-ctrf": "^0.0.20",
     "glob": "^11.0.0",

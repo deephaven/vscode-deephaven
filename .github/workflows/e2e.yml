@@ -19,13 +19,11 @@ jobs:
       - run: npm ci
       - name: Run end-to-end tests
         run: xvfb-run npm run test:e2e
-      - name: Merge reports
-        if: ${{ always() }}
-        run: npx ctrf merge e2e/reports --output-dir test-reports --output ctrf-report.json
       - name: Publish Test Summary Results
         if: ${{ always() }}
         run: |
-          npm run gh:ctrf
+          run: npm run gh:ctrfmerge
+          npm run gh:ctrfsummary
           npm run gh:prcomment
       - name: Save PR Number
         if: ${{ always() }}

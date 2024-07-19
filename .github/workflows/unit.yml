@@ -23,7 +23,7 @@ jobs:
         if: ${{ always() }}
         run: |
           npm run gh:junit2ctrf
-          npm run gh:ctrf
+          npm run gh:ctrfsummary
           npm run gh:prcomment
       - name: Save PR Number
         if: ${{ always() }}
