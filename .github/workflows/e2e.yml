@@ -21,10 +21,12 @@ jobs:
         run: xvfb-run npm run test:e2e
       - name: Merge reports
         if: ${{ always() }}
-        run: npx ctrf merge e2e/reports --output ctrf-report.json
+        run: npx ctrf merge e2e/reports --output test-reports/ctrf-report.json
       - name: Publish Test Summary Results
         if: ${{ always() }}
-        run: npm run gh:ctrf
+        run: |
+          npm run gh:ctrf
+          npm run gh:prcomment
       - name: Save PR Number
         if: ${{ always() }}
         run: echo ${{ github.event.number }} > pr-comment/PR-number.txt

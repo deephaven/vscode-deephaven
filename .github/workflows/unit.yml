@@ -19,6 +19,12 @@ jobs:
       - run: npm ci
       - name: Run ts checks, linting, and unit tests
         run: npm run test:ci
+      - name: Publish Test Summary Results
+        if: ${{ always() }}
+        run: |
+          npm run gh:junit2ctrf
+          npm run gh:ctrf
+          npm run gh:prcomment
       - name: Save PR Number
         if: ${{ always() }}
         run: echo ${{ github.event.number }} > pr-comment/PR-number.txt
