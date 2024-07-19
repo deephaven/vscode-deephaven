@@ -11,10 +11,6 @@ describe('VS Code Extension Testing', () => {
     );
   });
 
-  it('CI test', () => {
-    throw new Error('testing CI failure');
-  });
-
   it('should load connection status bar item', async () => {
     const workbench = await browser.getWorkbench();
 

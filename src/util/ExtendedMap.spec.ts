@@ -2,10 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { ExtendedMap } from './ExtendedMap';
 
 describe('ExtendedMap Test Suite', () => {
-  it('should fail', () => {
-    expect(4).toBe(5);
-  });
-
   it('getOrThrow', () => {
     const map = new ExtendedMap<string, number>();
 
