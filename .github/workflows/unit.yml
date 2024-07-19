@@ -19,3 +19,15 @@ jobs:
       - run: npm ci
       - name: Run ts checks, linting, and unit tests
         run: npm run test:ci
+      - name: Copy test results
+        run: |
+          mkdir -p ./pr-comment
+          cp $GITHUB_STEP_SUMMARY pr-comment/pr-comment.html
+      - name: Save PR Number
+        run: echo ${{ github.event.number }} > pr-comment/PR-number.txt
+      - name: Upload Summary as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-comment-unit
+          path: pr-comment/
+          retention-days: 1
