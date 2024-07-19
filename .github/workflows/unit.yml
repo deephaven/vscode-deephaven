@@ -18,10 +18,8 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - name: Run ts checks, linting, and unit tests
-        run: npm run test:ci
-      - name: Copy test results
-        if: ${{ always() }}
         run: |
+          npm run test:ci
           mkdir -p ./pr-comment
           cp $GITHUB_STEP_SUMMARY pr-comment/pr-comment.html
       - name: Save PR Number
