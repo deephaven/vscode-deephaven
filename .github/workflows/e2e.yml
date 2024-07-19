@@ -22,7 +22,7 @@ jobs:
       - name: Publish Test Summary Results
         if: ${{ always() }}
         run: |
-          run: npm run gh:ctrfmerge
+          npm run gh:ctrfmerge
           npm run gh:ctrfsummary
           npm run gh:prcomment
       - name: Save PR Number
