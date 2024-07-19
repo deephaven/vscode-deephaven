@@ -51,45 +51,61 @@ jobs:
 
               fs.writeFileSync(`${{github.workspace}}/${artifact.name}.zip`, Buffer.from(download.data));
             }
-      - run: |
+      - name: Unzip artifacts and store PR number
+        run: |
           unzip pr-comment.zip -d pr-comment
           unzip pr-comment-unit.zip -d pr-comment-unit
-      - name: 'Comment on PR'
-        uses: actions/github-script@v7
+          PR_NUMBER=$(cat ./pr-comment/PR-number.txt)
+          echo "PR_NUMBER=$PR_NUMBER" >> $GITHUB_ENV
+      - name: 'Comment on PR - e2e Tests'
+      - uses: marocchino/sticky-pull-request-comment@v2
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const fs = require('fs');
+          number: ${{ env.PR_NUMBER }}
+          header: pr-title-e2e-summary
+          path: pr-comment/pr-comment.html
+      - name: 'Comment on PR - Unit Tests'
+      - uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          number: ${{ env.PR_NUMBER }}
+          header: pr-title-unit-summary
+          path: pr-comment-unit/pr-comment-unit.html
 
-            const prNumber = Number(fs.readFileSync('./pr-comment/PR-number.txt'));
-            const comments = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber,
-            })
+      # - name: 'Comment on PR'
+      #   uses: actions/github-script@v7
+      #   with:
+      #     github-token: ${{ secrets.GITHUB_TOKEN }}
+      #     script: |
+      #       const fs = require('fs');
 
-            for (const dirName of ['pr-comment', 'pr-comment-unit']) {
-              // Append a marker to the summary content to identify the comment for later updates
-              const marker = `<!-- DH GH Action Comment (${dirName}) -->`;
-              const prComment = String(fs.readFileSync(`./${dirName}/pr-comment.html`));
-              const contentWithMarker = `${marker}\n${prComment}`;
+      #       const prNumber = Number(fs.readFileSync('./pr-comment/PR-number.txt'));
+      #       const comments = await github.rest.issues.listComments({
+      #         owner: context.repo.owner,
+      #         repo: context.repo.repo,
+      #         issue_number: prNumber,
+      #       })
 
-              const existingComment = comments.data.find(comment => comment.body.startsWith(marker));
+      #       for (const dirName of ['pr-comment', 'pr-comment-unit']) {
+      #         // Append a marker to the summary content to identify the comment for later updates
+      #         const marker = `<!-- DH GH Action Comment (${dirName}) -->`;
+      #         const prComment = String(fs.readFileSync(`./${dirName}/pr-comment.html`));
+      #         const contentWithMarker = `${marker}\n${prComment}`;
 
-              if (existingComment) {
-                await github.rest.issues.updateComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  comment_id: existingComment.id,
-                  body: contentWithMarker,
-                });
-              }
-              else {
-                await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: prNumber,
-                  body: contentWithMarker,
-                });
-              }
-            }
+      #         const existingComment = comments.data.find(comment => comment.body.startsWith(marker));
+
+      #         if (existingComment) {
+      #           await github.rest.issues.updateComment({
+      #             owner: context.repo.owner,
+      #             repo: context.repo.repo,
+      #             comment_id: existingComment.id,
+      #             body: contentWithMarker,
+      #           });
+      #         }
+      #         else {
+      #           await github.rest.issues.createComment({
+      #             owner: context.repo.owner,
+      #             repo: context.repo.repo,
+      #             issue_number: prNumber,
+      #             body: contentWithMarker,
+      #           });
+      #         }
+      #       }
