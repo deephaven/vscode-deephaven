@@ -10,6 +10,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-e2e
+      cancel-in-progress: true
 
     steps:
       - uses: actions/checkout@v4
