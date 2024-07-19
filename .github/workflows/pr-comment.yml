@@ -49,7 +49,7 @@ jobs:
                 archive_format: 'zip',
               });
 
-              fs.writeFileSync('${{github.workspace}}/${artifact.name}.zip', Buffer.from(download.data));
+              fs.writeFileSync(`${{github.workspace}}/${artifact.name}.zip`, Buffer.from(download.data));
             }
       - run: |
           unzip pr-comment.zip -d pr-comment
