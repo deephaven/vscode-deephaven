@@ -58,13 +58,13 @@ jobs:
           PR_NUMBER=$(cat ./pr-comment/PR-number.txt)
           echo "PR_NUMBER=$PR_NUMBER" >> $GITHUB_ENV
       - name: 'Comment on PR - e2e Tests'
-      - uses: marocchino/sticky-pull-request-comment@v2
+        uses: marocchino/sticky-pull-request-comment@v2
         with:
           number: ${{ env.PR_NUMBER }}
           header: pr-title-e2e-summary
           path: pr-comment/pr-comment.html
       - name: 'Comment on PR - Unit Tests'
-      - uses: marocchino/sticky-pull-request-comment@v2
+        uses: marocchino/sticky-pull-request-comment@v2
         with:
           number: ${{ env.PR_NUMBER }}
           header: pr-title-unit-summary
