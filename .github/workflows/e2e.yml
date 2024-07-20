@@ -24,7 +24,7 @@ jobs:
         run: |
           npm run report:ctrfmerge
           npm run report:ctrfsummary
-          echo "${GITHUB_STEP_SUMMARY/<h3>Test Summary<\/h3>/<h3>End-to-end Test Summary<\/h3>}" > $GITHUB_STEP_SUMMARY
+          sed -i 's/<h3>Test Summary<\/h3>/<h3>End-to-end Test Summary<\/h3>/' $GITHUB_STEP_SUMMARY
           npm run report:prcomment
       - name: Save PR Number
         if: ${{ always() }}
