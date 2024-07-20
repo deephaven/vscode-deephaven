@@ -24,6 +24,7 @@ jobs:
         run: |
           npm run report:junit2ctrf
           npm run report:ctrfsummary
+          GITHUB_STEP_SUMMARY=${GITHUB_STEP_SUMMARY/<h3>Test Summary<\/h3>/<h3>Unit Test Summary<\/h3>}
           npm run report:prcomment
       - name: Save PR Number
         if: ${{ always() }}
