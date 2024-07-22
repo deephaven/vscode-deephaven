@@ -71,7 +71,7 @@ export async function createConnectionQuickPick(
 /**
  * Create a status bar item for connecting to DH server
  */
-export function createConnectStatusBarItem() {
+export function createConnectStatusBarItem(show: boolean) {
   const statusBarItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Left,
     100
@@ -80,7 +80,12 @@ export function createConnectStatusBarItem() {
   const { text, tooltip } = createConnectTextAndTooltip('disconnected');
   statusBarItem.text = text;
   statusBarItem.tooltip = tooltip;
-  statusBarItem.show();
+
+  if (show) {
+    statusBarItem.show();
+  } else {
+    statusBarItem.hide();
+  }
 
   return statusBarItem;
 }

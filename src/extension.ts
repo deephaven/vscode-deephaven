@@ -138,7 +138,15 @@ export function activate(context: vscode.ExtensionContext) {
       onDownloadLogs
     );
 
-  const connectStatusBarItem = createConnectStatusBarItem();
+  const connectStatusBarItem = createConnectStatusBarItem(
+    shouldShowConnectionStatusBarItem()
+  );
+
+  // Toggle visibility of connection status bar item based on whether the
+  // languageid is supported by DH
+  vscode.window.onDidChangeActiveTextEditor(() => {
+    updateConnectionStatusBarItemVisibility();
+  });
 
   context.subscriptions.push(
     debugOutputChannel,
@@ -167,6 +175,42 @@ export function activate(context: vscode.ExtensionContext) {
   }
 
   /**
+   * Only show connection status bar item if
+   * 1. A connection is already selected
+   * 2. The active text editor has a languageid that is supported by the currently
+   * configured server connections.
+   */
+  function shouldShowConnectionStatusBarItem(): boolean {
+    if (selectedDhService != null) {
+      return true;
+    }
+
+    if (
+      vscode.window.activeTextEditor?.document.languageId === 'python' &&
+      connectionOptions.some(c => c.consoleType === 'python')
+    ) {
+      return true;
+    }
+
+    if (
+      vscode.window.activeTextEditor?.document.languageId === 'groovy' &&
+      connectionOptions.some(c => c.consoleType === 'groovy')
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  function updateConnectionStatusBarItemVisibility(): void {
+    if (shouldShowConnectionStatusBarItem()) {
+      connectStatusBarItem.show();
+    } else {
+      connectStatusBarItem.hide();
+    }
+  }
+
+  /**
    * Handle connection selection
    */
   async function onConnectionSelected(connectionUrl: string | null) {
@@ -188,6 +232,7 @@ export function activate(context: vscode.ExtensionContext) {
     // Disconnect option was selected, or connectionUrl that no longer exists
     if (connectionUrl == null || !option) {
       clearConnection();
+      updateConnectionStatusBarItemVisibility();
       return;
     }
 
@@ -209,6 +254,8 @@ export function activate(context: vscode.ExtensionContext) {
     } else {
       clearConnection();
     }
+
+    updateConnectionStatusBarItemVisibility();
   }
 }
 
