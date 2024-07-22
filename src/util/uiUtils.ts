@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import {
   ConnectionConfig,
   ConnectionType,
+  ConsoleType,
   SELECT_CONNECTION_COMMAND,
   STATUS_BAR_CONNECTING_TEXT,
   STATUS_BAR_DISCONNECTED_TEXT,
@@ -13,6 +14,7 @@ export interface ConnectionOption {
   type: ConnectionType;
   label: string;
   url: string;
+  consoleType: ConsoleType;
 }
 
 export interface DisconnectOption {
@@ -34,14 +36,25 @@ export async function createConnectionQuickPick(
   connectionOptions: ConnectionOption[],
   selectedUrl?: string | null
 ): Promise<ConnectionOption | DisconnectOption | undefined> {
-  function padLabel(label: string, isSelected: boolean) {
-    return isSelected ? `$(vm-connect) ${label}` : `$(blank) ${label}`;
+  function padLabel(
+    label: string,
+    isSelected: boolean,
+    consoleType?: ConsoleType
+  ) {
+    const consoleTypeStr = consoleType ? ` (${consoleType})` : '';
+    return isSelected
+      ? `$(vm-connect) ${label}${consoleTypeStr}`
+      : `$(blank) ${label}${consoleTypeStr}`;
   }
 
   const options: (ConnectionOption | DisconnectOption)[] = [
     ...connectionOptions.map(option => ({
       ...option,
-      label: padLabel(option.label, option.url === selectedUrl),
+      label: padLabel(
+        option.label,
+        option.url === selectedUrl,
+        option.consoleType
+      ),
     })),
   ];
 
@@ -77,11 +90,14 @@ export function createConnectStatusBarItem() {
  * @param type The type of connection
  */
 export function createConnectionOption(type: ConnectionType) {
-  return ({ url: serverUrl }: ConnectionConfig): ConnectionOption => {
+  return ({
+    url: serverUrl,
+    consoleType,
+  }: ConnectionConfig): ConnectionOption => {
     const url = new URL(serverUrl ?? '');
     const label = `${type}: ${url.hostname}:${url.port}`;
 
-    return { type, label, url: serverUrl };
+    return { type, consoleType, label, url: serverUrl };
   };
 }
 

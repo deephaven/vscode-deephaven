@@ -5,16 +5,18 @@ export type ConnectionAndSession<TConnection, TSession> = {
   session: TSession;
 };
 
+export type ConsoleType = 'groovy' | 'python';
+
 export interface ConnectionConfig {
   url: string;
-  consoleType: 'groovy' | 'python';
+  consoleType: ConsoleType;
 }
 
 export type ConnectionConfigStored =
   | string
   | {
       url: string;
-      consoleType?: 'groovy' | 'python';
+      consoleType?: ConsoleType;
     };
 
 export interface Disposable {

@@ -100,11 +100,23 @@ export function activate(context: vscode.ExtensionContext) {
    * @autoActivate If true, auto-activate a service if none is active.
    */
   async function getActiveDhService(
-    autoActivate: boolean
+    autoActivate: boolean,
+    languageId?: string
   ): Promise<DhcService | null> {
-    if (autoActivate && !selectedConnectionUrl) {
-      const defaultConnection = connectionOptions[0];
-      await onConnectionSelected(defaultConnection.url);
+    if (!autoActivate || languageId == null) {
+      return selectedDhService;
+    }
+
+    const selectedConsoleType = connectionOptions.find(
+      c => c.url === selectedConnectionUrl
+    )?.consoleType;
+
+    // If console type of current selection doesn't match the language id, look
+    // for the first one that does and select it.
+    if (selectedConsoleType !== languageId) {
+      await onConnectionSelected(
+        connectionOptions.find(c => c.consoleType === languageId)?.url ?? null
+      );
     }
 
     return selectedDhService;
@@ -195,22 +207,28 @@ export function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {}
 
-async function ensureUriEditorIsActive(uri: vscode.Uri) {
-  const isActive =
-    uri.toString() === vscode.window.activeTextEditor?.document.uri.toString();
+async function ensureUriEditorIsActive(
+  uri: vscode.Uri
+): Promise<vscode.TextEditor> {
+  if (
+    uri.toString() === vscode.window.activeTextEditor?.document.uri.toString()
+  ) {
+    return vscode.window.activeTextEditor;
+  }
 
   // If another panel such as the output panel is active, set the document
   // for the url to active first
-  if (!isActive) {
-    // https://stackoverflow.com/a/64808497/20489
-    await vscode.window.showTextDocument(uri, { preview: false });
-  }
+  // https://stackoverflow.com/a/64808497/20489
+  return vscode.window.showTextDocument(uri, { preview: false });
 }
 
 /** Register commands for the extension. */
 function registerCommands(
   getConnectionOptions: () => ConnectionOption[],
-  getActiveDhService: (autoActivate: boolean) => Promise<DhcService | null>,
+  getActiveDhService: (
+    autoActivate: boolean,
+    languageId?: string
+  ) => Promise<DhcService | null>,
   onConnectionSelected: (connectionUrl: string | null) => void,
   onDownloadLogs: () => void
 ) {
@@ -223,14 +241,12 @@ function registerCommands(
   const runCodeCmd = vscode.commands.registerCommand(
     RUN_CODE_COMMAND,
     async (uri: vscode.Uri, _arg: { groupId: number }) => {
-      await ensureUriEditorIsActive(uri);
-
-      const editor = vscode.window.activeTextEditor;
-
-      if (editor) {
-        const dhService = await getActiveDhService(true);
-        dhService?.runEditorCode(editor);
-      }
+      const editor = await ensureUriEditorIsActive(uri);
+      const dhService = await getActiveDhService(
+        true,
+        editor.document.languageId
+      );
+      dhService?.runEditorCode(editor);
     }
   );
 
@@ -238,14 +254,12 @@ function registerCommands(
   const runSelectionCmd = vscode.commands.registerCommand(
     RUN_SELECTION_COMMAND,
     async (uri: vscode.Uri, _arg: { groupId: number }) => {
-      await ensureUriEditorIsActive(uri);
-
-      const editor = vscode.window.activeTextEditor;
-
-      if (editor) {
-        const dhService = await getActiveDhService(true);
-        dhService?.runEditorCode(editor, true);
-      }
+      const editor = await ensureUriEditorIsActive(uri);
+      const dhService = await getActiveDhService(
+        true,
+        editor.document.languageId
+      );
+      dhService?.runEditorCode(editor, true);
     }
   );
 
