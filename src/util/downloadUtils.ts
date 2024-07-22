@@ -82,7 +82,7 @@ export async function downloadFromURL(
             `Hit retry limit. Stopping attempted include from ${url} with error`
           );
           logger.error(e);
-          reject();
+          reject(e);
         }
       });
   });

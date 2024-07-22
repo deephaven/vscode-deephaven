@@ -113,12 +113,12 @@
         {
           "command": "vscode-deephaven.runCode",
           "group": "navigation",
-          "when": "editorLangId == python"
+          "when": "editorLangId == python || editorLangId == groovy"
         },
         {
           "command": "vscode-deephaven.runSelection",
           "group": "navigation",
-          "when": "editorLangId == python"
+          "when": "editorLangId == python || editorLangId == groovy"
         }
       ]
     }

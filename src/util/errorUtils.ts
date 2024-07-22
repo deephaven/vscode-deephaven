@@ -12,6 +12,10 @@ export interface ParsedError {
   traceback?: string;
 }
 
+export function isAggregateError(err: unknown): err is { code: string } {
+  return String(err) === 'AggregateError';
+}
+
 /**
  * Parse a server error string into a key-value object.
  * @param error
