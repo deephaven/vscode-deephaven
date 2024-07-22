@@ -114,9 +114,16 @@ export function activate(context: vscode.ExtensionContext) {
     // If console type of current selection doesn't match the language id, look
     // for the first one that does and select it.
     if (selectedConsoleType !== languageId) {
-      await onConnectionSelected(
-        connectionOptions.find(c => c.consoleType === languageId)?.url ?? null
-      );
+      const toConnectUrl =
+        connectionOptions.find(c => c.consoleType === languageId)?.url ?? null;
+
+      if (toConnectUrl == null) {
+        toaster.error(
+          `No Deephaven server configured for console type: '${languageId}'`
+        );
+      }
+
+      await onConnectionSelected(toConnectUrl);
     }
 
     return selectedDhService;
