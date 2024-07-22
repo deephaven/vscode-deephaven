@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import {
+  ConnectionConfig,
   ConnectionType,
   SELECT_CONNECTION_COMMAND,
   STATUS_BAR_CONNECTING_TEXT,
@@ -76,7 +77,7 @@ export function createConnectStatusBarItem() {
  * @param type The type of connection
  */
 export function createConnectionOption(type: ConnectionType) {
-  return (serverUrl: string): ConnectionOption => {
+  return ({ url: serverUrl }: ConnectionConfig): ConnectionOption => {
     const url = new URL(serverUrl ?? '');
     const label = `${type}: ${url.hostname}:${url.port}`;
 

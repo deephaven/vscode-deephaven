@@ -25,7 +25,6 @@ const logger = new Logger('extension');
 export function activate(context: vscode.ExtensionContext) {
   let selectedConnectionUrl: string | null = null;
   let selectedDhService: DhcService | null = null;
-  let connectionOptions = createConnectionOptions();
 
   // Register code lenses for running Deephaven code
   const codelensProvider = new RunCommandCodeLensProvider();
@@ -51,6 +50,8 @@ export function activate(context: vscode.ExtensionContext) {
   logger.info(
     'Congratulations, your extension "vscode-deephaven" is now active!'
   );
+
+  let connectionOptions = createConnectionOptions();
 
   outputChannel.appendLine('Deephaven extension activated');
 

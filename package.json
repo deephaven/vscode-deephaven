@@ -50,9 +50,32 @@
       "properties": {
         "vscode-deephaven.core-servers": {
           "type": "array",
-          "items": {
-            "type": "string"
-          },
+          "items": [
+            {
+              "type": "string",
+              "description": "Deephaven Core server URL"
+            },
+            {
+              "type": "object",
+              "description": "Deephaven Core server config",
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "description": "Deephaven Core server URL"
+                },
+                "consoleType": {
+                  "type": "string",
+                  "title": "Console Type",
+                  "description": "Console type",
+                  "default": "python",
+                  "enum": [
+                    "python",
+                    "groovy"
+                  ]
+                }
+              }
+            }
+          ],
           "default": [
             "http://localhost:10000/"
           ],
