@@ -4,7 +4,11 @@
 
 ### Unit Testing
 
-TODO:
+Unit tests are configured to run via `vitest`. To run them:
+
+```sh
+npm run test
+```
 
 ### End-to-end Testing
 
