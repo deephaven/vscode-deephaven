@@ -14,6 +14,9 @@ describe('VS Code Extension Testing', () => {
   it('should load connection status bar item', async () => {
     const workbench = await browser.getWorkbench();
 
+    const editorView = workbench.getEditorView();
+    const tab = await editorView.openEditor('test.py');
+
     const statusBarItem = await browser.waitUntil(async () => {
       return workbench.getStatusBar().getItem(
         // icon name, display text, tooltip
