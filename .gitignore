@@ -4,3 +4,5 @@ node_modules
 .vscode-test/
 .DS_Store
 .wdio-vscode-service
+e2e/reports/
+test-reports/

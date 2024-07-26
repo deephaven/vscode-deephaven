@@ -19,7 +19,7 @@ Core server `http://localhost:10000/` is configured by default and doesn't requi
 
 e.g. `.vscode/settings.json`
 
-```jsonc
+```json
 {
   // Core servers
   "vscode-deephaven.core-servers": [

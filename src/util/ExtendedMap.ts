@@ -9,7 +9,7 @@ export class ExtendedMap<K, V> extends Map<K, V> {
    */
   getOrThrow = (key: K): V => {
     if (!this.has(key)) {
-      throw new Error(`Key not found: ${key}`);
+      throw new Error(`Key not found: '${key}'`);
     }
 
     return this.get(key)!;
