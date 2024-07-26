@@ -175,8 +175,8 @@ export function activate(context: vscode.ExtensionContext) {
   }
 
   /**
-   * Only show connection status bar item if
-   * 1. A connection is already selected
+   * Only show connection status bar item if either:
+   * 1. A connection is already selected or
    * 2. The active text editor has a languageid that is supported by the currently
    * configured server connections.
    */
