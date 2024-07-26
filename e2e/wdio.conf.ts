@@ -67,7 +67,6 @@ export const config: Options.Testrunner = {
         extensionPath: path.join(__dirname, '..'),
         // optional VS Code settings
         workspacePath: path.join(__dirname, 'test-ws'),
-        filePath: path.join(__dirname, 'test-ws', 'test.py'),
         userSettings: {
           // eslint-disable-next-line @typescript-eslint/naming-convention
           'editor.fontSize': 14,

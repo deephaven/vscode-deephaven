@@ -1,3 +1,4 @@
+import * as vscode from 'vscode';
 import { browser, expect } from '@wdio/globals';
 
 // There are some tests that can be used for reference in:
@@ -15,7 +16,14 @@ describe('VS Code Extension Testing', () => {
     const workbench = await browser.getWorkbench();
 
     const editorView = workbench.getEditorView();
-    const tab = await editorView.openEditor('test.py');
+    // const tab = await editorView.openEditor('test.py');
+
+    await browser.executeWorkbench(async (vs: typeof vscode) => {
+      await vs.workspace.openTextDocument({
+        language: 'python',
+        content: 'print("testing")',
+      });
+    });
 
     const statusBarItem = await browser.waitUntil(async () => {
       return workbench.getStatusBar().getItem(
