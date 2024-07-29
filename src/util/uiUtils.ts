@@ -36,21 +36,10 @@ export async function createConnectionQuickPick(
   connectionOptions: ConnectionOption[],
   selectedUrl?: string | null
 ): Promise<ConnectionOption | DisconnectOption | undefined> {
-  function padLabel(
-    label: string,
-    isSelected: boolean,
-    consoleType?: ConsoleType
-  ) {
-    const consoleTypeStr = consoleType ? ` (${consoleType})` : '';
-    return isSelected
-      ? `$(vm-connect) ${label}${consoleTypeStr}`
-      : `$(blank) ${label}${consoleTypeStr}`;
-  }
-
   const options: (ConnectionOption | DisconnectOption)[] = [
     ...connectionOptions.map(option => ({
       ...option,
-      label: padLabel(
+      label: formatConnectionLabel(
         option.label,
         option.url === selectedUrl,
         option.consoleType
@@ -60,7 +49,7 @@ export async function createConnectionQuickPick(
 
   if (selectedUrl != null) {
     options.unshift({
-      label: padLabel(STATUS_BAR_DISCONNECT_TEXT, false),
+      label: formatConnectionLabel(STATUS_BAR_DISCONNECT_TEXT, false),
       url: null,
     });
   }
@@ -152,6 +141,23 @@ export function createConnectTextAndTooltip(
     text,
     tooltip,
   };
+}
+
+/**
+ * Format the connection label for display.
+ * @param label The original label to format
+ * @param isSelected Whether the connection is selected
+ * @param consoleType The console type
+ */
+export function formatConnectionLabel(
+  label: string,
+  isSelected: boolean,
+  consoleType?: ConsoleType
+) {
+  const consoleTypeStr = consoleType ? ` (${consoleType})` : '';
+  return isSelected
+    ? `$(vm-connect) ${label}${consoleTypeStr}`
+    : `$(blank) ${label}${consoleTypeStr}`;
 }
 
 // Copied from @deephaven/console `ConsoleUtils`
