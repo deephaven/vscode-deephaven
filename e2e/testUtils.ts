@@ -8,7 +8,10 @@ export const PYTHON_AND_GROOVY_SERVER_CONFIG = [
   },
 ] as const;
 
-export async function findStatusBarItem() {
+/**
+ * Find the connection status bar item if it is visible.
+ */
+export async function findConnectionStatusBarItem() {
   const workbench = await browser.getWorkbench();
 
   return workbench.getStatusBar().getItem(
@@ -17,10 +20,18 @@ export async function findStatusBarItem() {
   );
 }
 
-export async function hasStatusBarItem() {
-  return (await findStatusBarItem()) != null;
+/**
+ * Check if the connection status bar item is visible.
+ */
+export async function hasConnectionStatusBarItem() {
+  return (await findConnectionStatusBarItem()) != null;
 }
 
+/**
+ * Open editors with the given titles. Titles must correspond to files that
+ * exist in the root of the workspace.
+ * @param editorTitles The titles of the editors to open.
+ */
 export async function openEditors(editorTitles: string[]): Promise<void> {
   // Note that calls to `browser.executeWorkbench` cannot reference any variables
   // or functions from the outside scope. They only have access to variables
@@ -39,11 +50,20 @@ export async function openEditors(editorTitles: string[]): Promise<void> {
   );
 }
 
+/**
+ * Close all editors.
+ */
 export async function closeAllEditors(): Promise<void> {
   const workbench = await browser.getWorkbench();
   await workbench.getEditorView().closeAllEditors();
 }
 
+/**
+ * Set the core server settings in the extension configuration.
+ * @param config The core server settings to set. Setting to `undefined` will
+ * result in the default configuration vs an `[]` will actually clear the config
+ * completely.
+ */
 export async function setCoreServerSettings(
   config: readonly unknown[] | undefined
 ): Promise<void> {

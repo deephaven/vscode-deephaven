@@ -1,7 +1,7 @@
 import { browser, expect } from '@wdio/globals';
 import {
   closeAllEditors,
-  hasStatusBarItem,
+  hasConnectionStatusBarItem,
   openEditors,
   PYTHON_AND_GROOVY_SERVER_CONFIG,
   setCoreServerSettings,
@@ -36,18 +36,18 @@ describe('Connection status bar item', () => {
       const workbench = await browser.getWorkbench();
 
       await workbench.getEditorView().openEditor(supportedTitle);
-      expect(await hasStatusBarItem()).toBeTruthy();
+      expect(await hasConnectionStatusBarItem()).toBeTruthy();
 
       // Unsupported file type
       await workbench.getEditorView().openEditor('test.txt');
-      expect(await hasStatusBarItem()).toBeFalsy();
+      expect(await hasConnectionStatusBarItem()).toBeFalsy();
 
       await workbench.getEditorView().openEditor(supportedTitle);
-      expect(await hasStatusBarItem()).toBeTruthy();
+      expect(await hasConnectionStatusBarItem()).toBeTruthy();
 
       // Set to empty string to clear all server configs
       await setCoreServerSettings([]);
-      expect(await hasStatusBarItem()).toBeFalsy();
+      expect(await hasConnectionStatusBarItem()).toBeFalsy();
     });
   });
 });
