@@ -36,6 +36,7 @@ export async function openEditors(editorTitles: string[]): Promise<void> {
   // Note that calls to `browser.executeWorkbench` cannot reference any variables
   // or functions from the outside scope. They only have access to variables
   // passed in as additional parameters.
+  // See https://www.npmjs.com/package/wdio-vscode-service#accessing-vscode-apis
   await browser.executeWorkbench(
     async (vs: typeof vscode, editorTitles: string[]): Promise<void> => {
       const filePathsToOpen = editorTitles.map(
@@ -70,6 +71,7 @@ export async function setCoreServerSettings(
   // Note that calls to `browser.executeWorkbench` cannot reference any variables
   // or functions from the outside scope. They only have access to variables
   // passed in as additional parameters.
+  // See https://www.npmjs.com/package/wdio-vscode-service#accessing-vscode-apis
   await browser.executeWorkbench(
     async (vs: typeof vscode, config): Promise<void> => {
       await vs.workspace
