@@ -147,6 +147,9 @@ export function activate(context: vscode.ExtensionContext) {
   vscode.window.onDidChangeActiveTextEditor(() => {
     updateConnectionStatusBarItemVisibility();
   });
+  vscode.workspace.onDidChangeConfiguration(() => {
+    updateConnectionStatusBarItemVisibility();
+  });
 
   context.subscriptions.push(
     debugOutputChannel,
