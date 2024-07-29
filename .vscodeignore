@@ -1,3 +1,5 @@
+_ignore/**
+.github/**
 .vscode/**
 .vscode-test/**
 src/**
@@ -8,3 +10,5 @@ vsc-extension-quickstart.md
 **/.eslintrc.json
 **/*.map
 **/*.ts
+e2e/**
+test-reports/**
