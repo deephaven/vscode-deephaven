@@ -23,33 +23,40 @@ beforeEach(() => {
 });
 
 describe('Config', () => {
+  const urlA = 'http://someUrl';
+  const urlB = 'http://someOtherUrl';
+  const urlC = 'http://someAdditionalUrl';
+  const urlInvalid = 'invalidUrl';
+
   it.each([
     ['Empty config', [], []],
     [
       'String config',
-      ['someUrl', 'someOtherUrl'],
+      [urlA, urlB, urlInvalid],
       [
-        { url: 'someUrl', consoleType: 'python' },
-        { url: 'someOtherUrl', consoleType: 'python' },
+        { url: urlA, consoleType: 'python' },
+        { url: urlB, consoleType: 'python' },
       ],
     ],
     [
       'Default url',
-      [{ url: 'someUrl' }, { url: 'someOtherUrl' }],
+      [{ url: urlA }, { url: urlB }, { url: urlInvalid }],
       [
-        { url: 'someUrl', consoleType: 'python' },
-        { url: 'someOtherUrl', consoleType: 'python' },
+        { url: urlA, consoleType: 'python' },
+        { url: urlB, consoleType: 'python' },
       ],
     ],
     [
       'Full config',
       [
-        { url: 'someUrl', consoleType: 'python' },
-        { url: 'someOtherUrl', consoleType: 'python' },
+        { url: urlA, consoleType: 'python' },
+        { url: urlB, consoleType: 'python' },
+        { url: urlInvalid, consoleType: 'python' },
+        { url: urlC, consoleType: 'invalid' },
       ],
       [
-        { url: 'someUrl', consoleType: 'python' },
-        { url: 'someOtherUrl', consoleType: 'python' },
+        { url: urlA, consoleType: 'python' },
+        { url: urlB, consoleType: 'python' },
       ],
     ],
   ])('should return core servers: %s', (_label, given, expected) => {
