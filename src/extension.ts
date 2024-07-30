@@ -150,6 +150,10 @@ export function activate(context: vscode.ExtensionContext) {
   vscode.workspace.onDidChangeConfiguration(() => {
     updateConnectionStatusBarItemVisibility();
   });
+  // Handle scenarios such as languageId change within an already open document
+  vscode.workspace.onDidOpenTextDocument(() => {
+    updateConnectionStatusBarItemVisibility();
+  });
 
   context.subscriptions.push(
     debugOutputChannel,
