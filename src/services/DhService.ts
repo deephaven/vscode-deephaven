@@ -315,7 +315,9 @@ export abstract class DhService<TDH, TClient>
 
     const changed = [...result!.changes.created, ...result!.changes.updated];
 
-    let lastPanel: vscode.WebviewPanel | null = null;
+    // Have to set this with type assertion since TypeScript can't figure out
+    // assignments inside of the `forEach` and will treat `lastPanel` as `null`.
+    let lastPanel = null as vscode.WebviewPanel | null;
 
     changed.forEach(({ title = 'Unknown', type }, i) => {
       const icon = icons[type as IconType] ?? type;
@@ -372,9 +374,9 @@ export abstract class DhService<TDH, TClient>
             )
         );
       });
-
-      lastPanel?.reveal();
     });
+
+    lastPanel?.reveal();
   }
 }
 

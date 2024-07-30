@@ -276,6 +276,7 @@ async function ensureUriEditorIsActive(
   const viewColumn = vscode.window.visibleTextEditors.find(
     editor => editor.document.uri.toString() === uri.toString()
   )?.viewColumn;
+
   // If another panel such as the output panel is active, set the document
   // for the url to active first
   // https://stackoverflow.com/a/64808497/20489
