@@ -265,8 +265,7 @@ export function activate(context: vscode.ExtensionContext) {
 export function deactivate() {}
 
 async function ensureUriEditorIsActive(
-  uri: vscode.Uri,
-  viewColumn: number
+  uri: vscode.Uri
 ): Promise<vscode.TextEditor> {
   if (
     uri.toString() === vscode.window.activeTextEditor?.document.uri.toString()
@@ -274,6 +273,9 @@ async function ensureUriEditorIsActive(
     return vscode.window.activeTextEditor;
   }
 
+  const viewColumn = vscode.window.visibleTextEditors.find(
+    editor => editor.document.uri.toString() === uri.toString()
+  )?.viewColumn;
   // If another panel such as the output panel is active, set the document
   // for the url to active first
   // https://stackoverflow.com/a/64808497/20489
@@ -298,8 +300,8 @@ function registerCommands(
   /** Run all code in active editor */
   const runCodeCmd = vscode.commands.registerCommand(
     RUN_CODE_COMMAND,
-    async (uri: vscode.Uri, { groupId: viewColumn }: { groupId: number }) => {
-      const editor = await ensureUriEditorIsActive(uri, viewColumn);
+    async (uri: vscode.Uri, _arg: { groupId: number }) => {
+      const editor = await ensureUriEditorIsActive(uri);
       const dhService = await getActiveDhService(
         true,
         editor.document.languageId
@@ -311,8 +313,8 @@ function registerCommands(
   /** Run selected code in active editor */
   const runSelectionCmd = vscode.commands.registerCommand(
     RUN_SELECTION_COMMAND,
-    async (uri: vscode.Uri, { groupId: viewColumn }: { groupId: number }) => {
-      const editor = await ensureUriEditorIsActive(uri, viewColumn);
+    async (uri: vscode.Uri, _arg: { groupId: number }) => {
+      const editor = await ensureUriEditorIsActive(uri);
       const dhService = await getActiveDhService(
         true,
         editor.document.languageId
