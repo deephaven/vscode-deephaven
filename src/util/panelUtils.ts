@@ -6,8 +6,14 @@ export function getPanelHtml(iframeUrl: string, title: string) {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Deephaven</title>
       <style>
-      html, body {
+      html {
         height: 100%;
+        overflow: hidden;
+      }
+      body {
+        --vscode-dh-panel-padding-top: 20px;
+        padding-top: var(--vscode-dh-panel-padding-top);
+        height: calc(100vh - var(--vscode-dh-panel-padding-top));
         overflow: hidden;
       }
       iframe {
