@@ -10,7 +10,7 @@ import {
   Logger,
   Toaster,
 } from './util';
-import { DhcService } from './services';
+import { DhcService, RunCommandCodeLensProvider } from './services';
 import { DhServiceRegistry } from './services';
 import {
   DOWNLOAD_LOGS_CMD,
@@ -26,6 +26,10 @@ export function activate(context: vscode.ExtensionContext) {
   let selectedConnectionUrl: string | null = null;
   let selectedDhService: DhcService | null = null;
   let connectionOptions = createConnectionOptions();
+
+  const codelensProvider = new RunCommandCodeLensProvider();
+  vscode.languages.registerCodeLensProvider('groovy', codelensProvider);
+  vscode.languages.registerCodeLensProvider('python', codelensProvider);
 
   const diagnosticsCollection =
     vscode.languages.createDiagnosticCollection('python');
