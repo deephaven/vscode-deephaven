@@ -97,6 +97,18 @@
           "when": "false"
         }
       ],
+      "editor/context": [
+        {
+          "command": "vscode-deephaven.runCode",
+          "group": "deephaven",
+          "when": "editorLangId == python || editorLangId == groovy"
+        },
+        {
+          "command": "vscode-deephaven.runSelection",
+          "group": "deephaven",
+          "when": "editorLangId == python || editorLangId == groovy"
+        }
+      ],
       "editor/title/run": [
         {
           "command": "vscode-deephaven.runCode",
