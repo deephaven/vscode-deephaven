@@ -27,9 +27,12 @@ export function activate(context: vscode.ExtensionContext) {
   let selectedDhService: DhcService | null = null;
   let connectionOptions = createConnectionOptions();
 
+  // Register code lenses for running Deephaven code
   const codelensProvider = new RunCommandCodeLensProvider();
-  vscode.languages.registerCodeLensProvider('groovy', codelensProvider);
-  vscode.languages.registerCodeLensProvider('python', codelensProvider);
+  context.subscriptions.push(
+    vscode.languages.registerCodeLensProvider('groovy', codelensProvider),
+    vscode.languages.registerCodeLensProvider('python', codelensProvider)
+  );
 
   const diagnosticsCollection =
     vscode.languages.createDiagnosticCollection('python');
