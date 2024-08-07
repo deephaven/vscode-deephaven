@@ -89,12 +89,7 @@ https://code.visualstudio.com/api/working-with-extensions/publishing-extension#p
 
    ```sh
    # Pre-release
-   vsce publish --pre-release
-   ```
-
-   ```sh
-   # Release
-   vsce publish
+   npm run publish:pre
    ```
 
 ## PNG Generation
