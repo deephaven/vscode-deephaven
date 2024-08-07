@@ -5,6 +5,7 @@ import {
   ConnectionConfig,
   ConnectionConfigStored,
   DEFAULT_CONSOLE_TYPE,
+  SERVER_LANGUAGE_SET,
 } from '../common';
 import { InvalidConsoleTypeError, Logger } from '../util';
 
@@ -37,7 +38,7 @@ function getCoreServers(): ConnectionConfig[] {
       // Filter out any invalid server configs to avoid crashing the extension
       // further upstream.
       new URL(server.url);
-      if (!['python', 'groovy'].includes(server.consoleType)) {
+      if (!SERVER_LANGUAGE_SET.has(server.consoleType)) {
         throw new InvalidConsoleTypeError(server.consoleType);
       }
       return true;

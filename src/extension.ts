@@ -268,9 +268,13 @@ export function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {}
 
-async function ensureUriEditorIsActive(
-  uri: vscode.Uri
-): Promise<vscode.TextEditor> {
+/**
+ * Get a `TextEditor` containing the given uri. If there is one already open,
+ * it will be returned. Otherwise, a new one will be opened. The returned editor
+ * will become the active editor if it is not already.
+ * @param uri
+ */
+async function getEditorForUri(uri: vscode.Uri): Promise<vscode.TextEditor> {
   if (
     uri.toString() === vscode.window.activeTextEditor?.document.uri.toString()
   ) {
@@ -306,7 +310,7 @@ function registerCommands(
   const runCodeCmd = vscode.commands.registerCommand(
     RUN_CODE_COMMAND,
     async (uri: vscode.Uri, _arg: { groupId: number }) => {
-      const editor = await ensureUriEditorIsActive(uri);
+      const editor = await getEditorForUri(uri);
       const dhService = await getActiveDhService(
         true,
         editor.document.languageId
@@ -319,7 +323,7 @@ function registerCommands(
   const runSelectionCmd = vscode.commands.registerCommand(
     RUN_SELECTION_COMMAND,
     async (uri: vscode.Uri, _arg: { groupId: number }) => {
-      const editor = await ensureUriEditorIsActive(uri);
+      const editor = await getEditorForUri(uri);
       const dhService = await getActiveDhService(
         true,
         editor.document.languageId
