@@ -25,7 +25,6 @@ const logger = new Logger('extension');
 export function activate(context: vscode.ExtensionContext) {
   let selectedConnectionUrl: string | null = null;
   let selectedDhService: DhcService | null = null;
-  let connectionOptions = createConnectionOptions();
 
   // Register code lenses for running Deephaven code
   const codelensProvider = new RunCommandCodeLensProvider();
@@ -51,6 +50,8 @@ export function activate(context: vscode.ExtensionContext) {
   logger.info(
     'Congratulations, your extension "vscode-deephaven" is now active!'
   );
+
+  let connectionOptions = createConnectionOptions();
 
   outputChannel.appendLine('Deephaven extension activated');
 
@@ -99,11 +100,30 @@ export function activate(context: vscode.ExtensionContext) {
    * @autoActivate If true, auto-activate a service if none is active.
    */
   async function getActiveDhService(
-    autoActivate: boolean
+    autoActivate: boolean,
+    languageId?: string
   ): Promise<DhcService | null> {
-    if (autoActivate && !selectedConnectionUrl) {
-      const defaultConnection = connectionOptions[0];
-      await onConnectionSelected(defaultConnection.url);
+    if (!autoActivate || languageId == null) {
+      return selectedDhService;
+    }
+
+    const selectedConsoleType = connectionOptions.find(
+      c => c.url === selectedConnectionUrl
+    )?.consoleType;
+
+    // If console type of current selection doesn't match the language id, look
+    // for the first one that does and select it.
+    if (selectedConsoleType !== languageId) {
+      const toConnectUrl =
+        connectionOptions.find(c => c.consoleType === languageId)?.url ?? null;
+
+      if (toConnectUrl == null) {
+        toaster.error(
+          `No Deephaven server configured for console type: '${languageId}'`
+        );
+      }
+
+      await onConnectionSelected(toConnectUrl);
     }
 
     return selectedDhService;
@@ -118,7 +138,22 @@ export function activate(context: vscode.ExtensionContext) {
       onDownloadLogs
     );
 
-  const connectStatusBarItem = createConnectStatusBarItem();
+  const connectStatusBarItem = createConnectStatusBarItem(
+    shouldShowConnectionStatusBarItem()
+  );
+
+  // Toggle visibility of connection status bar item based on whether the
+  // languageid is supported by DH
+  vscode.window.onDidChangeActiveTextEditor(() => {
+    updateConnectionStatusBarItemVisibility();
+  });
+  vscode.workspace.onDidChangeConfiguration(() => {
+    updateConnectionStatusBarItemVisibility();
+  });
+  // Handle scenarios such as languageId change within an already open document
+  vscode.workspace.onDidOpenTextDocument(() => {
+    updateConnectionStatusBarItemVisibility();
+  });
 
   context.subscriptions.push(
     debugOutputChannel,
@@ -147,6 +182,42 @@ export function activate(context: vscode.ExtensionContext) {
   }
 
   /**
+   * Only show connection status bar item if either:
+   * 1. A connection is already selected or
+   * 2. The active text editor has a languageid that is supported by the currently
+   * configured server connections.
+   */
+  function shouldShowConnectionStatusBarItem(): boolean {
+    if (selectedDhService != null) {
+      return true;
+    }
+
+    if (
+      vscode.window.activeTextEditor?.document.languageId === 'python' &&
+      connectionOptions.some(c => c.consoleType === 'python')
+    ) {
+      return true;
+    }
+
+    if (
+      vscode.window.activeTextEditor?.document.languageId === 'groovy' &&
+      connectionOptions.some(c => c.consoleType === 'groovy')
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  function updateConnectionStatusBarItemVisibility(): void {
+    if (shouldShowConnectionStatusBarItem()) {
+      connectStatusBarItem.show();
+    } else {
+      connectStatusBarItem.hide();
+    }
+  }
+
+  /**
    * Handle connection selection
    */
   async function onConnectionSelected(connectionUrl: string | null) {
@@ -168,6 +239,7 @@ export function activate(context: vscode.ExtensionContext) {
     // Disconnect option was selected, or connectionUrl that no longer exists
     if (connectionUrl == null || !option) {
       clearConnection();
+      updateConnectionStatusBarItemVisibility();
       return;
     }
 
@@ -189,27 +261,43 @@ export function activate(context: vscode.ExtensionContext) {
     } else {
       clearConnection();
     }
+
+    updateConnectionStatusBarItemVisibility();
   }
 }
 
 export function deactivate() {}
 
-async function ensureUriEditorIsActive(uri: vscode.Uri) {
-  const isActive =
-    uri.toString() === vscode.window.activeTextEditor?.document.uri.toString();
+/**
+ * Get a `TextEditor` containing the given uri. If there is one already open,
+ * it will be returned. Otherwise, a new one will be opened. The returned editor
+ * will become the active editor if it is not already.
+ * @param uri
+ */
+async function getEditorForUri(uri: vscode.Uri): Promise<vscode.TextEditor> {
+  if (
+    uri.toString() === vscode.window.activeTextEditor?.document.uri.toString()
+  ) {
+    return vscode.window.activeTextEditor;
+  }
+
+  const viewColumn = vscode.window.visibleTextEditors.find(
+    editor => editor.document.uri.toString() === uri.toString()
+  )?.viewColumn;
 
   // If another panel such as the output panel is active, set the document
   // for the url to active first
-  if (!isActive) {
-    // https://stackoverflow.com/a/64808497/20489
-    await vscode.window.showTextDocument(uri, { preview: false });
-  }
+  // https://stackoverflow.com/a/64808497/20489
+  return vscode.window.showTextDocument(uri, { preview: false, viewColumn });
 }
 
 /** Register commands for the extension. */
 function registerCommands(
   getConnectionOptions: () => ConnectionOption[],
-  getActiveDhService: (autoActivate: boolean) => Promise<DhcService | null>,
+  getActiveDhService: (
+    autoActivate: boolean,
+    languageId?: string
+  ) => Promise<DhcService | null>,
   onConnectionSelected: (connectionUrl: string | null) => void,
   onDownloadLogs: () => void
 ) {
@@ -222,14 +310,12 @@ function registerCommands(
   const runCodeCmd = vscode.commands.registerCommand(
     RUN_CODE_COMMAND,
     async (uri: vscode.Uri, _arg: { groupId: number }) => {
-      await ensureUriEditorIsActive(uri);
-
-      const editor = vscode.window.activeTextEditor;
-
-      if (editor) {
-        const dhService = await getActiveDhService(true);
-        dhService?.runEditorCode(editor);
-      }
+      const editor = await getEditorForUri(uri);
+      const dhService = await getActiveDhService(
+        true,
+        editor.document.languageId
+      );
+      dhService?.runEditorCode(editor);
     }
   );
 
@@ -237,14 +323,12 @@ function registerCommands(
   const runSelectionCmd = vscode.commands.registerCommand(
     RUN_SELECTION_COMMAND,
     async (uri: vscode.Uri, _arg: { groupId: number }) => {
-      await ensureUriEditorIsActive(uri);
-
-      const editor = vscode.window.activeTextEditor;
-
-      if (editor) {
-        const dhService = await getActiveDhService(true);
-        dhService?.runEditorCode(editor, true);
-      }
+      const editor = await getEditorForUri(uri);
+      const dhService = await getActiveDhService(
+        true,
+        editor.document.languageId
+      );
+      dhService?.runEditorCode(editor, true);
     }
   );
 

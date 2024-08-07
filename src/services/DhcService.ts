@@ -42,40 +42,33 @@ export class DhcService extends DhService<typeof DhcType, DhcType.CoreClient> {
   protected async createSession(
     dh: typeof DhcType,
     client: DhcType.CoreClient
-  ) {
-    let connectionAndSession: ConnectionAndSession<
-      DhcType.IdeConnection,
-      DhcType.IdeSession
-    > | null = null;
+  ): Promise<ConnectionAndSession<DhcType.IdeConnection, DhcType.IdeSession>> {
+    const authConfig = new Set(
+      (await client.getAuthConfigValues()).map(([, value]) => value)
+    );
 
-    try {
-      const authConfig = new Set(
-        (await client.getAuthConfigValues()).map(([, value]) => value)
-      );
+    if (authConfig.has(AUTH_HANDLER_TYPE_ANONYMOUS)) {
+      return initDhcSession(client, {
+        type: dh.CoreClient.LOGIN_TYPE_ANONYMOUS,
+      });
+    } else if (authConfig.has(AUTH_HANDLER_TYPE_PSK)) {
+      const token = await vscode.window.showInputBox({
+        placeHolder: 'Pre-Shared Key',
+        prompt: 'Enter your Deephaven pre-shared key',
+        password: true,
+      });
 
-      if (authConfig.has(AUTH_HANDLER_TYPE_ANONYMOUS)) {
-        connectionAndSession = await initDhcSession(client, {
-          type: dh.CoreClient.LOGIN_TYPE_ANONYMOUS,
-        });
-      } else if (authConfig.has(AUTH_HANDLER_TYPE_PSK)) {
-        const token = await vscode.window.showInputBox({
-          placeHolder: 'Pre-Shared Key',
-          prompt: 'Enter your Deephaven pre-shared key',
-          password: true,
-        });
+      const connectionAndSession = await initDhcSession(client, {
+        type: 'io.deephaven.authentication.psk.PskAuthenticationHandler',
+        token,
+      });
 
-        connectionAndSession = await initDhcSession(client, {
-          type: 'io.deephaven.authentication.psk.PskAuthenticationHandler',
-          token,
-        });
+      this.psk = token;
 
-        this.psk = token;
-      }
-    } catch (err) {
-      logger.error(err);
+      return connectionAndSession;
     }
 
-    return connectionAndSession;
+    throw new Error('No supported authentication methods found.');
   }
 
   protected getPanelHtml(title: string): string {

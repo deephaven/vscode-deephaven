@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import {
+  ConnectionConfig,
   ConnectionType,
+  ConsoleType,
   SELECT_CONNECTION_COMMAND,
   STATUS_BAR_CONNECTING_TEXT,
   STATUS_BAR_DISCONNECTED_TEXT,
@@ -12,6 +14,7 @@ export interface ConnectionOption {
   type: ConnectionType;
   label: string;
   url: string;
+  consoleType: ConsoleType;
 }
 
 export interface DisconnectOption {
@@ -33,20 +36,20 @@ export async function createConnectionQuickPick(
   connectionOptions: ConnectionOption[],
   selectedUrl?: string | null
 ): Promise<ConnectionOption | DisconnectOption | undefined> {
-  function padLabel(label: string, isSelected: boolean) {
-    return isSelected ? `$(vm-connect) ${label}` : `$(blank) ${label}`;
-  }
-
   const options: (ConnectionOption | DisconnectOption)[] = [
     ...connectionOptions.map(option => ({
       ...option,
-      label: padLabel(option.label, option.url === selectedUrl),
+      label: formatConnectionLabel(
+        option.label,
+        option.url === selectedUrl,
+        option.consoleType
+      ),
     })),
   ];
 
   if (selectedUrl != null) {
     options.unshift({
-      label: padLabel(STATUS_BAR_DISCONNECT_TEXT, false),
+      label: formatConnectionLabel(STATUS_BAR_DISCONNECT_TEXT, false),
       url: null,
     });
   }
@@ -57,7 +60,7 @@ export async function createConnectionQuickPick(
 /**
  * Create a status bar item for connecting to DH server
  */
-export function createConnectStatusBarItem() {
+export function createConnectStatusBarItem(show: boolean) {
   const statusBarItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Left,
     100
@@ -66,7 +69,12 @@ export function createConnectStatusBarItem() {
   const { text, tooltip } = createConnectTextAndTooltip('disconnected');
   statusBarItem.text = text;
   statusBarItem.tooltip = tooltip;
-  statusBarItem.show();
+
+  if (show) {
+    statusBarItem.show();
+  } else {
+    statusBarItem.hide();
+  }
 
   return statusBarItem;
 }
@@ -76,11 +84,14 @@ export function createConnectStatusBarItem() {
  * @param type The type of connection
  */
 export function createConnectionOption(type: ConnectionType) {
-  return (serverUrl: string): ConnectionOption => {
+  return ({
+    url: serverUrl,
+    consoleType,
+  }: ConnectionConfig): ConnectionOption => {
     const url = new URL(serverUrl ?? '');
     const label = `${type}: ${url.hostname}:${url.port}`;
 
-    return { type, label, url: serverUrl };
+    return { type, consoleType, label, url: serverUrl };
   };
 }
 
@@ -130,6 +141,23 @@ export function createConnectTextAndTooltip(
     text,
     tooltip,
   };
+}
+
+/**
+ * Format the connection label for display.
+ * @param label The original label to format
+ * @param isSelected Whether the connection is selected
+ * @param consoleType The console type
+ */
+export function formatConnectionLabel(
+  label: string,
+  isSelected: boolean,
+  consoleType?: ConsoleType
+) {
+  const consoleTypeStr = consoleType ? ` (${consoleType})` : '';
+  return isSelected
+    ? `$(vm-connect) ${label}${consoleTypeStr}`
+    : `$(blank) ${label}${consoleTypeStr}`;
 }
 
 // Copied from @deephaven/console `ConsoleUtils`

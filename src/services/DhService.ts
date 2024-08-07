@@ -5,7 +5,9 @@ import { ConnectionAndSession, Disposable } from '../common';
 import {
   ExtendedMap,
   formatTimestamp,
+  isAggregateError,
   Logger,
+  NoConsoleTypesError,
   parseServerError,
   Toaster,
 } from '../util';
@@ -62,10 +64,9 @@ export abstract class DhService<TDH, TClient>
   private readonly panelRegistry: ExtendedMap<string, vscode.WebviewPanel>;
   private readonly diagnosticsCollection: vscode.DiagnosticCollection;
   private cachedCreateClient: Promise<TClient> | null = null;
-  private cachedCreateSession: Promise<ConnectionAndSession<
-    DhcType.IdeConnection,
-    DhcType.IdeSession
-  > | null> | null = null;
+  private cachedCreateSession: Promise<
+    ConnectionAndSession<DhcType.IdeConnection, DhcType.IdeSession>
+  > | null = null;
   private cachedInitApi: Promise<TDH> | null = null;
 
   protected dh: TDH | null = null;
@@ -78,10 +79,7 @@ export abstract class DhService<TDH, TClient>
   protected abstract createSession(
     dh: TDH,
     client: TClient
-  ): Promise<ConnectionAndSession<
-    DhcType.IdeConnection,
-    DhcType.IdeSession
-  > | null>;
+  ): Promise<ConnectionAndSession<DhcType.IdeConnection, DhcType.IdeSession>>;
   protected abstract getPanelHtml(title: string): string;
   protected abstract handlePanelMessage(
     message: {
@@ -113,6 +111,21 @@ export abstract class DhService<TDH, TClient>
     this.clearCaches();
   }
 
+  protected getToastErrorMessage(
+    err: unknown,
+    defaultErrorMessage: string
+  ): string {
+    if (err instanceof NoConsoleTypesError) {
+      return `No console types available for server: ${this.serverUrl}`;
+    }
+
+    if (isAggregateError(err)) {
+      return `Failed to connect to server with code: ${err.code} ${this.serverUrl}`;
+    }
+
+    return defaultErrorMessage;
+  }
+
   public get isInitialized(): boolean {
     return this.cachedInitApi != null;
   }
@@ -136,7 +149,11 @@ export abstract class DhService<TDH, TClient>
       this.outputChannel.appendLine(
         `Failed to initialize Deephaven API${err == null ? '.' : `: ${err}`}`
       );
-      this.toaster.error('Failed to initialize Deephaven API');
+      const toastMessage = this.getToastErrorMessage(
+        err,
+        'Failed to initialize Deephaven API'
+      );
+      this.toaster.error(toastMessage);
       return false;
     }
 
@@ -150,19 +167,16 @@ export abstract class DhService<TDH, TClient>
       this.outputChannel.appendLine('Creating session...');
       this.cachedCreateSession = this.createSession(this.dh, this.client);
 
-      const { cn = null, session = null } =
-        (await this.cachedCreateSession) ?? {};
+      try {
+        const { cn, session } = await this.cachedCreateSession;
 
-      // TODO: Use constant event name
-      if (cn != null) {
+        // TODO: Use constant 'disconnect' event name
         this.subscriptions.push(
           cn.addEventListener('disconnect', () => {
             this.clearCaches();
           })
         );
-      }
 
-      if (session != null) {
         session.onLogMessage(logItem => {
           // TODO: Should this pull log level from config somewhere?
           if (logItem.logLevel !== 'INFO') {
@@ -174,21 +188,24 @@ export abstract class DhService<TDH, TClient>
             );
           }
         });
-      }
+      } catch (err) {}
     }
 
-    const { cn = null, session = null } =
-      (await this.cachedCreateSession) ?? {};
+    try {
+      const { cn, session } = await this.cachedCreateSession;
+      this.cn = cn;
+      this.session = session;
+    } catch (err) {
+      const toastMessage = this.getToastErrorMessage(
+        err,
+        `Failed to create Deephaven session: ${this.serverUrl}`
+      );
 
-    this.cn = cn;
-    this.session = session;
+      this.toaster.error(toastMessage);
+    }
 
     if (this.cn == null || this.session == null) {
       this.clearCaches();
-
-      this.toaster.error(
-        `Failed to create Deephaven session: ${this.serverUrl}`
-      );
 
       return false;
     } else {
@@ -202,12 +219,6 @@ export abstract class DhService<TDH, TClient>
     editor: vscode.TextEditor,
     selectionOnly = false
   ): Promise<void> {
-    if (editor.document.languageId !== 'python') {
-      // This should not actually happen
-      logger.info(`languageId '${editor.document.languageId}' not supported.`);
-      return;
-    }
-
     // Clear previous diagnostics when cmd starts running
     this.diagnosticsCollection.set(editor.document.uri, []);
 
@@ -215,7 +226,16 @@ export abstract class DhService<TDH, TClient>
       await this.initDh();
     }
 
-    if (this.session == null) {
+    if (this.cn == null || this.session == null) {
+      return;
+    }
+
+    const [consoleType] = await this.cn.getConsoleTypes();
+
+    if (consoleType !== editor.document.languageId) {
+      this.toaster.error(
+        `This connection does not support '${editor.document.languageId}'.`
+      );
       return;
     }
 
@@ -259,33 +279,35 @@ export abstract class DhService<TDH, TClient>
       this.outputChannel.appendLine(error);
       this.toaster.error('An error occurred when running a command');
 
-      const { line, value } = parseServerError(error);
+      if (editor.document.languageId === 'python') {
+        const { line, value } = parseServerError(error);
 
-      if (line != null) {
-        // If selectionOnly is true, the line number in the error will be
-        // relative to the selection (Python line numbers are 1 based. vscode
-        // line numbers are zero based.)
-        const fileLine =
-          (selectionOnly ? line + editor.selection.start.line : line) - 1;
+        if (line != null) {
+          // If selectionOnly is true, the line number in the error will be
+          // relative to the selection (Python line numbers are 1 based. vscode
+          // line numbers are zero based.)
+          const fileLine =
+            (selectionOnly ? line + editor.selection.start.line : line) - 1;
 
-        // There seems to be an error for certain Python versions where line
-        // numbers are shown as -1. In such cases, we'll just mark the first
-        // token on the first line to at least flag the file as having an error.
-        const startLine = Math.max(0, fileLine);
+          // There seems to be an error for certain Python versions where line
+          // numbers are shown as -1. In such cases, we'll just mark the first
+          // token on the first line to at least flag the file as having an error.
+          const startLine = Math.max(0, fileLine);
 
-        // Zero length will flag a token instead of a line
-        const lineLength =
-          fileLine < 0 ? 0 : editor.document.lineAt(fileLine).text.length;
+          // Zero length will flag a token instead of a line
+          const lineLength =
+            fileLine < 0 ? 0 : editor.document.lineAt(fileLine).text.length;
 
-        // Diagnostic representing the line of code that produced the server error
-        const diagnostic: vscode.Diagnostic = {
-          message: value == null ? error : `${value}\n${error}`,
-          severity: vscode.DiagnosticSeverity.Error,
-          range: new vscode.Range(startLine, 0, startLine, lineLength),
-          source: 'deephaven',
-        };
+          // Diagnostic representing the line of code that produced the server error
+          const diagnostic: vscode.Diagnostic = {
+            message: value == null ? error : `${value}\n${error}`,
+            severity: vscode.DiagnosticSeverity.Error,
+            range: new vscode.Range(startLine, 0, startLine, lineLength),
+            source: 'deephaven',
+          };
 
-        this.diagnosticsCollection.set(editor.document.uri, [diagnostic]);
+          this.diagnosticsCollection.set(editor.document.uri, [diagnostic]);
+        }
       }
 
       return;
@@ -293,7 +315,9 @@ export abstract class DhService<TDH, TClient>
 
     const changed = [...result!.changes.created, ...result!.changes.updated];
 
-    let lastPanel: vscode.WebviewPanel | null = null;
+    // Have to set this with type assertion since TypeScript can't figure out
+    // assignments inside of the `forEach` and will treat `lastPanel` as `null`.
+    let lastPanel = null as vscode.WebviewPanel | null;
 
     changed.forEach(({ title = 'Unknown', type }, i) => {
       const icon = icons[type as IconType] ?? type;
@@ -350,9 +374,9 @@ export abstract class DhService<TDH, TClient>
             )
         );
       });
-
-      lastPanel?.reveal();
     });
+
+    lastPanel?.reveal();
   }
 }
 

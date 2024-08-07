@@ -1,7 +1,12 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { dh as DhType } from './dhc-types';
-import { downloadFromURL, getTempDir, polyfillDh } from '../util';
+import {
+  downloadFromURL,
+  getTempDir,
+  NoConsoleTypesError,
+  polyfillDh,
+} from '../util';
 import { ConnectionAndSession } from '../common';
 
 export const AUTH_HANDLER_TYPE_ANONYMOUS =
@@ -43,7 +48,12 @@ export async function initDhcSession(
 
   const cn = await client.getAsIdeConnection();
 
-  const type = 'python';
+  const [type] = await cn.getConsoleTypes();
+
+  if (type == null) {
+    throw new NoConsoleTypesError();
+  }
+
   const session = await cn.startSession(type);
 
   return { cn, session };
@@ -59,7 +69,11 @@ export async function initDhcSession(
  * we have to save / convert to .cjs.
  * See https://stackoverflow.com/questions/70620025/how-do-i-import-an-es6-javascript-module-in-my-vs-code-extension-written-in-type
  */
-async function getDhc(serverUrl: string, outDir: string, download: boolean) {
+async function getDhc(
+  serverUrl: string,
+  outDir: string,
+  download: boolean
+): Promise<typeof DhType> {
   if (download) {
     const dhInternal = await downloadFromURL(
       path.join(serverUrl, 'jsapi/dh-internal.js')

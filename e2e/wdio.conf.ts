@@ -66,6 +66,7 @@ export const config: Options.Testrunner = {
         // points to directory where extension package.json is located
         extensionPath: path.join(__dirname, '..'),
         // optional VS Code settings
+        workspacePath: path.join(__dirname, 'test-ws'),
         userSettings: {
           // eslint-disable-next-line @typescript-eslint/naming-convention
           'editor.fontSize': 14,
