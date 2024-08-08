@@ -1,3 +1,5 @@
+import * as path from 'node:path';
+
 export const CONFIG_KEY = 'vscode-deephaven';
 export const CONFIG_CORE_SERVERS = 'core-servers';
 
@@ -17,3 +19,5 @@ export const DOWNLOAD_LOGS_TEXT = 'Download Logs';
 export const SERVER_LANGUAGE_SET = new Set(['python', 'groovy']) as ReadonlySet<
   'python' | 'groovy'
 >;
+
+export const TMP_DIR_ROOT = path.join(__dirname, '..', 'tmp');

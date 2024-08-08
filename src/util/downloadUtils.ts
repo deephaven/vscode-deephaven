@@ -2,12 +2,20 @@ import * as fs from 'node:fs';
 import * as http from 'node:http';
 import * as https from 'node:https';
 import * as path from 'node:path';
+import { TMP_DIR_ROOT } from '../common';
 import { Logger } from './Logger';
 
 const logger = new Logger('downloadUtils');
 
-export function getTempDir(recreate: boolean, subDirectory?: string) {
-  let tempDir = path.join(__dirname, '..', 'tmp');
+/**
+ * Return the path of the temp directory with optional sub directory. If recreate
+ * is true, the directory will be deleted and recreated.
+ * @param recreate If true, delete and recreate the directory
+ * @param subDirectory Optional sub directory to create
+ * @returns The path of the temp directory
+ */
+export function getTempDir(recreate: boolean, subDirectory?: string): string {
+  let tempDir = TMP_DIR_ROOT;
   if (subDirectory != null) {
     tempDir = path.join(tempDir, subDirectory);
   }
