@@ -38,8 +38,7 @@ export class ExtensionController implements Disposable {
     this.initializeTempDirectory();
     this.initializeConnectionOptions();
     this.initializeConnectionStatusBarItem();
-
-    this.registerCommands();
+    this.initializeCommands();
 
     logger.info(
       'Congratulations, your extension "vscode-deephaven" is now active!'
@@ -202,6 +201,23 @@ export class ExtensionController implements Disposable {
     getTempDir(true /*recreate*/);
   };
 
+  /**
+   * Register commands for the extension.
+   */
+  initializeCommands = (): void => {
+    /** Download logs and open in editor */
+    this.registerCommand(DOWNLOAD_LOGS_CMD, this.onDownloadLogs);
+
+    /** Run all code in active editor */
+    this.registerCommand(RUN_CODE_COMMAND, this.onRunCode);
+
+    /** Run selected code in active editor */
+    this.registerCommand(RUN_SELECTION_COMMAND, this.onRunSelectedCode);
+
+    /** Select connection to run scripts against */
+    this.registerCommand(SELECT_CONNECTION_COMMAND, this.onSelectConnection);
+  };
+
   /*
    * Clear connection data
    */
@@ -326,6 +342,49 @@ export class ExtensionController implements Disposable {
   };
 
   /**
+   * Run all code in editor for given uri.
+   * @param uri
+   */
+  onRunCode = async (uri: vscode.Uri): Promise<void> => {
+    const editor = await getEditorForUri(uri);
+    const dhService = await this.getActiveDhService(
+      true,
+      editor.document.languageId
+    );
+    dhService?.runEditorCode(editor);
+  };
+
+  /**
+   * Run selected code in editor for given uri.
+   * @param uri
+   */
+  onRunSelectedCode = async (uri: vscode.Uri): Promise<void> => {
+    const editor = await getEditorForUri(uri);
+    const dhService = await this.getActiveDhService(
+      true,
+      editor.document.languageId
+    );
+    dhService?.runEditorCode(editor, true);
+  };
+
+  /**
+   * Handle connection selection.
+   */
+  onSelectConnection = async (): Promise<void> => {
+    const dhService = await this.getActiveDhService(false);
+
+    const result = await createConnectionQuickPick(
+      this.connectionOptions,
+      dhService?.serverUrl
+    );
+    if (!result) {
+      return;
+    }
+
+    this.onConnectionSelected(result.url);
+  };
+
+  /**
    * Update status bar item visibility.
    */
   updateConnectionStatusBarItemVisibility = (): void => {
@@ -342,63 +401,12 @@ export class ExtensionController implements Disposable {
   };
 
   /**
-   * Register commands for the extension.
+   * Register a command and add it's subscription to the context.
    */
-  registerCommands = (): void => {
-    const downloadLogsCmd = vscode.commands.registerCommand(
-      DOWNLOAD_LOGS_CMD,
-      this.onDownloadLogs
-    );
-
-    /** Run all code in active editor */
-    const runCodeCmd = vscode.commands.registerCommand(
-      RUN_CODE_COMMAND,
-      async (uri: vscode.Uri, _arg: { groupId: number }) => {
-        const editor = await getEditorForUri(uri);
-        const dhService = await this.getActiveDhService(
-          true,
-          editor.document.languageId
-        );
-        dhService?.runEditorCode(editor);
-      }
-    );
-
-    /** Run selected code in active editor */
-    const runSelectionCmd = vscode.commands.registerCommand(
-      RUN_SELECTION_COMMAND,
-      async (uri: vscode.Uri, _arg: { groupId: number }) => {
-        const editor = await getEditorForUri(uri);
-        const dhService = await this.getActiveDhService(
-          true,
-          editor.document.languageId
-        );
-        dhService?.runEditorCode(editor, true);
-      }
-    );
-
-    /** Select connection to run scripts against */
-    const selectConnectionCmd = vscode.commands.registerCommand(
-      SELECT_CONNECTION_COMMAND,
-      async () => {
-        const dhService = await this.getActiveDhService(false);
-
-        const result = await createConnectionQuickPick(
-          this.connectionOptions,
-          dhService?.serverUrl
-        );
-        if (!result) {
-          return;
-        }
-
-        this.onConnectionSelected(result.url);
-      }
-    );
-
-    this.context.subscriptions.push(
-      downloadLogsCmd,
-      runCodeCmd,
-      runSelectionCmd,
-      selectConnectionCmd
-    );
+  registerCommand = (
+    ...args: Parameters<typeof vscode.commands.registerCommand>
+  ): void => {
+    const cmd = vscode.commands.registerCommand(...args);
+    this.context.subscriptions.push(cmd);
   };
 }
