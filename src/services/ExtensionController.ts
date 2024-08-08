@@ -116,26 +116,20 @@ export class ExtensionController implements Disposable {
     // Toggle visibility of connection status bar item based on whether the
     // languageid is supported by DH
     vscode.window.onDidChangeActiveTextEditor(
-      () => {
-        this.updateConnectionStatusBarItemVisibility();
-      },
+      this.updateConnectionStatusBarItemVisibility,
       null,
       this.context.subscriptions
     );
 
     vscode.workspace.onDidChangeConfiguration(
-      () => {
-        this.updateConnectionStatusBarItemVisibility();
-      },
+      this.updateConnectionStatusBarItemVisibility,
       null,
       this.context.subscriptions
     );
 
     // Handle scenarios such as languageId change within an already open document
     vscode.workspace.onDidOpenTextDocument(
-      () => {
-        this.updateConnectionStatusBarItemVisibility();
-      },
+      this.updateConnectionStatusBarItemVisibility,
       null,
       this.context.subscriptions
     );
