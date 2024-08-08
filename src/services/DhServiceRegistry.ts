@@ -10,7 +10,10 @@ export class DhServiceRegistry<T extends DhcService> extends CacheService<
 > {
   constructor(
     serviceFactory: DhServiceConstructor<T>,
-    panelRegistry: ExtendedMap<string, vscode.WebviewPanel>,
+    panelRegistry: ExtendedMap<
+      string,
+      ExtendedMap<string, vscode.WebviewPanel>
+    >,
     diagnosticsCollection: vscode.DiagnosticCollection,
     outputChannel: vscode.OutputChannel,
     toaster: Toaster
@@ -22,9 +25,15 @@ export class DhServiceRegistry<T extends DhcService> extends CacheService<
           throw new Error(`${serviceFactory.name} server url is null.`);
         }
 
+        // Get or add the panel registry for the server if it doesn't exist.
+        if (!panelRegistry.has(serverUrl)) {
+          panelRegistry.set(serverUrl, new ExtendedMap());
+        }
+        const serverPanelRegistry = panelRegistry.getOrThrow(serverUrl);
+
         const dhService = new serviceFactory(
           serverUrl,
-          panelRegistry,
+          serverPanelRegistry,
           diagnosticsCollection,
           outputChannel,
           toaster

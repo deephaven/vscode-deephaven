@@ -72,7 +72,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   const dhcServiceRegistry = new DhServiceRegistry(
     DhcService,
-    new ExtendedMap<string, vscode.WebviewPanel>(),
+    new ExtendedMap<string, ExtendedMap<string, vscode.WebviewPanel>>(),
     diagnosticsCollection,
     outputChannel,
     toaster
