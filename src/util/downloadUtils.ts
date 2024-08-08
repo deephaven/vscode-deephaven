@@ -6,8 +6,11 @@ import { Logger } from './Logger';
 
 const logger = new Logger('downloadUtils');
 
-export function getTempDir(recreate = false) {
-  const tempDir = path.join(__dirname, 'tmp');
+export function getTempDir(recreate: boolean, subDirectory?: string) {
+  let tempDir = path.join(__dirname, '..', 'tmp');
+  if (subDirectory != null) {
+    tempDir = path.join(tempDir, subDirectory);
+  }
 
   if (recreate) {
     try {

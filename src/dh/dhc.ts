@@ -1,11 +1,12 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import type { dh as DhType } from './dhc-types';
+import type { dh as DhType } from '@deephaven/jsapi-types';
 import {
   downloadFromURL,
   getTempDir,
   NoConsoleTypesError,
   polyfillDh,
+  urlToDirectoryName,
 } from '../util';
 import { ConnectionAndSession } from '../common';
 
@@ -32,12 +33,7 @@ export function getEmbedWidgetUrl(
 
 export async function initDhcApi(serverUrl: string): Promise<typeof DhType> {
   polyfillDh();
-
-  const tempDir = getTempDir();
-
-  const dhc = await getDhc(serverUrl, tempDir, true);
-
-  return dhc;
+  return getDhc(serverUrl, true);
 }
 
 export async function initDhcSession(
@@ -71,16 +67,17 @@ export async function initDhcSession(
  */
 async function getDhc(
   serverUrl: string,
-  outDir: string,
   download: boolean
 ): Promise<typeof DhType> {
+  const tmpDir = getTempDir(false, urlToDirectoryName(serverUrl));
+
   if (download) {
     const dhInternal = await downloadFromURL(
       path.join(serverUrl, 'jsapi/dh-internal.js')
     );
     // Convert to .cjs
     fs.writeFileSync(
-      path.join(outDir, 'dh-internal.cjs'),
+      path.join(tmpDir, 'dh-internal.cjs'),
       dhInternal.replace(
         `export{__webpack_exports__dhinternal as dhinternal};`,
         `module.exports={dhinternal:__webpack_exports__dhinternal};`
@@ -91,7 +88,7 @@ async function getDhc(
       path.join(serverUrl, 'jsapi/dh-core.js')
     );
     fs.writeFileSync(
-      path.join(outDir, 'dh-core.cjs'),
+      path.join(tmpDir, 'dh-core.cjs'),
       // Convert to .cjs
       dhCore
         .replace(
@@ -102,5 +99,5 @@ async function getDhc(
     );
   }
 
-  return require(path.join(outDir, 'dh-core.cjs'));
+  return require(path.join(tmpDir, 'dh-core.cjs'));
 }

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { dh as DhcType } from '../dh/dhc-types';
+import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { hasErrorCode } from '../util/typeUtils';
 import { ConnectionAndSession, Disposable } from '../common';
 import {
@@ -36,7 +36,23 @@ type CommandResultBase = {
   error: string;
 };
 
-export abstract class DhService<TDH, TClient>
+/**
+ * Helper type to make it easier to use `DhService` derived classes as newable
+ * factory functions. This type should mirror the constructor of `DhService`.
+ */
+export type DhServiceConstructor<
+  T extends DhService<TDH, TClient>,
+  TDH = unknown,
+  TClient = unknown,
+> = new (
+  serverUrl: string,
+  panelRegistry: ExtendedMap<string, vscode.WebviewPanel>,
+  diagnosticsCollection: vscode.DiagnosticCollection,
+  outputChannel: vscode.OutputChannel,
+  toaster: Toaster
+) => T;
+
+export abstract class DhService<TDH = unknown, TClient = unknown>
   extends EventDispatcher<'disconnect'>
   implements Disposable
 {
