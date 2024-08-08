@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { dh as DhcType } from '../dh/dhc-types';
+import type { dh as DhcType } from '@deephaven/jsapi-types';
 import DhService from './DhService';
 import {
   AUTH_HANDLER_TYPE_ANONYMOUS,
@@ -8,18 +8,10 @@ import {
   initDhcApi,
   initDhcSession,
 } from '../dh/dhc';
-import { ExtendedMap, getPanelHtml, Logger, Toaster } from '../util';
+import { getPanelHtml, Logger } from '../util';
 import { ConnectionAndSession } from '../common';
 
 const logger = new Logger('DhcService');
-
-export type DhcServiceConstructor<T extends DhcService> = new (
-  serverUrl: string,
-  panelRegistry: ExtendedMap<string, vscode.WebviewPanel>,
-  diagnosticsCollection: vscode.DiagnosticCollection,
-  outputChannel: vscode.OutputChannel,
-  toaster: Toaster
-) => T;
 
 export class DhcService extends DhService<typeof DhcType, DhcType.CoreClient> {
   private psk?: string;

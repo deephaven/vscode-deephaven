@@ -33,3 +33,15 @@ export function getServerUrlAndPath(uri: vscode.Uri) {
     path,
   };
 }
+
+/**
+ * Converts url to `${hostname}_${port}` replacing `.` with `_`
+ * @param url The URL to convert
+ */
+export function urlToDirectoryName(url: string | URL): string {
+  if (typeof url === 'string') {
+    url = new URL(url);
+  }
+
+  return url.host.replace(/[:.]/g, '_');
+}

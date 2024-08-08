@@ -147,6 +147,7 @@
     }
   },
   "devDependencies": {
+    "@deephaven/jsapi-types": "^1.0.0-dev0.35.3",
     "@types/node": "20.14.10",
     "@types/vscode": "^1.91.0",
     "@types/ws": "^8.5.10",
