@@ -335,7 +335,7 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
     // assignments inside of the `forEach` and will treat `lastPanel` as `null`.
     let lastPanel = null as vscode.WebviewPanel | null;
 
-    changed.forEach(({ title = 'Unknown', type }, i) => {
+    changed.forEach(({ title = 'Unknown', type }) => {
       const icon = icons[type as IconType] ?? type;
       this.outputChannel.appendLine(`${icon} ${title}`);
 
