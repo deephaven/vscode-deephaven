@@ -1,4 +1,4 @@
-export function getPanelHtml(iframeUrl: string, title: string) {
+export function getPanelHtml(iframeUrl: string, title: string): string {
   return `<!DOCTYPE html>
   <html lang="en">
   <head>

@@ -29,7 +29,8 @@
 
       "rules": {
         "no-return-await": "off",
-        "@typescript-eslint/return-await": "error"
+        "@typescript-eslint/return-await": "error",
+        "@typescript-eslint/explicit-function-return-type": "error"
       }
     }
   ],

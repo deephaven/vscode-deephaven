@@ -60,7 +60,9 @@ export async function createConnectionQuickPick(
 /**
  * Create a status bar item for connecting to DH server
  */
-export function createConnectStatusBarItem(show: boolean) {
+export function createConnectStatusBarItem(
+  show: boolean
+): vscode.StatusBarItem {
   const statusBarItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Left,
     100
@@ -153,7 +155,7 @@ export function formatConnectionLabel(
   label: string,
   isSelected: boolean,
   consoleType?: ConsoleType
-) {
+): string {
   const consoleTypeStr = consoleType ? ` (${consoleType})` : '';
   return isSelected
     ? `$(vm-connect) ${label}${consoleTypeStr}`
@@ -172,4 +174,81 @@ export function formatTimestamp(date: Date): string | null {
   const milliseconds = `${date.getMilliseconds()}`.padStart(3, '0');
 
   return `${hours}:${minutes}:${seconds}.${milliseconds}`;
+}
+
+/**
+ * Get a `TextEditor` containing the given uri. If there is one already open,
+ * it will be returned. Otherwise, a new one will be opened. The returned editor
+ * will become the active editor if it is not already.
+ * @param uri
+ */
+export async function getEditorForUri(
+  uri: vscode.Uri
+): Promise<vscode.TextEditor> {
+  if (
+    uri.toString() === vscode.window.activeTextEditor?.document.uri.toString()
+  ) {
+    return vscode.window.activeTextEditor;
+  }
+
+  const viewColumn = vscode.window.visibleTextEditors.find(
+    editor => editor.document.uri.toString() === uri.toString()
+  )?.viewColumn;
+
+  // If another panel such as the output panel is active, set the document
+  // for the url to active first
+  // https://stackoverflow.com/a/64808497/20489
+  return vscode.window.showTextDocument(uri, { preview: false, viewColumn });
+}
+
+/**
+ * Determine whether connection status bar item should be visible. Only show if either:
+ * 1. A connection is already selected or
+ * 2. The active text editor has a languageid that is supported by the currently
+ * configured server connections.
+ */
+export function shouldShowConnectionStatusBarItem(
+  connectionOptions: ConnectionOption[],
+  isAlreadyConnected: boolean
+): boolean {
+  if (isAlreadyConnected) {
+    return true;
+  }
+
+  if (
+    vscode.window.activeTextEditor?.document.languageId === 'python' &&
+    connectionOptions.some(c => c.consoleType === 'python')
+  ) {
+    return true;
+  }
+
+  if (
+    vscode.window.activeTextEditor?.document.languageId === 'groovy' &&
+    connectionOptions.some(c => c.consoleType === 'groovy')
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Update text and tooltip of given status bar item based on connection status
+ * and optional `ConnectionOption`.
+ * @param statusBarItem The status bar item to update
+ * @param status The connection status
+ * @param option The connection option
+ */
+export function updateConnectionStatusBarItem(
+  statusBarItem: vscode.StatusBarItem | null | undefined,
+  status: 'connecting' | 'connected' | 'disconnected',
+  option?: ConnectionOption
+): void {
+  if (statusBarItem == null) {
+    return;
+  }
+
+  const { text, tooltip } = createConnectTextAndTooltip(status, option);
+  statusBarItem.text = text;
+  statusBarItem.tooltip = tooltip;
 }

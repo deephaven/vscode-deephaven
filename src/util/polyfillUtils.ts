@@ -6,7 +6,7 @@ export class CustomEvent extends Event {
   }
 }
 
-export function polyfillDh() {
+export function polyfillDh(): void {
   class Event {
     type: string;
     detail: unknown;

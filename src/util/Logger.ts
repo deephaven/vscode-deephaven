@@ -25,7 +25,7 @@ export class Logger {
   /**
    * Register log handler that logs to console.
    */
-  static addConsoleHandler = () => {
+  static addConsoleHandler = (): void => {
     Logger.handlers.add({
       /* eslint-disable no-console */
       error: console.error.bind(console),
@@ -41,7 +41,9 @@ export class Logger {
    * Register a log handler that logs to a `vscode.OutputChannel`.
    * @param outputChannel
    */
-  static addOutputChannelHandler = (outputChannel: vscode.OutputChannel) => {
+  static addOutputChannelHandler = (
+    outputChannel: vscode.OutputChannel
+  ): void => {
     Logger.handlers.add({
       error: (label, ...args) =>
         outputChannel.appendLine(`${label} ERROR: ${args.join(', ')}`),
@@ -63,7 +65,7 @@ export class Logger {
    * @param level The level to handle
    * @param args The arguments to log
    */
-  private handle = (level: LogLevel, ...args: unknown[]) => {
+  private handle = (level: LogLevel, ...args: unknown[]): void => {
     Logger.handlers.forEach(handler =>
       handler[level](`[${this.label}]`, ...args)
     );
