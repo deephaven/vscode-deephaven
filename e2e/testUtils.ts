@@ -11,7 +11,9 @@ export const PYTHON_AND_GROOVY_SERVER_CONFIG = [
 /**
  * Find the connection status bar item if it is visible.
  */
-export async function findConnectionStatusBarItem() {
+export async function findConnectionStatusBarItem(): Promise<
+  WebdriverIO.Element | undefined
+> {
   const workbench = await browser.getWorkbench();
 
   return workbench.getStatusBar().getItem(
@@ -23,7 +25,7 @@ export async function findConnectionStatusBarItem() {
 /**
  * Check if the connection status bar item is visible.
  */
-export async function hasConnectionStatusBarItem() {
+export async function hasConnectionStatusBarItem(): Promise<boolean> {
   return (await findConnectionStatusBarItem()) != null;
 }
 

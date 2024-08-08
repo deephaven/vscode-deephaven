@@ -11,7 +11,7 @@ import { InvalidConsoleTypeError, Logger } from '../util';
 
 const logger = new Logger('Config');
 
-function getConfig() {
+function getConfig(): vscode.WorkspaceConfiguration {
   return vscode.workspace.getConfiguration(CONFIG_KEY);
 }
 

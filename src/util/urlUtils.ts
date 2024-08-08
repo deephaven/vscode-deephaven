@@ -4,7 +4,7 @@ import * as vscode from 'vscode';
  * Ensure url has a trailing slash.
  * @param url
  */
-export function ensureHasTrailingSlash(url: string | null) {
+export function ensureHasTrailingSlash(url: string | null): string | null {
   if (url == null) {
     return url;
   }
@@ -16,7 +16,10 @@ export function ensureHasTrailingSlash(url: string | null) {
  * Get server url and path from a dhfs URI.
  * @param uri
  */
-export function getServerUrlAndPath(uri: vscode.Uri) {
+export function getServerUrlAndPath(uri: vscode.Uri): {
+  root: string;
+  path: string;
+} {
   // Convert format from:
   // '/https:some-host.com:8123/.vscode/settings.json' to
   // 'https://some-host.com:8123/.vscode/settings.json'

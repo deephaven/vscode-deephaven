@@ -7,7 +7,7 @@ import { DOWNLOAD_LOGS_CMD, DOWNLOAD_LOGS_TEXT } from '../common';
 export class Toaster {
   constructor() {}
 
-  error = async (message: string) => {
+  error = async (message: string): Promise<void> => {
     const response = await vscode.window.showErrorMessage(
       message,
       DOWNLOAD_LOGS_TEXT
@@ -19,7 +19,7 @@ export class Toaster {
     }
   };
 
-  info = async (message: string) => {
+  info = async (message: string): Promise<void> => {
     await vscode.window.showInformationMessage(message);
   };
 }

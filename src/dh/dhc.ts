@@ -26,7 +26,7 @@ export function getEmbedWidgetUrl(
   serverUrl: string,
   title: string,
   psk?: string
-) {
+): string {
   serverUrl = serverUrl.replace(/\/$/, '');
   return `${serverUrl}/iframe/widget/?name=${title}${psk ? `&psk=${psk}` : ''}`;
 }
