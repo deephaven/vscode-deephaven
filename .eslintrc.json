@@ -21,7 +21,8 @@
       "files": ["*.ts"],
       // Since parserOptions.project is used, can't include files outside of
       // the listed tsconfig files and seems silly to add a tsconfig just for
-      // the one file.
+      // the one file. It will still be linted by the base config above. It just
+      // won't be included in this overrides section.
       "excludedFiles": ["vitest.config.ts"],
       "parserOptions": {
         "project": [
