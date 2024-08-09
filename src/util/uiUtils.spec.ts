@@ -3,25 +3,40 @@ import {
   createConnectTextAndTooltip,
   ConnectionOption,
   createConnectionOptions,
+  createConnectionOption,
 } from './uiUtils';
 import { ConnectionConfig } from '../common';
 
 // See __mocks__/vscode.ts for the mock implementation
 vi.mock('vscode');
 
-describe('createConnectionOptions', () => {
-  const configs: ConnectionConfig[] = [
-    { url: 'http://localhost:10000', consoleType: 'python' },
-    { url: 'http://localhost:10001', consoleType: 'groovy' },
-  ];
+const pythonServerConfig: ConnectionConfig = {
+  url: 'http://localhost:10000',
+  consoleType: 'python',
+};
 
-  it.each(configs)(
-    'should return connection options: $url:$consoleType',
-    config => {
-      const actual = createConnectionOptions([config]);
-      expect(actual).toMatchSnapshot();
-    }
-  );
+const groovyServerConfig: ConnectionConfig = {
+  url: 'http://localhost:10001',
+  consoleType: 'groovy',
+};
+
+describe('createConnectionOption', () => {
+  it.each([
+    ['DHC', pythonServerConfig],
+    ['DHC', groovyServerConfig],
+  ] as const)(`should return connection option: '%s', %s`, (type, config) => {
+    const actual = createConnectionOption(type)(config);
+    expect(actual).toMatchSnapshot();
+  });
+});
+
+describe('createConnectionOptions', () => {
+  const configs: ConnectionConfig[] = [pythonServerConfig, groovyServerConfig];
+
+  it('should return connection options', () => {
+    const actual = createConnectionOptions(configs);
+    expect(actual).toMatchSnapshot();
+  });
 });
 
 describe('createConnectTextAndTooltip', () => {
@@ -32,11 +47,10 @@ describe('createConnectTextAndTooltip', () => {
     url: 'http://localhost:10000',
   };
 
-  it.each([['connecting'], ['connected'], ['disconnected']] as const)(
-    `should return text and tooltip: '%s'`,
-    status => {
-      const actual = createConnectTextAndTooltip(status, option);
-      expect(actual).toMatchSnapshot();
-    }
-  );
+  const statuses = ['connecting', 'connected', 'disconnected'] as const;
+
+  it.each(statuses)(`should return text and tooltip: '%s'`, status => {
+    const actual = createConnectTextAndTooltip(status, option);
+    expect(actual).toMatchSnapshot();
+  });
 });
