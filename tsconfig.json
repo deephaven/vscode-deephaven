@@ -9,7 +9,7 @@
     "strict": true /* enable all strict type-checking options */,
     "types": ["./src/types/global"],
     "paths": {
-      // workaround for: https://github.com/vitest-dev/vitest/issues/4567
+      // workaround for: https://github.com/rollup/rollup/issues/5199#issuecomment-2095374821
       "rollup/parseAst": ["./node_modules/rollup/dist/parseAst"]
     }
   },
