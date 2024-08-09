@@ -7,8 +7,10 @@ src/**
 .yarnrc
 vsc-extension-quickstart.md
 **/tsconfig.json
+**/tsconfig.unit.json
 **/.eslintrc.json
 **/*.map
 **/*.ts
+**/__mocks__/**
 e2e/**
 test-reports/**
