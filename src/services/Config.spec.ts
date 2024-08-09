@@ -3,11 +3,8 @@ import { beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 import { Config } from './Config';
 import { CONFIG_CORE_SERVERS } from '../common';
 
-vi.mock('vscode', () => ({
-  workspace: {
-    getConfiguration: vi.fn().mockReturnValue(new Map()),
-  },
-}));
+// See __mocks__/vscode.ts for the mock implementation
+vi.mock('vscode');
 
 let configMap: Map<string, unknown>;
 
