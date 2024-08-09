@@ -35,7 +35,7 @@ export class OutputChannelWithHistory implements vscode.OutputChannel {
    *
    * @param value A string, falsy values will be printed.
    */
-  appendLine = (value: string) => {
+  appendLine = (value: string): void => {
     this.history.push(value);
     this.outputChannel.appendLine(value);
   };
@@ -43,7 +43,7 @@ export class OutputChannelWithHistory implements vscode.OutputChannel {
   /**
    * Clear the history.
    */
-  clearHistory = () => {
+  clearHistory = (): void => {
     this.history = [];
   };
 

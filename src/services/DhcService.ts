@@ -16,7 +16,7 @@ const logger = new Logger('DhcService');
 export class DhcService extends DhService<typeof DhcType, DhcType.CoreClient> {
   private psk?: string;
 
-  protected async initApi() {
+  protected async initApi(): Promise<typeof DhcType> {
     return initDhcApi(this.serverUrl);
   }
 
