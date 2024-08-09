@@ -1,9 +1,11 @@
+import * as vscode from 'vscode';
 import { describe, it, expect, vi } from 'vitest';
 import {
   createConnectTextAndTooltip,
   ConnectionOption,
   createConnectionOptions,
   createConnectionOption,
+  updateConnectionStatusBarItem,
 } from './uiUtils';
 import { ConnectionConfig } from '../common';
 
@@ -53,4 +55,28 @@ describe('createConnectTextAndTooltip', () => {
     const actual = createConnectTextAndTooltip(status, option);
     expect(actual).toMatchSnapshot();
   });
+});
+
+describe('updateConnectionStatusBarItem', () => {
+  const option: ConnectionOption = {
+    type: 'DHC',
+    consoleType: 'python',
+    label: 'DHC: localhost:10000',
+    url: 'http://localhost:10000',
+  };
+
+  const statuses = ['connecting', 'connected', 'disconnected'] as const;
+
+  it.each(statuses)(
+    `should update connection status bar item: '%s'`,
+    status => {
+      const statusBarItem = {} as vscode.StatusBarItem;
+      const { text, tooltip } = createConnectTextAndTooltip(status, option);
+
+      updateConnectionStatusBarItem(statusBarItem, status, option);
+
+      expect(statusBarItem.text).toBe(text);
+      expect(statusBarItem.tooltip).toBe(tooltip);
+    }
+  );
 });
