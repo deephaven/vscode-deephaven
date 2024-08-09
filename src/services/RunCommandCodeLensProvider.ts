@@ -33,11 +33,17 @@ export class RunCommandCodeLensProvider
       }),
     ];
 
-    // Show the run selected lines code lens if there is a selection and there
-    // is more than one line in the document.
-    if (vscode.window.activeTextEditor && document.lineCount > 1) {
+    const editor = vscode.window.activeTextEditor;
+
+    // Show the run selected lines code lens if there is more than 1 line in the
+    // doc and there is a non-whitespace selection.
+    if (
+      editor &&
+      document.lineCount > 1 &&
+      /\S/.test(editor.document.getText(editor.selection))
+    ) {
       codeLenses.push(
-        new vscode.CodeLens(vscode.window.activeTextEditor.selection, {
+        new vscode.CodeLens(editor.selection, {
           title: '$(run) Run Deephaven Selected Lines',
           command: 'vscode-deephaven.runSelection',
           arguments: [document.uri],
