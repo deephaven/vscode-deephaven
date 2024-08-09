@@ -20,3 +20,25 @@ exports[`createConnectTextAndTooltip > should return text and tooltip: 'disconne
   "tooltip": "Connect to Deephaven",
 }
 `;
+
+exports[`createConnectionOptions > should return connection options: 'http://localhost:10000':'python' 1`] = `
+[
+  {
+    "consoleType": "python",
+    "label": "DHC: localhost:10000",
+    "type": "DHC",
+    "url": "http://localhost:10000",
+  },
+]
+`;
+
+exports[`createConnectionOptions > should return connection options: 'http://localhost:10001':'groovy' 1`] = `
+[
+  {
+    "consoleType": "groovy",
+    "label": "DHC: localhost:10001",
+    "type": "DHC",
+    "url": "http://localhost:10001",
+  },
+]
+`;
