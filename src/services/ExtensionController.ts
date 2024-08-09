@@ -1,6 +1,11 @@
 import * as vscode from 'vscode';
-import { Disposable } from '../common';
-import { DhService } from './DhService';
+import {
+  Disposable,
+  DOWNLOAD_LOGS_CMD,
+  RUN_CODE_COMMAND,
+  RUN_SELECTION_COMMAND,
+  SELECT_CONNECTION_COMMAND,
+} from '../common';
 import {
   assertDefined,
   ConnectionOption,
@@ -18,13 +23,9 @@ import {
 } from '../util';
 import { RunCommandCodeLensProvider } from './RunCommandCodeLensProvider';
 import { DhServiceRegistry } from './DhServiceRegistry';
-import DhcService from './DhcService';
-import {
-  DOWNLOAD_LOGS_CMD,
-  RUN_CODE_COMMAND,
-  RUN_SELECTION_COMMAND,
-  SELECT_CONNECTION_COMMAND,
-} from '../common';
+import { DhService } from './DhService';
+import { DhcService } from './DhcService';
+import { Config } from './Config';
 
 const logger = new Logger('ExtensionController');
 
@@ -91,12 +92,14 @@ export class ExtensionController implements Disposable {
    * Initialize connection options.
    */
   initializeConnectionOptions = (): void => {
-    this.connectionOptions = createConnectionOptions();
+    this.connectionOptions = createConnectionOptions(Config.getCoreServers());
 
     // Update connection options when configuration changes
     vscode.workspace.onDidChangeConfiguration(
       () => {
-        this.connectionOptions = createConnectionOptions();
+        this.connectionOptions = createConnectionOptions(
+          Config.getCoreServers()
+        );
       },
       null,
       this.context.subscriptions

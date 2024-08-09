@@ -8,7 +8,6 @@ import {
   STATUS_BAR_DISCONNECTED_TEXT,
   STATUS_BAR_DISCONNECT_TEXT,
 } from '../common';
-import { Config } from '../services';
 
 export interface ConnectionOption {
   type: ConnectionType;
@@ -99,10 +98,11 @@ export function createConnectionOption(type: ConnectionType) {
 
 /**
  * Create connection options from current extension config.
+ * @param dhcServerUrls The server urls from the extension config
  */
-export function createConnectionOptions(): ConnectionOption[] {
-  const dhcServerUrls = Config.getCoreServers();
-
+export function createConnectionOptions(
+  dhcServerUrls: ConnectionConfig[]
+): ConnectionOption[] {
   const connectionOptions: ConnectionOption[] = [
     ...dhcServerUrls.map(createConnectionOption('DHC')),
   ];
