@@ -1,14 +1,10 @@
 import * as vscode from 'vscode';
 import { ExtensionController } from './services';
 
-let controller: ExtensionController | null = null;
-
 export function activate(context: vscode.ExtensionContext): void {
   const controller = new ExtensionController(context);
 
   context.subscriptions.push(controller);
 }
 
-export function deactivate(): void {
-  controller?.dispose();
-}
+export function deactivate(): void {}
