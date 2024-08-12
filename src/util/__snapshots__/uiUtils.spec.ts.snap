@@ -1,0 +1,57 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`createConnectTextAndTooltip > should return text and tooltip: 'connected' 1`] = `
+{
+  "text": "$(vm-connect) DHC: localhost:10000",
+  "tooltip": "Connected to http://localhost:10000",
+}
+`;
+
+exports[`createConnectTextAndTooltip > should return text and tooltip: 'connecting' 1`] = `
+{
+  "text": "$(sync~spin) Deephaven: Connecting...",
+  "tooltip": "Connecting to http://localhost:10000...",
+}
+`;
+
+exports[`createConnectTextAndTooltip > should return text and tooltip: 'disconnected' 1`] = `
+{
+  "text": "$(debug-disconnect) Deephaven: Disconnected",
+  "tooltip": "Connect to Deephaven",
+}
+`;
+
+exports[`createConnectionOption > should return connection option: 'DHC', { url: 'http://localhost:10000', consoleType: 'python' } 1`] = `
+{
+  "consoleType": "python",
+  "label": "DHC: localhost:10000",
+  "type": "DHC",
+  "url": "http://localhost:10000",
+}
+`;
+
+exports[`createConnectionOption > should return connection option: 'DHC', { url: 'http://localhost:10001', consoleType: 'groovy' } 1`] = `
+{
+  "consoleType": "groovy",
+  "label": "DHC: localhost:10001",
+  "type": "DHC",
+  "url": "http://localhost:10001",
+}
+`;
+
+exports[`createConnectionOptions > should return connection options 1`] = `
+[
+  {
+    "consoleType": "python",
+    "label": "DHC: localhost:10000",
+    "type": "DHC",
+    "url": "http://localhost:10000",
+  },
+  {
+    "consoleType": "groovy",
+    "label": "DHC: localhost:10001",
+    "type": "DHC",
+    "url": "http://localhost:10001",
+  },
+]
+`;

@@ -14,6 +14,7 @@
     "moduleResolution": "node",
     "esModuleInterop": true
   },
-  // Override ../tsconfig.json `exclude`
+  // Override ../tsconfig.json `include` and `exclude`
+  "include": ["."],
   "exclude": ["node_modules"]
 }
