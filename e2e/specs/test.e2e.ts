@@ -4,7 +4,7 @@ import {
   hasConnectionStatusBarItem,
   openEditors,
   PYTHON_AND_GROOVY_SERVER_CONFIG,
-  resetConfiguration,
+  resetConfig,
   setConfigSectionSettings,
 } from '../testUtils';
 
@@ -31,7 +31,7 @@ describe('Connection status bar item', () => {
   });
 
   afterEach(async () => {
-    await resetConfiguration();
+    await resetConfig();
     await closeAllEditors();
   });
 

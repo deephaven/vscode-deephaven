@@ -71,9 +71,19 @@ export async function closeAllEditors(): Promise<void> {
 }
 
 /**
+ * Get the configuration settings for the extension.
+ * @returns The configuration settings for the extension.
+ */
+export async function getConfig(): Promise<vscode.WorkspaceConfiguration> {
+  return browser.executeWorkbench(async (vs: typeof vscode, extensionIdIn) => {
+    return vs.workspace.getConfiguration(extensionIdIn);
+  }, EXTENSION_ID);
+}
+
+/**
  * Reset all configuration settings to their default values.
  */
-export async function resetConfiguration(): Promise<void> {
+export async function resetConfig(): Promise<void> {
   await setConfigSectionSettings('core-servers', undefined);
   await setConfigSectionSettings('enterprise-servers', undefined);
 }
