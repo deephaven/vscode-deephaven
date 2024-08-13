@@ -6,7 +6,7 @@ import * as vscode from 'vscode';
 // small and tests should fail if things get out of sync. If this duplication
 // grows, will need to figure out how to reconfigure to support importing from
 // the source code.
-export const EXTENSION_ID = 'vscode-deephaven' as const;
+const EXTENSION_ID = 'vscode-deephaven' as const;
 type ConfigSectionKey = 'core-servers' | 'enterprise-servers';
 
 export const PYTHON_AND_GROOVY_SERVER_CONFIG = [
