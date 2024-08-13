@@ -1,5 +1,10 @@
 import * as vscode from 'vscode';
 
+// Note that calls to `browser.executeWorkbench` cannot reference any variables
+// or functions from the outside scope. They only have access to variables
+// passed in as additional parameters.
+// See https://www.npmjs.com/package/wdio-vscode-service#accessing-vscode-apis
+
 // EXTENSION_ID and ConfigSectionKey are based on `src/common/constants.ts`.
 // We can't currently import source code from the extension into the e2e tests
 // due to isolated tsconfigs. Should be fine for now since the duplication is
@@ -44,10 +49,7 @@ export async function hasConnectionStatusBarItem(): Promise<boolean> {
  * @param editorTitles The titles of the editors to open.
  */
 export async function openEditors(editorTitles: string[]): Promise<void> {
-  // Note that calls to `browser.executeWorkbench` cannot reference any variables
-  // or functions from the outside scope. They only have access to variables
-  // passed in as additional parameters.
-  // See https://www.npmjs.com/package/wdio-vscode-service#accessing-vscode-apis
+  // See note about `executeWorkbench` at top of this file.
   await browser.executeWorkbench(
     async (vs: typeof vscode, editorTitles: string[]): Promise<void> => {
       const filePathsToOpen = editorTitles.map(
@@ -75,6 +77,7 @@ export async function closeAllEditors(): Promise<void> {
  * @returns The configuration settings for the extension.
  */
 export async function getConfig(): Promise<vscode.WorkspaceConfiguration> {
+  // See note about `executeWorkbench` at top of this file.
   return browser.executeWorkbench(async (vs: typeof vscode, extensionIdIn) => {
     return vs.workspace.getConfiguration(extensionIdIn);
   }, EXTENSION_ID);
@@ -99,12 +102,9 @@ export async function setConfigSectionSettings(
   sectionKey: ConfigSectionKey,
   sectionValue: unknown | undefined
 ): Promise<void> {
-  // Note that calls to `browser.executeWorkbench` cannot reference any variables
-  // or functions from the outside scope. They only have access to variables
-  // passed in as additional parameters.
-  // See https://www.npmjs.com/package/wdio-vscode-service#accessing-vscode-apis
   const additionalParams = [EXTENSION_ID, sectionKey, sectionValue];
 
+  // See note about `executeWorkbench` at top of this file.
   await browser.executeWorkbench(
     async (
       vs: typeof vscode,
