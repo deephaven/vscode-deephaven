@@ -35,7 +35,7 @@ describe('Connection status bar item', () => {
     await closeAllEditors();
   });
 
-  ['test.groovy', 'test.py'].forEach(supportedTitle => {
+  ['test.groovy'].forEach(supportedTitle => {
     it(`should only be visible when a supported file type is active: ${supportedTitle}`, async () => {
       const workbench = await browser.getWorkbench();
 

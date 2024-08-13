@@ -51,7 +51,13 @@ export const config: Options.Testrunner = {
   // and 30 processes will get spawned. The property handles how many capabilities
   // from the same test should run tests.
   //
-  maxInstances: 10,
+  // TODO: Unfortunately, `wdio-vscode-service` doesn't seem to have support for isolating
+  // workspaces to a test suite. This means that they all share the same workspace,
+  // and things like updating config settings as part of a test will affect other
+  // tests. This PR was created to request a feature to support this:
+  // https://github.com/webdriverio-community/wdio-vscode-service/issues/132
+  // In the meantime, we'll disable concurrency.
+  maxInstances: 1,
   //
   // If you have trouble getting all important capabilities together, check out the
   // Sauce Labs platform configurator - a great tool to configure your capabilities:
