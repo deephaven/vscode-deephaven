@@ -102,8 +102,6 @@ export async function setConfigSectionSettings(
   sectionKey: ConfigSectionKey,
   sectionValue: unknown | undefined
 ): Promise<void> {
-  const additionalParams = [EXTENSION_ID, sectionKey, sectionValue];
-
   // See note about `executeWorkbench` at top of this file.
   await browser.executeWorkbench(
     async (
@@ -116,6 +114,8 @@ export async function setConfigSectionSettings(
         .getConfiguration(extensionIdIn)
         .update(sectionKeyIn, sectionValueIn ?? undefined);
     },
-    ...additionalParams
+    EXTENSION_ID,
+    sectionKey,
+    sectionValue
   );
 }
