@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 import { Config } from './Config';
-import { CONFIG_CORE_SERVERS } from '../common';
+import { CONFIG_KEY } from '../common';
 
 // See __mocks__/vscode.ts for the mock implementation
 vi.mock('vscode');
@@ -19,12 +19,12 @@ beforeEach(() => {
   ).mockReturnValue(configMap as unknown as vscode.WorkspaceConfiguration);
 });
 
-describe('Config', () => {
-  const urlA = 'http://someUrl';
-  const urlB = 'http://someOtherUrl';
-  const urlC = 'http://someAdditionalUrl';
-  const urlInvalid = 'invalidUrl';
+const urlA = 'http://someUrl';
+const urlB = 'http://someOtherUrl';
+const urlC = 'http://someAdditionalUrl';
+const urlInvalid = 'invalidUrl';
 
+describe('getCoreServers', () => {
   it.each([
     ['Empty config', [], []],
     [
@@ -36,7 +36,7 @@ describe('Config', () => {
       ],
     ],
     [
-      'Default url',
+      'Default consoleType',
       [{ url: urlA }, { url: urlB }, { url: urlInvalid }],
       [
         { url: urlA, consoleType: 'python' },
@@ -57,9 +57,22 @@ describe('Config', () => {
       ],
     ],
   ])('should return core servers: %s', (_label, given, expected) => {
-    configMap.set(CONFIG_CORE_SERVERS, given);
+    configMap.set(CONFIG_KEY.coreServers, given);
 
     const config = Config.getCoreServers();
+
+    expect(config).toEqual(expected);
+  });
+});
+
+describe('getEnterpriseServers', () => {
+  it.each([
+    ['Empty config', [], []],
+    ['String config', [urlA, urlB, urlInvalid], [{ url: urlA }, { url: urlB }]],
+  ])('should return enterprise servers: %s', (_label, given, expected) => {
+    configMap.set(CONFIG_KEY.enterpriseServers, given);
+
+    const config = Config.getEnterpriseServers();
 
     expect(config).toEqual(expected);
   });

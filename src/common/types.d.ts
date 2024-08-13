@@ -7,17 +7,23 @@ export type ConnectionAndSession<TConnection, TSession> = {
 
 export type ConsoleType = 'groovy' | 'python';
 
-export interface ConnectionConfig {
-  url: string;
-  consoleType: ConsoleType;
-}
-
-export type ConnectionConfigStored =
+export type CoreConnectionConfigStored =
   | string
   | {
       url: string;
       consoleType?: ConsoleType;
     };
+
+export interface CoreConnectionConfig {
+  url: string;
+  consoleType: ConsoleType;
+}
+
+export type EnterpriseConnectionConfigStored = string;
+
+export interface EnterpriseConnectionConfig {
+  url: string;
+}
 
 export interface Disposable {
   dispose(): Promise<void>;

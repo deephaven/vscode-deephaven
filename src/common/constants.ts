@@ -1,14 +1,19 @@
 import * as path from 'node:path';
 
-export const CONFIG_KEY = 'vscode-deephaven';
-export const CONFIG_CORE_SERVERS = 'core-servers';
+export const EXTENSION_ID = 'vscode-deephaven' as const;
+
+export const CONFIG_KEY = {
+  root: EXTENSION_ID,
+  coreServers: 'core-servers',
+  enterpriseServers: 'enterprise-servers',
+} as const;
 
 export const DEFAULT_CONSOLE_TYPE = 'python' as const;
 // export const DHFS_SCHEME = 'dhfs';
-export const DOWNLOAD_LOGS_CMD = `${CONFIG_KEY}.downloadLogs`;
-export const RUN_CODE_COMMAND = `${CONFIG_KEY}.runCode`;
-export const RUN_SELECTION_COMMAND = `${CONFIG_KEY}.runSelection`;
-export const SELECT_CONNECTION_COMMAND = `${CONFIG_KEY}.selectConnection`;
+export const DOWNLOAD_LOGS_CMD = `${EXTENSION_ID}.downloadLogs`;
+export const RUN_CODE_COMMAND = `${EXTENSION_ID}.runCode`;
+export const RUN_SELECTION_COMMAND = `${EXTENSION_ID}.runSelection`;
+export const SELECT_CONNECTION_COMMAND = `${EXTENSION_ID}.selectConnection`;
 
 export const STATUS_BAR_DISCONNECTED_TEXT = 'Deephaven: Disconnected';
 export const STATUS_BAR_DISCONNECT_TEXT = 'Deephaven: Disconnect';

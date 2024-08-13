@@ -1,10 +1,11 @@
 import * as vscode from 'vscode';
 import {
-  CONFIG_CORE_SERVERS,
   CONFIG_KEY,
-  ConnectionConfig,
-  ConnectionConfigStored,
+  CoreConnectionConfig,
+  CoreConnectionConfigStored,
   DEFAULT_CONSOLE_TYPE,
+  EnterpriseConnectionConfig,
+  EnterpriseConnectionConfigStored,
   SERVER_LANGUAGE_SET,
 } from '../common';
 import { InvalidConsoleTypeError, Logger } from '../util';
@@ -12,12 +13,12 @@ import { InvalidConsoleTypeError, Logger } from '../util';
 const logger = new Logger('Config');
 
 function getConfig(): vscode.WorkspaceConfiguration {
-  return vscode.workspace.getConfiguration(CONFIG_KEY);
+  return vscode.workspace.getConfiguration(CONFIG_KEY.root);
 }
 
-function getCoreServers(): ConnectionConfig[] {
-  const config = getConfig().get<ConnectionConfigStored[]>(
-    CONFIG_CORE_SERVERS,
+function getCoreServers(): CoreConnectionConfig[] {
+  const config = getConfig().get<CoreConnectionConfigStored[]>(
+    CONFIG_KEY.coreServers,
     []
   );
 
@@ -49,7 +50,31 @@ function getCoreServers(): ConnectionConfig[] {
   });
 }
 
+function getEnterpriseServers(): EnterpriseConnectionConfig[] {
+  const config = getConfig().get<EnterpriseConnectionConfigStored[]>(
+    CONFIG_KEY.enterpriseServers,
+    []
+  );
+
+  const expandedConfig = config.map(url => ({ url }));
+
+  logger.info('Enterprise servers:', JSON.stringify(expandedConfig));
+
+  return expandedConfig.filter(server => {
+    try {
+      // Filter out any invalid server configs to avoid crashing the extension
+      // further upstream.
+      new URL(server.url);
+      return true;
+    } catch (err) {
+      logger.error(err, server.url);
+      return false;
+    }
+  });
+}
+
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export const Config = {
   getCoreServers,
+  getEnterpriseServers,
 };
