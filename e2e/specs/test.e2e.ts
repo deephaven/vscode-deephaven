@@ -4,7 +4,8 @@ import {
   hasConnectionStatusBarItem,
   openEditors,
   PYTHON_AND_GROOVY_SERVER_CONFIG,
-  setCoreServerSettings,
+  resetConfiguration,
+  setConfigSectionSettings,
 } from '../testUtils';
 
 // There are some tests that can be used for reference in:
@@ -22,12 +23,15 @@ describe('VS Code Extension Testing', () => {
 
 describe('Connection status bar item', () => {
   beforeEach(async () => {
-    await setCoreServerSettings(PYTHON_AND_GROOVY_SERVER_CONFIG);
+    await setConfigSectionSettings(
+      'core-servers',
+      PYTHON_AND_GROOVY_SERVER_CONFIG
+    );
     await openEditors(['test.txt', 'test.groovy', 'test.py']);
   });
 
   afterEach(async () => {
-    await setCoreServerSettings(undefined);
+    await resetConfiguration();
     await closeAllEditors();
   });
 
@@ -45,8 +49,8 @@ describe('Connection status bar item', () => {
       await workbench.getEditorView().openEditor(supportedTitle);
       expect(await hasConnectionStatusBarItem()).toBeTruthy();
 
-      // Set to empty string to clear all server configs
-      await setCoreServerSettings([]);
+      // Set to empty array to clear all server configs
+      await setConfigSectionSettings('core-servers', []);
       expect(await hasConnectionStatusBarItem()).toBeFalsy();
     });
   });
