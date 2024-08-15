@@ -5,9 +5,9 @@ export const CAN_CREATE_CONNECTION_CONTEXT = 'canCreateConnection' as const;
 export const EXTENSION_ID = 'vscode-deephaven' as const;
 
 export const CONFIG_KEY = {
-  root: EXTENSION_ID,
-  coreServers: 'core-servers',
-  enterpriseServers: 'enterprise-servers',
+  root: 'deephaven',
+  coreServers: 'coreServers',
+  enterpriseServers: 'enterpriseServers',
 } as const;
 
 export const DEFAULT_CONSOLE_TYPE = 'python' as const;

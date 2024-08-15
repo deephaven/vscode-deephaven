@@ -46,9 +46,10 @@
   },
   "contributes": {
     "configuration": {
-      "title": "Deephaven in VS Code",
+      "title": "Deephaven",
       "properties": {
-        "vscode-deephaven.core-servers": {
+        "deephaven.coreServers": {
+          "description": "List of Deephaven Core servers that the extension can connect to.",
           "type": "array",
           "items": [
             {
@@ -78,16 +79,15 @@
           ],
           "default": [
             "http://localhost:10000/"
-          ],
-          "description": "Deephaven Core servers"
+          ]
         },
-        "vscode-deephaven.enterprise-servers": {
+        "deephaven.enterpriseServers": {
+          "description": "List of Deephaven Enterprise servers that the extension can connect to.",
           "type": "array",
           "items": {
             "type": "string"
           },
-          "default": [],
-          "description": "Deephaven Enterprise servers"
+          "default": []
         }
       }
     },
