@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { beforeEach, describe, expect, it, Mock, vi } from 'vitest';
-import { Config } from './Config';
+import { ConfigService } from './ConfigService';
 import { CONFIG_KEY } from '../common';
 
 // See __mocks__/vscode.ts for the mock implementation
@@ -59,7 +59,7 @@ describe('getCoreServers', () => {
   ])('should return core servers: %s', (_label, given, expected) => {
     configMap.set(CONFIG_KEY.coreServers, given);
 
-    const config = Config.getCoreServers();
+    const config = ConfigService.getCoreServers();
 
     expect(config).toEqual(expected);
   });
@@ -72,7 +72,7 @@ describe('getEnterpriseServers', () => {
   ])('should return enterprise servers: %s', (_label, given, expected) => {
     configMap.set(CONFIG_KEY.enterpriseServers, given);
 
-    const config = Config.getEnterpriseServers();
+    const config = ConfigService.getEnterpriseServers();
 
     expect(config).toEqual(expected);
   });
