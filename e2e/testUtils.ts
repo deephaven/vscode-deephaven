@@ -1,5 +1,19 @@
 import * as vscode from 'vscode';
 
+// Note that calls to `browser.executeWorkbench` cannot reference any variables
+// or functions from the outside scope. They only have access to variables
+// passed in as additional parameters.
+// See https://www.npmjs.com/package/wdio-vscode-service#accessing-vscode-apis
+
+// EXTENSION_ID and ConfigSectionKey are based on `src/common/constants.ts`.
+// We can't currently import source code from the extension into the e2e tests
+// due to isolated tsconfigs. Should be fine for now since the duplication is
+// small and tests should fail if things get out of sync. If this duplication
+// grows, will need to figure out how to reconfigure to support importing from
+// the source code.
+const EXTENSION_ID = 'vscode-deephaven' as const;
+type ConfigSectionKey = 'core-servers' | 'enterprise-servers';
+
 export const PYTHON_AND_GROOVY_SERVER_CONFIG = [
   'http://localhost:10000',
   {
@@ -35,10 +49,7 @@ export async function hasConnectionStatusBarItem(): Promise<boolean> {
  * @param editorTitles The titles of the editors to open.
  */
 export async function openEditors(editorTitles: string[]): Promise<void> {
-  // Note that calls to `browser.executeWorkbench` cannot reference any variables
-  // or functions from the outside scope. They only have access to variables
-  // passed in as additional parameters.
-  // See https://www.npmjs.com/package/wdio-vscode-service#accessing-vscode-apis
+  // See note about `executeWorkbench` at top of this file.
   await browser.executeWorkbench(
     async (vs: typeof vscode, editorTitles: string[]): Promise<void> => {
       const filePathsToOpen = editorTitles.map(
@@ -62,24 +73,49 @@ export async function closeAllEditors(): Promise<void> {
 }
 
 /**
- * Set the core server settings in the extension configuration.
- * @param config The core server settings to set. Setting to `undefined` will
- * result in the default configuration vs an `[]` will actually clear the config
- * completely.
+ * Get the configuration settings for the extension.
+ * @returns The configuration settings for the extension.
  */
-export async function setCoreServerSettings(
-  config: readonly unknown[] | undefined
+export async function getConfig(): Promise<vscode.WorkspaceConfiguration> {
+  // See note about `executeWorkbench` at top of this file.
+  return browser.executeWorkbench(async (vs: typeof vscode, extensionIdIn) => {
+    return vs.workspace.getConfiguration(extensionIdIn);
+  }, EXTENSION_ID);
+}
+
+/**
+ * Reset all configuration settings to their default values.
+ */
+export async function resetConfig(): Promise<void> {
+  await setConfigSectionSettings('core-servers', undefined);
+  await setConfigSectionSettings('enterprise-servers', undefined);
+}
+
+/**
+ * Set the section settings in the extension configuration.
+ * @param sectionKey The section key to set.
+ * @param sectionValue The settings to set. Setting to `undefined` will
+ * result in the default configuration vs defined value will actually clear the
+ * config completely.
+ */
+export async function setConfigSectionSettings(
+  sectionKey: ConfigSectionKey,
+  sectionValue: unknown | undefined
 ): Promise<void> {
-  // Note that calls to `browser.executeWorkbench` cannot reference any variables
-  // or functions from the outside scope. They only have access to variables
-  // passed in as additional parameters.
-  // See https://www.npmjs.com/package/wdio-vscode-service#accessing-vscode-apis
+  // See note about `executeWorkbench` at top of this file.
   await browser.executeWorkbench(
-    async (vs: typeof vscode, config): Promise<void> => {
+    async (
+      vs: typeof vscode,
+      extensionIdIn: typeof EXTENSION_ID,
+      sectionKeyIn: ConfigSectionKey,
+      sectionValueIn: unknown | undefined
+    ): Promise<void> => {
       await vs.workspace
-        .getConfiguration('vscode-deephaven')
-        .update('core-servers', config ?? undefined);
+        .getConfiguration(extensionIdIn)
+        .update(sectionKeyIn, sectionValueIn ?? undefined);
     },
-    config
+    EXTENSION_ID,
+    sectionKey,
+    sectionValue
   );
 }

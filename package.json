@@ -80,6 +80,14 @@
             "http://localhost:10000/"
           ],
           "description": "Deephaven Core servers"
+        },
+        "vscode-deephaven.enterprise-servers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Deephaven Enterprise servers"
         }
       }
     },

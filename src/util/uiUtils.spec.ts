@@ -7,17 +7,17 @@ import {
   createConnectionOption,
   updateConnectionStatusBarItem,
 } from './uiUtils';
-import { ConnectionConfig } from '../common';
+import { CoreConnectionConfig } from '../common';
 
 // See __mocks__/vscode.ts for the mock implementation
 vi.mock('vscode');
 
-const pythonServerConfig: ConnectionConfig = {
+const pythonServerConfig: CoreConnectionConfig = {
   url: 'http://localhost:10000',
   consoleType: 'python',
 };
 
-const groovyServerConfig: ConnectionConfig = {
+const groovyServerConfig: CoreConnectionConfig = {
   url: 'http://localhost:10001',
   consoleType: 'groovy',
 };
@@ -33,7 +33,10 @@ describe('createConnectionOption', () => {
 });
 
 describe('createConnectionOptions', () => {
-  const configs: ConnectionConfig[] = [pythonServerConfig, groovyServerConfig];
+  const configs: CoreConnectionConfig[] = [
+    pythonServerConfig,
+    groovyServerConfig,
+  ];
 
   it('should return connection options', () => {
     const actual = createConnectionOptions(configs);

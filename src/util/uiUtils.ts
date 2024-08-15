@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import {
-  ConnectionConfig,
+  CoreConnectionConfig,
   ConnectionType,
   ConsoleType,
   SELECT_CONNECTION_COMMAND,
@@ -88,7 +88,7 @@ export function createConnectionOption(type: ConnectionType) {
   return ({
     url: serverUrl,
     consoleType,
-  }: ConnectionConfig): ConnectionOption => {
+  }: CoreConnectionConfig): ConnectionOption => {
     const url = new URL(serverUrl ?? '');
     const label = `${type}: ${url.hostname}:${url.port}`;
 
@@ -97,14 +97,14 @@ export function createConnectionOption(type: ConnectionType) {
 }
 
 /**
- * Create connection options from current extension config.
- * @param dhcServerUrls The server urls from the extension config
+ * Create connection options from core connection configs.
+ * @param coreConnectionConfigs The core connection configs to create options from.
  */
 export function createConnectionOptions(
-  dhcServerUrls: ConnectionConfig[]
+  coreConnectionConfigs: CoreConnectionConfig[]
 ): ConnectionOption[] {
   const connectionOptions: ConnectionOption[] = [
-    ...dhcServerUrls.map(createConnectionOption('DHC')),
+    ...coreConnectionConfigs.map(createConnectionOption('DHC')),
   ];
 
   return connectionOptions;

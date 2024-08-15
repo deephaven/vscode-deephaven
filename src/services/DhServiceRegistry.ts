@@ -1,10 +1,9 @@
 import * as vscode from 'vscode';
 import { CacheService } from './CacheService';
-import { type DhServiceConstructor } from './DhService';
-import { DhcService } from './DhcService';
+import { DhService, type DhServiceConstructor } from './DhService';
 import { ensureHasTrailingSlash, ExtendedMap, Toaster } from '../util';
 
-export class DhServiceRegistry<T extends DhcService> extends CacheService<
+export class DhServiceRegistry<T extends DhService> extends CacheService<
   T,
   'disconnect'
 > {
