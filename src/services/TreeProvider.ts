@@ -85,15 +85,15 @@ export class ServerTreeProvider extends TreeProvider<ServerNode> {
  */
 export class ServerConnectionTreeProvider extends TreeProvider<IDhService> {
   async getTreeItem(element: IDhService): Promise<vscode.TreeItem> {
-    const consoleType = element.isInitialized
-      ? (await element.getConsoleTypes())[0]
-      : undefined;
+    const [consoleType] = element.isInitialized
+      ? await element.getConsoleTypes()
+      : [];
 
     return {
       label: new URL(element.serverUrl).host,
       description: consoleType,
       iconPath: new vscode.ThemeIcon(
-        element.isInitialized ? ICON_ID.connected : ICON_ID.connecting
+        element.isConnected ? ICON_ID.connected : ICON_ID.connecting
       ),
     };
   }

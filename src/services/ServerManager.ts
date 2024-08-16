@@ -1,5 +1,9 @@
 import * as vscode from 'vscode';
-import { SERVER_STATUS_CHECK_INTERVAL, type ServerState } from '../common';
+import {
+  ConsoleType,
+  SERVER_STATUS_CHECK_INTERVAL,
+  type ServerState,
+} from '../common';
 import { isDhcServerRunning } from '../dh/dhc';
 import { isDheServerRunning } from '../dh/dhe';
 import type {
@@ -61,6 +65,8 @@ export class ServerManager implements IServerManager {
     }
 
     const serverState = this._serverMap.get(serverUrl);
+
+    // TODO: implement DHE
     if (serverState == null || serverState.type !== 'DHC') {
       return;
     }
@@ -70,7 +76,10 @@ export class ServerManager implements IServerManager {
     this._connectionMap.set(serverUrl, connection);
     this._onDidUpdate.fire();
 
-    await connection.initDh();
+    if (!(await connection.initDh())) {
+      this._connectionMap.delete(serverUrl);
+    }
+
     this._onDidUpdate.fire();
   };
 
@@ -106,6 +115,22 @@ export class ServerManager implements IServerManager {
 
   getConnections = (): IDhService[] => {
     return [...this._connectionMap.values()];
+  };
+
+  consoleTypeConnections = async (
+    consoleType: ConsoleType
+  ): Promise<IDhService[]> => {
+    const connections: IDhService[] = [];
+
+    for (const dhService of this._connectionMap.values()) {
+      const consoleTypes = await dhService.getConsoleTypes();
+
+      if (consoleTypes.has(consoleType)) {
+        connections.push(dhService);
+      }
+    }
+
+    return connections;
   };
 
   updateStatus = async (): Promise<void> => {

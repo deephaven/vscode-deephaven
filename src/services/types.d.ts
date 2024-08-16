@@ -8,6 +8,13 @@ import type {
 } from '../common';
 import { EventDispatcher } from './EventDispatcher';
 
+export interface ICodeRunnerService extends Disposable {
+  runCode: (
+    editor: vscode.TextEditor,
+    selectionOnly?: boolean
+  ) => Promise<void>;
+}
+
 /**
  * Configuration service interface.
  */
@@ -23,11 +30,12 @@ export interface IDhService<TDH = unknown, TClient = unknown>
   extends Disposable,
     EventDispatcher<'disconnect'> {
   readonly isInitialized: boolean;
+  readonly isConnected: boolean;
   readonly serverUrl: string;
 
   initDh: () => Promise<boolean>;
 
-  getConsoleTypes: () => Promise<ConsoleType[]>;
+  getConsoleTypes: () => Promise<Set<ConsoleType>>;
 
   runEditorCode: (
     editor: vscode.TextEditor,
@@ -56,6 +64,8 @@ export interface IServerManager extends Disposable {
   getServers: () => ServerState[];
   getConnections: () => IDhService[];
   updateStatus: () => Promise<void>;
+
+  consoleTypeConnections: (consoleType: ConsoleType) => Promise<IDhService[]>;
 
   onDidUpdate: vscode.Event<void>;
 }

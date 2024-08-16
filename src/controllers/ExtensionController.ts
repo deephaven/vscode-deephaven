@@ -26,6 +26,7 @@ import {
   updateConnectionStatusBarItem,
 } from '../util';
 import {
+  CodeRunnerService,
   DhcServiceFactory,
   DhServiceRegistry,
   DhcService,
@@ -34,7 +35,8 @@ import {
   ServerTreeProvider,
   ServerConnectionTreeProvider,
 } from '../services';
-import {
+import type {
+  ICodeRunnerService,
   IConfigService,
   IDhService,
   IDhServiceFactory,
@@ -74,6 +76,7 @@ export class ExtensionController implements Disposable {
   config: IConfigService;
   selectedConnectionUrl: string | null = null;
   selectedDhService: IDhService | null = null;
+  codeRunnerService: ICodeRunnerService | null = null;
   dhcServiceRegistry: DhServiceRegistry<DhcService> | null = null;
   dhcServiceFactory: IDhServiceFactory | null = null;
   serverManager: IServerManager | null = null;
@@ -270,6 +273,9 @@ export class ExtensionController implements Disposable {
       this.outputChannel
     );
 
+    // TODO: Some of these services should be moved to a different init function
+    this.codeRunnerService = new CodeRunnerService(this.serverManager);
+
     const serverTreeProvider = new ServerTreeProvider(this.serverManager);
     const serversView = vscode.window.registerTreeDataProvider(
       VIEW_ID.serverTree,
@@ -430,12 +436,16 @@ export class ExtensionController implements Disposable {
    * @param uri
    */
   onRunCode = async (uri: vscode.Uri): Promise<void> => {
+    assertDefined(this.codeRunnerService, 'codeRunnerService');
+
     const editor = await getEditorForUri(uri);
-    const dhService = await this.getActiveDhService(
-      true,
-      editor.document.languageId
-    );
-    dhService?.runEditorCode(editor);
+    this.codeRunnerService.runCode(editor);
+
+    // const dhService = await this.getActiveDhService(
+    //   true,
+    //   editor.document.languageId
+    // );
+    // dhService?.runEditorCode(editor);
   };
 
   /**
@@ -443,12 +453,15 @@ export class ExtensionController implements Disposable {
    * @param uri
    */
   onRunSelectedCode = async (uri: vscode.Uri): Promise<void> => {
+    assertDefined(this.codeRunnerService, 'codeRunnerService');
+
     const editor = await getEditorForUri(uri);
-    const dhService = await this.getActiveDhService(
-      true,
-      editor.document.languageId
-    );
-    dhService?.runEditorCode(editor, true);
+    this.codeRunnerService.runCode(editor, true);
+    // const dhService = await this.getActiveDhService(
+    //   true,
+    //   editor.document.languageId
+    // );
+    // dhService?.runEditorCode(editor, true);
   };
 
   /**

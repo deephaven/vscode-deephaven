@@ -146,6 +146,10 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
     return this.cachedInitApi != null;
   }
 
+  public get isConnected(): boolean {
+    return this.dh != null && this.cn != null && this.session != null;
+  }
+
   public async initDh(): Promise<boolean> {
     try {
       if (this.cachedInitApi == null) {
@@ -395,12 +399,16 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
     lastPanel?.reveal();
   }
 
-  getConsoleTypes = async (): Promise<ConsoleType[]> => {
+  getConsoleTypes = async (): Promise<Set<ConsoleType>> => {
     if (this.cn == null) {
-      return [];
+      return new Set();
     }
 
-    return this.cn.getConsoleTypes() as Promise<ConsoleType[]>;
+    const consoleTypes = await (this.cn.getConsoleTypes() as Promise<
+      ConsoleType[]
+    >);
+
+    return new Set(consoleTypes);
   };
 }
 
