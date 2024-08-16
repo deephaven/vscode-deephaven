@@ -116,6 +116,12 @@ export class ServerManager implements IServerManager {
       ).then(isRunning => {
         this._serverMap.set(server.url, { ...server, isRunning });
         if ((server.isRunning ?? false) !== isRunning) {
+          // If server goes from running to stopped, get rid of any active
+          // connections to it.
+          if (!isRunning) {
+            this.disconnectFromServer(server.url);
+          }
+
           this._onDidUpdate.fire();
         }
       })
