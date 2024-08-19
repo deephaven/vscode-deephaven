@@ -69,7 +69,7 @@ export interface IServerManager extends Disposable {
 /**
  * Message toaster interface.
  */
-export interface IToaster {
+export interface IToastService {
   error: (message: string) => Promise<void>;
   info: (message: string) => Promise<void>;
 }

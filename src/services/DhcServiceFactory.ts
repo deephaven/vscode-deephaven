@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { ExtendedMap } from '../util';
 import { DhcService } from './DhcService';
-import type { IDhServiceFactory, IToaster } from './types';
+import type { IDhServiceFactory, IToastService } from './types';
 
 /**
  * Factory for creating DhcService instances.
@@ -11,7 +11,7 @@ export class DhcServiceFactory implements IDhServiceFactory {
     private panelRegistry: ExtendedMap<string, vscode.WebviewPanel>,
     private diagnosticsCollection: vscode.DiagnosticCollection,
     private outputChannel: vscode.OutputChannel,
-    private toaster: IToaster
+    private toaster: IToastService
   ) {}
 
   create = (serverUrl: string): DhcService => {

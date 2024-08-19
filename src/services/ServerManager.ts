@@ -11,6 +11,7 @@ import type {
   IDhService,
   IDhServiceFactory,
   IServerManager,
+  IToastService,
 } from './types';
 import { getInitialServerStates } from '../util/serverUtils';
 import { PollingService } from './PollingService';
@@ -24,6 +25,7 @@ export class ServerManager implements IServerManager {
   private _serverMap: Map<string, ServerState>;
   private _connectionMap: Map<string, IDhService>;
   private _dhcServiceFactory: IDhServiceFactory;
+  private _toaster: IToastService;
   private _uriConnectionsMap: Map<vscode.Uri, IDhService>;
 
   private _onDidUpdate = new vscode.EventEmitter<void>();
@@ -32,10 +34,12 @@ export class ServerManager implements IServerManager {
   constructor(
     configService: IConfigService,
     dhcServiceFactory: IDhServiceFactory,
-    outputChannel: vscode.OutputChannel
+    outputChannel: vscode.OutputChannel,
+    toaster: IToastService
   ) {
     this._dhcServiceFactory = dhcServiceFactory;
     this._outputChannel = outputChannel;
+    this._toaster = toaster;
 
     const initialDhcServerState = getInitialServerStates(
       'DHC',
@@ -142,9 +146,10 @@ export class ServerManager implements IServerManager {
     const dhService = this._uriConnectionsMap.get(uri);
 
     if (dhService == null) {
-      logger.debug(
-        `No active connection found supporting '${editor.document.languageId}' console type.`
-      );
+      const logMsg = `No active connection found supporting '${editor.document.languageId}' console type.`;
+      logger.debug(logMsg);
+      this._outputChannel.appendLine(logMsg);
+      this._toaster.error(logMsg);
       return null;
     }
 

@@ -202,7 +202,8 @@ export class ExtensionController implements Disposable {
     this.serverManager = new ServerManager(
       this.config,
       this.dhcServiceFactory,
-      this.outputChannel
+      this.outputChannel,
+      this.toaster
     );
   };
 
