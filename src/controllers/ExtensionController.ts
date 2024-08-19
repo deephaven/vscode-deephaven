@@ -215,12 +215,22 @@ export class ExtensionController implements Disposable {
       this.toaster
     );
 
-    // Expand to show any new editor URIs that are associated with a connection
-    const subscription = this.serverManager.onDidRegisterEditor(uri => {
-      this.serverConnectionTreeView?.reveal(uri);
-    });
+    vscode.workspace.onDidChangeConfiguration(
+      () => {
+        this.serverManager?.loadServerConfig();
+      },
+      undefined,
+      this.context.subscriptions
+    );
 
-    this.context.subscriptions.push(this.serverManager, subscription);
+    // Expand to show any new editor URIs that are associated with a connection
+    this.serverManager.onDidRegisterEditor(
+      uri => {
+        this.serverConnectionTreeView?.reveal(uri);
+      },
+      undefined,
+      this.context.subscriptions
+    );
   };
 
   /**

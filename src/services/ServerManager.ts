@@ -20,6 +20,7 @@ import { Logger } from '../util';
 const logger = new Logger('ServerManager');
 
 export class ServerManager implements IServerManager {
+  private _configService: IConfigService;
   private _outputChannel: vscode.OutputChannel;
   private _poller: PollingService;
   private _serverMap: Map<string, ServerState>;
@@ -40,18 +41,28 @@ export class ServerManager implements IServerManager {
     outputChannel: vscode.OutputChannel,
     toaster: IToastService
   ) {
+    this._configService = configService;
     this._dhcServiceFactory = dhcServiceFactory;
     this._outputChannel = outputChannel;
     this._toaster = toaster;
 
+    this._serverMap = new Map();
+    this._connectionMap = new Map();
+    this._uriConnectionsMap = new Map();
+    this._poller = new PollingService();
+
+    this.loadServerConfig();
+  }
+
+  loadServerConfig = (): void => {
     const initialDhcServerState = getInitialServerStates(
       'DHC',
-      configService.getCoreServers()
+      this._configService.getCoreServers()
     );
 
     const initialDheServerState = getInitialServerStates(
       'DHE',
-      configService.getEnterpriseServers()
+      this._configService.getEnterpriseServers()
     );
 
     this._serverMap = new Map(
@@ -61,10 +72,14 @@ export class ServerManager implements IServerManager {
       ])
     );
 
-    this._connectionMap = new Map();
-    this._uriConnectionsMap = new Map();
-    this._poller = new PollingService();
-  }
+    // If server config changes in a way that removes servers, disconnect any
+    // active connections from them.
+    for (const serverUrl of this._connectionMap.keys()) {
+      if (!this._serverMap.has(serverUrl)) {
+        this.disconnectFromServer(serverUrl);
+      }
+    }
+  };
 
   connectToServer = async (serverUrl: string): Promise<void> => {
     if (this.hasConnection(serverUrl)) {
@@ -99,6 +114,8 @@ export class ServerManager implements IServerManager {
     }
 
     this._connectionMap.delete(serverUrl);
+
+    // Remove any editor URIs associated with this connection
     this._uriConnectionsMap.forEach((dhService, uri) => {
       if (dhService === connection) {
         this._uriConnectionsMap.delete(uri);

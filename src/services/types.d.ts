@@ -51,6 +51,7 @@ export type IDhServiceFactory = IFactory<IDhService, [serverUrl: string]>;
 export interface IServerManager extends Disposable {
   connectToServer: (serverUrl: string) => Promise<void>;
   disconnectFromServer: (serverUrl: string) => Promise<void>;
+  loadServerConfig: () => void;
 
   hasConnection: (serverUrl: string) => boolean;
   hasConnectionUris: (connection: IDhService) => boolean;
