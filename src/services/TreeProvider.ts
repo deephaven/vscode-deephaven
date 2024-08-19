@@ -84,23 +84,48 @@ export class ServerTreeProvider extends TreeProvider<ServerNode> {
  * Provider for the server connection tree view.
  */
 export class ServerConnectionTreeProvider extends TreeProvider<IDhService> {
-  async getTreeItem(element: IDhService): Promise<vscode.TreeItem> {
-    const [consoleType] = element.isInitialized
-      ? await element.getConsoleTypes()
+  async getTreeItem(
+    connectionOrUri: IDhService | vscode.Uri
+  ): Promise<vscode.TreeItem> {
+    // Uri node associated with a parent connection node
+    if (connectionOrUri instanceof vscode.Uri) {
+      return {
+        description: connectionOrUri.path,
+        command: {
+          command: 'vscode.open',
+          title: 'Open Call',
+          arguments: [connectionOrUri],
+        },
+        resourceUri: connectionOrUri,
+      };
+    }
+
+    const [consoleType] = connectionOrUri.isInitialized
+      ? await connectionOrUri.getConsoleTypes()
       : [];
 
+    // Connection node
     return {
-      label: new URL(element.serverUrl).host,
+      label: new URL(connectionOrUri.serverUrl).host,
       description: consoleType,
+      collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
       iconPath: new vscode.ThemeIcon(
-        element.isConnected ? ICON_ID.connected : ICON_ID.connecting
+        connectionOrUri.isConnected ? ICON_ID.connected : ICON_ID.connecting
       ),
     };
   }
 
-  getChildren(): vscode.ProviderResult<IDhService[]> {
-    return this.serverManager
-      .getConnections()
-      .sort((a, b) => a.serverUrl.localeCompare(b.serverUrl));
+  getChildren(): vscode.ProviderResult<IDhService[]>;
+  getChildren(element: IDhService): vscode.ProviderResult<vscode.Uri[]>;
+  getChildren(
+    elementOrRoot?: IDhService
+  ): vscode.ProviderResult<IDhService[] | vscode.Uri[]> {
+    if (elementOrRoot == null) {
+      return this.serverManager
+        .getConnections()
+        .sort((a, b) => a.serverUrl.localeCompare(b.serverUrl));
+    }
+
+    return this.serverManager.getConnectionUris(elementOrRoot);
   }
 }

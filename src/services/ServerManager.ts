@@ -127,6 +127,23 @@ export class ServerManager implements IServerManager {
     return [...this._connectionMap.values()];
   };
 
+  /**
+   * Get all URIs associated with a connection.
+   * @param connection
+   */
+  getConnectionUris = (connection: IDhService): vscode.Uri[] => {
+    return [...this._uriConnectionsMap.entries()]
+      .filter(([, cn]) => cn === connection)
+      .map(([uri]) => uri);
+  };
+
+  /**
+   * Get the connection associated with the URI of the given editor. If no
+   * association exists, attempt to make one based on the first available connection
+   * that supports the editor's console type. If no such connection exists, show
+   * an error.
+   * @param editor
+   */
   getEditorConnection = async (
     editor: vscode.TextEditor
   ): Promise<IDhService | null> => {
@@ -134,12 +151,13 @@ export class ServerManager implements IServerManager {
 
     if (!this._uriConnectionsMap.has(uri)) {
       // Default to first connection supporting the console type
-      const [dhService] = await this.consoleTypeConnections(
+      const dhService = await this.getFirstConsoleTypeConnection(
         editor.document.languageId as ConsoleType
       );
 
       if (dhService != null) {
         this._uriConnectionsMap.set(uri, dhService);
+        this._onDidUpdate.fire();
       }
     }
 
@@ -156,20 +174,18 @@ export class ServerManager implements IServerManager {
     return dhService;
   };
 
-  consoleTypeConnections = async (
+  getFirstConsoleTypeConnection = async (
     consoleType: ConsoleType
-  ): Promise<IDhService[]> => {
-    const connections: IDhService[] = [];
-
+  ): Promise<IDhService | null> => {
     for (const dhService of this._connectionMap.values()) {
       const consoleTypes = await dhService.getConsoleTypes();
 
       if (consoleTypes.has(consoleType)) {
-        connections.push(dhService);
+        return dhService;
       }
     }
 
-    return connections;
+    return null;
   };
 
   updateStatus = async (): Promise<void> => {
