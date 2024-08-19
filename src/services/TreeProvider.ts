@@ -101,19 +101,32 @@ export class ServerTreeProvider extends TreeProvider<ServerNode> {
   }
 
   getChildren(elementOrRoot?: ServerNode): vscode.ProviderResult<ServerNode[]> {
+    const servers = this.serverManager.getServers();
+
+    const runningServers = [];
+    const stoppedServers = [];
+
+    for (const server of servers) {
+      if (server.isRunning) {
+        runningServers.push(server);
+      } else {
+        stoppedServers.push(server);
+      }
+    }
+
     // Root node
     if (elementOrRoot == null) {
-      return [{ label: 'Running' }, { label: 'Stopped' }];
+      // Only show groups that contain server child nodes
+      return [
+        runningServers.length === 0 ? undefined : { label: 'Running' },
+        stoppedServers.length === 0 ? undefined : { label: 'Stopped' },
+      ].filter(child => child != null);
     }
 
     if (isServerGroupState(elementOrRoot)) {
-      return this.serverManager
-        .getServers()
-        .filter(server =>
-          (elementOrRoot as ServerGroupState).label === 'Running'
-            ? server.isRunning
-            : !server.isRunning
-        );
+      return elementOrRoot.label === 'Running'
+        ? runningServers
+        : stoppedServers;
     }
   }
 }
