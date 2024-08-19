@@ -109,8 +109,26 @@ export class ServerManager implements IServerManager {
     this._onDidUpdate.fire();
   };
 
+  /**
+   * Determine if the given server URL has any active connections.
+   * @param serverUrl
+   */
   hasConnection = (serverUrl: string): boolean => {
     return this._connectionMap.has(serverUrl);
+  };
+
+  /**
+   * Determine if the given connection is assicated with any editor URIs.
+   * @param connection
+   */
+  hasConnectionUris = (connection: IDhService): boolean => {
+    for (const cn of this._uriConnectionsMap.values()) {
+      if (cn === connection) {
+        return true;
+      }
+    }
+
+    return false;
   };
 
   getServers = (): ServerState[] => {

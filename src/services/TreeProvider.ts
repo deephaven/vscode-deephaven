@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { CAN_CREATE_CONNECTION_CONTEXT, ServerState, ICON_ID } from '../common';
+import { ICON_ID, ServerState, TREE_ITEM_CONTEXT } from '../common';
 import { IDhService, IServerManager } from './types';
 
 /**
@@ -21,6 +21,10 @@ export abstract class TreeProvider<T> implements vscode.TreeDataProvider<T> {
   abstract getTreeItem(element: T): vscode.TreeItem | Thenable<vscode.TreeItem>;
 
   abstract getChildren(element?: T | undefined): vscode.ProviderResult<T[]>;
+
+  refresh(): void {
+    this._onDidChangeTreeData.fire();
+  }
 }
 
 type ServerGroupState = { label: string };
@@ -50,12 +54,13 @@ export class ServerTreeProvider extends TreeProvider<ServerNode> {
     return {
       label: new URL(element.url).host,
       description: element.type === 'DHC' ? undefined : 'Enterprise',
+
       contextValue:
         isRunning &&
         element.type === 'DHC' &&
         !this.serverManager.hasConnection(element.url)
-          ? CAN_CREATE_CONNECTION_CONTEXT
-          : '',
+          ? TREE_ITEM_CONTEXT.isConnectedServer
+          : TREE_ITEM_CONTEXT.isDisconnectedServer,
       iconPath: new vscode.ThemeIcon(
         isRunning ? 'circle-large-filled' : 'circle-slash'
       ),
@@ -93,7 +98,7 @@ export class ServerConnectionTreeProvider extends TreeProvider<IDhService> {
         description: connectionOrUri.path,
         command: {
           command: 'vscode.open',
-          title: 'Open Call',
+          title: 'Open Uri',
           arguments: [connectionOrUri],
         },
         resourceUri: connectionOrUri,
@@ -104,11 +109,16 @@ export class ServerConnectionTreeProvider extends TreeProvider<IDhService> {
       ? await connectionOrUri.getConsoleTypes()
       : [];
 
+    const hasUris = this.serverManager.hasConnectionUris(connectionOrUri);
+
     // Connection node
     return {
       label: new URL(connectionOrUri.serverUrl).host,
       description: consoleType,
-      collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
+      contextValue: TREE_ITEM_CONTEXT.isConnection,
+      collapsibleState: hasUris
+        ? vscode.TreeItemCollapsibleState.Expanded
+        : undefined,
       iconPath: new vscode.ThemeIcon(
         connectionOrUri.isConnected ? ICON_ID.connected : ICON_ID.connecting
       ),

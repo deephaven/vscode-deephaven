@@ -119,12 +119,17 @@
       {
         "command": "vscode-deephaven.connectToServer",
         "title": "Deephaven: Connect to Server",
-        "icon": "$(debug-disconnect)"
+        "icon": "$(plug)"
       },
       {
         "command": "vscode-deephaven.disconnectFromServer",
         "title": "Deephaven: Disconnect from Server",
         "icon": "$(trash)"
+      },
+      {
+        "command": "vscode-deephaven.openInBrowser",
+        "title": "Deephaven: Open in Browser",
+        "icon": "$(globe)"
       },
       {
         "command": "vscode-deephaven.refreshServerTree",
@@ -211,12 +216,17 @@
       "view/item/context": [
         {
           "command": "vscode-deephaven.connectToServer",
-          "when": "view == vscode-deephaven.serverTree && viewItem == canCreateConnection",
+          "when": "view == vscode-deephaven.serverTree && viewItem == isConnectedServer",
           "group": "inline"
         },
         {
           "command": "vscode-deephaven.disconnectFromServer",
-          "when": "view == vscode-deephaven.serverConnectionTree",
+          "when": "view == vscode-deephaven.serverConnectionTree && viewItem == isConnection",
+          "group": "inline"
+        },
+        {
+          "command": "vscode-deephaven.openInBrowser",
+          "when": "view == vscode-deephaven.serverTree && viewItem == isConnectedServer",
           "group": "inline"
         }
       ]

@@ -1,7 +1,5 @@
 import * as path from 'node:path';
 
-export const CAN_CREATE_CONNECTION_CONTEXT = 'canCreateConnection' as const;
-
 export const EXTENSION_ID = 'vscode-deephaven' as const;
 
 export const CONFIG_KEY = {
@@ -36,7 +34,14 @@ export const ICON_ID = {
   blank: 'blank',
   connected: 'vm-connect',
   connecting: 'sync~spin',
-  disconnected: 'debug-disconnect',
+  disconnected: 'plug',
   runAll: 'run-all',
   runSelection: 'run',
+} as const;
+
+export const TREE_ITEM_CONTEXT = {
+  isConnectedServer: 'isConnectedServer',
+  isConnection: 'isConnection',
+  isDisconnectedServer: 'isDisconnectedServer',
+  isUri: 'isUri',
 } as const;

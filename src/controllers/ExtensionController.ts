@@ -4,6 +4,9 @@ import {
   DISCONNECT_FROM_SERVER_CMD,
   Disposable,
   DOWNLOAD_LOGS_CMD,
+  OPEN_IN_BROWSER_CMD,
+  REFRESH_SERVER_CONNECTION_TREE_CMD,
+  REFRESH_SERVER_TREE_CMD,
   RUN_CODE_COMMAND,
   RUN_SELECTION_COMMAND,
   SELECT_CONNECTION_COMMAND,
@@ -77,6 +80,8 @@ export class ExtensionController implements Disposable {
   dhcServiceRegistry: DhServiceRegistry<DhcService> | null = null;
   dhcServiceFactory: IDhServiceFactory | null = null;
   serverManager: IServerManager | null = null;
+  serverTreeProvider: ServerTreeProvider | null = null;
+  serverConnectionTreeProvider: ServerConnectionTreeProvider | null = null;
 
   connectionOptions: ConnectionOption[] = [];
   connectStatusBarItem: vscode.StatusBarItem | null = null;
@@ -254,6 +259,9 @@ export class ExtensionController implements Disposable {
     /** Download logs and open in editor */
     this.registerCommand(DOWNLOAD_LOGS_CMD, this.onDownloadLogs);
 
+    /** Open server in browser */
+    this.registerCommand(OPEN_IN_BROWSER_CMD, this.onOpenInBrowser);
+
     /** Run all code in active editor */
     this.registerCommand(RUN_CODE_COMMAND, this.onRunCode);
 
@@ -262,6 +270,15 @@ export class ExtensionController implements Disposable {
 
     /** Select connection to run scripts against */
     this.registerCommand(SELECT_CONNECTION_COMMAND, this.onSelectConnection);
+
+    /** Refresh server tree */
+    this.registerCommand(REFRESH_SERVER_TREE_CMD, this.onRefreshServerTree);
+
+    /** Refresh server connection tree */
+    this.registerCommand(
+      REFRESH_SERVER_CONNECTION_TREE_CMD,
+      this.onRefreshServerConnectionTree
+    );
   };
 
   /**
@@ -270,15 +287,19 @@ export class ExtensionController implements Disposable {
   initializeWebViews = (): void => {
     assertDefined(this.serverManager, 'serverManager');
 
-    const serverTreeProvider = new ServerTreeProvider(this.serverManager);
+    this.serverTreeProvider = new ServerTreeProvider(this.serverManager);
+    this.serverConnectionTreeProvider = new ServerConnectionTreeProvider(
+      this.serverManager
+    );
+
     const serversView = vscode.window.registerTreeDataProvider(
       VIEW_ID.serverTree,
-      serverTreeProvider
+      this.serverTreeProvider
     );
 
     const connectionsView = vscode.window.registerTreeDataProvider(
       VIEW_ID.serverConnectionTree,
-      new ServerConnectionTreeProvider(this.serverManager)
+      this.serverConnectionTreeProvider
     );
 
     this.context.subscriptions.push(
@@ -423,6 +444,21 @@ export class ExtensionController implements Disposable {
       this.toaster.info(`Downloaded logs to ${uri.fsPath}`);
       vscode.window.showTextDocument(uri);
     }
+  };
+
+  onOpenInBrowser = async (serverState: ServerState): Promise<void> => {
+    vscode.commands.executeCommand(
+      'vscode.open',
+      vscode.Uri.parse(serverState.url)
+    );
+  };
+
+  onRefreshServerTree = (): void => {
+    this.serverTreeProvider?.refresh();
+  };
+
+  onRefreshServerConnectionTree = (): void => {
+    this.serverConnectionTreeProvider?.refresh();
   };
 
   /**

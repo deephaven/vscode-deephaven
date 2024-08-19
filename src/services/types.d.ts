@@ -53,6 +53,7 @@ export interface IServerManager extends Disposable {
   disconnectFromServer: (serverUrl: string) => Promise<void>;
 
   hasConnection: (serverUrl: string) => boolean;
+  hasConnectionUris: (connection: IDhService) => boolean;
 
   getConnections: () => IDhService[];
   getConnectionUris: (connection: IDhService) => vscode.Uri[];
