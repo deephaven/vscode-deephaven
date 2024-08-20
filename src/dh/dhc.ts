@@ -1,4 +1,3 @@
-import * as vscode from 'vscode';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { dh as DhType } from '@deephaven/jsapi-types';
@@ -10,7 +9,7 @@ import {
   polyfillDh,
   urlToDirectoryName,
 } from '../util';
-import { ConnectionAndSession } from '../common';
+import type { ConnectionAndSession } from '../types';
 
 export const AUTH_HANDLER_TYPE_ANONYMOUS =
   'io.deephaven.auth.AnonymousAuthenticationHandler';
@@ -23,9 +22,7 @@ export const AUTH_HANDLER_TYPE_PSK =
  * accessible.
  * @param serverUrl
  */
-export async function isDhcServerRunning(
-  serverUrl: vscode.Uri
-): Promise<boolean> {
+export async function isDhcServerRunning(serverUrl: URL): Promise<boolean> {
   try {
     return await hasStatusCode(
       new URL('jsapi/dh-core.js', serverUrl.toString()),
@@ -43,7 +40,7 @@ export async function isDhcServerRunning(
  * @param psk
  */
 export function getEmbedWidgetUrl(
-  serverUrl: vscode.Uri,
+  serverUrl: URL,
   title: string,
   psk?: string
 ): string {
@@ -51,9 +48,7 @@ export function getEmbedWidgetUrl(
   return `${serverUrlStr}/iframe/widget/?name=${title}${psk ? `&psk=${psk}` : ''}`;
 }
 
-export async function initDhcApi(
-  serverUrl: vscode.Uri
-): Promise<typeof DhType> {
+export async function initDhcApi(serverUrl: URL): Promise<typeof DhType> {
   polyfillDh();
   return getDhc(serverUrl, true);
 }
@@ -88,7 +83,7 @@ export async function initDhcSession(
  * See https://stackoverflow.com/questions/70620025/how-do-i-import-an-es6-javascript-module-in-my-vs-code-extension-written-in-type
  */
 async function getDhc(
-  serverUrl: vscode.Uri,
+  serverUrl: URL,
   download: boolean
 ): Promise<typeof DhType> {
   const tmpDir = getTempDir(false, urlToDirectoryName(serverUrl.toString()));

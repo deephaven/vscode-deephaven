@@ -1,8 +1,7 @@
 import * as vscode from 'vscode';
 import { TreeDataProviderBase } from './TreeDataProviderBase';
-import type { ServerConnectionNode } from './types';
-import { CONNECTION_TREE_ITEM_CONTEXT, ICON_ID } from '../../common';
-import type { IDhService } from '../types';
+import { CONNECTION_TREE_ITEM_CONTEXT, ICON_ID } from '../common';
+import type { IDhService, ServerConnectionNode } from '../types';
 
 /**
  * Provider for the server connection tree view.

@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import {
   CONNECT_TO_SERVER_CMD,
+  DISCONNECT_EDITOR_CMD,
   DISCONNECT_FROM_SERVER_CMD,
-  Disposable,
   DOWNLOAD_LOGS_CMD,
   OPEN_IN_BROWSER_CMD,
   REFRESH_SERVER_CONNECTION_TREE_CMD,
@@ -10,41 +10,36 @@ import {
   RUN_CODE_COMMAND,
   RUN_SELECTION_COMMAND,
   SELECT_CONNECTION_COMMAND,
-  ServerState,
   VIEW_ID,
 } from '../common';
 import {
   assertDefined,
-  ConnectionOption,
-  createConnectionOptions,
-  createConnectStatusBarItem,
   ExtendedMap,
   getEditorForUri,
   getTempDir,
   Logger,
   OutputChannelWithHistory,
-  shouldShowConnectionStatusBarItem,
   Toaster,
-  updateConnectionStatusBarItem,
 } from '../util';
 import {
-  DhcServiceFactory,
-  DhServiceRegistry,
-  DhcService,
   RunCommandCodeLensProvider,
-  type ServerConnectionTreeView,
-  ServerManager,
   ServerTreeProvider,
-  type ServerTreeView,
-  ServerConnectionTreeDragAndDropController,
   ServerConnectionTreeProvider,
-} from '../services';
+} from '../providers';
+import { DhcServiceFactory, ServerManager } from '../services';
 import type {
+  Disposable,
   IConfigService,
   IDhService,
   IDhServiceFactory,
   IServerManager,
+  IToastService,
+  ServerConnectionTreeView,
+  ServerState,
+  ServerTreeView,
 } from '../types';
+import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTreeDragAndDropController';
+import { ConnectionController } from './ConnectionController';
 
 const logger = new Logger('ExtensionController');
 
@@ -56,12 +51,10 @@ export class ExtensionController implements Disposable {
     this.initializeDiagnostics();
     this.initializeConfig();
     this.initializeCodeLenses();
-    this.initializeOutputChannelsAndLogger();
-    this.initializeDHServiceRegistry();
+    this.initializeMessaging();
     this.initializeServerManager();
     this.initializeTempDirectory();
-    this.initializeConnectionOptions();
-    this.initializeConnectionStatusBarItem();
+    this.initializeConnectionController();
     this.initializeCommands();
     this.initializeWebViews();
 
@@ -71,15 +64,9 @@ export class ExtensionController implements Disposable {
     this.outputChannel?.appendLine('Deephaven extension activated');
   }
 
-  dispose(): Promise<void> {
-    return this.clearConnection();
-  }
-
   context: vscode.ExtensionContext;
   config: IConfigService;
-  selectedConnectionUrl: string | null = null;
-  selectedDhService: IDhService | null = null;
-  dhcServiceRegistry: DhServiceRegistry<DhcService> | null = null;
+  connectionController: ConnectionController | null = null;
   dhcServiceFactory: IDhServiceFactory | null = null;
   serverManager: IServerManager | null = null;
   serverTreeProvider: ServerTreeProvider | null = null;
@@ -87,13 +74,12 @@ export class ExtensionController implements Disposable {
   serverTreeView: ServerTreeView | null = null;
   serverConnectionTreeView: ServerConnectionTreeView | null = null;
 
-  connectionOptions: ConnectionOption[] = [];
-  connectStatusBarItem: vscode.StatusBarItem | null = null;
-
   pythonDiagnostics: vscode.DiagnosticCollection | null = null;
   outputChannel: vscode.OutputChannel | null = null;
   outputChannelDebug: OutputChannelWithHistory | null = null;
-  toaster = new Toaster();
+  toaster: IToastService | null = null;
+
+  async dispose(): Promise<void> {}
 
   /**
    * Initialize code lenses for running Deephaven code.
@@ -121,44 +107,20 @@ export class ExtensionController implements Disposable {
   };
 
   /**
-   * Initialize connection options.
+   * Initialize connection controller.
    */
-  initializeConnectionOptions = (): void => {
-    this.connectionOptions = createConnectionOptions(
-      this.config.getCoreServers()
+  initializeConnectionController = (): void => {
+    assertDefined(this.serverManager, 'serverManager');
+    assertDefined(this.outputChannel, 'outputChannel');
+    assertDefined(this.toaster, 'toaster');
+
+    this.connectionController = new ConnectionController(
+      this.context,
+      this.config,
+      this.serverManager,
+      this.outputChannel,
+      this.toaster
     );
-
-    // Update connection options when configuration changes
-    vscode.workspace.onDidChangeConfiguration(
-      () => {
-        this.connectionOptions = createConnectionOptions(
-          this.config.getCoreServers()
-        );
-      },
-      null,
-      this.context.subscriptions
-    );
-  };
-
-  /**
-   * Initialize connection status bar item.
-   */
-  initializeConnectionStatusBarItem = (): void => {
-    this.connectStatusBarItem = createConnectStatusBarItem(false);
-    this.context.subscriptions.push(this.connectStatusBarItem);
-
-    this.updateConnectionStatusBarItemVisibility();
-
-    const args = [
-      this.updateConnectionStatusBarItemVisibility,
-      null,
-      this.context.subscriptions,
-    ] as const;
-
-    vscode.window.onDidChangeActiveTextEditor(...args);
-    vscode.workspace.onDidChangeConfiguration(...args);
-    // Handle scenarios such as languageId change within an already open document
-    vscode.workspace.onDidOpenTextDocument(...args);
   };
 
   /**
@@ -179,9 +141,9 @@ export class ExtensionController implements Disposable {
   };
 
   /**
-   * Initialize output channels and Logger.
+   * Initialize output channels, Logger and Toaster.
    */
-  initializeOutputChannelsAndLogger = (): void => {
+  initializeMessaging = (): void => {
     this.outputChannel = vscode.window.createOutputChannel('Deephaven', 'log');
     this.outputChannelDebug = new OutputChannelWithHistory(
       this.context,
@@ -190,6 +152,8 @@ export class ExtensionController implements Disposable {
 
     Logger.addConsoleHandler();
     Logger.addOutputChannelHandler(this.outputChannelDebug);
+
+    this.toaster = new Toaster();
 
     this.context.subscriptions.push(
       this.outputChannel,
@@ -200,6 +164,7 @@ export class ExtensionController implements Disposable {
   initializeServerManager = (): void => {
     assertDefined(this.pythonDiagnostics, 'pythonDiagnostics');
     assertDefined(this.outputChannel, 'outputChannel');
+    assertDefined(this.toaster, 'toaster');
 
     this.dhcServiceFactory = new DhcServiceFactory(
       new ExtendedMap<string, vscode.WebviewPanel>(),
@@ -235,29 +200,6 @@ export class ExtensionController implements Disposable {
   };
 
   /**
-   * Initialize DH service registry.
-   */
-  initializeDHServiceRegistry = (): void => {
-    assertDefined(this.pythonDiagnostics, 'pythonDiagnostics');
-    assertDefined(this.outputChannel, 'outputChannel');
-
-    this.dhcServiceRegistry = new DhServiceRegistry(
-      DhcService,
-      new ExtendedMap<string, vscode.WebviewPanel>(),
-      this.pythonDiagnostics,
-      this.outputChannel,
-      this.toaster
-    );
-
-    this.dhcServiceRegistry.addEventListener('disconnect', serverUrl => {
-      this.toaster.info(`Disconnected from Deephaven server: ${serverUrl}`);
-      this.clearConnection();
-    });
-
-    this.context.subscriptions.push(this.dhcServiceRegistry);
-  };
-
-  /**
    * Initialize temp directory.
    */
   initializeTempDirectory = (): void => {
@@ -269,8 +211,13 @@ export class ExtensionController implements Disposable {
    * Register commands for the extension.
    */
   initializeCommands = (): void => {
+    assertDefined(this.connectionController, 'connectionController');
+
     /** Create server connection */
     this.registerCommand(CONNECT_TO_SERVER_CMD, this.onConnectToServer);
+
+    /** Disconnect editor */
+    this.registerCommand(DISCONNECT_EDITOR_CMD, this.onDisconnectEditor);
 
     /** Disconnect from server */
     this.registerCommand(
@@ -291,7 +238,10 @@ export class ExtensionController implements Disposable {
     this.registerCommand(RUN_SELECTION_COMMAND, this.onRunSelectedCode);
 
     /** Select connection to run scripts against */
-    this.registerCommand(SELECT_CONNECTION_COMMAND, this.onSelectConnection);
+    this.registerCommand(
+      SELECT_CONNECTION_COMMAND,
+      this.connectionController.onPromptUserToSelectConnection
+    );
 
     /** Refresh server tree */
     this.registerCommand(REFRESH_SERVER_TREE_CMD, this.onRefreshServerTree);
@@ -339,59 +289,19 @@ export class ExtensionController implements Disposable {
     );
   };
 
-  /*
-   * Clear connection data
-   */
-  clearConnection = async (): Promise<void> => {
-    this.selectedConnectionUrl = null;
-    this.selectedDhService = null;
-
-    updateConnectionStatusBarItem(this.connectStatusBarItem, 'disconnected');
-
-    await this.dhcServiceRegistry?.clearCache();
-  };
-
-  /**
-   * Get currently active DH service.
-   * @autoActivate If true, auto-activate a service if none is active.
-   * @languageId Optional language id of the DH service to find.
-   */
-  getActiveDhService = async (
-    autoActivate: boolean,
-    languageId?: string
-  ): Promise<IDhService | null> => {
-    if (!autoActivate || languageId == null) {
-      return this.selectedDhService;
-    }
-
-    const selectedConsoleType = this.connectionOptions.find(
-      c => c.url === this.selectedConnectionUrl
-    )?.consoleType;
-
-    // If console type of current selection doesn't match the language id, look
-    // for the first one that does and select it.
-    if (selectedConsoleType !== languageId) {
-      const toConnectUrl =
-        this.connectionOptions.find(c => c.consoleType === languageId)?.url ??
-        null;
-
-      if (toConnectUrl == null) {
-        this.toaster.error(
-          `No Deephaven server configured for console type: '${languageId}'`
-        );
-      }
-
-      await this.onConnectionSelected(toConnectUrl);
-    }
-
-    return this.selectedDhService;
-  };
-
   /**
    * Handle connecting to a server
    */
   onConnectToServer = async (serverState: ServerState): Promise<void> => {
     this.serverManager?.connectToServer(serverState.url);
+  };
+
+  /**
+   * Disconnect editor from active connections.
+   * @param uri
+   */
+  onDisconnectEditor = (uri: vscode.Uri): void => {
+    this.serverManager?.disconnectEditor(uri);
   };
 
   /**
@@ -402,71 +312,11 @@ export class ExtensionController implements Disposable {
   };
 
   /**
-   * Handle connection selection
-   */
-  onConnectionSelected = async (
-    connectionUrl: string | null
-  ): Promise<void> => {
-    assertDefined(this.dhcServiceRegistry, 'dhcServiceRegistry');
-
-    // Show the output panel whenever we select a connection. This is a little
-    // friendlier to the user instead of it opening when the extension activates
-    // for cases where the user isn't working with DH server
-    this.outputChannel?.show(true);
-
-    this.outputChannel?.appendLine(
-      connectionUrl == null
-        ? 'Disconnecting'
-        : `Selecting connection: ${connectionUrl}`
-    );
-
-    const option = this.connectionOptions.find(
-      option => option.url === connectionUrl
-    );
-
-    // Disconnect option was selected, or connectionUrl that no longer exists
-    if (connectionUrl == null || !option) {
-      this.clearConnection();
-      this.updateConnectionStatusBarItemVisibility();
-      return;
-    }
-
-    updateConnectionStatusBarItem(
-      this.connectStatusBarItem,
-      'connecting',
-      option
-    );
-
-    this.selectedConnectionUrl = connectionUrl;
-    this.selectedDhService = await this.dhcServiceRegistry.get(
-      this.selectedConnectionUrl
-    );
-
-    if (
-      this.selectedDhService.isInitialized ||
-      (await this.selectedDhService.initDh())
-    ) {
-      updateConnectionStatusBarItem(
-        this.connectStatusBarItem,
-        'connected',
-        option
-      );
-
-      this.outputChannel?.appendLine(
-        `Initialized: ${this.selectedConnectionUrl}`
-      );
-    } else {
-      this.clearConnection();
-    }
-
-    this.updateConnectionStatusBarItemVisibility();
-  };
-
-  /**
    * Handle download logs command
    */
   onDownloadLogs = async (): Promise<void> => {
     assertDefined(this.outputChannelDebug, 'outputChannelDebug');
+    assertDefined(this.toaster, 'toaster');
 
     const uri = await this.outputChannelDebug.downloadHistoryToFile();
 
@@ -489,43 +339,15 @@ export class ExtensionController implements Disposable {
   };
 
   /**
-   * Get or create a connection for the given uri.
-   * @param uri
-   */
-  getOrCreateConnection = async (
-    uri: vscode.Uri
-  ): Promise<IDhService | null> => {
-    assertDefined(this.outputChannel, 'outputChannel');
-    assertDefined(this.serverManager, 'serverManager');
-    assertDefined(this.toaster, 'toaster');
-
-    const editor = await getEditorForUri(uri);
-    let dhService = await this.serverManager.getEditorConnection(editor);
-
-    if (dhService == null) {
-      // Prompt user to connect to server
-      await this.onSelectConnection();
-
-      dhService = await this.serverManager.getEditorConnection(editor);
-
-      if (dhService == null) {
-        const logMsg = `No active connection found supporting '${editor.document.languageId}' console type.`;
-        logger.debug(logMsg);
-        this.outputChannel.appendLine(logMsg);
-        this.toaster.error(logMsg);
-      }
-    }
-
-    return dhService;
-  };
-
-  /**
    * Run all code in editor for given uri.
    * @param uri
    */
   onRunCode = async (uri: vscode.Uri): Promise<void> => {
+    assertDefined(this.connectionController, 'connectionController');
+
     const editor = await getEditorForUri(uri);
-    const dhService = await this.getOrCreateConnection(uri);
+    const dhService =
+      await this.connectionController.getOrCreateConnection(uri);
     await dhService?.runEditorCode(editor);
   };
 
@@ -534,50 +356,12 @@ export class ExtensionController implements Disposable {
    * @param uri
    */
   onRunSelectedCode = async (uri: vscode.Uri): Promise<void> => {
-    assertDefined(this.serverManager, 'serverManager');
+    assertDefined(this.connectionController, 'connectionController');
 
     const editor = await getEditorForUri(uri);
-    const dhService = await this.serverManager.getEditorConnection(editor);
+    const dhService =
+      await this.connectionController.getOrCreateConnection(uri);
     await dhService?.runEditorCode(editor, true);
-  };
-
-  /**
-   * Handle connection selection.
-   */
-  onSelectConnection = async (): Promise<void> => {
-    assertDefined(this.serverManager, 'serverManager');
-
-    const options = this.serverManager
-      .getServers()
-      .filter(({ isRunning }) => isRunning)
-      .map(({ url }) => ({
-        label: url.toString(),
-        url,
-      }));
-
-    const result = await vscode.window.showQuickPick(options, {
-      title: 'Connect to server',
-    });
-
-    if (result != null) {
-      await this.serverManager.connectToServer(result.url);
-    }
-  };
-
-  /**
-   * Update status bar item visibility.
-   */
-  updateConnectionStatusBarItemVisibility = (): void => {
-    if (
-      shouldShowConnectionStatusBarItem(
-        this.connectionOptions,
-        this.selectedDhService != null
-      )
-    ) {
-      this.connectStatusBarItem?.show();
-    } else {
-      this.connectStatusBarItem?.hide();
-    }
   };
 
   /**

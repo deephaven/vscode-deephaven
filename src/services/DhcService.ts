@@ -9,7 +9,7 @@ import {
   initDhcSession,
 } from '../dh/dhc';
 import { getPanelHtml, Logger } from '../util';
-import { ConnectionAndSession } from '../common';
+import type { ConnectionAndSession } from '../types';
 
 const logger = new Logger('DhcService');
 

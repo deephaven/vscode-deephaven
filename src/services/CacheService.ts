@@ -1,4 +1,4 @@
-import { Disposable } from '../common';
+import type { Disposable } from '../types';
 import { isDisposable, Logger } from '../util';
 import { EventDispatcher } from './EventDispatcher';
 

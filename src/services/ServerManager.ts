@@ -1,35 +1,35 @@
 import * as vscode from 'vscode';
 import {
-  ConsoleType,
   SERVER_STATUS_CHECK_INTERVAL,
-  type ServerState,
+  UnsupportedConsoleTypeError,
 } from '../common';
 import { isDhcServerRunning } from '../dh/dhc';
 import { isDheServerRunning } from '../dh/dhe';
 import type {
+  ConsoleType,
   IConfigService,
   IDhService,
   IDhServiceFactory,
   IServerManager,
-} from './types';
-import { getInitialServerStates } from '../util/serverUtils';
+  ServerState,
+} from '../types';
 import { PollingService } from './PollingService';
-import { Logger } from '../util';
+import { getInitialServerStates, Logger } from '../util';
 
 const logger = new Logger('ServerManager');
 
 export class ServerManager implements IServerManager {
   private _configService: IConfigService;
   private _poller: PollingService;
-  private _serverMap: Map<vscode.Uri, ServerState>;
-  private _connectionMap: Map<vscode.Uri, IDhService>;
+  private _serverMap: Map<URL, ServerState>;
+  private _connectionMap: Map<URL, IDhService>;
   private _dhcServiceFactory: IDhServiceFactory;
   private _uriConnectionsMap: Map<vscode.Uri, IDhService>;
 
-  private _onDidConnect = new vscode.EventEmitter<vscode.Uri>();
+  private _onDidConnect = new vscode.EventEmitter<URL>();
   readonly onDidConnect = this._onDidConnect.event;
 
-  private _onDidDisconnect = new vscode.EventEmitter<vscode.Uri>();
+  private _onDidDisconnect = new vscode.EventEmitter<URL>();
   readonly onDidDisconnect = this._onDidDisconnect.event;
 
   private _onDidRegisterEditor = new vscode.EventEmitter<vscode.Uri>();
@@ -80,17 +80,17 @@ export class ServerManager implements IServerManager {
     }
   };
 
-  connectToServer = async (serverUrl: vscode.Uri): Promise<void> => {
+  connectToServer = async (serverUrl: URL): Promise<IDhService | null> => {
     if (this.hasConnection(serverUrl)) {
       logger.info('Already connected to server:', serverUrl);
-      return;
+      return null;
     }
 
     const serverState = this._serverMap.get(serverUrl);
 
     // TODO: implement DHE
     if (serverState == null || serverState.type !== 'DHC') {
-      return;
+      return null;
     }
 
     const connection = this._dhcServiceFactory.create(serverUrl);
@@ -104,9 +104,16 @@ export class ServerManager implements IServerManager {
 
     this._onDidConnect.fire(serverUrl);
     this._onDidUpdate.fire();
+
+    return this._connectionMap.get(serverUrl) ?? null;
   };
 
-  disconnectFromServer = async (serverUrl: vscode.Uri): Promise<void> => {
+  disconnectEditor = (uri: vscode.Uri): void => {
+    this._uriConnectionsMap.delete(uri);
+    this._onDidUpdate.fire();
+  };
+
+  disconnectFromServer = async (serverUrl: URL): Promise<void> => {
     const connection = this._connectionMap.get(serverUrl);
 
     if (connection == null) {
@@ -132,7 +139,7 @@ export class ServerManager implements IServerManager {
    * Determine if the given server URL has any active connections.
    * @param serverUrl
    */
-  hasConnection = (serverUrl: vscode.Uri): boolean => {
+  hasConnection = (serverUrl: URL): boolean => {
     return this._connectionMap.has(serverUrl);
   };
 
@@ -150,14 +157,27 @@ export class ServerManager implements IServerManager {
     return false;
   };
 
-  getServers = (): ServerState[] => {
+  getServers = ({
+    isRunning,
+    hasConnections,
+  }: {
+    isRunning?: boolean;
+    hasConnections?: boolean;
+  } = {}): ServerState[] => {
     // Start polling server status the first time servers are requested.
     // TBD: Is there a way to stop this when the servers list goes out of view?
     if (!this._poller.isRunning) {
       this._poller.start(this.updateStatus, SERVER_STATUS_CHECK_INTERVAL);
     }
 
-    return [...this._serverMap.values()];
+    const servers = [...this._serverMap.values()];
+
+    const match = (server: ServerState): boolean =>
+      (isRunning == null || server.isRunning === isRunning) &&
+      (hasConnections == null ||
+        this.hasConnection(server.url) === hasConnections);
+
+    return servers.filter(match);
   };
 
   getConnections = (): IDhService[] => {
@@ -175,44 +195,14 @@ export class ServerManager implements IServerManager {
   };
 
   /**
-   * Get the connection associated with the URI of the given editor. If no
-   * association exists, attempt to make one based on the first available connection
-   * that supports the editor's console type. If no such connection exists, show
-   * an error.
+   * Get the connection associated with the URI of the given editor.
    * @param editor
    */
   getEditorConnection = async (
     editor: vscode.TextEditor
   ): Promise<IDhService | null> => {
     const uri = editor.document.uri;
-
-    if (!this._uriConnectionsMap.has(uri)) {
-      // Default to first connection supporting the console type
-      const dhService = await this.getFirstConsoleTypeConnection(
-        editor.document.languageId as ConsoleType
-      );
-
-      if (dhService != null) {
-        await this.setEditorConnection(editor, dhService);
-      }
-    }
-
     return this._uriConnectionsMap.get(uri) ?? null;
-  };
-
-  getFirstConsoleTypeConnection = async (
-    consoleType: ConsoleType
-  ): Promise<IDhService | null> => {
-    for (const dhService of this._connectionMap.values()) {
-      const isConsoleTypeSupported =
-        await dhService.supportsConsoleType(consoleType);
-
-      if (isConsoleTypeSupported) {
-        return dhService;
-      }
-    }
-
-    return null;
   };
 
   /**
@@ -234,8 +224,8 @@ export class ServerManager implements IServerManager {
         editor.document.languageId as ConsoleType
       ))
     ) {
-      throw new Error(
-        `Connection '${dhService.serverUrl}' does not support the console type of the editor.`
+      throw new UnsupportedConsoleTypeError(
+        `Connection '${dhService.serverUrl}' does not support '${editor.document.languageId}'.`
       );
     }
 
@@ -252,7 +242,10 @@ export class ServerManager implements IServerManager {
         ? isDhcServerRunning(server.url)
         : isDheServerRunning(server.url)
       ).then(isRunning => {
-        this._serverMap.set(server.url, { ...server, isRunning });
+        this._serverMap.set(server.url, {
+          ...server,
+          isRunning,
+        });
         if ((server.isRunning ?? false) !== isRunning) {
           // If server goes from running to stopped, get rid of any active
           // connections to it.

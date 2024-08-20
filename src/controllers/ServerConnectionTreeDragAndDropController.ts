@@ -1,7 +1,7 @@
-import { MIME_TYPE } from '../../common';
-import { getEditorForUri } from '../../util';
+import { MIME_TYPE } from '../common';
+import { getEditorForUri } from '../util';
 import type { IServerManager } from '../types';
-import type { ServerConnectionNode } from './types';
+import type { ServerConnectionNode } from '../types/treeViewTypes';
 
 import * as vscode from 'vscode';
 

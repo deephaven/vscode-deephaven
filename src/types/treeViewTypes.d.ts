@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import type { IDhService } from '../types';
-import type { ServerState } from '../../common';
+import type { IDhService } from './serviceTypes';
+import type { ServerState } from './commonTypes';
 
 export type ServerGroupState = { label: string };
 export type ServerNode = ServerGroupState | ServerState;

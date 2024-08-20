@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { DOWNLOAD_LOGS_CMD, DOWNLOAD_LOGS_TEXT } from '../common';
-import { IToastService } from '../services';
+import type { IToastService } from '../types';
 
 /**
  * Show toast messages to user.

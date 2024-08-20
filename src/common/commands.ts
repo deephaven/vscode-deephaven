@@ -1,6 +1,7 @@
 import { EXTENSION_ID } from './constants';
 
 export const CONNECT_TO_SERVER_CMD = `${EXTENSION_ID}.connectToServer`;
+export const DISCONNECT_EDITOR_CMD = `${EXTENSION_ID}.disconnectEditor`;
 export const DISCONNECT_FROM_SERVER_CMD = `${EXTENSION_ID}.disconnectFromServer`;
 export const DOWNLOAD_LOGS_CMD = `${EXTENSION_ID}.downloadLogs`;
 export const OPEN_IN_BROWSER_CMD = `${EXTENSION_ID}.openInBrowser`;

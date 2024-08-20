@@ -1,4 +1,4 @@
-import { type Disposable } from '../common';
+import type { Disposable } from '../types';
 
 export type Runner = () => Promise<void>;
 

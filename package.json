@@ -122,8 +122,13 @@
         "icon": "$(plug)"
       },
       {
+        "command": "vscode-deephaven.disconnectEditor",
+        "title": "Deephaven: Disconnect Editor",
+        "icon": "$(debug-disconnect)"
+      },
+      {
         "command": "vscode-deephaven.disconnectFromServer",
-        "title": "Deephaven: Disconnect from Server",
+        "title": "Deephaven: Discard Connection",
         "icon": "$(trash)"
       },
       {
@@ -162,6 +167,10 @@
         },
         {
           "command": "vscode-deephaven.connectToServer",
+          "when": "false"
+        },
+        {
+          "command": "vscode-deephaven.disconnectEditor",
           "when": "false"
         },
         {
@@ -217,6 +226,11 @@
         {
           "command": "vscode-deephaven.connectToServer",
           "when": "view == vscode-deephaven.serverTree && viewItem == isServerRunningDisconnected",
+          "group": "inline"
+        },
+        {
+          "command": "vscode-deephaven.disconnectEditor",
+          "when": "view == vscode-deephaven.serverConnectionTree && viewItem != isConnection",
           "group": "inline"
         },
         {

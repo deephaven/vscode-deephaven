@@ -7,7 +7,7 @@ import {
   createConnectionOption,
   updateConnectionStatusBarItem,
 } from './uiUtils';
-import { CoreConnectionConfig } from '../common';
+import type { CoreConnectionConfig } from '../types';
 
 // See __mocks__/vscode.ts for the mock implementation
 vi.mock('vscode');

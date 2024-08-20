@@ -17,24 +17,37 @@ export type CoreConnectionConfigStored =
     };
 
 export interface CoreConnectionConfig {
-  url: string;
+  url: URL;
   consoleType: ConsoleType;
 }
 
 export type EnterpriseConnectionConfigStored = string;
 
 export interface EnterpriseConnectionConfig {
-  url: string;
+  url: URL;
 }
 
 export interface Disposable {
   dispose(): Promise<void>;
 }
 
+export type EventListenerT = <TEvent>(event: TEvent) => void;
+export type UnsubscribeEventListener = () => void;
+
 export type ServerType = 'DHC' | 'DHE';
 
 export interface ServerState {
   type: ServerType;
-  url: vscode.Uri;
+  url: URL;
   isRunning?: boolean;
 }
+
+export type SeparatorPickItem = {
+  label: string;
+  kind: vscode.QuickPickItemKind.Separator;
+};
+
+export type ConnectionPickItem<TType, TData> = vscode.QuickPickItem & {
+  type: TType;
+  data: TData;
+};

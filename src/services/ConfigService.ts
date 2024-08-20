@@ -1,15 +1,17 @@
 import * as vscode from 'vscode';
 import {
   CONFIG_KEY,
-  CoreConnectionConfig,
-  CoreConnectionConfigStored,
   DEFAULT_CONSOLE_TYPE,
-  EnterpriseConnectionConfig,
-  EnterpriseConnectionConfigStored,
   SERVER_LANGUAGE_SET,
 } from '../common';
 import { InvalidConsoleTypeError, Logger } from '../util';
-import type { IConfigService } from './types';
+import type {
+  CoreConnectionConfig,
+  CoreConnectionConfigStored,
+  EnterpriseConnectionConfig,
+  EnterpriseConnectionConfigStored,
+  IConfigService,
+} from '../types';
 
 const logger = new Logger('Config');
 
@@ -35,20 +37,22 @@ function getCoreServers(): CoreConnectionConfig[] {
 
   logger.info('Core servers:', JSON.stringify(expandedConfig));
 
-  return expandedConfig.filter(server => {
-    try {
-      // Filter out any invalid server configs to avoid crashing the extension
-      // further upstream.
-      new URL(server.url);
-      if (!SERVER_LANGUAGE_SET.has(server.consoleType)) {
-        throw new InvalidConsoleTypeError(server.consoleType);
+  return expandedConfig
+    .filter(server => {
+      try {
+        // Filter out any invalid server configs to avoid crashing the extension
+        // further upstream.
+        new URL(server.url);
+        if (!SERVER_LANGUAGE_SET.has(server.consoleType)) {
+          throw new InvalidConsoleTypeError(server.consoleType);
+        }
+        return true;
+      } catch (err) {
+        logger.error(err, server.url);
+        return false;
       }
-      return true;
-    } catch (err) {
-      logger.error(err, server.url);
-      return false;
-    }
-  });
+    })
+    .map(server => ({ ...server, url: new URL(server.url) }));
 }
 
 function getEnterpriseServers(): EnterpriseConnectionConfig[] {
@@ -61,17 +65,19 @@ function getEnterpriseServers(): EnterpriseConnectionConfig[] {
 
   logger.info('Enterprise servers:', JSON.stringify(expandedConfig));
 
-  return expandedConfig.filter(server => {
-    try {
-      // Filter out any invalid server configs to avoid crashing the extension
-      // further upstream.
-      new URL(server.url);
-      return true;
-    } catch (err) {
-      logger.error(err, server.url);
-      return false;
-    }
-  });
+  return expandedConfig
+    .filter(server => {
+      try {
+        // Filter out any invalid server configs to avoid crashing the extension
+        // further upstream.
+        new URL(server.url);
+        return true;
+      } catch (err) {
+        logger.error(err, server.url);
+        return false;
+      }
+    })
+    .map(server => ({ ...server, url: new URL(server.url) }));
 }
 
 // eslint-disable-next-line @typescript-eslint/naming-convention

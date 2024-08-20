@@ -1,10 +1,11 @@
 import * as vscode from 'vscode';
 import {
+  ICON_ID,
   SERVER_TREE_ITEM_CONTEXT,
   type ServerTreeItemContextValue,
-} from '../../common';
+} from '../common';
 import { TreeDataProviderBase } from './TreeDataProviderBase';
-import type { ServerGroupState, ServerNode } from './types';
+import type { ServerGroupState, ServerNode } from '../types/treeViewTypes';
 
 function isServerGroupState(node: ServerNode): node is ServerGroupState {
   return 'label' in node;
@@ -36,7 +37,7 @@ export class ServerTreeProvider extends TreeDataProviderBase<ServerNode> {
     if (isServerGroupState(element)) {
       return {
         label: element.label,
-        iconPath: new vscode.ThemeIcon('server'),
+        iconPath: new vscode.ThemeIcon(ICON_ID.server),
         collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
       };
     }
@@ -51,11 +52,15 @@ export class ServerTreeProvider extends TreeDataProviderBase<ServerNode> {
 
     return {
       label: new URL(urlStr).host,
-      description: element.type === 'DHC' ? undefined : 'Enterprise',
+      description: isConnected ? '(1)' : undefined, // element.type === 'DHC' ? undefined : 'Enterprise',
       tooltip: canConnect ? `Click to connect to ${urlStr}` : urlStr,
       contextValue: element.type === 'DHC' ? contextValue : undefined,
       iconPath: new vscode.ThemeIcon(
-        isRunning ? 'circle-large-filled' : 'circle-slash'
+        isRunning
+          ? isConnected
+            ? ICON_ID.serverConnected
+            : ICON_ID.serverRunning
+          : ICON_ID.serverStopped
       ),
       command: canConnect
         ? {

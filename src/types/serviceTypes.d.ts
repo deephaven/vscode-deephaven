@@ -4,9 +4,10 @@ import type {
   CoreConnectionConfig,
   Disposable,
   EnterpriseConnectionConfig,
+  EventListenerT,
   ServerState,
-} from '../common';
-import { EventDispatcher } from './EventDispatcher';
+  UnsubscribeEventListener,
+} from '../types/commonTypes';
 
 /**
  * Configuration service interface.
@@ -21,10 +22,10 @@ export interface IConfigService {
  */
 export interface IDhService<TDH = unknown, TClient = unknown>
   extends Disposable,
-    EventDispatcher<'disconnect'> {
+    IEventDispatcher<'disconnect'> {
   readonly isInitialized: boolean;
   readonly isConnected: boolean;
-  readonly serverUrl: vscode.Uri;
+  readonly serverUrl: URL;
 
   initDh: () => Promise<boolean>;
 
@@ -37,6 +38,15 @@ export interface IDhService<TDH = unknown, TClient = unknown>
   ) => Promise<void>;
 }
 
+export interface IEventDispatcher<TEventName extends string> {
+  addEventListener: (
+    eventName: TEventName,
+    listener: EventListenerT
+  ) => UnsubscribeEventListener;
+
+  dispatchEvent: <TEvent>(eventName: TEventName, event?: TEvent) => void;
+}
+
 export interface IFactory<T, TArgs extends unknown[] = []> {
   create: (...args: TArgs) => T;
 }
@@ -44,17 +54,18 @@ export interface IFactory<T, TArgs extends unknown[] = []> {
 /**
  * Factory for creating IDhService instances.
  */
-export type IDhServiceFactory = IFactory<IDhService, [serverUrl: vscode.Uri]>;
+export type IDhServiceFactory = IFactory<IDhService, [serverUrl: URL]>;
 
 /**
  * Server manager interface.
  */
 export interface IServerManager extends Disposable {
-  connectToServer: (serverUrl: vscode.Uri) => Promise<void>;
-  disconnectFromServer: (serverUrl: vscode.Uri) => Promise<void>;
+  connectToServer: (serverUrl: URL) => Promise<IDhService | null>;
+  disconnectEditor: (uri: vscode.Uri) => void;
+  disconnectFromServer: (serverUrl: URL) => Promise<void>;
   loadServerConfig: () => void;
 
-  hasConnection: (serverUrl: vscode.Uri) => boolean;
+  hasConnection: (serverUrl: URL) => boolean;
   hasConnectionUris: (connection: IDhService) => boolean;
 
   getConnections: () => IDhService[];
@@ -66,15 +77,16 @@ export interface IServerManager extends Disposable {
     editor: vscode.TextEditor,
     dhService: IDhService
   ) => Promise<void>;
-  getFirstConsoleTypeConnection: (
-    consoleType: ConsoleType
-  ) => Promise<IDhService | null>;
-  getServers: () => ServerState[];
+
+  getServers: (filter?: {
+    isRunning?: boolean;
+    hasConnections?: boolean;
+  }) => ServerState[];
   getUriConnection: (uri: vscode.Uri) => IDhService | null;
   updateStatus: () => Promise<void>;
 
-  onDidConnect: vscode.Event<vscode.Uri>;
-  onDidDisconnect: vscode.Event<vscode.Uri>;
+  onDidConnect: vscode.Event<URL>;
+  onDidDisconnect: vscode.Event<URL>;
   onDidRegisterEditor: vscode.Event<vscode.Uri>;
   onDidUpdate: vscode.Event<void>;
 }

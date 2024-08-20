@@ -1,7 +1,12 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { hasErrorCode } from '../util/typeUtils';
-import { ConnectionAndSession, ConsoleType } from '../common';
+import type {
+  ConnectionAndSession,
+  ConsoleType,
+  IDhService,
+  IToastService,
+} from '../types';
 import {
   ExtendedMap,
   formatTimestamp,
@@ -11,7 +16,6 @@ import {
   parseServerError,
 } from '../util';
 import { EventDispatcher } from './EventDispatcher';
-import type { IDhService, IToastService } from './types';
 
 const logger = new Logger('DhService');
 
@@ -36,28 +40,12 @@ type CommandResultBase = {
   error: string;
 };
 
-/**
- * Helper type to make it easier to use `DhService` derived classes as newable
- * factory functions. This type should mirror the constructor of `DhService`.
- */
-export type DhServiceConstructor<
-  T extends IDhService<TDH, TClient>,
-  TDH = unknown,
-  TClient = unknown,
-> = new (
-  serverUrl: vscode.Uri,
-  panelRegistry: ExtendedMap<string, vscode.WebviewPanel>,
-  diagnosticsCollection: vscode.DiagnosticCollection,
-  outputChannel: vscode.OutputChannel,
-  toaster: IToastService
-) => T;
-
 export abstract class DhService<TDH = unknown, TClient = unknown>
   extends EventDispatcher<'disconnect'>
   implements IDhService<TDH, TClient>
 {
   constructor(
-    serverUrl: vscode.Uri,
+    serverUrl: URL,
     panelRegistry: ExtendedMap<string, vscode.WebviewPanel>,
     diagnosticsCollection: vscode.DiagnosticCollection,
     outputChannel: vscode.OutputChannel,
@@ -72,7 +60,7 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
     this.toaster = toaster;
   }
 
-  public readonly serverUrl: vscode.Uri;
+  public readonly serverUrl: URL;
   protected readonly subscriptions: (() => void)[] = [];
 
   protected readonly outputChannel: vscode.OutputChannel;

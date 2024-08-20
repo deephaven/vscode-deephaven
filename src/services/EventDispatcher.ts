@@ -1,11 +1,16 @@
-export type EventListener = <TEvent>(event: TEvent) => void;
-export type UnsubscribeEventListener = () => void;
+import type {
+  EventListenerT,
+  IEventDispatcher,
+  UnsubscribeEventListener,
+} from '../types';
 
 /**
  * General purpose event dispatcher for events that can be subscribed to.
  */
-export class EventDispatcher<TEventName extends string> {
-  private listeners: Map<string, Set<EventListener>> = new Map();
+export class EventDispatcher<TEventName extends string>
+  implements IEventDispatcher<TEventName>
+{
+  private listeners: Map<string, Set<EventListenerT>> = new Map();
 
   /**
    * Register an event listener for a given event name.
@@ -15,7 +20,7 @@ export class EventDispatcher<TEventName extends string> {
    */
   addEventListener = (
     eventName: TEventName,
-    listener: EventListener
+    listener: EventListenerT
   ): UnsubscribeEventListener => {
     if (!this.listeners.has(eventName)) {
       this.listeners.set(eventName, new Set());
