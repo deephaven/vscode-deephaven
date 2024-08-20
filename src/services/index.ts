@@ -7,5 +7,5 @@ export * from './DhServiceRegistry';
 export * from './PollingService';
 export * from './RunCommandCodeLensProvider';
 export * from './ServerManager';
-export * from './TreeProvider';
+export * from './treeView';
 export type * from './types';
