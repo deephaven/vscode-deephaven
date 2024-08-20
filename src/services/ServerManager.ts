@@ -194,10 +194,7 @@ export class ServerManager implements IServerManager {
       );
 
       if (dhService != null) {
-        this.setEditorConnection(editor, dhService);
-        // this._uriConnectionsMap.set(uri, dhService);
-        // this._onDidUpdate.fire();
-        // this._onDidRegisterEditor.fire(uri);
+        await this.setEditorConnection(editor, dhService);
       }
     }
 
