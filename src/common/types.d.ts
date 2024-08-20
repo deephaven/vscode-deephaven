@@ -37,7 +37,7 @@ export interface ServerState {
   isRunning?: boolean;
 }
 
-export interface WorkerState {
+export interface ServerConnectionState {
   url: string;
   consoleType: ConsoleType;
 }

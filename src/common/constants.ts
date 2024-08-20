@@ -1,5 +1,7 @@
 import * as path from 'node:path';
 
+export const CAN_CREATE_CONNECTION_CONTEXT = 'canCreateConnection' as const;
+
 export const EXTENSION_ID = 'vscode-deephaven' as const;
 
 export const CONFIG_KEY = {
@@ -31,5 +33,14 @@ export const TMP_DIR_ROOT = path.join(__dirname, '..', 'tmp');
 
 export const VIEW_ID = {
   serverTree: `${EXTENSION_ID}.serverTree`,
-  workerTree: `${EXTENSION_ID}.workerTree`,
+  serverConnectionTree: `${EXTENSION_ID}.serverConnectionTree`,
+} as const;
+
+export const ICON_ID = {
+  blank: 'blank',
+  connected: 'vm-connect',
+  connecting: 'sync~spin',
+  disconnected: 'debug-disconnect',
+  runAll: 'run-all',
+  runSelection: 'run',
 } as const;

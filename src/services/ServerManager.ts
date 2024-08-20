@@ -1,13 +1,13 @@
 import * as vscode from 'vscode';
-import type { ServerState, WorkerState } from '../common';
+import type { ServerState, ServerConnectionState } from '../common';
 import { isDhcServerRunning } from '../dh/dhc';
 import { isDheServerRunning } from '../dh/dhe';
-import { IConfigService, IWorkerManager } from './types';
-import { getInitialServerStates } from '../util/workerUtils';
+import { IConfigService, IServerManager } from './types';
+import { getInitialServerStates } from '../util/serverUtils';
 
-export class WorkerManager implements IWorkerManager {
+export class ServerManager implements IServerManager {
   private _serverMap: Map<string, ServerState>;
-  private _workerMap: Map<string, WorkerState>;
+  private _connectionMap: Map<string, ServerConnectionState>;
 
   private _onDidUpdate = new vscode.EventEmitter<void>();
   readonly onDidUpdate = this._onDidUpdate.event;
@@ -23,7 +23,7 @@ export class WorkerManager implements IWorkerManager {
       configService.getEnterpriseServers()
     );
 
-    const initialWorkerState: WorkerState[] = [];
+    const initialConnectionState: ServerConnectionState[] = [];
 
     this._serverMap = new Map(
       [...initialDhcServerState, ...initialDheServerState].map(state => [
@@ -32,8 +32,8 @@ export class WorkerManager implements IWorkerManager {
       ])
     );
 
-    this._workerMap = new Map(
-      initialWorkerState.map(state => [state.url, state])
+    this._connectionMap = new Map(
+      initialConnectionState.map(state => [state.url, state])
     );
   }
 
@@ -41,8 +41,8 @@ export class WorkerManager implements IWorkerManager {
     return [...this._serverMap.values()];
   };
 
-  getWorkers = (): WorkerState[] => {
-    return [...this._workerMap.values()];
+  getConnections = (): ServerConnectionState[] => {
+    return [...this._connectionMap.values()];
   };
 
   updateStatus = async (): Promise<void> => {

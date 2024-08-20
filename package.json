@@ -117,9 +117,9 @@
         "title": "Deephaven: Download Logs"
       },
       {
-        "command": "vscode-deephaven.createWorker",
-        "title": "Deephaven: Create Worker",
-        "icon": "$(add)"
+        "command": "vscode-deephaven.createServerConnection",
+        "title": "Deephaven: Connect to Server",
+        "icon": "$(debug-disconnect)"
       }
     ],
     "menus": {
@@ -159,8 +159,8 @@
       ],
       "view/item/context": [
         {
-          "command": "vscode-deephaven.createWorker",
-          "when": "view == vscode-deephaven.serverTree",
+          "command": "vscode-deephaven.createServerConnection",
+          "when": "view == vscode-deephaven.serverTree && viewItem == canCreateConnection",
           "group": "inline"
         }
       ]
@@ -182,8 +182,8 @@
           "type": "tree"
         },
         {
-          "id": "vscode-deephaven.workerTree",
-          "name": "Workers",
+          "id": "vscode-deephaven.serverConnectionTree",
+          "name": "Connections",
           "type": "tree"
         }
       ]

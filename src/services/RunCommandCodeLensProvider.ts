@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { ICON_ID } from '../common';
 
 /**
  * Provides inline editor code lenses for running Deephaven code.
@@ -27,7 +28,7 @@ export class RunCommandCodeLensProvider
     // Always show the run all code lens
     const codeLenses: vscode.CodeLens[] = [
       new vscode.CodeLens(new vscode.Range(0, 0, 0, 0), {
-        title: '$(run-all) Run Deephaven File',
+        title: `$(${ICON_ID.runAll}) Run Deephaven File`,
         command: 'vscode-deephaven.runCode',
         arguments: [document.uri],
       }),
@@ -44,7 +45,7 @@ export class RunCommandCodeLensProvider
     ) {
       codeLenses.push(
         new vscode.CodeLens(editor.selection, {
-          title: '$(run) Run Deephaven Selected Lines',
+          title: `$(${ICON_ID.runSelection}) Run Deephaven Selected Lines`,
           command: 'vscode-deephaven.runSelection',
           arguments: [document.uri],
         })

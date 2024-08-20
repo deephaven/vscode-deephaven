@@ -4,7 +4,7 @@ import type {
   Disposable,
   EnterpriseConnectionConfig,
   ServerState,
-  WorkerState,
+  ServerConnectionState,
 } from '../common';
 
 /**
@@ -16,12 +16,12 @@ export interface IConfigService {
 }
 
 /**
- * Worker manager interface.
+ * Server manager interface.
  */
-export interface IWorkerManager extends Disposable {
+export interface IServerManager extends Disposable {
   onDidUpdate: vscode.Event<void>;
 
   getServers: () => ServerState[];
-  getWorkers: () => WorkerState[];
+  getConnections: () => ServerConnectionState[];
   updateStatus: () => Promise<void>;
 }

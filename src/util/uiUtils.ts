@@ -7,6 +7,7 @@ import {
   STATUS_BAR_CONNECTING_TEXT,
   STATUS_BAR_DISCONNECTED_TEXT,
   STATUS_BAR_DISCONNECT_TEXT,
+  ICON_ID,
 } from '../common';
 
 export interface ConnectionOption {
@@ -120,9 +121,9 @@ export function createConnectTextAndTooltip(
   option?: ConnectionOption
 ): { text: string; tooltip: string } {
   const icon = {
-    connecting: '$(sync~spin)',
-    connected: '$(vm-connect)',
-    disconnected: '$(debug-disconnect)',
+    connecting: `$(${ICON_ID.connecting})`,
+    connected: `$(${ICON_ID.connected})`,
+    disconnected: `$(${ICON_ID.disconnected})`,
   }[status];
 
   const label = {
@@ -158,8 +159,8 @@ export function formatConnectionLabel(
 ): string {
   const consoleTypeStr = consoleType ? ` (${consoleType})` : '';
   return isSelected
-    ? `$(vm-connect) ${label}${consoleTypeStr}`
-    : `$(blank) ${label}${consoleTypeStr}`;
+    ? `$(${ICON_ID.connected}) ${label}${consoleTypeStr}`
+    : `$(${ICON_ID.blank}) ${label}${consoleTypeStr}`;
 }
 
 // Copied from @deephaven/console `ConsoleUtils`

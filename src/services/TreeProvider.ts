@@ -1,13 +1,18 @@
 import * as vscode from 'vscode';
-import { ServerState, WorkerState } from '../common';
-import { IWorkerManager } from './types';
+import {
+  CAN_CREATE_CONNECTION_CONTEXT,
+  ServerState,
+  ServerConnectionState,
+  ICON_ID,
+} from '../common';
+import { IServerManager } from './types';
 
 /**
  * Base class for tree view data providers.
  */
 export abstract class TreeProvider<T> implements vscode.TreeDataProvider<T> {
-  constructor(readonly workerManager: IWorkerManager) {
-    workerManager.onDidUpdate(() => {
+  constructor(readonly serverManager: IServerManager) {
+    serverManager.onDidUpdate(() => {
       this._onDidChangeTreeData.fire();
     });
   }
@@ -45,10 +50,16 @@ export class ServerTreeProvider extends TreeProvider<ServerNode> {
       };
     }
 
+    const isRunning = element.isRunning ?? false;
+
     return {
       label: new URL(element.url).host,
+      contextValue:
+        isRunning && element.type === 'DHC'
+          ? CAN_CREATE_CONNECTION_CONTEXT
+          : '',
       iconPath: new vscode.ThemeIcon(
-        element.isRunning === true ? 'circle-large-filled' : 'circle-slash'
+        isRunning ? 'circle-large-filled' : 'circle-slash'
       ),
     };
   }
@@ -60,7 +71,7 @@ export class ServerTreeProvider extends TreeProvider<ServerNode> {
     }
 
     if (isServerGroupState(elementOrRoot)) {
-      return this.workerManager
+      return this.serverManager
         .getServers()
         .filter(server =>
           (elementOrRoot as ServerGroupState).label === 'Running'
@@ -72,19 +83,19 @@ export class ServerTreeProvider extends TreeProvider<ServerNode> {
 }
 
 /**
- * Provider for the worker tree view.
+ * Provider for the server connection tree view.
  */
-export class WorkerTreeProvider extends TreeProvider<WorkerState> {
+export class ServerConnectionTreeProvider extends TreeProvider<ServerConnectionState> {
   getTreeItem(
-    element: WorkerState
+    element: ServerConnectionState
   ): vscode.TreeItem | Thenable<vscode.TreeItem> {
     return {
       label: new URL(element.url).host,
-      iconPath: new vscode.ThemeIcon('vm-connect'),
+      iconPath: new vscode.ThemeIcon(ICON_ID.connected),
     };
   }
 
-  getChildren(): vscode.ProviderResult<WorkerState[]> {
-    return this.workerManager.getWorkers();
+  getChildren(): vscode.ProviderResult<ServerConnectionState[]> {
+    return this.serverManager.getConnections();
   }
 }

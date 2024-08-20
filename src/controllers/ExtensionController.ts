@@ -28,11 +28,11 @@ import {
   DhService,
   DhcService,
   RunCommandCodeLensProvider,
+  ServerManager,
   ServerTreeProvider,
-  WorkerManager,
-  WorkerTreeProvider,
+  ServerConnectionTreeProvider,
 } from '../services';
-import { IConfigService, IWorkerManager } from '../types';
+import { IConfigService, IServerManager } from '../types';
 
 const logger = new Logger('ExtensionController');
 
@@ -67,7 +67,7 @@ export class ExtensionController implements Disposable {
   selectedConnectionUrl: string | null = null;
   selectedDhService: DhService | null = null;
   dhcServiceRegistry: DhServiceRegistry<DhcService> | null = null;
-  workerManager: IWorkerManager | null = null;
+  serverManager: IServerManager | null = null;
 
   connectionOptions: ConnectionOption[] = [];
   connectStatusBarItem: vscode.StatusBarItem | null = null;
@@ -231,13 +231,13 @@ export class ExtensionController implements Disposable {
    * Register web views for the extension.
    */
   initializeWebViews = (): void => {
-    this.workerManager = new WorkerManager(this.config);
+    this.serverManager = new ServerManager(this.config);
 
     let timeout: NodeJS.Timeout;
     const checkStatuses = async (): Promise<void> => {
       const start = performance.now();
 
-      await this.workerManager?.updateStatus();
+      await this.serverManager?.updateStatus();
 
       // Ensure checks don't run more often than the interval
       const elapsed = performance.now() - start;
@@ -254,19 +254,19 @@ export class ExtensionController implements Disposable {
 
     const serversView = vscode.window.registerTreeDataProvider(
       VIEW_ID.serverTree,
-      new ServerTreeProvider(this.workerManager)
+      new ServerTreeProvider(this.serverManager)
     );
 
-    const workersView = vscode.window.registerTreeDataProvider(
-      VIEW_ID.workerTree,
-      new WorkerTreeProvider(this.workerManager)
+    const connectionsView = vscode.window.registerTreeDataProvider(
+      VIEW_ID.serverConnectionTree,
+      new ServerConnectionTreeProvider(this.serverManager)
     );
 
     this.context.subscriptions.push(
-      this.workerManager,
+      this.serverManager,
       { dispose: disposeCheckStatuses },
       serversView,
-      workersView
+      connectionsView
     );
   };
 
