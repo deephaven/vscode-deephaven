@@ -216,7 +216,7 @@
       "view/item/context": [
         {
           "command": "vscode-deephaven.connectToServer",
-          "when": "view == vscode-deephaven.serverTree && viewItem == isConnectedServer",
+          "when": "view == vscode-deephaven.serverTree && viewItem == isServerRunningDisconnected",
           "group": "inline"
         },
         {
@@ -226,7 +226,7 @@
         },
         {
           "command": "vscode-deephaven.openInBrowser",
-          "when": "view == vscode-deephaven.serverTree && viewItem == isConnectedServer",
+          "when": "view == vscode-deephaven.serverTree && (viewItem == isServerRunningDisconnected)",
           "group": "inline"
         }
       ]

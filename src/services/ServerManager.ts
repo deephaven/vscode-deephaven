@@ -28,6 +28,9 @@ export class ServerManager implements IServerManager {
   private _toaster: IToastService;
   private _uriConnectionsMap: Map<vscode.Uri, IDhService>;
 
+  private _onDidRegisterEditor = new vscode.EventEmitter<vscode.Uri>();
+  readonly onDidRegisterEditor = this._onDidRegisterEditor.event;
+
   private _onDidUpdate = new vscode.EventEmitter<void>();
   readonly onDidUpdate = this._onDidUpdate.event;
 
@@ -176,6 +179,7 @@ export class ServerManager implements IServerManager {
       if (dhService != null) {
         this._uriConnectionsMap.set(uri, dhService);
         this._onDidUpdate.fire();
+        this._onDidRegisterEditor.fire(uri);
       }
     }
 
@@ -204,6 +208,14 @@ export class ServerManager implements IServerManager {
     }
 
     return null;
+  };
+
+  /**
+   * Get connection associated with the given URI.
+   * @param uri
+   */
+  getUriConnection = (uri: vscode.Uri): IDhService | null => {
+    return this._uriConnectionsMap.get(uri) ?? null;
   };
 
   updateStatus = async (): Promise<void> => {

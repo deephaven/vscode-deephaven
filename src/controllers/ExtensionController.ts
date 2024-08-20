@@ -33,8 +33,10 @@ import {
   DhServiceRegistry,
   DhcService,
   RunCommandCodeLensProvider,
+  type ServerConnectionTreeView,
   ServerManager,
   ServerTreeProvider,
+  type ServerTreeView,
   ServerConnectionTreeProvider,
 } from '../services';
 import type {
@@ -82,6 +84,8 @@ export class ExtensionController implements Disposable {
   serverManager: IServerManager | null = null;
   serverTreeProvider: ServerTreeProvider | null = null;
   serverConnectionTreeProvider: ServerConnectionTreeProvider | null = null;
+  serverTreeView: ServerTreeView | null = null;
+  serverConnectionTreeView: ServerConnectionTreeView | null = null;
 
   connectionOptions: ConnectionOption[] = [];
   connectStatusBarItem: vscode.StatusBarItem | null = null;
@@ -210,6 +214,13 @@ export class ExtensionController implements Disposable {
       this.outputChannel,
       this.toaster
     );
+
+    // Expand to show any new editor URIs that are associated with a connection
+    const subscription = this.serverManager.onDidRegisterEditor(uri => {
+      this.serverConnectionTreeView?.reveal(uri);
+    });
+
+    this.context.subscriptions.push(this.serverManager, subscription);
   };
 
   /**
@@ -287,25 +298,29 @@ export class ExtensionController implements Disposable {
   initializeWebViews = (): void => {
     assertDefined(this.serverManager, 'serverManager');
 
+    // Server tree
     this.serverTreeProvider = new ServerTreeProvider(this.serverManager);
+    this.serverTreeView = vscode.window.createTreeView(VIEW_ID.serverTree, {
+      showCollapseAll: true,
+      treeDataProvider: this.serverTreeProvider,
+    });
+
+    // Connection tree
     this.serverConnectionTreeProvider = new ServerConnectionTreeProvider(
       this.serverManager
     );
-
-    const serversView = vscode.window.registerTreeDataProvider(
-      VIEW_ID.serverTree,
-      this.serverTreeProvider
-    );
-
-    const connectionsView = vscode.window.registerTreeDataProvider(
+    this.serverConnectionTreeView = vscode.window.createTreeView(
       VIEW_ID.serverConnectionTree,
-      this.serverConnectionTreeProvider
+      {
+        showCollapseAll: true,
+        treeDataProvider: this.serverConnectionTreeProvider,
+      }
     );
 
     this.context.subscriptions.push(
       this.serverManager,
-      serversView,
-      connectionsView
+      this.serverTreeView,
+      this.serverConnectionTreeView
     );
   };
 

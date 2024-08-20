@@ -1,5 +1,11 @@
 import * as vscode from 'vscode';
-import { ICON_ID, ServerState, TREE_ITEM_CONTEXT } from '../common';
+import {
+  ICON_ID,
+  ServerState,
+  SERVER_TREE_ITEM_CONTEXT,
+  type ServerTreeItemContextValue,
+  CONNECTION_TREE_ITEM_CONTEXT,
+} from '../common';
 import { IDhService, IServerManager } from './types';
 
 /**
@@ -29,9 +35,30 @@ export abstract class TreeProvider<T> implements vscode.TreeDataProvider<T> {
 
 type ServerGroupState = { label: string };
 type ServerNode = ServerGroupState | ServerState;
+type ServerConnectionNode = IDhService | vscode.Uri;
+
+export interface ServerTreeView extends vscode.TreeView<ServerNode> {}
+export interface ServerConnectionTreeView
+  extends vscode.TreeView<ServerConnectionNode> {}
 
 function isServerGroupState(node: ServerNode): node is ServerGroupState {
   return 'label' in node;
+}
+
+function getServerContextValue({
+  isConnected,
+  isRunning,
+}: {
+  isConnected: boolean;
+  isRunning: boolean;
+}): ServerTreeItemContextValue {
+  if (isRunning) {
+    return isConnected
+      ? SERVER_TREE_ITEM_CONTEXT.isServerRunningConnected
+      : SERVER_TREE_ITEM_CONTEXT.isServerRunningDisconnected;
+  }
+
+  return SERVER_TREE_ITEM_CONTEXT.isServerStopped;
 }
 
 /**
@@ -49,21 +76,27 @@ export class ServerTreeProvider extends TreeProvider<ServerNode> {
       };
     }
 
+    const isConnected = this.serverManager.hasConnection(element.url);
     const isRunning = element.isRunning ?? false;
+    const contextValue = getServerContextValue({ isConnected, isRunning });
+    const canConnect =
+      contextValue === SERVER_TREE_ITEM_CONTEXT.isServerRunningDisconnected;
 
     return {
       label: new URL(element.url).host,
       description: element.type === 'DHC' ? undefined : 'Enterprise',
-
-      contextValue:
-        isRunning &&
-        element.type === 'DHC' &&
-        !this.serverManager.hasConnection(element.url)
-          ? TREE_ITEM_CONTEXT.isConnectedServer
-          : TREE_ITEM_CONTEXT.isDisconnectedServer,
+      tooltip: canConnect ? `Click to connect to ${element.url}` : element.url,
+      contextValue: element.type === 'DHC' ? contextValue : undefined,
       iconPath: new vscode.ThemeIcon(
         isRunning ? 'circle-large-filled' : 'circle-slash'
       ),
+      command: canConnect
+        ? {
+            title: 'Open in Browser',
+            command: 'vscode-deephaven.connectToServer',
+            arguments: [element],
+          }
+        : undefined,
     };
   }
 
@@ -88,9 +121,9 @@ export class ServerTreeProvider extends TreeProvider<ServerNode> {
 /**
  * Provider for the server connection tree view.
  */
-export class ServerConnectionTreeProvider extends TreeProvider<IDhService> {
+export class ServerConnectionTreeProvider extends TreeProvider<ServerConnectionNode> {
   async getTreeItem(
-    connectionOrUri: IDhService | vscode.Uri
+    connectionOrUri: ServerConnectionNode
   ): Promise<vscode.TreeItem> {
     // Uri node associated with a parent connection node
     if (connectionOrUri instanceof vscode.Uri) {
@@ -115,7 +148,7 @@ export class ServerConnectionTreeProvider extends TreeProvider<IDhService> {
     return {
       label: new URL(connectionOrUri.serverUrl).host,
       description: consoleType,
-      contextValue: TREE_ITEM_CONTEXT.isConnection,
+      contextValue: CONNECTION_TREE_ITEM_CONTEXT.isConnection,
       collapsibleState: hasUris
         ? vscode.TreeItemCollapsibleState.Expanded
         : undefined,
@@ -125,11 +158,9 @@ export class ServerConnectionTreeProvider extends TreeProvider<IDhService> {
     };
   }
 
-  getChildren(): vscode.ProviderResult<IDhService[]>;
-  getChildren(element: IDhService): vscode.ProviderResult<vscode.Uri[]>;
-  getChildren(
+  getChildren = (
     elementOrRoot?: IDhService
-  ): vscode.ProviderResult<IDhService[] | vscode.Uri[]> {
+  ): vscode.ProviderResult<IDhService[] | vscode.Uri[]> => {
     if (elementOrRoot == null) {
       return this.serverManager
         .getConnections()
@@ -137,5 +168,18 @@ export class ServerConnectionTreeProvider extends TreeProvider<IDhService> {
     }
 
     return this.serverManager.getConnectionUris(elementOrRoot);
-  }
+  };
+
+  /**
+   * Get the parent of the given element. Note that this is required in order
+   * for `TreeView.reveal` method to work.
+   * @param element
+   */
+  getParent = (element: ServerConnectionNode): IDhService | null => {
+    if (element instanceof vscode.Uri) {
+      return this.serverManager.getUriConnection(element);
+    }
+
+    return null;
+  };
 }

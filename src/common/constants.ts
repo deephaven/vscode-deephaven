@@ -39,9 +39,15 @@ export const ICON_ID = {
   runSelection: 'run',
 } as const;
 
-export const TREE_ITEM_CONTEXT = {
-  isConnectedServer: 'isConnectedServer',
+export const CONNECTION_TREE_ITEM_CONTEXT = {
   isConnection: 'isConnection',
-  isDisconnectedServer: 'isDisconnectedServer',
   isUri: 'isUri',
 } as const;
+
+export const SERVER_TREE_ITEM_CONTEXT = {
+  isServerRunningConnected: 'isServerRunningConnected',
+  isServerRunningDisconnected: 'isServerRunningDisconnected',
+  isServerStopped: 'isServerStopped',
+} as const;
+
+export type ServerTreeItemContextValue = keyof typeof SERVER_TREE_ITEM_CONTEXT;

@@ -64,8 +64,10 @@ export interface IServerManager extends Disposable {
     consoleType: ConsoleType
   ) => Promise<IDhService | null>;
   getServers: () => ServerState[];
+  getUriConnection: (uri: vscode.Uri) => IDhService | null;
   updateStatus: () => Promise<void>;
 
+  onDidRegisterEditor: vscode.Event<vscode.Uri>;
   onDidUpdate: vscode.Event<void>;
 }
 
