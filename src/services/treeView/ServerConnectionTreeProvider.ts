@@ -32,7 +32,7 @@ export class ServerConnectionTreeProvider extends TreeDataProviderBase<ServerCon
 
     // Connection node
     return {
-      label: new URL(connectionOrUri.serverUrl).host,
+      label: new URL(connectionOrUri.serverUrl.toString()).host,
       description: consoleType,
       contextValue: CONNECTION_TREE_ITEM_CONTEXT.isConnection,
       collapsibleState: hasUris
@@ -50,7 +50,9 @@ export class ServerConnectionTreeProvider extends TreeDataProviderBase<ServerCon
     if (elementOrRoot == null) {
       return this.serverManager
         .getConnections()
-        .sort((a, b) => a.serverUrl.localeCompare(b.serverUrl));
+        .sort((a, b) =>
+          a.serverUrl.toString().localeCompare(b.serverUrl.toString())
+        );
     }
 
     return this.serverManager.getConnectionUris(elementOrRoot);

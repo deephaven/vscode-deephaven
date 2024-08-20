@@ -1,3 +1,4 @@
+import * as vscode from 'vscode';
 import { ServerState, ServerType } from '../common';
 
 /**
@@ -11,6 +12,6 @@ export function getInitialServerStates(
 ): ServerState[] {
   return configs.map(config => ({
     type,
-    url: config.url,
+    url: vscode.Uri.parse(config.url),
   }));
 }

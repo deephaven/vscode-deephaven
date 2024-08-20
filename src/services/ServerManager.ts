@@ -11,7 +11,6 @@ import type {
   IDhService,
   IDhServiceFactory,
   IServerManager,
-  IToastService,
 } from './types';
 import { getInitialServerStates } from '../util/serverUtils';
 import { PollingService } from './PollingService';
@@ -21,13 +20,17 @@ const logger = new Logger('ServerManager');
 
 export class ServerManager implements IServerManager {
   private _configService: IConfigService;
-  private _outputChannel: vscode.OutputChannel;
   private _poller: PollingService;
-  private _serverMap: Map<string, ServerState>;
-  private _connectionMap: Map<string, IDhService>;
+  private _serverMap: Map<vscode.Uri, ServerState>;
+  private _connectionMap: Map<vscode.Uri, IDhService>;
   private _dhcServiceFactory: IDhServiceFactory;
-  private _toaster: IToastService;
   private _uriConnectionsMap: Map<vscode.Uri, IDhService>;
+
+  private _onDidConnect = new vscode.EventEmitter<vscode.Uri>();
+  readonly onDidConnect = this._onDidConnect.event;
+
+  private _onDidDisconnect = new vscode.EventEmitter<vscode.Uri>();
+  readonly onDidDisconnect = this._onDidDisconnect.event;
 
   private _onDidRegisterEditor = new vscode.EventEmitter<vscode.Uri>();
   readonly onDidRegisterEditor = this._onDidRegisterEditor.event;
@@ -37,14 +40,10 @@ export class ServerManager implements IServerManager {
 
   constructor(
     configService: IConfigService,
-    dhcServiceFactory: IDhServiceFactory,
-    outputChannel: vscode.OutputChannel,
-    toaster: IToastService
+    dhcServiceFactory: IDhServiceFactory
   ) {
     this._configService = configService;
     this._dhcServiceFactory = dhcServiceFactory;
-    this._outputChannel = outputChannel;
-    this._toaster = toaster;
 
     this._serverMap = new Map();
     this._connectionMap = new Map();
@@ -81,7 +80,7 @@ export class ServerManager implements IServerManager {
     }
   };
 
-  connectToServer = async (serverUrl: string): Promise<void> => {
+  connectToServer = async (serverUrl: vscode.Uri): Promise<void> => {
     if (this.hasConnection(serverUrl)) {
       logger.info('Already connected to server:', serverUrl);
       return;
@@ -103,10 +102,11 @@ export class ServerManager implements IServerManager {
       this._connectionMap.delete(serverUrl);
     }
 
+    this._onDidConnect.fire(serverUrl);
     this._onDidUpdate.fire();
   };
 
-  disconnectFromServer = async (serverUrl: string): Promise<void> => {
+  disconnectFromServer = async (serverUrl: vscode.Uri): Promise<void> => {
     const connection = this._connectionMap.get(serverUrl);
 
     if (connection == null) {
@@ -124,8 +124,7 @@ export class ServerManager implements IServerManager {
 
     await connection.dispose();
 
-    this._outputChannel.appendLine(`Disconnected from server: '${serverUrl}'.`);
-
+    this._onDidDisconnect.fire(serverUrl);
     this._onDidUpdate.fire();
   };
 
@@ -133,7 +132,7 @@ export class ServerManager implements IServerManager {
    * Determine if the given server URL has any active connections.
    * @param serverUrl
    */
-  hasConnection = (serverUrl: string): boolean => {
+  hasConnection = (serverUrl: vscode.Uri): boolean => {
     return this._connectionMap.has(serverUrl);
   };
 
@@ -198,17 +197,7 @@ export class ServerManager implements IServerManager {
       }
     }
 
-    const dhService = this._uriConnectionsMap.get(uri);
-
-    if (dhService == null) {
-      const logMsg = `No active connection found supporting '${editor.document.languageId}' console type.`;
-      logger.debug(logMsg);
-      this._outputChannel.appendLine(logMsg);
-      this._toaster.error(logMsg);
-      return null;
-    }
-
-    return dhService;
+    return this._uriConnectionsMap.get(uri) ?? null;
   };
 
   getFirstConsoleTypeConnection = async (

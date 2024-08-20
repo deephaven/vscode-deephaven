@@ -24,7 +24,7 @@ export class DhcService extends DhService<typeof DhcType, DhcType.CoreClient> {
     dh: typeof DhcType
   ): Promise<DhcType.CoreClient> {
     try {
-      return new dh.CoreClient(this.serverUrl);
+      return new dh.CoreClient(this.serverUrl.toString());
     } catch (err) {
       logger.error(err);
       throw err;

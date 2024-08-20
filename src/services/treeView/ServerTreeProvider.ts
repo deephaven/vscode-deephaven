@@ -47,10 +47,12 @@ export class ServerTreeProvider extends TreeDataProviderBase<ServerNode> {
     const canConnect =
       contextValue === SERVER_TREE_ITEM_CONTEXT.isServerRunningDisconnected;
 
+    const urlStr = element.url.toString();
+
     return {
-      label: new URL(element.url).host,
+      label: new URL(urlStr).host,
       description: element.type === 'DHC' ? undefined : 'Enterprise',
-      tooltip: canConnect ? `Click to connect to ${element.url}` : element.url,
+      tooltip: canConnect ? `Click to connect to ${urlStr}` : urlStr,
       contextValue: element.type === 'DHC' ? contextValue : undefined,
       iconPath: new vscode.ThemeIcon(
         isRunning ? 'circle-large-filled' : 'circle-slash'

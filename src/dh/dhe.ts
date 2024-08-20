@@ -1,3 +1,4 @@
+import * as vscode from 'vscode';
 import { hasStatusCode } from '../util';
 
 /**
@@ -5,10 +6,12 @@ import { hasStatusCode } from '../util';
  * file is accessible.
  * @param serverUrl
  */
-export async function isDheServerRunning(serverUrl: string): Promise<boolean> {
+export async function isDheServerRunning(
+  serverUrl: vscode.Uri
+): Promise<boolean> {
   try {
     return await hasStatusCode(
-      new URL('irisapi/irisapi.nocache.js', serverUrl),
+      new URL('irisapi/irisapi.nocache.js', serverUrl.toString()),
       200
     );
   } catch {

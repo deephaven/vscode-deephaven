@@ -1,3 +1,5 @@
+import * as vscode from 'vscode';
+
 export type ConnectionType = 'DHC';
 
 export type ConnectionAndSession<TConnection, TSession> = {
@@ -33,6 +35,6 @@ export type ServerType = 'DHC' | 'DHE';
 
 export interface ServerState {
   type: ServerType;
-  url: string;
+  url: vscode.Uri;
   isRunning?: boolean;
 }

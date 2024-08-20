@@ -14,7 +14,7 @@ export class DhcServiceFactory implements IDhServiceFactory {
     private toaster: IToastService
   ) {}
 
-  create = (serverUrl: string): DhcService => {
+  create = (serverUrl: vscode.Uri): DhcService => {
     return new DhcService(
       serverUrl,
       this.panelRegistry,

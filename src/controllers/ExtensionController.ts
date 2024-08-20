@@ -17,7 +17,6 @@ import {
   assertDefined,
   ConnectionOption,
   createConnectionOptions,
-  createConnectionQuickPick,
   createConnectStatusBarItem,
   ExtendedMap,
   getEditorForUri,
@@ -209,12 +208,13 @@ export class ExtensionController implements Disposable {
       this.toaster
     );
 
-    this.serverManager = new ServerManager(
-      this.config,
-      this.dhcServiceFactory,
-      this.outputChannel,
-      this.toaster
-    );
+    this.serverManager = new ServerManager(this.config, this.dhcServiceFactory);
+
+    this.serverManager.onDidDisconnect(serverUrl => {
+      this.outputChannel?.appendLine(
+        `Disconnected from server: '${serverUrl}'.`
+      );
+    });
 
     vscode.workspace.onDidChangeConfiguration(
       () => {
@@ -477,10 +477,7 @@ export class ExtensionController implements Disposable {
   };
 
   onOpenInBrowser = async (serverState: ServerState): Promise<void> => {
-    vscode.commands.executeCommand(
-      'vscode.open',
-      vscode.Uri.parse(serverState.url)
-    );
+    vscode.commands.executeCommand('vscode.open', serverState.url);
   };
 
   onRefreshServerTree = (): void => {
@@ -492,14 +489,43 @@ export class ExtensionController implements Disposable {
   };
 
   /**
+   * Get or create a connection for the given uri.
+   * @param uri
+   */
+  getOrCreateConnection = async (
+    uri: vscode.Uri
+  ): Promise<IDhService | null> => {
+    assertDefined(this.outputChannel, 'outputChannel');
+    assertDefined(this.serverManager, 'serverManager');
+    assertDefined(this.toaster, 'toaster');
+
+    const editor = await getEditorForUri(uri);
+    let dhService = await this.serverManager.getEditorConnection(editor);
+
+    if (dhService == null) {
+      // Prompt user to connect to server
+      await this.onSelectConnection();
+
+      dhService = await this.serverManager.getEditorConnection(editor);
+
+      if (dhService == null) {
+        const logMsg = `No active connection found supporting '${editor.document.languageId}' console type.`;
+        logger.debug(logMsg);
+        this.outputChannel.appendLine(logMsg);
+        this.toaster.error(logMsg);
+      }
+    }
+
+    return dhService;
+  };
+
+  /**
    * Run all code in editor for given uri.
    * @param uri
    */
   onRunCode = async (uri: vscode.Uri): Promise<void> => {
-    assertDefined(this.serverManager, 'serverManager');
-
     const editor = await getEditorForUri(uri);
-    const dhService = await this.serverManager.getEditorConnection(editor);
+    const dhService = await this.getOrCreateConnection(uri);
     await dhService?.runEditorCode(editor);
   };
 
@@ -519,17 +545,23 @@ export class ExtensionController implements Disposable {
    * Handle connection selection.
    */
   onSelectConnection = async (): Promise<void> => {
-    const dhService = await this.getActiveDhService(false);
+    assertDefined(this.serverManager, 'serverManager');
 
-    const result = await createConnectionQuickPick(
-      this.connectionOptions,
-      dhService?.serverUrl
-    );
-    if (!result) {
-      return;
+    const options = this.serverManager
+      .getServers()
+      .filter(({ isRunning }) => isRunning)
+      .map(({ url }) => ({
+        label: url.toString(),
+        url,
+      }));
+
+    const result = await vscode.window.showQuickPick(options, {
+      title: 'Connect to server',
+    });
+
+    if (result != null) {
+      await this.serverManager.connectToServer(result.url);
     }
-
-    this.onConnectionSelected(result.url);
   };
 
   /**

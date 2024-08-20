@@ -45,7 +45,7 @@ export type DhServiceConstructor<
   TDH = unknown,
   TClient = unknown,
 > = new (
-  serverUrl: string,
+  serverUrl: vscode.Uri,
   panelRegistry: ExtendedMap<string, vscode.WebviewPanel>,
   diagnosticsCollection: vscode.DiagnosticCollection,
   outputChannel: vscode.OutputChannel,
@@ -57,7 +57,7 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
   implements IDhService<TDH, TClient>
 {
   constructor(
-    serverUrl: string,
+    serverUrl: vscode.Uri,
     panelRegistry: ExtendedMap<string, vscode.WebviewPanel>,
     diagnosticsCollection: vscode.DiagnosticCollection,
     outputChannel: vscode.OutputChannel,
@@ -72,7 +72,7 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
     this.toaster = toaster;
   }
 
-  public readonly serverUrl: string;
+  public readonly serverUrl: vscode.Uri;
   protected readonly subscriptions: (() => void)[] = [];
 
   protected readonly outputChannel: vscode.OutputChannel;

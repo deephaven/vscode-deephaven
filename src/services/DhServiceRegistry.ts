@@ -23,7 +23,7 @@ export class DhServiceRegistry<T extends IDhService> extends CacheService<
         }
 
         const dhService = new serviceFactory(
-          serverUrl,
+          vscode.Uri.parse(serverUrl),
           panelRegistry,
           diagnosticsCollection,
           outputChannel,
