@@ -15,6 +15,8 @@ export const RUN_CODE_COMMAND = `${EXTENSION_ID}.runCode`;
 export const RUN_SELECTION_COMMAND = `${EXTENSION_ID}.runSelection`;
 export const SELECT_CONNECTION_COMMAND = `${EXTENSION_ID}.selectConnection`;
 
+export const SERVER_STATUS_CHECK_INTERVAL = 3000;
+
 export const STATUS_BAR_DISCONNECTED_TEXT = 'Deephaven: Disconnected';
 export const STATUS_BAR_DISCONNECT_TEXT = 'Deephaven: Disconnect';
 export const STATUS_BAR_CONNECTING_TEXT = 'Deephaven: Connecting...';
@@ -26,3 +28,8 @@ export const SERVER_LANGUAGE_SET = new Set(['python', 'groovy']) as ReadonlySet<
 >;
 
 export const TMP_DIR_ROOT = path.join(__dirname, '..', 'tmp');
+
+export const VIEW_ID = {
+  serverTree: `${EXTENSION_ID}.serverTree`,
+  workerTree: `${EXTENSION_ID}.workerTree`,
+} as const;

@@ -5,6 +5,8 @@ import {
   RUN_CODE_COMMAND,
   RUN_SELECTION_COMMAND,
   SELECT_CONNECTION_COMMAND,
+  SERVER_STATUS_CHECK_INTERVAL,
+  VIEW_ID,
 } from '../common';
 import {
   assertDefined,
@@ -22,16 +24,23 @@ import {
   updateConnectionStatusBarItem,
 } from '../util';
 import {
-  Config,
   DhServiceRegistry,
   DhService,
   DhcService,
   RunCommandCodeLensProvider,
+  ServerTreeProvider,
+  WorkerManager,
+  WorkerTreeProvider,
 } from '../services';
+import { IConfigService, IWorkerManager } from '../types';
+
 const logger = new Logger('ExtensionController');
 
 export class ExtensionController implements Disposable {
-  constructor(private context: vscode.ExtensionContext) {
+  constructor(context: vscode.ExtensionContext, configService: IConfigService) {
+    this.context = context;
+    this.config = configService;
+
     this.initializeDiagnostics();
     this.initializeConfig();
     this.initializeCodeLenses();
@@ -41,6 +50,7 @@ export class ExtensionController implements Disposable {
     this.initializeConnectionOptions();
     this.initializeConnectionStatusBarItem();
     this.initializeCommands();
+    this.initializeWebViews();
 
     logger.info(
       'Congratulations, your extension "vscode-deephaven" is now active!'
@@ -52,9 +62,12 @@ export class ExtensionController implements Disposable {
     return this.clearConnection();
   }
 
+  context: vscode.ExtensionContext;
+  config: IConfigService;
   selectedConnectionUrl: string | null = null;
   selectedDhService: DhService | null = null;
   dhcServiceRegistry: DhServiceRegistry<DhcService> | null = null;
+  workerManager: IWorkerManager | null = null;
 
   connectionOptions: ConnectionOption[] = [];
   connectStatusBarItem: vscode.StatusBarItem | null = null;
@@ -93,13 +106,15 @@ export class ExtensionController implements Disposable {
    * Initialize connection options.
    */
   initializeConnectionOptions = (): void => {
-    this.connectionOptions = createConnectionOptions(Config.getCoreServers());
+    this.connectionOptions = createConnectionOptions(
+      this.config.getCoreServers()
+    );
 
     // Update connection options when configuration changes
     vscode.workspace.onDidChangeConfiguration(
       () => {
         this.connectionOptions = createConnectionOptions(
-          Config.getCoreServers()
+          this.config.getCoreServers()
         );
       },
       null,
@@ -210,6 +225,49 @@ export class ExtensionController implements Disposable {
 
     /** Select connection to run scripts against */
     this.registerCommand(SELECT_CONNECTION_COMMAND, this.onSelectConnection);
+  };
+
+  /**
+   * Register web views for the extension.
+   */
+  initializeWebViews = (): void => {
+    this.workerManager = new WorkerManager(this.config);
+
+    let timeout: NodeJS.Timeout;
+    const checkStatuses = async (): Promise<void> => {
+      const start = performance.now();
+
+      await this.workerManager?.updateStatus();
+
+      // Ensure checks don't run more often than the interval
+      const elapsed = performance.now() - start;
+      const remaining = SERVER_STATUS_CHECK_INTERVAL - elapsed;
+      const wait = Math.max(0, remaining);
+
+      timeout = setTimeout(checkStatuses, wait);
+    };
+    checkStatuses();
+
+    function disposeCheckStatuses(): void {
+      clearTimeout(timeout);
+    }
+
+    const serversView = vscode.window.registerTreeDataProvider(
+      VIEW_ID.serverTree,
+      new ServerTreeProvider(this.workerManager)
+    );
+
+    const workersView = vscode.window.registerTreeDataProvider(
+      VIEW_ID.workerTree,
+      new WorkerTreeProvider(this.workerManager)
+    );
+
+    this.context.subscriptions.push(
+      this.workerManager,
+      { dispose: disposeCheckStatuses },
+      serversView,
+      workersView
+    );
   };
 
   /*

@@ -12,8 +12,26 @@ export interface ParsedError {
   traceback?: string;
 }
 
-export function isAggregateError(err: unknown): err is { code: string } {
-  return String(err) === 'AggregateError';
+/**
+ * Returns true if the given error is an AggregateError. Optionally checks if
+ * a given code matches the error's code.
+ * @param err Error to check
+ * @param code Optional code to check
+ */
+export function isAggregateError(
+  err: unknown,
+  code?: string
+): err is { code: string } {
+  if (
+    err != null &&
+    typeof err === 'object' &&
+    'code' in err &&
+    String(err) === 'AggregateError'
+  ) {
+    return code == null || err.code === code;
+  }
+
+  return false;
 }
 
 /**

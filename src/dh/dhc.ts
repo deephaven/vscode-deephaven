@@ -4,6 +4,7 @@ import type { dh as DhType } from '@deephaven/jsapi-types';
 import {
   downloadFromURL,
   getTempDir,
+  hasStatusCode,
   NoConsoleTypesError,
   polyfillDh,
   urlToDirectoryName,
@@ -15,6 +16,19 @@ export const AUTH_HANDLER_TYPE_ANONYMOUS =
 
 export const AUTH_HANDLER_TYPE_PSK =
   'io.deephaven.authentication.psk.PskAuthenticationHandler';
+
+/**
+ * Check if a given server is running by checking if the `dh-core.js` file is
+ * accessible.
+ * @param serverUrl
+ */
+export async function isDhcServerRunning(serverUrl: string): Promise<boolean> {
+  try {
+    return await hasStatusCode(new URL('jsapi/dh-core.js', serverUrl), 200);
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Get embed widget url for a widget.

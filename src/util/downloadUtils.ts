@@ -2,8 +2,9 @@ import * as fs from 'node:fs';
 import * as http from 'node:http';
 import * as https from 'node:https';
 import * as path from 'node:path';
-import { TMP_DIR_ROOT } from '../common';
+import { SERVER_STATUS_CHECK_INTERVAL, TMP_DIR_ROOT } from '../common';
 import { Logger } from './Logger';
+import { isAggregateError } from './errorUtils';
 
 const logger = new Logger('downloadUtils');
 
@@ -96,5 +97,47 @@ export async function downloadFromURL(
           reject(e);
         }
       });
+  });
+}
+
+/**
+ * Check if a given url returns an expected status code.
+ */
+export async function hasStatusCode(
+  url: URL,
+  statusCode: number
+): Promise<boolean> {
+  return new Promise(resolve => {
+    const transporter = url.protocol === 'http:' ? http : https;
+
+    const request = transporter
+      .get(url, { timeout: SERVER_STATUS_CHECK_INTERVAL }, res => {
+        removeListenersAndResolve(res.statusCode === statusCode);
+      })
+      .on('timeout', () => {
+        removeListenersAndResolve(false);
+      })
+      .on('error', err => {
+        // Expected error if the server is not running
+        const isServerStoppedError = isAggregateError(err, 'ECONNREFUSED');
+
+        if (!isServerStoppedError) {
+          logger.error('Error when checking:', url, err);
+        }
+
+        removeListenersAndResolve(false);
+      });
+
+    /**
+     * Any time we resolve the Promise, remove listeners to avoid handling
+     * additional events and destroy the request stream to avoid any additional
+     * processing.
+     */
+    function removeListenersAndResolve(value: boolean): void {
+      request.removeAllListeners();
+      request.destroy();
+
+      resolve(value);
+    }
   });
 }

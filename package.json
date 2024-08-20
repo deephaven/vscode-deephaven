@@ -115,6 +115,11 @@
       {
         "command": "vscode-deephaven.downloadLogs",
         "title": "Deephaven: Download Logs"
+      },
+      {
+        "command": "vscode-deephaven.createWorker",
+        "title": "Deephaven: Create Worker",
+        "icon": "$(add)"
       }
     ],
     "menus": {
@@ -150,6 +155,36 @@
           "command": "vscode-deephaven.runSelection",
           "group": "navigation",
           "when": "editorLangId == python || editorLangId == groovy"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "vscode-deephaven.createWorker",
+          "when": "view == vscode-deephaven.serverTree",
+          "group": "inline"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "vscode-deephaven",
+          "title": "Deephaven",
+          "icon": "images/dh-community-on-dark-128.svg"
+        }
+      ]
+    },
+    "views": {
+      "vscode-deephaven": [
+        {
+          "id": "vscode-deephaven.serverTree",
+          "name": "Servers",
+          "type": "tree"
+        },
+        {
+          "id": "vscode-deephaven.workerTree",
+          "name": "Workers",
+          "type": "tree"
         }
       ]
     }

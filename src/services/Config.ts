@@ -9,6 +9,7 @@ import {
   SERVER_LANGUAGE_SET,
 } from '../common';
 import { InvalidConsoleTypeError, Logger } from '../util';
+import type { IConfigService } from './types';
 
 const logger = new Logger('Config');
 
@@ -74,7 +75,7 @@ function getEnterpriseServers(): EnterpriseConnectionConfig[] {
 }
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
-export const Config = {
+export const ConfigService: IConfigService = {
   getCoreServers,
   getEnterpriseServers,
 };

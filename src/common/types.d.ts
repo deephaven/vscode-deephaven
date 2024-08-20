@@ -28,3 +28,16 @@ export interface EnterpriseConnectionConfig {
 export interface Disposable {
   dispose(): Promise<void>;
 }
+
+export type ServerType = 'DHC' | 'DHE';
+
+export interface ServerState {
+  type: ServerType;
+  url: string;
+  isRunning?: boolean;
+}
+
+export interface WorkerState {
+  url: string;
+  consoleType: ConsoleType;
+}
