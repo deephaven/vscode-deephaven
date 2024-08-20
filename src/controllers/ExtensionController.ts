@@ -26,7 +26,6 @@ import {
   updateConnectionStatusBarItem,
 } from '../util';
 import {
-  CodeRunnerService,
   DhcServiceFactory,
   DhServiceRegistry,
   DhcService,
@@ -36,7 +35,6 @@ import {
   ServerConnectionTreeProvider,
 } from '../services';
 import type {
-  ICodeRunnerService,
   IConfigService,
   IDhService,
   IDhServiceFactory,
@@ -55,7 +53,7 @@ export class ExtensionController implements Disposable {
     this.initializeCodeLenses();
     this.initializeOutputChannelsAndLogger();
     this.initializeDHServiceRegistry();
-    this.initializeDhServiceFactories();
+    this.initializeServerManager();
     this.initializeTempDirectory();
     this.initializeConnectionOptions();
     this.initializeConnectionStatusBarItem();
@@ -76,7 +74,6 @@ export class ExtensionController implements Disposable {
   config: IConfigService;
   selectedConnectionUrl: string | null = null;
   selectedDhService: IDhService | null = null;
-  codeRunnerService: ICodeRunnerService | null = null;
   dhcServiceRegistry: DhServiceRegistry<DhcService> | null = null;
   dhcServiceFactory: IDhServiceFactory | null = null;
   serverManager: IServerManager | null = null;
@@ -191,7 +188,7 @@ export class ExtensionController implements Disposable {
     );
   };
 
-  initializeDhServiceFactories = (): void => {
+  initializeServerManager = (): void => {
     assertDefined(this.pythonDiagnostics, 'pythonDiagnostics');
     assertDefined(this.outputChannel, 'outputChannel');
 
@@ -200,6 +197,12 @@ export class ExtensionController implements Disposable {
       this.pythonDiagnostics,
       this.outputChannel,
       this.toaster
+    );
+
+    this.serverManager = new ServerManager(
+      this.config,
+      this.dhcServiceFactory,
+      this.outputChannel
     );
   };
 
@@ -264,17 +267,7 @@ export class ExtensionController implements Disposable {
    * Register web views for the extension.
    */
   initializeWebViews = (): void => {
-    assertDefined(this.dhcServiceFactory, 'dhcServiceFactory');
-    assertDefined(this.outputChannel, 'outputChannel');
-
-    this.serverManager = new ServerManager(
-      this.config,
-      this.dhcServiceFactory,
-      this.outputChannel
-    );
-
-    // TODO: Some of these services should be moved to a different init function
-    this.codeRunnerService = new CodeRunnerService(this.serverManager);
+    assertDefined(this.serverManager, 'serverManager');
 
     const serverTreeProvider = new ServerTreeProvider(this.serverManager);
     const serversView = vscode.window.registerTreeDataProvider(
@@ -436,16 +429,11 @@ export class ExtensionController implements Disposable {
    * @param uri
    */
   onRunCode = async (uri: vscode.Uri): Promise<void> => {
-    assertDefined(this.codeRunnerService, 'codeRunnerService');
+    assertDefined(this.serverManager, 'serverManager');
 
     const editor = await getEditorForUri(uri);
-    this.codeRunnerService.runCode(editor);
-
-    // const dhService = await this.getActiveDhService(
-    //   true,
-    //   editor.document.languageId
-    // );
-    // dhService?.runEditorCode(editor);
+    const dhService = await this.serverManager.getEditorConnection(editor);
+    await dhService?.runEditorCode(editor);
   };
 
   /**
@@ -453,15 +441,11 @@ export class ExtensionController implements Disposable {
    * @param uri
    */
   onRunSelectedCode = async (uri: vscode.Uri): Promise<void> => {
-    assertDefined(this.codeRunnerService, 'codeRunnerService');
+    assertDefined(this.serverManager, 'serverManager');
 
     const editor = await getEditorForUri(uri);
-    this.codeRunnerService.runCode(editor, true);
-    // const dhService = await this.getActiveDhService(
-    //   true,
-    //   editor.document.languageId
-    // );
-    // dhService?.runEditorCode(editor, true);
+    const dhService = await this.serverManager.getEditorConnection(editor);
+    await dhService?.runEditorCode(editor, true);
   };
 
   /**

@@ -24,6 +24,7 @@ export class ServerManager implements IServerManager {
   private _serverMap: Map<string, ServerState>;
   private _connectionMap: Map<string, IDhService>;
   private _dhcServiceFactory: IDhServiceFactory;
+  private _uriConnectionsMap: Map<vscode.Uri, IDhService>;
 
   private _onDidUpdate = new vscode.EventEmitter<void>();
   readonly onDidUpdate = this._onDidUpdate.event;
@@ -54,7 +55,7 @@ export class ServerManager implements IServerManager {
     );
 
     this._connectionMap = new Map();
-
+    this._uriConnectionsMap = new Map();
     this._poller = new PollingService();
   }
 
@@ -91,6 +92,11 @@ export class ServerManager implements IServerManager {
     }
 
     this._connectionMap.delete(serverUrl);
+    this._uriConnectionsMap.forEach((dhService, uri) => {
+      if (dhService === connection) {
+        this._uriConnectionsMap.delete(uri);
+      }
+    });
 
     await connection.dispose();
 
@@ -115,6 +121,34 @@ export class ServerManager implements IServerManager {
 
   getConnections = (): IDhService[] => {
     return [...this._connectionMap.values()];
+  };
+
+  getEditorConnection = async (
+    editor: vscode.TextEditor
+  ): Promise<IDhService | null> => {
+    const uri = editor.document.uri;
+
+    if (!this._uriConnectionsMap.has(uri)) {
+      // Default to first connection supporting the console type
+      const [dhService] = await this.consoleTypeConnections(
+        editor.document.languageId as ConsoleType
+      );
+
+      if (dhService != null) {
+        this._uriConnectionsMap.set(uri, dhService);
+      }
+    }
+
+    const dhService = this._uriConnectionsMap.get(uri);
+
+    if (dhService == null) {
+      logger.debug(
+        `No active connection found supporting '${editor.document.languageId}' console type.`
+      );
+      return null;
+    }
+
+    return dhService;
   };
 
   consoleTypeConnections = async (

@@ -8,13 +8,6 @@ import type {
 } from '../common';
 import { EventDispatcher } from './EventDispatcher';
 
-export interface ICodeRunnerService extends Disposable {
-  runCode: (
-    editor: vscode.TextEditor,
-    selectionOnly?: boolean
-  ) => Promise<void>;
-}
-
 /**
  * Configuration service interface.
  */
@@ -61,6 +54,9 @@ export interface IServerManager extends Disposable {
 
   hasConnection: (serverUrl: string) => boolean;
 
+  getEditorConnection: (
+    editor: vscode.TextEditor
+  ) => Promise<IDhService | null>;
   getServers: () => ServerState[];
   getConnections: () => IDhService[];
   updateStatus: () => Promise<void>;
