@@ -29,6 +29,7 @@ export interface IDhService<TDH = unknown, TClient = unknown>
   initDh: () => Promise<boolean>;
 
   getConsoleTypes: () => Promise<Set<ConsoleType>>;
+  supportsConsoleType: (consoleType: ConsoleType) => Promise<boolean>;
 
   runEditorCode: (
     editor: vscode.TextEditor,
@@ -61,6 +62,10 @@ export interface IServerManager extends Disposable {
   getEditorConnection: (
     editor: vscode.TextEditor
   ) => Promise<IDhService | null>;
+  setEditorConnection: (
+    editor: vscode.TextEditor,
+    dhService: IDhService
+  ) => Promise<void>;
   getFirstConsoleTypeConnection: (
     consoleType: ConsoleType
   ) => Promise<IDhService | null>;

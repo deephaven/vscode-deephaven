@@ -37,6 +37,7 @@ import {
   ServerManager,
   ServerTreeProvider,
   type ServerTreeView,
+  ServerConnectionTreeDragAndDropController,
   ServerConnectionTreeProvider,
 } from '../services';
 import type {
@@ -319,9 +320,13 @@ export class ExtensionController implements Disposable {
     this.serverConnectionTreeProvider = new ServerConnectionTreeProvider(
       this.serverManager
     );
+    const serverConnectionTreeDragAndDropController =
+      new ServerConnectionTreeDragAndDropController(this.serverManager);
+
     this.serverConnectionTreeView = vscode.window.createTreeView(
       VIEW_ID.serverConnectionTree,
       {
+        dragAndDropController: serverConnectionTreeDragAndDropController,
         showCollapseAll: true,
         treeDataProvider: this.serverConnectionTreeProvider,
       }

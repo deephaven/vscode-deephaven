@@ -194,9 +194,10 @@ export class ServerManager implements IServerManager {
       );
 
       if (dhService != null) {
-        this._uriConnectionsMap.set(uri, dhService);
-        this._onDidUpdate.fire();
-        this._onDidRegisterEditor.fire(uri);
+        this.setEditorConnection(editor, dhService);
+        // this._uriConnectionsMap.set(uri, dhService);
+        // this._onDidUpdate.fire();
+        // this._onDidRegisterEditor.fire(uri);
       }
     }
 
@@ -217,9 +218,10 @@ export class ServerManager implements IServerManager {
     consoleType: ConsoleType
   ): Promise<IDhService | null> => {
     for (const dhService of this._connectionMap.values()) {
-      const consoleTypes = await dhService.getConsoleTypes();
+      const isConsoleTypeSupported =
+        await dhService.supportsConsoleType(consoleType);
 
-      if (consoleTypes.has(consoleType)) {
+      if (isConsoleTypeSupported) {
         return dhService;
       }
     }
@@ -233,6 +235,29 @@ export class ServerManager implements IServerManager {
    */
   getUriConnection = (uri: vscode.Uri): IDhService | null => {
     return this._uriConnectionsMap.get(uri) ?? null;
+  };
+
+  setEditorConnection = async (
+    editor: vscode.TextEditor,
+    dhService: IDhService
+  ): Promise<void> => {
+    const uri = editor.document.uri;
+
+    if (
+      !(await dhService.supportsConsoleType(
+        editor.document.languageId as ConsoleType
+      ))
+    ) {
+      throw new Error(
+        `Connection '${dhService.serverUrl}' does not support the console type of the editor.`
+      );
+    }
+
+    this._uriConnectionsMap.delete(uri);
+
+    this._uriConnectionsMap.set(uri, dhService);
+    this._onDidUpdate.fire();
+    this._onDidRegisterEditor.fire(uri);
   };
 
   updateStatus = async (): Promise<void> => {

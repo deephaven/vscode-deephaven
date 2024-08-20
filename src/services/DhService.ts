@@ -410,6 +410,11 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
 
     return new Set(consoleTypes);
   };
+
+  supportsConsoleType = async (consoleType: ConsoleType): Promise<boolean> => {
+    const consoleTypes = await this.getConsoleTypes();
+    return consoleTypes.has(consoleType);
+  };
 }
 
 export default DhService;

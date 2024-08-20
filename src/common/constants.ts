@@ -19,6 +19,10 @@ export const STATUS_BAR_CONNECTING_TEXT = 'Deephaven: Connecting...';
 
 export const DOWNLOAD_LOGS_TEXT = 'Download Logs';
 
+export const MIME_TYPE = {
+  uriList: 'text/uri-list',
+} as const;
+
 export const SERVER_LANGUAGE_SET = new Set(['python', 'groovy']) as ReadonlySet<
   'python' | 'groovy'
 >;
