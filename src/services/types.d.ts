@@ -6,6 +6,7 @@ import type {
   ServerState,
   ServerConnectionState,
 } from '../common';
+import { EventDispatcher } from './EventDispatcher';
 
 /**
  * Configuration service interface.
@@ -13,6 +14,23 @@ import type {
 export interface IConfigService {
   getCoreServers: () => CoreConnectionConfig[];
   getEnterpriseServers: () => EnterpriseConnectionConfig[];
+}
+
+/**
+ * Service that manages connections + sessions to a DH worker.
+ */
+export interface IDhService<TDH = unknown, TClient = unknown>
+  extends Disposable,
+    EventDispatcher<'disconnect'> {
+  readonly isInitialized: boolean;
+  readonly serverUrl: string;
+
+  initDh: () => Promise<boolean>;
+
+  runEditorCode: (
+    editor: vscode.TextEditor,
+    selectionOnly?: boolean
+  ) => Promise<void>;
 }
 
 /**

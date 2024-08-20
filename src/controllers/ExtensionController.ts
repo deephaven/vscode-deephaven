@@ -25,14 +25,13 @@ import {
 } from '../util';
 import {
   DhServiceRegistry,
-  DhService,
   DhcService,
   RunCommandCodeLensProvider,
   ServerManager,
   ServerTreeProvider,
   ServerConnectionTreeProvider,
 } from '../services';
-import { IConfigService, IServerManager } from '../types';
+import { IConfigService, IDhService, IServerManager } from '../types';
 
 const logger = new Logger('ExtensionController');
 
@@ -65,7 +64,7 @@ export class ExtensionController implements Disposable {
   context: vscode.ExtensionContext;
   config: IConfigService;
   selectedConnectionUrl: string | null = null;
-  selectedDhService: DhService | null = null;
+  selectedDhService: IDhService | null = null;
   dhcServiceRegistry: DhServiceRegistry<DhcService> | null = null;
   serverManager: IServerManager | null = null;
 
@@ -290,7 +289,7 @@ export class ExtensionController implements Disposable {
   getActiveDhService = async (
     autoActivate: boolean,
     languageId?: string
-  ): Promise<DhService | null> => {
+  ): Promise<IDhService | null> => {
     if (!autoActivate || languageId == null) {
       return this.selectedDhService;
     }
