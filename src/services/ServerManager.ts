@@ -2,19 +2,36 @@ import * as vscode from 'vscode';
 import { SERVER_STATUS_CHECK_INTERVAL, type ServerState } from '../common';
 import { isDhcServerRunning } from '../dh/dhc';
 import { isDheServerRunning } from '../dh/dhe';
-import { IConfigService, IDhService, IServerManager } from './types';
+import type {
+  IConfigService,
+  IDhService,
+  IDhServiceFactory,
+  IServerManager,
+} from './types';
 import { getInitialServerStates } from '../util/serverUtils';
 import { PollingService } from './PollingService';
+import { Logger } from '../util';
+
+const logger = new Logger('ServerManager');
 
 export class ServerManager implements IServerManager {
+  private _outputChannel: vscode.OutputChannel;
   private _poller: PollingService;
   private _serverMap: Map<string, ServerState>;
   private _connectionMap: Map<string, IDhService>;
+  private _dhcServiceFactory: IDhServiceFactory;
 
   private _onDidUpdate = new vscode.EventEmitter<void>();
   readonly onDidUpdate = this._onDidUpdate.event;
 
-  constructor(configService: IConfigService) {
+  constructor(
+    configService: IConfigService,
+    dhcServiceFactory: IDhServiceFactory,
+    outputChannel: vscode.OutputChannel
+  ) {
+    this._dhcServiceFactory = dhcServiceFactory;
+    this._outputChannel = outputChannel;
+
     const initialDhcServerState = getInitialServerStates(
       'DHC',
       configService.getCoreServers()
@@ -36,6 +53,46 @@ export class ServerManager implements IServerManager {
 
     this._poller = new PollingService();
   }
+
+  connectToServer = async (serverUrl: string): Promise<void> => {
+    if (this.hasConnection(serverUrl)) {
+      logger.info('Already connected to server:', serverUrl);
+      return;
+    }
+
+    const serverState = this._serverMap.get(serverUrl);
+    if (serverState == null || serverState.type !== 'DHC') {
+      return;
+    }
+
+    const connection = this._dhcServiceFactory.create(serverUrl);
+
+    this._connectionMap.set(serverUrl, connection);
+    this._onDidUpdate.fire();
+
+    await connection.initDh();
+    this._onDidUpdate.fire();
+  };
+
+  disconnectFromServer = async (serverUrl: string): Promise<void> => {
+    const connection = this._connectionMap.get(serverUrl);
+
+    if (connection == null) {
+      return;
+    }
+
+    this._connectionMap.delete(serverUrl);
+
+    await connection.dispose();
+
+    this._outputChannel.appendLine(`Disconnected from server: '${serverUrl}'.`);
+
+    this._onDidUpdate.fire();
+  };
+
+  hasConnection = (serverUrl: string): boolean => {
+    return this._connectionMap.has(serverUrl);
+  };
 
   getServers = (): ServerState[] => {
     // Start polling server status the first time servers are requested.

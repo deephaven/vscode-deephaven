@@ -9,10 +9,9 @@ import {
   Logger,
   NoConsoleTypesError,
   parseServerError,
-  Toaster,
 } from '../util';
 import { EventDispatcher } from './EventDispatcher';
-import { IDhService } from './types';
+import type { IDhService, IToaster } from './types';
 
 const logger = new Logger('DhService');
 
@@ -50,7 +49,7 @@ export type DhServiceConstructor<
   panelRegistry: ExtendedMap<string, vscode.WebviewPanel>,
   diagnosticsCollection: vscode.DiagnosticCollection,
   outputChannel: vscode.OutputChannel,
-  toaster: Toaster
+  toaster: IToaster
 ) => T;
 
 export abstract class DhService<TDH = unknown, TClient = unknown>
@@ -62,7 +61,7 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
     panelRegistry: ExtendedMap<string, vscode.WebviewPanel>,
     diagnosticsCollection: vscode.DiagnosticCollection,
     outputChannel: vscode.OutputChannel,
-    toaster: Toaster
+    toaster: IToaster
   ) {
     super();
 
@@ -77,7 +76,7 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
   protected readonly subscriptions: (() => void)[] = [];
 
   protected readonly outputChannel: vscode.OutputChannel;
-  protected readonly toaster: Toaster;
+  protected readonly toaster: IToaster;
   private readonly panelRegistry: ExtendedMap<string, vscode.WebviewPanel>;
   private readonly diagnosticsCollection: vscode.DiagnosticCollection;
   private cachedCreateClient: Promise<TClient> | null = null;

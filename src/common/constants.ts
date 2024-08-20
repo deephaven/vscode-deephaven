@@ -12,10 +12,6 @@ export const CONFIG_KEY = {
 
 export const DEFAULT_CONSOLE_TYPE = 'python' as const;
 // export const DHFS_SCHEME = 'dhfs';
-export const DOWNLOAD_LOGS_CMD = `${EXTENSION_ID}.downloadLogs`;
-export const RUN_CODE_COMMAND = `${EXTENSION_ID}.runCode`;
-export const RUN_SELECTION_COMMAND = `${EXTENSION_ID}.runSelection`;
-export const SELECT_CONNECTION_COMMAND = `${EXTENSION_ID}.selectConnection`;
 
 export const SERVER_STATUS_CHECK_INTERVAL = 3000;
 

@@ -51,7 +51,9 @@ export class ServerTreeProvider extends TreeProvider<ServerNode> {
       label: new URL(element.url).host,
       description: element.type === 'DHC' ? undefined : 'Enterprise',
       contextValue:
-        isRunning && element.type === 'DHC'
+        isRunning &&
+        element.type === 'DHC' &&
+        !this.serverManager.hasConnection(element.url)
           ? CAN_CREATE_CONNECTION_CONTEXT
           : '',
       iconPath: new vscode.ThemeIcon(
@@ -82,16 +84,23 @@ export class ServerTreeProvider extends TreeProvider<ServerNode> {
  * Provider for the server connection tree view.
  */
 export class ServerConnectionTreeProvider extends TreeProvider<IDhService> {
-  getTreeItem(
-    element: IDhService
-  ): vscode.TreeItem | Thenable<vscode.TreeItem> {
+  async getTreeItem(element: IDhService): Promise<vscode.TreeItem> {
+    const consoleType = element.isInitialized
+      ? (await element.getConsoleTypes())[0]
+      : undefined;
+
     return {
       label: new URL(element.serverUrl).host,
-      iconPath: new vscode.ThemeIcon(ICON_ID.connected),
+      description: consoleType,
+      iconPath: new vscode.ThemeIcon(
+        element.isInitialized ? ICON_ID.connected : ICON_ID.connecting
+      ),
     };
   }
 
   getChildren(): vscode.ProviderResult<IDhService[]> {
-    return this.serverManager.getConnections();
+    return this.serverManager
+      .getConnections()
+      .sort((a, b) => a.serverUrl.localeCompare(b.serverUrl));
   }
 }

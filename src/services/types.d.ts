@@ -35,13 +35,35 @@ export interface IDhService<TDH = unknown, TClient = unknown>
   ) => Promise<void>;
 }
 
+export interface IFactory<T, TArgs extends unknown[] = []> {
+  create: (...args: TArgs) => T;
+}
+
+/**
+ * Factory for creating IDhService instances.
+ */
+export type IDhServiceFactory = IFactory<IDhService, [serverUrl: string]>;
+
 /**
  * Server manager interface.
  */
 export interface IServerManager extends Disposable {
-  onDidUpdate: vscode.Event<void>;
+  connectToServer: (serverUrl: string) => Promise<void>;
+  disconnectFromServer: (serverUrl: string) => Promise<void>;
+
+  hasConnection: (serverUrl: string) => boolean;
 
   getServers: () => ServerState[];
   getConnections: () => IDhService[];
   updateStatus: () => Promise<void>;
+
+  onDidUpdate: vscode.Event<void>;
+}
+
+/**
+ * Message toaster interface.
+ */
+export interface IToaster {
+  error: (message: string) => Promise<void>;
+  info: (message: string) => Promise<void>;
 }

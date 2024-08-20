@@ -1,10 +1,13 @@
 import * as vscode from 'vscode';
 import {
+  CONNECT_TO_SERVER_CMD,
+  DISCONNECT_FROM_SERVER_CMD,
   Disposable,
   DOWNLOAD_LOGS_CMD,
   RUN_CODE_COMMAND,
   RUN_SELECTION_COMMAND,
   SELECT_CONNECTION_COMMAND,
+  ServerState,
   VIEW_ID,
 } from '../common';
 import {
@@ -23,6 +26,7 @@ import {
   updateConnectionStatusBarItem,
 } from '../util';
 import {
+  DhcServiceFactory,
   DhServiceRegistry,
   DhcService,
   RunCommandCodeLensProvider,
@@ -30,7 +34,12 @@ import {
   ServerTreeProvider,
   ServerConnectionTreeProvider,
 } from '../services';
-import { IConfigService, IDhService, IServerManager } from '../types';
+import {
+  IConfigService,
+  IDhService,
+  IDhServiceFactory,
+  IServerManager,
+} from '../types';
 
 const logger = new Logger('ExtensionController');
 
@@ -44,6 +53,7 @@ export class ExtensionController implements Disposable {
     this.initializeCodeLenses();
     this.initializeOutputChannelsAndLogger();
     this.initializeDHServiceRegistry();
+    this.initializeDhServiceFactories();
     this.initializeTempDirectory();
     this.initializeConnectionOptions();
     this.initializeConnectionStatusBarItem();
@@ -65,6 +75,7 @@ export class ExtensionController implements Disposable {
   selectedConnectionUrl: string | null = null;
   selectedDhService: IDhService | null = null;
   dhcServiceRegistry: DhServiceRegistry<DhcService> | null = null;
+  dhcServiceFactory: IDhServiceFactory | null = null;
   serverManager: IServerManager | null = null;
 
   connectionOptions: ConnectionOption[] = [];
@@ -177,6 +188,18 @@ export class ExtensionController implements Disposable {
     );
   };
 
+  initializeDhServiceFactories = (): void => {
+    assertDefined(this.pythonDiagnostics, 'pythonDiagnostics');
+    assertDefined(this.outputChannel, 'outputChannel');
+
+    this.dhcServiceFactory = new DhcServiceFactory(
+      new ExtendedMap<string, vscode.WebviewPanel>(),
+      this.pythonDiagnostics,
+      this.outputChannel,
+      this.toaster
+    );
+  };
+
   /**
    * Initialize DH service registry.
    */
@@ -212,6 +235,15 @@ export class ExtensionController implements Disposable {
    * Register commands for the extension.
    */
   initializeCommands = (): void => {
+    /** Create server connection */
+    this.registerCommand(CONNECT_TO_SERVER_CMD, this.onConnectToServer);
+
+    /** Disconnect from server */
+    this.registerCommand(
+      DISCONNECT_FROM_SERVER_CMD,
+      this.onDisconnectFromServer
+    );
+
     /** Download logs and open in editor */
     this.registerCommand(DOWNLOAD_LOGS_CMD, this.onDownloadLogs);
 
@@ -229,26 +261,14 @@ export class ExtensionController implements Disposable {
    * Register web views for the extension.
    */
   initializeWebViews = (): void => {
-    this.serverManager = new ServerManager(this.config);
+    assertDefined(this.dhcServiceFactory, 'dhcServiceFactory');
+    assertDefined(this.outputChannel, 'outputChannel');
 
-    // let timeout: NodeJS.Timeout;
-    // const checkStatuses = async (): Promise<void> => {
-    //   const start = performance.now();
-
-    //   await this.serverManager?.updateStatus();
-
-    //   // Ensure checks don't run more often than the interval
-    //   const elapsed = performance.now() - start;
-    //   const remaining = SERVER_STATUS_CHECK_INTERVAL - elapsed;
-    //   const wait = Math.max(0, remaining);
-
-    //   timeout = setTimeout(checkStatuses, wait);
-    // };
-    // checkStatuses();
-
-    // function disposeCheckStatuses(): void {
-    //   clearTimeout(timeout);
-    // }
+    this.serverManager = new ServerManager(
+      this.config,
+      this.dhcServiceFactory,
+      this.outputChannel
+    );
 
     const serverTreeProvider = new ServerTreeProvider(this.serverManager);
     const serversView = vscode.window.registerTreeDataProvider(
@@ -314,6 +334,20 @@ export class ExtensionController implements Disposable {
     }
 
     return this.selectedDhService;
+  };
+
+  /**
+   * Handle connecting to a server
+   */
+  onConnectToServer = async (serverState: ServerState): Promise<void> => {
+    this.serverManager?.connectToServer(serverState.url);
+  };
+
+  /**
+   * Handle disconnecting from a server.
+   */
+  onDisconnectFromServer = async (dhService: IDhService): Promise<void> => {
+    this.serverManager?.disconnectFromServer(dhService.serverUrl);
   };
 
   /**

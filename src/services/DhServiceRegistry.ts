@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import { CacheService } from './CacheService';
 import { type DhServiceConstructor } from './DhService';
-import { type IDhService } from './types';
-import { ensureHasTrailingSlash, ExtendedMap, Toaster } from '../util';
+import { type IDhService, IToaster } from './types';
+import { ensureHasTrailingSlash, ExtendedMap } from '../util';
 
 export class DhServiceRegistry<T extends IDhService> extends CacheService<
   T,
@@ -13,7 +13,7 @@ export class DhServiceRegistry<T extends IDhService> extends CacheService<
     panelRegistry: ExtendedMap<string, vscode.WebviewPanel>,
     diagnosticsCollection: vscode.DiagnosticCollection,
     outputChannel: vscode.OutputChannel,
-    toaster: Toaster
+    toaster: IToaster
   ) {
     super(
       serviceFactory.name,
