@@ -21,12 +21,13 @@ import {
   Toaster,
   updateConnectionStatusBarItem,
 } from '../util';
-import { RunCommandCodeLensProvider } from './RunCommandCodeLensProvider';
-import { DhServiceRegistry } from './DhServiceRegistry';
-import { DhService } from './DhService';
-import { DhcService } from './DhcService';
-import { Config } from './Config';
-
+import {
+  Config,
+  DhServiceRegistry,
+  DhService,
+  DhcService,
+  RunCommandCodeLensProvider,
+} from '../services';
 const logger = new Logger('ExtensionController');
 
 export class ExtensionController implements Disposable {
