@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 import type {
+  ConsoleType,
   CoreConnectionConfig,
   Disposable,
   EnterpriseConnectionConfig,
   ServerState,
-  ServerConnectionState,
 } from '../common';
 import { EventDispatcher } from './EventDispatcher';
 
@@ -27,6 +27,8 @@ export interface IDhService<TDH = unknown, TClient = unknown>
 
   initDh: () => Promise<boolean>;
 
+  getConsoleTypes: () => Promise<ConsoleType[]>;
+
   runEditorCode: (
     editor: vscode.TextEditor,
     selectionOnly?: boolean
@@ -40,6 +42,6 @@ export interface IServerManager extends Disposable {
   onDidUpdate: vscode.Event<void>;
 
   getServers: () => ServerState[];
-  getConnections: () => ServerConnectionState[];
+  getConnections: () => IDhService[];
   updateStatus: () => Promise<void>;
 }

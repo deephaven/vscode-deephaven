@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { hasErrorCode } from '../util/typeUtils';
-import { ConnectionAndSession } from '../common';
+import { ConnectionAndSession, ConsoleType } from '../common';
 import {
   ExtendedMap,
   formatTimestamp,
@@ -395,6 +395,14 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
 
     lastPanel?.reveal();
   }
+
+  getConsoleTypes = async (): Promise<ConsoleType[]> => {
+    if (this.cn == null) {
+      return [];
+    }
+
+    return this.cn.getConsoleTypes() as Promise<ConsoleType[]>;
+  };
 }
 
 export default DhService;

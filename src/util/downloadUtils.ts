@@ -4,7 +4,7 @@ import * as https from 'node:https';
 import * as path from 'node:path';
 import { SERVER_STATUS_CHECK_INTERVAL, TMP_DIR_ROOT } from '../common';
 import { Logger } from './Logger';
-import { isAggregateError } from './errorUtils';
+import { hasErrorCode, isAggregateError } from './errorUtils';
 
 const logger = new Logger('downloadUtils');
 
@@ -118,11 +118,12 @@ export async function hasStatusCode(
         removeListenersAndResolve(false);
       })
       .on('error', err => {
-        // Expected error if the server is not running
+        // Expected errors for non-existing / stopped servers.
         const isServerStoppedError = isAggregateError(err, 'ECONNREFUSED');
+        const isServerNotFoundError = hasErrorCode(err, 'ENOTFOUND');
 
-        if (!isServerStoppedError) {
-          logger.error('Error when checking:', url, err);
+        if (!isServerStoppedError && !isServerNotFoundError) {
+          logger.error('Error when checking:', url.toString(), err);
         }
 
         removeListenersAndResolve(false);

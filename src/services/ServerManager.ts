@@ -1,13 +1,15 @@
 import * as vscode from 'vscode';
-import type { ServerState, ServerConnectionState } from '../common';
+import { SERVER_STATUS_CHECK_INTERVAL, type ServerState } from '../common';
 import { isDhcServerRunning } from '../dh/dhc';
 import { isDheServerRunning } from '../dh/dhe';
-import { IConfigService, IServerManager } from './types';
+import { IConfigService, IDhService, IServerManager } from './types';
 import { getInitialServerStates } from '../util/serverUtils';
+import { PollingService } from './PollingService';
 
 export class ServerManager implements IServerManager {
+  private _poller: PollingService;
   private _serverMap: Map<string, ServerState>;
-  private _connectionMap: Map<string, ServerConnectionState>;
+  private _connectionMap: Map<string, IDhService>;
 
   private _onDidUpdate = new vscode.EventEmitter<void>();
   readonly onDidUpdate = this._onDidUpdate.event;
@@ -23,8 +25,6 @@ export class ServerManager implements IServerManager {
       configService.getEnterpriseServers()
     );
 
-    const initialConnectionState: ServerConnectionState[] = [];
-
     this._serverMap = new Map(
       [...initialDhcServerState, ...initialDheServerState].map(state => [
         state.url,
@@ -32,16 +32,22 @@ export class ServerManager implements IServerManager {
       ])
     );
 
-    this._connectionMap = new Map(
-      initialConnectionState.map(state => [state.url, state])
-    );
+    this._connectionMap = new Map();
+
+    this._poller = new PollingService();
   }
 
   getServers = (): ServerState[] => {
+    // Start polling server status the first time servers are requested.
+    // TBD: Is there a way to stop this when the servers list goes out of view?
+    if (!this._poller.isRunning) {
+      this._poller.start(this.updateStatus, SERVER_STATUS_CHECK_INTERVAL);
+    }
+
     return [...this._serverMap.values()];
   };
 
-  getConnections = (): ServerConnectionState[] => {
+  getConnections = (): IDhService[] => {
     return [...this._connectionMap.values()];
   };
 

@@ -5,7 +5,6 @@ import {
   RUN_CODE_COMMAND,
   RUN_SELECTION_COMMAND,
   SELECT_CONNECTION_COMMAND,
-  SERVER_STATUS_CHECK_INTERVAL,
   VIEW_ID,
 } from '../common';
 import {
@@ -232,28 +231,29 @@ export class ExtensionController implements Disposable {
   initializeWebViews = (): void => {
     this.serverManager = new ServerManager(this.config);
 
-    let timeout: NodeJS.Timeout;
-    const checkStatuses = async (): Promise<void> => {
-      const start = performance.now();
+    // let timeout: NodeJS.Timeout;
+    // const checkStatuses = async (): Promise<void> => {
+    //   const start = performance.now();
 
-      await this.serverManager?.updateStatus();
+    //   await this.serverManager?.updateStatus();
 
-      // Ensure checks don't run more often than the interval
-      const elapsed = performance.now() - start;
-      const remaining = SERVER_STATUS_CHECK_INTERVAL - elapsed;
-      const wait = Math.max(0, remaining);
+    //   // Ensure checks don't run more often than the interval
+    //   const elapsed = performance.now() - start;
+    //   const remaining = SERVER_STATUS_CHECK_INTERVAL - elapsed;
+    //   const wait = Math.max(0, remaining);
 
-      timeout = setTimeout(checkStatuses, wait);
-    };
-    checkStatuses();
+    //   timeout = setTimeout(checkStatuses, wait);
+    // };
+    // checkStatuses();
 
-    function disposeCheckStatuses(): void {
-      clearTimeout(timeout);
-    }
+    // function disposeCheckStatuses(): void {
+    //   clearTimeout(timeout);
+    // }
 
+    const serverTreeProvider = new ServerTreeProvider(this.serverManager);
     const serversView = vscode.window.registerTreeDataProvider(
       VIEW_ID.serverTree,
-      new ServerTreeProvider(this.serverManager)
+      serverTreeProvider
     );
 
     const connectionsView = vscode.window.registerTreeDataProvider(
@@ -263,7 +263,6 @@ export class ExtensionController implements Disposable {
 
     this.context.subscriptions.push(
       this.serverManager,
-      { dispose: disposeCheckStatuses },
       serversView,
       connectionsView
     );

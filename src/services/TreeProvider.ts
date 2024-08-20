@@ -1,11 +1,6 @@
 import * as vscode from 'vscode';
-import {
-  CAN_CREATE_CONNECTION_CONTEXT,
-  ServerState,
-  ServerConnectionState,
-  ICON_ID,
-} from '../common';
-import { IServerManager } from './types';
+import { CAN_CREATE_CONNECTION_CONTEXT, ServerState, ICON_ID } from '../common';
+import { IDhService, IServerManager } from './types';
 
 /**
  * Base class for tree view data providers.
@@ -54,6 +49,7 @@ export class ServerTreeProvider extends TreeProvider<ServerNode> {
 
     return {
       label: new URL(element.url).host,
+      description: element.type === 'DHC' ? undefined : 'Enterprise',
       contextValue:
         isRunning && element.type === 'DHC'
           ? CAN_CREATE_CONNECTION_CONTEXT
@@ -85,17 +81,17 @@ export class ServerTreeProvider extends TreeProvider<ServerNode> {
 /**
  * Provider for the server connection tree view.
  */
-export class ServerConnectionTreeProvider extends TreeProvider<ServerConnectionState> {
+export class ServerConnectionTreeProvider extends TreeProvider<IDhService> {
   getTreeItem(
-    element: ServerConnectionState
+    element: IDhService
   ): vscode.TreeItem | Thenable<vscode.TreeItem> {
     return {
-      label: new URL(element.url).host,
+      label: new URL(element.serverUrl).host,
       iconPath: new vscode.ThemeIcon(ICON_ID.connected),
     };
   }
 
-  getChildren(): vscode.ProviderResult<ServerConnectionState[]> {
+  getChildren(): vscode.ProviderResult<IDhService[]> {
     return this.serverManager.getConnections();
   }
 }
