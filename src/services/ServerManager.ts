@@ -19,12 +19,12 @@ import { getInitialServerStates, Logger } from '../util';
 const logger = new Logger('ServerManager');
 
 export class ServerManager implements IServerManager {
-  private _configService: IConfigService;
-  private _poller: PollingService;
+  private readonly _configService: IConfigService;
+  private readonly _poller: PollingService;
+  private readonly _connectionMap: Map<URL, IDhService>;
+  private readonly _dhcServiceFactory: IDhServiceFactory;
+  private readonly _uriConnectionsMap: Map<vscode.Uri, IDhService>;
   private _serverMap: Map<URL, ServerState>;
-  private _connectionMap: Map<URL, IDhService>;
-  private _dhcServiceFactory: IDhServiceFactory;
-  private _uriConnectionsMap: Map<vscode.Uri, IDhService>;
 
   private _onDidConnect = new vscode.EventEmitter<URL>();
   readonly onDidConnect = this._onDidConnect.event;
