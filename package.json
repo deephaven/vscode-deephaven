@@ -235,7 +235,7 @@
         },
         {
           "command": "vscode-deephaven.openInBrowser",
-          "when": "view == vscode-deephaven.serverTree && (viewItem == isServerRunningDisconnected)",
+          "when": "view == vscode-deephaven.serverTree && (viewItem == isServerRunningConnected || viewItem == isServerRunningDisconnected)",
           "group": "inline"
         }
       ]

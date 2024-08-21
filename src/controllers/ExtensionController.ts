@@ -327,7 +327,10 @@ export class ExtensionController implements Disposable {
   };
 
   onOpenInBrowser = async (serverState: ServerState): Promise<void> => {
-    vscode.commands.executeCommand('vscode.open', serverState.url);
+    vscode.commands.executeCommand(
+      'vscode.open',
+      vscode.Uri.parse(serverState.url.toString())
+    );
   };
 
   onRefreshServerTree = (): void => {
