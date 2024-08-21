@@ -16,10 +16,11 @@ export class RunCommandCodeLensProvider
     });
   }
 
-  private _onDidChangeCodeLenses: vscode.EventEmitter<void> =
+  private readonly _onDidChangeCodeLenses: vscode.EventEmitter<void> =
     new vscode.EventEmitter<void>();
 
-  onDidChangeCodeLenses: vscode.Event<void> = this._onDidChangeCodeLenses.event;
+  readonly onDidChangeCodeLenses: vscode.Event<void> =
+    this._onDidChangeCodeLenses.event;
 
   provideCodeLenses(
     document: vscode.TextDocument,

@@ -13,7 +13,7 @@ export abstract class TreeDataProviderBase<T>
     });
   }
 
-  private _onDidChangeTreeData = new vscode.EventEmitter<
+  private readonly _onDidChangeTreeData = new vscode.EventEmitter<
     T | undefined | void
   >();
 

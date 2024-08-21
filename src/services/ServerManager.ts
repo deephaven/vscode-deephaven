@@ -26,16 +26,16 @@ export class ServerManager implements IServerManager {
   private readonly _uriConnectionsMap: Map<vscode.Uri, IDhService>;
   private _serverMap: Map<URL, ServerState>;
 
-  private _onDidConnect = new vscode.EventEmitter<URL>();
+  private readonly _onDidConnect = new vscode.EventEmitter<URL>();
   readonly onDidConnect = this._onDidConnect.event;
 
-  private _onDidDisconnect = new vscode.EventEmitter<URL>();
+  private readonly _onDidDisconnect = new vscode.EventEmitter<URL>();
   readonly onDidDisconnect = this._onDidDisconnect.event;
 
-  private _onDidRegisterEditor = new vscode.EventEmitter<vscode.Uri>();
+  private readonly _onDidRegisterEditor = new vscode.EventEmitter<vscode.Uri>();
   readonly onDidRegisterEditor = this._onDidRegisterEditor.event;
 
-  private _onDidUpdate = new vscode.EventEmitter<void>();
+  private readonly _onDidUpdate = new vscode.EventEmitter<void>();
   readonly onDidUpdate = this._onDidUpdate.event;
 
   private _hasPolledServers = false;
