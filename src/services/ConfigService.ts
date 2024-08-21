@@ -1,10 +1,6 @@
 import * as vscode from 'vscode';
-import {
-  CONFIG_KEY,
-  DEFAULT_CONSOLE_TYPE,
-  SERVER_LANGUAGE_SET,
-} from '../common';
-import { InvalidConsoleTypeError, Logger } from '../util';
+import { CONFIG_KEY } from '../common';
+import { Logger } from '../util';
 import type {
   CoreConnectionConfig,
   CoreConnectionConfigStored,
@@ -27,12 +23,7 @@ function getCoreServers(): CoreConnectionConfig[] {
 
   // Expand each server config to a full `ConnectionConfig` object.
   const expandedConfig = config.map(server =>
-    typeof server === 'string'
-      ? { consoleType: DEFAULT_CONSOLE_TYPE, url: server }
-      : {
-          consoleType: DEFAULT_CONSOLE_TYPE,
-          ...server,
-        }
+    typeof server === 'string' ? { url: server } : server
   );
 
   logger.info('Core servers:', JSON.stringify(expandedConfig));
@@ -43,9 +34,6 @@ function getCoreServers(): CoreConnectionConfig[] {
         // Filter out any invalid server configs to avoid crashing the extension
         // further upstream.
         new URL(server.url);
-        if (!SERVER_LANGUAGE_SET.has(server.consoleType)) {
-          throw new InvalidConsoleTypeError(server.consoleType);
-        }
         return true;
       } catch (err) {
         logger.error(err, server.url);
