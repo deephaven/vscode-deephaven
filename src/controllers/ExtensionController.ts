@@ -45,8 +45,8 @@ const logger = new Logger('ExtensionController');
 
 export class ExtensionController implements Disposable {
   constructor(context: vscode.ExtensionContext, configService: IConfigService) {
-    this.context = context;
-    this.config = configService;
+    this._context = context;
+    this._config = configService;
 
     this.initializeDiagnostics();
     this.initializeConfig();
@@ -61,23 +61,25 @@ export class ExtensionController implements Disposable {
     logger.info(
       'Congratulations, your extension "vscode-deephaven" is now active!'
     );
-    this.outputChannel?.appendLine('Deephaven extension activated');
+    this._outputChannel?.appendLine('Deephaven extension activated');
   }
 
-  readonly context: vscode.ExtensionContext;
-  readonly config: IConfigService;
-  connectionController: ConnectionController | null = null;
-  dhcServiceFactory: IDhServiceFactory | null = null;
-  serverManager: IServerManager | null = null;
-  serverTreeProvider: ServerTreeProvider | null = null;
-  serverConnectionTreeProvider: ServerConnectionTreeProvider | null = null;
-  serverTreeView: ServerTreeView | null = null;
-  serverConnectionTreeView: ServerConnectionTreeView | null = null;
+  readonly _context: vscode.ExtensionContext;
+  readonly _config: IConfigService;
 
-  pythonDiagnostics: vscode.DiagnosticCollection | null = null;
-  outputChannel: vscode.OutputChannel | null = null;
-  outputChannelDebug: OutputChannelWithHistory | null = null;
-  toaster: IToastService | null = null;
+  private _connectionController: ConnectionController | null = null;
+  private _dhcServiceFactory: IDhServiceFactory | null = null;
+  private _serverManager: IServerManager | null = null;
+  private _serverTreeProvider: ServerTreeProvider | null = null;
+  private _serverConnectionTreeProvider: ServerConnectionTreeProvider | null =
+    null;
+  private _serverTreeView: ServerTreeView | null = null;
+  private _serverConnectionTreeView: ServerConnectionTreeView | null = null;
+
+  private _pythonDiagnostics: vscode.DiagnosticCollection | null = null;
+  private _outputChannel: vscode.OutputChannel | null = null;
+  private _outputChannelDebug: OutputChannelWithHistory | null = null;
+  private _toaster: IToastService | null = null;
 
   async dispose(): Promise<void> {}
 
@@ -87,7 +89,7 @@ export class ExtensionController implements Disposable {
   initializeCodeLenses = (): void => {
     const codelensProvider = new RunCommandCodeLensProvider();
 
-    this.context.subscriptions.push(
+    this._context.subscriptions.push(
       vscode.languages.registerCodeLensProvider('groovy', codelensProvider),
       vscode.languages.registerCodeLensProvider('python', codelensProvider)
     );
@@ -99,10 +101,10 @@ export class ExtensionController implements Disposable {
   initializeConfig = (): void => {
     vscode.workspace.onDidChangeConfiguration(
       () => {
-        this.outputChannel?.appendLine('Configuration changed');
+        this._outputChannel?.appendLine('Configuration changed');
       },
       null,
-      this.context.subscriptions
+      this._context.subscriptions
     );
   };
 
@@ -110,35 +112,35 @@ export class ExtensionController implements Disposable {
    * Initialize connection controller.
    */
   initializeConnectionController = (): void => {
-    assertDefined(this.serverManager, 'serverManager');
-    assertDefined(this.outputChannel, 'outputChannel');
-    assertDefined(this.toaster, 'toaster');
+    assertDefined(this._serverManager, 'serverManager');
+    assertDefined(this._outputChannel, 'outputChannel');
+    assertDefined(this._toaster, 'toaster');
 
-    this.connectionController = new ConnectionController(
-      this.context,
-      this.config,
-      this.serverManager,
-      this.outputChannel,
-      this.toaster
+    this._connectionController = new ConnectionController(
+      this._context,
+      this._config,
+      this._serverManager,
+      this._outputChannel,
+      this._toaster
     );
 
-    this.context.subscriptions.push(this.connectionController);
+    this._context.subscriptions.push(this._connectionController);
   };
 
   /**
    * Initialize diagnostics collections.
    */
   initializeDiagnostics = (): void => {
-    this.pythonDiagnostics =
+    this._pythonDiagnostics =
       vscode.languages.createDiagnosticCollection('python');
 
     // Clear diagnostics on save
     vscode.workspace.onDidSaveTextDocument(
       doc => {
-        this.pythonDiagnostics?.set(doc.uri, []);
+        this._pythonDiagnostics?.set(doc.uri, []);
       },
       null,
-      this.context.subscriptions
+      this._context.subscriptions
     );
   };
 
@@ -146,58 +148,61 @@ export class ExtensionController implements Disposable {
    * Initialize output channels, Logger and Toaster.
    */
   initializeMessaging = (): void => {
-    this.outputChannel = vscode.window.createOutputChannel('Deephaven', 'log');
-    this.outputChannelDebug = new OutputChannelWithHistory(
-      this.context,
+    this._outputChannel = vscode.window.createOutputChannel('Deephaven', 'log');
+    this._outputChannelDebug = new OutputChannelWithHistory(
+      this._context,
       vscode.window.createOutputChannel('Deephaven Debug', 'log')
     );
 
     Logger.addConsoleHandler();
-    Logger.addOutputChannelHandler(this.outputChannelDebug);
+    Logger.addOutputChannelHandler(this._outputChannelDebug);
 
-    this.toaster = new Toaster();
+    this._toaster = new Toaster();
 
-    this.context.subscriptions.push(
-      this.outputChannel,
-      this.outputChannelDebug
+    this._context.subscriptions.push(
+      this._outputChannel,
+      this._outputChannelDebug
     );
   };
 
   initializeServerManager = (): void => {
-    assertDefined(this.pythonDiagnostics, 'pythonDiagnostics');
-    assertDefined(this.outputChannel, 'outputChannel');
-    assertDefined(this.toaster, 'toaster');
+    assertDefined(this._pythonDiagnostics, 'pythonDiagnostics');
+    assertDefined(this._outputChannel, 'outputChannel');
+    assertDefined(this._toaster, 'toaster');
 
-    this.dhcServiceFactory = new DhcServiceFactory(
+    this._dhcServiceFactory = new DhcServiceFactory(
       new ExtendedMap<string, vscode.WebviewPanel>(),
-      this.pythonDiagnostics,
-      this.outputChannel,
-      this.toaster
+      this._pythonDiagnostics,
+      this._outputChannel,
+      this._toaster
     );
 
-    this.serverManager = new ServerManager(this.config, this.dhcServiceFactory);
+    this._serverManager = new ServerManager(
+      this._config,
+      this._dhcServiceFactory
+    );
 
-    this.serverManager.onDidDisconnect(serverUrl => {
-      this.outputChannel?.appendLine(
+    this._serverManager.onDidDisconnect(serverUrl => {
+      this._outputChannel?.appendLine(
         `Disconnected from server: '${serverUrl}'.`
       );
     });
 
     vscode.workspace.onDidChangeConfiguration(
       () => {
-        this.serverManager?.loadServerConfig();
+        this._serverManager?.loadServerConfig();
       },
       undefined,
-      this.context.subscriptions
+      this._context.subscriptions
     );
 
     // Expand to show any new editor URIs that are associated with a connection
-    this.serverManager.onDidRegisterEditor(
+    this._serverManager.onDidRegisterEditor(
       uri => {
-        this.serverConnectionTreeView?.reveal(uri);
+        this._serverConnectionTreeView?.reveal(uri);
       },
       undefined,
-      this.context.subscriptions
+      this._context.subscriptions
     );
   };
 
@@ -213,7 +218,7 @@ export class ExtensionController implements Disposable {
    * Register commands for the extension.
    */
   initializeCommands = (): void => {
-    assertDefined(this.connectionController, 'connectionController');
+    assertDefined(this._connectionController, 'connectionController');
 
     /** Create server connection */
     this.registerCommand(CONNECT_TO_SERVER_CMD, this.onConnectToServer);
@@ -242,7 +247,7 @@ export class ExtensionController implements Disposable {
     /** Select connection to run scripts against */
     this.registerCommand(
       SELECT_CONNECTION_COMMAND,
-      this.connectionController.onPromptUserToSelectConnection
+      this._connectionController.onPromptUserToSelectConnection
     );
 
     /** Refresh server tree */
@@ -259,35 +264,35 @@ export class ExtensionController implements Disposable {
    * Register web views for the extension.
    */
   initializeWebViews = (): void => {
-    assertDefined(this.serverManager, 'serverManager');
+    assertDefined(this._serverManager, 'serverManager');
 
     // Server tree
-    this.serverTreeProvider = new ServerTreeProvider(this.serverManager);
-    this.serverTreeView = vscode.window.createTreeView(VIEW_ID.serverTree, {
+    this._serverTreeProvider = new ServerTreeProvider(this._serverManager);
+    this._serverTreeView = vscode.window.createTreeView(VIEW_ID.serverTree, {
       showCollapseAll: true,
-      treeDataProvider: this.serverTreeProvider,
+      treeDataProvider: this._serverTreeProvider,
     });
 
     // Connection tree
-    this.serverConnectionTreeProvider = new ServerConnectionTreeProvider(
-      this.serverManager
+    this._serverConnectionTreeProvider = new ServerConnectionTreeProvider(
+      this._serverManager
     );
     const serverConnectionTreeDragAndDropController =
-      new ServerConnectionTreeDragAndDropController(this.serverManager);
+      new ServerConnectionTreeDragAndDropController(this._serverManager);
 
-    this.serverConnectionTreeView = vscode.window.createTreeView(
+    this._serverConnectionTreeView = vscode.window.createTreeView(
       VIEW_ID.serverConnectionTree,
       {
         dragAndDropController: serverConnectionTreeDragAndDropController,
         showCollapseAll: true,
-        treeDataProvider: this.serverConnectionTreeProvider,
+        treeDataProvider: this._serverConnectionTreeProvider,
       }
     );
 
-    this.context.subscriptions.push(
-      this.serverManager,
-      this.serverTreeView,
-      this.serverConnectionTreeView
+    this._context.subscriptions.push(
+      this._serverManager,
+      this._serverTreeView,
+      this._serverConnectionTreeView
     );
   };
 
@@ -295,7 +300,7 @@ export class ExtensionController implements Disposable {
    * Handle connecting to a server
    */
   onConnectToServer = async (serverState: ServerState): Promise<void> => {
-    this.serverManager?.connectToServer(serverState.url);
+    this._serverManager?.connectToServer(serverState.url);
   };
 
   /**
@@ -303,27 +308,27 @@ export class ExtensionController implements Disposable {
    * @param uri
    */
   onDisconnectEditor = (uri: vscode.Uri): void => {
-    this.serverManager?.disconnectEditor(uri);
+    this._serverManager?.disconnectEditor(uri);
   };
 
   /**
    * Handle disconnecting from a server.
    */
   onDisconnectFromServer = async (dhService: IDhService): Promise<void> => {
-    this.serverManager?.disconnectFromServer(dhService.serverUrl);
+    this._serverManager?.disconnectFromServer(dhService.serverUrl);
   };
 
   /**
    * Handle download logs command
    */
   onDownloadLogs = async (): Promise<void> => {
-    assertDefined(this.outputChannelDebug, 'outputChannelDebug');
-    assertDefined(this.toaster, 'toaster');
+    assertDefined(this._outputChannelDebug, 'outputChannelDebug');
+    assertDefined(this._toaster, 'toaster');
 
-    const uri = await this.outputChannelDebug.downloadHistoryToFile();
+    const uri = await this._outputChannelDebug.downloadHistoryToFile();
 
     if (uri != null) {
-      this.toaster.info(`Downloaded logs to ${uri.fsPath}`);
+      this._toaster.info(`Downloaded logs to ${uri.fsPath}`);
       vscode.window.showTextDocument(uri);
     }
   };
@@ -336,11 +341,11 @@ export class ExtensionController implements Disposable {
   };
 
   onRefreshServerTree = (): void => {
-    this.serverTreeProvider?.refresh();
+    this._serverTreeProvider?.refresh();
   };
 
   onRefreshServerConnectionTree = (): void => {
-    this.serverConnectionTreeProvider?.refresh();
+    this._serverConnectionTreeProvider?.refresh();
   };
 
   /**
@@ -348,11 +353,11 @@ export class ExtensionController implements Disposable {
    * @param uri
    */
   onRunCode = async (uri: vscode.Uri): Promise<void> => {
-    assertDefined(this.connectionController, 'connectionController');
+    assertDefined(this._connectionController, 'connectionController');
 
     const editor = await getEditorForUri(uri);
     const dhService =
-      await this.connectionController.getOrCreateConnection(uri);
+      await this._connectionController.getOrCreateConnection(uri);
     await dhService?.runEditorCode(editor);
   };
 
@@ -361,11 +366,11 @@ export class ExtensionController implements Disposable {
    * @param uri
    */
   onRunSelectedCode = async (uri: vscode.Uri): Promise<void> => {
-    assertDefined(this.connectionController, 'connectionController');
+    assertDefined(this._connectionController, 'connectionController');
 
     const editor = await getEditorForUri(uri);
     const dhService =
-      await this.connectionController.getOrCreateConnection(uri);
+      await this._connectionController.getOrCreateConnection(uri);
     await dhService?.runEditorCode(editor, true);
   };
 
@@ -376,6 +381,6 @@ export class ExtensionController implements Disposable {
     ...args: Parameters<typeof vscode.commands.registerCommand>
   ): void => {
     const cmd = vscode.commands.registerCommand(...args);
-    this.context.subscriptions.push(cmd);
+    this._context.subscriptions.push(cmd);
   };
 }
