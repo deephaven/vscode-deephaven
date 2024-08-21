@@ -20,6 +20,7 @@ export const STATUS_BAR_CONNECTING_TEXT = 'Deephaven: Connecting...';
 
 export const DOWNLOAD_LOGS_TEXT = 'Download Logs';
 
+// For drag-and-dropping uris
 export const MIME_TYPE = {
   uriList: 'text/uri-list',
 } as const;
