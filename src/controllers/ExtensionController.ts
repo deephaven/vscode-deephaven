@@ -64,8 +64,8 @@ export class ExtensionController implements Disposable {
     this.outputChannel?.appendLine('Deephaven extension activated');
   }
 
-  context: vscode.ExtensionContext;
-  config: IConfigService;
+  readonly context: vscode.ExtensionContext;
+  readonly config: IConfigService;
   connectionController: ConnectionController | null = null;
   dhcServiceFactory: IDhServiceFactory | null = null;
   serverManager: IServerManager | null = null;

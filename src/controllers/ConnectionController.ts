@@ -18,7 +18,6 @@ import {
   isSupportedLanguageId,
   Logger,
   updateConnectionStatusBarItem,
-  type ConnectionOption,
 } from '../util';
 import { UnsupportedConsoleTypeError } from '../common';
 
@@ -38,7 +37,6 @@ export class ConnectionController implements Disposable {
     this._outputChannel = outputChannel;
     this._toaster = toastService;
 
-    this.initializeConnectionOptions();
     this.initializeConnectionStatusBarItem();
     this.initializeServerManager();
   }
@@ -49,31 +47,16 @@ export class ConnectionController implements Disposable {
   private readonly _outputChannel: vscode.OutputChannel;
   private readonly _toaster: IToastService;
 
-  connectionOptions: ConnectionOption[] = [];
-  connectStatusBarItem: vscode.StatusBarItem | null = null;
+  private _connectStatusBarItem: vscode.StatusBarItem | null = null;
 
   async dispose(): Promise<void> {}
-
-  /**
-   * Initialize connection options.
-   */
-  initializeConnectionOptions = (): void => {
-    this.updateConnectionOptions();
-
-    // Update connection options when configuration changes
-    vscode.workspace.onDidChangeConfiguration(
-      this.updateConnectionOptions,
-      null,
-      this._context.subscriptions
-    );
-  };
 
   /**
    * Initialize connection status bar item.
    */
   initializeConnectionStatusBarItem = (): void => {
-    this.connectStatusBarItem = createConnectStatusBarItem(false);
-    this._context.subscriptions.push(this.connectStatusBarItem);
+    this._connectStatusBarItem = createConnectStatusBarItem(false);
+    this._context.subscriptions.push(this._connectStatusBarItem);
 
     this.updateConnectionStatusBarItem();
 
@@ -101,36 +84,30 @@ export class ConnectionController implements Disposable {
     );
   };
 
-  updateConnectionOptions = (): void => {
-    this.connectionOptions = this._config
-      .getCoreServers()
-      .map(({ url }) => createConnectionOption('DHC')(url));
-  };
-
   /**
    * Update status bar item.
    */
   updateConnectionStatusBarItem = (): void => {
-    assertDefined(this.connectStatusBarItem, 'connectStatusBarItem');
+    assertDefined(this._connectStatusBarItem, 'connectStatusBarItem');
 
     const editor = vscode.window.activeTextEditor;
 
     if (editor == null || !isSupportedLanguageId(editor.document.languageId)) {
-      this.connectStatusBarItem.hide();
+      this._connectStatusBarItem.hide();
       return;
     }
 
-    this.connectStatusBarItem.show();
+    this._connectStatusBarItem.show();
 
     const dhService = this._serverManager.getUriConnection(editor.document.uri);
 
     if (dhService == null) {
-      updateConnectionStatusBarItem(this.connectStatusBarItem, 'disconnected');
+      updateConnectionStatusBarItem(this._connectStatusBarItem, 'disconnected');
       return;
     }
 
     updateConnectionStatusBarItem(
-      this.connectStatusBarItem,
+      this._connectStatusBarItem,
       'connected',
       createConnectionOption('DHC')(dhService.serverUrl)
     );
@@ -140,7 +117,7 @@ export class ConnectionController implements Disposable {
     connectionOrServer: ServerState | IDhService,
     editor: vscode.TextEditor
   ): Promise<void> => {
-    updateConnectionStatusBarItem(this.connectStatusBarItem, 'connecting');
+    updateConnectionStatusBarItem(this._connectStatusBarItem, 'connecting');
 
     let newConnectionUrl: URL | null = null;
 
@@ -160,7 +137,7 @@ export class ConnectionController implements Disposable {
     try {
       await this._serverManager.setEditorConnection(editor, connectionOrServer);
     } catch (err) {
-      updateConnectionStatusBarItem(this.connectStatusBarItem, 'disconnected');
+      updateConnectionStatusBarItem(this._connectStatusBarItem, 'disconnected');
 
       // If our error was an unsupported console type on a newly created connection,
       // disconnect from it.
@@ -172,7 +149,7 @@ export class ConnectionController implements Disposable {
     }
 
     updateConnectionStatusBarItem(
-      this.connectStatusBarItem,
+      this._connectStatusBarItem,
       'connected',
       createConnectionOption('DHC')(connectionOrServer.serverUrl)
     );
