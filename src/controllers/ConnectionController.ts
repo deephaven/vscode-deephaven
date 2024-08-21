@@ -93,9 +93,13 @@ export class ConnectionController implements Disposable {
   initializeServerManager = (): void => {
     assertDefined(this._serverManager, 'serverManager');
 
-    this._serverManager.onDidRegisterEditor(() => {
-      this.updateConnectionStatusBarItem();
-    });
+    this._serverManager.onDidRegisterEditor(
+      () => {
+        this.updateConnectionStatusBarItem();
+      },
+      undefined,
+      this._context.subscriptions
+    );
   };
 
   updateConnectionOptions = (): void => {
