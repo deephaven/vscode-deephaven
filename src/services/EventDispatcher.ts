@@ -6,6 +6,7 @@ import type {
 
 /**
  * General purpose event dispatcher for events that can be subscribed to.
+ * @deprecated Use `vscode.EventEmitter` instead.
  */
 export class EventDispatcher<TEventName extends string>
   implements IEventDispatcher<TEventName>

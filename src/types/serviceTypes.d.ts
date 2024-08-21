@@ -38,6 +38,9 @@ export interface IDhService<TDH = unknown, TClient = unknown>
   ) => Promise<void>;
 }
 
+/**
+ * @deprecated Use `vscode.EventEmitter` instead.
+ */
 export interface IEventDispatcher<TEventName extends string> {
   addEventListener: (
     eventName: TEventName,
