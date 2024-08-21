@@ -163,7 +163,8 @@ export class ConnectionController implements Disposable {
     } catch (err) {
       updateConnectionStatusBarItem(this.connectStatusBarItem, 'disconnected');
 
-      // If our error was on a newly created connection, disconnect from it.
+      // If our error was an unsupported console type on a newly created connection,
+      // disconnect from it.
       if (err instanceof UnsupportedConsoleTypeError && newConnectionUrl) {
         this._serverManager.disconnectFromServer(newConnectionUrl);
       }
