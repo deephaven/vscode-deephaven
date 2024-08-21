@@ -38,6 +38,8 @@ export class ServerManager implements IServerManager {
   private _onDidUpdate = new vscode.EventEmitter<void>();
   readonly onDidUpdate = this._onDidUpdate.event;
 
+  private _hasPolledServers = false;
+
   constructor(
     configService: IConfigService,
     dhcServiceFactory: IDhServiceFactory
@@ -52,6 +54,14 @@ export class ServerManager implements IServerManager {
 
     this.loadServerConfig();
   }
+
+  ensureHasPolledServers = async (): Promise<void> => {
+    if (this._hasPolledServers) {
+      return;
+    }
+
+    await this.updateStatus();
+  };
 
   loadServerConfig = (): void => {
     const initialDhcServerState = getInitialServerStates(
@@ -259,6 +269,8 @@ export class ServerManager implements IServerManager {
     );
 
     await Promise.all(promises);
+
+    this._hasPolledServers = true;
   };
 
   async dispose(): Promise<void> {}
