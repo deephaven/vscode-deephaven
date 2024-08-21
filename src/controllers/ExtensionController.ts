@@ -121,6 +121,8 @@ export class ExtensionController implements Disposable {
       this.outputChannel,
       this.toaster
     );
+
+    this.context.subscriptions.push(this.connectionController);
   };
 
   /**
