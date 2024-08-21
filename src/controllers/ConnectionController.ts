@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import type {
-  ConnectionPickItem,
   ConsoleType,
   Disposable,
   IConfigService,
@@ -270,24 +269,21 @@ export class ConnectionController implements Disposable {
       editor.document.uri
     )?.serverUrl;
 
-    let result:
-      | ConnectionPickItem<'server', ServerState>
-      | ConnectionPickItem<'connection', IDhService>
-      | null = null;
+    let selectedCnResult: ServerState | IDhService | null = null;
 
     try {
-      result = await createConnectionQuickPick(
+      selectedCnResult = await createConnectionQuickPick(
         runningServersWithoutConnections,
         connections,
         editor.document.languageId,
         editorActiveConnectionUrl
       );
 
-      if (result == null) {
+      if (selectedCnResult == null) {
         return false;
       }
 
-      await this.connectEditor(result.data, editor);
+      await this.connectEditor(selectedCnResult, editor);
 
       return true;
     } catch (err) {

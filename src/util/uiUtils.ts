@@ -38,11 +38,7 @@ export async function createConnectionQuickPick(
   connections: IDhService[],
   editorLanguageId: string,
   editorActiveConnectionUrl?: URL | null
-): Promise<
-  | ConnectionPickItem<'server', ServerState>
-  | ConnectionPickItem<'connection', IDhService>
-  | null
-> {
+): Promise<ServerState | IDhService | null> {
   const serverOptions: ConnectionPickItem<'server', ServerState>[] =
     servers.map(data => ({
       type: 'server',
@@ -95,7 +91,7 @@ export async function createConnectionQuickPick(
     return null;
   }
 
-  return result;
+  return result.data;
 }
 
 /**
