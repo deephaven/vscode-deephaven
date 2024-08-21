@@ -3,6 +3,8 @@ import type {
   ServerState,
   ServerType,
   ConsoleType,
+  EnterpriseConnectionConfig,
+  CoreConnectionConfig,
 } from '../types';
 import { SERVER_LANGUAGE_SET } from '../common';
 
@@ -13,10 +15,11 @@ import { SERVER_LANGUAGE_SET } from '../common';
  */
 export function getInitialServerStates(
   type: ServerType,
-  configs: { url: URL }[]
+  configs: (CoreConnectionConfig | EnterpriseConnectionConfig)[]
 ): ServerState[] {
-  return configs.map(({ url }) => ({
+  return configs.map(({ label, url }) => ({
     type,
+    label,
     url,
   }));
 }
@@ -57,6 +60,26 @@ export async function getFirstConnectionForConsoleType(
   ).next();
 
   return first.value ?? null;
+}
+
+/**
+ * Get description text for a server in the UI. e.g. for tree nodes.
+ * @param connectionCount
+ * @param label
+ */
+export function getServerDescription(
+  connectionCount: number,
+  label?: string
+): string | undefined {
+  if (connectionCount === 0) {
+    return label;
+  }
+
+  if (label == null) {
+    return `(${connectionCount})`;
+  }
+
+  return `${label} (${connectionCount})`;
 }
 
 /**

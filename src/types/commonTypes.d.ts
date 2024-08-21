@@ -12,18 +12,19 @@ export type ConsoleType = 'groovy' | 'python';
 export type CoreConnectionConfigStored =
   | string
   | {
+      label?: string;
       url: string;
-      consoleType?: ConsoleType;
     };
 
 export interface CoreConnectionConfig {
+  label?: string;
   url: URL;
-  consoleType: ConsoleType;
 }
 
 export type EnterpriseConnectionConfigStored = string;
 
 export interface EnterpriseConnectionConfig {
+  label?: string;
   url: URL;
 }
 
@@ -39,6 +40,7 @@ export type ServerType = 'DHC' | 'DHE';
 export interface ServerState {
   type: ServerType;
   url: URL;
+  label?: string;
   isRunning?: boolean;
 }
 

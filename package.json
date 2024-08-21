@@ -64,15 +64,10 @@
                   "type": "string",
                   "description": "Deephaven Core server URL"
                 },
-                "consoleType": {
+                "label": {
                   "type": "string",
-                  "title": "Console Type",
-                  "description": "Console type",
-                  "default": "python",
-                  "enum": [
-                    "python",
-                    "groovy"
-                  ]
+                  "title": "Label",
+                  "description": "Optional label for the server"
                 }
               }
             }

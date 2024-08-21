@@ -6,9 +6,10 @@ import {
 } from '../common';
 import { TreeDataProviderBase } from './TreeDataProviderBase';
 import type { ServerGroupState, ServerNode } from '../types/treeViewTypes';
+import { getServerDescription } from '../util';
 
 function isServerGroupState(node: ServerNode): node is ServerGroupState {
-  return 'label' in node;
+  return typeof node === 'string';
 }
 
 function getServerContextValue({
@@ -36,7 +37,7 @@ export class ServerTreeProvider extends TreeDataProviderBase<ServerNode> {
   ): vscode.TreeItem | Thenable<vscode.TreeItem> {
     if (isServerGroupState(element)) {
       return {
-        label: element.label,
+        label: element,
         iconPath: new vscode.ThemeIcon(ICON_ID.server),
         collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
       };
@@ -47,12 +48,15 @@ export class ServerTreeProvider extends TreeDataProviderBase<ServerNode> {
     const contextValue = getServerContextValue({ isConnected, isRunning });
     const canConnect =
       contextValue === SERVER_TREE_ITEM_CONTEXT.isServerRunningDisconnected;
-
     const urlStr = element.url.toString();
+    const description = getServerDescription(
+      isConnected ? 1 : 0,
+      element.label
+    );
 
     return {
       label: new URL(urlStr).host,
-      description: isConnected ? '(1)' : undefined, // element.type === 'DHC' ? undefined : 'Enterprise',
+      description,
       tooltip: canConnect ? `Click to connect to ${urlStr}` : urlStr,
       contextValue: element.type === 'DHC' ? contextValue : undefined,
       iconPath: new vscode.ThemeIcon(
@@ -90,15 +94,13 @@ export class ServerTreeProvider extends TreeDataProviderBase<ServerNode> {
     if (elementOrRoot == null) {
       // Only show groups that contain server child nodes
       return [
-        runningServers.length === 0 ? undefined : { label: 'Running' },
-        stoppedServers.length === 0 ? undefined : { label: 'Stopped' },
+        runningServers.length === 0 ? undefined : ('Running' as const),
+        stoppedServers.length === 0 ? undefined : ('Stopped' as const),
       ].filter(child => child != null);
     }
 
     if (isServerGroupState(elementOrRoot)) {
-      return elementOrRoot.label === 'Running'
-        ? runningServers
-        : stoppedServers;
+      return elementOrRoot === 'Running' ? runningServers : stoppedServers;
     }
   }
 }

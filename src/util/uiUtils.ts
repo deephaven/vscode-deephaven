@@ -47,6 +47,7 @@ export async function createConnectionQuickPick(
     servers.map(data => ({
       type: 'server',
       label: data.url.toString(),
+      description: data.label,
       iconPath: new vscode.ThemeIcon(ICON_ID.server),
       data,
     }));
