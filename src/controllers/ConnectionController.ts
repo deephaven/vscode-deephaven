@@ -192,8 +192,7 @@ export class ConnectionController implements Disposable {
 
     const editor = await getEditorForUri(uri);
 
-    // Get existing connection for the editor or find the first active connection
-    // that can support it.
+    // Get existing connection for the editor
     let dhService = await this._serverManager.getEditorConnection(editor);
 
     if (dhService != null) {
