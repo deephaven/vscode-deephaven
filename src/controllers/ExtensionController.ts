@@ -57,6 +57,7 @@ export class ExtensionController implements Disposable {
     this.initializeConnectionController();
     this.initializeCommands();
     this.initializeWebViews();
+    this.initializePolling();
 
     logger.info(
       'Congratulations, your extension "vscode-deephaven" is now active!'
@@ -297,6 +298,21 @@ export class ExtensionController implements Disposable {
   };
 
   /**
+   * Listen to events that will enable / disable server polling.
+   */
+  initializePolling = (): void => {
+    assertDefined(this._serverTreeView, 'serverManager');
+
+    vscode.window.onDidChangeWindowState(
+      this.onUpdateServerPolling,
+      undefined,
+      this._context.subscriptions
+    );
+
+    this._serverTreeView.onDidChangeVisibility(this.onUpdateServerPolling);
+  };
+
+  /**
    * Handle connecting to a server
    */
   onConnectToServer = async (serverState: ServerState): Promise<void> => {
@@ -372,6 +388,21 @@ export class ExtensionController implements Disposable {
     const dhService =
       await this._connectionController.getOrCreateConnection(uri);
     await dhService?.runEditorCode(editor, true);
+  };
+
+  /**
+   * Enable / disable server polling based on whether server tree view is visible
+   * and vscode window is active and focused.
+   */
+  onUpdateServerPolling = (): void => {
+    // Only poll servers if vscode window is active and focused and server
+    // connection tree is visible
+    const enablePolling =
+      this._serverTreeView?.visible &&
+      vscode.window.state.active &&
+      vscode.window.state.focused;
+
+    this._serverManager?.setPolling(enablePolling ?? false);
   };
 
   /**

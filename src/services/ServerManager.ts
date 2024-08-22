@@ -55,6 +55,24 @@ export class ServerManager implements IServerManager {
     this.loadServerConfig();
   }
 
+  /**
+   * Enable / disable polling configured servers.
+   * @param enablePolling
+   */
+  setPolling = (enablePolling: boolean): void => {
+    if (enablePolling) {
+      if (!this._poller.isRunning) {
+        logger.debug('Start polling servers.');
+        this._poller.start(this.updateStatus, SERVER_STATUS_CHECK_INTERVAL);
+      }
+    } else {
+      if (this._poller.isRunning) {
+        logger.debug('Stop polling servers.');
+        this._poller.stop();
+      }
+    }
+  };
+
   ensureHasPolledServers = async (): Promise<void> => {
     if (this._hasPolledServers) {
       return;
@@ -88,6 +106,8 @@ export class ServerManager implements IServerManager {
         this.disconnectFromServer(serverUrl);
       }
     }
+
+    this.updateStatus();
   };
 
   connectToServer = async (serverUrl: URL): Promise<IDhService | null> => {
@@ -174,12 +194,6 @@ export class ServerManager implements IServerManager {
     isRunning?: boolean;
     hasConnections?: boolean;
   } = {}): ServerState[] => {
-    // Start polling server status the first time servers are requested.
-    // TBD: Is there a way to stop this when the servers list goes out of view?
-    if (!this._poller.isRunning) {
-      this._poller.start(this.updateStatus, SERVER_STATUS_CHECK_INTERVAL);
-    }
-
     const servers = [...this._serverMap.values()];
 
     const match = (server: ServerState): boolean =>
