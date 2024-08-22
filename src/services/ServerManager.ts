@@ -98,7 +98,7 @@ export class ServerManager implements IServerManager {
 
     const serverState = this._serverMap.get(serverUrl);
 
-    // TODO: implement DHE
+    // TODO: implement DHE #76
     if (serverState == null || serverState.type !== 'DHC') {
       return null;
     }

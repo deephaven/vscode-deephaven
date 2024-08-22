@@ -111,9 +111,15 @@ export async function hasStatusCode(
     const transporter = url.protocol === 'http:' ? http : https;
 
     const request = transporter
-      .get(url, { timeout: SERVER_STATUS_CHECK_INTERVAL }, res => {
-        removeListenersAndResolve(res.statusCode === statusCode);
-      })
+      .request(
+        url,
+        // Using OPTIONS method to avoid downloading the entire file. Could also
+        // use HEAD, but the response seems slightly smaller for OPTIONS.
+        { method: 'OPTIONS', timeout: SERVER_STATUS_CHECK_INTERVAL },
+        res => {
+          removeListenersAndResolve(res.statusCode === statusCode);
+        }
+      )
       .on('timeout', () => {
         removeListenersAndResolve(false);
       })
@@ -127,7 +133,8 @@ export async function hasStatusCode(
         }
 
         removeListenersAndResolve(false);
-      });
+      })
+      .end();
 
     /**
      * Any time we resolve the Promise, remove listeners to avoid handling

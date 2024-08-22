@@ -19,9 +19,17 @@ export class PollingService implements Disposable {
     this._isRunning = true;
 
     const poll = async (): Promise<void> => {
+      if (!this._isRunning) {
+        return;
+      }
+
       const start = performance.now();
 
       await run();
+
+      if (!this._isRunning) {
+        return;
+      }
 
       // Ensure checks don't run more often than the interval
       const elapsed = performance.now() - start;
