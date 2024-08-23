@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import type {
   ConsoleType,
   Disposable,
-  IConfigService,
   IDhService,
   IServerManager,
   IToastService,
