@@ -27,6 +27,10 @@ export class ServerManager implements IServerManager {
   private readonly _onDidDisconnect = new vscode.EventEmitter<URL>();
   readonly onDidDisconnect = this._onDidDisconnect.event;
 
+  private readonly _onDidServerStatusChange =
+    new vscode.EventEmitter<ServerState>();
+  readonly onDidServerStatusChange = this._onDidServerStatusChange.event;
+
   private readonly _onDidRegisterEditor = new vscode.EventEmitter<vscode.Uri>();
   readonly onDidRegisterEditor = this._onDidRegisterEditor.event;
 

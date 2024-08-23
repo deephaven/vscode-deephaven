@@ -26,13 +26,11 @@ const logger = new Logger('ConnectionController');
 export class ConnectionController implements Disposable {
   constructor(
     context: vscode.ExtensionContext,
-    configService: IConfigService,
     serverManager: IServerManager,
     outputChannel: vscode.OutputChannel,
     toastService: IToastService
   ) {
     this._context = context;
-    this._config = configService;
     this._serverManager = serverManager;
     this._outputChannel = outputChannel;
     this._toaster = toastService;
@@ -42,7 +40,6 @@ export class ConnectionController implements Disposable {
   }
 
   private readonly _context: vscode.ExtensionContext;
-  private readonly _config: IConfigService;
   private readonly _serverManager: IServerManager;
   private readonly _outputChannel: vscode.OutputChannel;
   private readonly _toaster: IToastService;

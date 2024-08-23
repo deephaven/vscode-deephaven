@@ -43,7 +43,7 @@ export async function createConnectionQuickPick(
     servers.map(data => ({
       type: 'server',
       label: data.url.toString(),
-      description: data.label,
+      description: data.label ?? (data.isManaged ? 'pip' : undefined),
       iconPath: new vscode.ThemeIcon(ICON_ID.server),
       data,
     }));
@@ -78,9 +78,9 @@ export async function createConnectionQuickPick(
       label: 'Active Connections',
       kind: vscode.QuickPickItemKind.Separator,
     },
-    ...connectionOptions,
+    ...connectionOptions.sort((a, b) => a.label.localeCompare(b.label)),
     { label: 'Connect to Server', kind: vscode.QuickPickItemKind.Separator },
-    ...serverOptions,
+    ...serverOptions.sort((a, b) => a.label.localeCompare(b.label)),
   ];
 
   const result = await vscode.window.showQuickPick(options, {

@@ -128,7 +128,6 @@ export class ExtensionController implements Disposable {
 
     this._connectionController = new ConnectionController(
       this._context,
-      this._config,
       this._serverManager,
       this._outputChannel,
       this._toaster
