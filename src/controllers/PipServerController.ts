@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { Logger } from '../util';
 import type { Disposable, IServerManager, IToastService } from '../types';
-import { GLOBAL_CONTEXT } from '../common';
+import { GLOBAL_CONTEXT, PIP_SERVER_SUPPORTED_PLATFORMS } from '../common';
 
 const logger = new Logger('PipServerController');
 
@@ -51,6 +51,10 @@ export class PipServerController implements Disposable {
    * servers can be managed from the extension.
    */
   checkPipInstall = async (): Promise<boolean> => {
+    if (!PIP_SERVER_SUPPORTED_PLATFORMS.has(process.platform)) {
+      return false;
+    }
+
     if (this._checkPipInstallPromise == null) {
       this._checkPipInstallPromise = new Promise(async resolve => {
         const terminal = vscode.window.createTerminal({
@@ -81,39 +85,6 @@ export class PipServerController implements Disposable {
 
     return this._checkPipInstallPromise;
   };
-  // healthCheck = async (
-  //   terminal: vscode.Terminal,
-  //   port: number
-  // ): Promise<void> => {
-  //   const cwd = getTempDir(false, PIP_SERVER_STATUS_DIRECTORY);
-  //   const statusFileName = `status-${port}.txt`;
-  //   const statusFilePath = path.join(cwd, statusFileName);
-
-  //   try {
-  //     fs.unlinkSync(statusFilePath);
-  //   } catch {}
-
-  //   // Send text to a tmp file if `deephaven` command is successful
-  //   terminal.sendText(`deephaven && echo ready > ${statusFilePath}`);
-
-  //   void waitFor(3000).then(() => {
-  //     // Get result of status check from tmp file
-  //     const isReady = fs.existsSync(statusFilePath);
-
-  //     if (!isReady) {
-  //       // Hold on to the terminal so user can see any errors, but remove from
-  //       // the managed servers list.
-  //       this._failedServerStarts.add(terminal);
-  //       this._serverUrlTerminalMap.delete(port);
-  //       this.syncManagedServers();
-
-  //       const msg = `Failed to start server on port ${port}`;
-  //       logger.error(msg);
-  //       this._outputChannel.appendLine(msg);
-  //       this._toaster.error(msg);
-  //     }
-  //   });
-  // };
 
   getAvailablePorts = (): Port[] => {
     return [...this._portRange]
@@ -148,7 +119,6 @@ export class PipServerController implements Disposable {
     await waitFor(1000);
 
     terminal.sendText(`python -c 'import deephaven_server;' || exit 2`);
-    // void this.healthCheck(terminal, port);
 
     terminal.sendText(
       [

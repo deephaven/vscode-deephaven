@@ -30,6 +30,11 @@ export const SERVER_LANGUAGE_SET = new Set([
   'groovy',
 ]) as ReadonlySet<ConsoleType>;
 
+export const PIP_SERVER_SUPPORTED_PLATFORMS = new Set<NodeJS.Platform>([
+  'darwin',
+  'linux',
+]);
+
 export const TMP_DIR_ROOT = path.join(__dirname, '..', 'tmp');
 
 export const VIEW_ID = {
