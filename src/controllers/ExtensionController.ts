@@ -26,6 +26,7 @@ import {
   RunCommandCodeLensProvider,
   ServerTreeProvider,
   ServerConnectionTreeProvider,
+  runSelectedLinesHoverProvider,
 } from '../providers';
 import { DhcServiceFactory, ServerManager } from '../services';
 import type {
@@ -52,6 +53,7 @@ export class ExtensionController implements Disposable {
     this.initializeDiagnostics();
     this.initializeConfig();
     this.initializeCodeLenses();
+    this.initializeHoverProviders();
     this.initializeMessaging();
     this.initializeServerManager();
     this.initializeTempDirectory();
@@ -143,6 +145,21 @@ export class ExtensionController implements Disposable {
       },
       null,
       this._context.subscriptions
+    );
+  };
+
+  /**
+   * Initialize hover providers.
+   */
+  initializeHoverProviders = (): void => {
+    vscode.languages.registerHoverProvider(
+      'groovy',
+      runSelectedLinesHoverProvider
+    );
+
+    vscode.languages.registerHoverProvider(
+      'python',
+      runSelectedLinesHoverProvider
     );
   };
 
@@ -416,8 +433,16 @@ export class ExtensionController implements Disposable {
    * Run selected code in editor for given uri.
    * @param uri
    */
-  onRunSelectedCode = async (uri: vscode.Uri): Promise<void> => {
+  onRunSelectedCode = async (uri?: vscode.Uri): Promise<void> => {
     assertDefined(this._connectionController, 'connectionController');
+
+    if (uri == null) {
+      uri = vscode.window.activeTextEditor?.document.uri;
+    }
+
+    if (uri == null) {
+      return;
+    }
 
     const editor = await getEditorForUri(uri);
     const dhService =
