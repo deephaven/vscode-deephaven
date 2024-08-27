@@ -43,7 +43,6 @@ export class PipServerController implements Disposable {
   private readonly _serverUrlTerminalMap: Map<Port, vscode.Terminal>;
   private readonly _serverManager: IServerManager;
   private readonly _toaster: IToastService;
-  private readonly _failedServerStarts: Set<vscode.Terminal> = new Set();
   private _checkPipInstallPromise: Promise<boolean> | null = null;
 
   /**
@@ -173,11 +172,6 @@ export class PipServerController implements Disposable {
       terminal.dispose();
     }
     this._serverUrlTerminalMap.clear();
-
-    for (const terminal of this._failedServerStarts) {
-      terminal.dispose();
-    }
-    this._failedServerStarts.clear();
 
     await this.syncManagedServers();
   };
