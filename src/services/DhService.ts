@@ -252,8 +252,6 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
       ? getCombinedSelectedLinesText(editor)
       : editor.document.getText();
 
-    // const text = editor.document.getText(selectionRange);
-
     logger.info('Sending text to dh:', text);
 
     let result: CommandResultBase;
