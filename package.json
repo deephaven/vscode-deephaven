@@ -117,6 +117,11 @@
         "icon": "$(plug)"
       },
       {
+        "command": "vscode-deephaven.createNewTextDoc",
+        "title": "New File",
+        "icon": "$(new-file)"
+      },
+      {
         "command": "vscode-deephaven.disconnectEditor",
         "title": "Deephaven: Disconnect Editor",
         "icon": "$(debug-disconnect)"
@@ -234,6 +239,11 @@
           "group": "inline"
         },
         {
+          "command": "vscode-deephaven.createNewTextDoc",
+          "when": "view == vscode-deephaven.serverConnectionTree && viewItem == isConnection",
+          "group": "inline@1"
+        },
+        {
           "command": "vscode-deephaven.disconnectEditor",
           "when": "view == vscode-deephaven.serverConnectionTree && viewItem != isConnection",
           "group": "inline"
@@ -241,7 +251,7 @@
         {
           "command": "vscode-deephaven.disconnectFromServer",
           "when": "view == vscode-deephaven.serverConnectionTree && viewItem == isConnection",
-          "group": "inline"
+          "group": "inline@2"
         },
         {
           "command": "vscode-deephaven.openInBrowser",

@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import {
   CONNECT_TO_SERVER_CMD,
+  CREATE_NEW_TEXT_DOC_CMD,
   DISCONNECT_EDITOR_CMD,
   DISCONNECT_FROM_SERVER_CMD,
   DOWNLOAD_LOGS_CMD,
@@ -264,6 +265,9 @@ export class ExtensionController implements Disposable {
     /** Create server connection */
     this.registerCommand(CONNECT_TO_SERVER_CMD, this.onConnectToServer);
 
+    /** Create new document */
+    this.registerCommand(CREATE_NEW_TEXT_DOC_CMD, this.onCreateNewDocument);
+
     /** Disconnect editor */
     this.registerCommand(DISCONNECT_EDITOR_CMD, this.onDisconnectEditor);
 
@@ -395,6 +399,24 @@ export class ExtensionController implements Disposable {
    */
   onConnectToServer = async (serverState: ServerState): Promise<void> => {
     this._serverManager?.connectToServer(serverState.url);
+  };
+
+  /**
+   * Create a new text document based on the given connection capabilities.
+   * @param dhService
+   */
+  onCreateNewDocument = async (dhService: IDhService): Promise<void> => {
+    const language = (await dhService.supportsConsoleType('python'))
+      ? 'python'
+      : 'groovy';
+
+    const doc = await vscode.workspace.openTextDocument({
+      language,
+    });
+
+    const editor = await vscode.window.showTextDocument(doc);
+
+    this._serverManager?.setEditorConnection(editor, dhService);
   };
 
   /**
