@@ -10,6 +10,7 @@ import type {
 import {
   ExtendedMap,
   formatTimestamp,
+  getCombinedSelectedLinesText,
   isAggregateError,
   Logger,
   NoConsoleTypesError,
@@ -247,17 +248,11 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
       return;
     }
 
-    const selectionRange =
-      selectionOnly && editor.selection
-        ? new vscode.Range(
-            editor.selection.start.line,
-            0,
-            editor.selection.end.line,
-            editor.document.lineAt(editor.selection.end.line).text.length
-          )
-        : undefined;
+    const text = selectionOnly
+      ? getCombinedSelectedLinesText(editor)
+      : editor.document.getText();
 
-    const text = editor.document.getText(selectionRange);
+    // const text = editor.document.getText(selectionRange);
 
     logger.info('Sending text to dh:', text);
 

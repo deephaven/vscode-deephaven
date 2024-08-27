@@ -8,6 +8,7 @@ export * from './Logger';
 export * from './OutputChannelWithHistory';
 export * from './panelUtils';
 export * from './polyfillUtils';
+export * from './selectionUtils';
 export * from './serverUtils';
 export * from './Toaster';
 export * from './uiUtils';
