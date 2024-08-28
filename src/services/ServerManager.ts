@@ -1,8 +1,5 @@
 import * as vscode from 'vscode';
-import {
-  SERVER_STATUS_CHECK_INTERVAL,
-  UnsupportedConsoleTypeError,
-} from '../common';
+import { UnsupportedConsoleTypeError } from '../common';
 import { isDhcServerRunning } from '../dh/dhc';
 import { isDheServerRunning } from '../dh/dhe';
 import type {
@@ -13,14 +10,12 @@ import type {
   IServerManager,
   ServerState,
 } from '../types';
-import { PollingService } from './PollingService';
 import { getInitialServerStates, Logger } from '../util';
 
 const logger = new Logger('ServerManager');
 
 export class ServerManager implements IServerManager {
   private readonly _configService: IConfigService;
-  private readonly _poller: PollingService;
   private readonly _connectionMap: Map<URL, IDhService>;
   private readonly _dhcServiceFactory: IDhServiceFactory;
   private readonly _uriConnectionsMap: Map<vscode.Uri, IDhService>;
@@ -38,7 +33,7 @@ export class ServerManager implements IServerManager {
   private readonly _onDidUpdate = new vscode.EventEmitter<void>();
   readonly onDidUpdate = this._onDidUpdate.event;
 
-  private _hasPolledServers = false;
+  private _hasEverUpdatedStatus = false;
 
   constructor(
     configService: IConfigService,
@@ -50,36 +45,9 @@ export class ServerManager implements IServerManager {
     this._serverMap = new Map();
     this._connectionMap = new Map();
     this._uriConnectionsMap = new Map();
-    this._poller = new PollingService();
 
     this.loadServerConfig();
   }
-
-  /**
-   * Enable / disable polling configured servers.
-   * @param enablePolling
-   */
-  setPolling = (enablePolling: boolean): void => {
-    if (enablePolling) {
-      if (!this._poller.isRunning) {
-        logger.debug('Start polling servers.');
-        this._poller.start(this.updateStatus, SERVER_STATUS_CHECK_INTERVAL);
-      }
-    } else {
-      if (this._poller.isRunning) {
-        logger.debug('Stop polling servers.');
-        this._poller.stop();
-      }
-    }
-  };
-
-  ensureHasPolledServers = async (): Promise<void> => {
-    if (this._hasPolledServers) {
-      return;
-    }
-
-    await this.updateStatus();
-  };
 
   loadServerConfig = (): void => {
     const initialDhcServerState = getInitialServerStates(
@@ -187,6 +155,13 @@ export class ServerManager implements IServerManager {
     return false;
   };
 
+  /**
+   * Check if `updateStatus` has ever been called.
+   */
+  hasEverUpdatedStatus = (): boolean => {
+    return this._hasEverUpdatedStatus;
+  };
+
   getServers = ({
     isRunning,
     hasConnections,
@@ -261,6 +236,8 @@ export class ServerManager implements IServerManager {
   };
 
   updateStatus = async (): Promise<void> => {
+    logger.debug('Updating server statuses.');
+
     const promises = this.getServers().map(server =>
       (server.type === 'DHC'
         ? isDhcServerRunning(server.url)
@@ -284,7 +261,7 @@ export class ServerManager implements IServerManager {
 
     await Promise.all(promises);
 
-    this._hasPolledServers = true;
+    this._hasEverUpdatedStatus = true;
   };
 
   async dispose(): Promise<void> {}

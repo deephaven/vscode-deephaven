@@ -2,7 +2,7 @@ import * as fs from 'node:fs';
 import * as http from 'node:http';
 import * as https from 'node:https';
 import * as path from 'node:path';
-import { SERVER_STATUS_CHECK_INTERVAL, TMP_DIR_ROOT } from '../common';
+import { SERVER_STATUS_CHECK_TIMEOUT, TMP_DIR_ROOT } from '../common';
 import { Logger } from './Logger';
 import { hasErrorCode, isAggregateError } from './errorUtils';
 
@@ -115,7 +115,7 @@ export async function hasStatusCode(
         url,
         // Using OPTIONS method to avoid downloading the entire file. Could also
         // use HEAD, but the response seems slightly smaller for OPTIONS.
-        { method: 'OPTIONS', timeout: SERVER_STATUS_CHECK_INTERVAL },
+        { method: 'OPTIONS', timeout: SERVER_STATUS_CHECK_TIMEOUT },
         res => {
           removeListenersAndResolve(res.statusCode === statusCode);
         }

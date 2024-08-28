@@ -88,7 +88,7 @@ export function getServerDescription(
  * @returns
  */
 export function isSupportedLanguageId(
-  maybeSupported: string
+  maybeSupported?: string | null
 ): maybeSupported is ConsoleType {
   return SERVER_LANGUAGE_SET.has(maybeSupported as ConsoleType);
 }

@@ -17,6 +17,7 @@ import {
   ExtendedMap,
   getEditorForUri,
   getTempDir,
+  isSupportedLanguageId,
   Logger,
   OutputChannelWithHistory,
   Toaster,
@@ -57,7 +58,7 @@ export class ExtensionController implements Disposable {
     this.initializeConnectionController();
     this.initializeCommands();
     this.initializeWebViews();
-    this.initializePolling();
+    this.initializeServerUpdates();
 
     logger.info(
       'Congratulations, your extension "vscode-deephaven" is now active!'
@@ -298,18 +299,49 @@ export class ExtensionController implements Disposable {
   };
 
   /**
-   * Listen to events that will enable / disable server polling.
+   * Listen to events that will potentially update server statuses.
    */
-  initializePolling = (): void => {
+  initializeServerUpdates = (): void => {
     assertDefined(this._serverTreeView, 'serverManager');
 
     vscode.window.onDidChangeWindowState(
-      this.onUpdateServerPolling,
+      this.maybeUpdateServerStatuses,
       undefined,
       this._context.subscriptions
     );
 
-    this._serverTreeView.onDidChangeVisibility(this.onUpdateServerPolling);
+    vscode.window.onDidChangeActiveTextEditor(
+      editor => {
+        if (isSupportedLanguageId(editor?.document.languageId)) {
+          this.maybeUpdateServerStatuses();
+        }
+      },
+      undefined,
+      this._context.subscriptions
+    );
+
+    this._serverTreeView.onDidChangeVisibility(this.maybeUpdateServerStatuses);
+
+    this.maybeUpdateServerStatuses();
+  };
+
+  /**
+   * Update server statuses if server tree view is visible and vscode window is
+   * active and focused.
+   */
+  maybeUpdateServerStatuses = (): void => {
+    // Only check servers if vscode window is active and focused and server
+    // connection tree is visible
+    const shouldUpdate =
+      this._serverTreeView?.visible &&
+      vscode.window.state.active &&
+      vscode.window.state.focused;
+
+    if (!shouldUpdate) {
+      return;
+    }
+
+    this._serverManager?.updateStatus();
   };
 
   /**
@@ -388,21 +420,6 @@ export class ExtensionController implements Disposable {
     const dhService =
       await this._connectionController.getOrCreateConnection(uri);
     await dhService?.runEditorCode(editor, true);
-  };
-
-  /**
-   * Enable / disable server polling based on whether server tree view is visible
-   * and vscode window is active and focused.
-   */
-  onUpdateServerPolling = (): void => {
-    // Only poll servers if vscode window is active and focused and server
-    // connection tree is visible
-    const enablePolling =
-      this._serverTreeView?.visible &&
-      vscode.window.state.active &&
-      vscode.window.state.focused;
-
-    this._serverManager?.setPolling(enablePolling ?? false);
   };
 
   /**

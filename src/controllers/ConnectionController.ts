@@ -228,9 +228,12 @@ export class ConnectionController implements Disposable {
 
     const editor = vscode.window.activeTextEditor;
 
-    // In case this is called before the server manager has polled for servers,
-    // we want to make sure at least one check for running servers is done.
-    await this._serverManager.ensureHasPolledServers();
+    // In case this is called before the server manager has checked server
+    // statuses, we want to make sure at least one check for running servers is
+    // done.
+    if (!this._serverManager.hasEverUpdatedStatus()) {
+      await this._serverManager.updateStatus();
+    }
 
     const runningServersWithoutConnections = this._serverManager.getServers({
       isRunning: true,

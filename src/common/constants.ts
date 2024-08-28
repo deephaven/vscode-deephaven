@@ -12,7 +12,7 @@ export const CONFIG_KEY = {
 export const DEFAULT_CONSOLE_TYPE = 'python' as const;
 // export const DHFS_SCHEME = 'dhfs';
 
-export const SERVER_STATUS_CHECK_INTERVAL = 3000;
+export const SERVER_STATUS_CHECK_TIMEOUT = 3000;
 
 export const STATUS_BAR_DISCONNECTED_TEXT = 'Deephaven: Disconnected';
 export const STATUS_BAR_DISCONNECT_TEXT = 'Deephaven: Disconnect';
