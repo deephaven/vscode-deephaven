@@ -9,7 +9,8 @@ export async function isDheServerRunning(serverUrl: URL): Promise<boolean> {
   try {
     return await hasStatusCode(
       new URL('irisapi/irisapi.nocache.js', serverUrl.toString()),
-      200
+      200,
+      204
     );
   } catch {
     return false;

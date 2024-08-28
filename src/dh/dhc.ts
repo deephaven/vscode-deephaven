@@ -26,7 +26,8 @@ export async function isDhcServerRunning(serverUrl: URL): Promise<boolean> {
   try {
     return await hasStatusCode(
       new URL('jsapi/dh-core.js', serverUrl.toString()),
-      200
+      200,
+      204
     );
   } catch {
     return false;
