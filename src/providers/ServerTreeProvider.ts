@@ -6,7 +6,7 @@ import {
 } from '../common';
 import { TreeDataProviderBase } from './TreeDataProviderBase';
 import type { ServerGroupState, ServerNode } from '../types/treeViewTypes';
-import { getServerDescription } from '../util';
+import { getServerDescription, getServerIconPath } from '../util';
 
 function isServerGroupState(node: ServerNode): node is ServerGroupState {
   return typeof node === 'string';
@@ -77,13 +77,7 @@ export class ServerTreeProvider extends TreeDataProviderBase<ServerNode> {
       tooltip: canConnect ? `Click to connect to ${urlStr}` : urlStr,
       contextValue: element.type === 'DHC' ? contextValue : undefined,
       iconPath: new vscode.ThemeIcon(
-        isRunning
-          ? isConnected
-            ? ICON_ID.serverConnected
-            : ICON_ID.serverRunning
-          : isManaged
-            ? ICON_ID.connecting
-            : ICON_ID.serverStopped
+        getServerIconPath({ isConnected, isManaged, isRunning })
       ),
       command: canConnect
         ? {

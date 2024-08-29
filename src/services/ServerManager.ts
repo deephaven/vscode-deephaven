@@ -11,15 +11,33 @@ import type {
   ServerState,
 } from '../types';
 import { getInitialServerStates, Logger } from '../util';
+import { URLMap } from './URLMap';
 
 const logger = new Logger('ServerManager');
 
 export class ServerManager implements IServerManager {
+  constructor(
+    configService: IConfigService,
+    dhcServiceFactory: IDhServiceFactory
+  ) {
+    this._configService = configService;
+    this._dhcServiceFactory = dhcServiceFactory;
+
+    this._serverMap = new URLMap();
+    this._connectionMap = new URLMap();
+    this._uriConnectionsMap = new Map();
+    this._poller = new PollingService();
+
+    this.loadServerConfig();
+
+    this.loadServerConfig();
+  }
+
   private readonly _configService: IConfigService;
   private readonly _connectionMap: Map<URL, IDhService>;
   private readonly _dhcServiceFactory: IDhServiceFactory;
   private readonly _uriConnectionsMap: Map<vscode.Uri, IDhService>;
-  private _serverMap: Map<URL, ServerState>;
+  private _serverMap: URLMap<ServerState>;
 
   private readonly _onDidConnect = new vscode.EventEmitter<URL>();
   readonly onDidConnect = this._onDidConnect.event;
@@ -39,20 +57,6 @@ export class ServerManager implements IServerManager {
 
   private _hasEverUpdatedStatus = false;
 
-  constructor(
-    configService: IConfigService,
-    dhcServiceFactory: IDhServiceFactory
-  ) {
-    this._configService = configService;
-    this._dhcServiceFactory = dhcServiceFactory;
-
-    this._serverMap = new Map();
-    this._connectionMap = new Map();
-    this._uriConnectionsMap = new Map();
-
-    this.loadServerConfig();
-  }
-
   loadServerConfig = (): void => {
     const initialDhcServerState = getInitialServerStates(
       'DHC',
@@ -64,7 +68,7 @@ export class ServerManager implements IServerManager {
       this._configService.getEnterpriseServers()
     );
 
-    this._serverMap = new Map(
+    this._serverMap = new URLMap(
       [...initialDhcServerState, ...initialDheServerState].map(state => [
         state.url,
         state,
@@ -240,9 +244,11 @@ export class ServerManager implements IServerManager {
   };
 
   syncManagedServers = (urls: URL[]): void => {
+    const urlStrSet = new Set(urls.map(String));
+
     // Remove any existing servers that aren't in the new list of urls.
     for (const server of this._serverMap.values()) {
-      if (server.isManaged && !urls.includes(server.url)) {
+      if (server.isManaged && !urlStrSet.has(server.url.toString())) {
         this.disconnectFromServer(server.url);
         this._serverMap.delete(server.url);
       }
@@ -255,7 +261,10 @@ export class ServerManager implements IServerManager {
 
     // Add any new servers that aren't already in the server
     for (const server of toAdd) {
-      this._serverMap.set(server.url, { ...server, isManaged: true });
+      this._serverMap.set(server.url, {
+        ...server,
+        isManaged: true,
+      });
     }
 
     this._onDidUpdate.fire();
@@ -264,26 +273,29 @@ export class ServerManager implements IServerManager {
   updateStatus = async (): Promise<void> => {
     logger.debug('Updating server statuses.');
 
-    const promises = this.getServers().map(server =>
-      (server.type === 'DHC'
+    const promises = this.getServers().map(async server => {
+      const isRunning = await (server.type === 'DHC'
         ? isDhcServerRunning(server.url)
-        : isDheServerRunning(server.url)
-      ).then(isRunning => {
-        this._serverMap.set(server.url, {
-          ...server,
-          isRunning,
-        });
-        if ((server.isRunning ?? false) !== isRunning) {
-          // If server goes from running to stopped, get rid of any active
-          // connections to it.
-          if (!isRunning) {
-            this.disconnectFromServer(server.url);
-          }
+        : isDheServerRunning(server.url));
 
-          this._onDidUpdate.fire();
+      const newServerState = {
+        ...server,
+        isRunning,
+      };
+
+      this._serverMap.set(server.url, newServerState);
+
+      if ((server.isRunning ?? false) !== newServerState.isRunning) {
+        // If server goes from running to stopped, get rid of any active
+        // connections to it.
+        if (!isRunning) {
+          void this.disconnectFromServer(server.url);
         }
-      })
-    );
+
+        this._onDidUpdate.fire();
+        this._onDidServerStatusChange.fire(newServerState);
+      }
+    });
 
     await Promise.all(promises);
 

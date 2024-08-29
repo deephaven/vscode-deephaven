@@ -1,5 +1,11 @@
 import * as vscode from 'vscode';
 
+// Branded type helpers
+declare const __brand: unique symbol;
+export type Brand<T extends string, TBase = string> = TBase & {
+  readonly [__brand]: T;
+};
+
 export type ConnectionType = 'DHC';
 
 export type ConnectionAndSession<TConnection, TSession> = {
@@ -21,7 +27,8 @@ export interface CoreConnectionConfig {
   url: URL;
 }
 
-export type EnterpriseConnectionConfigStored = string;
+export type EnterpriseConnectionConfigStored =
+  Brand<'EnterpriseConnectionConfigStored'>;
 
 export interface EnterpriseConnectionConfig {
   label?: string;

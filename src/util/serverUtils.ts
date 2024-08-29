@@ -6,7 +6,7 @@ import type {
   EnterpriseConnectionConfig,
   CoreConnectionConfig,
 } from '../types';
-import { SERVER_LANGUAGE_SET } from '../common';
+import { ICON_ID, SERVER_LANGUAGE_SET } from '../common';
 
 /**
  * Get initial server states based on server configs.
@@ -85,6 +85,30 @@ export function getServerDescription(
   }
 
   return `${label} (${connectionCount})`;
+}
+
+/**
+ * Get icon path for a server in the UI. e.g. for tree nodes.
+ * @param isConnected
+ * @param isManaged
+ * @param isRunning
+ */
+export function getServerIconPath({
+  isConnected,
+  isManaged,
+  isRunning,
+}: {
+  isConnected: boolean;
+  isManaged: boolean;
+  isRunning: boolean;
+}): string {
+  return isRunning
+    ? isConnected
+      ? ICON_ID.serverConnected
+      : ICON_ID.serverRunning
+    : isManaged
+      ? ICON_ID.connecting
+      : ICON_ID.serverStopped;
 }
 
 /**
