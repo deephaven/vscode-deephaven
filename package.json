@@ -224,7 +224,7 @@
         {
           "command": "vscode-deephaven.startServer",
           "group": "navigation",
-          "when": "view == vscode-deephaven.serverTree"
+          "when": "view == vscode-deephaven.serverTree && deephaven.canManageServers"
         },
         {
           "command": "vscode-deephaven.refreshServerConnectionTree",

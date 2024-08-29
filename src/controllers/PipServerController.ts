@@ -1,9 +1,7 @@
 import * as vscode from 'vscode';
-import * as fs from 'node:fs';
-import * as path from 'node:path';
-import { getTempDir, Logger } from '../util';
+import { Logger } from '../util';
 import type { Disposable, IServerManager, IToastService } from '../types';
-import { PIP_SERVER_STATUS_DIRECTORY } from '../common';
+import { GLOBAL_CONTEXT } from '../common';
 
 const logger = new Logger('PipServerController');
 
@@ -11,68 +9,111 @@ type Port = number;
 
 export class PipServerController implements Disposable {
   constructor(
+    context: vscode.ExtensionContext,
     serverManager: IServerManager,
     portRange: number[],
     outputChannel: vscode.OutputChannel,
     toastService: IToastService
   ) {
+    this._context = context;
     this._portRange = new Set(portRange);
     this._serverUrlTerminalMap = new Map();
     this._serverManager = serverManager;
     this._outputChannel = outputChannel;
     this._toaster = toastService;
 
-    vscode.window.onDidCloseTerminal(terminal => {
-      for (const [p, t] of this._serverUrlTerminalMap.entries()) {
-        if (t === terminal) {
-          this._serverUrlTerminalMap.delete(p);
-          this.syncManagedServers();
-          break;
+    vscode.window.onDidCloseTerminal(
+      terminal => {
+        for (const [p, t] of this._serverUrlTerminalMap.entries()) {
+          if (t === terminal) {
+            this._serverUrlTerminalMap.delete(p);
+            this.syncManagedServers();
+            break;
+          }
         }
-      }
-    });
+      },
+      undefined,
+      this._context.subscriptions
+    );
   }
 
+  private readonly _context: vscode.ExtensionContext;
   private readonly _outputChannel: vscode.OutputChannel;
   private readonly _portRange: Set<Port>;
   private readonly _serverUrlTerminalMap: Map<Port, vscode.Terminal>;
   private readonly _serverManager: IServerManager;
   private readonly _toaster: IToastService;
   private readonly _failedServerStarts: Set<vscode.Terminal> = new Set();
+  private _checkPipInstallPromise: Promise<boolean> | null = null;
 
-  healthCheck = async (
-    terminal: vscode.Terminal,
-    port: number
-  ): Promise<void> => {
-    const cwd = getTempDir(false, PIP_SERVER_STATUS_DIRECTORY);
-    const statusFileName = `status-${port}.txt`;
-    const statusFilePath = path.join(cwd, statusFileName);
+  /**
+   * Start a terminal and attempt an import of `deephaven_server` to check if
+   * servers can be managed from the extension.
+   */
+  checkPipInstall = async (): Promise<boolean> => {
+    if (this._checkPipInstallPromise == null) {
+      this._checkPipInstallPromise = new Promise(async resolve => {
+        const terminal = vscode.window.createTerminal({
+          name: `Deephaven check pip server install`,
+          isTransient: true,
+        });
 
-    try {
-      fs.unlinkSync(statusFilePath);
-    } catch {}
+        // Give python extension time to setup .venv if configured
+        await waitFor(1000);
 
-    // Send text to a tmp file if `deephaven` command is successful
-    terminal.sendText(`deephaven && echo ready > ${statusFilePath}`);
+        terminal.sendText(`python -c 'import deephaven_server;' || exit 2`);
+        terminal.sendText('exit 0');
 
-    void waitFor(3000).then(() => {
-      // Get result of status check from tmp file
-      const isReady = fs.existsSync(statusFilePath);
+        const subscription = vscode.window.onDidCloseTerminal(
+          t => {
+            if (t === terminal) {
+              subscription.dispose();
 
-      if (!isReady) {
-        // Hold on to the terminal so user can see any errors, but remove from
-        // the managed servers list.
-        this._failedServerStarts.add(terminal);
-        this._serverUrlTerminalMap.delete(port);
-        this.syncManagedServers();
+              resolve(t.exitStatus?.code === 0);
+              this._checkPipInstallPromise = null;
+            }
+          },
+          undefined,
+          this._context.subscriptions
+        );
+      });
+    }
 
-        const msg = `Failed to start server on port ${port}`;
-        logger.error(msg);
-        this._outputChannel.appendLine(msg);
-        this._toaster.error(msg);
-      }
-    });
+    return this._checkPipInstallPromise;
   };
+  // healthCheck = async (
+  //   terminal: vscode.Terminal,
+  //   port: number
+  // ): Promise<void> => {
+  //   const cwd = getTempDir(false, PIP_SERVER_STATUS_DIRECTORY);
+  //   const statusFileName = `status-${port}.txt`;
+  //   const statusFilePath = path.join(cwd, statusFileName);
+
+  //   try {
+  //     fs.unlinkSync(statusFilePath);
+  //   } catch {}
+
+  //   // Send text to a tmp file if `deephaven` command is successful
+  //   terminal.sendText(`deephaven && echo ready > ${statusFilePath}`);
+
+  //   void waitFor(3000).then(() => {
+  //     // Get result of status check from tmp file
+  //     const isReady = fs.existsSync(statusFilePath);
+
+  //     if (!isReady) {
+  //       // Hold on to the terminal so user can see any errors, but remove from
+  //       // the managed servers list.
+  //       this._failedServerStarts.add(terminal);
+  //       this._serverUrlTerminalMap.delete(port);
+  //       this.syncManagedServers();
+
+  //       const msg = `Failed to start server on port ${port}`;
+  //       logger.error(msg);
+  //       this._outputChannel.appendLine(msg);
+  //       this._toaster.error(msg);
+  //     }
+  //   });
+  // };
 
   getAvailablePorts = (): Port[] => {
     return [...this._portRange]
@@ -106,7 +147,8 @@ export class PipServerController implements Disposable {
     // Give python extension time to setup .venv if configured
     await waitFor(1000);
 
-    void this.healthCheck(terminal, port);
+    terminal.sendText(`python -c 'import deephaven_server;' || exit 2`);
+    // void this.healthCheck(terminal, port);
 
     terminal.sendText(
       [
@@ -136,6 +178,19 @@ export class PipServerController implements Disposable {
   };
 
   syncManagedServers = async (): Promise<void> => {
+    const canManageServers = await this.checkPipInstall();
+
+    vscode.commands.executeCommand(
+      'setContext',
+      GLOBAL_CONTEXT.canManageServers,
+      canManageServers
+    );
+
+    if (!canManageServers) {
+      this._serverManager.syncManagedServers([]);
+      return;
+    }
+
     const ports = [...this._serverUrlTerminalMap.keys()];
 
     this._serverManager.syncManagedServers(

@@ -55,6 +55,10 @@ export const CONNECTION_TREE_ITEM_CONTEXT = {
   isUri: 'isUri',
 } as const;
 
+export const GLOBAL_CONTEXT = {
+  canManageServers: 'deephaven.canManageServers',
+};
+
 export const SERVER_TREE_ITEM_CONTEXT = {
   isManagedServerConnected: 'isManagedServerConnected',
   isManagedServerConnecting: 'isManagedServerConnecting',

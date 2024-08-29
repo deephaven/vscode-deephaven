@@ -144,6 +144,7 @@ export class ExtensionController implements Disposable {
     assertDefined(this._toaster, 'toaster');
 
     this._pipServerController = new PipServerController(
+      this._context,
       this._serverManager!,
       [10001, 10002, 10003, 10004],
       this._outputChannel,
@@ -435,6 +436,7 @@ export class ExtensionController implements Disposable {
 
   onRefreshServerTree = async (): Promise<void> => {
     await this._serverManager?.updateStatus();
+    this._pipServerController?.syncManagedServers();
     this._serverTreeProvider?.refresh();
   };
 
