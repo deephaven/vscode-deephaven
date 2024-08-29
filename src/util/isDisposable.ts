@@ -1,4 +1,4 @@
-import { Disposable } from '../common';
+import type { Disposable } from '../types';
 
 /**
  * Typeguard to determine if given object has a `disposable` method.

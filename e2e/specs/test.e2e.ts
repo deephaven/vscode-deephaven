@@ -24,7 +24,7 @@ describe('VS Code Extension Testing', () => {
 describe('Connection status bar item', () => {
   beforeEach(async () => {
     await setConfigSectionSettings(
-      'core-servers',
+      'coreServers',
       PYTHON_AND_GROOVY_SERVER_CONFIG
     );
     await openEditors(['test.txt', 'test.groovy', 'test.py']);
@@ -48,10 +48,6 @@ describe('Connection status bar item', () => {
 
       await workbench.getEditorView().openEditor(supportedTitle);
       expect(await hasConnectionStatusBarItem()).toBeTruthy();
-
-      // Set to empty array to clear all server configs
-      await setConfigSectionSettings('core-servers', []);
-      expect(await hasConnectionStatusBarItem()).toBeFalsy();
     });
   });
 });

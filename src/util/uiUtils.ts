@@ -1,19 +1,23 @@
 import * as vscode from 'vscode';
 import {
-  CoreConnectionConfig,
-  ConnectionType,
-  ConsoleType,
   SELECT_CONNECTION_COMMAND,
   STATUS_BAR_CONNECTING_TEXT,
   STATUS_BAR_DISCONNECTED_TEXT,
-  STATUS_BAR_DISCONNECT_TEXT,
+  ICON_ID,
 } from '../common';
+import type {
+  ConnectionType,
+  ConsoleType,
+  ConnectionPickItem,
+  IDhService,
+  ServerState,
+  SeparatorPickItem,
+} from '../types';
 
 export interface ConnectionOption {
   type: ConnectionType;
   label: string;
-  url: string;
-  consoleType: ConsoleType;
+  url: URL;
 }
 
 export interface DisconnectOption {
@@ -28,32 +32,66 @@ export interface WorkspaceFolderConfig {
 
 /**
  * Create quickpick for selecting a connection.
- * @param connectionOptions
- * @param selectedUrl
  */
 export async function createConnectionQuickPick(
-  connectionOptions: ConnectionOption[],
-  selectedUrl?: string | null
-): Promise<ConnectionOption | DisconnectOption | undefined> {
-  const options: (ConnectionOption | DisconnectOption)[] = [
-    ...connectionOptions.map(option => ({
-      ...option,
-      label: formatConnectionLabel(
-        option.label,
-        option.url === selectedUrl,
-        option.consoleType
-      ),
-    })),
-  ];
+  servers: ServerState[],
+  connections: IDhService[],
+  editorLanguageId: string,
+  editorActiveConnectionUrl?: URL | null
+): Promise<ServerState | IDhService | null> {
+  const serverOptions: ConnectionPickItem<'server', ServerState>[] =
+    servers.map(data => ({
+      type: 'server',
+      label: data.url.toString(),
+      description: data.label,
+      iconPath: new vscode.ThemeIcon(ICON_ID.server),
+      data,
+    }));
 
-  if (selectedUrl != null) {
-    options.unshift({
-      label: formatConnectionLabel(STATUS_BAR_DISCONNECT_TEXT, false),
-      url: null,
+  const connectionOptions: ConnectionPickItem<'connection', IDhService>[] = [];
+
+  for (const dhService of connections) {
+    const isActiveConnection =
+      editorActiveConnectionUrl?.toString() === dhService.serverUrl.toString();
+
+    connectionOptions.push({
+      type: 'connection',
+      label: dhService.serverUrl.toString(),
+      iconPath: new vscode.ThemeIcon(ICON_ID.connected),
+      description: isActiveConnection
+        ? `${editorLanguageId} (current)`
+        : editorLanguageId,
+      data: dhService,
     });
   }
 
-  return vscode.window.showQuickPick(options);
+  if (serverOptions.length === 0 && connectionOptions.length === 0) {
+    throw new Error('No available servers to connect to.');
+  }
+
+  const options: (
+    | SeparatorPickItem
+    | ConnectionPickItem<'server', ServerState>
+    | ConnectionPickItem<'connection', IDhService>
+  )[] = [
+    {
+      label: 'Active Connections',
+      kind: vscode.QuickPickItemKind.Separator,
+    },
+    ...connectionOptions,
+    { label: 'Connect to Server', kind: vscode.QuickPickItemKind.Separator },
+    ...serverOptions,
+  ];
+
+  const result = await vscode.window.showQuickPick(options, {
+    title: 'Connect Editor',
+  });
+
+  if (result == null || !('type' in result)) {
+    return null;
+  }
+
+  return result.data;
 }
 
 /**
@@ -63,13 +101,12 @@ export function createConnectStatusBarItem(
   show: boolean
 ): vscode.StatusBarItem {
   const statusBarItem = vscode.window.createStatusBarItem(
-    vscode.StatusBarAlignment.Left,
-    100
+    vscode.StatusBarAlignment.Right,
+    2000
   );
   statusBarItem.command = SELECT_CONNECTION_COMMAND;
-  const { text, tooltip } = createConnectTextAndTooltip('disconnected');
+  const text = createConnectText('disconnected');
   statusBarItem.text = text;
-  statusBarItem.tooltip = tooltip;
 
   if (show) {
     statusBarItem.show();
@@ -85,44 +122,26 @@ export function createConnectStatusBarItem(
  * @param type The type of connection
  */
 export function createConnectionOption(type: ConnectionType) {
-  return ({
-    url: serverUrl,
-    consoleType,
-  }: CoreConnectionConfig): ConnectionOption => {
-    const url = new URL(serverUrl ?? '');
+  return (url: URL): ConnectionOption => {
     const label = `${type}: ${url.hostname}:${url.port}`;
 
-    return { type, consoleType, label, url: serverUrl };
+    return { type, label, url };
   };
 }
 
 /**
- * Create connection options from core connection configs.
- * @param coreConnectionConfigs The core connection configs to create options from.
- */
-export function createConnectionOptions(
-  coreConnectionConfigs: CoreConnectionConfig[]
-): ConnectionOption[] {
-  const connectionOptions: ConnectionOption[] = [
-    ...coreConnectionConfigs.map(createConnectionOption('DHC')),
-  ];
-
-  return connectionOptions;
-}
-
-/**
- * Create display text and tooltip for the connection status bar item.
+ * Create display text for the connection status bar item.
  * @param status The connection status
  * @param option The connection option
  */
-export function createConnectTextAndTooltip(
+export function createConnectText(
   status: 'connecting' | 'connected' | 'disconnected',
   option?: ConnectionOption
-): { text: string; tooltip: string } {
+): string {
   const icon = {
-    connecting: '$(sync~spin)',
-    connected: '$(vm-connect)',
-    disconnected: '$(debug-disconnect)',
+    connecting: `$(${ICON_ID.connecting})`,
+    connected: `$(${ICON_ID.connected})`,
+    disconnected: `$(${ICON_ID.disconnected})`,
   }[status];
 
   const label = {
@@ -131,18 +150,9 @@ export function createConnectTextAndTooltip(
     disconnected: STATUS_BAR_DISCONNECTED_TEXT,
   }[status];
 
-  const tooltip = {
-    connecting: `Connecting to ${option?.url}...`,
-    connected: `Connected to ${option?.url}`,
-    disconnected: 'Connect to Deephaven',
-  }[status];
-
   const text = `${icon} ${label}`;
 
-  return {
-    text,
-    tooltip,
-  };
+  return text;
 }
 
 /**
@@ -158,8 +168,8 @@ export function formatConnectionLabel(
 ): string {
   const consoleTypeStr = consoleType ? ` (${consoleType})` : '';
   return isSelected
-    ? `$(vm-connect) ${label}${consoleTypeStr}`
-    : `$(blank) ${label}${consoleTypeStr}`;
+    ? `$(${ICON_ID.connected}) ${label}${consoleTypeStr}`
+    : `$(${ICON_ID.blank}) ${label}${consoleTypeStr}`;
 }
 
 // Copied from @deephaven/console `ConsoleUtils`
@@ -202,38 +212,7 @@ export async function getEditorForUri(
 }
 
 /**
- * Determine whether connection status bar item should be visible. Only show if either:
- * 1. A connection is already selected or
- * 2. The active text editor has a languageid that is supported by the currently
- * configured server connections.
- */
-export function shouldShowConnectionStatusBarItem(
-  connectionOptions: ConnectionOption[],
-  isAlreadyConnected: boolean
-): boolean {
-  if (isAlreadyConnected) {
-    return true;
-  }
-
-  if (
-    vscode.window.activeTextEditor?.document.languageId === 'python' &&
-    connectionOptions.some(c => c.consoleType === 'python')
-  ) {
-    return true;
-  }
-
-  if (
-    vscode.window.activeTextEditor?.document.languageId === 'groovy' &&
-    connectionOptions.some(c => c.consoleType === 'groovy')
-  ) {
-    return true;
-  }
-
-  return false;
-}
-
-/**
- * Update text and tooltip of given status bar item based on connection status
+ * Update given status bar item based on connection status
  * and optional `ConnectionOption`.
  * @param statusBarItem The status bar item to update
  * @param status The connection status
@@ -248,7 +227,6 @@ export function updateConnectionStatusBarItem(
     return;
   }
 
-  const { text, tooltip } = createConnectTextAndTooltip(status, option);
+  const text = createConnectText(status, option);
   statusBarItem.text = text;
-  statusBarItem.tooltip = tooltip;
 }

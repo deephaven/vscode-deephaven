@@ -1,7 +1,12 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { hasErrorCode } from '../util/typeUtils';
-import { ConnectionAndSession, Disposable } from '../common';
+import type {
+  ConnectionAndSession,
+  ConsoleType,
+  IDhService,
+  IToastService,
+} from '../types';
 import {
   ExtendedMap,
   formatTimestamp,
@@ -9,7 +14,6 @@ import {
   Logger,
   NoConsoleTypesError,
   parseServerError,
-  Toaster,
 } from '../util';
 import { EventDispatcher } from './EventDispatcher';
 
@@ -36,32 +40,16 @@ type CommandResultBase = {
   error: string;
 };
 
-/**
- * Helper type to make it easier to use `DhService` derived classes as newable
- * factory functions. This type should mirror the constructor of `DhService`.
- */
-export type DhServiceConstructor<
-  T extends DhService<TDH, TClient>,
-  TDH = unknown,
-  TClient = unknown,
-> = new (
-  serverUrl: string,
-  panelRegistry: ExtendedMap<string, vscode.WebviewPanel>,
-  diagnosticsCollection: vscode.DiagnosticCollection,
-  outputChannel: vscode.OutputChannel,
-  toaster: Toaster
-) => T;
-
 export abstract class DhService<TDH = unknown, TClient = unknown>
   extends EventDispatcher<'disconnect'>
-  implements Disposable
+  implements IDhService<TDH, TClient>
 {
   constructor(
-    serverUrl: string,
+    serverUrl: URL,
     panelRegistry: ExtendedMap<string, vscode.WebviewPanel>,
     diagnosticsCollection: vscode.DiagnosticCollection,
     outputChannel: vscode.OutputChannel,
-    toaster: Toaster
+    toaster: IToastService
   ) {
     super();
 
@@ -72,11 +60,11 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
     this.toaster = toaster;
   }
 
-  public readonly serverUrl: string;
+  public readonly serverUrl: URL;
   protected readonly subscriptions: (() => void)[] = [];
 
   protected readonly outputChannel: vscode.OutputChannel;
-  protected readonly toaster: Toaster;
+  protected readonly toaster: IToastService;
   private readonly panelRegistry: ExtendedMap<string, vscode.WebviewPanel>;
   private readonly diagnosticsCollection: vscode.DiagnosticCollection;
   private cachedCreateClient: Promise<TClient> | null = null;
@@ -144,6 +132,10 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
 
   public get isInitialized(): boolean {
     return this.cachedInitApi != null;
+  }
+
+  public get isConnected(): boolean {
+    return this.dh != null && this.cn != null && this.session != null;
   }
 
   public async initDh(): Promise<boolean> {
@@ -394,6 +386,23 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
 
     lastPanel?.reveal();
   }
+
+  getConsoleTypes = async (): Promise<Set<ConsoleType>> => {
+    if (this.cn == null) {
+      return new Set();
+    }
+
+    const consoleTypes = await (this.cn.getConsoleTypes() as Promise<
+      ConsoleType[]
+    >);
+
+    return new Set(consoleTypes);
+  };
+
+  supportsConsoleType = async (consoleType: ConsoleType): Promise<boolean> => {
+    const consoleTypes = await this.getConsoleTypes();
+    return consoleTypes.has(consoleType);
+  };
 }
 
 export default DhService;

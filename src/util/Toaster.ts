@@ -1,10 +1,11 @@
 import * as vscode from 'vscode';
 import { DOWNLOAD_LOGS_CMD, DOWNLOAD_LOGS_TEXT } from '../common';
+import type { IToastService } from '../types';
 
 /**
  * Show toast messages to user.
  */
-export class Toaster {
+export class Toaster implements IToastService {
   constructor() {}
 
   error = async (message: string): Promise<void> => {

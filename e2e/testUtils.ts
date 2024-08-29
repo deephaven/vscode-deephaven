@@ -5,14 +5,14 @@ import * as vscode from 'vscode';
 // passed in as additional parameters.
 // See https://www.npmjs.com/package/wdio-vscode-service#accessing-vscode-apis
 
-// EXTENSION_ID and ConfigSectionKey are based on `src/common/constants.ts`.
+// CONFIG_ROOT_KEY and ConfigSectionKey are based on `src/common/constants.ts`.
 // We can't currently import source code from the extension into the e2e tests
 // due to isolated tsconfigs. Should be fine for now since the duplication is
 // small and tests should fail if things get out of sync. If this duplication
 // grows, will need to figure out how to reconfigure to support importing from
 // the source code.
-const EXTENSION_ID = 'vscode-deephaven' as const;
-type ConfigSectionKey = 'core-servers' | 'enterprise-servers';
+const CONFIG_ROOT_KEY = 'deephaven' as const;
+type ConfigSectionKey = 'coreServers' | 'enterpriseServers';
 
 export const PYTHON_AND_GROOVY_SERVER_CONFIG = [
   'http://localhost:10000',
@@ -32,7 +32,7 @@ export async function findConnectionStatusBarItem(): Promise<
 
   return workbench.getStatusBar().getItem(
     // icon name, display text, tooltip
-    'debug-disconnect  Deephaven: Disconnected, Connect to Deephaven'
+    'plug  Deephaven: Disconnected'
   );
 }
 
@@ -80,15 +80,15 @@ export async function getConfig(): Promise<vscode.WorkspaceConfiguration> {
   // See note about `executeWorkbench` at top of this file.
   return browser.executeWorkbench(async (vs: typeof vscode, extensionIdIn) => {
     return vs.workspace.getConfiguration(extensionIdIn);
-  }, EXTENSION_ID);
+  }, CONFIG_ROOT_KEY);
 }
 
 /**
  * Reset all configuration settings to their default values.
  */
 export async function resetConfig(): Promise<void> {
-  await setConfigSectionSettings('core-servers', undefined);
-  await setConfigSectionSettings('enterprise-servers', undefined);
+  await setConfigSectionSettings('coreServers', undefined);
+  await setConfigSectionSettings('enterpriseServers', undefined);
 }
 
 /**
@@ -106,15 +106,15 @@ export async function setConfigSectionSettings(
   await browser.executeWorkbench(
     async (
       vs: typeof vscode,
-      extensionIdIn: typeof EXTENSION_ID,
+      configRootKeyIn: typeof CONFIG_ROOT_KEY,
       sectionKeyIn: ConfigSectionKey,
       sectionValueIn: unknown | undefined
     ): Promise<void> => {
       await vs.workspace
-        .getConfiguration(extensionIdIn)
+        .getConfiguration(configRootKeyIn)
         .update(sectionKeyIn, sectionValueIn ?? undefined);
     },
-    EXTENSION_ID,
+    CONFIG_ROOT_KEY,
     sectionKey,
     sectionValue
   );

@@ -46,9 +46,10 @@
   },
   "contributes": {
     "configuration": {
-      "title": "Deephaven in VS Code",
+      "title": "Deephaven",
       "properties": {
-        "vscode-deephaven.core-servers": {
+        "deephaven.coreServers": {
+          "description": "List of Deephaven Core servers that the extension can connect to.",
           "type": "array",
           "items": [
             {
@@ -63,31 +64,25 @@
                   "type": "string",
                   "description": "Deephaven Core server URL"
                 },
-                "consoleType": {
+                "label": {
                   "type": "string",
-                  "title": "Console Type",
-                  "description": "Console type",
-                  "default": "python",
-                  "enum": [
-                    "python",
-                    "groovy"
-                  ]
+                  "title": "Label",
+                  "description": "Optional label for the server"
                 }
               }
             }
           ],
           "default": [
             "http://localhost:10000/"
-          ],
-          "description": "Deephaven Core servers"
+          ]
         },
-        "vscode-deephaven.enterprise-servers": {
+        "deephaven.enterpriseServers": {
+          "description": "List of Deephaven Enterprise servers that the extension can connect to.",
           "type": "array",
           "items": {
             "type": "string"
           },
-          "default": [],
-          "description": "Deephaven Enterprise servers"
+          "default": []
         }
       }
     },
@@ -115,16 +110,74 @@
       {
         "command": "vscode-deephaven.downloadLogs",
         "title": "Deephaven: Download Logs"
+      },
+      {
+        "command": "vscode-deephaven.connectToServer",
+        "title": "Deephaven: Connect to Server",
+        "icon": "$(plug)"
+      },
+      {
+        "command": "vscode-deephaven.disconnectEditor",
+        "title": "Deephaven: Disconnect Editor",
+        "icon": "$(debug-disconnect)"
+      },
+      {
+        "command": "vscode-deephaven.disconnectFromServer",
+        "title": "Deephaven: Discard Connection",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "vscode-deephaven.openInBrowser",
+        "title": "Deephaven: Open in Browser",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "vscode-deephaven.refreshServerTree",
+        "title": "Deephaven: Refresh Server Tree",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "vscode-deephaven.refreshServerConnectionTree",
+        "title": "Deephaven: Refresh Server Connection Tree",
+        "icon": "$(refresh)"
       }
     ],
     "menus": {
       "commandPalette": [
         {
+          "command": "vscode-deephaven.selectConnection",
+          "when": "true"
+        },
+        {
+          "command": "vscode-deephaven.downloadLogs",
+          "when": "true"
+        },
+        {
           "command": "vscode-deephaven.runCode",
-          "when": "false"
+          "when": "true"
         },
         {
           "command": "vscode-deephaven.runSelection",
+          "when": "true"
+        },
+        {
+          "command": "vscode-deephaven.connectToServer",
+          "when": "false"
+        },
+        {
+          "command": "vscode-deephaven.disconnectEditor",
+          "when": "false"
+        },
+        {
+          "command": "vscode-deephaven.disconnectFromServer",
+          "when": "false"
+        },
+        {
+          "command": "vscode-deephaven.refreshServerTree",
+          "when": "false"
+        },
+        {
+          "command": "vscode-deephaven.refreshServerConnectionTree",
           "when": "false"
         }
       ],
@@ -150,6 +203,63 @@
           "command": "vscode-deephaven.runSelection",
           "group": "navigation",
           "when": "editorLangId == python || editorLangId == groovy"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "vscode-deephaven.refreshServerTree",
+          "group": "navigation",
+          "when": "view == vscode-deephaven.serverTree"
+        },
+        {
+          "command": "vscode-deephaven.refreshServerConnectionTree",
+          "group": "navigation",
+          "when": "view == vscode-deephaven.serverConnectionTree"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "vscode-deephaven.connectToServer",
+          "when": "view == vscode-deephaven.serverTree && viewItem == isServerRunningDisconnected",
+          "group": "inline"
+        },
+        {
+          "command": "vscode-deephaven.disconnectEditor",
+          "when": "view == vscode-deephaven.serverConnectionTree && viewItem != isConnection",
+          "group": "inline"
+        },
+        {
+          "command": "vscode-deephaven.disconnectFromServer",
+          "when": "view == vscode-deephaven.serverConnectionTree && viewItem == isConnection",
+          "group": "inline"
+        },
+        {
+          "command": "vscode-deephaven.openInBrowser",
+          "when": "view == vscode-deephaven.serverTree && (viewItem == isServerRunningConnected || viewItem == isServerRunningDisconnected)",
+          "group": "inline"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "vscode-deephaven",
+          "title": "Deephaven",
+          "icon": "images/dh-community-on-dark-128.svg"
+        }
+      ]
+    },
+    "views": {
+      "vscode-deephaven": [
+        {
+          "id": "vscode-deephaven.serverTree",
+          "name": "Servers",
+          "type": "tree"
+        },
+        {
+          "id": "vscode-deephaven.serverConnectionTree",
+          "name": "Connections",
+          "type": "tree"
         }
       ]
     }

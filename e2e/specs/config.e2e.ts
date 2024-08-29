@@ -11,8 +11,8 @@ describe('Extension config testing', () => {
     const config = await getConfig();
 
     expect(config).toStrictEqual({
-      'core-servers': ['http://localhost:10000/'],
-      'enterprise-servers': [],
+      coreServers: ['http://localhost:10000/'],
+      enterpriseServers: [],
     });
   });
 
@@ -27,14 +27,14 @@ describe('Extension config testing', () => {
     ] as const
   ).forEach(([label, coreServers, enterpriseServers]) => {
     it(`should return custom settings: ${label}`, async () => {
-      await setConfigSectionSettings('core-servers', coreServers);
-      await setConfigSectionSettings('enterprise-servers', enterpriseServers);
+      await setConfigSectionSettings('coreServers', coreServers);
+      await setConfigSectionSettings('enterpriseServers', enterpriseServers);
 
       const config = await getConfig();
 
       expect(config).toStrictEqual({
-        'core-servers': coreServers,
-        'enterprise-servers': enterpriseServers,
+        coreServers,
+        enterpriseServers,
       });
     });
   });

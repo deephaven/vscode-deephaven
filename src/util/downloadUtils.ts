@@ -2,8 +2,9 @@ import * as fs from 'node:fs';
 import * as http from 'node:http';
 import * as https from 'node:https';
 import * as path from 'node:path';
-import { TMP_DIR_ROOT } from '../common';
+import { SERVER_STATUS_CHECK_TIMEOUT, TMP_DIR_ROOT } from '../common';
 import { Logger } from './Logger';
+import { hasErrorCode, isAggregateError } from './errorUtils';
 
 const logger = new Logger('downloadUtils');
 
@@ -96,5 +97,57 @@ export async function downloadFromURL(
           reject(e);
         }
       });
+  });
+}
+
+/**
+ * Check if a given url returns an expected status code.
+ */
+export async function hasStatusCode(
+  url: URL,
+  ...statusCodes: number[]
+): Promise<boolean> {
+  return new Promise(resolve => {
+    const transporter = url.protocol === 'http:' ? http : https;
+
+    const request = transporter
+      .request(
+        url,
+        // Using OPTIONS method to avoid downloading the entire file. Could also
+        // use HEAD, but the response seems slightly smaller for OPTIONS.
+        { method: 'OPTIONS', timeout: SERVER_STATUS_CHECK_TIMEOUT },
+        res => {
+          removeListenersAndResolve(
+            statusCodes.includes(res.statusCode as number)
+          );
+        }
+      )
+      .on('timeout', () => {
+        removeListenersAndResolve(false);
+      })
+      .on('error', err => {
+        // Expected errors for non-existing / stopped servers.
+        const isServerStoppedError = isAggregateError(err, 'ECONNREFUSED');
+        const isServerNotFoundError = hasErrorCode(err, 'ENOTFOUND');
+
+        if (!isServerStoppedError && !isServerNotFoundError) {
+          logger.error('Error when checking:', url.toString(), err);
+        }
+
+        removeListenersAndResolve(false);
+      })
+      .end();
+
+    /**
+     * Any time we resolve the Promise, remove listeners to avoid handling
+     * additional events and destroy the request stream to avoid any additional
+     * processing.
+     */
+    function removeListenersAndResolve(value: boolean): void {
+      request.removeAllListeners();
+      request.destroy();
+
+      resolve(value);
+    }
   });
 }

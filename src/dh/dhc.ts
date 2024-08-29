@@ -4,11 +4,12 @@ import type { dh as DhType } from '@deephaven/jsapi-types';
 import {
   downloadFromURL,
   getTempDir,
+  hasStatusCode,
   NoConsoleTypesError,
   polyfillDh,
   urlToDirectoryName,
 } from '../util';
-import { ConnectionAndSession } from '../common';
+import type { ConnectionAndSession } from '../types';
 
 export const AUTH_HANDLER_TYPE_ANONYMOUS =
   'io.deephaven.auth.AnonymousAuthenticationHandler';
@@ -17,21 +18,38 @@ export const AUTH_HANDLER_TYPE_PSK =
   'io.deephaven.authentication.psk.PskAuthenticationHandler';
 
 /**
+ * Check if a given server is running by checking if the `dh-core.js` file is
+ * accessible.
+ * @param serverUrl
+ */
+export async function isDhcServerRunning(serverUrl: URL): Promise<boolean> {
+  try {
+    return await hasStatusCode(
+      new URL('jsapi/dh-core.js', serverUrl.toString()),
+      200,
+      204
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Get embed widget url for a widget.
  * @param serverUrl
  * @param title
  * @param psk
  */
 export function getEmbedWidgetUrl(
-  serverUrl: string,
+  serverUrl: URL,
   title: string,
   psk?: string
 ): string {
-  serverUrl = serverUrl.replace(/\/$/, '');
-  return `${serverUrl}/iframe/widget/?name=${title}${psk ? `&psk=${psk}` : ''}`;
+  const serverUrlStr = serverUrl.toString().replace(/\/$/, '');
+  return `${serverUrlStr}/iframe/widget/?name=${title}${psk ? `&psk=${psk}` : ''}`;
 }
 
-export async function initDhcApi(serverUrl: string): Promise<typeof DhType> {
+export async function initDhcApi(serverUrl: URL): Promise<typeof DhType> {
   polyfillDh();
   return getDhc(serverUrl, true);
 }
@@ -66,14 +84,14 @@ export async function initDhcSession(
  * See https://stackoverflow.com/questions/70620025/how-do-i-import-an-es6-javascript-module-in-my-vs-code-extension-written-in-type
  */
 async function getDhc(
-  serverUrl: string,
+  serverUrl: URL,
   download: boolean
 ): Promise<typeof DhType> {
-  const tmpDir = getTempDir(false, urlToDirectoryName(serverUrl));
+  const tmpDir = getTempDir(false, urlToDirectoryName(serverUrl.toString()));
 
   if (download) {
     const dhInternal = await downloadFromURL(
-      path.join(serverUrl, 'jsapi/dh-internal.js')
+      path.join(serverUrl.toString(), 'jsapi/dh-internal.js')
     );
     // Convert to .cjs
     fs.writeFileSync(
@@ -85,7 +103,7 @@ async function getDhc(
     );
 
     const dhCore = await downloadFromURL(
-      path.join(serverUrl, 'jsapi/dh-core.js')
+      path.join(serverUrl.toString(), 'jsapi/dh-core.js')
     );
     fs.writeFileSync(
       path.join(tmpDir, 'dh-core.cjs'),

@@ -1,25 +1,24 @@
 import * as vscode from 'vscode';
 import { describe, it, expect, vi } from 'vitest';
 import {
-  createConnectTextAndTooltip,
+  createConnectText,
   ConnectionOption,
-  createConnectionOptions,
   createConnectionOption,
   updateConnectionStatusBarItem,
 } from './uiUtils';
-import { CoreConnectionConfig } from '../common';
+import type { CoreConnectionConfig } from '../types';
 
 // See __mocks__/vscode.ts for the mock implementation
 vi.mock('vscode');
 
 const pythonServerConfig: CoreConnectionConfig = {
-  url: 'http://localhost:10000',
-  consoleType: 'python',
+  label: 'python',
+  url: new URL('http://localhost:10000'),
 };
 
 const groovyServerConfig: CoreConnectionConfig = {
-  url: 'http://localhost:10001',
-  consoleType: 'groovy',
+  label: 'groovy',
+  url: new URL('http://localhost:10001'),
 };
 
 describe('createConnectionOption', () => {
@@ -27,35 +26,22 @@ describe('createConnectionOption', () => {
     ['DHC', pythonServerConfig],
     ['DHC', groovyServerConfig],
   ] as const)(`should return connection option: '%s', %s`, (type, config) => {
-    const actual = createConnectionOption(type)(config);
+    const actual = createConnectionOption(type)(config.url);
     expect(actual).toMatchSnapshot();
   });
 });
 
-describe('createConnectionOptions', () => {
-  const configs: CoreConnectionConfig[] = [
-    pythonServerConfig,
-    groovyServerConfig,
-  ];
-
-  it('should return connection options', () => {
-    const actual = createConnectionOptions(configs);
-    expect(actual).toMatchSnapshot();
-  });
-});
-
-describe('createConnectTextAndTooltip', () => {
+describe('createConnectText', () => {
   const option: ConnectionOption = {
     type: 'DHC',
-    consoleType: 'python',
     label: 'DHC: localhost:10000',
-    url: 'http://localhost:10000',
+    url: new URL('http://localhost:10000'),
   };
 
   const statuses = ['connecting', 'connected', 'disconnected'] as const;
 
   it.each(statuses)(`should return text and tooltip: '%s'`, status => {
-    const actual = createConnectTextAndTooltip(status, option);
+    const actual = createConnectText(status, option);
     expect(actual).toMatchSnapshot();
   });
 });
@@ -63,9 +49,8 @@ describe('createConnectTextAndTooltip', () => {
 describe('updateConnectionStatusBarItem', () => {
   const option: ConnectionOption = {
     type: 'DHC',
-    consoleType: 'python',
     label: 'DHC: localhost:10000',
-    url: 'http://localhost:10000',
+    url: new URL('http://localhost:10000'),
   };
 
   const statuses = ['connecting', 'connected', 'disconnected'] as const;
@@ -74,12 +59,11 @@ describe('updateConnectionStatusBarItem', () => {
     `should update connection status bar item: '%s'`,
     status => {
       const statusBarItem = {} as vscode.StatusBarItem;
-      const { text, tooltip } = createConnectTextAndTooltip(status, option);
+      const text = createConnectText(status, option);
 
       updateConnectionStatusBarItem(statusBarItem, status, option);
 
       expect(statusBarItem.text).toBe(text);
-      expect(statusBarItem.tooltip).toBe(tooltip);
     }
   );
 });
