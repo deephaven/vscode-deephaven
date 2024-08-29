@@ -140,6 +140,16 @@
         "command": "vscode-deephaven.refreshServerConnectionTree",
         "title": "Deephaven: Refresh Server Connection Tree",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "vscode-deephaven.startServer",
+        "title": "Deephaven: Start Server",
+        "icon": "$(debug-start)"
+      },
+      {
+        "command": "vscode-deephaven.stopServer",
+        "title": "Deephaven: Stop Server",
+        "icon": "$(debug-stop)"
       }
     ],
     "menus": {
@@ -212,6 +222,11 @@
           "when": "view == vscode-deephaven.serverTree"
         },
         {
+          "command": "vscode-deephaven.startServer",
+          "group": "navigation",
+          "when": "view == vscode-deephaven.serverTree"
+        },
+        {
           "command": "vscode-deephaven.refreshServerConnectionTree",
           "group": "navigation",
           "when": "view == vscode-deephaven.serverConnectionTree"
@@ -220,7 +235,7 @@
       "view/item/context": [
         {
           "command": "vscode-deephaven.connectToServer",
-          "when": "view == vscode-deephaven.serverTree && viewItem == isServerRunningDisconnected",
+          "when": "view == vscode-deephaven.serverTree && (viewItem == isManagedServerDisconnected || viewItem == isServerRunningDisconnected)",
           "group": "inline"
         },
         {
@@ -235,7 +250,12 @@
         },
         {
           "command": "vscode-deephaven.openInBrowser",
-          "when": "view == vscode-deephaven.serverTree && (viewItem == isServerRunningConnected || viewItem == isServerRunningDisconnected)",
+          "when": "view == vscode-deephaven.serverTree && (viewItem == isManagedServerConnected || viewItem == isServerRunningConnected || viewItem == isServerRunningDisconnected || viewItem == isManagedServerDisconnected)",
+          "group": "inline"
+        },
+        {
+          "command": "vscode-deephaven.stopServer",
+          "when": "view == vscode-deephaven.serverTree && (viewItem == isManagedServerConnected || viewItem == isManagedServerConnecting || viewItem == isManagedServerDisconnected)",
           "group": "inline"
         }
       ]

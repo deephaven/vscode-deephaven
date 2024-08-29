@@ -69,13 +69,18 @@ export async function getFirstConnectionForConsoleType(
  */
 export function getServerDescription(
   connectionCount: number,
-  label?: string
+  isManaged: boolean,
+  label: string = ''
 ): string | undefined {
+  if (isManaged) {
+    label = `pip ${label}`;
+  }
+
   if (connectionCount === 0) {
     return label;
   }
 
-  if (label == null) {
+  if (label === '') {
     return `(${connectionCount})`;
   }
 

@@ -14,11 +14,21 @@ function isServerGroupState(node: ServerNode): node is ServerGroupState {
 
 function getServerContextValue({
   isConnected,
+  isManaged,
   isRunning,
 }: {
   isConnected: boolean;
+  isManaged: boolean;
   isRunning: boolean;
 }): ServerTreeItemContextValue {
+  if (isManaged) {
+    return isConnected
+      ? SERVER_TREE_ITEM_CONTEXT.isManagedServerConnected
+      : isRunning
+        ? SERVER_TREE_ITEM_CONTEXT.isManagedServerDisconnected
+        : SERVER_TREE_ITEM_CONTEXT.isManagedServerConnecting;
+  }
+
   if (isRunning) {
     return isConnected
       ? SERVER_TREE_ITEM_CONTEXT.isServerRunningConnected
@@ -44,13 +54,20 @@ export class ServerTreeProvider extends TreeDataProviderBase<ServerNode> {
     }
 
     const isConnected = this.serverManager.hasConnection(element.url);
+    const isManaged = element.isManaged ?? false;
     const isRunning = element.isRunning ?? false;
-    const contextValue = getServerContextValue({ isConnected, isRunning });
+    const contextValue = getServerContextValue({
+      isConnected,
+      isManaged,
+      isRunning,
+    });
     const canConnect =
+      contextValue === SERVER_TREE_ITEM_CONTEXT.isManagedServerDisconnected ||
       contextValue === SERVER_TREE_ITEM_CONTEXT.isServerRunningDisconnected;
     const urlStr = element.url.toString();
     const description = getServerDescription(
       isConnected ? 1 : 0,
+      isManaged,
       element.label
     );
 
@@ -64,7 +81,9 @@ export class ServerTreeProvider extends TreeDataProviderBase<ServerNode> {
           ? isConnected
             ? ICON_ID.serverConnected
             : ICON_ID.serverRunning
-          : ICON_ID.serverStopped
+          : isManaged
+            ? ICON_ID.connecting
+            : ICON_ID.serverStopped
       ),
       command: canConnect
         ? {
@@ -79,11 +98,18 @@ export class ServerTreeProvider extends TreeDataProviderBase<ServerNode> {
   getChildren(elementOrRoot?: ServerNode): vscode.ProviderResult<ServerNode[]> {
     const servers = this.serverManager.getServers();
 
+    const managedServers = [];
     const runningServers = [];
     const stoppedServers = [];
+    let hasManaged = false;
 
     for (const server of servers) {
-      if (server.isRunning) {
+      if (server.isManaged) {
+        hasManaged = true;
+        // if (server.isRunning) {
+        managedServers.push(server);
+        // }
+      } else if (server.isRunning) {
         runningServers.push(server);
       } else {
         stoppedServers.push(server);
@@ -94,13 +120,20 @@ export class ServerTreeProvider extends TreeDataProviderBase<ServerNode> {
     if (elementOrRoot == null) {
       // Only show groups that contain server child nodes
       return [
+        hasManaged ? ('Managed' as const) : undefined,
         runningServers.length === 0 ? undefined : ('Running' as const),
         stoppedServers.length === 0 ? undefined : ('Stopped' as const),
       ].filter(child => child != null);
     }
 
     if (isServerGroupState(elementOrRoot)) {
-      return elementOrRoot === 'Running' ? runningServers : stoppedServers;
+      return {
+        /* eslint-disable @typescript-eslint/naming-convention */
+        Managed: managedServers,
+        Running: runningServers,
+        Stopped: stoppedServers,
+        /* eslint-enable @typescript-eslint/naming-convention */
+      }[elementOrRoot];
     }
   }
 }

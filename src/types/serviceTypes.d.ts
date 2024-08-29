@@ -88,6 +88,7 @@ export interface IServerManager extends Disposable {
   }) => ServerState[];
   getUriConnection: (uri: vscode.Uri) => IDhService | null;
   hasEverUpdatedStatus: () => boolean;
+  syncManagedServers: (urls: URL[]) => void;
   updateStatus: () => Promise<void>;
 
   onDidConnect: vscode.Event<URL>;

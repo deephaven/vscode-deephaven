@@ -78,16 +78,6 @@ export class ServerManager implements IServerManager {
     this.updateStatus();
   };
 
-  addManagedServers = (urls: URL[]): void => {
-    for (const server of getInitialServerStates('DHC', urls)) {
-      if (!this._serverMap.has(server.url)) {
-        this._serverMap.set(server.url, { ...server, isManaged: true });
-      }
-    }
-
-    this._onDidUpdate.fire();
-  };
-
   connectToServer = async (serverUrl: URL): Promise<IDhService | null> => {
     if (this.hasConnection(serverUrl)) {
       logger.info('Already connected to server:', serverUrl);
@@ -243,6 +233,28 @@ export class ServerManager implements IServerManager {
     this._uriConnectionsMap.set(uri, dhService);
     this._onDidUpdate.fire();
     this._onDidRegisterEditor.fire(uri);
+  };
+
+  syncManagedServers = (urls: URL[]): void => {
+    // Remove any existing servers that aren't in the new list of urls.
+    for (const server of this._serverMap.values()) {
+      if (server.isManaged && !urls.includes(server.url)) {
+        this.disconnectFromServer(server.url);
+        this._serverMap.delete(server.url);
+      }
+    }
+
+    const toAdd = getInitialServerStates(
+      'DHC',
+      urls.filter(url => !this._serverMap.has(url))
+    );
+
+    // Add any new servers that aren't already in the server
+    for (const server of toAdd) {
+      this._serverMap.set(server.url, { ...server, isManaged: true });
+    }
+
+    this._onDidUpdate.fire();
   };
 
   updateStatus = async (): Promise<void> => {

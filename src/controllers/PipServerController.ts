@@ -1,97 +1,98 @@
 import * as vscode from 'vscode';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { getTempDir } from '../util';
-import type { Disposable, IServerManager } from '../types';
-import { PIP_SERVER_STATUS_DIRECTORY, PIP_SERVER_STATUS_FILE } from '../common';
-import { PollingService } from '../services';
+import { getTempDir, Logger } from '../util';
+import type { Disposable, IServerManager, IToastService } from '../types';
+import { PIP_SERVER_STATUS_DIRECTORY } from '../common';
+
+const logger = new Logger('PipServerController');
 
 type Port = number;
 
 export class PipServerController implements Disposable {
-  constructor(serverManager: IServerManager, portRange: number[]) {
-    this._poller = new PollingService();
+  constructor(
+    serverManager: IServerManager,
+    portRange: number[],
+    outputChannel: vscode.OutputChannel,
+    toastService: IToastService
+  ) {
     this._portRange = new Set(portRange);
-    this._serverTerminalMap = new Map();
+    this._serverUrlTerminalMap = new Map();
     this._serverManager = serverManager;
+    this._outputChannel = outputChannel;
+    this._toaster = toastService;
 
-    this._poller.start(this.syncManagedServers, 10000);
+    vscode.window.onDidCloseTerminal(terminal => {
+      for (const [p, t] of this._serverUrlTerminalMap.entries()) {
+        if (t === terminal) {
+          this._serverUrlTerminalMap.delete(p);
+          this.syncManagedServers();
+          break;
+        }
+      }
+    });
   }
 
-  private _isEnvironmentReadyPromise: Promise<boolean> | null = null;
-  private _isEnvironmentReadyCheckTerminal: vscode.Terminal | null = null;
-
-  private readonly _poller: PollingService;
+  private readonly _outputChannel: vscode.OutputChannel;
   private readonly _portRange: Set<Port>;
-  private readonly _serverTerminalMap: Map<Port, vscode.Terminal>;
+  private readonly _serverUrlTerminalMap: Map<Port, vscode.Terminal>;
   private readonly _serverManager: IServerManager;
+  private readonly _toaster: IToastService;
+  private readonly _failedServerStarts: Set<vscode.Terminal> = new Set();
 
-  /**
-   * Attempt to run `deephaven` command in a new terminal and create a tmp file
-   * if successful. Then check for the existence of the tmp file to determine
-   * if the environment is ready.
-   */
-  private _checkIsEnvironmentReady = (): Promise<boolean> => {
-    return new Promise(async resolve => {
-      const cwd = getTempDir(false, PIP_SERVER_STATUS_DIRECTORY);
-      const statusFileName = PIP_SERVER_STATUS_FILE;
-      const statusFilePath = path.join(cwd, statusFileName);
+  healthCheck = async (
+    terminal: vscode.Terminal,
+    port: number
+  ): Promise<void> => {
+    const cwd = getTempDir(false, PIP_SERVER_STATUS_DIRECTORY);
+    const statusFileName = `status-${port}.txt`;
+    const statusFilePath = path.join(cwd, statusFileName);
 
-      if (this._isEnvironmentReadyCheckTerminal == null) {
-        this._isEnvironmentReadyCheckTerminal = vscode.window.createTerminal({
-          name: 'Deephaven: Check Pip Environment',
-          cwd,
-          isTransient: true,
-        });
-      }
+    try {
+      fs.unlinkSync(statusFilePath);
+    } catch {}
 
-      try {
-        fs.unlinkSync(statusFilePath);
-      } catch {}
+    // Send text to a tmp file if `deephaven` command is successful
+    terminal.sendText(`deephaven && echo ready > ${statusFilePath}`);
 
-      // Give python extension time to setup .venv if configured
-      await waitFor(1000);
-
-      this._isEnvironmentReadyCheckTerminal.sendText(
-        `deephaven && echo ready > ${statusFileName}`
-      );
-
-      // Wait for status check to run
-      await waitFor(2000);
-
+    void waitFor(3000).then(() => {
+      // Get result of status check from tmp file
       const isReady = fs.existsSync(statusFilePath);
 
-      resolve(isReady);
+      if (!isReady) {
+        // Hold on to the terminal so user can see any errors, but remove from
+        // the managed servers list.
+        this._failedServerStarts.add(terminal);
+        this._serverUrlTerminalMap.delete(port);
+        this.syncManagedServers();
+
+        const msg = `Failed to start server on port ${port}`;
+        logger.error(msg);
+        this._outputChannel.appendLine(msg);
+        this._toaster.error(msg);
+      }
     });
   };
 
   getAvailablePorts = (): Port[] => {
     return [...this._portRange]
-      .filter(port => !this._serverTerminalMap.has(port))
+      .filter(port => !this._serverUrlTerminalMap.has(port))
       .sort();
-  };
-
-  isEnvironmentReady = async (): Promise<boolean> => {
-    if (this._isEnvironmentReadyPromise == null) {
-      this._isEnvironmentReadyPromise = this._checkIsEnvironmentReady();
-
-      this._isEnvironmentReadyPromise.then(() => {
-        this._isEnvironmentReadyPromise = null;
-      });
-    }
-
-    return this._isEnvironmentReadyPromise;
   };
 
   startServer = async (): Promise<void> => {
     const [port] = this.getAvailablePorts();
 
     if (port == null) {
-      throw new Error('No available ports');
+      const msg = 'No available ports';
+      logger.error(msg);
+      this._outputChannel.appendLine(msg);
+      this._toaster.error(msg);
+      return;
     }
 
     const terminal = vscode.window.createTerminal({
-      name: `Deephaven Server (${port})`,
+      name: `Deephaven (${port})`,
       env: {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         PYTHONPATH: './',
@@ -99,10 +100,13 @@ export class PipServerController implements Disposable {
       isTransient: true,
     });
 
-    this._serverTerminalMap.set(port, terminal);
+    this._serverUrlTerminalMap.set(port, terminal);
+    this.syncManagedServers();
 
     // Give python extension time to setup .venv if configured
     await waitFor(1000);
+
+    void this.healthCheck(terminal, port);
 
     terminal.sendText(
       [
@@ -119,29 +123,39 @@ export class PipServerController implements Disposable {
 
     const port = Number(url.port);
 
-    const terminal = this._serverTerminalMap.get(port);
+    const terminal = this._serverUrlTerminalMap.get(port);
 
     if (terminal == null) {
       return;
     }
 
     terminal.dispose();
-    this._serverTerminalMap.delete(port);
+    this._serverUrlTerminalMap.delete(port);
+
+    this.syncManagedServers();
   };
 
   syncManagedServers = async (): Promise<void> => {
-    if (!(await this.isEnvironmentReady())) {
-      return;
-    }
+    const ports = [...this._serverUrlTerminalMap.keys()];
 
-    const ports = this.getAvailablePorts();
-
-    this._serverManager.addManagedServers(
+    this._serverManager.syncManagedServers(
       ports.map(port => new URL(`http://localhost:${port}`))
     );
   };
 
-  dispose = async (): Promise<void> => {};
+  dispose = async (): Promise<void> => {
+    for (const terminal of this._serverUrlTerminalMap.values()) {
+      terminal.dispose();
+    }
+    this._serverUrlTerminalMap.clear();
+
+    for (const terminal of this._failedServerStarts) {
+      terminal.dispose();
+    }
+    this._failedServerStarts.clear();
+
+    await this.syncManagedServers();
+  };
 }
 
 function waitFor(waitMs: number): Promise<void> {

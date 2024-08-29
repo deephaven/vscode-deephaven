@@ -56,12 +56,14 @@ export const CONNECTION_TREE_ITEM_CONTEXT = {
 } as const;
 
 export const SERVER_TREE_ITEM_CONTEXT = {
+  isManagedServerConnected: 'isManagedServerConnected',
+  isManagedServerConnecting: 'isManagedServerConnecting',
+  isManagedServerDisconnected: 'isManagedServerDisconnected',
   isServerRunningConnected: 'isServerRunningConnected',
   isServerRunningDisconnected: 'isServerRunningDisconnected',
   isServerStopped: 'isServerStopped',
 } as const;
 
 export const PIP_SERVER_STATUS_DIRECTORY = 'pip-server-status';
-export const PIP_SERVER_STATUS_FILE = 'pip-server-ready.txt';
 
 export type ServerTreeItemContextValue = keyof typeof SERVER_TREE_ITEM_CONTEXT;
