@@ -222,11 +222,6 @@
           "when": "view == vscode-deephaven.serverTree"
         },
         {
-          "command": "vscode-deephaven.startServer",
-          "group": "navigation",
-          "when": "view == vscode-deephaven.serverTree && deephaven.canManageServers"
-        },
-        {
           "command": "vscode-deephaven.refreshServerConnectionTree",
           "group": "navigation",
           "when": "view == vscode-deephaven.serverConnectionTree"
@@ -251,6 +246,11 @@
         {
           "command": "vscode-deephaven.openInBrowser",
           "when": "view == vscode-deephaven.serverTree && (viewItem == isManagedServerConnected || viewItem == isServerRunningConnected || viewItem == isServerRunningDisconnected || viewItem == isManagedServerDisconnected)",
+          "group": "inline"
+        },
+        {
+          "command": "vscode-deephaven.startServer",
+          "when": "view == vscode-deephaven.serverTree && viewItem == canStartServer",
           "group": "inline"
         },
         {

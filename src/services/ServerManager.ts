@@ -26,7 +26,8 @@ export class ServerManager implements IServerManager {
     this._serverMap = new URLMap();
     this._connectionMap = new URLMap();
     this._uriConnectionsMap = new Map();
-    this._poller = new PollingService();
+
+    this.canStartServer = false;
 
     this.loadServerConfig();
 
@@ -56,6 +57,8 @@ export class ServerManager implements IServerManager {
   readonly onDidUpdate = this._onDidUpdate.event;
 
   private _hasEverUpdatedStatus = false;
+
+  canStartServer: boolean;
 
   loadServerConfig = (): void => {
     const initialDhcServerState = getInitialServerStates(

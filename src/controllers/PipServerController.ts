@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { Logger } from '../util';
 import type { Disposable, IServerManager, IToastService } from '../types';
-import { GLOBAL_CONTEXT, PIP_SERVER_SUPPORTED_PLATFORMS } from '../common';
+import { PIP_SERVER_SUPPORTED_PLATFORMS } from '../common';
 
 const logger = new Logger('PipServerController');
 
@@ -62,8 +62,10 @@ export class PipServerController implements Disposable {
         });
 
         // Give python extension time to setup .venv if configured
-        await waitFor(1000);
+        await waitFor(1500);
 
+        // Attempt to import deephaven_server to see if it's installed and exit
+        // with code 2 if it fails.
         terminal.sendText(`python -c 'import deephaven_server;' || exit 2`);
         terminal.sendText('exit 0');
 
@@ -149,21 +151,18 @@ export class PipServerController implements Disposable {
   syncManagedServers = async (): Promise<void> => {
     const canManageServers = await this.checkPipInstall();
 
-    vscode.commands.executeCommand(
-      'setContext',
-      GLOBAL_CONTEXT.canManageServers,
-      canManageServers
-    );
+    this._serverManager.canStartServer =
+      canManageServers && this.getAvailablePorts().length > 0;
 
     if (!canManageServers) {
       this._serverManager.syncManagedServers([]);
       return;
     }
 
-    const ports = [...this._serverUrlTerminalMap.keys()];
+    const runningPorts = [...this._serverUrlTerminalMap.keys()];
 
     this._serverManager.syncManagedServers(
-      ports.map(port => new URL(`http://localhost:${port}`))
+      runningPorts.map(port => new URL(`http://localhost:${port}`))
     );
   };
 

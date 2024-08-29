@@ -50,6 +50,10 @@ export class ServerTreeProvider extends TreeDataProviderBase<ServerNode> {
         label: element,
         iconPath: new vscode.ThemeIcon(ICON_ID.server),
         collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
+        contextValue:
+          element === 'Managed' && this.serverManager.canStartServer
+            ? SERVER_TREE_ITEM_CONTEXT.canStartServer
+            : undefined,
       };
     }
 
@@ -95,14 +99,10 @@ export class ServerTreeProvider extends TreeDataProviderBase<ServerNode> {
     const managedServers = [];
     const runningServers = [];
     const stoppedServers = [];
-    let hasManaged = false;
 
     for (const server of servers) {
       if (server.isManaged) {
-        hasManaged = true;
-        // if (server.isRunning) {
         managedServers.push(server);
-        // }
       } else if (server.isRunning) {
         runningServers.push(server);
       } else {
@@ -114,7 +114,9 @@ export class ServerTreeProvider extends TreeDataProviderBase<ServerNode> {
     if (elementOrRoot == null) {
       // Only show groups that contain server child nodes
       return [
-        hasManaged ? ('Managed' as const) : undefined,
+        this.serverManager.canStartServer || managedServers.length > 0
+          ? ('Managed' as const)
+          : undefined,
         runningServers.length === 0 ? undefined : ('Running' as const),
         stoppedServers.length === 0 ? undefined : ('Stopped' as const),
       ].filter(child => child != null);
