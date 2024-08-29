@@ -274,10 +274,21 @@ export class ServerManager implements IServerManager {
     this._onDidUpdate.fire();
   };
 
-  updateStatus = async (): Promise<void> => {
+  /**
+   * Update server statuses. Optionally filter servers to update by a list of urls.
+   * @param filterBy Optional list of urls to filter servers by.
+   */
+  updateStatus = async (filterBy?: URL[]): Promise<void> => {
     logger.debug('Updating server statuses.');
 
-    const promises = this.getServers().map(async server => {
+    let servers = this.getServers();
+
+    if (filterBy != null) {
+      const filterSet = new Set(filterBy.map(String));
+      servers = servers.filter(server => filterSet.has(server.url.toString()));
+    }
+
+    const promises = servers.map(async server => {
       const isRunning = await (server.type === 'DHC'
         ? isDhcServerRunning(server.url)
         : isDheServerRunning(server.url));
