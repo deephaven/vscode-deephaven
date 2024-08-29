@@ -12,6 +12,7 @@ import type {
 } from '../types';
 import { getInitialServerStates, Logger } from '../util';
 import { URLMap } from './URLMap';
+import { URIMap } from './URIMap';
 
 const logger = new Logger('ServerManager');
 
@@ -25,7 +26,7 @@ export class ServerManager implements IServerManager {
 
     this._serverMap = new URLMap();
     this._connectionMap = new URLMap();
-    this._uriConnectionsMap = new Map();
+    this._uriConnectionsMap = new URIMap();
 
     this.canStartServer = false;
 
@@ -37,7 +38,7 @@ export class ServerManager implements IServerManager {
   private readonly _configService: IConfigService;
   private readonly _connectionMap: URLMap<IDhService>;
   private readonly _dhcServiceFactory: IDhServiceFactory;
-  private readonly _uriConnectionsMap: Map<vscode.Uri, IDhService>;
+  private readonly _uriConnectionsMap: URIMap<IDhService>;
   private _serverMap: URLMap<ServerState>;
 
   private readonly _onDidConnect = new vscode.EventEmitter<URL>();

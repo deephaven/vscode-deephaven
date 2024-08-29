@@ -42,6 +42,21 @@ export abstract class SerializedKeyMap<TKey, TValue> {
     return this._map.delete(this.serializeKey(key));
   }
 
+  forEach(
+    callback: (value: TValue, key: TKey, map: Map<TKey, TValue>) => void,
+    thisArg?: any
+  ): void {
+    this._map.forEach((value, key) => {
+      callback(value, this.deserializeKey(key), thisArg);
+    }, thisArg);
+  }
+
+  *entries(): IterableIterator<[TKey, TValue]> {
+    for (const [key, value] of this._map.entries()) {
+      yield [this.deserializeKey(key), value];
+    }
+  }
+
   *keys(): IterableIterator<TKey> {
     for (const key of this._map.keys()) {
       yield this.deserializeKey(key);
