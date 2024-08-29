@@ -389,11 +389,13 @@ export class ExtensionController implements Disposable {
     );
   };
 
-  onRefreshServerTree = (): void => {
+  onRefreshServerTree = async (): Promise<void> => {
+    await this._serverManager?.updateStatus();
     this._serverTreeProvider?.refresh();
   };
 
-  onRefreshServerConnectionTree = (): void => {
+  onRefreshServerConnectionTree = async (): Promise<void> => {
+    await this._serverManager?.updateStatus();
     this._serverConnectionTreeProvider?.refresh();
   };
 
