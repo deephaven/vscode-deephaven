@@ -65,7 +65,6 @@ export type IDhServiceFactory = IFactory<IDhService, [serverUrl: URL]>;
 export interface IServerManager extends Disposable {
   canStartServer: boolean;
 
-  addManagedServers: (urls: URL[]) => void;
   connectToServer: (serverUrl: URL) => Promise<IDhService | null>;
   disconnectEditor: (uri: vscode.Uri) => void;
   disconnectFromServer: (serverUrl: URL) => Promise<void>;

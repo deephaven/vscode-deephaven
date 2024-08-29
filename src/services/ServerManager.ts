@@ -35,7 +35,7 @@ export class ServerManager implements IServerManager {
   }
 
   private readonly _configService: IConfigService;
-  private readonly _connectionMap: Map<URL, IDhService>;
+  private readonly _connectionMap: URLMap<IDhService>;
   private readonly _dhcServiceFactory: IDhServiceFactory;
   private readonly _uriConnectionsMap: Map<vscode.Uri, IDhService>;
   private _serverMap: URLMap<ServerState>;
