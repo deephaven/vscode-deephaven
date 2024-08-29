@@ -320,22 +320,23 @@ export class ExtensionController implements Disposable {
       this._context.subscriptions
     );
 
-    this._serverTreeView.onDidChangeVisibility(this.maybeUpdateServerStatuses);
+    this._serverTreeView.onDidChangeVisibility(event => {
+      if (event.visible) {
+        this.maybeUpdateServerStatuses();
+      }
+    });
 
     this.maybeUpdateServerStatuses();
   };
 
   /**
-   * Update server statuses if server tree view is visible and vscode window is
+   * Update server statuses if vscode window is
    * active and focused.
    */
   maybeUpdateServerStatuses = (): void => {
-    // Only check servers if vscode window is active and focused and server
-    // connection tree is visible
+    // Only check servers if vscode window is active and focused
     const shouldUpdate =
-      this._serverTreeView?.visible &&
-      vscode.window.state.active &&
-      vscode.window.state.focused;
+      vscode.window.state.active && vscode.window.state.focused;
 
     if (!shouldUpdate) {
       return;
