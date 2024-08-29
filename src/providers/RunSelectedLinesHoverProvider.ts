@@ -13,7 +13,7 @@ export const runSelectedLinesHoverProvider: vscode.HoverProvider = {
       return;
     }
 
-    // Determine of hover is over a selected line
+    // Determine if hover is over a selected line
     const isOverSelection = editor.selections.some(selection =>
       expandSelectionToFullLines(editor.document)(selection).contains(position)
     );
