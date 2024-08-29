@@ -44,6 +44,7 @@ export class PipServerController implements Disposable {
   private readonly _serverManager: IServerManager;
   private readonly _toaster: IToastService;
   private _checkPipInstallPromise: Promise<boolean> | null = null;
+  private _isPipServerInstalled = false;
 
   /**
    * Start a terminal and attempt an import of `deephaven_server` to check if
@@ -149,12 +150,14 @@ export class PipServerController implements Disposable {
   };
 
   syncManagedServers = async (): Promise<void> => {
-    const canManageServers = await this.checkPipInstall();
+    if (!this._isPipServerInstalled) {
+      this._isPipServerInstalled = await this.checkPipInstall();
+    }
 
     this._serverManager.canStartServer =
-      canManageServers && this.getAvailablePorts().length > 0;
+      this._isPipServerInstalled && this.getAvailablePorts().length > 0;
 
-    if (!canManageServers) {
+    if (!this._isPipServerInstalled) {
       this._serverManager.syncManagedServers([]);
       return;
     }

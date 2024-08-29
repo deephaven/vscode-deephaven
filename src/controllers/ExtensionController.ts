@@ -296,12 +296,12 @@ export class ExtensionController implements Disposable {
     );
 
     /** Refresh server tree */
-    this.registerCommand(REFRESH_SERVER_TREE_CMD, this.onRefreshServerTree);
+    this.registerCommand(REFRESH_SERVER_TREE_CMD, this.onRefreshServerTrees);
 
     /** Refresh server connection tree */
     this.registerCommand(
       REFRESH_SERVER_CONNECTION_TREE_CMD,
-      this.onRefreshServerConnectionTree
+      this.onRefreshServerTrees
     );
 
     /** Start a server */
@@ -456,14 +456,11 @@ export class ExtensionController implements Disposable {
     );
   };
 
-  onRefreshServerTree = async (): Promise<void> => {
+  onRefreshServerTrees = async (): Promise<void> => {
+    await this._pipServerController?.syncManagedServers();
     await this._serverManager?.updateStatus();
-    this._pipServerController?.syncManagedServers();
-    this._serverTreeProvider?.refresh();
-  };
 
-  onRefreshServerConnectionTree = async (): Promise<void> => {
-    await this._serverManager?.updateStatus();
+    this._serverConnectionTreeProvider?.refresh();
     this._serverConnectionTreeProvider?.refresh();
   };
 
