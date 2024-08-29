@@ -228,11 +228,20 @@ export class ConnectionController implements Disposable {
 
     const editor = vscode.window.activeTextEditor;
 
-    // In case this is called before the server manager has checked server
-    // statuses, we want to make sure at least one check for running servers is
-    // done.
+    const updateStatusPromise = this._serverManager.updateStatus();
+
+    // We always update status when the user is prompted to select a connection,
+    // but we only block if this is the first time we're updating status. For the
+    // most common use cases, other events will trigger the status update before
+    // the user attempts to see the available servers (see handlers in
+    // `ExtensionController.initializeServerUpdates`). One edge case is if the
+    // user is already in vscode while a server is starting / stopping, there
+    // may not be an event that proactively updates the status. Worst case
+    // scenario, the user will attempt to connect, see no server, then try again
+    // and see it. Alternatively, they can open the DH panel and explicitly refresh
+    // the server list.
     if (!this._serverManager.hasEverUpdatedStatus()) {
-      await this._serverManager.updateStatus();
+      await updateStatusPromise;
     }
 
     const runningServersWithoutConnections = this._serverManager.getServers({
