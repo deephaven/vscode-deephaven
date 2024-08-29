@@ -15,12 +15,12 @@ import { SERVER_LANGUAGE_SET } from '../common';
  */
 export function getInitialServerStates(
   type: ServerType,
-  configs: (CoreConnectionConfig | EnterpriseConnectionConfig)[]
+  configs: (CoreConnectionConfig | EnterpriseConnectionConfig | URL)[]
 ): ServerState[] {
-  return configs.map(({ label, url }) => ({
+  return configs.map(config => ({
     type,
-    label,
-    url,
+    label: config instanceof URL ? undefined : config.label,
+    url: config instanceof URL ? config : config.url,
   }));
 }
 

@@ -41,6 +41,7 @@ export interface ServerState {
   type: ServerType;
   url: URL;
   label?: string;
+  isManaged?: boolean;
   isRunning?: boolean;
 }
 

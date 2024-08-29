@@ -78,6 +78,16 @@ export class ServerManager implements IServerManager {
     this.updateStatus();
   };
 
+  addManagedServers = (urls: URL[]): void => {
+    for (const server of getInitialServerStates('DHC', urls)) {
+      if (!this._serverMap.has(server.url)) {
+        this._serverMap.set(server.url, { ...server, isManaged: true });
+      }
+    }
+
+    this._onDidUpdate.fire();
+  };
+
   connectToServer = async (serverUrl: URL): Promise<IDhService | null> => {
     if (this.hasConnection(serverUrl)) {
       logger.info('Already connected to server:', serverUrl);
