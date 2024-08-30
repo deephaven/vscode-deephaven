@@ -38,15 +38,17 @@ export async function isDhcServerRunning(serverUrl: URL): Promise<boolean> {
  * Get embed widget url for a widget.
  * @param serverUrl
  * @param title
+ * @param themeKey
  * @param psk
  */
 export function getEmbedWidgetUrl(
   serverUrl: URL,
   title: string,
+  themeKey: string,
   psk?: string
 ): string {
   const serverUrlStr = serverUrl.toString().replace(/\/$/, '');
-  return `${serverUrlStr}/iframe/widget/?name=${title}${psk ? `&psk=${psk}` : ''}`;
+  return `${serverUrlStr}/iframe/widget/?theme=${themeKey}&name=${title}${psk ? `&psk=${psk}` : ''}`;
 }
 
 export async function initDhcApi(serverUrl: URL): Promise<typeof DhType> {

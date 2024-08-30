@@ -8,7 +8,7 @@ import {
   initDhcApi,
   initDhcSession,
 } from '../dh/dhc';
-import { getPanelHtml, Logger } from '../util';
+import { getDHThemeKey, getPanelHtml, Logger } from '../util';
 import type { ConnectionAndSession } from '../types';
 
 const logger = new Logger('DhcService');
@@ -64,7 +64,12 @@ export class DhcService extends DhService<typeof DhcType, DhcType.CoreClient> {
   }
 
   protected getPanelHtml(title: string): string {
-    const iframeUrl = getEmbedWidgetUrl(this.serverUrl, title, this.psk);
+    const iframeUrl = getEmbedWidgetUrl(
+      this.serverUrl,
+      title,
+      getDHThemeKey(),
+      this.psk
+    );
     return getPanelHtml(iframeUrl, title);
   }
 
