@@ -6,6 +6,8 @@ export type Brand<T extends string, TBase = string> = TBase & {
   readonly [__brand]: T;
 };
 
+export type Port = Brand<'Port', number>;
+
 export type ConnectionType = 'DHC';
 
 export type ConnectionAndSession<TConnection, TSession> = {

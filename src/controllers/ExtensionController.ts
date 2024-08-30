@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import {
   CONNECT_TO_SERVER_CMD,
   CREATE_NEW_TEXT_DOC_CMD,
+  DEFAULT_PIP_PORT_RANGE,
   DISCONNECT_EDITOR_CMD,
   DISCONNECT_FROM_SERVER_CMD,
   DOWNLOAD_LOGS_CMD,
@@ -148,7 +149,7 @@ export class ExtensionController implements Disposable {
     this._pipServerController = new PipServerController(
       this._context,
       this._serverManager!,
-      [10001, 10002, 10003, 10004],
+      DEFAULT_PIP_PORT_RANGE,
       this._outputChannel,
       this._toaster
     );

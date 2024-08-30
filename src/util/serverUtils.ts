@@ -5,6 +5,7 @@ import type {
   ConsoleType,
   EnterpriseConnectionConfig,
   CoreConnectionConfig,
+  Port,
 } from '../types';
 import { ICON_ID, SERVER_LANGUAGE_SET } from '../common';
 
@@ -60,6 +61,14 @@ export async function getFirstConnectionForConsoleType(
   ).next();
 
   return first.value ?? null;
+}
+
+/**
+ * Get the pip server URL for the given port.
+ * @param port
+ */
+export function getPipServerUrl(port: Port): URL {
+  return new URL(`http://localhost:${port}`);
 }
 
 /**
@@ -138,4 +147,17 @@ export async function* iterateConnectionsForConsoleType(
       yield dhService;
     }
   }
+}
+
+/**
+ * Parse a port string into a number.
+ * @param portStr
+ */
+export function parsePort(portStr: string): Port {
+  const parsed = Number(portStr);
+  if (isNaN(parsed)) {
+    throw new Error(`Invalid port: ${portStr}`);
+  }
+
+  return parsed as Port;
 }

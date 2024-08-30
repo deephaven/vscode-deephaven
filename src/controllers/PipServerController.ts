@@ -1,21 +1,26 @@
 import * as vscode from 'vscode';
-import { Logger } from '../util';
-import type { Disposable, IServerManager, IToastService } from '../types';
-import { PIP_SERVER_SUPPORTED_PLATFORMS } from '../common';
+import { getPipServerUrl, Logger, parsePort } from '../util';
+import type { Disposable, Port, IServerManager, IToastService } from '../types';
+import {
+  PIP_SERVER_STATUS_CHECK_INTERVAL,
+  PIP_SERVER_STATUS_CHECK_TIMEOUT,
+  PIP_SERVER_SUPPORTED_PLATFORMS,
+} from '../common';
+import { isDhcServerRunning } from '../dh/dhc';
+import { pollUntilTrue } from '../util/promiseUtils';
 
 const logger = new Logger('PipServerController');
-
-type Port = number;
 
 export class PipServerController implements Disposable {
   constructor(
     context: vscode.ExtensionContext,
     serverManager: IServerManager,
-    portRange: number[],
+    portRange: Iterable<Port>,
     outputChannel: vscode.OutputChannel,
     toastService: IToastService
   ) {
     this._context = context;
+    this._pollers = new Map();
     this._portRange = new Set(portRange);
     this._serverUrlTerminalMap = new Map();
     this._serverManager = serverManager;
@@ -26,8 +31,7 @@ export class PipServerController implements Disposable {
       terminal => {
         for (const [p, t] of this._serverUrlTerminalMap.entries()) {
           if (t === terminal) {
-            this._serverUrlTerminalMap.delete(p);
-            this.syncManagedServers();
+            this.disposeServers([p]);
             break;
           }
         }
@@ -39,7 +43,8 @@ export class PipServerController implements Disposable {
 
   private readonly _context: vscode.ExtensionContext;
   private readonly _outputChannel: vscode.OutputChannel;
-  private readonly _portRange: Set<Port>;
+  private readonly _pollers: Map<Port, { cancel: () => void }>;
+  private readonly _portRange: ReadonlySet<Port>;
   private readonly _serverUrlTerminalMap: Map<Port, vscode.Terminal>;
   private readonly _serverManager: IServerManager;
   private readonly _toaster: IToastService;
@@ -94,6 +99,31 @@ export class PipServerController implements Disposable {
       .sort();
   };
 
+  pollUntilServerStarts = async (port: Port): Promise<void> => {
+    // If there's already a poller for this port, cancel it.
+    this._pollers.get(port)?.cancel();
+
+    const serverUrl = getPipServerUrl(port);
+
+    const { promise, cancel } = pollUntilTrue(
+      () => {
+        logger.debug(`Polling Pip server: '${serverUrl}'`);
+        return isDhcServerRunning(serverUrl);
+      },
+      PIP_SERVER_STATUS_CHECK_INTERVAL,
+      PIP_SERVER_STATUS_CHECK_TIMEOUT
+    );
+
+    this._pollers.set(port, { cancel });
+
+    await promise;
+
+    logger.debug(`Pip server started: '${serverUrl}'`);
+
+    this._pollers.delete(port);
+    void this._serverManager.updateStatus([serverUrl]);
+  };
+
   startServer = async (): Promise<void> => {
     const [port] = this.getAvailablePorts();
 
@@ -130,23 +160,16 @@ export class PipServerController implements Disposable {
         '--no-browser',
       ].join(' ')
     );
+
+    await this.pollUntilServerStarts(port);
   };
 
   stopServer = (url: URL): void => {
     this._serverManager.disconnectFromServer(url);
 
-    const port = Number(url.port);
+    const port = parsePort(url.port);
 
-    const terminal = this._serverUrlTerminalMap.get(port);
-
-    if (terminal == null) {
-      return;
-    }
-
-    terminal.dispose();
-    this._serverUrlTerminalMap.delete(port);
-
-    this.syncManagedServers();
+    this.disposeServers([port]);
   };
 
   syncManagedServers = async (): Promise<void> => {
@@ -164,18 +187,27 @@ export class PipServerController implements Disposable {
 
     const runningPorts = [...this._serverUrlTerminalMap.keys()];
 
-    this._serverManager.syncManagedServers(
-      runningPorts.map(port => new URL(`http://localhost:${port}`))
-    );
+    this._serverManager.syncManagedServers(runningPorts.map(getPipServerUrl));
+  };
+
+  disposeServers = async (ports: Iterable<Port>): Promise<void> => {
+    for (const port of ports) {
+      const terminal = this._serverUrlTerminalMap.get(port);
+
+      if (terminal != null) {
+        terminal.dispose();
+        this._serverUrlTerminalMap.delete(port);
+      }
+
+      this._pollers.get(port)?.cancel();
+      this._pollers.delete(port);
+    }
+
+    await this.syncManagedServers();
   };
 
   dispose = async (): Promise<void> => {
-    for (const terminal of this._serverUrlTerminalMap.values()) {
-      terminal.dispose();
-    }
-    this._serverUrlTerminalMap.clear();
-
-    await this.syncManagedServers();
+    this.disposeServers(this._serverUrlTerminalMap.keys());
   };
 }
 

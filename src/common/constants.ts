@@ -1,5 +1,5 @@
 import * as path from 'node:path';
-import type { ConsoleType } from '../types';
+import type { ConsoleType, Port } from '../types';
 
 export const EXTENSION_ID = 'vscode-deephaven' as const;
 
@@ -12,7 +12,13 @@ export const CONFIG_KEY = {
 export const DEFAULT_CONSOLE_TYPE = 'python' as const;
 // export const DHFS_SCHEME = 'dhfs';
 
+export const DEFAULT_PIP_PORT_RANGE: ReadonlySet<Port> = new Set([
+  10001, 10002, 10003, 10004,
+] as Port[]);
+
 export const SERVER_STATUS_CHECK_TIMEOUT = 3000;
+export const PIP_SERVER_STATUS_CHECK_INTERVAL = 3000;
+export const PIP_SERVER_STATUS_CHECK_TIMEOUT = 15000;
 
 export const STATUS_BAR_DISCONNECTED_TEXT = 'Deephaven: Disconnected';
 export const STATUS_BAR_DISCONNECT_TEXT = 'Deephaven: Disconnect';
