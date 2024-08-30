@@ -144,11 +144,12 @@ export class ExtensionController implements Disposable {
    */
   initializePipServerController = (): void => {
     assertDefined(this._outputChannel, 'outputChannel');
+    assertDefined(this._serverManager, 'serverManager');
     assertDefined(this._toaster, 'toaster');
 
     this._pipServerController = new PipServerController(
       this._context,
-      this._serverManager!,
+      this._serverManager,
       DEFAULT_PIP_PORT_RANGE,
       this._outputChannel,
       this._toaster
