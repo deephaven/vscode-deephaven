@@ -32,6 +32,13 @@ export class PipServerController implements Disposable {
       terminal => {
         for (const [p, t] of this._serverUrlTerminalMap.entries()) {
           if (t === terminal) {
+            if (t.exitStatus?.code !== 0) {
+              const msg = `Server on port ${p} exited with code ${t.exitStatus?.code}`;
+              logger.error(msg);
+              this._outputChannel.appendLine(msg);
+              this._toaster.error(msg);
+            }
+
             this.disposeServers([p]);
             break;
           }
@@ -117,7 +124,11 @@ export class PipServerController implements Disposable {
 
     this._pollers.set(port, { cancel });
 
-    await promise;
+    try {
+      await promise;
+    } catch (err) {
+      logger.error(err);
+    }
 
     logger.debug(`Pip server started: '${serverUrl}'`);
 
@@ -151,18 +162,21 @@ export class PipServerController implements Disposable {
     // Give python extension time to setup .venv if configured
     await waitFor(PYTHON_ENV_WAIT);
 
-    terminal.sendText(`python -c 'import deephaven_server;' || exit 2`);
+    // In case user disposes terminal before server starts
+    if (this._serverUrlTerminalMap.has(port)) {
+      terminal.sendText(`python -c 'import deephaven_server;' || exit 2`);
 
-    terminal.sendText(
-      [
-        'deephaven server',
-        '--jvm-args "-DAuthHandlers=io.deephaven.auth.AnonymousAuthenticationHandler -Dprocess.info.system-info.enabled=false"',
-        `--port ${port}`,
-        '--no-browser',
-      ].join(' ')
-    );
+      terminal.sendText(
+        [
+          'deephaven server',
+          '--jvm-args "-DAuthHandlers=io.deephaven.auth.AnonymousAuthenticationHandler -Dprocess.info.system-info.enabled=false"',
+          `--port ${port}`,
+          '--no-browser',
+        ].join(' ')
+      );
 
-    await this.pollUntilServerStarts(port);
+      await this.pollUntilServerStarts(port);
+    }
   };
 
   stopServer = async (url: URL): Promise<void> => {
