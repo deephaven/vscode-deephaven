@@ -76,6 +76,4 @@ export const SERVER_TREE_ITEM_CONTEXT = {
   isServerStopped: 'isServerStopped',
 } as const;
 
-export const PIP_SERVER_STATUS_DIRECTORY = 'pip-server-status';
-
 export type ServerTreeItemContextValue = keyof typeof SERVER_TREE_ITEM_CONTEXT;
