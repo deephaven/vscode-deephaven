@@ -463,7 +463,7 @@ export class ExtensionController implements Disposable {
     await this._pipServerController?.syncManagedServers();
     await this._serverManager?.updateStatus();
 
-    this._serverConnectionTreeProvider?.refresh();
+    this._serverTreeProvider?.refresh();
     this._serverConnectionTreeProvider?.refresh();
   };
 
