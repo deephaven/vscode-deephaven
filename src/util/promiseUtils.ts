@@ -12,6 +12,14 @@ export interface PromiseWithCancel<T> {
 }
 
 /**
+ * Return a Promise that resolves after a given number of milliseconds.
+ * @param waitMs
+ */
+export function waitFor(waitMs: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, waitMs));
+}
+
+/**
  * Polyfill for `Promise.withResolvers`. Should be able to replace once we
  * upgrade to Node 22.
  * @returns

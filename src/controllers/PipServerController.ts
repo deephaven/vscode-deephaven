@@ -5,9 +5,10 @@ import {
   PIP_SERVER_STATUS_CHECK_INTERVAL,
   PIP_SERVER_STATUS_CHECK_TIMEOUT,
   PIP_SERVER_SUPPORTED_PLATFORMS,
+  PYTHON_ENV_WAIT,
 } from '../common';
 import { isDhcServerRunning } from '../dh/dhc';
-import { pollUntilTrue } from '../util/promiseUtils';
+import { pollUntilTrue, waitFor } from '../util/promiseUtils';
 
 const logger = new Logger('PipServerController');
 
@@ -68,7 +69,7 @@ export class PipServerController implements Disposable {
         });
 
         // Give python extension time to setup .venv if configured
-        await waitFor(1500);
+        await waitFor(PYTHON_ENV_WAIT);
 
         // Attempt to import deephaven_server to see if it's installed and exit
         // with code 2 if it fails.
@@ -148,7 +149,7 @@ export class PipServerController implements Disposable {
     this.syncManagedServers();
 
     // Give python extension time to setup .venv if configured
-    await waitFor(1000);
+    await waitFor(PYTHON_ENV_WAIT);
 
     terminal.sendText(`python -c 'import deephaven_server;' || exit 2`);
 
@@ -209,8 +210,4 @@ export class PipServerController implements Disposable {
   dispose = async (): Promise<void> => {
     this.disposeServers(this._serverUrlTerminalMap.keys());
   };
-}
-
-function waitFor(waitMs: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, waitMs));
 }

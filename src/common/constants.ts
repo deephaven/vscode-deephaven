@@ -16,6 +16,8 @@ export const DEFAULT_PIP_PORT_RANGE: ReadonlySet<Port> = new Set([
   10001, 10002, 10003, 10004,
 ] as Port[]);
 
+export const PYTHON_ENV_WAIT = 1500 as const;
+
 export const SERVER_STATUS_CHECK_TIMEOUT = 3000;
 export const PIP_SERVER_STATUS_CHECK_INTERVAL = 3000;
 export const PIP_SERVER_STATUS_CHECK_TIMEOUT = 15000;
