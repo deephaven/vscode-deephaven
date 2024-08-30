@@ -187,6 +187,22 @@ export function formatTimestamp(date: Date): string | null {
 }
 
 /**
+ * Get DH `themeKey` based on current vscode theme.
+ */
+export function getDHThemeKey(): string {
+  switch (vscode.window.activeColorTheme.kind) {
+    case vscode.ColorThemeKind.Light:
+    case vscode.ColorThemeKind.HighContrastLight:
+      return 'default-light';
+
+    case vscode.ColorThemeKind.Dark:
+    case vscode.ColorThemeKind.HighContrast:
+    default:
+      return 'default-dark';
+  }
+}
+
+/**
  * Get a `TextEditor` containing the given uri. If there is one already open,
  * it will be returned. Otherwise, a new one will be opened. The returned editor
  * will become the active editor if it is not already.
