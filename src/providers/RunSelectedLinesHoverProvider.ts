@@ -22,14 +22,8 @@ export const runSelectedLinesHoverProvider: vscode.HoverProvider = {
       return;
     }
 
-    // Tally total selected lines across all selections
-    const selectedLineCount = editor.selections.reduce(
-      (sum, selection) => sum + 1 + selection.end.line - selection.start.line,
-      0
-    );
-
     const hoverContent = new vscode.MarkdownString(
-      `[$(${ICON_ID.runSelection}) Run Deephaven selected lines (${selectedLineCount})](command:${RUN_SELECTION_COMMAND})`,
+      `[$(${ICON_ID.runSelection}) Run Deephaven selected lines](command:${RUN_SELECTION_COMMAND})`,
       true
     );
 
