@@ -502,7 +502,7 @@ export class ExtensionController implements Disposable {
    * Start a server.
    */
   onStartServer = (): void => {
-    this._pipServerController?.startServer();
+    void this._pipServerController?.startServer();
   };
 
   /**
