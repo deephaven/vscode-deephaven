@@ -233,9 +233,9 @@ export class ExtensionController implements Disposable {
     });
 
     vscode.workspace.onDidChangeConfiguration(
-      () => {
-        this._serverManager?.loadServerConfig();
-        this._pipServerController?.syncManagedServers();
+      async () => {
+        await this._serverManager?.loadServerConfig();
+        await this.onRefreshServerStatus();
       },
       undefined,
       this._context.subscriptions
@@ -299,12 +299,12 @@ export class ExtensionController implements Disposable {
     );
 
     /** Refresh server tree */
-    this.registerCommand(REFRESH_SERVER_TREE_CMD, this.onRefreshServerTrees);
+    this.registerCommand(REFRESH_SERVER_TREE_CMD, this.onRefreshServerStatus);
 
     /** Refresh server connection tree */
     this.registerCommand(
       REFRESH_SERVER_CONNECTION_TREE_CMD,
-      this.onRefreshServerTrees
+      this.onRefreshServerStatus
     );
 
     /** Start a server */
@@ -459,12 +459,9 @@ export class ExtensionController implements Disposable {
     );
   };
 
-  onRefreshServerTrees = async (): Promise<void> => {
+  onRefreshServerStatus = async (): Promise<void> => {
     await this._pipServerController?.syncManagedServers();
     await this._serverManager?.updateStatus();
-
-    this._serverTreeProvider?.refresh();
-    this._serverConnectionTreeProvider?.refresh();
   };
 
   /**

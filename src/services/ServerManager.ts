@@ -30,9 +30,7 @@ export class ServerManager implements IServerManager {
 
     this.canStartServer = false;
 
-    this.loadServerConfig();
-
-    this.loadServerConfig();
+    void this.loadServerConfig();
   }
 
   private readonly _configService: IConfigService;
@@ -61,7 +59,7 @@ export class ServerManager implements IServerManager {
 
   canStartServer: boolean;
 
-  loadServerConfig = (): void => {
+  loadServerConfig = async (): Promise<void> => {
     const initialDhcServerState = getInitialServerStates(
       'DHC',
       this._configService.getCoreServers()
@@ -87,7 +85,7 @@ export class ServerManager implements IServerManager {
       }
     }
 
-    this.updateStatus();
+    await this.updateStatus();
   };
 
   connectToServer = async (serverUrl: URL): Promise<IDhService | null> => {
