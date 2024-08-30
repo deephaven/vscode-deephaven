@@ -165,12 +165,12 @@ export class PipServerController implements Disposable {
     await this.pollUntilServerStarts(port);
   };
 
-  stopServer = (url: URL): void => {
+  stopServer = async (url: URL): Promise<void> => {
     this._serverManager.disconnectFromServer(url);
 
     const port = parsePort(url.port);
 
-    this.disposeServers([port]);
+    await this.disposeServers([port]);
   };
 
   syncManagedServers = async (): Promise<void> => {

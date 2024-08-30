@@ -501,16 +501,16 @@ export class ExtensionController implements Disposable {
   /**
    * Start a server.
    */
-  onStartServer = (): void => {
-    void this._pipServerController?.startServer();
+  onStartServer = async (): Promise<void> => {
+    await this._pipServerController?.startServer();
   };
 
   /**
    * Stop a server.
    * @param value
    */
-  onStopServer = (value: ServerState): void => {
-    this._pipServerController?.stopServer(value.url);
+  onStopServer = async (value: ServerState): Promise<void> => {
+    await this._pipServerController?.stopServer(value.url);
   };
 
   /**
