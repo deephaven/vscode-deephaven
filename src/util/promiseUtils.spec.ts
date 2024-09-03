@@ -68,20 +68,24 @@ describe('pollUntilTrue', () => {
     const { promise } = pollUntilTrue(poll, intervalMs);
     promise.then(resolved);
 
+    // Initial polling call that is scheduled via setTimeout(..., 0)
     await vi.advanceTimersToNextTimerAsync();
     expect(poll).toHaveBeenCalledTimes(1);
     expect(resolved).not.toHaveBeenCalled();
 
+    // 2nd poll (after first intervalMs)
     await vi.advanceTimersByTimeAsync(intervalMs);
     expect(poll).toHaveBeenCalledTimes(2);
     expect(resolved).not.toHaveBeenCalled();
 
     poll.mockResolvedValue(true);
 
+    // 3rd poll
     await vi.advanceTimersByTimeAsync(intervalMs);
     expect(poll).toHaveBeenCalledTimes(3);
     expect(resolved).toHaveBeenCalledWith(true);
 
+    // Advance intervalMs. No more polling expected since resolved
     await vi.advanceTimersByTimeAsync(intervalMs);
     expect(poll).toHaveBeenCalledTimes(3);
     expect(resolved).toHaveBeenCalledOnce();
