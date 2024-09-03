@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
-import type { ServerState } from './commonTypes';
-import type { IDhService } from './serviceTypes';
+import type { ServerConnection, ServerState } from './commonTypes';
 
 export type SeparatorPickItem = {
   label: string;
@@ -12,7 +11,7 @@ export type ConnectionPickItem<TType, TData> = vscode.QuickPickItem & {
   data: TData;
 };
 
-export type ConnectionPickOption =
+export type ConnectionPickOption<TConnection extends ServerConnection> =
   | SeparatorPickItem
   | ConnectionPickItem<'server', ServerState>
-  | ConnectionPickItem<'connection', IDhService>;
+  | ConnectionPickItem<'connection', TConnection>;

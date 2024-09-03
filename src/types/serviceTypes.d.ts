@@ -5,6 +5,7 @@ import type {
   Disposable,
   EnterpriseConnectionConfig,
   EventListenerT,
+  ServerConnection,
   ServerState,
   UnsubscribeEventListener,
 } from '../types/commonTypes';
@@ -22,10 +23,10 @@ export interface IConfigService {
  */
 export interface IDhService<TDH = unknown, TClient = unknown>
   extends Disposable,
-    IEventDispatcher<'disconnect'> {
+    IEventDispatcher<'disconnect'>,
+    ServerConnection {
   readonly isInitialized: boolean;
   readonly isConnected: boolean;
-  readonly serverUrl: URL;
 
   initDh: () => Promise<boolean>;
 

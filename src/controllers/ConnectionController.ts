@@ -257,10 +257,11 @@ export class ConnectionController implements Disposable {
       hasConnections: false,
     });
 
-    const connections: IDhService[] = await getConnectionsForConsoleType(
-      this._serverManager.getConnections(),
-      editor.document.languageId as ConsoleType
-    );
+    const connectionsForConsoleType: IDhService[] =
+      await getConnectionsForConsoleType(
+        this._serverManager.getConnections(),
+        editor.document.languageId as ConsoleType
+      );
 
     const editorActiveConnectionUrl = this._serverManager.getUriConnection(
       editor.document.uri
@@ -272,7 +273,7 @@ export class ConnectionController implements Disposable {
       selectedCnResult = await createConnectionQuickPick(
         createConnectionQuickPickOptions(
           runningServersWithoutConnections,
-          connections,
+          connectionsForConsoleType,
           editor.document.languageId,
           editorActiveConnectionUrl
         )

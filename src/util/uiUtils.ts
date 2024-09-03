@@ -13,6 +13,7 @@ import type {
   ServerState,
   SeparatorPickItem,
   ConnectionPickOption,
+  ServerConnection,
 } from '../types';
 
 export interface ConnectionOption {
@@ -39,12 +40,14 @@ export interface WorkspaceFolderConfig {
  * @param editorActiveConnectionUrl The active connection url of the editor
  * @returns
  */
-export function createConnectionQuickPickOptions(
+export function createConnectionQuickPickOptions<
+  TConnection extends ServerConnection,
+>(
   servers: ServerState[],
-  connections: IDhService[],
+  connections: TConnection[],
   editorLanguageId: string,
   editorActiveConnectionUrl?: URL | null
-): ConnectionPickOption[] {
+): ConnectionPickOption<TConnection>[] {
   const serverOptions: ConnectionPickItem<'server', ServerState>[] =
     servers.map(data => ({
       type: 'server',
@@ -54,7 +57,7 @@ export function createConnectionQuickPickOptions(
       data,
     }));
 
-  const connectionOptions: ConnectionPickItem<'connection', IDhService>[] = [];
+  const connectionOptions: ConnectionPickItem<'connection', TConnection>[] = [];
 
   for (const dhService of connections) {
     const isActiveConnection =
@@ -91,7 +94,7 @@ export function createConnectionQuickPickOptions(
  * Create quickpick for selecting a connection.
  */
 export async function createConnectionQuickPick(
-  options: ConnectionPickOption[]
+  options: ConnectionPickOption<IDhService>[]
 ): Promise<ServerState | IDhService | null> {
   const result = await vscode.window.showQuickPick(options, {
     title: 'Connect Editor',

@@ -21,3 +21,129 @@ exports[`createConnectionOption > should return connection option: 'DHC', { labe
   "url": "http://localhost:10000/",
 }
 `;
+
+exports[`createConnectionQuickPickOptions > should return quick pick options 1`] = `
+[
+  {
+    "kind": -1,
+    "label": "Active Connections",
+  },
+  {
+    "data": {
+      "serverUrl": "http://localhost:10000/",
+    },
+    "description": "python",
+    "iconPath": {
+      "color": undefined,
+      "id": "vm-connect",
+    },
+    "label": "http://localhost:10000/",
+    "type": "connection",
+  },
+  {
+    "data": {
+      "serverUrl": "http://localhost:10002/",
+    },
+    "description": "python",
+    "iconPath": {
+      "color": undefined,
+      "id": "vm-connect",
+    },
+    "label": "http://localhost:10002/",
+    "type": "connection",
+  },
+  {
+    "kind": -1,
+    "label": "Connect to Server",
+  },
+  {
+    "data": {
+      "type": "DHC",
+      "url": "http://localhost:10001/",
+    },
+    "description": undefined,
+    "iconPath": {
+      "color": undefined,
+      "id": "server",
+    },
+    "label": "http://localhost:10001/",
+    "type": "server",
+  },
+  {
+    "data": {
+      "type": "DHC",
+      "url": "http://localhost:10003/",
+    },
+    "description": undefined,
+    "iconPath": {
+      "color": undefined,
+      "id": "server",
+    },
+    "label": "http://localhost:10003/",
+    "type": "server",
+  },
+]
+`;
+
+exports[`createConnectionQuickPickOptions > should return quick pick options 2`] = `
+[
+  {
+    "kind": -1,
+    "label": "Active Connections",
+  },
+  {
+    "data": {
+      "serverUrl": "http://localhost:10000/",
+    },
+    "description": "python (current)",
+    "iconPath": {
+      "color": undefined,
+      "id": "vm-connect",
+    },
+    "label": "http://localhost:10000/",
+    "type": "connection",
+  },
+  {
+    "data": {
+      "serverUrl": "http://localhost:10002/",
+    },
+    "description": "python",
+    "iconPath": {
+      "color": undefined,
+      "id": "vm-connect",
+    },
+    "label": "http://localhost:10002/",
+    "type": "connection",
+  },
+  {
+    "kind": -1,
+    "label": "Connect to Server",
+  },
+  {
+    "data": {
+      "type": "DHC",
+      "url": "http://localhost:10001/",
+    },
+    "description": undefined,
+    "iconPath": {
+      "color": undefined,
+      "id": "server",
+    },
+    "label": "http://localhost:10001/",
+    "type": "server",
+  },
+  {
+    "data": {
+      "type": "DHC",
+      "url": "http://localhost:10003/",
+    },
+    "description": undefined,
+    "iconPath": {
+      "color": undefined,
+      "id": "server",
+    },
+    "label": "http://localhost:10003/",
+    "type": "server",
+  },
+]
+`;

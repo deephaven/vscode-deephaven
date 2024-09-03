@@ -42,6 +42,10 @@ export type ServerConnectionConfig =
   | EnterpriseConnectionConfig
   | URL;
 
+export interface ServerConnection {
+  readonly serverUrl: URL;
+}
+
 export interface Disposable {
   dispose(): Promise<void>;
 }
