@@ -1,5 +1,109 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`getServerContextValue > should return contextValue based on server state: isConnected=false, isManaged=false, isRunning=false 1`] = `"isServerStopped"`;
+
+exports[`getServerContextValue > should return contextValue based on server state: isConnected=false, isManaged=false, isRunning=true 1`] = `"isServerRunningDisconnected"`;
+
+exports[`getServerContextValue > should return contextValue based on server state: isConnected=false, isManaged=true, isRunning=false 1`] = `"isManagedServerConnecting"`;
+
+exports[`getServerContextValue > should return contextValue based on server state: isConnected=false, isManaged=true, isRunning=true 1`] = `"isManagedServerDisconnected"`;
+
+exports[`getServerContextValue > should return contextValue based on server state: isConnected=true, isManaged=false, isRunning=false 1`] = `"isServerStopped"`;
+
+exports[`getServerContextValue > should return contextValue based on server state: isConnected=true, isManaged=false, isRunning=true 1`] = `"isServerRunningConnected"`;
+
+exports[`getServerContextValue > should return contextValue based on server state: isConnected=true, isManaged=true, isRunning=false 1`] = `"isManagedServerConnected"`;
+
+exports[`getServerContextValue > should return contextValue based on server state: isConnected=true, isManaged=true, isRunning=true 1`] = `"isManagedServerConnected"`;
+
+exports[`getServerDescription > should return server description based on parameters: connectionCount=0, isManaged=false, label=some label 1`] = `"some label"`;
+
+exports[`getServerDescription > should return server description based on parameters: connectionCount=0, isManaged=false, label=undefined 1`] = `""`;
+
+exports[`getServerDescription > should return server description based on parameters: connectionCount=0, isManaged=true, label=some label 1`] = `"pip some label"`;
+
+exports[`getServerDescription > should return server description based on parameters: connectionCount=0, isManaged=true, label=undefined 1`] = `"pip"`;
+
+exports[`getServerDescription > should return server description based on parameters: connectionCount=1, isManaged=false, label=some label 1`] = `"some label (1)"`;
+
+exports[`getServerDescription > should return server description based on parameters: connectionCount=1, isManaged=false, label=undefined 1`] = `"(1)"`;
+
+exports[`getServerDescription > should return server description based on parameters: connectionCount=1, isManaged=true, label=some label 1`] = `"pip some label (1)"`;
+
+exports[`getServerDescription > should return server description based on parameters: connectionCount=1, isManaged=true, label=undefined 1`] = `"pip (1)"`;
+
+exports[`getServerGroupContextValue > should return context value when servers can be managed: group=Managed, canStartServer=false 1`] = `undefined`;
+
+exports[`getServerGroupContextValue > should return context value when servers can be managed: group=Managed, canStartServer=true 1`] = `"canStartServer"`;
+
+exports[`getServerGroupContextValue > should return context value when servers can be managed: group=Running, canStartServer=false 1`] = `undefined`;
+
+exports[`getServerGroupContextValue > should return context value when servers can be managed: group=Running, canStartServer=true 1`] = `undefined`;
+
+exports[`getServerGroupTreeItem > should return server group tree item: group=Managed, canStartServer=false 1`] = `
+{
+  "collapsibleState": 2,
+  "contextValue": undefined,
+  "iconPath": {
+    "color": undefined,
+    "id": "server",
+  },
+  "label": "Managed",
+}
+`;
+
+exports[`getServerGroupTreeItem > should return server group tree item: group=Managed, canStartServer=true 1`] = `
+{
+  "collapsibleState": 2,
+  "contextValue": "canStartServer",
+  "iconPath": {
+    "color": undefined,
+    "id": "server",
+  },
+  "label": "Managed",
+}
+`;
+
+exports[`getServerGroupTreeItem > should return server group tree item: group=Running, canStartServer=false 1`] = `
+{
+  "collapsibleState": 2,
+  "contextValue": undefined,
+  "iconPath": {
+    "color": undefined,
+    "id": "server",
+  },
+  "label": "Running",
+}
+`;
+
+exports[`getServerGroupTreeItem > should return server group tree item: group=Running, canStartServer=true 1`] = `
+{
+  "collapsibleState": 2,
+  "contextValue": undefined,
+  "iconPath": {
+    "color": undefined,
+    "id": "server",
+  },
+  "label": "Running",
+}
+`;
+
+exports[`getServerIconPath > should return icon path based on server state: isConnected=false, isManaged=false, isRunning=false 1`] = `"circle-slash"`;
+
+exports[`getServerIconPath > should return icon path based on server state: isConnected=false, isManaged=false, isRunning=true 1`] = `"circle-large-outline"`;
+
+exports[`getServerIconPath > should return icon path based on server state: isConnected=false, isManaged=true, isRunning=false 1`] = `"sync~spin"`;
+
+exports[`getServerIconPath > should return icon path based on server state: isConnected=false, isManaged=true, isRunning=true 1`] = `"circle-large-outline"`;
+
+exports[`getServerIconPath > should return icon path based on server state: isConnected=true, isManaged=false, isRunning=false 1`] = `"circle-slash"`;
+
+exports[`getServerIconPath > should return icon path based on server state: isConnected=true, isManaged=false, isRunning=true 1`] = `"circle-large-filled"`;
+
+exports[`getServerIconPath > should return icon path based on server state: isConnected=true, isManaged=true, isRunning=false 1`] = `"sync~spin"`;
+
+exports[`getServerIconPath > should return icon path based on server state: isConnected=true, isManaged=true, isRunning=true 1`] = `"circle-large-filled"`;
+
 exports[`getServerTreeItem > should return DHC server tree item: isConnected=false, isManaged=false, isRunning=false 1`] = `
 {
   "command": undefined,

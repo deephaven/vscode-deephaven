@@ -1,4 +1,3 @@
-import * as vscode from 'vscode';
 import { describe, it, expect, vi } from 'vitest';
 import {
   getInitialServerStates,
@@ -10,7 +9,6 @@ import {
   getServerIconPath,
   getServerTreeItem,
 } from './serverUtils';
-import { ICON_ID, SERVER_TREE_ITEM_CONTEXT } from '../common';
 import type { Port, ServerConnectionConfig, ServerState } from '../types';
 
 // See __mocks__/vscode.ts for the mock implementation
@@ -55,58 +53,57 @@ describe('getPipServerUrl', () => {
 
 describe('getServerContextValue', () => {
   it.each([
-    [true, true, true, SERVER_TREE_ITEM_CONTEXT.isManagedServerConnected],
-    [true, true, false, SERVER_TREE_ITEM_CONTEXT.isManagedServerConnected],
-    [true, false, true, SERVER_TREE_ITEM_CONTEXT.isServerRunningConnected],
-    [true, false, false, SERVER_TREE_ITEM_CONTEXT.isServerStopped],
-    [false, true, true, SERVER_TREE_ITEM_CONTEXT.isManagedServerDisconnected],
-    [false, true, false, SERVER_TREE_ITEM_CONTEXT.isManagedServerConnecting],
-    [false, false, true, SERVER_TREE_ITEM_CONTEXT.isServerRunningDisconnected],
-    [false, false, false, SERVER_TREE_ITEM_CONTEXT.isServerStopped],
+    [true, true, true],
+    [true, true, false],
+    [true, false, true],
+    [true, false, false],
+    [false, true, true],
+    [false, true, false],
+    [false, false, true],
+    [false, false, false],
   ])(
     'should return contextValue based on server state: isConnected=%s, isManaged=%s, isRunning=%s',
-    (isConnected, isManaged, isRunning, expected) => {
+    (isConnected, isManaged, isRunning) => {
       const actual = getServerContextValue({
         isConnected,
         isManaged,
         isRunning,
       });
-
-      expect(actual).toEqual(expected);
+      expect(actual).toMatchSnapshot();
     }
   );
 });
 
 describe('getServerDescription', () => {
   it.each([
-    [0, true, 'some label', 'pip some label'],
-    [1, true, 'some label', 'pip some label (1)'],
-    [0, false, 'some label', 'some label'],
-    [1, false, 'some label', 'some label (1)'],
-    [0, true, undefined, 'pip'],
-    [1, true, undefined, 'pip (1)'],
-    [0, false, undefined, ''],
-    [1, false, undefined, '(1)'],
+    [0, true, 'some label'],
+    [1, true, 'some label'],
+    [0, false, 'some label'],
+    [1, false, 'some label'],
+    [0, true, undefined],
+    [1, true, undefined],
+    [0, false, undefined],
+    [1, false, undefined],
   ])(
     'should return server description based on parameters: connectionCount=%s, isManaged=%s, label=%s',
-    (connectionCount, isManaged, label, expectedDescription) => {
+    (connectionCount, isManaged, label) => {
       const actual = getServerDescription(connectionCount, isManaged, label);
-      expect(actual).toEqual(expectedDescription);
+      expect(actual).toMatchSnapshot();
     }
   );
 });
 
 describe('getServerGroupContextValue', () => {
   it.each([
-    ['Managed', true, SERVER_TREE_ITEM_CONTEXT.canStartServer],
-    ['Running', true, undefined],
-    ['Managed', false, undefined],
-    ['Running', false, undefined],
+    ['Managed', true],
+    ['Running', true],
+    ['Managed', false],
+    ['Running', false],
   ] as const)(
     'should return context value when servers can be managed: group=%s, canStartServer=%s',
-    (group, canStartServer, expected) => {
+    (group, canStartServer) => {
       const actual = getServerGroupContextValue(group, canStartServer);
-      expect(actual).toEqual(expected);
+      expect(actual).toMatchSnapshot();
     }
   );
 });
@@ -121,32 +118,26 @@ describe('getServerGroupTreeItem', () => {
     'should return server group tree item: group=%s, canStartServer=%s',
     (group, canStartServer) => {
       const actual = getServerGroupTreeItem(group, canStartServer);
-
-      expect(actual).toEqual({
-        label: group,
-        iconPath: new vscode.ThemeIcon(ICON_ID.server),
-        collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
-        contextValue: getServerGroupContextValue(group, canStartServer),
-      });
+      expect(actual).toMatchSnapshot();
     }
   );
 });
 
 describe('getServerIconPath', () => {
   it.each([
-    [true, true, true, ICON_ID.serverConnected],
-    [true, true, false, ICON_ID.connecting],
-    [true, false, true, ICON_ID.serverConnected],
-    [true, false, false, ICON_ID.serverStopped],
-    [false, true, true, ICON_ID.serverRunning],
-    [false, true, false, ICON_ID.connecting],
-    [false, false, true, ICON_ID.serverRunning],
-    [false, false, false, ICON_ID.serverStopped],
+    [true, true, true],
+    [true, true, false],
+    [true, false, true],
+    [true, false, false],
+    [false, true, true],
+    [false, true, false],
+    [false, false, true],
+    [false, false, false],
   ])(
     'should return icon path based on server state: isConnected=%s, isManaged=%s, isRunning=%s',
-    (isConnected, isManaged, isRunning, expected) => {
+    (isConnected, isManaged, isRunning) => {
       const actual = getServerIconPath({ isConnected, isManaged, isRunning });
-      expect(actual).toEqual(expected);
+      expect(actual).toMatchSnapshot();
     }
   );
 });
