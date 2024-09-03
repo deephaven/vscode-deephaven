@@ -5,6 +5,7 @@ import {
   ConnectionOption,
   createConnectionOption,
   updateConnectionStatusBarItem,
+  createSeparatorPickItem,
 } from './uiUtils';
 import type { CoreConnectionConfig } from '../types';
 
@@ -66,4 +67,15 @@ describe('updateConnectionStatusBarItem', () => {
       expect(statusBarItem.text).toBe(text);
     }
   );
+});
+
+describe('createSeparatorPickItem', () => {
+  it('should create a separator quick pick item with label', () => {
+    const label = 'Some Label';
+    const actual = createSeparatorPickItem(label);
+    expect(actual).toEqual({
+      label,
+      kind: vscode.QuickPickItemKind.Separator,
+    });
+  });
 });

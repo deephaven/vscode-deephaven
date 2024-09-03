@@ -9,6 +9,7 @@ import {
   getServerIconPath,
   getServerTreeItem,
   groupServers,
+  parsePort,
 } from './serverUtils';
 import type { Port, ServerConnectionConfig, ServerState } from '../types';
 
@@ -196,5 +197,22 @@ describe('groupServers', () => {
     const actual = groupServers(servers);
 
     expect(actual).toMatchSnapshot();
+  });
+});
+
+describe('parsePort', () => {
+  it('should parse port from string', () => {
+    const given = '10000';
+    const expected = 10000 as Port;
+
+    const actual = parsePort(given);
+
+    expect(actual).toBe(expected);
+  });
+
+  it('should throw error when port is not a number', () => {
+    const given = 'abc';
+
+    expect(() => parsePort(given)).toThrowError(new Error('Invalid port: abc'));
   });
 });

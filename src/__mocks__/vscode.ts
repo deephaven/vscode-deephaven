@@ -6,6 +6,11 @@
  */
 import { vi } from 'vitest';
 
+export enum QuickPickItemKind {
+  Separator = -1,
+  Default = 0,
+}
+
 export const ThemeColor = vi
   .fn()
   .mockName('ThemeColor')
@@ -22,17 +27,8 @@ export const ThemeIcon = vi
   }));
 
 export enum TreeItemCollapsibleState {
-  /**
-   * Determines an item can be neither collapsed nor expanded. Implies it has no children.
-   */
   None = 0,
-  /**
-   * Determines an item is collapsed
-   */
   Collapsed = 1,
-  /**
-   * Determines an item is expanded
-   */
   Expanded = 2,
 }
 
