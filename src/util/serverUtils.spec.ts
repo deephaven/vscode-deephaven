@@ -8,6 +8,7 @@ import {
   getServerGroupTreeItem,
   getServerIconPath,
   getServerTreeItem,
+  groupServers,
 } from './serverUtils';
 import type { Port, ServerConnectionConfig, ServerState } from '../types';
 
@@ -170,4 +171,30 @@ describe('getServerTreeItem', () => {
       expect(actual).toMatchSnapshot();
     }
   );
+});
+
+describe('groupServers', () => {
+  it('should group servers by state', () => {
+    const props = [
+      [true, true],
+      [true, true],
+      [true, false],
+      [true, false],
+      [false, true],
+      [false, true],
+      [false, false],
+      [false, false],
+    ];
+
+    const servers = props.map(([isManaged, isRunning], i) => ({
+      type: 'DHC' as const,
+      url: new URL(`http://localhost:1000${i}`),
+      isManaged,
+      isRunning,
+    }));
+
+    const actual = groupServers(servers);
+
+    expect(actual).toMatchSnapshot();
+  });
 });
