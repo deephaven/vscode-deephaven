@@ -44,9 +44,12 @@ describe('createConnectionQuickPickOptions', () => {
   const serverUrlC = new URL('http://localhost:10002');
   const serverUrlD = new URL('http://localhost:10003');
 
-  it.each([undefined, serverUrlA])(
-    'should return quick pick options',
-    editorActiveConnectionUrl => {
+  it.each([
+    ['No active', undefined],
+    ['Active A', serverUrlA],
+  ])(
+    'should return quick pick options: editorActiveConnectionUrl=%s',
+    (_label, editorActiveConnectionUrl) => {
       const serversWithoutConnections: ServerState[] = [
         { type: 'DHC', url: serverUrlB },
         { type: 'DHC', url: serverUrlD },
