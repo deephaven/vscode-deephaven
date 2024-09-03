@@ -301,7 +301,7 @@ export class ServerManager implements IServerManager {
       if ((server.isRunning ?? false) !== newServerState.isRunning) {
         // If server goes from running to stopped, get rid of any active
         // connections to it.
-        if (!isRunning) {
+        if (!newServerState.isRunning) {
           void this.disconnectFromServer(server.url);
         }
 
