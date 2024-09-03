@@ -129,7 +129,7 @@ export class PipServerController implements Disposable {
       logger.debug(`Pip server started: '${serverUrl}'`);
     } catch (err) {
       logger.error(err);
-      this.disposeServers([port]);
+      void this.disposeServers([port]);
     }
 
     this._pollers.delete(port);
