@@ -58,13 +58,3 @@ export interface ServerState {
   isManaged?: boolean;
   isRunning?: boolean;
 }
-
-export type SeparatorPickItem = {
-  label: string;
-  kind: vscode.QuickPickItemKind.Separator;
-};
-
-export type ConnectionPickItem<TType, TData> = vscode.QuickPickItem & {
-  type: TType;
-  data: TData;
-};

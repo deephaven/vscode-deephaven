@@ -12,6 +12,7 @@ import type {
   IDhService,
   ServerState,
   SeparatorPickItem,
+  ConnectionPickOption,
 } from '../types';
 
 export interface ConnectionOption {
@@ -31,14 +32,19 @@ export interface WorkspaceFolderConfig {
 }
 
 /**
- * Create quickpick for selecting a connection.
+ * Create options for a connection quick pick.
+ * @param servers The available servers
+ * @param connections The available connections
+ * @param editorLanguageId The language id of the editor
+ * @param editorActiveConnectionUrl The active connection url of the editor
+ * @returns
  */
-export async function createConnectionQuickPick(
+export function createConnectionQuickPickOptions(
   servers: ServerState[],
   connections: IDhService[],
   editorLanguageId: string,
   editorActiveConnectionUrl?: URL | null
-): Promise<ServerState | IDhService | null> {
+): ConnectionPickOption[] {
   const serverOptions: ConnectionPickItem<'server', ServerState>[] =
     servers.map(data => ({
       type: 'server',
@@ -69,20 +75,24 @@ export async function createConnectionQuickPick(
     throw new Error('No available servers to connect to.');
   }
 
-  const options: (
-    | SeparatorPickItem
-    | ConnectionPickItem<'server', ServerState>
-    | ConnectionPickItem<'connection', IDhService>
-  )[] = [
-    {
-      label: 'Active Connections',
-      kind: vscode.QuickPickItemKind.Separator,
-    },
-    ...connectionOptions.sort((a, b) => a.label.localeCompare(b.label)),
-    { label: 'Connect to Server', kind: vscode.QuickPickItemKind.Separator },
-    ...serverOptions.sort((a, b) => a.label.localeCompare(b.label)),
-  ];
+  // Sort options by label
+  connectionOptions.sort(sortByLabel);
+  serverOptions.sort(sortByLabel);
 
+  return [
+    createSeparatorPickItem('Active Connections'),
+    ...connectionOptions,
+    createSeparatorPickItem('Connect to Server'),
+    ...serverOptions,
+  ];
+}
+
+/**
+ * Create quickpick for selecting a connection.
+ */
+export async function createConnectionQuickPick(
+  options: ConnectionPickOption[]
+): Promise<ServerState | IDhService | null> {
   const result = await vscode.window.showQuickPick(options, {
     title: 'Connect Editor',
   });
@@ -156,6 +166,17 @@ export function createConnectText(
 }
 
 /**
+ * Create a separator pick item.
+ * @param label The label for the separator
+ */
+export function createSeparatorPickItem(label: string): SeparatorPickItem {
+  return {
+    label,
+    kind: vscode.QuickPickItemKind.Separator,
+  };
+}
+
+/**
  * Format the connection label for display.
  * @param label The original label to format
  * @param isSelected Whether the connection is selected
@@ -225,6 +246,13 @@ export async function getEditorForUri(
   // for the url to active first
   // https://stackoverflow.com/a/64808497/20489
   return vscode.window.showTextDocument(uri, { preview: false, viewColumn });
+}
+
+/**
+ * Sort function for sorting by label.
+ */
+export function sortByLabel<T extends { label: string }>(a: T, b: T): number {
+  return a.label.localeCompare(b.label);
 }
 
 /**

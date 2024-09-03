@@ -11,6 +11,7 @@ import {
   assertDefined,
   createConnectionOption,
   createConnectionQuickPick,
+  createConnectionQuickPickOptions,
   createConnectStatusBarItem,
   getConnectionsForConsoleType,
   getEditorForUri,
@@ -269,10 +270,12 @@ export class ConnectionController implements Disposable {
 
     try {
       selectedCnResult = await createConnectionQuickPick(
-        runningServersWithoutConnections,
-        connections,
-        editor.document.languageId,
-        editorActiveConnectionUrl
+        createConnectionQuickPickOptions(
+          runningServersWithoutConnections,
+          connections,
+          editor.document.languageId,
+          editorActiveConnectionUrl
+        )
       );
 
       if (selectedCnResult == null) {
