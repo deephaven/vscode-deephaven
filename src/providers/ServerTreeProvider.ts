@@ -1,41 +1,15 @@
 import * as vscode from 'vscode';
-import {
-  ICON_ID,
-  SERVER_TREE_ITEM_CONTEXT,
-  type ServerTreeItemContextValue,
-} from '../common';
+import { ICON_ID, SERVER_TREE_ITEM_CONTEXT } from '../common';
 import { TreeDataProviderBase } from './TreeDataProviderBase';
 import type { ServerGroupState, ServerNode } from '../types/treeViewTypes';
-import { getServerDescription, getServerIconPath } from '../util';
+import {
+  getServerContextValue,
+  getServerDescription,
+  getServerIconPath,
+} from '../util';
 
 function isServerGroupState(node: ServerNode): node is ServerGroupState {
   return typeof node === 'string';
-}
-
-function getServerContextValue({
-  isConnected,
-  isManaged,
-  isRunning,
-}: {
-  isConnected: boolean;
-  isManaged: boolean;
-  isRunning: boolean;
-}): ServerTreeItemContextValue {
-  if (isManaged) {
-    return isConnected
-      ? SERVER_TREE_ITEM_CONTEXT.isManagedServerConnected
-      : isRunning
-        ? SERVER_TREE_ITEM_CONTEXT.isManagedServerDisconnected
-        : SERVER_TREE_ITEM_CONTEXT.isManagedServerConnecting;
-  }
-
-  if (isRunning) {
-    return isConnected
-      ? SERVER_TREE_ITEM_CONTEXT.isServerRunningConnected
-      : SERVER_TREE_ITEM_CONTEXT.isServerRunningDisconnected;
-  }
-
-  return SERVER_TREE_ITEM_CONTEXT.isServerStopped;
 }
 
 /**

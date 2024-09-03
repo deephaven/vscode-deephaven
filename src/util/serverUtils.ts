@@ -7,7 +7,12 @@ import type {
   CoreConnectionConfig,
   Port,
 } from '../types';
-import { ICON_ID, SERVER_LANGUAGE_SET } from '../common';
+import {
+  ICON_ID,
+  SERVER_LANGUAGE_SET,
+  SERVER_TREE_ITEM_CONTEXT,
+  type ServerTreeItemContextValue,
+} from '../common';
 
 /**
  * Get initial server states based on server configs.
@@ -69,6 +74,38 @@ export async function getFirstConnectionForConsoleType(
  */
 export function getPipServerUrl(port: Port): URL {
   return new URL(`http://localhost:${port}`);
+}
+
+/**
+ * Get `contextValue` for server tree items.
+ * @param isConnected Whether the server is connected
+ * @param isManaged Whether the server is managed
+ * @param isRunning Whether the server is running
+ */
+export function getServerContextValue({
+  isConnected,
+  isManaged,
+  isRunning,
+}: {
+  isConnected: boolean;
+  isManaged: boolean;
+  isRunning: boolean;
+}): ServerTreeItemContextValue {
+  if (isManaged) {
+    return isConnected
+      ? SERVER_TREE_ITEM_CONTEXT.isManagedServerConnected
+      : isRunning
+        ? SERVER_TREE_ITEM_CONTEXT.isManagedServerDisconnected
+        : SERVER_TREE_ITEM_CONTEXT.isManagedServerConnecting;
+  }
+
+  if (isRunning) {
+    return isConnected
+      ? SERVER_TREE_ITEM_CONTEXT.isServerRunningConnected
+      : SERVER_TREE_ITEM_CONTEXT.isServerRunningDisconnected;
+  }
+
+  return SERVER_TREE_ITEM_CONTEXT.isServerStopped;
 }
 
 /**
