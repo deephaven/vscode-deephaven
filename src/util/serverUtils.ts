@@ -4,10 +4,9 @@ import type {
   ServerState,
   ServerType,
   ConsoleType,
-  EnterpriseConnectionConfig,
-  CoreConnectionConfig,
   Port,
   ServerGroupState,
+  ServerConnectionConfig,
 } from '../types';
 import {
   ICON_ID,
@@ -23,7 +22,7 @@ import {
  */
 export function getInitialServerStates(
   type: ServerType,
-  configs: (CoreConnectionConfig | EnterpriseConnectionConfig | URL)[]
+  configs: ServerConnectionConfig[]
 ): ServerState[] {
   return configs.map(config => ({
     type,
@@ -121,7 +120,7 @@ export function getServerDescription(
   label: string = ''
 ): string | undefined {
   if (isManaged) {
-    label = `pip ${label}`;
+    label = label === '' ? 'pip' : `pip ${label}`;
   }
 
   if (connectionCount === 0) {
@@ -238,7 +237,7 @@ export function getServerTreeItem({
     ),
     command: canConnect
       ? {
-          title: 'Open in Browser',
+          title: 'Connect to server',
           command: 'vscode-deephaven.connectToServer',
           arguments: [server],
         }

@@ -20,7 +20,7 @@ export const PYTHON_ENV_WAIT = 1500 as const;
 
 export const SERVER_STATUS_CHECK_TIMEOUT = 3000;
 export const PIP_SERVER_STATUS_CHECK_INTERVAL = 3000;
-export const PIP_SERVER_STATUS_CHECK_TIMEOUT = 15000;
+export const PIP_SERVER_STATUS_CHECK_TIMEOUT = 30000;
 
 export const STATUS_BAR_DISCONNECTED_TEXT = 'Deephaven: Disconnected';
 export const STATUS_BAR_DISCONNECT_TEXT = 'Deephaven: Disconnect';

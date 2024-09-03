@@ -37,6 +37,11 @@ export interface EnterpriseConnectionConfig {
   url: URL;
 }
 
+export type ServerConnectionConfig =
+  | CoreConnectionConfig
+  | EnterpriseConnectionConfig
+  | URL;
+
 export interface Disposable {
   dispose(): Promise<void>;
 }
