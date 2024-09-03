@@ -11,3 +11,14 @@ export function assertDefined<T>(
     throw new Error(`'${name}' is required`);
   }
 }
+
+/**
+ * Assertion for a value that should never be reached. Useful for exhaustive switch
+ * checks.
+ * @param shouldBeNever The value that should never be reached.
+ * @param name The name of the value to include in the error message if the assertion fails.
+ */
+export function assertNever(shouldBeNever: never, name?: string): never {
+  const label = name == null ? 'value' : `'${name}'`;
+  throw new Error(`Unexpected ${label}: ${shouldBeNever}`);
+}
