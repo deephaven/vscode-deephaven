@@ -30,17 +30,6 @@ const icons = {
 type IconType = keyof typeof icons;
 /* eslint-enable @typescript-eslint/naming-convention */
 
-// Common command result types shared by DHC and DHE
-type ChangesBase = {
-  removed: Partial<DhcType.ide.VariableDefinition>[];
-  created: Partial<DhcType.ide.VariableDefinition>[];
-  updated: Partial<DhcType.ide.VariableDefinition>[];
-};
-type CommandResultBase = {
-  changes: ChangesBase;
-  error: string;
-};
-
 export abstract class DhService<TDH = unknown, TClient = unknown>
   implements IDhService<TDH, TClient>
 {
@@ -254,7 +243,7 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
 
     logger.info('Sending text to dh:', text);
 
-    let result: CommandResultBase;
+    let result: DhcType.ide.CommandResult;
     let error: string | null = null;
 
     try {
