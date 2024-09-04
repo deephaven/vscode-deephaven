@@ -366,7 +366,7 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
       panel.webview.html = this.getPanelHtml(title);
 
       // TODO: The postMessage apis will be needed for auth in DHE (vscode-deephaven/issues/76).
-      // Leaving this here uncommented for reference, but there are some issues
+      // Leaving this here commented out for reference, but there are some issues
       // to work through:
       // 1. This seems to subscribe multiple times. Should see if can move it
       // inside of the panel creation block
