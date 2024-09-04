@@ -62,7 +62,7 @@ export class PanelService implements IPanelService, Disposable {
     panel: vscode.WebviewPanel
   ): void => {
     if (!this._cnPanelMap.has(url)) {
-      this._cnPanelMap.set(url, new Map());
+      this._cnPanelMap.set(url, new Map<VariableID, vscode.WebviewPanel>());
     }
 
     this._cnPanelMap.get(url)!.set(variableId, panel);
