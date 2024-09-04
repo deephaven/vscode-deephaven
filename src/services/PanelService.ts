@@ -14,7 +14,9 @@ export class PanelService implements IPanelService, Disposable {
 
   private readonly _cnPanelMap: URLMap<VariablePanelMap>;
 
-  dispose = async (): Promise<void> => {};
+  dispose = async (): Promise<void> => {
+    this._cnPanelMap.clear();
+  };
 
   /**
    * Get the panel for the given connection url and variable id and throws if it

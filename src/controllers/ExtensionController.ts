@@ -216,6 +216,7 @@ export class ExtensionController implements Disposable {
     assertDefined(this._toaster, 'toaster');
 
     this._panelService = new PanelService();
+    this._context.subscriptions.push(this._panelService);
 
     this._dhcServiceFactory = new DhcServiceFactory(
       this._panelService,
@@ -228,6 +229,7 @@ export class ExtensionController implements Disposable {
       this._config,
       this._dhcServiceFactory
     );
+    this._context.subscriptions.push(this._serverManager);
 
     this._serverManager.onDidDisconnect(
       serverUrl => {

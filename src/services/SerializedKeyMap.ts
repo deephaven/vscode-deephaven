@@ -25,6 +25,10 @@ export abstract class SerializedKeyMap<TKey, TValue> {
   /** Deserialize from a string to a key. */
   protected abstract deserializeKey(key: string): TKey;
 
+  clear(): void {
+    this._map.clear();
+  }
+
   get(key: TKey): TValue | undefined {
     return this._map.get(this.serializeKey(key));
   }
