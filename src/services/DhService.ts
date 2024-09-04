@@ -16,7 +16,6 @@ import {
   NoConsoleTypesError,
   parseServerError,
 } from '../util';
-import { EventDispatcher } from './EventDispatcher';
 
 const logger = new Logger('DhService');
 
@@ -42,7 +41,6 @@ type CommandResultBase = {
 };
 
 export abstract class DhService<TDH = unknown, TClient = unknown>
-  extends EventDispatcher<'disconnect'>
   implements IDhService<TDH, TClient>
 {
   constructor(
@@ -52,14 +50,15 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
     outputChannel: vscode.OutputChannel,
     toaster: IToastService
   ) {
-    super();
-
     this.serverUrl = serverUrl;
     this.panelRegistry = panelRegistry;
     this.diagnosticsCollection = diagnosticsCollection;
     this.outputChannel = outputChannel;
     this.toaster = toaster;
   }
+
+  private readonly _onDidDisconnect = new vscode.EventEmitter<URL>();
+  readonly onDidDisconnect = this._onDidDisconnect.event;
 
   public readonly serverUrl: URL;
   protected readonly subscriptions: (() => void)[] = [];
@@ -102,7 +101,7 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
 
     if (this.cn != null) {
       this.cn.close();
-      this.dispatchEvent('disconnect', this.serverUrl);
+      this._onDidDisconnect.fire(this.serverUrl);
     }
     this.cn = null;
 

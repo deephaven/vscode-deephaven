@@ -27,6 +27,7 @@ export interface IDhService<TDH = unknown, TClient = unknown>
     ServerConnection {
   readonly isInitialized: boolean;
   readonly isConnected: boolean;
+  readonly onDidDisconnect: vscode.Event<URL>;
 
   initDh: () => Promise<boolean>;
 
