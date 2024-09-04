@@ -226,11 +226,15 @@ export class ExtensionController implements Disposable {
       this._dhcServiceFactory
     );
 
-    this._serverManager.onDidDisconnect(serverUrl => {
-      this._outputChannel?.appendLine(
-        `Disconnected from server: '${serverUrl}'.`
-      );
-    });
+    this._serverManager.onDidDisconnect(
+      serverUrl => {
+        this._outputChannel?.appendLine(
+          `Disconnected from server: '${serverUrl}'.`
+        );
+      },
+      undefined,
+      this._context.subscriptions
+    );
 
     vscode.workspace.onDidChangeConfiguration(
       async () => {
