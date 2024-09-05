@@ -291,14 +291,14 @@ export class ServerManager implements IServerManager {
         ? isDhcServerRunning(server.url)
         : isDheServerRunning(server.url));
 
-      const newServerState = {
-        ...server,
-        isRunning,
-      };
+      if ((server.isRunning ?? false) !== isRunning) {
+        const newServerState = {
+          ...server,
+          isRunning,
+        };
 
-      this._serverMap.set(server.url, newServerState);
+        this._serverMap.set(server.url, newServerState);
 
-      if ((server.isRunning ?? false) !== newServerState.isRunning) {
         // If server goes from running to stopped, get rid of any active
         // connections to it.
         if (!newServerState.isRunning) {

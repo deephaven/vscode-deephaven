@@ -17,8 +17,9 @@ import {
 
 /**
  * Get initial server states based on server configs.
- * @param type
- * @param configs
+ * @param type Server type
+ * @param configs Server connection configs
+ * @returns Initial server states
  */
 export function getInitialServerStates(
   type: ServerType,
@@ -33,8 +34,9 @@ export function getInitialServerStates(
 
 /**
  * Get connections supporting the given console type.
- * @param connections
- * @param consoleType
+ * @param connections Connections to filter
+ * @param consoleType Console type to filter by
+ * @returns Connections supporting the given console type
  */
 export async function getConnectionsForConsoleType(
   connections: IDhService[],
@@ -54,8 +56,9 @@ export async function getConnectionsForConsoleType(
 
 /**
  * Get the first connection supporting the given console type.
- * @param connections
- * @param consoleType
+ * @param connections Connections to filter
+ * @param consoleType Console type to filter by
+ * @returns First connection supporting the given console type
  */
 export async function getFirstConnectionForConsoleType(
   connections: IDhService[],
@@ -71,7 +74,8 @@ export async function getFirstConnectionForConsoleType(
 
 /**
  * Get the pip server URL for the given port.
- * @param port
+ * @param port The port number to create a URL for
+ * @returns The pip server URL
  */
 export function getPipServerUrl(port: Port): URL {
   return new URL(`http://localhost:${port}`);
@@ -111,8 +115,10 @@ export function getServerContextValue({
 
 /**
  * Get description text for a server in the UI. e.g. for tree nodes.
- * @param connectionCount
- * @param label
+ * @param connectionCount Number of connections
+ * @param isManaged Whether the server is managed
+ * @param label Server label
+ * @returns Description text
  */
 export function getServerDescription(
   connectionCount: number,
@@ -138,6 +144,7 @@ export function getServerDescription(
  * Get `contextValue` for a server group tree item.
  * @param group Server group state
  * @param canStartServer Whether servers can be started
+ * @returns `contextValue` for the server group tree item
  */
 export function getServerGroupContextValue(
   group: ServerGroupState,
@@ -154,6 +161,7 @@ export function getServerGroupContextValue(
  * Get tree item for a server group.
  * @param group Server group state
  * @param canStartServer Whether servers can be started
+ * @returns Tree item for the server group
  */
 export function getServerGroupTreeItem(
   group: ServerGroupState,
@@ -168,12 +176,13 @@ export function getServerGroupTreeItem(
 }
 
 /**
- * Get icon path for a server in the UI. e.g. for tree nodes.
- * @param isConnected
- * @param isManaged
- * @param isRunning
+ * Get icon id for a server in the UI. e.g. for tree nodes.
+ * @param isConnected Whether the server is connected
+ * @param isManaged Whether the server is managed
+ * @param isRunning Whether the server is running
+ * @returns Icon id for server tree item
  */
-export function getServerIconPath({
+export function getServerIconID({
   isConnected,
   isManaged,
   isRunning,
@@ -197,6 +206,7 @@ export function getServerIconPath({
  * @param isConnected Whether the server is connected
  * @param isManaged Whether the server is managed
  * @param isRunning Whether the server is running
+ * @returns Tree item representing the server
  */
 export function getServerTreeItem({
   server,
@@ -233,7 +243,7 @@ export function getServerTreeItem({
     tooltip: canConnect ? `Click to connect to ${urlStr}` : urlStr,
     contextValue: server.type === 'DHC' ? contextValue : undefined,
     iconPath: new vscode.ThemeIcon(
-      getServerIconPath({ isConnected, isManaged, isRunning })
+      getServerIconID({ isConnected, isManaged, isRunning })
     ),
     command: canConnect
       ? {
@@ -248,6 +258,7 @@ export function getServerTreeItem({
 /**
  * Group server states.
  * @param servers Server states
+ * @returns Grouped server states
  */
 export function groupServers(servers: ServerState[]): {
   managed: ServerState[];
@@ -278,7 +289,7 @@ export function groupServers(servers: ServerState[]): {
 /**
  * Determine if the given languageId is supported by DH servers.
  * @param maybeSupported
- * @returns
+ * @returns Whether the languageId is supported
  */
 export function isSupportedLanguageId(
   maybeSupported?: string | null
@@ -289,6 +300,9 @@ export function isSupportedLanguageId(
 /**
  * Lazy async iterator that yields all connections supporting the given console
  * type.
+ * @param connections Connections to iterate
+ * @param consoleType Console type to filter by
+ * @returns Async iterator for connections supporting the given console type
  */
 export async function* iterateConnectionsForConsoleType(
   connections: IDhService[],
@@ -306,7 +320,8 @@ export async function* iterateConnectionsForConsoleType(
 
 /**
  * Parse a port string into a number.
- * @param portStr
+ * @param portStr Numeric port string to parse
+ * @returns Parsed port number
  */
 export function parsePort(portStr: string): Port {
   const parsed = Number(portStr);

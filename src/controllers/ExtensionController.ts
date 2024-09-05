@@ -485,9 +485,7 @@ export class ExtensionController implements Disposable {
       uri = vscode.window.activeTextEditor?.document.uri;
     }
 
-    if (uri == null) {
-      return;
-    }
+    assertDefined(uri, 'uri');
 
     const editor = await getEditorForUri(uri);
     const dhService =

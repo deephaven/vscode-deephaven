@@ -169,11 +169,11 @@
         },
         {
           "command": "vscode-deephaven.runCode",
-          "when": "true"
+          "when": "editorLangId == python || editorLangId == groovy"
         },
         {
           "command": "vscode-deephaven.runSelection",
-          "when": "true"
+          "when": "editorLangId == python || editorLangId == groovy"
         },
         {
           "command": "vscode-deephaven.connectToServer",

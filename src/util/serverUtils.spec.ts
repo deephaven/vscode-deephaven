@@ -6,7 +6,7 @@ import {
   getServerDescription,
   getServerGroupContextValue,
   getServerGroupTreeItem,
-  getServerIconPath,
+  getServerIconID,
   getServerTreeItem,
   groupServers,
   parsePort,
@@ -125,7 +125,7 @@ describe('getServerGroupTreeItem', () => {
   );
 });
 
-describe('getServerIconPath', () => {
+describe('getServerIconID', () => {
   it.each([
     [true, true, true],
     [true, true, false],
@@ -136,9 +136,9 @@ describe('getServerIconPath', () => {
     [false, false, true],
     [false, false, false],
   ])(
-    'should return icon path based on server state: isConnected=%s, isManaged=%s, isRunning=%s',
+    'should return icon id based on server state: isConnected=%s, isManaged=%s, isRunning=%s',
     (isConnected, isManaged, isRunning) => {
-      const actual = getServerIconPath({ isConnected, isManaged, isRunning });
+      const actual = getServerIconID({ isConnected, isManaged, isRunning });
       expect(actual).toMatchSnapshot();
     }
   );
