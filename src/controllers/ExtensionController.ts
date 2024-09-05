@@ -471,9 +471,12 @@ export class ExtensionController implements Disposable {
   /**
    * Run all code in editor for given uri.
    * @param uri
+   * @param arg
+   * @param selectionOnly
    */
   onRunCode = async (
     uri?: vscode.Uri,
+    _arg?: { groupId: number },
     selectionOnly?: boolean
   ): Promise<void> => {
     assertDefined(this._connectionController, 'connectionController');
@@ -489,15 +492,19 @@ export class ExtensionController implements Disposable {
     const editor = await getEditorForUri(uri);
     const dhService =
       await this._connectionController.getOrCreateConnection(uri);
-    await dhService?.runEditorCode(editor, selectionOnly);
+    await dhService?.runEditorCode(editor, selectionOnly === true);
   };
 
   /**
    * Run selected code in editor for given uri.
    * @param uri
+   * @param arg
    */
-  onRunSelectedCode = async (uri?: vscode.Uri): Promise<void> => {
-    this.onRunCode(uri, true);
+  onRunSelectedCode = async (
+    uri?: vscode.Uri,
+    arg?: { groupId: number }
+  ): Promise<void> => {
+    this.onRunCode(uri, arg, true);
   };
 
   /**
