@@ -166,10 +166,25 @@ export class PipServerController implements Disposable {
     if (this._serverUrlTerminalMap.has(port)) {
       terminal.sendText(`python -c 'import deephaven_server;' || exit 2`);
 
+      const jvmArgs: [`-D${string}`, string][] = [
+        ['-DAuthHandlers', 'io.deephaven.auth.AnonymousAuthenticationHandler'],
+      ];
+
+      const isMac = process.platform === 'darwin';
+      // Required for M1/M2 macs:
+      // https://deephaven.io/core/docs/getting-started/pip-install/#m2-macs
+      if (isMac) {
+        jvmArgs.push(['-Dprocess.info.system-info.enabled', 'false']);
+      }
+
+      const jvmArgsStr = jvmArgs
+        .map(([key, value]) => `${key}=${value}`)
+        .join(' ');
+
       terminal.sendText(
         [
           'deephaven server',
-          '--jvm-args "-DAuthHandlers=io.deephaven.auth.AnonymousAuthenticationHandler -Dprocess.info.system-info.enabled=false"',
+          `--jvm-args "${jvmArgsStr}"`,
           `--port ${port}`,
           '--no-browser',
         ].join(' ')
