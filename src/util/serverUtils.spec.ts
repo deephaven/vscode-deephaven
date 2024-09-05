@@ -187,12 +187,16 @@ describe('groupServers', () => {
       [false, false],
     ];
 
-    const servers = props.map(([isManaged, isRunning], i) => ({
-      type: 'DHC' as const,
-      url: new URL(`http://localhost:1000${i}`),
-      isManaged,
-      isRunning,
-    }));
+    const servers = props.map(
+      ([isManaged, isRunning], i) =>
+        ({
+          type: 'DHC' as const,
+          url: new URL(`http://localhost:1000${i}`),
+          isManaged,
+          isRunning,
+          psk: isManaged ? 'mock.psk' : undefined,
+        }) as ServerState
+    );
 
     const actual = groupServers(servers);
 

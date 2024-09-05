@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { randomUUID } from 'node:crypto';
 import { UnsupportedConsoleTypeError } from '../common';
 import { isDhcServerRunning } from '../dh/dhc';
 import { isDheServerRunning } from '../dh/dhe';
@@ -101,7 +102,10 @@ export class ServerManager implements IServerManager {
       return null;
     }
 
-    const connection = this._dhcServiceFactory.create(serverUrl);
+    const connection = this._dhcServiceFactory.create(
+      serverUrl,
+      serverState.isManaged ? serverState.psk : undefined
+    );
 
     this._connectionMap.set(serverUrl, connection);
     this._onDidUpdate.fire();
@@ -170,6 +174,15 @@ export class ServerManager implements IServerManager {
    */
   hasEverUpdatedStatus = (): boolean => {
     return this._hasEverUpdatedStatus;
+  };
+
+  /**
+   * Get the server state for the given URL.
+   * @param serverUrl The URL of the server to get.
+   * @returns The server state, or `undefined` if no server with the given URL exists.
+   */
+  getServer = (serverUrl: URL): ServerState | undefined => {
+    return this._serverMap.get(serverUrl);
   };
 
   getServers = ({
@@ -266,6 +279,7 @@ export class ServerManager implements IServerManager {
       this._serverMap.set(server.url, {
         ...server,
         isManaged: true,
+        psk: randomUUID(),
       });
     }
 

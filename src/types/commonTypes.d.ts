@@ -55,10 +55,18 @@ export type UnsubscribeEventListener = () => void;
 
 export type ServerType = 'DHC' | 'DHE';
 
-export interface ServerState {
+export interface UnmanagedServerState {
+  isManaged?: false;
+}
+
+export interface ManagedServerState {
+  isManaged: true;
+  psk: string;
+}
+
+export type ServerState = {
   type: ServerType;
   url: URL;
   label?: string;
-  isManaged?: boolean;
   isRunning?: boolean;
-}
+} & (UnmanagedServerState | ManagedServerState);

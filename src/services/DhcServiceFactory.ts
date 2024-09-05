@@ -14,13 +14,19 @@ export class DhcServiceFactory implements IDhServiceFactory {
     private toaster: IToastService
   ) {}
 
-  create = (serverUrl: URL): DhcService => {
-    return new DhcService(
+  create = (serverUrl: URL, psk?: string): DhcService => {
+    const dhService = new DhcService(
       serverUrl,
       this.panelRegistry,
       this.diagnosticsCollection,
       this.outputChannel,
       this.toaster
     );
+
+    if (psk != null) {
+      dhService.setPsk(psk);
+    }
+
+    return dhService;
   };
 }

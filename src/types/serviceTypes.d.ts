@@ -58,7 +58,10 @@ export interface IFactory<T, TArgs extends unknown[] = []> {
 /**
  * Factory for creating IDhService instances.
  */
-export type IDhServiceFactory = IFactory<IDhService, [serverUrl: URL]>;
+export type IDhServiceFactory = IFactory<
+  IDhService,
+  [serverUrl: URL, psk?: string]
+>;
 
 /**
  * Server manager interface.
@@ -84,6 +87,7 @@ export interface IServerManager extends Disposable {
     dhService: IDhService
   ) => Promise<void>;
 
+  getServer: (serverUrl: URL) => ServerState | undefined;
   getServers: (filter?: {
     isRunning?: boolean;
     hasConnections?: boolean;

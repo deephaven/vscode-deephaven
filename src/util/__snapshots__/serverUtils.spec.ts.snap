@@ -88,21 +88,21 @@ exports[`getServerGroupTreeItem > should return server group tree item: group=Ru
 }
 `;
 
-exports[`getServerIconPath > should return icon path based on server state: isConnected=false, isManaged=false, isRunning=false 1`] = `"circle-slash"`;
+exports[`getServerIconID > should return icon id based on server state: isConnected=false, isManaged=false, isRunning=false 1`] = `"circle-slash"`;
 
-exports[`getServerIconPath > should return icon path based on server state: isConnected=false, isManaged=false, isRunning=true 1`] = `"circle-large-outline"`;
+exports[`getServerIconID > should return icon id based on server state: isConnected=false, isManaged=false, isRunning=true 1`] = `"circle-large-outline"`;
 
-exports[`getServerIconPath > should return icon path based on server state: isConnected=false, isManaged=true, isRunning=false 1`] = `"sync~spin"`;
+exports[`getServerIconID > should return icon id based on server state: isConnected=false, isManaged=true, isRunning=false 1`] = `"sync~spin"`;
 
-exports[`getServerIconPath > should return icon path based on server state: isConnected=false, isManaged=true, isRunning=true 1`] = `"circle-large-outline"`;
+exports[`getServerIconID > should return icon id based on server state: isConnected=false, isManaged=true, isRunning=true 1`] = `"circle-large-outline"`;
 
-exports[`getServerIconPath > should return icon path based on server state: isConnected=true, isManaged=false, isRunning=false 1`] = `"circle-slash"`;
+exports[`getServerIconID > should return icon id based on server state: isConnected=true, isManaged=false, isRunning=false 1`] = `"circle-slash"`;
 
-exports[`getServerIconPath > should return icon path based on server state: isConnected=true, isManaged=false, isRunning=true 1`] = `"circle-large-filled"`;
+exports[`getServerIconID > should return icon id based on server state: isConnected=true, isManaged=false, isRunning=true 1`] = `"circle-large-filled"`;
 
-exports[`getServerIconPath > should return icon path based on server state: isConnected=true, isManaged=true, isRunning=false 1`] = `"sync~spin"`;
+exports[`getServerIconID > should return icon id based on server state: isConnected=true, isManaged=true, isRunning=false 1`] = `"sync~spin"`;
 
-exports[`getServerIconPath > should return icon path based on server state: isConnected=true, isManaged=true, isRunning=true 1`] = `"circle-large-filled"`;
+exports[`getServerIconID > should return icon id based on server state: isConnected=true, isManaged=true, isRunning=true 1`] = `"circle-large-filled"`;
 
 exports[`getServerTreeItem > should return DHC server tree item: isConnected=false, isManaged=false, isRunning=false 1`] = `
 {
@@ -240,24 +240,28 @@ exports[`groupServers > should group servers by state 1`] = `
     {
       "isManaged": true,
       "isRunning": true,
+      "psk": "mock.psk",
       "type": "DHC",
       "url": "http://localhost:10000/",
     },
     {
       "isManaged": true,
       "isRunning": true,
+      "psk": "mock.psk",
       "type": "DHC",
       "url": "http://localhost:10001/",
     },
     {
       "isManaged": true,
       "isRunning": false,
+      "psk": "mock.psk",
       "type": "DHC",
       "url": "http://localhost:10002/",
     },
     {
       "isManaged": true,
       "isRunning": false,
+      "psk": "mock.psk",
       "type": "DHC",
       "url": "http://localhost:10003/",
     },
@@ -266,12 +270,14 @@ exports[`groupServers > should group servers by state 1`] = `
     {
       "isManaged": false,
       "isRunning": true,
+      "psk": undefined,
       "type": "DHC",
       "url": "http://localhost:10004/",
     },
     {
       "isManaged": false,
       "isRunning": true,
+      "psk": undefined,
       "type": "DHC",
       "url": "http://localhost:10005/",
     },
@@ -280,12 +286,14 @@ exports[`groupServers > should group servers by state 1`] = `
     {
       "isManaged": false,
       "isRunning": false,
+      "psk": undefined,
       "type": "DHC",
       "url": "http://localhost:10006/",
     },
     {
       "isManaged": false,
       "isRunning": false,
+      "psk": undefined,
       "type": "DHC",
       "url": "http://localhost:10007/",
     },

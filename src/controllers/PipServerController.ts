@@ -162,12 +162,22 @@ export class PipServerController implements Disposable {
     // Give python extension time to setup .venv if configured
     await waitFor(PYTHON_ENV_WAIT);
 
-    // In case user disposes terminal before server starts
+    // If user disposes terminal before server starts, it will be removed from
+    // _serverUrlTerminalMap, so check it to verify it's still there before
+    // proceeding.
     if (this._serverUrlTerminalMap.has(port)) {
       terminal.sendText(`python -c 'import deephaven_server;' || exit 2`);
 
+      const serverUrl = getPipServerUrl(port);
+      const serverState = this._serverManager.getServer(serverUrl);
+      if (serverState?.isManaged !== true) {
+        throw new Error(
+          `Unexpected server state for managed server: '${serverUrl}'`
+        );
+      }
+
       const jvmArgs: [`-D${string}`, string][] = [
-        ['-DAuthHandlers', 'io.deephaven.auth.AnonymousAuthenticationHandler'],
+        ['-Dauthentication.psk', serverState.psk],
       ];
 
       const isMac = process.platform === 'darwin';
