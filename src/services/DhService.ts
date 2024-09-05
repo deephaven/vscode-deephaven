@@ -355,16 +355,12 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
       panel.webview.html = this.getPanelHtml(title);
 
       // TODO: The postMessage apis will be needed for auth in DHE (vscode-deephaven/issues/76).
-      // Leaving this here commented out for reference, but there are some issues
-      // to work through:
-      // 1. This seems to subscribe multiple times. Should see if can move it
-      // inside of the panel creation block
-      // 2. Not 100% sure we need to retrieve from the panel service instead of
-      // just using `panel` in the closure.
+      // Leaving this here commented out for reference, but it will need some
+      // re-working. Namely this seems to subscribe multiple times. Should see
+      // if can move it inside of the panel creation block or unsubscribe older
+      // subscriptions whenever we subscribe.
       // panel.webview.onDidReceiveMessage(({ data }) => {
-      //   const pnl = this.panelService.getPanelOrThrow(this.serverUrl, id);
-      //   const postMessage = pnl.webview.postMessage.bind(pnl.webview);
-
+      //   const postMessage = panel.webview.postMessage.bind(panel.webview);
       //   this.handlePanelMessage(data, postMessage);
       // });
     });
