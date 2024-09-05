@@ -2,6 +2,7 @@ export * from './ConfigService';
 export * from './DhService';
 export * from './DhcService';
 export * from './DhcServiceFactory';
+export * from './PanelService';
 export * from './PollingService';
 export * from './SerializedKeyMap';
 export * from './ServerManager';

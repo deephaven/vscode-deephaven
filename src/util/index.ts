@@ -2,7 +2,6 @@ export * from './assertUtil';
 export * from './downloadUtils';
 export * from './errorUtils';
 export * from './ErrorTypes';
-export * from './ExtendedMap';
 export * from './isDisposable';
 export * from './Logger';
 export * from './OutputChannelWithHistory';

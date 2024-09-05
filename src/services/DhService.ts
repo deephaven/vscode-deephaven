@@ -5,10 +5,11 @@ import type {
   ConnectionAndSession,
   ConsoleType,
   IDhService,
+  IPanelService,
   IToastService,
 } from '../types';
 import {
-  ExtendedMap,
+  assertIsVariableID,
   formatTimestamp,
   getCombinedSelectedLinesText,
   isAggregateError,
@@ -45,13 +46,13 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
 {
   constructor(
     serverUrl: URL,
-    panelRegistry: ExtendedMap<string, vscode.WebviewPanel>,
+    panelService: IPanelService,
     diagnosticsCollection: vscode.DiagnosticCollection,
     outputChannel: vscode.OutputChannel,
     toaster: IToastService
   ) {
     this.serverUrl = serverUrl;
-    this.panelRegistry = panelRegistry;
+    this.panelService = panelService;
     this.diagnosticsCollection = diagnosticsCollection;
     this.outputChannel = outputChannel;
     this.toaster = toaster;
@@ -65,7 +66,7 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
 
   protected readonly outputChannel: vscode.OutputChannel;
   protected readonly toaster: IToastService;
-  private readonly panelRegistry: ExtendedMap<string, vscode.WebviewPanel>;
+  private readonly panelService: IPanelService;
   private readonly diagnosticsCollection: vscode.DiagnosticCollection;
   private cachedCreateClient: Promise<TClient> | null = null;
   private cachedCreateSession: Promise<
@@ -319,7 +320,9 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
     // assignments inside of the `forEach` and will treat `lastPanel` as `null`.
     let lastPanel = null as vscode.WebviewPanel | null;
 
-    changed.forEach(({ title = 'Unknown', type }) => {
+    changed.forEach(({ id, title = 'Unknown', type }) => {
+      assertIsVariableID(id, 'id');
+
       const icon = icons[type as IconType] ?? type;
       this.outputChannel.appendLine(`${icon} ${title}`);
 
@@ -328,7 +331,7 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
         return;
       }
 
-      if (!this.panelRegistry.has(title)) {
+      if (!this.panelService.hasPanel(this.serverUrl, id)) {
         const panel = vscode.window.createWebviewPanel(
           'dhPanel', // Identifies the type of the webview. Used internally
           title,
@@ -339,11 +342,11 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
           }
         );
 
-        this.panelRegistry.set(title, panel);
+        this.panelService.setPanel(this.serverUrl, id, panel);
 
         // If panel gets disposed, remove it from the caches
         panel.onDidDispose(() => {
-          this.panelRegistry.delete(title);
+          this.panelService.deletePanel(this.serverUrl, id);
         });
 
         // See @deprecated comment in PanelFocusManager.onDidChangeViewState
@@ -353,7 +356,7 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
         // );
       }
 
-      const panel = this.panelRegistry.getOrThrow(title);
+      const panel = this.panelService.getPanelOrThrow(this.serverUrl, id);
       lastPanel = panel;
 
       // See @deprecated comment in PanelFocusManager.onDidChangeViewState
@@ -362,18 +365,19 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
 
       panel.webview.html = this.getPanelHtml(title);
 
-      // TODO: This seems to be subscribing multiple times. Need to see if we
-      // can move it inside of the panel creation block
-      panel.webview.onDidReceiveMessage(({ data }) => {
-        this.handlePanelMessage(
-          data,
-          this.panelRegistry
-            .get(title)!
-            .webview.postMessage.bind(
-              this.panelRegistry.getOrThrow(title).webview
-            )
-        );
-      });
+      // TODO: The postMessage apis will be needed for auth in DHE (vscode-deephaven/issues/76).
+      // Leaving this here uncommented for reference, but there are some issues
+      // to work through:
+      // 1. This seems to subscribe multiple times. Should see if can move it
+      // inside of the panel creation block
+      // 2. Not 100% sure we need to retrieve from the panel service instead of
+      // just using `panel` in the closure.
+      // panel.webview.onDidReceiveMessage(({ data }) => {
+      //   const pnl = this.panelService.getPanelOrThrow(this.serverUrl, id);
+      //   const postMessage = pnl.webview.postMessage.bind(pnl.webview);
+
+      //   this.handlePanelMessage(data, postMessage);
+      // });
     });
 
     lastPanel?.reveal();
