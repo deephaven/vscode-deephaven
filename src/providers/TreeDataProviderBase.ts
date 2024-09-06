@@ -7,13 +7,17 @@ import type { IServerManager } from '../types';
 export abstract class TreeDataProviderBase<T>
   implements vscode.TreeDataProvider<T>
 {
-  constructor(readonly serverManager: IServerManager) {
-    serverManager.onDidUpdate(() => {
+  constructor(serverManager: IServerManager) {
+    this.serverManager = serverManager;
+
+    this.serverManager.onDidUpdate(() => {
       this._onDidChangeTreeData.fire();
     });
   }
 
-  private readonly _onDidChangeTreeData = new vscode.EventEmitter<
+  protected readonly serverManager: IServerManager;
+
+  protected readonly _onDidChangeTreeData = new vscode.EventEmitter<
     T | undefined | void
   >();
 

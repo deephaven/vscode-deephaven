@@ -30,6 +30,7 @@ import {
   RunCommandCodeLensProvider,
   ServerTreeProvider,
   ServerConnectionTreeProvider,
+  ServerConnectionPanelTreeProvider,
   runSelectedLinesHoverProvider,
 } from '../providers';
 import { DhcServiceFactory, PanelService, ServerManager } from '../services';
@@ -41,6 +42,7 @@ import type {
   IPanelService,
   IServerManager,
   IToastService,
+  ServerConnectionPanelTreeView,
   ServerConnectionTreeView,
   ServerState,
   ServerTreeView,
@@ -89,11 +91,19 @@ export class ExtensionController implements Disposable {
   private _pipServerController: PipServerController | null = null;
   private _dhcServiceFactory: IDhServiceFactory | null = null;
   private _serverManager: IServerManager | null = null;
+
+  // Tree providers
   private _serverTreeProvider: ServerTreeProvider | null = null;
   private _serverConnectionTreeProvider: ServerConnectionTreeProvider | null =
     null;
+  private _serverConnectionPanelTreeProvider: ServerConnectionPanelTreeProvider | null =
+    null;
+
+  // Tree views
   private _serverTreeView: ServerTreeView | null = null;
   private _serverConnectionTreeView: ServerConnectionTreeView | null = null;
+  private _serverConnectionPanelTreeView: ServerConnectionPanelTreeView | null =
+    null;
 
   private _pythonDiagnostics: vscode.DiagnosticCollection | null = null;
   private _outputChannel: vscode.OutputChannel | null = null;
@@ -349,6 +359,7 @@ export class ExtensionController implements Disposable {
    * Register web views for the extension.
    */
   initializeWebViews = (): void => {
+    assertDefined(this._panelService, 'panelService');
     assertDefined(this._serverManager, 'serverManager');
 
     // Server tree
@@ -374,10 +385,24 @@ export class ExtensionController implements Disposable {
       }
     );
 
+    // Connection Panel tree
+    this._serverConnectionPanelTreeProvider =
+      new ServerConnectionPanelTreeProvider(
+        this._serverManager,
+        this._panelService
+      );
+    this._serverConnectionPanelTreeView = vscode.window.createTreeView(
+      VIEW_ID.serverConnectionPanelTree,
+      {
+        showCollapseAll: true,
+        treeDataProvider: this._serverConnectionPanelTreeProvider,
+      }
+    );
+
     this._context.subscriptions.push(
-      this._serverManager,
       this._serverTreeView,
-      this._serverConnectionTreeView
+      this._serverConnectionTreeView,
+      this._serverConnectionPanelTreeView
     );
   };
 

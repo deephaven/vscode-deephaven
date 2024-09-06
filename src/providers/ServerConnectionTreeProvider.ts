@@ -2,14 +2,15 @@ import * as vscode from 'vscode';
 import { TreeDataProviderBase } from './TreeDataProviderBase';
 import { CONNECTION_TREE_ITEM_CONTEXT, ICON_ID } from '../common';
 import type { IDhService, ServerConnectionNode } from '../types';
+import { sortByStringProp } from '../util';
 
 /**
  * Provider for the server connection tree view.
  */
 export class ServerConnectionTreeProvider extends TreeDataProviderBase<ServerConnectionNode> {
-  async getTreeItem(
+  getTreeItem = async (
     connectionOrUri: ServerConnectionNode
-  ): Promise<vscode.TreeItem> {
+  ): Promise<vscode.TreeItem> => {
     // Uri node associated with a parent connection node
     if (connectionOrUri instanceof vscode.Uri) {
       return {
@@ -41,17 +42,15 @@ export class ServerConnectionTreeProvider extends TreeDataProviderBase<ServerCon
         connectionOrUri.isConnected ? ICON_ID.connected : ICON_ID.connecting
       ),
     };
-  }
+  };
 
   getChildren = (
     elementOrRoot?: IDhService
-  ): vscode.ProviderResult<IDhService[] | vscode.Uri[]> => {
+  ): vscode.ProviderResult<ServerConnectionNode[]> => {
     if (elementOrRoot == null) {
       return this.serverManager
         .getConnections()
-        .sort((a, b) =>
-          a.serverUrl.toString().localeCompare(b.serverUrl.toString())
-        );
+        .sort(sortByStringProp('serverUrl'));
     }
 
     return this.serverManager.getConnectionUris(elementOrRoot);

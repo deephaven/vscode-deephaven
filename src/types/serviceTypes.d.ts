@@ -8,6 +8,7 @@ import type {
   ServerConnection,
   ServerState,
   UnsubscribeEventListener,
+  VariableChanges,
   VariableDefintion,
   VariableID,
 } from '../types/commonTypes';
@@ -66,6 +67,8 @@ export type IDhServiceFactory = IFactory<
 >;
 
 export interface IPanelService extends Disposable {
+  readonly onDidUpdate: vscode.Event<void>;
+
   getPanelOrThrow: (url: URL, variableId: VariableID) => vscode.WebviewPanel;
   deletePanel: (url: URL, variableId: VariableID) => void;
   hasPanel: (url: URL, variableId: VariableID) => boolean;
@@ -74,6 +77,8 @@ export interface IPanelService extends Disposable {
     variableId: VariableID,
     panel: vscode.WebviewPanel
   ) => void;
+  getVariables: (url: URL) => Iterable<VariableDefintion>;
+  updateVariables: (url: URL, changes: VariableChanges) => void;
 }
 
 /**

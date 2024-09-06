@@ -6,6 +6,7 @@ import type {
   ConsoleType,
   IDhService,
   IToastService,
+  VariableChanges,
   VariableDefintion,
 } from '../types';
 import {
@@ -147,6 +148,13 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
 
       try {
         const { cn, session } = await this.cachedCreateSession;
+
+        cn.subscribeToFieldUpdates(changes => {
+          this.panelService.updateVariables(
+            this.serverUrl,
+            changes as VariableChanges
+          );
+        });
 
         // TODO: Use constant 'disconnect' event name
         this.subscriptions.push(

@@ -1,4 +1,5 @@
 export * from './assertUtil';
+export * from './dataUtils';
 export * from './downloadUtils';
 export * from './errorUtils';
 export * from './ErrorTypes';

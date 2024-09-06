@@ -40,9 +40,11 @@ export function getPanelConnectionTreeItem(
 export function getPanelVariableTreeItem(
   variable: VariableDefintion
 ): vscode.TreeItem {
-  const icon = VARIABLE_ICONS[variable.type];
+  const iconId = VARIABLE_ICONS[variable.type];
+
   return {
-    description: icon == null ? variable.title : `${icon} ${variable.title}`,
+    description: variable.title,
+    iconPath: iconId == null ? undefined : new vscode.ThemeIcon(iconId),
   };
 }
 
