@@ -5,7 +5,6 @@ import type {
   ConnectionAndSession,
   ConsoleType,
   IDhService,
-  IPanelService,
   IToastService,
   VariableDefintion,
 } from '../types';
@@ -26,13 +25,11 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
 {
   constructor(
     serverUrl: URL,
-    panelService: IPanelService,
     diagnosticsCollection: vscode.DiagnosticCollection,
     outputChannel: vscode.OutputChannel,
     toaster: IToastService
   ) {
     this.serverUrl = serverUrl;
-    this.panelService = panelService;
     this.diagnosticsCollection = diagnosticsCollection;
     this.outputChannel = outputChannel;
     this.toaster = toaster;
@@ -51,7 +48,6 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
 
   protected readonly outputChannel: vscode.OutputChannel;
   protected readonly toaster: IToastService;
-  private readonly panelService: IPanelService;
   private readonly diagnosticsCollection: vscode.DiagnosticCollection;
   private cachedCreateClient: Promise<TClient> | null = null;
   private cachedCreateSession: Promise<
@@ -70,14 +66,6 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
     dh: TDH,
     client: TClient
   ): Promise<ConnectionAndSession<DhcType.IdeConnection, DhcType.IdeSession>>;
-  protected abstract getPanelHtml(title: string): string;
-  protected abstract handlePanelMessage(
-    message: {
-      id: string;
-      message: string;
-    },
-    postResponseMessage: (response: unknown) => void
-  ): Promise<void>;
 
   private clearCaches(): void {
     this.cachedCreateClient = null;

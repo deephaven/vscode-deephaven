@@ -239,7 +239,6 @@ export class ExtensionController implements Disposable {
     this._context.subscriptions.push(this._panelService);
 
     this._dhcServiceFactory = new DhcServiceFactory(
-      this._panelService,
       this._pythonDiagnostics,
       this._outputChannel,
       this._toaster

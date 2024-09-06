@@ -4,11 +4,10 @@ import DhService from './DhService';
 import {
   AUTH_HANDLER_TYPE_ANONYMOUS,
   AUTH_HANDLER_TYPE_PSK,
-  getEmbedWidgetUrl,
   initDhcApi,
   initDhcSession,
 } from '../dh/dhc';
-import { getDHThemeKey, getPanelHtml, Logger } from '../util';
+import { Logger } from '../util';
 import type { ConnectionAndSession } from '../types';
 
 const logger = new Logger('DhcService');
@@ -69,20 +68,6 @@ export class DhcService extends DhService<typeof DhcType, DhcType.CoreClient> {
     }
 
     throw new Error('No supported authentication methods found.');
-  }
-
-  protected getPanelHtml(title: string): string {
-    const iframeUrl = getEmbedWidgetUrl(
-      this.serverUrl,
-      title,
-      getDHThemeKey(),
-      this._psk
-    );
-    return getPanelHtml(iframeUrl, title);
-  }
-
-  protected handlePanelMessage(): Promise<void> {
-    throw new Error('Method not implemented.');
   }
 }
 
