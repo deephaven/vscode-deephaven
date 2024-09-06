@@ -131,3 +131,15 @@ export function parsePort(portStr: string): Port {
 
   return parsed as Port;
 }
+
+/**
+ * Sort comparator for sorting by `serverUrl`.
+ * @param a
+ * @param b
+ */
+export function sortByServerUrl(
+  a: { serverUrl: URL },
+  b: { serverUrl: URL }
+): number {
+  return a.serverUrl.toString().localeCompare(b.serverUrl.toString());
+}

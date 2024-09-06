@@ -79,7 +79,14 @@ export type VariableDefintion = DhcType.ide.VariableDefinition & {
   type: VariableType;
 };
 
+export type VariableMap = Map<VariableID, VariableDefintion>;
 export type VariablePanelMap = Map<VariableID, vscode.WebviewPanel>;
+
+export interface VariableChanges {
+  readonly created: VariableDefintion[];
+  readonly removed: VariableDefintion[];
+  readonly updated: VariableDefintion[];
+}
 
 export type VariableType =
   | 'Figure'

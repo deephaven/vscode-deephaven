@@ -1,10 +1,50 @@
 import * as vscode from 'vscode';
-import type { ServerGroupState, ServerState } from '../types';
+import type {
+  IDhService,
+  ServerGroupState,
+  ServerState,
+  VariableDefintion,
+} from '../types';
 import {
   ICON_ID,
   SERVER_TREE_ITEM_CONTEXT,
+  VARIABLE_ICONS,
   type ServerTreeItemContextValue,
 } from '../common';
+
+/**
+ * Get `TreeItem` for a panel connection.
+ * @param connection
+ */
+export function getPanelConnectionTreeItem(
+  connection: IDhService
+): vscode.TreeItem {
+  return {
+    label: new URL(connection.serverUrl.toString()).host,
+    // description: consoleType,
+    // contextValue: CONNECTION_TREE_ITEM_CONTEXT.isConnection,
+    // collapsibleState: hasUris
+    //   ? vscode.TreeItemCollapsibleState.Expanded
+    //   : undefined,
+    collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
+    iconPath: new vscode.ThemeIcon(
+      connection.isConnected ? ICON_ID.connected : ICON_ID.connecting
+    ),
+  };
+}
+
+/**
+ * Get `TreeItem` for a panel variable.
+ * @param variable
+ */
+export function getPanelVariableTreeItem(
+  variable: VariableDefintion
+): vscode.TreeItem {
+  const icon = VARIABLE_ICONS[variable.type];
+  return {
+    description: icon == null ? variable.title : `${icon} ${variable.title}`,
+  };
+}
 
 /**
  * Get `contextValue` for server tree items.
