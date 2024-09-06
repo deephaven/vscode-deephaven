@@ -42,6 +42,7 @@ import type {
   IPanelService,
   IServerManager,
   IToastService,
+  ServerConnectionPanelNode,
   ServerConnectionPanelTreeView,
   ServerConnectionTreeView,
   ServerState,
@@ -393,12 +394,12 @@ export class ExtensionController implements Disposable {
       );
     this._serverConnectionPanelTreeView =
       vscode.window.createTreeView<ServerConnectionPanelNode>(
-      VIEW_ID.serverConnectionPanelTree,
-      {
-        showCollapseAll: true,
-        treeDataProvider: this._serverConnectionPanelTreeProvider,
-      }
-    );
+        VIEW_ID.serverConnectionPanelTree,
+        {
+          showCollapseAll: true,
+          treeDataProvider: this._serverConnectionPanelTreeProvider,
+        }
+      );
 
     this._context.subscriptions.push(
       this._serverTreeView,
