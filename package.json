@@ -137,6 +137,10 @@
         "icon": "$(globe)"
       },
       {
+        "command": "vscode-deephaven.openVariablePanel",
+        "title": "Deephaven: Open Variable Panel"
+      },
+      {
         "command": "vscode-deephaven.refreshServerTree",
         "title": "Deephaven: Refresh Server Tree",
         "icon": "$(refresh)"
@@ -185,6 +189,10 @@
         },
         {
           "command": "vscode-deephaven.disconnectFromServer",
+          "when": "false"
+        },
+        {
+          "command": "vscode-deephaven.openVariablePanel",
           "when": "false"
         },
         {
