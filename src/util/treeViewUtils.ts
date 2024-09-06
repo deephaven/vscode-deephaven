@@ -50,7 +50,7 @@ export function getPanelVariableTreeItem([url, variable]: [
     command: {
       title: 'Open Panel',
       command: OPEN_VARIABLE_PANELS_CMD,
-      arguments: [url, variable],
+      arguments: [url, [variable]],
     },
   };
 }
