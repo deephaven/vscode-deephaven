@@ -8,6 +8,7 @@ import type {
   ServerConnection,
   ServerState,
   UnsubscribeEventListener,
+  VariableDefintion,
   VariableID,
 } from '../types/commonTypes';
 
@@ -28,6 +29,7 @@ export interface IDhService<TDH = unknown, TClient = unknown>
   readonly isInitialized: boolean;
   readonly isConnected: boolean;
   readonly onDidDisconnect: vscode.Event<URL>;
+  readonly onRequestVariablePanels: vscode.Event<VariableDefintion[]>;
 
   initDh: () => Promise<boolean>;
 
@@ -59,10 +61,11 @@ export interface IFactory<T, TArgs extends unknown[] = []> {
 /**
  * Factory for creating IDhService instances.
  */
-export type IDhServiceFactory = IFactory<
-  IDhService,
-  [serverUrl: URL, psk?: string]
->;
+export interface IDhServiceFactory
+  extends IFactory<IDhService, [serverUrl: URL, psk?: string]>,
+    Disposable {
+  readonly onCreated: vscode.Event<IDhService>;
+}
 
 export interface IPanelService extends Disposable {
   getPanelOrThrow: (url: URL, variableId: VariableID) => vscode.WebviewPanel;
@@ -89,6 +92,7 @@ export interface IServerManager extends Disposable {
   hasConnection: (serverUrl: URL) => boolean;
   hasConnectionUris: (connection: IDhService) => boolean;
 
+  getConnection: (serverUrl: URL) => IDhService | undefined;
   getConnections: () => IDhService[];
   getConnectionUris: (connection: IDhService) => vscode.Uri[];
   getEditorConnection: (

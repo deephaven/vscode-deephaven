@@ -7,6 +7,7 @@ import {
   DISCONNECT_FROM_SERVER_CMD,
   DOWNLOAD_LOGS_CMD,
   OPEN_IN_BROWSER_CMD,
+  OPEN_VARIABLE_PANELS_CMD,
   REFRESH_SERVER_CONNECTION_TREE_CMD,
   REFRESH_SERVER_TREE_CMD,
   RUN_CODE_COMMAND,
@@ -43,10 +44,12 @@ import type {
   ServerConnectionTreeView,
   ServerState,
   ServerTreeView,
+  VariableDefintion,
 } from '../types';
 import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTreeDragAndDropController';
 import { ConnectionController } from './ConnectionController';
 import { PipServerController } from './PipServerController';
+import { PanelController } from './PanelController';
 
 const logger = new Logger('ExtensionController');
 
@@ -63,6 +66,7 @@ export class ExtensionController implements Disposable {
     this.initializeServerManager();
     this.initializeTempDirectory();
     this.initializeConnectionController();
+    this.initializePanelController();
     this.initializePipServerController();
     this.initializeCommands();
     this.initializeWebViews();
@@ -80,6 +84,7 @@ export class ExtensionController implements Disposable {
   readonly _config: IConfigService;
 
   private _connectionController: ConnectionController | null = null;
+  private _panelController: PanelController | null = null;
   private _panelService: IPanelService | null = null;
   private _pipServerController: PipServerController | null = null;
   private _dhcServiceFactory: IDhServiceFactory | null = null;
@@ -138,6 +143,21 @@ export class ExtensionController implements Disposable {
     );
 
     this._context.subscriptions.push(this._connectionController);
+  };
+
+  /**
+   * Initialize panel controller.
+   */
+  initializePanelController = (): void => {
+    assertDefined(this._panelService, 'panelService');
+    assertDefined(this._serverManager, 'serverManager');
+
+    this._panelController = new PanelController(
+      this._serverManager,
+      this._panelService
+    );
+
+    this._context.subscriptions.push(this._panelController);
   };
 
   /**
@@ -224,6 +244,15 @@ export class ExtensionController implements Disposable {
       this._outputChannel,
       this._toaster
     );
+    this._dhcServiceFactory.onCreated(
+      dhService => {
+        dhService.onRequestVariablePanels(variables =>
+          this.onOpenVariablePanels(dhService.serverUrl, variables)
+        );
+      },
+      undefined,
+      this._context.subscriptions
+    );
 
     this._serverManager = new ServerManager(
       this._config,
@@ -294,6 +323,9 @@ export class ExtensionController implements Disposable {
 
     /** Open server in browser */
     this.registerCommand(OPEN_IN_BROWSER_CMD, this.onOpenInBrowser);
+
+    /** Open variable panel */
+    this.registerCommand(OPEN_VARIABLE_PANELS_CMD, this.onOpenVariablePanels);
 
     /** Run all code in active editor */
     this.registerCommand(RUN_CODE_COMMAND, this.onRunCode);
@@ -466,6 +498,10 @@ export class ExtensionController implements Disposable {
       'vscode.open',
       vscode.Uri.parse(serverState.url.toString())
     );
+  };
+
+  onOpenVariablePanels = (url: URL, variables: VariableDefintion[]): void => {
+    this._panelController?.openPanels(url, variables);
   };
 
   onRefreshServerStatus = async (): Promise<void> => {

@@ -7,9 +7,9 @@ import type {
   IDhService,
   IPanelService,
   IToastService,
+  VariableDefintion,
 } from '../types';
 import {
-  assertIsVariableID,
   formatTimestamp,
   getCombinedSelectedLinesText,
   isAggregateError,
@@ -17,18 +17,9 @@ import {
   NoConsoleTypesError,
   parseServerError,
 } from '../util';
+import { VARIABLE_UNICODE_ICONS } from '../common';
 
 const logger = new Logger('DhService');
-
-/* eslint-disable @typescript-eslint/naming-convention */
-const icons = {
-  Figure: '📈',
-  'deephaven.plot.express.DeephavenFigure': '📈',
-  Table: '⬜',
-  'deephaven.ui.Element': '✨',
-} as const;
-type IconType = keyof typeof icons;
-/* eslint-enable @typescript-eslint/naming-convention */
 
 export abstract class DhService<TDH = unknown, TClient = unknown>
   implements IDhService<TDH, TClient>
@@ -49,6 +40,11 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
 
   private readonly _onDidDisconnect = new vscode.EventEmitter<URL>();
   readonly onDidDisconnect = this._onDidDisconnect.event;
+
+  public readonly _onRequestVariablePanels = new vscode.EventEmitter<
+    VariableDefintion[]
+  >();
+  readonly onRequestVariablePanels = this._onRequestVariablePanels.event;
 
   public readonly serverUrl: URL;
   protected readonly subscriptions: (() => void)[] = [];
@@ -103,6 +99,8 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
 
   public async dispose(): Promise<void> {
     this.clearCaches();
+    this._onDidDisconnect.dispose();
+    this._onRequestVariablePanels.dispose();
   }
 
   protected getToastErrorMessage(
@@ -303,69 +301,21 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
       return;
     }
 
-    const changed = [...result!.changes.created, ...result!.changes.updated];
+    const changed = [
+      ...result!.changes.created,
+      ...result!.changes.updated,
+    ] as VariableDefintion[];
 
-    // Have to set this with type assertion since TypeScript can't figure out
-    // assignments inside of the `forEach` and will treat `lastPanel` as `null`.
-    let lastPanel = null as vscode.WebviewPanel | null;
+    changed.forEach(variable => {
+      const { title = 'Unknown', type } = variable;
 
-    changed.forEach(({ id, title = 'Unknown', type }) => {
-      assertIsVariableID(id, 'id');
-
-      const icon = icons[type as IconType] ?? type;
+      const icon = VARIABLE_UNICODE_ICONS[type] ?? type;
       this.outputChannel.appendLine(`${icon} ${title}`);
-
-      // Don't show panels for variables starting with '_'
-      if (title.startsWith('_')) {
-        return;
-      }
-
-      if (!this.panelService.hasPanel(this.serverUrl, id)) {
-        const panel = vscode.window.createWebviewPanel(
-          'dhPanel', // Identifies the type of the webview. Used internally
-          title,
-          { viewColumn: vscode.ViewColumn.Two, preserveFocus: true },
-          {
-            enableScripts: true,
-            retainContextWhenHidden: true,
-          }
-        );
-
-        this.panelService.setPanel(this.serverUrl, id, panel);
-
-        // If panel gets disposed, remove it from the caches
-        panel.onDidDispose(() => {
-          this.panelService.deletePanel(this.serverUrl, id);
-        });
-
-        // See @deprecated comment in PanelFocusManager.onDidChangeViewState
-        // Ensure focus is not stolen when panel is loaded
-        // panel.onDidChangeViewState(
-        //   this.panelFocusManager.handleOnDidChangeViewState(panel)
-        // );
-      }
-
-      const panel = this.panelService.getPanelOrThrow(this.serverUrl, id);
-      lastPanel = panel;
-
-      // See @deprecated comment in PanelFocusManager.onDidChangeViewState
-      // Ensure focus is not stolen when panel is loaded
-      // this.panelFocusManager.initialize(panel);
-
-      panel.webview.html = this.getPanelHtml(title);
-
-      // TODO: The postMessage apis will be needed for auth in DHE (vscode-deephaven/issues/76).
-      // Leaving this here commented out for reference, but it will need some
-      // re-working. Namely this seems to subscribe multiple times. Should see
-      // if can move it inside of the panel creation block or unsubscribe older
-      // subscriptions whenever we subscribe.
-      // panel.webview.onDidReceiveMessage(({ data }) => {
-      //   const postMessage = panel.webview.postMessage.bind(panel.webview);
-      //   this.handlePanelMessage(data, postMessage);
-      // });
     });
 
-    lastPanel?.reveal();
+    this._onRequestVariablePanels.fire(
+      changed.filter(v => !v.title.startsWith('_'))
+    );
   }
 
   getConsoleTypes = async (): Promise<Set<ConsoleType>> => {
