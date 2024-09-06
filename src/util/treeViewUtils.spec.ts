@@ -96,7 +96,7 @@ describe('getServerIconID', () => {
     [false, false, true],
     [false, false, false],
   ])(
-    'should return icon path based on server state: isConnected=%s, isManaged=%s, isRunning=%s',
+    'should return icon id based on server state: isConnected=%s, isManaged=%s, isRunning=%s',
     (isConnected, isManaged, isRunning) => {
       const actual = getServerIconID({ isConnected, isManaged, isRunning });
       expect(actual).toMatchSnapshot();
