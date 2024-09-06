@@ -391,7 +391,8 @@ export class ExtensionController implements Disposable {
         this._serverManager,
         this._panelService
       );
-    this._serverConnectionPanelTreeView = vscode.window.createTreeView(
+    this._serverConnectionPanelTreeView =
+      vscode.window.createTreeView<ServerConnectionPanelNode>(
       VIEW_ID.serverConnectionPanelTree,
       {
         showCollapseAll: true,
