@@ -27,7 +27,7 @@ export class ServerConnectionPanelTreeProvider extends TreeDataProviderBase<Serv
   getTreeItem = async (
     connectionOrVariable: ServerConnectionPanelNode
   ): Promise<vscode.TreeItem> => {
-    if ('id' in connectionOrVariable) {
+    if (Array.isArray(connectionOrVariable)) {
       return getPanelVariableTreeItem(connectionOrVariable);
     }
 
@@ -43,8 +43,8 @@ export class ServerConnectionPanelTreeProvider extends TreeDataProviderBase<Serv
         .sort(sortByStringProp('serverUrl'));
     }
 
-    return [
-      ...this._panelService.getVariables(connectionOrRoot.serverUrl),
-    ].sort((a, b) => a.title.localeCompare(b.title));
+    return [...this._panelService.getVariables(connectionOrRoot.serverUrl)]
+      .sort((a, b) => a.title.localeCompare(b.title))
+      .map(variable => [connectionOrRoot.serverUrl, variable]);
   };
 }

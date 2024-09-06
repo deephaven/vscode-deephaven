@@ -10,6 +10,6 @@ export type ServerConnectionNode = IDhService | vscode.Uri;
 export interface ServerConnectionTreeView
   extends vscode.TreeView<ServerConnectionNode> {}
 
-export type ServerConnectionPanelNode = IDhService | VariableDefintion;
+export type ServerConnectionPanelNode = IDhService | [URL, VariableDefintion];
 export interface ServerConnectionPanelTreeView
   extends vscode.TreeView<ServerConnectionPanelNode> {}

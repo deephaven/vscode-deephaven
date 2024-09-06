@@ -7,6 +7,7 @@ import type {
 } from '../types';
 import {
   ICON_ID,
+  OPEN_VARIABLE_PANEL_CMD,
   SERVER_TREE_ITEM_CONTEXT,
   VARIABLE_ICONS,
   type ServerTreeItemContextValue,
@@ -37,14 +38,20 @@ export function getPanelConnectionTreeItem(
  * Get `TreeItem` for a panel variable.
  * @param variable
  */
-export function getPanelVariableTreeItem(
-  variable: VariableDefintion
-): vscode.TreeItem {
+export function getPanelVariableTreeItem([url, variable]: [
+  URL,
+  VariableDefintion,
+]): vscode.TreeItem {
   const iconId = VARIABLE_ICONS[variable.type];
 
   return {
     description: variable.title,
     iconPath: iconId == null ? undefined : new vscode.ThemeIcon(iconId),
+    command: {
+      title: 'Open Panel',
+      command: OPEN_VARIABLE_PANEL_CMD,
+      arguments: [url, variable],
+    },
   };
 }
 

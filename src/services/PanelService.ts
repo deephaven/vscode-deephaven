@@ -95,11 +95,6 @@ export class PanelService implements IPanelService, Disposable {
     url: URL,
     { created, removed, updated }: VariableChanges
   ): void => {
-    console.log(
-      '[TESTING] update:',
-      JSON.stringify({ created, removed, updated })
-    );
-
     if (!this._cnVariableMap.has(url)) {
       this._cnVariableMap.set(url, new Map());
     }
