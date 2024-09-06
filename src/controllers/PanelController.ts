@@ -6,8 +6,10 @@ import type {
   VariableDefintion,
 } from '../types';
 import { getEmbedWidgetUrl } from '../dh/dhc';
-import { assertDefined, getDHThemeKey, getPanelHtml } from '../util';
+import { assertDefined, getDHThemeKey, getPanelHtml, Logger } from '../util';
 import { DhcService } from '../services';
+
+const logger = new Logger('PanelController');
 
 export class PanelController implements Disposable {
   constructor(serverManager: IServerManager, panelService: IPanelService) {
@@ -24,6 +26,8 @@ export class PanelController implements Disposable {
     serverUrl: URL,
     variables: VariableDefintion[]
   ): Promise<void> => {
+    logger.debug('openPanels', serverUrl, variables);
+
     let lastPanel: vscode.WebviewPanel | null = null;
 
     for (const { id, title } of variables) {
