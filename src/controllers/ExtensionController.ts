@@ -243,11 +243,6 @@ export class ExtensionController implements Disposable {
       this._outputChannel,
       this._toaster
     );
-    this._dhcServiceFactory.onCreated(
-      this.onDhServiceCreated,
-      undefined,
-      this._context.subscriptions
-    );
 
     this._serverManager = new ServerManager(
       this._config,
@@ -456,19 +451,6 @@ export class ExtensionController implements Disposable {
     const editor = await vscode.window.showTextDocument(doc);
 
     this._serverManager?.setEditorConnection(editor, dhService);
-  };
-
-  /**
-   * Handle when a new Deephaven service is created.
-   * @param dhService The Deephaven service that was created.
-   * @returns void
-   */
-  onDhServiceCreated = (dhService: IDhService): void => {
-    dhService.onRequestVariablePanels(
-      variables => this.onOpenVariablePanels(dhService.serverUrl, variables),
-      undefined,
-      this._context.subscriptions
-    );
   };
 
   /**

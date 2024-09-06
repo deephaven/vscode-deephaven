@@ -12,13 +12,6 @@ export class DhcServiceFactory implements IDhServiceFactory {
     private toaster: IToastService
   ) {}
 
-  dispose = async (): Promise<void> => {
-    this._onCreated.dispose();
-  };
-
-  private _onCreated = new vscode.EventEmitter<DhcService>();
-  readonly onCreated = this._onCreated.event;
-
   create = (serverUrl: URL, psk?: string): DhcService => {
     const dhService = new DhcService(
       serverUrl,
@@ -30,8 +23,6 @@ export class DhcServiceFactory implements IDhServiceFactory {
     if (psk != null) {
       dhService.setPsk(psk);
     }
-
-    this._onCreated.fire(dhService);
 
     return dhService;
   };

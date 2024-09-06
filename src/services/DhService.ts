@@ -16,7 +16,7 @@ import {
   NoConsoleTypesError,
   parseServerError,
 } from '../util';
-import { VARIABLE_UNICODE_ICONS } from '../common';
+import { OPEN_VARIABLE_PANELS_CMD, VARIABLE_UNICODE_ICONS } from '../common';
 
 const logger = new Logger('DhService');
 
@@ -37,11 +37,6 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
 
   private readonly _onDidDisconnect = new vscode.EventEmitter<URL>();
   readonly onDidDisconnect = this._onDidDisconnect.event;
-
-  public readonly _onRequestVariablePanels = new vscode.EventEmitter<
-    VariableDefintion[]
-  >();
-  readonly onRequestVariablePanels = this._onRequestVariablePanels.event;
 
   public readonly serverUrl: URL;
   protected readonly subscriptions: (() => void)[] = [];
@@ -88,7 +83,6 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
   public async dispose(): Promise<void> {
     this.clearCaches();
     this._onDidDisconnect.dispose();
-    this._onRequestVariablePanels.dispose();
   }
 
   protected getToastErrorMessage(
@@ -301,8 +295,12 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
       this.outputChannel.appendLine(`${icon} ${title}`);
     });
 
-    this._onRequestVariablePanels.fire(
-      changed.filter(v => !v.title.startsWith('_'))
+    const showVariables = changed.filter(v => !v.title.startsWith('_'));
+
+    vscode.commands.executeCommand(
+      OPEN_VARIABLE_PANELS_CMD,
+      this.serverUrl,
+      showVariables
     );
   }
 
