@@ -244,11 +244,7 @@ export class ExtensionController implements Disposable {
       this._toaster
     );
     this._dhcServiceFactory.onCreated(
-      dhService => {
-        dhService.onRequestVariablePanels(variables =>
-          this.onOpenVariablePanels(dhService.serverUrl, variables)
-        );
-      },
+      this.onDhServiceCreated,
       undefined,
       this._context.subscriptions
     );
@@ -463,6 +459,19 @@ export class ExtensionController implements Disposable {
   };
 
   /**
+   * Handle when a new Deephaven service is created.
+   * @param dhService The Deephaven service that was created.
+   * @returns void
+   */
+  onDhServiceCreated = (dhService: IDhService): void => {
+    dhService.onRequestVariablePanels(
+      variables => this.onOpenVariablePanels(dhService.serverUrl, variables),
+      undefined,
+      this._context.subscriptions
+    );
+  };
+
+  /**
    * Disconnect editor from active connections.
    * @param uri
    */
@@ -499,6 +508,11 @@ export class ExtensionController implements Disposable {
     );
   };
 
+  /**
+   * Open panels for given url and variables.
+   * @param url Connection url to open panels for.
+   * @param variables Variables to open panels for.
+   */
   onOpenVariablePanels = (url: URL, variables: VariableDefintion[]): void => {
     this._panelController?.openPanels(url, variables);
   };
