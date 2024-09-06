@@ -9,6 +9,7 @@ export * from './panelUtils';
 export * from './polyfillUtils';
 export * from './selectionUtils';
 export * from './serverUtils';
+export * from './treeViewUtils';
 export * from './Toaster';
 export * from './uiUtils';
 export * from './urlUtils';
