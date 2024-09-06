@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import type {
   ConsoleType,
   Disposable,
-  IConfigService,
   IDhService,
   IServerManager,
   IToastService,
@@ -12,6 +11,7 @@ import {
   assertDefined,
   createConnectionOption,
   createConnectionQuickPick,
+  createConnectionQuickPickOptions,
   createConnectStatusBarItem,
   getConnectionsForConsoleType,
   getEditorForUri,
@@ -26,13 +26,11 @@ const logger = new Logger('ConnectionController');
 export class ConnectionController implements Disposable {
   constructor(
     context: vscode.ExtensionContext,
-    configService: IConfigService,
     serverManager: IServerManager,
     outputChannel: vscode.OutputChannel,
     toastService: IToastService
   ) {
     this._context = context;
-    this._config = configService;
     this._serverManager = serverManager;
     this._outputChannel = outputChannel;
     this._toaster = toastService;
@@ -42,7 +40,6 @@ export class ConnectionController implements Disposable {
   }
 
   private readonly _context: vscode.ExtensionContext;
-  private readonly _config: IConfigService;
   private readonly _serverManager: IServerManager;
   private readonly _outputChannel: vscode.OutputChannel;
   private readonly _toaster: IToastService;
@@ -78,6 +75,17 @@ export class ConnectionController implements Disposable {
     this._serverManager.onDidRegisterEditor(
       () => {
         this.updateConnectionStatusBarItem();
+      },
+      undefined,
+      this._context.subscriptions
+    );
+
+    this._serverManager.onDidServerStatusChange(
+      server => {
+        // Auto connect to servers managed by extension when they start
+        if (server.isManaged && server.isRunning) {
+          this._serverManager.connectToServer(server.url);
+        }
       },
       undefined,
       this._context.subscriptions
@@ -249,10 +257,11 @@ export class ConnectionController implements Disposable {
       hasConnections: false,
     });
 
-    const connections: IDhService[] = await getConnectionsForConsoleType(
-      this._serverManager.getConnections(),
-      editor.document.languageId as ConsoleType
-    );
+    const connectionsForConsoleType: IDhService[] =
+      await getConnectionsForConsoleType(
+        this._serverManager.getConnections(),
+        editor.document.languageId as ConsoleType
+      );
 
     const editorActiveConnectionUrl = this._serverManager.getUriConnection(
       editor.document.uri
@@ -262,10 +271,12 @@ export class ConnectionController implements Disposable {
 
     try {
       selectedCnResult = await createConnectionQuickPick(
-        runningServersWithoutConnections,
-        connections,
-        editor.document.languageId,
-        editorActiveConnectionUrl
+        createConnectionQuickPickOptions(
+          runningServersWithoutConnections,
+          connectionsForConsoleType,
+          editor.document.languageId,
+          editorActiveConnectionUrl
+        )
       );
 
       if (selectedCnResult == null) {

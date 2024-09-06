@@ -16,6 +16,10 @@ const logger = new Logger('DhcService');
 export class DhcService extends DhService<typeof DhcType, DhcType.CoreClient> {
   private psk?: string;
 
+  setPsk(psk: string): void {
+    this.psk = psk;
+  }
+
   protected async initApi(): Promise<typeof DhcType> {
     return initDhcApi(this.serverUrl);
   }
@@ -44,18 +48,18 @@ export class DhcService extends DhService<typeof DhcType, DhcType.CoreClient> {
         type: dh.CoreClient.LOGIN_TYPE_ANONYMOUS,
       });
     } else if (authConfig.has(AUTH_HANDLER_TYPE_PSK)) {
-      const token = await vscode.window.showInputBox({
-        placeHolder: 'Pre-Shared Key',
-        prompt: 'Enter your Deephaven pre-shared key',
-        password: true,
-      });
+      if (this.psk == null) {
+        this.psk = await vscode.window.showInputBox({
+          placeHolder: 'Pre-Shared Key',
+          prompt: 'Enter your Deephaven pre-shared key',
+          password: true,
+        });
+      }
 
       const connectionAndSession = await initDhcSession(client, {
         type: 'io.deephaven.authentication.psk.PskAuthenticationHandler',
-        token,
+        token: this.psk,
       });
-
-      this.psk = token;
 
       return connectionAndSession;
     }

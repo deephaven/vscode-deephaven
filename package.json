@@ -117,6 +117,11 @@
         "icon": "$(plug)"
       },
       {
+        "command": "vscode-deephaven.createNewTextDoc",
+        "title": "New File",
+        "icon": "$(new-file)"
+      },
+      {
         "command": "vscode-deephaven.disconnectEditor",
         "title": "Deephaven: Disconnect Editor",
         "icon": "$(debug-disconnect)"
@@ -140,6 +145,16 @@
         "command": "vscode-deephaven.refreshServerConnectionTree",
         "title": "Deephaven: Refresh Server Connection Tree",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "vscode-deephaven.startServer",
+        "title": "Deephaven: Start Server",
+        "icon": "$(debug-start)"
+      },
+      {
+        "command": "vscode-deephaven.stopServer",
+        "title": "Deephaven: Stop Server",
+        "icon": "$(debug-stop)"
       }
     ],
     "menus": {
@@ -154,11 +169,11 @@
         },
         {
           "command": "vscode-deephaven.runCode",
-          "when": "true"
+          "when": "editorLangId == python || editorLangId == groovy"
         },
         {
           "command": "vscode-deephaven.runSelection",
-          "when": "true"
+          "when": "editorLangId == python || editorLangId == groovy"
         },
         {
           "command": "vscode-deephaven.connectToServer",
@@ -220,8 +235,13 @@
       "view/item/context": [
         {
           "command": "vscode-deephaven.connectToServer",
-          "when": "view == vscode-deephaven.serverTree && viewItem == isServerRunningDisconnected",
+          "when": "view == vscode-deephaven.serverTree && (viewItem == isManagedServerDisconnected || viewItem == isServerRunningDisconnected)",
           "group": "inline"
+        },
+        {
+          "command": "vscode-deephaven.createNewTextDoc",
+          "when": "view == vscode-deephaven.serverConnectionTree && viewItem == isConnection",
+          "group": "inline@1"
         },
         {
           "command": "vscode-deephaven.disconnectEditor",
@@ -231,11 +251,21 @@
         {
           "command": "vscode-deephaven.disconnectFromServer",
           "when": "view == vscode-deephaven.serverConnectionTree && viewItem == isConnection",
-          "group": "inline"
+          "group": "inline@2"
         },
         {
           "command": "vscode-deephaven.openInBrowser",
-          "when": "view == vscode-deephaven.serverTree && (viewItem == isServerRunningConnected || viewItem == isServerRunningDisconnected)",
+          "when": "view == vscode-deephaven.serverTree && (viewItem == isManagedServerConnected || viewItem == isServerRunningConnected || viewItem == isServerRunningDisconnected || viewItem == isManagedServerDisconnected)",
+          "group": "inline"
+        },
+        {
+          "command": "vscode-deephaven.startServer",
+          "when": "view == vscode-deephaven.serverTree && viewItem == canStartServer",
+          "group": "inline"
+        },
+        {
+          "command": "vscode-deephaven.stopServer",
+          "when": "view == vscode-deephaven.serverTree && (viewItem == isManagedServerConnected || viewItem == isManagedServerConnecting || viewItem == isManagedServerDisconnected)",
           "group": "inline"
         }
       ]

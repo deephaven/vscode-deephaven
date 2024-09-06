@@ -5,8 +5,15 @@ import {
   ConnectionOption,
   createConnectionOption,
   updateConnectionStatusBarItem,
+  createConnectionQuickPickOptions,
+  createSeparatorPickItem,
 } from './uiUtils';
-import type { CoreConnectionConfig } from '../types';
+import type {
+  CoreConnectionConfig,
+  IDhService,
+  ServerConnection,
+  ServerState,
+} from '../types';
 
 // See __mocks__/vscode.ts for the mock implementation
 vi.mock('vscode');
@@ -28,6 +35,47 @@ describe('createConnectionOption', () => {
   ] as const)(`should return connection option: '%s', %s`, (type, config) => {
     const actual = createConnectionOption(type)(config.url);
     expect(actual).toMatchSnapshot();
+  });
+});
+
+describe('createConnectionQuickPickOptions', () => {
+  const serverUrlA = new URL('http://localhost:10000');
+  const serverUrlB = new URL('http://localhost:10001');
+  const serverUrlC = new URL('http://localhost:10002');
+  const serverUrlD = new URL('http://localhost:10003');
+
+  it.each([
+    ['No active', undefined],
+    ['Active A', serverUrlA],
+  ])(
+    'should return quick pick options: editorActiveConnectionUrl=%s',
+    (_label, editorActiveConnectionUrl) => {
+      const serversWithoutConnections: ServerState[] = [
+        { type: 'DHC', url: serverUrlB },
+        { type: 'DHC', url: serverUrlD },
+      ];
+      const connections: ServerConnection[] = [
+        { serverUrl: serverUrlA },
+        { serverUrl: serverUrlC },
+      ];
+
+      const actual = createConnectionQuickPickOptions(
+        serversWithoutConnections,
+        connections,
+        'python',
+        editorActiveConnectionUrl
+      );
+      expect(actual).toMatchSnapshot();
+    }
+  );
+
+  it('should throw if no servers or connections', () => {
+    const servers: ServerState[] = [];
+    const connections: IDhService[] = [];
+
+    expect(() =>
+      createConnectionQuickPickOptions(servers, connections, 'python')
+    ).toThrowError('No available servers to connect to.');
   });
 });
 
@@ -66,4 +114,15 @@ describe('updateConnectionStatusBarItem', () => {
       expect(statusBarItem.text).toBe(text);
     }
   );
+});
+
+describe('createSeparatorPickItem', () => {
+  it('should create a separator quick pick item with label', () => {
+    const label = 'Some Label';
+    const actual = createSeparatorPickItem(label);
+    expect(actual).toEqual({
+      label,
+      kind: vscode.QuickPickItemKind.Separator,
+    });
+  });
 });

@@ -5,6 +5,7 @@ import type {
   Disposable,
   EnterpriseConnectionConfig,
   EventListenerT,
+  ServerConnection,
   ServerState,
   UnsubscribeEventListener,
 } from '../types/commonTypes';
@@ -22,10 +23,10 @@ export interface IConfigService {
  */
 export interface IDhService<TDH = unknown, TClient = unknown>
   extends Disposable,
-    IEventDispatcher<'disconnect'> {
+    IEventDispatcher<'disconnect'>,
+    ServerConnection {
   readonly isInitialized: boolean;
   readonly isConnected: boolean;
-  readonly serverUrl: URL;
 
   initDh: () => Promise<boolean>;
 
@@ -57,16 +58,21 @@ export interface IFactory<T, TArgs extends unknown[] = []> {
 /**
  * Factory for creating IDhService instances.
  */
-export type IDhServiceFactory = IFactory<IDhService, [serverUrl: URL]>;
+export type IDhServiceFactory = IFactory<
+  IDhService,
+  [serverUrl: URL, psk?: string]
+>;
 
 /**
  * Server manager interface.
  */
 export interface IServerManager extends Disposable {
+  canStartServer: boolean;
+
   connectToServer: (serverUrl: URL) => Promise<IDhService | null>;
   disconnectEditor: (uri: vscode.Uri) => void;
   disconnectFromServer: (serverUrl: URL) => Promise<void>;
-  loadServerConfig: () => void;
+  loadServerConfig: () => Promise<void>;
 
   hasConnection: (serverUrl: URL) => boolean;
   hasConnectionUris: (connection: IDhService) => boolean;
@@ -81,17 +87,20 @@ export interface IServerManager extends Disposable {
     dhService: IDhService
   ) => Promise<void>;
 
+  getServer: (serverUrl: URL) => ServerState | undefined;
   getServers: (filter?: {
     isRunning?: boolean;
     hasConnections?: boolean;
   }) => ServerState[];
   getUriConnection: (uri: vscode.Uri) => IDhService | null;
   hasEverUpdatedStatus: () => boolean;
-  updateStatus: () => Promise<void>;
+  syncManagedServers: (urls: URL[]) => void;
+  updateStatus: (filterBy?: URL[]) => Promise<void>;
 
   onDidConnect: vscode.Event<URL>;
   onDidDisconnect: vscode.Event<URL>;
   onDidRegisterEditor: vscode.Event<vscode.Uri>;
+  onDidServerStatusChange: vscode.Event<ServerState>;
   onDidUpdate: vscode.Event<void>;
 }
 

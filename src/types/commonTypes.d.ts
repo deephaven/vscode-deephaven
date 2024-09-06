@@ -1,5 +1,13 @@
 import * as vscode from 'vscode';
 
+// Branded type helpers
+declare const __brand: unique symbol;
+export type Brand<T extends string, TBase = string> = TBase & {
+  readonly [__brand]: T;
+};
+
+export type Port = Brand<'Port', number>;
+
 export type ConnectionType = 'DHC';
 
 export type ConnectionAndSession<TConnection, TSession> = {
@@ -21,11 +29,21 @@ export interface CoreConnectionConfig {
   url: URL;
 }
 
-export type EnterpriseConnectionConfigStored = string;
+export type EnterpriseConnectionConfigStored =
+  Brand<'EnterpriseConnectionConfigStored'>;
 
 export interface EnterpriseConnectionConfig {
   label?: string;
   url: URL;
+}
+
+export type ServerConnectionConfig =
+  | CoreConnectionConfig
+  | EnterpriseConnectionConfig
+  | URL;
+
+export interface ServerConnection {
+  readonly serverUrl: URL;
 }
 
 export interface Disposable {
@@ -37,19 +55,18 @@ export type UnsubscribeEventListener = () => void;
 
 export type ServerType = 'DHC' | 'DHE';
 
-export interface ServerState {
+export interface UnmanagedServerState {
+  isManaged?: false;
+}
+
+export interface ManagedServerState {
+  isManaged: true;
+  psk: string;
+}
+
+export type ServerState = {
   type: ServerType;
   url: URL;
   label?: string;
   isRunning?: boolean;
-}
-
-export type SeparatorPickItem = {
-  label: string;
-  kind: vscode.QuickPickItemKind.Separator;
-};
-
-export type ConnectionPickItem<TType, TData> = vscode.QuickPickItem & {
-  type: TType;
-  data: TData;
-};
+} & (UnmanagedServerState | ManagedServerState);

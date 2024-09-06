@@ -3,4 +3,7 @@ export * from './DhService';
 export * from './DhcService';
 export * from './DhcServiceFactory';
 export * from './PollingService';
+export * from './SerializedKeyMap';
 export * from './ServerManager';
+export * from './URIMap';
+export * from './URLMap';

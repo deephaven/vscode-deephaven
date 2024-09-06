@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import {
   CONNECT_TO_SERVER_CMD,
+  CREATE_NEW_TEXT_DOC_CMD,
+  DEFAULT_PIP_PORT_RANGE,
   DISCONNECT_EDITOR_CMD,
   DISCONNECT_FROM_SERVER_CMD,
   DOWNLOAD_LOGS_CMD,
@@ -10,6 +12,8 @@ import {
   RUN_CODE_COMMAND,
   RUN_SELECTION_COMMAND,
   SELECT_CONNECTION_COMMAND,
+  START_SERVER_CMD,
+  STOP_SERVER_CMD,
   VIEW_ID,
 } from '../common';
 import {
@@ -42,6 +46,7 @@ import type {
 } from '../types';
 import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTreeDragAndDropController';
 import { ConnectionController } from './ConnectionController';
+import { PipServerController } from './PipServerController';
 
 const logger = new Logger('ExtensionController');
 
@@ -58,6 +63,7 @@ export class ExtensionController implements Disposable {
     this.initializeServerManager();
     this.initializeTempDirectory();
     this.initializeConnectionController();
+    this.initializePipServerController();
     this.initializeCommands();
     this.initializeWebViews();
     this.initializeServerUpdates();
@@ -65,6 +71,7 @@ export class ExtensionController implements Disposable {
     logger.info(
       'Congratulations, your extension "vscode-deephaven" is now active!'
     );
+
     this._outputChannel?.show();
     this._outputChannel?.appendLine('Deephaven extension activated');
   }
@@ -73,6 +80,7 @@ export class ExtensionController implements Disposable {
   readonly _config: IConfigService;
 
   private _connectionController: ConnectionController | null = null;
+  private _pipServerController: PipServerController | null = null;
   private _dhcServiceFactory: IDhServiceFactory | null = null;
   private _serverManager: IServerManager | null = null;
   private _serverTreeProvider: ServerTreeProvider | null = null;
@@ -123,13 +131,29 @@ export class ExtensionController implements Disposable {
 
     this._connectionController = new ConnectionController(
       this._context,
-      this._config,
       this._serverManager,
       this._outputChannel,
       this._toaster
     );
 
     this._context.subscriptions.push(this._connectionController);
+  };
+
+  /**
+   * Initialize pip server controller.
+   */
+  initializePipServerController = (): void => {
+    assertDefined(this._outputChannel, 'outputChannel');
+    assertDefined(this._serverManager, 'serverManager');
+    assertDefined(this._toaster, 'toaster');
+
+    this._pipServerController = new PipServerController(
+      this._context,
+      this._serverManager,
+      DEFAULT_PIP_PORT_RANGE,
+      this._outputChannel,
+      this._toaster
+    );
   };
 
   /**
@@ -202,15 +226,20 @@ export class ExtensionController implements Disposable {
       this._dhcServiceFactory
     );
 
-    this._serverManager.onDidDisconnect(serverUrl => {
-      this._outputChannel?.appendLine(
-        `Disconnected from server: '${serverUrl}'.`
-      );
-    });
+    this._serverManager.onDidDisconnect(
+      serverUrl => {
+        this._outputChannel?.appendLine(
+          `Disconnected from server: '${serverUrl}'.`
+        );
+      },
+      undefined,
+      this._context.subscriptions
+    );
 
     vscode.workspace.onDidChangeConfiguration(
-      () => {
-        this._serverManager?.loadServerConfig();
+      async () => {
+        await this._serverManager?.loadServerConfig();
+        await this.onRefreshServerStatus();
       },
       undefined,
       this._context.subscriptions
@@ -243,6 +272,9 @@ export class ExtensionController implements Disposable {
     /** Create server connection */
     this.registerCommand(CONNECT_TO_SERVER_CMD, this.onConnectToServer);
 
+    /** Create new document */
+    this.registerCommand(CREATE_NEW_TEXT_DOC_CMD, this.onCreateNewDocument);
+
     /** Disconnect editor */
     this.registerCommand(DISCONNECT_EDITOR_CMD, this.onDisconnectEditor);
 
@@ -271,13 +303,19 @@ export class ExtensionController implements Disposable {
     );
 
     /** Refresh server tree */
-    this.registerCommand(REFRESH_SERVER_TREE_CMD, this.onRefreshServerTree);
+    this.registerCommand(REFRESH_SERVER_TREE_CMD, this.onRefreshServerStatus);
 
     /** Refresh server connection tree */
     this.registerCommand(
       REFRESH_SERVER_CONNECTION_TREE_CMD,
-      this.onRefreshServerConnectionTree
+      this.onRefreshServerStatus
     );
+
+    /** Start a server */
+    this.registerCommand(START_SERVER_CMD, this.onStartServer);
+
+    /** Stop a server */
+    this.registerCommand(STOP_SERVER_CMD, this.onStopServer);
   };
 
   /**
@@ -371,6 +409,24 @@ export class ExtensionController implements Disposable {
   };
 
   /**
+   * Create a new text document based on the given connection capabilities.
+   * @param dhService
+   */
+  onCreateNewDocument = async (dhService: IDhService): Promise<void> => {
+    const language = (await dhService.supportsConsoleType('python'))
+      ? 'python'
+      : 'groovy';
+
+    const doc = await vscode.workspace.openTextDocument({
+      language,
+    });
+
+    const editor = await vscode.window.showTextDocument(doc);
+
+    this._serverManager?.setEditorConnection(editor, dhService);
+  };
+
+  /**
    * Disconnect editor from active connections.
    * @param uri
    */
@@ -407,48 +463,61 @@ export class ExtensionController implements Disposable {
     );
   };
 
-  onRefreshServerTree = async (): Promise<void> => {
+  onRefreshServerStatus = async (): Promise<void> => {
+    await this._pipServerController?.syncManagedServers();
     await this._serverManager?.updateStatus();
-    this._serverTreeProvider?.refresh();
-  };
-
-  onRefreshServerConnectionTree = async (): Promise<void> => {
-    await this._serverManager?.updateStatus();
-    this._serverConnectionTreeProvider?.refresh();
   };
 
   /**
    * Run all code in editor for given uri.
    * @param uri
+   * @param arg
+   * @param selectionOnly
    */
-  onRunCode = async (uri: vscode.Uri): Promise<void> => {
-    assertDefined(this._connectionController, 'connectionController');
-
-    const editor = await getEditorForUri(uri);
-    const dhService =
-      await this._connectionController.getOrCreateConnection(uri);
-    await dhService?.runEditorCode(editor);
-  };
-
-  /**
-   * Run selected code in editor for given uri.
-   * @param uri
-   */
-  onRunSelectedCode = async (uri?: vscode.Uri): Promise<void> => {
+  onRunCode = async (
+    uri?: vscode.Uri,
+    _arg?: { groupId: number },
+    selectionOnly?: boolean
+  ): Promise<void> => {
     assertDefined(this._connectionController, 'connectionController');
 
     if (uri == null) {
       uri = vscode.window.activeTextEditor?.document.uri;
     }
 
-    if (uri == null) {
-      return;
-    }
+    assertDefined(uri, 'uri');
 
     const editor = await getEditorForUri(uri);
     const dhService =
       await this._connectionController.getOrCreateConnection(uri);
-    await dhService?.runEditorCode(editor, true);
+    await dhService?.runEditorCode(editor, selectionOnly === true);
+  };
+
+  /**
+   * Run selected code in editor for given uri.
+   * @param uri
+   * @param arg
+   */
+  onRunSelectedCode = async (
+    uri?: vscode.Uri,
+    arg?: { groupId: number }
+  ): Promise<void> => {
+    this.onRunCode(uri, arg, true);
+  };
+
+  /**
+   * Start a server.
+   */
+  onStartServer = async (): Promise<void> => {
+    await this._pipServerController?.startServer();
+  };
+
+  /**
+   * Stop a server.
+   * @param value
+   */
+  onStopServer = async (value: ServerState): Promise<void> => {
+    await this._pipServerController?.stopServer(value.url);
   };
 
   /**
