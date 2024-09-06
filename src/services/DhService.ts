@@ -288,9 +288,7 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
       ...result!.changes.updated,
     ] as VariableDefintion[];
 
-    changed.forEach(variable => {
-      const { title = 'Unknown', type } = variable;
-
+    changed.forEach(({ title = 'Unknown', type }) => {
       const icon = VARIABLE_UNICODE_ICONS[type] ?? type;
       this.outputChannel.appendLine(`${icon} ${title}`);
     });
