@@ -8,6 +8,7 @@ import type {
   ServerConnection,
   ServerState,
   UnsubscribeEventListener,
+  VariableID,
 } from '../types/commonTypes';
 
 /**
@@ -23,10 +24,10 @@ export interface IConfigService {
  */
 export interface IDhService<TDH = unknown, TClient = unknown>
   extends Disposable,
-    IEventDispatcher<'disconnect'>,
     ServerConnection {
   readonly isInitialized: boolean;
   readonly isConnected: boolean;
+  readonly onDidDisconnect: vscode.Event<URL>;
 
   initDh: () => Promise<boolean>;
 
@@ -62,6 +63,17 @@ export type IDhServiceFactory = IFactory<
   IDhService,
   [serverUrl: URL, psk?: string]
 >;
+
+export interface IPanelService extends Disposable {
+  getPanelOrThrow: (url: URL, variableId: VariableID) => vscode.WebviewPanel;
+  deletePanel: (url: URL, variableId: VariableID) => void;
+  hasPanel: (url: URL, variableId: VariableID) => boolean;
+  setPanel: (
+    url: URL,
+    variableId: VariableID,
+    panel: vscode.WebviewPanel
+  ) => void;
+}
 
 /**
  * Server manager interface.

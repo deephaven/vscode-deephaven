@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import type { dh as DhcType } from '@deephaven/jsapi-types';
 
 // Branded type helpers
 declare const __brand: unique symbol;
@@ -70,3 +71,11 @@ export type ServerState = {
   label?: string;
   isRunning?: boolean;
 } & (UnmanagedServerState | ManagedServerState);
+
+export type VariableID = Brand<'VariableID'>;
+
+export type VariableDefintion = DhcType.ide.VariableDefinition & {
+  id: VariableID;
+};
+
+export type VariablePanelMap = Map<VariableID, vscode.WebviewPanel>;

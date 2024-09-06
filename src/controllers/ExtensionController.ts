@@ -18,7 +18,6 @@ import {
 } from '../common';
 import {
   assertDefined,
-  ExtendedMap,
   getEditorForUri,
   getTempDir,
   isSupportedLanguageId,
@@ -32,12 +31,13 @@ import {
   ServerConnectionTreeProvider,
   runSelectedLinesHoverProvider,
 } from '../providers';
-import { DhcServiceFactory, ServerManager } from '../services';
+import { DhcServiceFactory, PanelService, ServerManager } from '../services';
 import type {
   Disposable,
   IConfigService,
   IDhService,
   IDhServiceFactory,
+  IPanelService,
   IServerManager,
   IToastService,
   ServerConnectionTreeView,
@@ -80,6 +80,7 @@ export class ExtensionController implements Disposable {
   readonly _config: IConfigService;
 
   private _connectionController: ConnectionController | null = null;
+  private _panelService: IPanelService | null = null;
   private _pipServerController: PipServerController | null = null;
   private _dhcServiceFactory: IDhServiceFactory | null = null;
   private _serverManager: IServerManager | null = null;
@@ -214,8 +215,11 @@ export class ExtensionController implements Disposable {
     assertDefined(this._outputChannel, 'outputChannel');
     assertDefined(this._toaster, 'toaster');
 
+    this._panelService = new PanelService();
+    this._context.subscriptions.push(this._panelService);
+
     this._dhcServiceFactory = new DhcServiceFactory(
-      new ExtendedMap<string, vscode.WebviewPanel>(),
+      this._panelService,
       this._pythonDiagnostics,
       this._outputChannel,
       this._toaster
@@ -225,6 +229,7 @@ export class ExtensionController implements Disposable {
       this._config,
       this._dhcServiceFactory
     );
+    this._context.subscriptions.push(this._serverManager);
 
     this._serverManager.onDidDisconnect(
       serverUrl => {

@@ -5,10 +5,11 @@ import type {
   ConnectionAndSession,
   ConsoleType,
   IDhService,
+  IPanelService,
   IToastService,
 } from '../types';
 import {
-  ExtendedMap,
+  assertIsVariableID,
   formatTimestamp,
   getCombinedSelectedLinesText,
   isAggregateError,
@@ -16,7 +17,6 @@ import {
   NoConsoleTypesError,
   parseServerError,
 } from '../util';
-import { EventDispatcher } from './EventDispatcher';
 
 const logger = new Logger('DhService');
 
@@ -30,43 +30,32 @@ const icons = {
 type IconType = keyof typeof icons;
 /* eslint-enable @typescript-eslint/naming-convention */
 
-// Common command result types shared by DHC and DHE
-type ChangesBase = {
-  removed: Partial<DhcType.ide.VariableDefinition>[];
-  created: Partial<DhcType.ide.VariableDefinition>[];
-  updated: Partial<DhcType.ide.VariableDefinition>[];
-};
-type CommandResultBase = {
-  changes: ChangesBase;
-  error: string;
-};
-
 export abstract class DhService<TDH = unknown, TClient = unknown>
-  extends EventDispatcher<'disconnect'>
   implements IDhService<TDH, TClient>
 {
   constructor(
     serverUrl: URL,
-    panelRegistry: ExtendedMap<string, vscode.WebviewPanel>,
+    panelService: IPanelService,
     diagnosticsCollection: vscode.DiagnosticCollection,
     outputChannel: vscode.OutputChannel,
     toaster: IToastService
   ) {
-    super();
-
     this.serverUrl = serverUrl;
-    this.panelRegistry = panelRegistry;
+    this.panelService = panelService;
     this.diagnosticsCollection = diagnosticsCollection;
     this.outputChannel = outputChannel;
     this.toaster = toaster;
   }
+
+  private readonly _onDidDisconnect = new vscode.EventEmitter<URL>();
+  readonly onDidDisconnect = this._onDidDisconnect.event;
 
   public readonly serverUrl: URL;
   protected readonly subscriptions: (() => void)[] = [];
 
   protected readonly outputChannel: vscode.OutputChannel;
   protected readonly toaster: IToastService;
-  private readonly panelRegistry: ExtendedMap<string, vscode.WebviewPanel>;
+  private readonly panelService: IPanelService;
   private readonly diagnosticsCollection: vscode.DiagnosticCollection;
   private cachedCreateClient: Promise<TClient> | null = null;
   private cachedCreateSession: Promise<
@@ -102,7 +91,7 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
 
     if (this.cn != null) {
       this.cn.close();
-      this.dispatchEvent('disconnect', this.serverUrl);
+      this._onDidDisconnect.fire(this.serverUrl);
     }
     this.cn = null;
 
@@ -254,7 +243,7 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
 
     logger.info('Sending text to dh:', text);
 
-    let result: CommandResultBase;
+    let result: DhcType.ide.CommandResult;
     let error: string | null = null;
 
     try {
@@ -320,7 +309,9 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
     // assignments inside of the `forEach` and will treat `lastPanel` as `null`.
     let lastPanel = null as vscode.WebviewPanel | null;
 
-    changed.forEach(({ title = 'Unknown', type }) => {
+    changed.forEach(({ id, title = 'Unknown', type }) => {
+      assertIsVariableID(id, 'id');
+
       const icon = icons[type as IconType] ?? type;
       this.outputChannel.appendLine(`${icon} ${title}`);
 
@@ -329,7 +320,7 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
         return;
       }
 
-      if (!this.panelRegistry.has(title)) {
+      if (!this.panelService.hasPanel(this.serverUrl, id)) {
         const panel = vscode.window.createWebviewPanel(
           'dhPanel', // Identifies the type of the webview. Used internally
           title,
@@ -340,11 +331,11 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
           }
         );
 
-        this.panelRegistry.set(title, panel);
+        this.panelService.setPanel(this.serverUrl, id, panel);
 
         // If panel gets disposed, remove it from the caches
         panel.onDidDispose(() => {
-          this.panelRegistry.delete(title);
+          this.panelService.deletePanel(this.serverUrl, id);
         });
 
         // See @deprecated comment in PanelFocusManager.onDidChangeViewState
@@ -354,7 +345,7 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
         // );
       }
 
-      const panel = this.panelRegistry.getOrThrow(title);
+      const panel = this.panelService.getPanelOrThrow(this.serverUrl, id);
       lastPanel = panel;
 
       // See @deprecated comment in PanelFocusManager.onDidChangeViewState
@@ -363,18 +354,15 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
 
       panel.webview.html = this.getPanelHtml(title);
 
-      // TODO: This seems to be subscribing multiple times. Need to see if we
-      // can move it inside of the panel creation block
-      panel.webview.onDidReceiveMessage(({ data }) => {
-        this.handlePanelMessage(
-          data,
-          this.panelRegistry
-            .get(title)!
-            .webview.postMessage.bind(
-              this.panelRegistry.getOrThrow(title).webview
-            )
-        );
-      });
+      // TODO: The postMessage apis will be needed for auth in DHE (vscode-deephaven/issues/76).
+      // Leaving this here commented out for reference, but it will need some
+      // re-working. Namely this seems to subscribe multiple times. Should see
+      // if can move it inside of the panel creation block or unsubscribe older
+      // subscriptions whenever we subscribe.
+      // panel.webview.onDidReceiveMessage(({ data }) => {
+      //   const postMessage = panel.webview.postMessage.bind(panel.webview);
+      //   this.handlePanelMessage(data, postMessage);
+      // });
     });
 
     lastPanel?.reveal();
