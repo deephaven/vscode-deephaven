@@ -25,9 +25,9 @@ export class ServerManager implements IServerManager {
     this._configService = configService;
     this._dhcServiceFactory = dhcServiceFactory;
 
-    this._serverMap = new URLMap();
-    this._connectionMap = new URLMap();
-    this._uriConnectionsMap = new URIMap();
+    this._serverMap = new URLMap<ServerState>();
+    this._connectionMap = new URLMap<IDhService>();
+    this._uriConnectionsMap = new URIMap<IDhService>();
 
     this.canStartServer = false;
 
