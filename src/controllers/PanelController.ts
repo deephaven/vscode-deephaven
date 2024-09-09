@@ -54,7 +54,6 @@ export class PanelController implements Disposable {
 
     for (const { id, title } of variables) {
       if (!this._panelService.hasPanel(serverUrl, id)) {
-        logger.debug('[TESTING] create panel', serverUrl, id);
         const panel = vscode.window.createWebviewPanel(
           'dhPanel', // Identifies the type of the webview. Used internally
           title,
