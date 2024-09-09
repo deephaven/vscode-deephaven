@@ -8,6 +8,10 @@ import type {
 import { assertDefined, getDHThemeKey, getPanelHtml, Logger } from '../util';
 import { getEmbedWidgetUrl } from '../dh/dhc';
 import { DhcService } from '../services';
+import {
+  OPEN_VARIABLE_PANELS_CMD,
+  REFRESH_VARIABLE_PANELS_CMD,
+} from '../common';
 
 const logger = new Logger('PanelController');
 
@@ -15,12 +19,30 @@ export class PanelController implements Disposable {
   constructor(serverManager: IServerManager, panelService: IPanelService) {
     this._panelService = panelService;
     this._serverManager = serverManager;
+    this._subscriptions = [];
+
+    this._subscriptions.push(
+      vscode.commands.registerCommand(
+        OPEN_VARIABLE_PANELS_CMD,
+        this.onOpenVariablePanels
+      ),
+      vscode.commands.registerCommand(
+        REFRESH_VARIABLE_PANELS_CMD,
+        this.onRefreshVariablePanels
+      )
+    );
   }
 
   private readonly _panelService: IPanelService;
   private readonly _serverManager: IServerManager;
+  private readonly _subscriptions: vscode.Disposable[];
 
-  dispose = async (): Promise<void> => {};
+  dispose = async (): Promise<void> => {
+    for (const subscription of this._subscriptions) {
+      subscription.dispose();
+    }
+    this._subscriptions.length = 0;
+  };
 
   openPanels = async (
     serverUrl: URL,
@@ -107,5 +129,26 @@ export class PanelController implements Disposable {
 
       panel.webview.html = getPanelHtml(iframeUrl, title);
     }
+  };
+
+  /**
+   * Open panels for given url and variables.
+   * @param url Connection url to open panels for.
+   * @param variables Variables to open panels for.
+   */
+  onOpenVariablePanels = (url: URL, variables: VariableDefintion[]): void => {
+    this.openPanels(url, variables);
+  };
+
+  /**
+   * Refresh variable panels for given url and variables.
+   * @param url Connection url to refresh panels for.
+   * @param variables Variables to refresh panels for.
+   */
+  onRefreshVariablePanels = (
+    url: URL,
+    variables: VariableDefintion[]
+  ): void => {
+    this.refreshPanelsContent(url, variables);
   };
 }

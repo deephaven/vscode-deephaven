@@ -7,10 +7,8 @@ import {
   DISCONNECT_FROM_SERVER_CMD,
   DOWNLOAD_LOGS_CMD,
   OPEN_IN_BROWSER_CMD,
-  OPEN_VARIABLE_PANELS_CMD,
   REFRESH_SERVER_CONNECTION_TREE_CMD,
   REFRESH_SERVER_TREE_CMD,
-  REFRESH_VARIABLE_PANELS_CMD,
   RUN_CODE_COMMAND,
   RUN_SELECTION_COMMAND,
   SELECT_CONNECTION_COMMAND,
@@ -48,7 +46,6 @@ import type {
   ServerConnectionTreeView,
   ServerState,
   ServerTreeView,
-  VariableDefintion,
 } from '../types';
 import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTreeDragAndDropController';
 import { ConnectionController } from './ConnectionController';
@@ -327,9 +324,6 @@ export class ExtensionController implements Disposable {
     /** Open server in browser */
     this.registerCommand(OPEN_IN_BROWSER_CMD, this.onOpenInBrowser);
 
-    /** Open variable panel */
-    this.registerCommand(OPEN_VARIABLE_PANELS_CMD, this.onOpenVariablePanels);
-
     /** Run all code in active editor */
     this.registerCommand(RUN_CODE_COMMAND, this.onRunCode);
 
@@ -349,12 +343,6 @@ export class ExtensionController implements Disposable {
     this.registerCommand(
       REFRESH_SERVER_CONNECTION_TREE_CMD,
       this.onRefreshServerStatus
-    );
-
-    /** Refresh variable panels */
-    this.registerCommand(
-      REFRESH_VARIABLE_PANELS_CMD,
-      this.onRefreshVariablePanels
     );
 
     /** Start a server */
@@ -525,30 +513,9 @@ export class ExtensionController implements Disposable {
     );
   };
 
-  /**
-   * Open panels for given url and variables.
-   * @param url Connection url to open panels for.
-   * @param variables Variables to open panels for.
-   */
-  onOpenVariablePanels = (url: URL, variables: VariableDefintion[]): void => {
-    this._panelController?.openPanels(url, variables);
-  };
-
   onRefreshServerStatus = async (): Promise<void> => {
     await this._pipServerController?.syncManagedServers();
     await this._serverManager?.updateStatus();
-  };
-
-  /**
-   * Refresh variable panels for given url and variables.
-   * @param url Connection url to refresh panels for.
-   * @param variables Variables to refresh panels for.
-   */
-  onRefreshVariablePanels = (
-    url: URL,
-    variables: VariableDefintion[]
-  ): void => {
-    this._panelController?.refreshPanelsContent(url, variables);
   };
 
   /**
