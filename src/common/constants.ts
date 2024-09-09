@@ -63,10 +63,10 @@ export const ICON_ID = {
   serverRunning: 'circle-large-outline',
   serverStopped: 'circle-slash',
   table: 'table',
-  varFigure: 'graph-line',
-  varExpFigure: 'pie-chart',
-  varTable: 'preview',
-  varElement: 'extensions',
+  varFigure: 'graph',
+  varElement: 'preview',
+  varPandas: 'dh-pandas',
+  varTable: 'dh-table',
 } as const;
 
 /* eslint-disable @typescript-eslint/naming-convention */
@@ -74,16 +74,14 @@ export const VARIABLE_UNICODE_ICONS = {
   'deephaven.plot.express.DeephavenFigure': '📈',
   'deephaven.ui.Element': '✨',
   Figure: '📈',
+  HierarchicalTable: '⬜',
+  OtherWidget: '⬜',
+  'pandas.DataFrame': '🐼',
+  PartitionedTable: '⬜',
   Table: '⬜',
-} as const satisfies Record<VariableType, string>;
-/* eslint-enable @typescript-eslint/naming-convention */
-
-/* eslint-disable @typescript-eslint/naming-convention */
-export const VARIABLE_ICONS = {
-  'deephaven.plot.express.DeephavenFigure': ICON_ID.varExpFigure,
-  'deephaven.ui.Element': ICON_ID.varElement,
-  Figure: ICON_ID.varFigure,
-  Table: ICON_ID.varTable,
+  TableMap: '⬜',
+  Treemap: '⬜',
+  TreeTable: '⬜',
 } as const satisfies Record<VariableType, string>;
 /* eslint-enable @typescript-eslint/naming-convention */
 

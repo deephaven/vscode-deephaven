@@ -87,6 +87,22 @@
         }
       }
     },
+    "icons": {
+      "dh-pandas": {
+        "description": "Deephaven pandas icon",
+        "default": {
+          "fontPath": "assets/dh-icons.woff",
+          "fontCharacter": "\\e900"
+        }
+      },
+      "dh-table": {
+        "description": "Deephaven table icon",
+        "default": {
+          "fontPath": "assets/dh-icons.woff",
+          "fontCharacter": "\\e901"
+        }
+      }
+    },
     "snippets": [
       {
         "language": "python",

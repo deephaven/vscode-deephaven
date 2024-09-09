@@ -4,14 +4,38 @@ import type {
   ServerGroupState,
   ServerState,
   VariableDefintion,
+  VariableType,
 } from '../types';
 import {
   ICON_ID,
   OPEN_VARIABLE_PANELS_CMD,
   SERVER_TREE_ITEM_CONTEXT,
-  VARIABLE_ICONS,
   type ServerTreeItemContextValue,
 } from '../common';
+
+export function getVariableIconPath(
+  variableType: VariableType
+): vscode.TreeItem['iconPath'] {
+  switch (variableType) {
+    case 'Table':
+    case 'TableMap':
+    case 'TreeTable':
+    case 'HierarchicalTable':
+    case 'PartitionedTable':
+      return new vscode.ThemeIcon(ICON_ID.varTable);
+
+    case 'deephaven.plot.express.DeephavenFigure':
+    case 'Figure':
+      return new vscode.ThemeIcon(ICON_ID.varFigure);
+
+    case 'pandas.DataFrame':
+      return new vscode.ThemeIcon(ICON_ID.varPandas);
+
+    case 'deephaven.ui.Element':
+    default:
+      return new vscode.ThemeIcon(ICON_ID.varElement);
+  }
+}
 
 /**
  * Get `TreeItem` for a panel connection.
@@ -42,11 +66,12 @@ export function getPanelVariableTreeItem([url, variable]: [
   URL,
   VariableDefintion,
 ]): vscode.TreeItem {
-  const iconId = VARIABLE_ICONS[variable.type];
+  const iconPath = getVariableIconPath(variable.type);
 
   return {
     description: variable.title,
-    iconPath: iconId == null ? undefined : new vscode.ThemeIcon(iconId),
+    // iconPath: iconId == null ? undefined : new vscode.ThemeIcon(iconId),
+    iconPath,
     command: {
       title: 'Open Panel',
       command: OPEN_VARIABLE_PANELS_CMD,

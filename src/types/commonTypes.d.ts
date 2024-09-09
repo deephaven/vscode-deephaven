@@ -89,7 +89,14 @@ export interface VariableChanges {
 }
 
 export type VariableType =
-  | 'Figure'
   | 'deephaven.plot.express.DeephavenFigure'
+  | 'deephaven.ui.Element'
+  | 'Figure'
+  | 'HierarchicalTable'
+  | 'OtherWidget'
+  | 'pandas.DataFrame'
+  | 'PartitionedTable'
   | 'Table'
-  | 'deephaven.ui.Element';
+  | 'TableMap'
+  | 'Treemap'
+  | 'TreeTable';
