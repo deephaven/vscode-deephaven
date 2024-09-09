@@ -68,6 +68,8 @@ export const CONNECTION_TREE_ITEM_CONTEXT = {
   isUri: 'isUri',
 } as const;
 
+export const PIP_SERVER_STATUS_DIRECTORY = 'pip-server-status';
+
 export const SERVER_TREE_ITEM_CONTEXT = {
   canStartServer: 'canStartServer',
   isManagedServerConnected: 'isManagedServerConnected',

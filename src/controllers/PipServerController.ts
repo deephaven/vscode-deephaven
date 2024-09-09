@@ -1,5 +1,11 @@
 import * as vscode from 'vscode';
-import { getPipServerUrl, Logger, parsePort } from '../util';
+import * as fs from 'node:fs';
+import {
+  getPipServerUrl,
+  getPipStatusFilePath,
+  Logger,
+  parsePort,
+} from '../util';
 import type { Disposable, Port, IServerManager, IToastService } from '../types';
 import {
   PIP_SERVER_STATUS_CHECK_INTERVAL,
@@ -32,11 +38,9 @@ export class PipServerController implements Disposable {
       terminal => {
         for (const [p, t] of this._serverUrlTerminalMap.entries()) {
           if (t === terminal) {
-            if (t.exitStatus?.code !== 0) {
+            if ((t.exitStatus?.code ?? 0) !== 0) {
               const msg = `Server on port ${p} exited with code ${t.exitStatus?.code}`;
-              logger.error(msg);
-              this._outputChannel.appendLine(msg);
-              this._toaster.error(msg);
+              this._logAndShowError(msg);
             }
 
             this.disposeServers([p]);
@@ -60,6 +64,16 @@ export class PipServerController implements Disposable {
   private _isPipServerInstalled = false;
 
   /**
+   * Log and show an error message to the user.
+   * @param msg The error message to log and show.
+   */
+  private _logAndShowError = (msg: string): void => {
+    logger.error(msg);
+    this._outputChannel.appendLine(msg);
+    this._toaster.error(msg);
+  };
+
+  /**
    * Start a terminal and attempt an import of `deephaven_server` to check if
    * servers can be managed from the extension.
    */
@@ -69,6 +83,13 @@ export class PipServerController implements Disposable {
     }
 
     if (this._checkPipInstallPromise == null) {
+      const statusFilePath = getPipStatusFilePath();
+
+      try {
+        // Delete any existing status file
+        fs.unlinkSync(statusFilePath);
+      } catch {}
+
       this._checkPipInstallPromise = new Promise(async resolve => {
         const terminal = vscode.window.createTerminal({
           name: `Deephaven check pip server install`,
@@ -78,9 +99,11 @@ export class PipServerController implements Disposable {
         // Give python extension time to setup .venv if configured
         await waitFor(PYTHON_ENV_WAIT);
 
-        // Attempt to import deephaven_server to see if it's installed and exit
-        // with code 2 if it fails.
-        terminal.sendText(`python -c 'import deephaven_server;' || exit 2`);
+        // Attempt to import deephaven_server to see if it's installed and write
+        // "ready" to status file if successful.
+        terminal.sendText(
+          `python -c 'import deephaven_server;' && echo ready > ${statusFilePath}`
+        );
         terminal.sendText('exit 0');
 
         const subscription = vscode.window.onDidCloseTerminal(
@@ -88,7 +111,10 @@ export class PipServerController implements Disposable {
             if (t === terminal) {
               subscription.dispose();
 
-              resolve(t.exitStatus?.code === 0);
+              // Get result of status check from tmp file
+              const isReady = fs.existsSync(statusFilePath);
+
+              resolve(isReady);
               this._checkPipInstallPromise = null;
             }
           },
@@ -140,10 +166,7 @@ export class PipServerController implements Disposable {
     const [port] = this.getAvailablePorts();
 
     if (port == null) {
-      const msg = 'No available ports';
-      logger.error(msg);
-      this._outputChannel.appendLine(msg);
-      this._toaster.error(msg);
+      this._logAndShowError('No available ports');
       return;
     }
 
@@ -166,14 +189,27 @@ export class PipServerController implements Disposable {
     // _serverUrlTerminalMap, so check it to verify it's still there before
     // proceeding.
     if (this._serverUrlTerminalMap.has(port)) {
-      terminal.sendText(`python -c 'import deephaven_server;' || exit 2`);
+      // In case pip env has changed since last server check
+      this._isPipServerInstalled = await this.checkPipInstall();
+
+      if (!this._isPipServerInstalled) {
+        this._logAndShowError(
+          'Could not find `deephaven_server` Python module.'
+        );
+
+        this.disposeServers([port]);
+
+        return;
+      }
 
       const serverUrl = getPipServerUrl(port);
+
       const serverState = this._serverManager.getServer(serverUrl);
       if (serverState?.isManaged !== true) {
-        throw new Error(
+        this._logAndShowError(
           `Unexpected server state for managed server: '${serverUrl}'`
         );
+        return;
       }
 
       const jvmArgs: [`-D${string}`, string][] = [
