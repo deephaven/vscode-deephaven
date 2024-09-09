@@ -24,11 +24,11 @@ export class PanelController implements Disposable {
     this._subscriptions.push(
       vscode.commands.registerCommand(
         OPEN_VARIABLE_PANELS_CMD,
-        this.onOpenVariablePanels
+        this._onOpenPanels
       ),
       vscode.commands.registerCommand(
         REFRESH_VARIABLE_PANELS_CMD,
-        this.onRefreshVariablePanels
+        this._onRefreshPanelsContent
       )
     );
   }
@@ -44,7 +44,7 @@ export class PanelController implements Disposable {
     this._subscriptions.length = 0;
   };
 
-  openPanels = async (
+  private _onOpenPanels = async (
     serverUrl: URL,
     variables: VariableDefintion[]
   ): Promise<void> => {
@@ -100,7 +100,7 @@ export class PanelController implements Disposable {
 
     lastPanel?.reveal();
 
-    this.refreshPanelsContent(serverUrl, variables);
+    this._onRefreshPanelsContent(serverUrl, variables);
   };
 
   /**
@@ -109,7 +109,7 @@ export class PanelController implements Disposable {
    * @param serverUrl The server url.
    * @param variables Variables identifying the panels to refresh.
    */
-  refreshPanelsContent = (
+  private _onRefreshPanelsContent = (
     serverUrl: URL,
     variables: VariableDefintion[]
   ): void => {
@@ -128,26 +128,5 @@ export class PanelController implements Disposable {
 
       panel.webview.html = getPanelHtml(iframeUrl, title);
     }
-  };
-
-  /**
-   * Open panels for given url and variables.
-   * @param url Connection url to open panels for.
-   * @param variables Variables to open panels for.
-   */
-  onOpenVariablePanels = (url: URL, variables: VariableDefintion[]): void => {
-    this.openPanels(url, variables);
-  };
-
-  /**
-   * Refresh variable panels for given url and variables.
-   * @param url Connection url to refresh panels for.
-   * @param variables Variables to refresh panels for.
-   */
-  onRefreshVariablePanels = (
-    url: URL,
-    variables: VariableDefintion[]
-  ): void => {
-    this.refreshPanelsContent(url, variables);
   };
 }
