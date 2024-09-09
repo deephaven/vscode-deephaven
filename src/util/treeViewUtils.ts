@@ -17,16 +17,16 @@ import {
  * Get `TreeItem` for a panel connection.
  * @param connection
  */
-export function getPanelConnectionTreeItem(
+export async function getPanelConnectionTreeItem(
   connection: IDhService
-): vscode.TreeItem {
+): Promise<vscode.TreeItem> {
+  const [consoleType] = connection.isInitialized
+    ? await connection.getConsoleTypes()
+    : [];
+
   return {
     label: new URL(connection.serverUrl.toString()).host,
-    // description: consoleType,
-    // contextValue: CONNECTION_TREE_ITEM_CONTEXT.isConnection,
-    // collapsibleState: hasUris
-    //   ? vscode.TreeItemCollapsibleState.Expanded
-    //   : undefined,
+    description: consoleType,
     collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
     iconPath: new vscode.ThemeIcon(
       connection.isConnected ? ICON_ID.connected : ICON_ID.connecting
