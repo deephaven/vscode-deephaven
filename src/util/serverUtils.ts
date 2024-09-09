@@ -1,3 +1,4 @@
+import * as path from 'node:path';
 import type {
   IDhService,
   ServerState,
@@ -6,7 +7,8 @@ import type {
   Port,
   ServerConnectionConfig,
 } from '../types';
-import { SERVER_LANGUAGE_SET } from '../common';
+import { PIP_SERVER_STATUS_DIRECTORY, SERVER_LANGUAGE_SET } from '../common';
+import { getTempDir } from './downloadUtils';
 
 /**
  * Get initial server states based on server configs.
@@ -72,6 +74,16 @@ export async function getFirstConnectionForConsoleType(
  */
 export function getPipServerUrl(port: Port): URL {
   return new URL(`http://localhost:${port}`);
+}
+
+/**
+ * Get the path to the pip server status file.
+ * @returns The path to the pip server status file
+ */
+export function getPipStatusFilePath(): string {
+  const dirPath = getTempDir(false, PIP_SERVER_STATUS_DIRECTORY);
+  const statusFileName = `status-pip.txt`;
+  return path.join(dirPath, statusFileName);
 }
 
 /**
