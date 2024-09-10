@@ -39,10 +39,14 @@ console.log(`Generating icons from '${inputDir}'`);
 // https://github.com/microsoft/vscode-codicons/blob/main/src/template/mapping.json
 const startingCharacter = 60000;
 
-// fantasticon will generate a JSON file with the codepoints for each icon in
-// decimal format
+// Map icon file names (without extension) to font character codepoints.
+// Note: We could technically configure `fantasticon` to just read the input
+// directory and generate the mapping for us, but this seems to have inconsistent
+// ordering of the files. Reading explicilty gives us more control over the order
+// of the icons.
 const codepoints = fs
   .readdirSync(inputDir)
+  .map(name => name.toLowerCase())
   .filter(name => name.endsWith('.svg'))
   .reduce((memo, name, i) => {
     memo[name.replace('.svg', '')] = startingCharacter + i;
