@@ -1,3 +1,10 @@
+/**
+ * This script generates an icon font + manifest from a directory of SVG files.
+ * Usage:
+ *
+ * npm run icon:gen -- <path-to-dh-icons-directory>
+ */
+
 /* eslint-disable no-console */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -8,6 +15,7 @@ const __dirname = import.meta.dirname;
 
 const inputDir = process.argv[2];
 const outputDir = path.join(__dirname, 'dist');
+const assetsDir = path.join(__dirname, '..', 'assets');
 
 if (inputDir == null) {
   console.error('No icon directory specified');
@@ -27,9 +35,8 @@ fs.mkdirSync(outputDir);
 
 console.log(`Generating icons from '${inputDir}'`);
 
-// Picking an arbitrary high starting character to avoid conflicts with other
-// fonts, although I don't think this is actually necessary.
-const startingCharacter = 70000;
+// Using same starting character as `vscode-codicons`
+const startingCharacter = 60000;
 
 // fantasticon will generate a JSON file with the codepoints for each icon in
 // decimal format
@@ -41,24 +48,36 @@ const codepoints = fs
     return memo;
   }, {});
 
-// Generate a code point mapping in hex format (useful for vscode extension icons)
-const codepointsHex = Object.entries(codepoints).reduce(
+// Generate json that can be used in package.json "contributes/icons" section
+// in vscode extension.
+const contributesIcons = Object.entries(codepoints).reduce(
   (memo, [name, codepoint]) => {
-    memo[name] = `\\${codepoint.toString(16)}`;
+    memo[`dh-${name}`] = {
+      description: `Deephaven ${name} icon`,
+      default: {
+        fontPath: 'assets/dh-icons.woff',
+        fontCharacter: `\\${codepoint.toString(16)}`,
+      },
+    };
     return memo;
   },
   {}
 );
 
 fs.writeFileSync(
-  path.join(outputDir, 'dh-icons.json'),
-  JSON.stringify(codepointsHex, null, 2)
+  path.join(outputDir, 'dh-contributes-icons.json'),
+  JSON.stringify(contributesIcons, null, 2)
 );
 
-generateFonts({
+await generateFonts({
   name: 'dh-icons',
   prefix: 'dh',
   inputDir,
   outputDir,
   codepoints,
 });
+
+fs.copyFileSync(
+  path.join(outputDir, 'dh-icons.woff'),
+  path.join(assetsDir, 'dh-icons.woff')
+);
