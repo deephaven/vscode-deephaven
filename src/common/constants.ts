@@ -62,7 +62,6 @@ export const ICON_ID = {
   serverConnected: 'circle-large-filled',
   serverRunning: 'circle-large-outline',
   serverStopped: 'circle-slash',
-  table: 'table',
   varFigure: 'graph',
   varElement: 'preview',
   varPandas: 'dh-pandas',
