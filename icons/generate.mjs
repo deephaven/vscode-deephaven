@@ -60,7 +60,7 @@ const contributesIcons = Object.entries(codepoints).reduce(
     memo[`dh-${name}`] = {
       description: `Deephaven ${name} icon`,
       default: {
-        fontPath: 'assets/dh-icons.woff',
+        fontPath: 'assets/dh-icons.woff2',
         fontCharacter: `\\${codepoint.toString(16)}`,
       },
     };
@@ -77,12 +77,13 @@ fs.writeFileSync(
 await generateFonts({
   name: 'dh-icons',
   prefix: 'dh',
+  normalize: true,
   inputDir,
   outputDir,
   codepoints,
 });
 
 fs.copyFileSync(
-  path.join(outputDir, 'dh-icons.woff'),
-  path.join(assetsDir, 'dh-icons.woff')
+  path.join(outputDir, 'dh-icons.woff2'),
+  path.join(assetsDir, 'dh-icons.woff2')
 );

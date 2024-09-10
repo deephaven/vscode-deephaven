@@ -166,406 +166,406 @@
       "dh-add-small": {
         "description": "Deephaven add-small icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea60"
         }
       },
       "dh-arrow-to-bottom": {
         "description": "Deephaven arrow-to-bottom icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea61"
         }
       },
       "dh-arrow-to-top": {
         "description": "Deephaven arrow-to-top icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea62"
         }
       },
       "dh-check-square": {
         "description": "Deephaven check-square icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea63"
         }
       },
       "dh-chevron-down-square": {
         "description": "Deephaven chevron-down-square icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea64"
         }
       },
       "dh-circle-large-outline-notch": {
         "description": "Deephaven circle-large-outline-notch icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea65"
         }
       },
       "dh-clock": {
         "description": "Deephaven clock icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea66"
         }
       },
       "dh-exclamation": {
         "description": "Deephaven exclamation icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea67"
         }
       },
       "dh-eye-slash": {
         "description": "Deephaven eye-slash icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea68"
         }
       },
       "dh-eye": {
         "description": "Deephaven eye icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea69"
         }
       },
       "dh-file-certificate": {
         "description": "Deephaven file-certificate icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea6a"
         }
       },
       "dh-file-csv": {
         "description": "Deephaven file-csv icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea6b"
         }
       },
       "dh-file-download": {
         "description": "Deephaven file-download icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea6c"
         }
       },
       "dh-file-print": {
         "description": "Deephaven file-print icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea6d"
         }
       },
       "dh-file-search": {
         "description": "Deephaven file-search icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea6e"
         }
       },
       "dh-file-spreadsheet": {
         "description": "Deephaven file-spreadsheet icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea6f"
         }
       },
       "dh-filter-filled": {
         "description": "Deephaven filter-filled icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea70"
         }
       },
       "dh-filter-slash": {
         "description": "Deephaven filter-slash icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea71"
         }
       },
       "dh-freeze": {
         "description": "Deephaven freeze icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea72"
         }
       },
       "dh-gear-filled": {
         "description": "Deephaven gear-filled icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea73"
         }
       },
       "dh-gears-filled": {
         "description": "Deephaven gears-filled icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea74"
         }
       },
       "dh-graph-line-down": {
         "description": "Deephaven graph-line-down icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea75"
         }
       },
       "dh-graph-line-up": {
         "description": "Deephaven graph-line-up icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea76"
         }
       },
       "dh-i-cursor": {
         "description": "Deephaven i-cursor icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea77"
         }
       },
       "dh-input": {
         "description": "Deephaven input icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea78"
         }
       },
       "dh-new-circle-large-filled": {
         "description": "Deephaven new-circle-large-filled icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea79"
         }
       },
       "dh-new-square-filled": {
         "description": "Deephaven new-square-filled icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea7a"
         }
       },
       "dh-organization-add": {
         "description": "Deephaven organization-add icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea7b"
         }
       },
       "dh-pandas": {
         "description": "Deephaven pandas icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea7c"
         }
       },
       "dh-panels": {
         "description": "Deephaven panels icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea7d"
         }
       },
       "dh-python": {
         "description": "Deephaven python icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea7e"
         }
       },
       "dh-refresh": {
         "description": "Deephaven refresh icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea7f"
         }
       },
       "dh-remove-square-filled": {
         "description": "Deephaven remove-square-filled icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea80"
         }
       },
       "dh-run-selection": {
         "description": "Deephaven run-selection icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea81"
         }
       },
       "dh-shapes": {
         "description": "Deephaven shapes icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea82"
         }
       },
       "dh-share-filled": {
         "description": "Deephaven share-filled icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea83"
         }
       },
       "dh-share": {
         "description": "Deephaven share icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea84"
         }
       },
       "dh-sort-alpha-down": {
         "description": "Deephaven sort-alpha-down icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea85"
         }
       },
       "dh-sort-alpha-up": {
         "description": "Deephaven sort-alpha-up icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea86"
         }
       },
       "dh-sort-amount-down": {
         "description": "Deephaven sort-amount-down icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea87"
         }
       },
       "dh-sort-down": {
         "description": "Deephaven sort-down icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea88"
         }
       },
       "dh-sort-slash": {
         "description": "Deephaven sort-slash icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea89"
         }
       },
       "dh-sort-up": {
         "description": "Deephaven sort-up icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea8a"
         }
       },
       "dh-sort": {
         "description": "Deephaven sort icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea8b"
         }
       },
       "dh-split-both": {
         "description": "Deephaven split-both icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea8c"
         }
       },
       "dh-square-filled": {
         "description": "Deephaven square-filled icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea8d"
         }
       },
       "dh-sticky-note-filled": {
         "description": "Deephaven sticky-note-filled icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea8e"
         }
       },
       "dh-strikethrough": {
         "description": "Deephaven strikethrough icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea8f"
         }
       },
       "dh-table": {
         "description": "Deephaven table icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea90"
         }
       },
       "dh-trash-undo": {
         "description": "Deephaven trash-undo icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea91"
         }
       },
       "dh-triangle-down-square": {
         "description": "Deephaven triangle-down-square icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea92"
         }
       },
       "dh-truck": {
         "description": "Deephaven truck icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea93"
         }
       },
       "dh-underline": {
         "description": "Deephaven underline icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea94"
         }
       },
       "dh-unlink": {
         "description": "Deephaven unlink icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea95"
         }
       },
       "dh-user-incognito": {
         "description": "Deephaven user-incognito icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea96"
         }
       },
       "dh-user": {
         "description": "Deephaven user icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea97"
         }
       },
       "dh-warning-circle-filled": {
         "description": "Deephaven warning-circle-filled icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea98"
         }
       },
       "dh-warning-filled": {
         "description": "Deephaven warning-filled icon",
         "default": {
-          "fontPath": "assets/dh-icons.woff",
+          "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ea99"
         }
       }
