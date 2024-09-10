@@ -92,14 +92,14 @@
         "description": "Deephaven pandas icon",
         "default": {
           "fontPath": "assets/dh-icons.woff",
-          "fontCharacter": "\\e900"
+          "fontCharacter": "\\e91c"
         }
       },
       "dh-table": {
         "description": "Deephaven table icon",
         "default": {
           "fontPath": "assets/dh-icons.woff",
-          "fontCharacter": "\\e901"
+          "fontCharacter": "\\e930"
         }
       }
     },
