@@ -74,14 +74,14 @@ export const VARIABLE_UNICODE_ICONS = {
   'deephaven.plot.express.DeephavenFigure': '📈',
   'deephaven.ui.Element': '✨',
   Figure: '📈',
-  HierarchicalTable: '⬜',
+  HierarchicalTable: '▤',
   OtherWidget: '⬜',
   'pandas.DataFrame': '🐼',
-  PartitionedTable: '⬜',
-  Table: '⬜',
-  TableMap: '⬜',
-  Treemap: '⬜',
-  TreeTable: '⬜',
+  PartitionedTable: '▤',
+  Table: '▤',
+  TableMap: '▤',
+  Treemap: '▤',
+  TreeTable: '▤',
 } as const satisfies Record<VariableType, string>;
 /* eslint-enable @typescript-eslint/naming-convention */
 
