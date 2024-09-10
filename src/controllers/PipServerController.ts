@@ -94,6 +94,7 @@ export class PipServerController implements Disposable {
         const terminal = vscode.window.createTerminal({
           name: `Deephaven check pip server install`,
           isTransient: true,
+          hideFromUser: true,
         });
 
         // Give python extension time to setup .venv if configured
