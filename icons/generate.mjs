@@ -36,6 +36,7 @@ fs.mkdirSync(outputDir);
 console.log(`Generating icons from '${inputDir}'`);
 
 // Using same starting character as `vscode-codicons`
+// https://github.com/microsoft/vscode-codicons/blob/main/src/template/mapping.json
 const startingCharacter = 60000;
 
 // fantasticon will generate a JSON file with the codepoints for each icon in
