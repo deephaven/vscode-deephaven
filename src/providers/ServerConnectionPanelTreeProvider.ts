@@ -44,7 +44,7 @@ export class ServerConnectionPanelTreeProvider extends TreeDataProviderBase<Serv
     }
 
     return [...this._panelService.getVariables(connectionOrRoot.serverUrl)]
-      .sort((a, b) => a.title.localeCompare(b.title))
+      .sort(sortByStringProp('title'))
       .map(variable => [connectionOrRoot.serverUrl, variable]);
   };
 }
