@@ -535,6 +535,88 @@ exports[`getServerTreeItem > should return DHC server tree item: isConnected=tru
 }
 `;
 
+exports[`getVariableIconPath > should return icon path for variableType 1`] = `
+[
+  [
+    "deephaven.plot.express.DeephavenFigure",
+    {
+      "color": undefined,
+      "id": "graph",
+    },
+  ],
+  [
+    "deephaven.ui.Element",
+    {
+      "color": undefined,
+      "id": "preview",
+    },
+  ],
+  [
+    "Figure",
+    {
+      "color": undefined,
+      "id": "graph",
+    },
+  ],
+  [
+    "HierarchicalTable",
+    {
+      "color": undefined,
+      "id": "dh-table",
+    },
+  ],
+  [
+    "OtherWidget",
+    {
+      "color": undefined,
+      "id": "preview",
+    },
+  ],
+  [
+    "pandas.DataFrame",
+    {
+      "color": undefined,
+      "id": "dh-pandas",
+    },
+  ],
+  [
+    "PartitionedTable",
+    {
+      "color": undefined,
+      "id": "dh-table",
+    },
+  ],
+  [
+    "Table",
+    {
+      "color": undefined,
+      "id": "dh-table",
+    },
+  ],
+  [
+    "TableMap",
+    {
+      "color": undefined,
+      "id": "dh-table",
+    },
+  ],
+  [
+    "Treemap",
+    {
+      "color": undefined,
+      "id": "preview",
+    },
+  ],
+  [
+    "TreeTable",
+    {
+      "color": undefined,
+      "id": "dh-table",
+    },
+  ],
+]
+`;
+
 exports[`groupServers > should group servers by state 1`] = `
 {
   "managed": [

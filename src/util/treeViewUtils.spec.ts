@@ -9,6 +9,7 @@ import {
   getServerGroupTreeItem,
   getServerIconID,
   getServerTreeItem,
+  getVariableIconPath,
   groupServers,
 } from './treeViewUtils';
 import type {
@@ -16,10 +17,25 @@ import type {
   IDhService,
   ServerState,
   VariableDefintion,
+  VariableType,
 } from '../types';
 
 // See __mocks__/vscode.ts for the mock implementation
 vi.mock('vscode');
+
+const variableTypes: readonly VariableType[] = [
+  'deephaven.plot.express.DeephavenFigure',
+  'deephaven.ui.Element',
+  'Figure',
+  'HierarchicalTable',
+  'OtherWidget',
+  'pandas.DataFrame',
+  'PartitionedTable',
+  'Table',
+  'TableMap',
+  'Treemap',
+  'TreeTable',
+] as const;
 
 describe('getPanelConnectionTreeItem', () => {
   const getConsoleTypes: IDhService['getConsoleTypes'] = vi
@@ -47,27 +63,18 @@ describe('getPanelConnectionTreeItem', () => {
 describe('getPanelVariableTreeItem', () => {
   const url = new URL('http://localhost:10000');
 
-  it.each([
-    'deephaven.plot.express.DeephavenFigure',
-    'deephaven.ui.Element',
-    'Figure',
-    'HierarchicalTable',
-    'OtherWidget',
-    'pandas.DataFrame',
-    'PartitionedTable',
-    'Table',
-    'TableMap',
-    'Treemap',
-    'TreeTable',
-  ] as const)('should return panel variable tree item: type:%s', type => {
-    const variable = {
-      title: 'some title',
-      type,
-    } as VariableDefintion;
+  it.each(variableTypes)(
+    'should return panel variable tree item: type:%s',
+    type => {
+      const variable = {
+        title: 'some title',
+        type,
+      } as VariableDefintion;
 
-    const actual = getPanelVariableTreeItem([url, variable]);
-    expect(actual).toMatchSnapshot();
-  });
+      const actual = getPanelVariableTreeItem([url, variable]);
+      expect(actual).toMatchSnapshot();
+    }
+  );
 });
 
 describe('getServerContextValue', () => {
@@ -149,6 +156,14 @@ describe('getServerTreeItem', () => {
       expect(actual).toMatchSnapshot();
     }
   );
+});
+
+describe('getVariableIconPath', () => {
+  it('should return icon path for variableType', () => {
+    expect(
+      variableTypes.map(type => [type, getVariableIconPath(type)])
+    ).toMatchSnapshot();
+  });
 });
 
 describe('groupServers', () => {
