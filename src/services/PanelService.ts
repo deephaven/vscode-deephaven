@@ -121,12 +121,12 @@ export class PanelService implements IPanelService, Disposable {
 
     const variableMap = this._cnVariableMap.get(url)!;
 
-    for (const variable of created) {
-      variableMap.set(variable.id, variable);
-    }
-
     for (const variable of removed) {
       variableMap.delete(variable.id);
+    }
+
+    for (const variable of created) {
+      variableMap.set(variable.id, variable);
     }
 
     for (const variable of updated) {
