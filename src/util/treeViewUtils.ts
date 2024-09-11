@@ -32,6 +32,8 @@ export function getVariableIconPath(
       return new vscode.ThemeIcon(ICON_ID.varPandas);
 
     case 'deephaven.ui.Element':
+    case 'OtherWidget':
+    case 'Treemap':
     default:
       return new vscode.ThemeIcon(ICON_ID.varElement);
   }
