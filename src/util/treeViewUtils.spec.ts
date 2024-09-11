@@ -121,7 +121,9 @@ describe('getServerTreeItem', () => {
 
 describe('groupServers', () => {
   it('should group servers by state', () => {
-    const props = matrix(boolValues, boolValues);
+    // Note that each combination is duplicated so that multiple servers get
+    // created for each group.
+    const props = matrix(boolValues, [true, true, false, false]);
 
     const servers = props.map(
       ([isManaged, isRunning], i) =>
