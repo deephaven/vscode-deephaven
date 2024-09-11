@@ -1,5 +1,53 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:false, isInitialized:false 1`] = `
+{
+  "collapsibleState": 2,
+  "description": undefined,
+  "iconPath": {
+    "color": undefined,
+    "id": "sync~spin",
+  },
+  "label": "localhost:10000",
+}
+`;
+
+exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:false, isInitialized:true 1`] = `
+{
+  "collapsibleState": 2,
+  "description": "python",
+  "iconPath": {
+    "color": undefined,
+    "id": "sync~spin",
+  },
+  "label": "localhost:10000",
+}
+`;
+
+exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:true, isInitialized:false 1`] = `
+{
+  "collapsibleState": 2,
+  "description": undefined,
+  "iconPath": {
+    "color": undefined,
+    "id": "vm-connect",
+  },
+  "label": "localhost:10000",
+}
+`;
+
+exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:true, isInitialized:true 1`] = `
+{
+  "collapsibleState": 2,
+  "description": "python",
+  "iconPath": {
+    "color": undefined,
+    "id": "vm-connect",
+  },
+  "label": "localhost:10000",
+}
+`;
+
 exports[`getServerContextValue > should return contextValue based on server state: isConnected=false, isManaged=false, isRunning=false 1`] = `"isServerStopped"`;
 
 exports[`getServerContextValue > should return contextValue based on server state: isConnected=false, isManaged=false, isRunning=true 1`] = `"isServerRunningDisconnected"`;

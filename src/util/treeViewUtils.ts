@@ -70,7 +70,6 @@ export function getPanelVariableTreeItem([url, variable]: [
 
   return {
     description: variable.title,
-    // iconPath: iconId == null ? undefined : new vscode.ThemeIcon(iconId),
     iconPath,
     command: {
       title: 'Open Panel',
