@@ -13,9 +13,14 @@ import {
   type ServerTreeItemContextValue,
 } from '../common';
 
+/**
+ * Get a tree item vscode.ThemeIcon for a variable type.
+ * @param variableType Variable type
+ * @returns Theme icon for the variable type
+ */
 export function getVariableIconPath(
   variableType: VariableType
-): vscode.TreeItem['iconPath'] {
+): vscode.ThemeIcon {
   // Based on @deephaven/console `ObjectIcon`
   switch (variableType) {
     case 'Table':
