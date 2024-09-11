@@ -61,7 +61,7 @@ export class PanelService implements IPanelService, Disposable {
 
   /**
    * Get all variables for the given connection url that have panels.
-   * @param url
+   * @param url The connection url.
    * @returns Array of variables
    */
   getPanelVariables = (url: URL): VariableDefintion[] => {
@@ -70,7 +70,7 @@ export class PanelService implements IPanelService, Disposable {
 
   /**
    * Check if a panel is associated with a given connection url + variable id.
-   * @param url
+   * @param url The connection url.
    * @param variableId
    */
   hasPanel = (url: URL, variableId: VariableID): boolean => {
