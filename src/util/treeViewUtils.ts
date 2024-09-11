@@ -16,6 +16,7 @@ import {
 export function getVariableIconPath(
   variableType: VariableType
 ): vscode.TreeItem['iconPath'] {
+  // Based on @deephaven/console `ObjectIcon`
   switch (variableType) {
     case 'Table':
     case 'TableMap':
