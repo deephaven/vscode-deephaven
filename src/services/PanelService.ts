@@ -51,9 +51,9 @@ export class PanelService implements IPanelService, Disposable {
 
   /**
    * Get all connection URLs that have panels.
-   * @returns Iterable of URLs
+   * @returns Array of URLs
    */
-  getPanelUrls = (): Iterable<URL> => {
+  getPanelUrls = (): URL[] => {
     return [...this._cnPanelMap.keys()].filter(
       url => this._cnPanelMap.get(url)?.size ?? 0 > 0
     );
@@ -62,9 +62,9 @@ export class PanelService implements IPanelService, Disposable {
   /**
    * Get all variables for the given connection url that have panels.
    * @param url
-   * @returns Iterable of variables
+   * @returns Array of variables
    */
-  getPanelVariables = (url: URL): Iterable<VariableDefintion> => {
+  getPanelVariables = (url: URL): VariableDefintion[] => {
     return [...this.getVariables(url)].filter(v => this.hasPanel(url, v.id));
   };
 
@@ -99,7 +99,8 @@ export class PanelService implements IPanelService, Disposable {
 
   /**
    * Get variables for the given connection url.
-   * @param url
+   * @param url The connection url.
+   * @returns Iterable of variables
    */
   getVariables = (url: URL): Iterable<VariableDefintion> => {
     return this._cnVariableMap.get(url)?.values() ?? [];

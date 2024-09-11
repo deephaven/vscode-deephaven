@@ -69,8 +69,8 @@ export type IDhServiceFactory = IFactory<
 export interface IPanelService extends Disposable {
   readonly onDidUpdate: vscode.Event<void>;
 
-  getPanelUrls: () => Iterable<URL>;
-  getPanelVariables: (url: URL) => Iterable<VariableDefintion>;
+  getPanelUrls: () => URL[];
+  getPanelVariables: (url: URL) => VariableDefintion[];
   getPanelOrThrow: (url: URL, variableId: VariableID) => vscode.WebviewPanel;
   deletePanel: (url: URL, variableId: VariableID) => void;
   hasPanel: (url: URL, variableId: VariableID) => boolean;
