@@ -123,6 +123,7 @@ export class PanelService implements IPanelService, Disposable {
 
     for (const variable of removed) {
       variableMap.delete(variable.id);
+      this.deletePanel(url, variable.id);
     }
 
     for (const variable of created) {
