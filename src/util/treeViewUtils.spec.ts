@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { bitValues, boolValues, matrix } from './testUtils';
 import {
   getPanelConnectionTreeItem,
+  getPanelVariableTreeItem,
   getServerContextValue,
   getServerDescription,
   getServerGroupContextValue,
@@ -10,7 +11,12 @@ import {
   getServerTreeItem,
   groupServers,
 } from './treeViewUtils';
-import type { ConsoleType, IDhService, ServerState } from '../types';
+import type {
+  ConsoleType,
+  IDhService,
+  ServerState,
+  VariableDefintion,
+} from '../types';
 
 // See __mocks__/vscode.ts for the mock implementation
 vi.mock('vscode');
@@ -36,6 +42,32 @@ describe('getPanelConnectionTreeItem', () => {
       expect(actual).toMatchSnapshot();
     }
   );
+});
+
+describe('getPanelVariableTreeItem', () => {
+  const url = new URL('http://localhost:10000');
+
+  it.each([
+    'deephaven.plot.express.DeephavenFigure',
+    'deephaven.ui.Element',
+    'Figure',
+    'HierarchicalTable',
+    'OtherWidget',
+    'pandas.DataFrame',
+    'PartitionedTable',
+    'Table',
+    'TableMap',
+    'Treemap',
+    'TreeTable',
+  ] as const)('should return panel variable tree item: type:%s', type => {
+    const variable = {
+      title: 'some title',
+      type,
+    } as VariableDefintion;
+
+    const actual = getPanelVariableTreeItem([url, variable]);
+    expect(actual).toMatchSnapshot();
+  });
 });
 
 describe('getServerContextValue', () => {

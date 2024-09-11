@@ -48,6 +48,259 @@ exports[`getPanelConnectionTreeItem > should return panel connection tree item: 
 }
 `;
 
+exports[`getPanelVariableTreeItem > should return panel variable tree item: type:Figure 1`] = `
+{
+  "command": {
+    "arguments": [
+      "http://localhost:10000/",
+      [
+        {
+          "title": "some title",
+          "type": "Figure",
+        },
+      ],
+    ],
+    "command": "vscode-deephaven.openVariablePanels",
+    "title": "Open Panel",
+  },
+  "description": "some title",
+  "iconPath": {
+    "color": undefined,
+    "id": "graph",
+  },
+}
+`;
+
+exports[`getPanelVariableTreeItem > should return panel variable tree item: type:HierarchicalTable 1`] = `
+{
+  "command": {
+    "arguments": [
+      "http://localhost:10000/",
+      [
+        {
+          "title": "some title",
+          "type": "HierarchicalTable",
+        },
+      ],
+    ],
+    "command": "vscode-deephaven.openVariablePanels",
+    "title": "Open Panel",
+  },
+  "description": "some title",
+  "iconPath": {
+    "color": undefined,
+    "id": "dh-table",
+  },
+}
+`;
+
+exports[`getPanelVariableTreeItem > should return panel variable tree item: type:OtherWidget 1`] = `
+{
+  "command": {
+    "arguments": [
+      "http://localhost:10000/",
+      [
+        {
+          "title": "some title",
+          "type": "OtherWidget",
+        },
+      ],
+    ],
+    "command": "vscode-deephaven.openVariablePanels",
+    "title": "Open Panel",
+  },
+  "description": "some title",
+  "iconPath": {
+    "color": undefined,
+    "id": "preview",
+  },
+}
+`;
+
+exports[`getPanelVariableTreeItem > should return panel variable tree item: type:PartitionedTable 1`] = `
+{
+  "command": {
+    "arguments": [
+      "http://localhost:10000/",
+      [
+        {
+          "title": "some title",
+          "type": "PartitionedTable",
+        },
+      ],
+    ],
+    "command": "vscode-deephaven.openVariablePanels",
+    "title": "Open Panel",
+  },
+  "description": "some title",
+  "iconPath": {
+    "color": undefined,
+    "id": "dh-table",
+  },
+}
+`;
+
+exports[`getPanelVariableTreeItem > should return panel variable tree item: type:Table 1`] = `
+{
+  "command": {
+    "arguments": [
+      "http://localhost:10000/",
+      [
+        {
+          "title": "some title",
+          "type": "Table",
+        },
+      ],
+    ],
+    "command": "vscode-deephaven.openVariablePanels",
+    "title": "Open Panel",
+  },
+  "description": "some title",
+  "iconPath": {
+    "color": undefined,
+    "id": "dh-table",
+  },
+}
+`;
+
+exports[`getPanelVariableTreeItem > should return panel variable tree item: type:TableMap 1`] = `
+{
+  "command": {
+    "arguments": [
+      "http://localhost:10000/",
+      [
+        {
+          "title": "some title",
+          "type": "TableMap",
+        },
+      ],
+    ],
+    "command": "vscode-deephaven.openVariablePanels",
+    "title": "Open Panel",
+  },
+  "description": "some title",
+  "iconPath": {
+    "color": undefined,
+    "id": "dh-table",
+  },
+}
+`;
+
+exports[`getPanelVariableTreeItem > should return panel variable tree item: type:TreeTable 1`] = `
+{
+  "command": {
+    "arguments": [
+      "http://localhost:10000/",
+      [
+        {
+          "title": "some title",
+          "type": "TreeTable",
+        },
+      ],
+    ],
+    "command": "vscode-deephaven.openVariablePanels",
+    "title": "Open Panel",
+  },
+  "description": "some title",
+  "iconPath": {
+    "color": undefined,
+    "id": "dh-table",
+  },
+}
+`;
+
+exports[`getPanelVariableTreeItem > should return panel variable tree item: type:Treemap 1`] = `
+{
+  "command": {
+    "arguments": [
+      "http://localhost:10000/",
+      [
+        {
+          "title": "some title",
+          "type": "Treemap",
+        },
+      ],
+    ],
+    "command": "vscode-deephaven.openVariablePanels",
+    "title": "Open Panel",
+  },
+  "description": "some title",
+  "iconPath": {
+    "color": undefined,
+    "id": "preview",
+  },
+}
+`;
+
+exports[`getPanelVariableTreeItem > should return panel variable tree item: type:deephaven.plot.express.DeephavenFigure 1`] = `
+{
+  "command": {
+    "arguments": [
+      "http://localhost:10000/",
+      [
+        {
+          "title": "some title",
+          "type": "deephaven.plot.express.DeephavenFigure",
+        },
+      ],
+    ],
+    "command": "vscode-deephaven.openVariablePanels",
+    "title": "Open Panel",
+  },
+  "description": "some title",
+  "iconPath": {
+    "color": undefined,
+    "id": "graph",
+  },
+}
+`;
+
+exports[`getPanelVariableTreeItem > should return panel variable tree item: type:deephaven.ui.Element 1`] = `
+{
+  "command": {
+    "arguments": [
+      "http://localhost:10000/",
+      [
+        {
+          "title": "some title",
+          "type": "deephaven.ui.Element",
+        },
+      ],
+    ],
+    "command": "vscode-deephaven.openVariablePanels",
+    "title": "Open Panel",
+  },
+  "description": "some title",
+  "iconPath": {
+    "color": undefined,
+    "id": "preview",
+  },
+}
+`;
+
+exports[`getPanelVariableTreeItem > should return panel variable tree item: type:pandas.DataFrame 1`] = `
+{
+  "command": {
+    "arguments": [
+      "http://localhost:10000/",
+      [
+        {
+          "title": "some title",
+          "type": "pandas.DataFrame",
+        },
+      ],
+    ],
+    "command": "vscode-deephaven.openVariablePanels",
+    "title": "Open Panel",
+  },
+  "description": "some title",
+  "iconPath": {
+    "color": undefined,
+    "id": "dh-pandas",
+  },
+}
+`;
+
 exports[`getServerContextValue > should return contextValue based on server state: isConnected=false, isManaged=false, isRunning=false 1`] = `"isServerStopped"`;
 
 exports[`getServerContextValue > should return contextValue based on server state: isConnected=false, isManaged=false, isRunning=true 1`] = `"isServerRunningDisconnected"`;
