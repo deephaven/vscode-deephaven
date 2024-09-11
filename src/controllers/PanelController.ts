@@ -12,6 +12,7 @@ import {
   OPEN_VARIABLE_PANELS_CMD,
   REFRESH_VARIABLE_PANELS_CMD,
 } from '../common';
+import { waitFor } from '../util/promiseUtils';
 
 const logger = new Logger('PanelController');
 
@@ -52,6 +53,10 @@ export class PanelController implements Disposable {
     variables: VariableDefintion[]
   ): Promise<void> => {
     logger.debug('openPanels', serverUrl, variables);
+
+    // Waiting for next tick seems to decrease the occurrences of a subtle bug
+    // where the `editor/title/run` menu gets stuck on a previous selection.
+    await waitFor(0);
 
     let lastPanel: vscode.WebviewPanel | null = null;
 
@@ -102,7 +107,6 @@ export class PanelController implements Disposable {
     }
 
     lastPanel?.reveal();
-
     this._onRefreshPanelsContent(serverUrl, variables);
   };
 
@@ -133,6 +137,9 @@ export class PanelController implements Disposable {
     }
   };
 
+  /**
+   * Whenever active theme changes, refresh any open panels.
+   */
   private _onDidChangeActiveColorTheme = (): void => {
     for (const url of this._panelService.getPanelUrls()) {
       const variables = this._panelService.getPanelVariables(url);
