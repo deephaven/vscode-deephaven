@@ -99,11 +99,6 @@ export class PanelService implements IPanelService, Disposable {
       this._cnVariableMap.set(url, new Map());
     }
 
-    // if (!this._cnPanelMap.has(url)) {
-    //   this._cnPanelMap.set(url, new Map());
-    // }
-
-    // const panelMap = this._cnPanelMap.get(url)!;
     const variableMap = this._cnVariableMap.get(url)!;
 
     for (const variable of created) {
