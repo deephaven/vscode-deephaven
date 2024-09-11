@@ -85,9 +85,9 @@ describe('getServerContextValue', () => {
 });
 
 describe('getServerDescription', () => {
-  const label = ['some label', undefined] as const;
+  const labelValeus = ['some label', undefined] as const;
 
-  it.each(matrix(bitValues, boolValues, label))(
+  it.each(matrix(bitValues, boolValues, labelValeus))(
     'should return server description based on parameters: connectionCount=%s, isManaged=%s, label=%s',
     (connectionCount, isManaged, label) => {
       const actual = getServerDescription(connectionCount, isManaged, label);
@@ -97,9 +97,9 @@ describe('getServerDescription', () => {
 });
 
 describe('getServerGroupContextValue', () => {
-  const group = ['Managed', 'Running'] as const;
+  const groupValues = ['Managed', 'Running'] as const;
 
-  it.each(matrix(group, boolValues))(
+  it.each(matrix(groupValues, boolValues))(
     'should return context value when servers can be managed: group=%s, canStartServer=%s',
     (group, canStartServer) => {
       const actual = getServerGroupContextValue(group, canStartServer);
@@ -109,9 +109,9 @@ describe('getServerGroupContextValue', () => {
 });
 
 describe('getServerGroupTreeItem', () => {
-  const group = ['Managed', 'Running'] as const;
+  const groupValues = ['Managed', 'Running'] as const;
 
-  it.each(matrix(group, boolValues))(
+  it.each(matrix(groupValues, boolValues))(
     'should return server group tree item: group=%s, canStartServer=%s',
     (group, canStartServer) => {
       const actual = getServerGroupTreeItem(group, canStartServer);
