@@ -29,6 +29,9 @@ export class PanelController implements Disposable {
       vscode.commands.registerCommand(
         REFRESH_VARIABLE_PANELS_CMD,
         this._onRefreshPanelsContent
+      ),
+      vscode.window.onDidChangeActiveColorTheme(
+        this._onDidChangeActiveColorTheme
       )
     );
   }
@@ -127,6 +130,13 @@ export class PanelController implements Disposable {
       );
 
       panel.webview.html = getPanelHtml(iframeUrl, title);
+    }
+  };
+
+  private _onDidChangeActiveColorTheme = (): void => {
+    for (const url of this._panelService.getPanelUrls()) {
+      const variables = this._panelService.getPanelVariables(url);
+      this._onRefreshPanelsContent(url, [...variables]);
     }
   };
 }

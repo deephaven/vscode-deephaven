@@ -50,6 +50,25 @@ export class PanelService implements IPanelService, Disposable {
   };
 
   /**
+   * Get all connection URLs that have panels.
+   * @returns Iterable of URLs
+   */
+  getPanelUrls = (): Iterable<URL> => {
+    return [...this._cnPanelMap.keys()].filter(
+      url => this._cnPanelMap.get(url)?.size ?? 0 > 0
+    );
+  };
+
+  /**
+   * Get all variables for the given connection url that have panels.
+   * @param url
+   * @returns Iterable of variables
+   */
+  getPanelVariables = (url: URL): Iterable<VariableDefintion> => {
+    return [...this.getVariables(url)].filter(v => this.hasPanel(url, v.id));
+  };
+
+  /**
    * Check if a panel is associated with a given connection url + variable id.
    * @param url
    * @param variableId
