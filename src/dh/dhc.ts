@@ -1,15 +1,14 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { dh as DhType } from '@deephaven/jsapi-types';
-import {
-  downloadFromURL,
-  getTempDir,
-  hasStatusCode,
-  NoConsoleTypesError,
-  polyfillDh,
-  urlToDirectoryName,
-} from '../util';
-import type { ConnectionAndSession } from '../types';
+import { polyfillDh } from './polyfill';
+import { downloadFromURL, hasStatusCode } from './serverUtils';
+import { NoConsoleTypesError } from './errorUtils';
+
+export type ConnectionAndSession<TConnection, TSession> = {
+  cn: TConnection;
+  session: TSession;
+};
 
 export const AUTH_HANDLER_TYPE_ANONYMOUS =
   'io.deephaven.auth.AnonymousAuthenticationHandler';
@@ -26,8 +25,7 @@ export async function isDhcServerRunning(serverUrl: URL): Promise<boolean> {
   try {
     return await hasStatusCode(
       new URL('jsapi/dh-core.js', serverUrl.toString()),
-      200,
-      204
+      [200, 204]
     );
   } catch {
     return false;
@@ -51,9 +49,12 @@ export function getEmbedWidgetUrl(
   return `${serverUrlStr}/iframe/widget/?theme=${themeKey}&name=${title}${psk ? `&psk=${psk}` : ''}`;
 }
 
-export async function initDhcApi(serverUrl: URL): Promise<typeof DhType> {
+export async function initDhcApi(
+  serverUrl: URL,
+  storageDir: string
+): Promise<typeof DhType> {
   polyfillDh();
-  return getDhc(serverUrl, true);
+  return getDhc(serverUrl, true, storageDir);
 }
 
 export async function initDhcSession(
@@ -87,17 +88,16 @@ export async function initDhcSession(
  */
 async function getDhc(
   serverUrl: URL,
-  download: boolean
+  download: boolean,
+  storageDir: string
 ): Promise<typeof DhType> {
-  const tmpDir = getTempDir(false, urlToDirectoryName(serverUrl.toString()));
-
   if (download) {
     const dhInternal = await downloadFromURL(
       path.join(serverUrl.toString(), 'jsapi/dh-internal.js')
     );
     // Convert to .cjs
     fs.writeFileSync(
-      path.join(tmpDir, 'dh-internal.cjs'),
+      path.join(storageDir, 'dh-internal.cjs'),
       dhInternal.replace(
         `export{__webpack_exports__dhinternal as dhinternal};`,
         `module.exports={dhinternal:__webpack_exports__dhinternal};`
@@ -108,7 +108,7 @@ async function getDhc(
       path.join(serverUrl.toString(), 'jsapi/dh-core.js')
     );
     fs.writeFileSync(
-      path.join(tmpDir, 'dh-core.cjs'),
+      path.join(storageDir, 'dh-core.cjs'),
       // Convert to .cjs
       dhCore
         .replace(
@@ -119,5 +119,5 @@ async function getDhc(
     );
   }
 
-  return require(path.join(tmpDir, 'dh-core.cjs'));
+  return require(path.join(storageDir, 'dh-core.cjs'));
 }

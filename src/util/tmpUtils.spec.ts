@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { getTempDir } from './downloadUtils';
+import { getTempDir } from './tmpUtils';
 import { TMP_DIR_ROOT } from '../common';
 
 vi.mock('node:fs');

@@ -4,11 +4,11 @@ import DhService from './DhService';
 import {
   AUTH_HANDLER_TYPE_ANONYMOUS,
   AUTH_HANDLER_TYPE_PSK,
+  ConnectionAndSession,
   initDhcApi,
   initDhcSession,
 } from '../dh/dhc';
-import { Logger } from '../util';
-import type { ConnectionAndSession } from '../types';
+import { getTempDir, Logger, urlToDirectoryName } from '../util';
 
 const logger = new Logger('DhcService');
 
@@ -24,7 +24,10 @@ export class DhcService extends DhService<typeof DhcType, DhcType.CoreClient> {
   }
 
   protected async initApi(): Promise<typeof DhcType> {
-    return initDhcApi(this.serverUrl);
+    return initDhcApi(
+      this.serverUrl,
+      getTempDir(false, urlToDirectoryName(this.serverUrl.toString()))
+    );
   }
 
   protected async createClient(

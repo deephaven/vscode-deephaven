@@ -11,11 +11,6 @@ export type Port = Brand<'Port', number>;
 
 export type ConnectionType = 'DHC';
 
-export type ConnectionAndSession<TConnection, TSession> = {
-  cn: TConnection;
-  session: TSession;
-};
-
 export type ConsoleType = 'groovy' | 'python';
 
 export type CoreConnectionConfigStored =

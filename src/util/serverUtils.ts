@@ -8,7 +8,7 @@ import type {
   ServerConnectionConfig,
 } from '../types';
 import { PIP_SERVER_STATUS_DIRECTORY, SERVER_LANGUAGE_SET } from '../common';
-import { getTempDir } from './downloadUtils';
+import { getTempDir } from './tmpUtils';
 
 /**
  * Get initial server states based on server configs.

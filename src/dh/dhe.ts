@@ -1,4 +1,4 @@
-import { hasStatusCode } from '../util';
+import { hasStatusCode } from './serverUtils';
 
 /**
  * Check if a given server is running by checking if the `irisapi/irisapi.nocache.js`
@@ -9,8 +9,7 @@ export async function isDheServerRunning(serverUrl: URL): Promise<boolean> {
   try {
     return await hasStatusCode(
       new URL('irisapi/irisapi.nocache.js', serverUrl.toString()),
-      200,
-      204
+      [200, 204]
     );
   } catch {
     return false;

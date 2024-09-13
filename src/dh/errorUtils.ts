@@ -1,6 +1,8 @@
-import { Logger } from './Logger';
-
-const logger = new Logger('errorUtils');
+export class NoConsoleTypesError extends Error {
+  constructor() {
+    super('No console types available');
+  }
+}
 
 export interface ParsedError {
   [key: string]: string | number | undefined;
@@ -51,7 +53,10 @@ export function hasErrorCode(
  * Parse a server error string into a key-value object.
  * @param error
  */
-export function parseServerError(error: string): ParsedError {
+export function parseServerError(
+  error: string,
+  logger: { debug: (...args: unknown[]) => void } = console
+): ParsedError {
   const errorDetails: ParsedError = {};
   const lines = error.split('\n');
 
