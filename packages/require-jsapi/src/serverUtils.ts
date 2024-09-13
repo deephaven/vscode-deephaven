@@ -8,11 +8,11 @@ export const SERVER_STATUS_CHECK_TIMEOUT = 3000;
  * Require a JS module from a URL. Loads the module in memory and returns its exports
  * Copy / modified from https://github.com/deephaven/deephaven.io/blob/main/tools/run-examples/includeAPI.mjs
  *
- * @param {string} url The URL with protocol to require from. Supports http or https
- * @param {number} retries The number of retries on failure
- * @param {number} retryDelay The delay between retries in milliseconds
- * @param {object} logger An optional logger object. Defaults to `console`
- * @returns {Promise<string>} Promise which resolves to the module's exports
+ * @param url The URL with protocol to require from. Supports http or https
+ * @param retries The number of retries on failure
+ * @param retryDelay The delay between retries in milliseconds
+ * @param logger An optional logger object. Defaults to `console`
+ * @returns Promise which resolves to the module's exports
  */
 export async function downloadFromURL(
   url: string,
@@ -74,6 +74,10 @@ export async function downloadFromURL(
 
 /**
  * Check if a given url returns an expected status code.
+ * @param url The URL to check
+ * @param statusCodes The expected status codes
+ * @param logger An optional logger object. Defaults to `console`
+ * @returns Promise which resolves to true if the status code matches, false otherwise
  */
 export async function hasStatusCode(
   url: URL,

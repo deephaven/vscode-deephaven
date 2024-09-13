@@ -51,7 +51,8 @@ export function hasErrorCode(
 
 /**
  * Parse a server error string into a key-value object.
- * @param error
+ * @param error Error string to parse.
+ * @param logger Optional logger for debugging. Defaluts to console.
  */
 export function parseServerError(
   error: string,
