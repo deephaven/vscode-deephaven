@@ -26,7 +26,7 @@ export class DhcService extends DhService<typeof DhcType, DhcType.CoreClient> {
   protected async initApi(): Promise<typeof DhcType> {
     return initDhcApi(
       this.serverUrl,
-      getTempDir(false, urlToDirectoryName(this.serverUrl.toString()))
+      getTempDir(false, urlToDirectoryName(this.serverUrl))
     );
   }
 

@@ -14,7 +14,7 @@
       "rollup/parseAst": ["./node_modules/rollup/dist/parseAst"]
     }
   },
-  "include": ["src", "packages/require-jsapi/src/global.d.ts"],
+  "include": ["src"],
   "exclude": [
     "node_modules",
     // Exclude tests as they have their own tsconfigs.
