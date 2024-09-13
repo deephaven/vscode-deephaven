@@ -20,7 +20,7 @@ describe('getTempDir', () => {
     'should create temp directory if it does not already exist: %s, %s',
     (dirExists, subDirectory, expectedPath) => {
       vi.mocked(fs.existsSync).mockReturnValue(dirExists);
-      getTempDir(true, subDirectory);
+      getTempDir({ recreate: true, subDirectory });
 
       expect(fs.existsSync).toHaveBeenCalledWith(expectedPath);
 
@@ -40,7 +40,7 @@ describe('getTempDir', () => {
   ])(
     'should remove directory if recreate is true: %s, %s, %s',
     (recreate, subDirectory, expectedPath) => {
-      getTempDir(recreate, subDirectory);
+      getTempDir({ recreate, subDirectory });
 
       if (recreate) {
         expect(fs.rmSync).toHaveBeenCalledWith(expectedPath, {

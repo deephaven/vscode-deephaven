@@ -81,7 +81,9 @@ export function getPipServerUrl(port: Port): URL {
  * @returns The path to the pip server status file
  */
 export function getPipStatusFilePath(): string {
-  const dirPath = getTempDir(false, PIP_SERVER_STATUS_DIRECTORY);
+  const dirPath = getTempDir({
+    subDirectory: PIP_SERVER_STATUS_DIRECTORY,
+  });
   const statusFileName = `status-pip.txt`;
   return path.join(dirPath, statusFileName);
 }

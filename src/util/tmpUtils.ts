@@ -9,7 +9,13 @@ import { TMP_DIR_ROOT } from '../common';
  * @param subDirectory Optional sub directory to create
  * @returns The path of the temp directory
  */
-export function getTempDir(recreate: boolean, subDirectory?: string): string {
+export function getTempDir({
+  recreate,
+  subDirectory,
+}: {
+  recreate?: boolean;
+  subDirectory?: string;
+}): string {
   let tempDir = TMP_DIR_ROOT;
   if (subDirectory != null) {
     tempDir = path.join(tempDir, subDirectory);
