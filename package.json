@@ -758,6 +758,7 @@
   },
   "dependencies": {
     "@deephaven/require-jsapi": "file:./packages/require-jsapi",
+    "@deephaven-enterprise/jsapi-types": "file:./packages/enterprise-jsapi-types",
     "ws": "^8.18.0"
   }
 }
