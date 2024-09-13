@@ -1,0 +1,17 @@
+{
+  "name": "@deephaven-enterprise/jsapi-types",
+  "version": "0.0.1",
+  "description": "Deephaven Enterprise Jsapi Types",
+  "author": "Deephaven Data Labs LLC",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "type": "module",
+  "private": false,
+  "types": "types/index.d.ts",
+  "files": [
+    "types"
+  ],
+  "sideEffects": false,
+  "dependencies": {
+    "@deephaven/jsapi-types": "^1.0.0-dev0.34.3"
+  }
+}

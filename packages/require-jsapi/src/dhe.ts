@@ -1,10 +1,11 @@
-import { hasStatusCode } from './serverUtils';
+import { downloadFromURL, hasStatusCode } from './serverUtils';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type {
   EnterpriseDhType as DheType,
   EnterpriseClient,
 } from '@deephaven-enterprise/jsapi-types';
+import { polyfillDh } from './polyfill';
 
 /**
  * Check if a given server is running by checking if the `irisapi/irisapi.nocache.js`
@@ -39,9 +40,12 @@ export async function createDheClient(
   });
 }
 
-export async function initDheApi(serverUrl: URL): Promise<DheType> {
+export async function initDheApi(
+  serverUrl: URL,
+  storageDir: string
+): Promise<DheType> {
   polyfillDh();
-  return getDhe(serverUrl, true);
+  return getDhe(serverUrl, true, storageDir);
 }
 
 declare global {
@@ -50,10 +54,10 @@ declare global {
 
 export async function getDhe(
   serverUrl: URL,
-  download: boolean
+  download: boolean,
+  storageDir: string
 ): Promise<DheType> {
-  const tmpDir = getTempDir(false, urlToDirectoryName(serverUrl));
-  const dheFilePath = path.join(tmpDir, 'irisapi.nocache.js');
+  const dheFilePath = path.join(storageDir, 'irisapi.nocache.js');
 
   if (download) {
     const dhe = await downloadFromURL(

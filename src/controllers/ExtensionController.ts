@@ -26,6 +26,7 @@ import {
   Logger,
   OutputChannelWithHistory,
   Toaster,
+  urlToDirectoryName,
 } from '../util';
 import {
   RunCommandCodeLensProvider,
@@ -61,7 +62,7 @@ import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTre
 import { ConnectionController } from './ConnectionController';
 import { PipServerController } from './PipServerController';
 import { PanelController } from './PanelController';
-import { initDheApi } from '../dh/dhe';
+import { initDheApi } from '@deephaven/require-jsapi';
 
 const logger = new Logger('ExtensionController');
 
@@ -268,7 +269,9 @@ export class ExtensionController implements Disposable {
       this._toaster
     );
 
-    this._dheJsApiCache = new CacheByUrlService(initDheApi);
+    this._dheJsApiCache = new CacheByUrlService(url =>
+      initDheApi(url, getTempDir({ subDirectory: urlToDirectoryName(url) }))
+    );
     this._context.subscriptions.push(this._dheJsApiCache);
 
     this._serverManager = new ServerManager(
