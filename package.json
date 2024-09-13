@@ -29,7 +29,7 @@
     "packages/*"
   ],
   "scripts": {
-    "clean": "rm -rf out",
+    "clean": "rm -rf out packages/*/tsconfig.tsbuildinfo",
     "icon:gen": "node icons/generate.mjs",
     "test": "npm run test:unit",
     "test:ci": "npm run ts:build && npm run ts:check && npm run test:lint && npm run test:unit",
