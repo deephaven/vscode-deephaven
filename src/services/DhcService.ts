@@ -4,20 +4,23 @@ import DhService from './DhService';
 import {
   AUTH_HANDLER_TYPE_ANONYMOUS,
   AUTH_HANDLER_TYPE_PSK,
-  getEmbedWidgetUrl,
   initDhcApi,
   initDhcSession,
 } from '../dh/dhc';
-import { getDHThemeKey, getPanelHtml, Logger } from '../util';
+import { Logger } from '../util';
 import type { ConnectionAndSession } from '../types';
 
 const logger = new Logger('DhcService');
 
 export class DhcService extends DhService<typeof DhcType, DhcType.CoreClient> {
-  private psk?: string;
+  private _psk?: string;
+
+  getPsk(): string | undefined {
+    return this._psk;
+  }
 
   setPsk(psk: string): void {
-    this.psk = psk;
+    this._psk = psk;
   }
 
   protected async initApi(): Promise<typeof DhcType> {
@@ -48,8 +51,8 @@ export class DhcService extends DhService<typeof DhcType, DhcType.CoreClient> {
         type: dh.CoreClient.LOGIN_TYPE_ANONYMOUS,
       });
     } else if (authConfig.has(AUTH_HANDLER_TYPE_PSK)) {
-      if (this.psk == null) {
-        this.psk = await vscode.window.showInputBox({
+      if (this._psk == null) {
+        this._psk = await vscode.window.showInputBox({
           placeHolder: 'Pre-Shared Key',
           prompt: 'Enter your Deephaven pre-shared key',
           password: true,
@@ -58,27 +61,13 @@ export class DhcService extends DhService<typeof DhcType, DhcType.CoreClient> {
 
       const connectionAndSession = await initDhcSession(client, {
         type: 'io.deephaven.authentication.psk.PskAuthenticationHandler',
-        token: this.psk,
+        token: this._psk,
       });
 
       return connectionAndSession;
     }
 
     throw new Error('No supported authentication methods found.');
-  }
-
-  protected getPanelHtml(title: string): string {
-    const iframeUrl = getEmbedWidgetUrl(
-      this.serverUrl,
-      title,
-      getDHThemeKey(),
-      this.psk
-    );
-    return getPanelHtml(iframeUrl, title);
-  }
-
-  protected handlePanelMessage(): Promise<void> {
-    throw new Error('Method not implemented.');
   }
 }
 

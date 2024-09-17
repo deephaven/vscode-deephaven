@@ -25,9 +25,9 @@ export class ServerManager implements IServerManager {
     this._configService = configService;
     this._dhcServiceFactory = dhcServiceFactory;
 
-    this._serverMap = new URLMap();
-    this._connectionMap = new URLMap();
-    this._uriConnectionsMap = new URIMap();
+    this._serverMap = new URLMap<ServerState>();
+    this._connectionMap = new URLMap<IDhService>();
+    this._uriConnectionsMap = new URIMap<IDhService>();
 
     this.canStartServer = false;
 
@@ -202,6 +202,20 @@ export class ServerManager implements IServerManager {
     return servers.filter(match);
   };
 
+  /**
+   * Get the connection associated with the given server URL.
+   * @param serverUrl The URL of the server to get the connection for.
+   * @returns The connection, or `undefined` if no connection exists for the
+   * given server URL.
+   */
+  getConnection = (serverUrl: URL): IDhService | undefined => {
+    return this._connectionMap.get(serverUrl);
+  };
+
+  /**
+   * Get all connections.
+   * @returns An array of all connections.
+   */
   getConnections = (): IDhService[] => {
     return [...this._connectionMap.values()];
   };

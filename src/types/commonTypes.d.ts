@@ -76,6 +76,13 @@ export type VariableID = Brand<'VariableID'>;
 
 export type VariableDefintion = DhcType.ide.VariableDefinition & {
   id: VariableID;
+  type: VariableType;
 };
 
 export type VariablePanelMap = Map<VariableID, vscode.WebviewPanel>;
+
+export type VariableType =
+  | 'Figure'
+  | 'deephaven.plot.express.DeephavenFigure'
+  | 'Table'
+  | 'deephaven.ui.Element';

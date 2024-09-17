@@ -8,6 +8,7 @@ import type {
   ServerConnection,
   ServerState,
   UnsubscribeEventListener,
+  VariableDefintion,
   VariableID,
 } from '../types/commonTypes';
 
@@ -89,6 +90,7 @@ export interface IServerManager extends Disposable {
   hasConnection: (serverUrl: URL) => boolean;
   hasConnectionUris: (connection: IDhService) => boolean;
 
+  getConnection: (serverUrl: URL) => IDhService | undefined;
   getConnections: () => IDhService[];
   getConnectionUris: (connection: IDhService) => vscode.Uri[];
   getEditorConnection: (
