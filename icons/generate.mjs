@@ -35,9 +35,10 @@ fs.mkdirSync(outputDir);
 
 console.log(`Generating icons from '${inputDir}'`);
 
-// Using same starting character as `vscode-codicons`
+// Using 1000 > than starting character of `vscode-codicons` in case we ever want
+// to bundle them in the same font file.
 // https://github.com/microsoft/vscode-codicons/blob/main/src/template/mapping.json
-const startingCharacter = 60000;
+const startingCharacter = 61000;
 
 // Map icon file names (without extension) to font character codepoints.
 // Note: We could technically configure `fantasticon` to just read the input
