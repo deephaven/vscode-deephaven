@@ -108,8 +108,8 @@ export class PanelService implements IPanelService, Disposable {
 
   /**
    * Update the variables for the given connection url.
-   * @param url
-   * @param variableChanges
+   * @param url The connection URL
+   * @param variableChanges Changes made on that connection
    */
   updateVariables = (
     url: URL,
