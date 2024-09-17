@@ -286,6 +286,8 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
     const changed = [
       ...result!.changes.created,
       ...result!.changes.updated,
+      // Type assertion is necessary to make use of our more specific branded types
+      // coming from the less specific types defined in the jsapi-types package.
     ] as VariableDefintion[];
 
     changed.forEach(({ title = 'Unknown', type }) => {
