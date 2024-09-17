@@ -10,6 +10,7 @@ import {
   OPEN_VARIABLE_PANELS_CMD,
   REFRESH_SERVER_CONNECTION_TREE_CMD,
   REFRESH_SERVER_TREE_CMD,
+  REFRESH_VARIABLE_PANELS_CMD,
   RUN_CODE_COMMAND,
   RUN_SELECTION_COMMAND,
   SELECT_CONNECTION_COMMAND,
@@ -350,6 +351,12 @@ export class ExtensionController implements Disposable {
       this.onRefreshServerStatus
     );
 
+    /** Refresh variable panels */
+    this.registerCommand(
+      REFRESH_VARIABLE_PANELS_CMD,
+      this.onRefreshVariablePanels
+    );
+
     /** Start a server */
     this.registerCommand(START_SERVER_CMD, this.onStartServer);
 
@@ -530,6 +537,18 @@ export class ExtensionController implements Disposable {
   onRefreshServerStatus = async (): Promise<void> => {
     await this._pipServerController?.syncManagedServers();
     await this._serverManager?.updateStatus();
+  };
+
+  /**
+   * Refresh variable panels for given url and variables.
+   * @param url Connection url to refresh panels for.
+   * @param variables Variables to refresh panels for.
+   */
+  onRefreshVariablePanels = (
+    url: URL,
+    variables: VariableDefintion[]
+  ): void => {
+    this._panelController?.refreshPanelsContent(url, variables);
   };
 
   /**

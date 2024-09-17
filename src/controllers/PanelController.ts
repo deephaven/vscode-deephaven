@@ -5,8 +5,8 @@ import type {
   IServerManager,
   VariableDefintion,
 } from '../types';
-import { getEmbedWidgetUrl } from '../dh/dhc';
 import { assertDefined, getDHThemeKey, getPanelHtml, Logger } from '../util';
+import { getEmbedWidgetUrl } from '../dh/dhc';
 import { DhcService } from '../services';
 
 const logger = new Logger('PanelController');
@@ -32,6 +32,7 @@ export class PanelController implements Disposable {
 
     for (const { id, title } of variables) {
       if (!this._panelService.hasPanel(serverUrl, id)) {
+        logger.debug('[TESTING] create panel', serverUrl, id);
         const panel = vscode.window.createWebviewPanel(
           'dhPanel', // Identifies the type of the webview. Used internally
           title,
@@ -77,5 +78,34 @@ export class PanelController implements Disposable {
     }
 
     lastPanel?.reveal();
+
+    this.refreshPanelsContent(serverUrl, variables);
+  };
+
+  /**
+   * Reload the html content for all panels associated with the given server url
+   * + variables.
+   * @param serverUrl The server url.
+   * @param variables Variables identifying the panels to refresh.
+   */
+  refreshPanelsContent = (
+    serverUrl: URL,
+    variables: VariableDefintion[]
+  ): void => {
+    const connection = this._serverManager.getConnection(serverUrl);
+    assertDefined(connection, 'connection');
+
+    for (const { id, title } of variables) {
+      const panel = this._panelService.getPanelOrThrow(serverUrl, id);
+
+      const iframeUrl = getEmbedWidgetUrl(
+        serverUrl,
+        title,
+        getDHThemeKey(),
+        connection instanceof DhcService ? connection.getPsk() : undefined
+      );
+
+      panel.webview.html = getPanelHtml(iframeUrl, title);
+    }
   };
 }

@@ -9,6 +9,7 @@ import type {
   IToastService,
   VariableChanges,
   VariableDefintion,
+  VariableID,
 } from '../types';
 import {
   formatTimestamp,
@@ -18,7 +19,11 @@ import {
   NoConsoleTypesError,
   parseServerError,
 } from '../util';
-import { OPEN_VARIABLE_PANELS_CMD, VARIABLE_UNICODE_ICONS } from '../common';
+import {
+  OPEN_VARIABLE_PANELS_CMD,
+  REFRESH_VARIABLE_PANELS_CMD,
+  VARIABLE_UNICODE_ICONS,
+} from '../common';
 
 const logger = new Logger('DhService');
 
@@ -157,6 +162,20 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
           this.panelService.updateVariables(
             this.serverUrl,
             changes as VariableChanges
+          );
+
+          const panelVariablesToUpdate = changes.updated.filter(
+            (variable): variable is VariableDefintion =>
+              this.panelService.hasPanel(
+                this.serverUrl,
+                variable.id as VariableID
+              )
+          );
+
+          vscode.commands.executeCommand(
+            REFRESH_VARIABLE_PANELS_CMD,
+            this.serverUrl,
+            panelVariablesToUpdate
           );
         });
 
