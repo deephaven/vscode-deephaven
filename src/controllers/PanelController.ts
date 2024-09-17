@@ -44,20 +44,10 @@ export class PanelController implements Disposable {
         panel.onDidDispose(() => {
           this._panelService.deletePanel(serverUrl, id);
         });
-
-        // See @deprecated comment in PanelFocusManager.onDidChangeViewState
-        // Ensure focus is not stolen when panel is loaded
-        // panel.onDidChangeViewState(
-        //   this.panelFocusManager.handleOnDidChangeViewState(panel)
-        // );
       }
 
       const panel = this._panelService.getPanelOrThrow(serverUrl, id);
       lastPanel = panel;
-
-      // See @deprecated comment in PanelFocusManager.onDidChangeViewState
-      // Ensure focus is not stolen when panel is loaded
-      // this.panelFocusManager.initialize(panel);
 
       const connection = this._serverManager.getConnection(serverUrl);
       assertDefined(connection, 'connection');
