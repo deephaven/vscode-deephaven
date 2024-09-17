@@ -49,7 +49,7 @@ const codepoints = fs
   .map(name => name.toLowerCase())
   .filter(name => name.endsWith('.svg'))
   .reduce((memo, name, i) => {
-    memo[name.replace('.svg', '')] = startingCharacter + i;
+    memo[name.slice(0, -4)] = startingCharacter + i;
     return memo;
   }, {});
 
