@@ -7,7 +7,6 @@ import {
   DISCONNECT_FROM_SERVER_CMD,
   DOWNLOAD_LOGS_CMD,
   OPEN_IN_BROWSER_CMD,
-  OPEN_VARIABLE_PANELS_CMD,
   REFRESH_SERVER_CONNECTION_TREE_CMD,
   REFRESH_SERVER_TREE_CMD,
   RUN_CODE_COMMAND,
@@ -30,6 +29,7 @@ import {
   RunCommandCodeLensProvider,
   ServerTreeProvider,
   ServerConnectionTreeProvider,
+  ServerConnectionPanelTreeProvider,
   runSelectedLinesHoverProvider,
 } from '../providers';
 import { DhcServiceFactory, PanelService, ServerManager } from '../services';
@@ -41,10 +41,11 @@ import type {
   IPanelService,
   IServerManager,
   IToastService,
+  ServerConnectionPanelNode,
+  ServerConnectionPanelTreeView,
   ServerConnectionTreeView,
   ServerState,
   ServerTreeView,
-  VariableDefintion,
 } from '../types';
 import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTreeDragAndDropController';
 import { ConnectionController } from './ConnectionController';
@@ -76,7 +77,6 @@ export class ExtensionController implements Disposable {
       'Congratulations, your extension "vscode-deephaven" is now active!'
     );
 
-    this._outputChannel?.show();
     this._outputChannel?.appendLine('Deephaven extension activated');
   }
 
@@ -89,11 +89,19 @@ export class ExtensionController implements Disposable {
   private _pipServerController: PipServerController | null = null;
   private _dhcServiceFactory: IDhServiceFactory | null = null;
   private _serverManager: IServerManager | null = null;
+
+  // Tree providers
   private _serverTreeProvider: ServerTreeProvider | null = null;
   private _serverConnectionTreeProvider: ServerConnectionTreeProvider | null =
     null;
+  private _serverConnectionPanelTreeProvider: ServerConnectionPanelTreeProvider | null =
+    null;
+
+  // Tree views
   private _serverTreeView: ServerTreeView | null = null;
   private _serverConnectionTreeView: ServerConnectionTreeView | null = null;
+  private _serverConnectionPanelTreeView: ServerConnectionPanelTreeView | null =
+    null;
 
   private _pythonDiagnostics: vscode.DiagnosticCollection | null = null;
   private _outputChannel: vscode.OutputChannel | null = null;
@@ -239,6 +247,7 @@ export class ExtensionController implements Disposable {
     this._context.subscriptions.push(this._panelService);
 
     this._dhcServiceFactory = new DhcServiceFactory(
+      this._panelService,
       this._pythonDiagnostics,
       this._outputChannel,
       this._toaster
@@ -314,9 +323,6 @@ export class ExtensionController implements Disposable {
     /** Open server in browser */
     this.registerCommand(OPEN_IN_BROWSER_CMD, this.onOpenInBrowser);
 
-    /** Open variable panel */
-    this.registerCommand(OPEN_VARIABLE_PANELS_CMD, this.onOpenVariablePanels);
-
     /** Run all code in active editor */
     this.registerCommand(RUN_CODE_COMMAND, this.onRunCode);
 
@@ -349,6 +355,7 @@ export class ExtensionController implements Disposable {
    * Register web views for the extension.
    */
   initializeWebViews = (): void => {
+    assertDefined(this._panelService, 'panelService');
     assertDefined(this._serverManager, 'serverManager');
 
     // Server tree
@@ -374,10 +381,25 @@ export class ExtensionController implements Disposable {
       }
     );
 
+    // Connection Panel tree
+    this._serverConnectionPanelTreeProvider =
+      new ServerConnectionPanelTreeProvider(
+        this._serverManager,
+        this._panelService
+      );
+    this._serverConnectionPanelTreeView =
+      vscode.window.createTreeView<ServerConnectionPanelNode>(
+        VIEW_ID.serverConnectionPanelTree,
+        {
+          showCollapseAll: true,
+          treeDataProvider: this._serverConnectionPanelTreeProvider,
+        }
+      );
+
     this._context.subscriptions.push(
-      this._serverManager,
       this._serverTreeView,
-      this._serverConnectionTreeView
+      this._serverConnectionTreeView,
+      this._serverConnectionPanelTreeView
     );
   };
 
@@ -488,15 +510,6 @@ export class ExtensionController implements Disposable {
       'vscode.open',
       vscode.Uri.parse(serverState.url.toString())
     );
-  };
-
-  /**
-   * Open panels for given url and variables.
-   * @param url Connection url to open panels for.
-   * @param variables Variables to open panels for.
-   */
-  onOpenVariablePanels = (url: URL, variables: VariableDefintion[]): void => {
-    this._panelController?.openPanels(url, variables);
   };
 
   onRefreshServerStatus = async (): Promise<void> => {

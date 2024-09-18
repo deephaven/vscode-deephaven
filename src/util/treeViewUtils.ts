@@ -1,10 +1,91 @@
 import * as vscode from 'vscode';
-import type { ServerGroupState, ServerState } from '../types';
+import type {
+  IDhService,
+  ServerGroupState,
+  ServerState,
+  VariableDefintion,
+  VariableType,
+} from '../types';
 import {
   ICON_ID,
+  OPEN_VARIABLE_PANELS_CMD,
   SERVER_TREE_ITEM_CONTEXT,
   type ServerTreeItemContextValue,
 } from '../common';
+
+/**
+ * Get a tree item vscode.ThemeIcon for a variable type.
+ * @param variableType Variable type
+ * @returns Theme icon for the variable type
+ */
+export function getVariableIconPath(
+  variableType: VariableType
+): vscode.ThemeIcon {
+  // Based on @deephaven/console `ObjectIcon`
+  switch (variableType) {
+    case 'Table':
+    case 'TableMap':
+    case 'TreeTable':
+    case 'HierarchicalTable':
+    case 'PartitionedTable':
+      return new vscode.ThemeIcon(ICON_ID.varTable);
+
+    case 'deephaven.plot.express.DeephavenFigure':
+    case 'Figure':
+      return new vscode.ThemeIcon(ICON_ID.varFigure);
+
+    case 'pandas.DataFrame':
+      return new vscode.ThemeIcon(ICON_ID.varPandas);
+
+    case 'deephaven.ui.Element':
+    case 'OtherWidget':
+    case 'Treemap':
+    default:
+      return new vscode.ThemeIcon(ICON_ID.varElement);
+  }
+}
+
+/**
+ * Get `TreeItem` for a panel connection.
+ * @param connection
+ */
+export async function getPanelConnectionTreeItem(
+  connection: IDhService
+): Promise<vscode.TreeItem> {
+  const [consoleType] = connection.isInitialized
+    ? await connection.getConsoleTypes()
+    : [];
+
+  return {
+    label: new URL(connection.serverUrl.toString()).host,
+    description: consoleType,
+    collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
+    iconPath: new vscode.ThemeIcon(
+      connection.isConnected ? ICON_ID.connected : ICON_ID.connecting
+    ),
+  };
+}
+
+/**
+ * Get `TreeItem` for a panel variable.
+ * @param variable
+ */
+export function getPanelVariableTreeItem([url, variable]: [
+  URL,
+  VariableDefintion,
+]): vscode.TreeItem {
+  const iconPath = getVariableIconPath(variable.type);
+
+  return {
+    description: variable.title,
+    iconPath,
+    command: {
+      title: 'Open Panel',
+      command: OPEN_VARIABLE_PANELS_CMD,
+      arguments: [url, [variable]],
+    },
+  };
+}
 
 /**
  * Get `contextValue` for server tree items.

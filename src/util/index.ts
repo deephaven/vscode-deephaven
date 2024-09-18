@@ -1,4 +1,5 @@
 export * from './assertUtil';
+export * from './dataUtils';
 export * from './downloadUtils';
 export * from './errorUtils';
 export * from './ErrorTypes';
@@ -9,6 +10,7 @@ export * from './panelUtils';
 export * from './polyfillUtils';
 export * from './selectionUtils';
 export * from './serverUtils';
+export * from './testUtils';
 export * from './treeViewUtils';
 export * from './Toaster';
 export * from './uiUtils';

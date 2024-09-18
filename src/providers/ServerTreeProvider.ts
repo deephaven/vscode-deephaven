@@ -16,9 +16,7 @@ function isServerGroupState(node: ServerNode): node is ServerGroupState {
  * Provider for the server tree view.
  */
 export class ServerTreeProvider extends TreeDataProviderBase<ServerNode> {
-  getTreeItem(
-    element: ServerNode
-  ): vscode.TreeItem | Thenable<vscode.TreeItem> {
+  getTreeItem = (element: ServerNode): vscode.TreeItem => {
     if (isServerGroupState(element)) {
       return getServerGroupTreeItem(element, this.serverManager.canStartServer);
     }
@@ -33,7 +31,7 @@ export class ServerTreeProvider extends TreeDataProviderBase<ServerNode> {
       isManaged,
       isRunning,
     });
-  }
+  };
 
   getChildren(elementOrRoot?: ServerNode): vscode.ProviderResult<ServerNode[]> {
     const { managed, running, stopped } = groupServers(

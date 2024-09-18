@@ -9,6 +9,7 @@ export const OPEN_IN_BROWSER_CMD = `${EXTENSION_ID}.openInBrowser`;
 export const OPEN_VARIABLE_PANELS_CMD = `${EXTENSION_ID}.openVariablePanels`;
 export const REFRESH_SERVER_TREE_CMD = `${EXTENSION_ID}.refreshServerTree`;
 export const REFRESH_SERVER_CONNECTION_TREE_CMD = `${EXTENSION_ID}.refreshServerConnectionTree`;
+export const REFRESH_VARIABLE_PANELS_CMD = `${EXTENSION_ID}.refreshVariablePanels`;
 export const RUN_CODE_COMMAND = `${EXTENSION_ID}.runCode`;
 export const RUN_SELECTION_COMMAND = `${EXTENSION_ID}.runSelection`;
 export const SELECT_CONNECTION_COMMAND = `${EXTENSION_ID}.selectConnection`;

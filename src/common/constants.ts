@@ -48,6 +48,7 @@ export const TMP_DIR_ROOT = path.join(__dirname, '..', 'tmp');
 export const VIEW_ID = {
   serverTree: `${EXTENSION_ID}.serverTree`,
   serverConnectionTree: `${EXTENSION_ID}.serverConnectionTree`,
+  serverConnectionPanelTree: `${EXTENSION_ID}.serverConnectionPanelTree`,
 } as const;
 
 export const ICON_ID = {
@@ -61,6 +62,10 @@ export const ICON_ID = {
   serverConnected: 'circle-large-filled',
   serverRunning: 'circle-large-outline',
   serverStopped: 'circle-slash',
+  varFigure: 'graph',
+  varElement: 'preview',
+  varPandas: 'dh-pandas',
+  varTable: 'dh-table',
 } as const;
 
 /* eslint-disable @typescript-eslint/naming-convention */
@@ -68,7 +73,14 @@ export const VARIABLE_UNICODE_ICONS = {
   'deephaven.plot.express.DeephavenFigure': '📈',
   'deephaven.ui.Element': '✨',
   Figure: '📈',
-  Table: '⬜',
+  HierarchicalTable: '▤',
+  OtherWidget: '⬜',
+  'pandas.DataFrame': '🐼',
+  PartitionedTable: '▤',
+  Table: '▤',
+  TableMap: '▤',
+  Treemap: '▤',
+  TreeTable: '▤',
 } as const satisfies Record<VariableType, string>;
 /* eslint-enable @typescript-eslint/naming-convention */
 

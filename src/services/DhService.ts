@@ -5,8 +5,11 @@ import type {
   ConnectionAndSession,
   ConsoleType,
   IDhService,
+  IPanelService,
   IToastService,
+  VariableChanges,
   VariableDefintion,
+  VariableID,
 } from '../types';
 import {
   formatTimestamp,
@@ -16,7 +19,11 @@ import {
   NoConsoleTypesError,
   parseServerError,
 } from '../util';
-import { OPEN_VARIABLE_PANELS_CMD, VARIABLE_UNICODE_ICONS } from '../common';
+import {
+  OPEN_VARIABLE_PANELS_CMD,
+  REFRESH_VARIABLE_PANELS_CMD,
+  VARIABLE_UNICODE_ICONS,
+} from '../common';
 
 const logger = new Logger('DhService');
 
@@ -25,11 +32,13 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
 {
   constructor(
     serverUrl: URL,
+    panelService: IPanelService,
     diagnosticsCollection: vscode.DiagnosticCollection,
     outputChannel: vscode.OutputChannel,
     toaster: IToastService
   ) {
     this.serverUrl = serverUrl;
+    this.panelService = panelService;
     this.diagnosticsCollection = diagnosticsCollection;
     this.outputChannel = outputChannel;
     this.toaster = toaster;
@@ -43,6 +52,7 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
 
   protected readonly outputChannel: vscode.OutputChannel;
   protected readonly toaster: IToastService;
+  private readonly panelService: IPanelService;
   private readonly diagnosticsCollection: vscode.DiagnosticCollection;
   private cachedCreateClient: Promise<TClient> | null = null;
   private cachedCreateSession: Promise<
@@ -147,6 +157,27 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
 
       try {
         const { cn, session } = await this.cachedCreateSession;
+
+        cn.subscribeToFieldUpdates(changes => {
+          this.panelService.updateVariables(
+            this.serverUrl,
+            changes as VariableChanges
+          );
+
+          const panelVariablesToUpdate = changes.updated.filter(
+            (variable): variable is VariableDefintion =>
+              this.panelService.hasPanel(
+                this.serverUrl,
+                variable.id as VariableID
+              )
+          );
+
+          vscode.commands.executeCommand(
+            REFRESH_VARIABLE_PANELS_CMD,
+            this.serverUrl,
+            panelVariablesToUpdate
+          );
+        });
 
         // TODO: Use constant 'disconnect' event name
         this.subscriptions.push(

@@ -15,6 +15,7 @@ import type {
   ConnectionPickOption,
   ServerConnection,
 } from '../types';
+import { sortByStringProp } from './dataUtils';
 
 export interface ConnectionOption {
   type: ConnectionType;
@@ -79,8 +80,8 @@ export function createConnectionQuickPickOptions<
   }
 
   // Sort options by label
-  connectionOptions.sort(sortByLabel);
-  serverOptions.sort(sortByLabel);
+  connectionOptions.sort(sortByStringProp('label'));
+  serverOptions.sort(sortByStringProp('label'));
 
   return [
     createSeparatorPickItem('Active Connections'),
@@ -249,13 +250,6 @@ export async function getEditorForUri(
   // for the url to active first
   // https://stackoverflow.com/a/64808497/20489
   return vscode.window.showTextDocument(uri, { preview: false, viewColumn });
-}
-
-/**
- * Sort function for sorting by label.
- */
-export function sortByLabel<T extends { label: string }>(a: T, b: T): number {
-  return a.label.localeCompare(b.label);
 }
 
 /**

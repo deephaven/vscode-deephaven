@@ -1,29 +1,84 @@
 import { describe, it, expect, vi } from 'vitest';
+import { bitValues, boolValues, matrix } from './testUtils';
 import {
+  getPanelConnectionTreeItem,
+  getPanelVariableTreeItem,
   getServerContextValue,
   getServerDescription,
   getServerGroupContextValue,
   getServerGroupTreeItem,
   getServerIconID,
   getServerTreeItem,
+  getVariableIconPath,
   groupServers,
 } from './treeViewUtils';
-import type { ServerState } from '../types';
+import type {
+  ConsoleType,
+  IDhService,
+  ServerState,
+  VariableDefintion,
+  VariableType,
+} from '../types';
 
 // See __mocks__/vscode.ts for the mock implementation
 vi.mock('vscode');
 
+const variableTypes: readonly VariableType[] = [
+  'deephaven.plot.express.DeephavenFigure',
+  'deephaven.ui.Element',
+  'Figure',
+  'HierarchicalTable',
+  'OtherWidget',
+  'pandas.DataFrame',
+  'PartitionedTable',
+  'Table',
+  'TableMap',
+  'Treemap',
+  'TreeTable',
+] as const;
+
+describe('getPanelConnectionTreeItem', () => {
+  const getConsoleTypes: IDhService['getConsoleTypes'] = vi
+    .fn()
+    .mockResolvedValue(new Set<ConsoleType>(['python']));
+
+  const serverUrl = new URL('http://localhost:10000');
+
+  it.each(matrix(boolValues, boolValues))(
+    'should return panel connection tree item: isConnected:%s, isInitialized:%s',
+    async (isConnected, isInitialized) => {
+      const connection = {
+        isConnected,
+        isInitialized,
+        serverUrl,
+        getConsoleTypes,
+      } as IDhService;
+
+      const actual = await getPanelConnectionTreeItem(connection);
+      expect(actual).toMatchSnapshot();
+    }
+  );
+});
+
+describe('getPanelVariableTreeItem', () => {
+  const url = new URL('http://localhost:10000');
+
+  it.each(variableTypes)(
+    'should return panel variable tree item: type:%s',
+    type => {
+      const variable = {
+        title: 'some title',
+        type,
+      } as VariableDefintion;
+
+      const actual = getPanelVariableTreeItem([url, variable]);
+      expect(actual).toMatchSnapshot();
+    }
+  );
+});
+
 describe('getServerContextValue', () => {
-  it.each([
-    [true, true, true],
-    [true, true, false],
-    [true, false, true],
-    [true, false, false],
-    [false, true, true],
-    [false, true, false],
-    [false, false, true],
-    [false, false, false],
-  ])(
+  it.each(matrix(boolValues, boolValues, boolValues))(
     'should return contextValue based on server state: isConnected=%s, isManaged=%s, isRunning=%s',
     (isConnected, isManaged, isRunning) => {
       const actual = getServerContextValue({
@@ -37,16 +92,9 @@ describe('getServerContextValue', () => {
 });
 
 describe('getServerDescription', () => {
-  it.each([
-    [0, true, 'some label'],
-    [1, true, 'some label'],
-    [0, false, 'some label'],
-    [1, false, 'some label'],
-    [0, true, undefined],
-    [1, true, undefined],
-    [0, false, undefined],
-    [1, false, undefined],
-  ])(
+  const labelValeus = ['some label', undefined] as const;
+
+  it.each(matrix(bitValues, boolValues, labelValeus))(
     'should return server description based on parameters: connectionCount=%s, isManaged=%s, label=%s',
     (connectionCount, isManaged, label) => {
       const actual = getServerDescription(connectionCount, isManaged, label);
@@ -56,12 +104,9 @@ describe('getServerDescription', () => {
 });
 
 describe('getServerGroupContextValue', () => {
-  it.each([
-    ['Managed', true],
-    ['Running', true],
-    ['Managed', false],
-    ['Running', false],
-  ] as const)(
+  const groupValues = ['Managed', 'Running'] as const;
+
+  it.each(matrix(groupValues, boolValues))(
     'should return context value when servers can be managed: group=%s, canStartServer=%s',
     (group, canStartServer) => {
       const actual = getServerGroupContextValue(group, canStartServer);
@@ -71,12 +116,9 @@ describe('getServerGroupContextValue', () => {
 });
 
 describe('getServerGroupTreeItem', () => {
-  it.each([
-    ['Managed', true],
-    ['Running', true],
-    ['Managed', false],
-    ['Running', false],
-  ] as const)(
+  const groupValues = ['Managed', 'Running'] as const;
+
+  it.each(matrix(groupValues, boolValues))(
     'should return server group tree item: group=%s, canStartServer=%s',
     (group, canStartServer) => {
       const actual = getServerGroupTreeItem(group, canStartServer);
@@ -86,16 +128,7 @@ describe('getServerGroupTreeItem', () => {
 });
 
 describe('getServerIconID', () => {
-  it.each([
-    [true, true, true],
-    [true, true, false],
-    [true, false, true],
-    [true, false, false],
-    [false, true, true],
-    [false, true, false],
-    [false, false, true],
-    [false, false, false],
-  ])(
+  it.each(matrix(boolValues, boolValues, boolValues))(
     'should return icon id based on server state: isConnected=%s, isManaged=%s, isRunning=%s',
     (isConnected, isManaged, isRunning) => {
       const actual = getServerIconID({ isConnected, isManaged, isRunning });
@@ -110,16 +143,7 @@ describe('getServerTreeItem', () => {
     url: new URL('http://localhost:10000'),
   };
 
-  it.each([
-    [true, true, true],
-    [true, true, false],
-    [true, false, true],
-    [true, false, false],
-    [false, true, true],
-    [false, true, false],
-    [false, false, true],
-    [false, false, false],
-  ])(
+  it.each(matrix(boolValues, boolValues, boolValues))(
     'should return DHC server tree item: isConnected=%s, isManaged=%s, isRunning=%s',
     (isConnected, isManaged, isRunning) => {
       const actual = getServerTreeItem({
@@ -134,18 +158,19 @@ describe('getServerTreeItem', () => {
   );
 });
 
+describe('getVariableIconPath', () => {
+  it('should return icon path for variableType', () => {
+    expect(
+      variableTypes.map(type => [type, getVariableIconPath(type)])
+    ).toMatchSnapshot();
+  });
+});
+
 describe('groupServers', () => {
   it('should group servers by state', () => {
-    const props = [
-      [true, true],
-      [true, true],
-      [true, false],
-      [true, false],
-      [false, true],
-      [false, true],
-      [false, false],
-      [false, false],
-    ];
+    // Note that each combination is duplicated so that multiple servers get
+    // created for each group.
+    const props = matrix(boolValues, [true, true, false, false]);
 
     const servers = props.map(
       ([isManaged, isRunning], i) =>

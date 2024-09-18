@@ -1,5 +1,3 @@
-import type { VariableID } from '../types';
-
 /**
  * Assert that a given value is not `null` or `undefined`.
  * @param dependency The value to assert.
@@ -23,17 +21,4 @@ export function assertDefined<T>(
 export function assertNever(shouldBeNever: never, name?: string): never {
   const label = name == null ? 'value' : `'${name}'`;
   throw new Error(`Unexpected ${label}: ${shouldBeNever}`);
-}
-
-/**
- * Assert that given variable is a `VariableID`.
- * @param maybeVariableId
- */
-export function assertIsVariableID(
-  maybeVariableId: string | null | undefined,
-  name: string
-): asserts maybeVariableId is VariableID {
-  if (typeof maybeVariableId !== 'string') {
-    throw new Error(`'${name}' is not a valid VariableID`);
-  }
 }
