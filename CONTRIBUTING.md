@@ -103,6 +103,17 @@ rsvg-convert -w 128 -h 128 images/dh-community-on-dark-128.svg -o images/dh-comm
 rsvg-convert -w 128 -h 128 images/dh-community-on-light-128.svg -o images/dh-community-on-light-128.png
 ```
 
+## Icon Font Generation
+The extension uses an icon font generated from SVGs in `@deephaven/icons`. Running the generator requires a local checkout of web-client-ui.
+
+The generator can be run via the following script, where `<path-to-dh-icons-directory>` is the location of `packages/icons/src/icons` in `web-client-ui`.
+```sh
+npm run icon:gen -- <path-to-dh-icons-directory>
+```
+
+The script will automatically copy `icons/dist/dh-icons.woff2` file to the `/assets` folder of the extension, but the contents of `icons/dist/dh-contributes-icons.json` has to be manually copied to the `package.json` `contributes/icons` section.
+> Note: All of the icons should be consumed via the `dh-xxx` icon ids, so no code changes should be necessary unless icons have been renamed or removed.
+
 ## Implementation Notes
 
 ### Server Connection
