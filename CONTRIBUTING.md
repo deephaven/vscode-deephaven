@@ -83,7 +83,7 @@ https://code.visualstudio.com/api/working-with-extensions/publishing-extension#p
 ### Publish a new Version
 
 1. Set `VSCE_PAT` env variable to personal access token for a user in the https://dev.azure.com/deephaven-oss/ org.
-1. Increment the version number in `package.json`
+1. Increment the version number in `package.json` (be sure to run `npm i` to update package-lock as well)
    > See [versioning strategy](#versioning-strategy) for details on our version number scheme.
 1. Package latest `npm run package:latest` (inspect output for any unexpected files included)
 1. Use `vsce` cli to publish to Visual Studio Marketplace
