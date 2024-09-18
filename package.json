@@ -1,6 +1,6 @@
 {
   "name": "vscode-deephaven",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "displayName": "Deephaven in VS Code",
   "description": "",
   "publisher": "deephaven",
