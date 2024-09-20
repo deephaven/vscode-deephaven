@@ -39,6 +39,15 @@ declare global {
   export const iris: DheType;
 }
 
+/**
+ * Returns a CJS module that exports the Deephaven JS API. If the download flag
+ * is true, the API is downloaded from the server and saved to a local storage
+ * directory. If it is false, it will be returned from the local storage directory.
+ * @param serverUrl URL of the server to download the jsapi from
+ * @param download Whether to download the jsapi from the server
+ * @param storageDir Directory to save the downloaded jsapi and load it from
+ * @returns Default export of downloaded jsapi
+ */
 async function getDhe(
   serverUrl: URL,
   download: boolean,
