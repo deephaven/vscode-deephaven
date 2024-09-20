@@ -1,0 +1,19 @@
+{
+  "name": "@deephaven/require-jsapi",
+  "version": "0.0.1",
+  "description": "Deephaven dynamic import utils for Jsapi",
+  "author": "Deephaven Data Labs LLC",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "type": "commonjs",
+  "private": false,
+  "source": "src/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc --build"
+  }
+}

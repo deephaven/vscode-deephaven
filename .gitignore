@@ -6,3 +6,4 @@ node_modules
 .wdio-vscode-service
 e2e/reports/
 test-reports/
+tsconfig.tsbuildinfo

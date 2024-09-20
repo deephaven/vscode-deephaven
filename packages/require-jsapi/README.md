@@ -1,0 +1,2 @@
+# Deephaven Require Jsapi
+This package allows downloading `jsapi` modules from a running Deephaven server. It should eventually be moved to a different repo and become a formal `npm` package. See https://github.com/deephaven/deephaven-core/issues/5537. For now it exists to internally serve the `vscode` extension and has been split out into an internal package to keep encapsulation boundaries cleaner.

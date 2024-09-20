@@ -1,52 +1,24 @@
-import * as fs from 'node:fs';
 import * as http from 'node:http';
 import * as https from 'node:https';
-import * as path from 'node:path';
-import { SERVER_STATUS_CHECK_TIMEOUT, TMP_DIR_ROOT } from '../common';
-import { Logger } from './Logger';
 import { hasErrorCode, isAggregateError } from './errorUtils';
 
-const logger = new Logger('downloadUtils');
-
-/**
- * Return the path of the temp directory with optional sub directory. If recreate
- * is true, the directory will be deleted and recreated.
- * @param recreate If true, delete and recreate the directory
- * @param subDirectory Optional sub directory to create
- * @returns The path of the temp directory
- */
-export function getTempDir(recreate: boolean, subDirectory?: string): string {
-  let tempDir = TMP_DIR_ROOT;
-  if (subDirectory != null) {
-    tempDir = path.join(tempDir, subDirectory);
-  }
-
-  if (recreate) {
-    try {
-      fs.rmSync(tempDir, { recursive: true });
-    } catch {
-      // Ignore if can't delete. Likely doesn't exist
-    }
-  }
-
-  if (!fs.existsSync(tempDir)) {
-    fs.mkdirSync(tempDir);
-  }
-
-  return tempDir;
-}
+export const SERVER_STATUS_CHECK_TIMEOUT = 3000;
 
 /**
  * Require a JS module from a URL. Loads the module in memory and returns its exports
  * Copy / modified from https://github.com/deephaven/deephaven.io/blob/main/tools/run-examples/includeAPI.mjs
  *
- * @param {string} url The URL with protocol to require from. Supports http or https
- * @returns {Promise<string>} Promise which resolves to the module's exports
+ * @param url The URL with protocol to require from. Supports http or https
+ * @param retries The number of retries on failure
+ * @param retryDelay The delay between retries in milliseconds
+ * @param logger An optional logger object. Defaults to `console`
+ * @returns Promise which resolves to the module's exports
  */
 export async function downloadFromURL(
   url: string,
   retries = 10,
-  retryDelay = 1000
+  retryDelay = 1000,
+  logger: { error: (...args: unknown[]) => void } = console
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const urlObj = new URL(url);
@@ -83,7 +55,7 @@ export async function downloadFromURL(
           logger.error('Retrying url:', url);
           setTimeout(
             () =>
-              downloadFromURL(url, retries - 1, retryDelay).then(
+              downloadFromURL(url, retries - 1, retryDelay, logger).then(
                 resolve,
                 reject
               ),
@@ -102,10 +74,15 @@ export async function downloadFromURL(
 
 /**
  * Check if a given url returns an expected status code.
+ * @param url The URL to check
+ * @param statusCodes The expected status codes
+ * @param logger An optional logger object. Defaults to `console`
+ * @returns Promise which resolves to true if the status code matches, false otherwise
  */
 export async function hasStatusCode(
   url: URL,
-  ...statusCodes: number[]
+  statusCodes: number[],
+  logger: { error: (...args: unknown[]) => void } = console
 ): Promise<boolean> {
   return new Promise(resolve => {
     const transporter = url.protocol === 'http:' ? http : https;

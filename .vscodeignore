@@ -3,11 +3,13 @@ _ignore/**
 .vscode/**
 .vscode-test/**
 src/**
+packages/**
 .gitignore
 .yarnrc
 vsc-extension-quickstart.md
 **/tsconfig.json
 **/tsconfig.unit.json
+**/tsconfig.tsbuildinfo
 **/.eslintrc.json
 **/*.map
 **/*.ts

@@ -1,6 +1,8 @@
-import { Logger } from './Logger';
-
-const logger = new Logger('errorUtils');
+export class NoConsoleTypesError extends Error {
+  constructor() {
+    super('No console types available');
+  }
+}
 
 export interface ParsedError {
   [key: string]: string | number | undefined;
@@ -13,45 +15,14 @@ export interface ParsedError {
 }
 
 /**
- * Returns true if the given error is an AggregateError. Optionally checks if
- * a given code matches the error's code.
- * @param err Error to check
- * @param code Optional code to check
- */
-export function isAggregateError(
-  err: unknown,
-  code?: string
-): err is { code: string } {
-  return hasErrorCode(err, code) && String(err) === 'AggregateError';
-}
-
-/**
- * Return true if given error has a code:string prop. Optionally check if the
- * code matches a given value.
- * @param err Error to check
- * @param code Optional code to check
- */
-export function hasErrorCode(
-  err: unknown,
-  code?: string
-): err is { code: string } {
-  if (
-    err != null &&
-    typeof err === 'object' &&
-    'code' in err &&
-    typeof err.code === 'string'
-  ) {
-    return code == null || err.code === code;
-  }
-
-  return false;
-}
-
-/**
  * Parse a server error string into a key-value object.
- * @param error
+ * @param error Error string to parse.
+ * @param logger Optional logger for debugging. Defaluts to console.
  */
-export function parseServerError(error: string): ParsedError {
+export function parseServerError(
+  error: string,
+  logger: { debug: (...args: unknown[]) => void } = console
+): ParsedError {
   const errorDetails: ParsedError = {};
   const lines = error.split('\n');
 

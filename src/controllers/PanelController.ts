@@ -6,13 +6,13 @@ import type {
   VariableDefintion,
 } from '../types';
 import { assertDefined, getDHThemeKey, getPanelHtml, Logger } from '../util';
-import { getEmbedWidgetUrl } from '../dh/dhc';
 import { DhcService } from '../services';
 import {
   OPEN_VARIABLE_PANELS_CMD,
   REFRESH_VARIABLE_PANELS_CMD,
 } from '../common';
 import { waitFor } from '../util/promiseUtils';
+import { getEmbedWidgetUrl } from '../dh/dhc';
 
 const logger = new Logger('PanelController');
 

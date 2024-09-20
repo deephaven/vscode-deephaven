@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
+import { isAggregateError } from '@deephaven/require-jsapi';
 import { hasErrorCode } from '../util/typeUtils';
 import type {
-  ConnectionAndSession,
   ConsoleType,
   IDhService,
   IPanelService,
@@ -11,19 +11,14 @@ import type {
   VariableDefintion,
   VariableID,
 } from '../types';
-import {
-  formatTimestamp,
-  getCombinedSelectedLinesText,
-  isAggregateError,
-  Logger,
-  NoConsoleTypesError,
-  parseServerError,
-} from '../util';
+import { formatTimestamp, getCombinedSelectedLinesText, Logger } from '../util';
 import {
   OPEN_VARIABLE_PANELS_CMD,
   REFRESH_VARIABLE_PANELS_CMD,
   VARIABLE_UNICODE_ICONS,
 } from '../common';
+import type { ConnectionAndSession } from '../dh/dhc';
+import { NoConsoleTypesError, parseServerError } from '../dh/errorUtils';
 
 const logger = new Logger('DhService');
 
