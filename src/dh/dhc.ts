@@ -7,6 +7,9 @@ export const AUTH_HANDLER_TYPE_ANONYMOUS =
 export const AUTH_HANDLER_TYPE_PSK =
   'io.deephaven.authentication.psk.PskAuthenticationHandler';
 
+export const AUTH_HANDLER_TYPE_DHE =
+  'io.deephaven.enterprise.dnd.authentication.DheAuthenticationHandler';
+
 export type ConnectionAndSession<TConnection, TSession> = {
   cn: TConnection;
   session: TSession;

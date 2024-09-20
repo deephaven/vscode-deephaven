@@ -4,9 +4,6 @@ import type { dh as DhType } from '@deephaven/jsapi-types';
 import { polyfillDh } from './polyfill';
 import { downloadFromURL, hasStatusCode } from './serverUtils';
 
-export const AUTH_HANDLER_TYPE_DHE =
-  'io.deephaven.enterprise.dnd.authentication.DheAuthenticationHandler';
-
 /**
  * Check if a given server is running by checking if the `dh-core.js` file is
  * accessible.

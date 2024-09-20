@@ -20,6 +20,13 @@ export async function isDheServerRunning(serverUrl: URL): Promise<boolean> {
   }
 }
 
+/**
+ * Polyfill browser apis, download jsapi to a local directory, and return the
+ * default export.
+ * @param serverUrl URL of the server to download the jsapi from
+ * @param storageDir Directory to save the downloaded jsapi
+ * @returns Default export of downloaded jsapi
+ */
 export async function initDheApi(
   serverUrl: URL,
   storageDir: string
