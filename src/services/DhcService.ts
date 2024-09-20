@@ -1,14 +1,14 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
+import { initDhcApi } from '@deephaven/require-jsapi';
+import DhService from './DhService';
+import { getTempDir, Logger, urlToDirectoryName } from '../util';
 import {
   AUTH_HANDLER_TYPE_ANONYMOUS,
   AUTH_HANDLER_TYPE_PSK,
-  ConnectionAndSession,
-  initDhcApi,
   initDhcSession,
-} from '@deephaven/require-jsapi';
-import DhService from './DhService';
-import { getTempDir, Logger, urlToDirectoryName } from '../util';
+  type ConnectionAndSession,
+} from '../dh/dhc';
 
 const logger = new Logger('DhcService');
 

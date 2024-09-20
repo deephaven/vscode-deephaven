@@ -3,18 +3,6 @@ import * as path from 'node:path';
 import type { dh as DhType } from '@deephaven/jsapi-types';
 import { polyfillDh } from './polyfill';
 import { downloadFromURL, hasStatusCode } from './serverUtils';
-import { NoConsoleTypesError } from './errorUtils';
-
-export type ConnectionAndSession<TConnection, TSession> = {
-  cn: TConnection;
-  session: TSession;
-};
-
-export const AUTH_HANDLER_TYPE_ANONYMOUS =
-  'io.deephaven.auth.AnonymousAuthenticationHandler';
-
-export const AUTH_HANDLER_TYPE_PSK =
-  'io.deephaven.authentication.psk.PskAuthenticationHandler';
 
 /**
  * Check if a given server is running by checking if the `dh-core.js` file is
@@ -33,47 +21,18 @@ export async function isDhcServerRunning(serverUrl: URL): Promise<boolean> {
 }
 
 /**
- * Get embed widget url for a widget.
- * @param serverUrl
- * @param title
- * @param themeKey
- * @param psk
+ * Polyfill browser apis, download jsapi to a local directory, and return the
+ * default export.
+ * @param serverUrl URL of the server to download the jsapi from
+ * @param storageDir Directory to save the downloaded jsapi
+ * @returns Default export of downloaded jsapi
  */
-export function getEmbedWidgetUrl(
-  serverUrl: URL,
-  title: string,
-  themeKey: string,
-  psk?: string
-): string {
-  const serverUrlStr = serverUrl.toString().replace(/\/$/, '');
-  return `${serverUrlStr}/iframe/widget/?theme=${themeKey}&name=${title}${psk ? `&psk=${psk}` : ''}`;
-}
-
 export async function initDhcApi(
   serverUrl: URL,
   storageDir: string
 ): Promise<typeof DhType> {
   polyfillDh();
   return getDhc(serverUrl, true, storageDir);
-}
-
-export async function initDhcSession(
-  client: DhType.CoreClient,
-  credentials: DhType.LoginCredentials
-): Promise<ConnectionAndSession<DhType.IdeConnection, DhType.IdeSession>> {
-  await client.login(credentials);
-
-  const cn = await client.getAsIdeConnection();
-
-  const [type] = await cn.getConsoleTypes();
-
-  if (type == null) {
-    throw new NoConsoleTypesError();
-  }
-
-  const session = await cn.startSession(type);
-
-  return { cn, session };
 }
 
 /**

@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import { getEmbedWidgetUrl } from '@deephaven/require-jsapi';
 import type {
   Disposable,
   IPanelService,
@@ -13,6 +12,7 @@ import {
   REFRESH_VARIABLE_PANELS_CMD,
 } from '../common';
 import { waitFor } from '../util/promiseUtils';
+import { getEmbedWidgetUrl } from '../dh/dhc';
 
 const logger = new Logger('PanelController');
 
