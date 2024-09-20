@@ -28,7 +28,8 @@
         "project": [
           "./tsconfig.json",
           "./e2e/tsconfig.json",
-          "./tsconfig.unit.json"
+          "./tsconfig.unit.json",
+          "./packages/*/tsconfig.json"
         ]
       },
 

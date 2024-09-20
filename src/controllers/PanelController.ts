@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { getEmbedWidgetUrl } from '@deephaven/require-jsapi';
 import type {
   Disposable,
   IPanelService,
@@ -6,7 +7,6 @@ import type {
   VariableDefintion,
 } from '../types';
 import { assertDefined, getDHThemeKey, getPanelHtml, Logger } from '../util';
-import { getEmbedWidgetUrl } from '../dh/dhc';
 import { DhcService } from '../services';
 import {
   OPEN_VARIABLE_PANELS_CMD,

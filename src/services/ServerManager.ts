@@ -1,8 +1,10 @@
 import * as vscode from 'vscode';
 import { randomUUID } from 'node:crypto';
+import {
+  isDhcServerRunning,
+  isDheServerRunning,
+} from '@deephaven/require-jsapi';
 import { UnsupportedConsoleTypeError } from '../common';
-import { isDhcServerRunning } from '../dh/dhc';
-import { isDheServerRunning } from '../dh/dhe';
 import type {
   ConsoleType,
   IConfigService,

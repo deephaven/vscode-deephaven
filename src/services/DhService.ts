@@ -1,5 +1,11 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
+import {
+  type ConnectionAndSession,
+  isAggregateError,
+  NoConsoleTypesError,
+  parseServerError,
+} from '@deephaven/require-jsapi';
 import { hasErrorCode } from '../util/typeUtils';
 import type {
   ConsoleType,
@@ -16,12 +22,6 @@ import {
   REFRESH_VARIABLE_PANELS_CMD,
   VARIABLE_UNICODE_ICONS,
 } from '../common';
-import type { ConnectionAndSession } from '../dh/dhc';
-import {
-  isAggregateError,
-  NoConsoleTypesError,
-  parseServerError,
-} from '../dh/errorUtils';
 
 const logger = new Logger('DhService');
 
