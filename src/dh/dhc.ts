@@ -14,19 +14,39 @@ export type ConnectionAndSession<TConnection, TSession> = {
 
 /**
  * Get embed widget url for a widget.
- * @param serverUrl
- * @param title
- * @param themeKey
- * @param psk
+ * @param serverUrl Server URL
+ * @param title Widget title
+ * @param themeKey Theme key
+ * @param authProvider Optional auth provider
+ * @param psk Optional psk
  */
-export function getEmbedWidgetUrl(
-  serverUrl: URL,
-  title: string,
-  themeKey: string,
-  psk?: string
-): string {
-  const serverUrlStr = serverUrl.toString().replace(/\/$/, '');
-  return `${serverUrlStr}/iframe/widget/?theme=${themeKey}&name=${title}${psk ? `&psk=${psk}` : ''}`;
+export function getEmbedWidgetUrl({
+  serverUrl,
+  title,
+  themeKey,
+  authProvider,
+  psk,
+}: {
+  serverUrl: URL;
+  title: string;
+  themeKey: string;
+  authProvider?: 'parent';
+  psk?: string | null;
+}): URL {
+  const url = new URL('/iframe/widget', serverUrl);
+
+  url.searchParams.set('name', title);
+  url.searchParams.set('theme', themeKey);
+
+  if (authProvider) {
+    url.searchParams.set('authProvider', authProvider);
+  }
+
+  if (psk) {
+    url.searchParams.set('psk', psk);
+  }
+
+  return url;
 }
 
 export async function initDhcSession(
