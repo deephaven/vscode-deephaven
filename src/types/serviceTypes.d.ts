@@ -120,6 +120,7 @@ export interface IServerManager extends Disposable {
 
   onDidConnect: vscode.Event<URL>;
   onDidDisconnect: vscode.Event<URL>;
+  onDidLoadConfig: vscode.Event<void>;
   onDidRegisterEditor: vscode.Event<vscode.Uri>;
   onDidServerStatusChange: vscode.Event<ServerState>;
   onDidUpdate: vscode.Event<void>;

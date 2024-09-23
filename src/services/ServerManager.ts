@@ -48,6 +48,9 @@ export class ServerManager implements IServerManager {
   private readonly _onDidDisconnect = new vscode.EventEmitter<URL>();
   readonly onDidDisconnect = this._onDidDisconnect.event;
 
+  private readonly _onDidLoadConfig = new vscode.EventEmitter<void>();
+  readonly onDidLoadConfig = this._onDidLoadConfig.event;
+
   private readonly _onDidServerStatusChange =
     new vscode.EventEmitter<ServerState>();
   readonly onDidServerStatusChange = this._onDidServerStatusChange.event;
@@ -89,6 +92,8 @@ export class ServerManager implements IServerManager {
     }
 
     await this.updateStatus();
+
+    this._onDidLoadConfig.fire();
   };
 
   connectToServer = async (serverUrl: URL): Promise<IDhService | null> => {
