@@ -66,21 +66,31 @@ export class ServerManager implements IServerManager {
   canStartServer: boolean;
 
   loadServerConfig = async (): Promise<void> => {
-    const initialDhcServerState = getInitialServerStates(
+    // We want to keep any existing managed servers that aren't overridden by
+    // the latest config so we don't lose the PSKs that were generated when
+    // the servers were created.
+    const managedServersStates = this._serverMap
+      .values()
+      .filter(v => v.isManaged);
+
+    const configuredDhcServerState = getInitialServerStates(
       'DHC',
       this._configService.getCoreServers()
     );
 
-    const initialDheServerState = getInitialServerStates(
+    const configuredDheServerState = getInitialServerStates(
       'DHE',
       this._configService.getEnterpriseServers()
     );
 
     this._serverMap = new URLMap(
-      [...initialDhcServerState, ...initialDheServerState].map(state => [
-        state.url,
-        state,
-      ])
+      [
+        // Managed (pip) servers are first so that they can be overridden by the
+        // configured servers if necessary
+        ...managedServersStates,
+        ...configuredDhcServerState,
+        ...configuredDheServerState,
+      ].map(state => [state.url, state])
     );
 
     // If server config changes in a way that removes servers, disconnect any

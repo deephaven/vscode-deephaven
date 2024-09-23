@@ -67,7 +67,7 @@ export abstract class SerializedKeyMap<TKey, TValue> {
     }
   }
 
-  *values(): IterableIterator<TValue> {
-    yield* this._map.values();
+  values(): IteratorObject<TValue> {
+    return this._map.values();
   }
 }
