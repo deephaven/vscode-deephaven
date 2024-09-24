@@ -21,5 +21,8 @@
     "e2e",
     "**/*.spec.ts"
   ],
-  "references": [{ "path": "./packages/require-jsapi" }]
+  "references": [
+    { "path": "./packages/query-monitor" },
+    { "path": "./packages/require-jsapi" }
+  ]
 }

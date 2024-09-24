@@ -759,6 +759,10 @@
   },
   "dependencies": {
     "@deephaven/require-jsapi": "file:./packages/require-jsapi",
+    "@deephaven-enterprise/query-monitor": "file:./packages/query-monitor",
     "ws": "^8.18.0"
+  },
+  "overrides": {
+    "event-target-shim": "^6.0.2"
   }
 }

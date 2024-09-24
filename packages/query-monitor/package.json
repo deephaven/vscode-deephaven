@@ -1,0 +1,24 @@
+{
+  "name": "@deephaven-enterprise/query-monitor",
+  "version": "0.0.1",
+  "description": "Deephaven Query Monitor",
+  "author": "Deephaven Data Labs LLC",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "type": "module",
+  "private": false,
+  "source": "src/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc --build"
+  },
+  "dependencies": {
+    "@deephaven/log": "^0.95.0",
+    "@deephaven/utils": "^0.95.0",
+    "@internationalized/date": "^3.5.5"
+  }
+}
