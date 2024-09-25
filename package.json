@@ -730,7 +730,7 @@
     }
   },
   "devDependencies": {
-    "@deephaven-enterprise/jsapi-types": "^1.20240723.53-beta-alpha-npm-test.1",
+    "@deephaven-enterprise/jsapi-types": "1.20240723.536-alpha-npm-publish.23386",
     "@deephaven/jsapi-types": "^1.0.0-dev0.35.3",
     "@types/node": "22.5.4",
     "@types/vscode": "^1.91.0",
