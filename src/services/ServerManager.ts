@@ -48,6 +48,9 @@ export class ServerManager implements IServerManager {
   private readonly _onDidDisconnect = new vscode.EventEmitter<URL>();
   readonly onDidDisconnect = this._onDidDisconnect.event;
 
+  private readonly _onDidLoadConfig = new vscode.EventEmitter<void>();
+  readonly onDidLoadConfig = this._onDidLoadConfig.event;
+
   private readonly _onDidServerStatusChange =
     new vscode.EventEmitter<ServerState>();
   readonly onDidServerStatusChange = this._onDidServerStatusChange.event;
@@ -63,21 +66,31 @@ export class ServerManager implements IServerManager {
   canStartServer: boolean;
 
   loadServerConfig = async (): Promise<void> => {
-    const initialDhcServerState = getInitialServerStates(
+    // We want to keep any existing managed servers that aren't overridden by
+    // the latest config so we don't lose the PSKs that were generated when
+    // the servers were created.
+    const managedServersStates = this._serverMap
+      .values()
+      .filter(v => v.isManaged);
+
+    const configuredDhcServerState = getInitialServerStates(
       'DHC',
       this._configService.getCoreServers()
     );
 
-    const initialDheServerState = getInitialServerStates(
+    const configuredDheServerState = getInitialServerStates(
       'DHE',
       this._configService.getEnterpriseServers()
     );
 
     this._serverMap = new URLMap(
-      [...initialDhcServerState, ...initialDheServerState].map(state => [
-        state.url,
-        state,
-      ])
+      [
+        // Managed (pip) servers are first so that they can be overridden by the
+        // configured servers if necessary
+        ...managedServersStates,
+        ...configuredDhcServerState,
+        ...configuredDheServerState,
+      ].map(state => [state.url, state])
     );
 
     // If server config changes in a way that removes servers, disconnect any
@@ -89,6 +102,8 @@ export class ServerManager implements IServerManager {
     }
 
     await this.updateStatus();
+
+    this._onDidLoadConfig.fire();
   };
 
   connectToServer = async (serverUrl: URL): Promise<IDhService | null> => {

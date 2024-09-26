@@ -22,13 +22,11 @@ export class PipServerController implements Disposable {
   constructor(
     context: vscode.ExtensionContext,
     serverManager: IServerManager,
-    portRange: Iterable<Port>,
     outputChannel: vscode.OutputChannel,
     toastService: IToastService
   ) {
     this._context = context;
     this._pollers = new Map();
-    this._portRange = new Set(portRange);
     this._serverUrlTerminalMap = new Map();
     this._serverManager = serverManager;
     this._outputChannel = outputChannel;
@@ -51,17 +49,19 @@ export class PipServerController implements Disposable {
       undefined,
       this._context.subscriptions
     );
+
+    this._serverManager.onDidLoadConfig(this.onDidLoadConfig);
   }
 
   private readonly _context: vscode.ExtensionContext;
   private readonly _outputChannel: vscode.OutputChannel;
   private readonly _pollers: Map<Port, { cancel: () => void }>;
-  private readonly _portRange: ReadonlySet<Port>;
   private readonly _serverUrlTerminalMap: Map<Port, vscode.Terminal>;
   private readonly _serverManager: IServerManager;
   private readonly _toaster: IToastService;
   private _checkPipInstallPromise: Promise<boolean> | null = null;
   private _isPipServerInstalled = false;
+  private _reservedPorts: ReadonlySet<Port> = new Set();
 
   /**
    * Log and show an error message to the user.
@@ -127,10 +127,50 @@ export class PipServerController implements Disposable {
     return this._checkPipInstallPromise;
   };
 
-  getAvailablePorts = (): Port[] => {
-    return [...this._portRange]
-      .filter(port => !this._serverUrlTerminalMap.has(port))
-      .sort();
+  /**
+   * Gets the next available port for starting a pip server.
+   * @returns A port number or `null` if no ports are available.
+   */
+  getNextAvailablePort = (): Port | null => {
+    for (let i = 10000; i < 10050; ++i) {
+      if (
+        !this._serverUrlTerminalMap.has(i as Port) &&
+        !this._reservedPorts.has(i as Port)
+      ) {
+        return i as Port;
+      }
+    }
+
+    return null;
+  };
+
+  /**
+   * Whenever server config loads, reserve any ports that are explicitly
+   * configured.
+   */
+  onDidLoadConfig = (): void => {
+    const servers = this._serverManager.getServers();
+
+    const reservedPorts = new Set<Port>();
+    const toDispose = new Set<Port>();
+
+    for (const server of servers) {
+      const port = parsePort(server.url.port);
+
+      reservedPorts.add(port);
+
+      // If an existing pip managed server port has become explicitly configured,
+      // mark it for disposal.
+      if (!server.isManaged && this._serverUrlTerminalMap.has(port)) {
+        toDispose.add(port);
+      }
+    }
+
+    this._reservedPorts = reservedPorts;
+
+    if (toDispose.size > 0) {
+      this.disposeServers(toDispose);
+    }
   };
 
   pollUntilServerStarts = async (port: Port): Promise<void> => {
@@ -163,7 +203,7 @@ export class PipServerController implements Disposable {
   };
 
   startServer = async (): Promise<void> => {
-    const [port] = this.getAvailablePorts();
+    const port = this.getNextAvailablePort();
 
     if (port == null) {
       this._logAndShowError('No available ports');
@@ -254,7 +294,7 @@ export class PipServerController implements Disposable {
     }
 
     this._serverManager.canStartServer =
-      this._isPipServerInstalled && this.getAvailablePorts().length > 0;
+      this._isPipServerInstalled && this.getNextAvailablePort() != null;
 
     if (!this._isPipServerInstalled) {
       this._serverManager.syncManagedServers([]);
@@ -269,10 +309,24 @@ export class PipServerController implements Disposable {
   disposeServers = async (ports: Iterable<Port>): Promise<void> => {
     for (const port of ports) {
       const terminal = this._serverUrlTerminalMap.get(port);
+      this._serverUrlTerminalMap.delete(port);
 
-      if (terminal != null) {
-        terminal.dispose();
-        this._serverUrlTerminalMap.delete(port);
+      if (terminal != null && terminal.exitStatus == null) {
+        // One time subscription to update server status after terminal is closed
+        const oneTime = vscode.window.onDidCloseTerminal(t => {
+          if (t === terminal) {
+            oneTime.dispose();
+            this._serverManager.updateStatus();
+          }
+        });
+
+        // Send ctrl+c to stop pip server, then exit the terminal. This allows
+        // `onDidCloseTerminal` to fire once the server is actually stopped vs
+        // `terminal.dispose()` which will fire `onDidCloseTerminal` immediately
+        // before the server process has actually finished exiting.
+        const ctrlC = String.fromCharCode(3);
+        terminal.sendText(ctrlC);
+        terminal.sendText('exit');
       }
 
       this._pollers.get(port)?.cancel();

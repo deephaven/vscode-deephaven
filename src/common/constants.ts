@@ -1,5 +1,5 @@
 import * as path from 'node:path';
-import type { ConsoleType, Port, VariableType } from '../types';
+import type { ConsoleType, VariableType } from '../types';
 
 export const EXTENSION_ID = 'vscode-deephaven' as const;
 
@@ -11,10 +11,6 @@ export const CONFIG_KEY = {
 
 export const DEFAULT_CONSOLE_TYPE = 'python' as const;
 // export const DHFS_SCHEME = 'dhfs';
-
-export const DEFAULT_PIP_PORT_RANGE: ReadonlySet<Port> = new Set([
-  10001, 10002, 10003, 10004,
-] as Port[]);
 
 export const PYTHON_ENV_WAIT = 1500 as const;
 
