@@ -33,9 +33,10 @@ import { DhService } from './DhService';
 import { AUTH_HANDLER_TYPE_PSK } from '../dh/dhc';
 import {
   createDheClient,
-  defaultDraftQuery,
+  createDraftQuery,
   getDheAuthToken,
   getWsUrl,
+  hasInteractivePermission,
 } from '../dh/dhe';
 
 // TODO: Dev only to avoid storing credentials in the codebase. Will implement
@@ -170,18 +171,88 @@ export class ServerManager implements IServerManager {
         await dheClient.login(dheCredentials);
       } catch (err) {
         logger.error('An error occurred while connecting to DHE server:', err);
+        return null;
       }
 
-      const newQueryName = `vscode extension - ${randomUUID()}`;
+      if (!hasInteractivePermission(dheClient)) {
+        logger.error('User does not have permission to run queries.');
+        return null;
+      }
 
-      const draftQuery = defaultDraftQuery({
-        name: newQueryName,
-        type: 'InteractiveConsole',
-        owner: HACK_USERNAME,
-        // heapSize: 1,
-        jvmArgs: '-Dhttp.websockets=true',
-        scriptLanguage: 'Python',
-      });
+      // const newQueryName = `vscode extension - ${randomUUID()}`;
+
+      // new DraftQuery({
+      //   isClientSide: true,
+      //   name: newQueryName,
+      //   type: 'InteractiveConsole',
+      //   dbServerName: dbServers[0]?.name ?? 'Query 1',
+      //   draftOwner: dheCredentials.username,
+      //   heapSize: queryConstants.pqDefaultHeap,
+      //   jvmProfile: serverConfigValues.jvmProfileDefault,
+      //   restartQueryWhenRunning:
+      //     serverConfigValues.restartQueryWhenRunningDefault,
+      //   scriptLanguage:
+      //     serverConfigValues.scriptSessionProviders?.[0] ?? 'Python',
+      //   timeZone:
+      //     serverConfigValues.timeZone ??
+      //     Intl.DateTimeFormat().resolvedOptions().timeZone,
+      //   workerKind: serverConfigValues.workerKinds?.[0]?.name,
+      // });
+      // const draftQuery = createDraftQuery({
+      //   name: newQueryName,
+      //   type: 'InteractiveConsole',
+      //   dbServerName: dbServers[0]?.name ?? 'Query 1',
+      //   draftOwner: dheCredentials.username,
+      //   heapSize: queryConstants.pqDefaultHeap,
+      //   jvmProfile: serverConfigValues.jvmProfileDefault,
+      //   restartQueryWhenRunning:
+      //     serverConfigValues.restartQueryWhenRunningDefault,
+      //   scriptLanguage:
+      //     serverConfigValues.scriptSessionProviders?.[0] ?? 'Python',
+      //   timeZone:
+      //     serverConfigValues.timeZone ??
+      //     Intl.DateTimeFormat().resolvedOptions().timeZone,
+      //   workerKind: serverConfigValues.workerKinds?.[0]?.name,
+      // });
+
+      // const draftQuery = defaultDraftQuery({
+      //   name: newQueryName,
+      //   type: 'InteractiveConsole',
+      //   owner: HACK_USERNAME,
+      //   // heapSize: 1,
+      //   jvmArgs: '-Dhttp.websockets=true',
+      //   scriptLanguage: 'Python',
+      // });
+
+      // new DraftManager(
+      //   userName,
+      //   controllerConfiguration.dbServers,
+      //   workspaceStorage,
+      //   defaultCalendar,
+      //   controllerConfiguration.queryConstants.pqDefaultHeap,
+      //   serverConfigValues.restartQueryWhenRunningDefault,
+      //   serverConfigValues.jvmProfileDefault,
+      //   serverConfigValues.scriptSessionProviders?.[0],
+      //   newSettings.timeZone,
+      //   serverConfigValues.defaultWorkerKind,
+      //   serverConfigValues.workerKinds?.[0]?.name
+      // )
+      // draftOwner: string,
+      // dbServers: readonly ConsoleServerAddress[],
+      // workspaceStorage: WorkspaceStorage,
+      // defaultCalendar: string,
+      // defaultHeapSize: number,
+      // defaultRestartQueryWhenRunning: string,
+      // defaultJvmProfile: string,
+      // defaultScriptLanguage: string,
+      // defaultTimeZone: string,
+      // defaultWorkerKind: string,
+      // firstWorkerKind: string
+
+      const draftQuery = await createDraftQuery(
+        dheClient,
+        dheCredentials.username
+      );
 
       try {
         const newSerial = await dheClient.createQuery(draftQuery);

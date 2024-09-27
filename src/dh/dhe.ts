@@ -4,6 +4,12 @@ import type {
   EditableQueryInfo,
   EnterpriseClient,
 } from '@deephaven-enterprise/jsapi-types';
+import { DraftQuery, QueryScheduler } from '@deephaven-enterprise/query-utils';
+
+export type IDraftQuery = EditableQueryInfo & {
+  isClientSide: boolean;
+  draftOwner: string;
+};
 
 export async function createDheClient(
   dhe: DheType,
@@ -42,140 +48,60 @@ export function getWsUrl(serverUrl: URL): URL {
   return url;
 }
 
-export function defaultDraftQuery(
-  config: { owner: string } & Partial<EditableQueryInfo>
-): EditableQueryInfo {
-  return {
-    id: randomUUID(),
-    type: 'Script',
-    isModified: false,
+export async function hasInteractivePermission(
+  dheClient: EnterpriseClient
+): Promise<boolean> {
+  // TODO: Retrieve these group names from the server:
+  // https://deephaven.atlassian.net/browse/DH-9418
+  const GROUP_NON_INTERACTIVE = 'deephaven-noninteractive';
+  const GROUP_SUPERUSERS = 'iris-superusers';
+
+  const groups = await dheClient.getGroupsForUser();
+
+  const isSuperUser = groups.indexOf(GROUP_SUPERUSERS) >= 0;
+  const isNonInteractive = groups.indexOf(GROUP_NON_INTERACTIVE) >= 0;
+  const isInteractive = !isNonInteractive;
+
+  return isSuperUser || isInteractive;
+}
+
+export async function createDraftQuery(
+  dheClient: EnterpriseClient,
+  owner: string
+): Promise<IDraftQuery> {
+  const [dbServers, queryConstants, serverConfigValues] = await Promise.all([
+    dheClient.getDbServers(),
+    dheClient.getQueryConstants(),
+    dheClient.getServerConfigValues(),
+  ]);
+
+  const name = `vscode extension - ${randomUUID()}`;
+  const dbServerName = dbServers[0]?.name ?? 'Query 1';
+  const heapSize = queryConstants.pqDefaultHeap;
+  const jvmProfile = serverConfigValues.jvmProfileDefault;
+  const scriptLanguage =
+    serverConfigValues.scriptSessionProviders?.[0] ?? 'Python';
+  const workerKind = serverConfigValues.workerKinds?.[0]?.name;
+
+  const timeZone =
+    serverConfigValues.timeZone ??
+    Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  const scheduling = QueryScheduler.makeDefaultScheduling(
+    serverConfigValues.restartQueryWhenRunningDefault,
+    timeZone
+  );
+
+  return new DraftQuery({
     isClientSide: true,
-    draftOwner: config.owner,
-    serial: null,
-    name: 'Untitled',
-    enabled: true,
-    enableGcLogs: true,
-    envVars: '',
-    heapSize: 4,
-    additionalMemory: 0,
-    dataMemoryRatio: 0.25,
-    jvmArgs: '',
-    extraClasspaths: '',
-    jvmProfile: 'Default',
-    dbServerName: 'AutoQuery',
-    scriptLanguage: 'Groovy',
-    scriptPath: null,
-    scriptCode: '',
-    adminGroups: [],
-    viewerGroups: [],
-    restartUsers: 1,
-    timeout: 0,
-    workerKind: 'DeephavenCommunity',
-    typeSpecificFields: null,
-    replicaCount: 1,
-    spareCount: 0,
-    assignmentPolicy: null,
-    assignmentPolicyParams: null,
-    scheduling: [
-      'SchedulerType=com.illumon.iris.controller.IrisQuerySchedulerDaily',
-      'Calendar=USNYSE',
-      'BusinessDays=false',
-      'Days=true=true=true=true=true=true=true',
-      'StartTime=07:55:00',
-      'StopTime=23:55:00',
-      'TimeZone=America/New_York',
-      'SchedulingDisabled=false',
-      'Overnight=false',
-      'RepeatEnabled=false',
-      'SkipIfUnsuccessful=false',
-      'StopTimeDisabled=false',
-      'RestartErrorCount=0',
-      'RestartErrorDelay=0',
-      'RestartWhenRunning=Yes',
-    ],
-    scheduler: {
-      type: 'com.illumon.iris.controller.IrisQuerySchedulerDaily',
-      startTimeInternal: 28500,
-      stopTimeInternal: 86100,
-      timeZone: 'America/New_York',
-      schedulingDisabled: false,
-      overnightInternal: false,
-      repeatEnabled: false,
-      stopTimeDisabledInternal: false,
-      repeatInterval: 0,
-      skipIfUnsuccessful: false,
-      restartErrorCount: 0,
-      restartDelayMinutes: 0,
-      restartWhenRunning: 'Yes',
-      businessDays: false,
-      dailyBusinessCalendar: 'USNYSE',
-      dailyDays: [true, true, true, true, true, true, true],
-      firstBusinessDay: false,
-      lastBusinessDay: false,
-      specificDays: true,
-      months: [
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-      ],
-      monthlyDays: [
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-      ],
-      monthlyBusinessCalendar: 'USNYSE',
-      dailyRestart: false,
-      runOnFailure: false,
-      restartOnCondition: false,
-      dependentOnQuerySerials: [],
-      useMinStartTime: false,
-      runOnAny: false,
-      deadlineStartTime: 0,
-      deadlineEndTime: 86399,
-      runEveryTime: false,
-      temporaryQueueName: '',
-      expirationTimeMillis: 86400000,
-      temporaryDependentOnQuerySerials: [],
-      startDateTime: null,
-      stopDateTime: null,
-    },
-    ...config,
-  } as any;
+    draftOwner: owner,
+    name,
+    owner,
+    dbServerName,
+    heapSize,
+    scheduling,
+    jvmProfile,
+    scriptLanguage,
+    workerKind,
+  });
 }

@@ -6,6 +6,7 @@
     "lib": ["ESNext", "DOM"],
     "sourceMap": true,
     "rootDir": "src",
+    "esModuleInterop": true,
     "strict": true /* enable all strict type-checking options */,
     "esModuleInterop": true,
     "paths": {
@@ -21,8 +22,5 @@
     "e2e",
     "**/*.spec.ts"
   ],
-  "references": [
-    { "path": "./packages/query-monitor" },
-    { "path": "./packages/require-jsapi" }
-  ]
+  "references": [{ "path": "./packages/require-jsapi" }]
 }

@@ -758,7 +758,6 @@
     "wdio-vscode-service": "^6.1.0"
   },
   "dependencies": {
-    "@deephaven-enterprise/query-monitor": "file:./packages/query-monitor",
     "@deephaven-enterprise/query-utils": "^1.20240723.62-alpha-fix-dependencies.1",
     "@deephaven/require-jsapi": "file:./packages/require-jsapi",
     "ws": "^8.18.0"
