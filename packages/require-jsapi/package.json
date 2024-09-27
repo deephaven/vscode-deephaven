@@ -17,6 +17,9 @@
     "build": "tsc --build"
   },
   "dependencies": {
-    "@deephaven-enterprise/jsapi-types": "file:../enterprise-jsapi-types"
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@deephaven-enterprise/jsapi-types": "^1.20240723.62-beta"
   }
 }

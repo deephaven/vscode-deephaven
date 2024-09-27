@@ -67,7 +67,8 @@ export class DhcService extends DhService<typeof DhcType, DhcType.CoreClient> {
     }
 
     if (this.credentialsCache.has(this.serverUrl)) {
-      return initDhcSession(client, this.credentialsCache.get(this.serverUrl)!);
+      const credentials = this.credentialsCache.get(this.serverUrl)!;
+      return initDhcSession(client, credentials);
     }
 
     throw new Error('No supported authentication methods found.');
