@@ -742,6 +742,7 @@
     "@wdio/mocha-framework": "^8.39.0",
     "@wdio/spec-reporter": "^8.39.0",
     "ctrf": "^0.0.9",
+    "esbuild": "^0.24.0",
     "eslint": "^8.57.0",
     "fantasticon": "^3.0.0",
     "github-actions-ctrf": "^0.0.20",
