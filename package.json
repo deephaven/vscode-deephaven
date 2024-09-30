@@ -29,7 +29,7 @@
     "packages/*"
   ],
   "scripts": {
-    "check:types": "npm run clean && tsc -p ./tsconfig.json --noEmit --module preserve --moduleResolution bundler && tsc -p tsconfig.unit.json --noEmit --module preserve --moduleResolution bundler && tsc -p e2e/tsconfig.json --noEmit --skipLibCheck",
+    "check:types": "npm run clean && tsc --build ./tsconfig.json && tsc -p tsconfig.unit.json --noEmit --module preserve --moduleResolution bundler && tsc -p e2e/tsconfig.json --noEmit --skipLibCheck",
     "clean": "rm -rf out packages/*/tsconfig.tsbuildinfo",
     "compile": "npm run check:types && node scripts/esbuild.js",
     "icon:gen": "node icons/generate.mjs",
@@ -47,7 +47,7 @@
     "vscode:prepublish": "npm run package",
     "vsix:latest": "vsce package -o releases/vscode-deephaven-latest.vsix",
     "watch:esbuild": "node scripts/esbuild.js --watch",
-    "watch:tsc": "npm run clean && tsc --noEmit --watch --project tsconfig.json",
+    "watch:tsc": "npm run clean && tsc --build ./tsconfig.json --watch",
     "watch": "npm-run-all -p watch:*"
   },
   "contributes": {
