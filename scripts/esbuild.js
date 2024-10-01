@@ -14,9 +14,9 @@ const esbuildProblemMatcherPlugin = {
   // output of `build.onStart` and `build.onEnd`. This is how the debugger knows
   // if background tasks are ready, since there will be no exit code. We are using
   // the recommended `connor4312.esbuild-problem-matchers` extension which provides
-  // the `$esbuild-watch` problem matcher. This requires '[watch] build started'
-  // and '[watch] build finished' to be logged to the console. Changes to this
-  // can break debugging.
+  // the `$esbuild-watch` problem matcher. It expects '[watch] build started'
+  // and '[watch] build finished' to be explicitly logged to the console by the
+  // respective `onStart` and `onEnd` events.
   // See https://github.com/connor4312/esbuild-problem-matchers/blob/main/package.json#L61-L64
   setup(build) {
     build.onStart(() => {
