@@ -20,6 +20,6 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
-    "@deephaven-enterprise/jsapi-types": "^1.20240723.62-beta"
+    "@deephaven-enterprise/jsapi-types": "^1.20240723.74-alpha-npm-publish-test.23413"
   }
 }
