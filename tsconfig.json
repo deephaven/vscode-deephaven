@@ -2,11 +2,12 @@
   "compilerOptions": {
     "module": "commonjs",
     "target": "ESNext",
-    "outDir": "out",
+    "outDir": "dist",
     "lib": ["ESNext", "DOM"],
     "sourceMap": true,
     "rootDir": "src",
     "strict": true /* enable all strict type-checking options */,
+    "esModuleInterop": true,
     "paths": {
       "@deephaven/require-jsapi": ["./packages/require-jsapi/src"],
       // workaround for: https://github.com/rollup/rollup/issues/5199#issuecomment-2095374821

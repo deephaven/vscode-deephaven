@@ -200,6 +200,7 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
       this.cn = cn;
       this.session = session;
     } catch (err) {
+      logger.error(err);
       const toastMessage = this.getToastErrorMessage(
         err,
         `Failed to create Deephaven session: ${this.serverUrl}`

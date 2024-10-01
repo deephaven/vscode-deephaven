@@ -38,7 +38,7 @@ export const PIP_SERVER_SUPPORTED_PLATFORMS = new Set<NodeJS.Platform>([
   'linux',
 ]);
 
-export const TMP_DIR_ROOT = path.join(__dirname, '..', 'tmp');
+export const TMP_DIR_ROOT = path.join(__dirname, 'tmp');
 
 export const VIEW_ID = {
   serverTree: `${EXTENSION_ID}.serverTree`,

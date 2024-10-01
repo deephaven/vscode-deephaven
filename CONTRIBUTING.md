@@ -86,7 +86,7 @@ https://code.visualstudio.com/api/working-with-extensions/publishing-extension#p
 1. Increment the version number in `package.json` (be sure to run `npm i` to update package-lock as well)
    > See [versioning strategy](#versioning-strategy) for details on our version number scheme.
 1. If new content has been added that needs to be packaged that is not included by `.vscodeignore`, make appropriate changes (this should not be common).
-1. Package latest `npm run package:latest` (inspect output to verify included files are as expected)
+1. Package latest `npm run vsix:latest` (inspect output to verify included files are as expected)
 1. Use `vsce` cli to publish to Visual Studio Marketplace
 
    ```sh

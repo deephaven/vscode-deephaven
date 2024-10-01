@@ -1,4 +1,4 @@
-import * as ws from 'ws';
+import ws from 'ws';
 
 export class CustomEvent extends Event {
   constructor(...args: ConstructorParameters<typeof Event>) {
