@@ -6,7 +6,6 @@
     "lib": ["ESNext", "DOM"],
     "sourceMap": true,
     "rootDir": "src",
-    "esModuleInterop": true,
     "strict": true /* enable all strict type-checking options */,
     "esModuleInterop": true,
     "paths": {
