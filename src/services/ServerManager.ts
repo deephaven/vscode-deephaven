@@ -153,8 +153,8 @@ export class ServerManager implements IServerManager {
     this._connectionMap.delete(serverUrl);
 
     // Remove any editor URIs associated with this connection
-    this._uriConnectionsMap.forEach((serverConnection, uri) => {
-      if (serverConnection === connection) {
+    this._uriConnectionsMap.forEach((connectionState, uri) => {
+      if (connectionState === connection) {
         this._uriConnectionsMap.delete(uri);
       }
     });
@@ -271,25 +271,25 @@ export class ServerManager implements IServerManager {
 
   setEditorConnection = async (
     editor: vscode.TextEditor,
-    serverConnection: ConnectionState
+    connectionState: ConnectionState
   ): Promise<void> => {
     const uri = editor.document.uri;
 
     const isConsoleTypeSupported =
-      serverConnection instanceof DhService &&
-      (await serverConnection.supportsConsoleType(
+      connectionState instanceof DhService &&
+      (await connectionState.supportsConsoleType(
         editor.document.languageId as ConsoleType
       ));
 
     if (!isConsoleTypeSupported) {
       throw new UnsupportedConsoleTypeError(
-        `Connection '${serverConnection.serverUrl}' does not support '${editor.document.languageId}'.`
+        `Connection '${connectionState.serverUrl}' does not support '${editor.document.languageId}'.`
       );
     }
 
     this._uriConnectionsMap.delete(uri);
 
-    this._uriConnectionsMap.set(uri, serverConnection);
+    this._uriConnectionsMap.set(uri, connectionState);
     this._onDidUpdate.fire();
     this._onDidRegisterEditor.fire(uri);
   };
