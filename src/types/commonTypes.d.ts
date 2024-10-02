@@ -43,6 +43,13 @@ export interface ConnectionState {
   readonly serverUrl: URL;
 }
 
+export interface WorkerInfo {
+  getCredentials: () => Promise<DhcType.LoginCredentials>;
+  ideUrl: string;
+  processInfoId: string | null;
+  workerName: string | null;
+}
+
 export interface Disposable {
   dispose(): Promise<void>;
 }

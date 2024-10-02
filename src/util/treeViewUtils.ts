@@ -250,7 +250,7 @@ export function getServerTreeItem({
     label: new URL(urlStr).host,
     description,
     tooltip: canConnect ? `Click to connect to ${urlStr}` : urlStr,
-    contextValue: server.type === 'DHC' ? contextValue : undefined,
+    contextValue,
     iconPath: new vscode.ThemeIcon(
       getServerIconID({ isConnected, isManaged, isRunning })
     ),

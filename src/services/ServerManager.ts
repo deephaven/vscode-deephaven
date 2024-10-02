@@ -1,9 +1,16 @@
 import * as vscode from 'vscode';
 import { randomUUID } from 'node:crypto';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
-import type { EnterpriseDhType as DheType } from '@deephaven-enterprise/jsapi-types';
+import type {
+  EnterpriseDhType as DheType,
+  QueryInfo,
+} from '@deephaven-enterprise/jsapi-types';
 import {
   AUTH_HANDLER_TYPE_PSK,
+  createDheClient,
+  defaultDraftQuery,
+  getDheAuthToken,
+  getWsUrl,
   isDhcServerRunning,
   isDheServerRunning,
 } from '@deephaven/require-jsapi';
@@ -16,8 +23,10 @@ import type {
   IServerManager,
   ConnectionState,
   ServerState,
+  WorkerInfo,
 } from '../types';
 import {
+  assertDefined,
   getInitialServerStates,
   isDisposable,
   isInstanceOf,
@@ -26,6 +35,11 @@ import {
 import { URLMap } from './URLMap';
 import { URIMap } from './URIMap';
 import DhService from './DhService';
+
+// TODO: Dev only to avoid storing credentials in the codebase. Will implement
+// proper credential management later.
+const HACK_USERNAME = process.env.VSCODE_DHE_USER!;
+assertDefined(HACK_USERNAME, 'VSCODE_DHE_USER must be defined');
 
 const logger = new Logger('ServerManager');
 
@@ -43,6 +57,7 @@ export class ServerManager implements IServerManager {
     this._serverMap = new URLMap<ServerState>();
     this._connectionMap = new URLMap<ConnectionState>();
     this._uriConnectionsMap = new URIMap<ConnectionState>();
+    this._workerInfoMap = new URLMap<WorkerInfo>();
 
     this.canStartServer = false;
 
@@ -55,6 +70,7 @@ export class ServerManager implements IServerManager {
   private readonly _dhcServiceFactory: IDhServiceFactory;
   private readonly _dheJsApiCache: ICacheService<URL, DheType>;
   private readonly _uriConnectionsMap: URIMap<ConnectionState>;
+  private readonly _workerInfoMap: URLMap<WorkerInfo>;
   private _serverMap: URLMap<ServerState>;
 
   private readonly _onDidConnect = new vscode.EventEmitter<URL>();
@@ -139,7 +155,89 @@ export class ServerManager implements IServerManager {
         token: serverState.psk,
       });
     } else if (serverState.type === 'DHE') {
-      return null;
+      const dhe = await this._dheJsApiCache.get(serverUrl);
+      const dheClient = await createDheClient(dhe, getWsUrl(serverUrl));
+
+      const dheCredentials = {
+        username: HACK_USERNAME,
+        token: HACK_USERNAME,
+        type: 'password',
+      };
+
+      try {
+        await dheClient.login(dheCredentials);
+      } catch (err) {
+        logger.error('An error occurred while connecting to DHE server:', err);
+      }
+
+      const newQueryName = `vscode extension - ${randomUUID()}`;
+
+      const draftQuery = defaultDraftQuery({
+        name: newQueryName,
+        type: 'InteractiveConsole',
+        owner: HACK_USERNAME,
+        // heapSize: 1,
+        jvmArgs: '-Dhttp.websockets=true',
+        scriptLanguage: 'Python',
+      });
+
+      try {
+        const newSerial = await dheClient.createQuery(draftQuery);
+
+        const queryInfo = await new Promise<QueryInfo>(resolve => {
+          dheClient.addEventListener(
+            dhe.Client.EVENT_CONFIG_UPDATED,
+            _event => {
+              const queryInfo = dheClient
+                .getKnownConfigs()
+                .find(({ serial }) => serial === newSerial);
+
+              if (queryInfo?.designated?.grpcUrl != null) {
+                console.log('[TESTING] match', queryInfo);
+                resolve(queryInfo);
+              } else {
+                console.log('[TESTING] no match', queryInfo);
+              }
+            }
+          );
+        });
+
+        if (queryInfo?.designated?.grpcUrl == null) {
+          return null;
+        }
+
+        serverUrl = new URL(queryInfo.designated.grpcUrl);
+
+        this._workerInfoMap.set(serverUrl, {
+          ideUrl: queryInfo.designated.ideUrl,
+          processInfoId: queryInfo.designated.processInfoId,
+          workerName: queryInfo.designated.workerName,
+          getCredentials: async () => getDheAuthToken(dheClient),
+        });
+
+        const credentials = await getDheAuthToken(dheClient);
+        this._credentialsCache.set(serverUrl, credentials);
+      } catch (err) {
+        console.error(err);
+        return null;
+      }
+
+      // const config = new dhe.ConsoleConfig();
+      // config.jvmArgs = ['-Dhttp.websockets=true'];
+      // config.workerKind = 'DeephavenCommunity';
+      // config.workerCreationJson = JSON.stringify({
+      //   // eslint-disable-next-line @typescript-eslint/naming-convention
+      //   script_language: 'python',
+      //   // kubernetes_worker_control: kubernetesWorkerControl,
+      // });
+
+      // const ide = new dhe.Ide(dheClient);
+      // const { grpcUrl } = await ide.startWorker(config);
+
+      // serverUrl = new URL(grpcUrl);
+
+      // const credentials = await getDheAuthToken(dheClient);
+      // this._credentialsCache.set(serverUrl, credentials);
     }
 
     const connection = this._dhcServiceFactory.create(serverUrl);
@@ -170,6 +268,7 @@ export class ServerManager implements IServerManager {
     }
 
     this._connectionMap.delete(serverUrl);
+    this._workerInfoMap.delete(serverUrl);
 
     // Remove any editor URIs associated with this connection
     this._uriConnectionsMap.forEach((connectionState, uri) => {
@@ -286,6 +385,11 @@ export class ServerManager implements IServerManager {
    */
   getUriConnection = (uri: vscode.Uri): ConnectionState | null => {
     return this._uriConnectionsMap.get(uri) ?? null;
+  };
+
+  /** Get worker info associated with the given server URL. */
+  getWorkerInfo = (serverUrl: URL): WorkerInfo | undefined => {
+    return this._workerInfoMap.get(serverUrl);
   };
 
   setEditorConnection = async (

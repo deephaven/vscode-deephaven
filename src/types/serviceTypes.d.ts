@@ -11,6 +11,7 @@ import type {
   VariableChanges,
   VariableDefintion,
   VariableID,
+  WorkerInfo,
 } from '../types/commonTypes';
 
 export interface ICacheService<TKey, TValue> extends Disposable {
@@ -105,6 +106,7 @@ export interface IServerManager extends Disposable {
   getEditorConnection: (
     editor: vscode.TextEditor
   ) => Promise<ConnectionState | null>;
+  getWorkerInfo: (serverUrl: URL) => WorkerInfo | undefined;
   setEditorConnection: (
     editor: vscode.TextEditor,
     dhService: ConnectionState

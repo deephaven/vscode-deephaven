@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type {
   Disposable,
   IPanelService,
@@ -6,7 +7,7 @@ import type {
   VariableDefintion,
 } from '../types';
 import { assertDefined, getDHThemeKey, getPanelHtml, Logger } from '../util';
-import { DhcService } from '../services';
+import { DhcService, type URLMap } from '../services';
 import {
   OPEN_VARIABLE_PANELS_CMD,
   REFRESH_VARIABLE_PANELS_CMD,
@@ -17,7 +18,12 @@ import { getEmbedWidgetUrl } from '../dh/dhc';
 const logger = new Logger('PanelController');
 
 export class PanelController implements Disposable {
-  constructor(serverManager: IServerManager, panelService: IPanelService) {
+  constructor(
+    credentialsCache: URLMap<DhcType.LoginCredentials>,
+    serverManager: IServerManager,
+    panelService: IPanelService
+  ) {
+    this._credentialsCache = credentialsCache;
     this._panelService = panelService;
     this._serverManager = serverManager;
     this._subscriptions = [];
@@ -37,6 +43,7 @@ export class PanelController implements Disposable {
     );
   }
 
+  protected readonly _credentialsCache: URLMap<DhcType.LoginCredentials>;
   private readonly _panelService: IPanelService;
   private readonly _serverManager: IServerManager;
   private readonly _subscriptions: vscode.Disposable[];
@@ -47,6 +54,63 @@ export class PanelController implements Disposable {
     }
     this._subscriptions.length = 0;
   };
+
+  protected async _onPanelMessage(
+    serverUrl: URL,
+    { id, message }: { id: string; message: string },
+    postResponseMessage: (response: unknown) => void
+  ): Promise<void> {
+    // logger.debug('Received panel message:', message, this.worker);
+
+    const workerInfo = this._serverManager.getWorkerInfo(serverUrl);
+
+    if (workerInfo == null) {
+      return;
+    }
+
+    const credentials = await workerInfo.getCredentials(); //this._credentialsCache.get(serverUrl);
+
+    console.log('[TESTING] credentials', credentials);
+
+    if (message === 'io.deephaven.message.LoginOptions.request') {
+      const response = {
+        message: 'vscode-ext.loginOptions',
+        payload: {
+          id,
+          payload: credentials,
+        },
+        targetOrigin: workerInfo.ideUrl,
+      };
+
+      logger.debug('Posting LoginOptions response:', response);
+
+      postResponseMessage(response);
+
+      return;
+    }
+
+    if (message === 'io.deephaven.message.SessionDetails.request') {
+      const response = {
+        message: 'vscode-ext.sessionDetails',
+        payload: {
+          id,
+          payload: {
+            workerName: workerInfo.workerName,
+            processInfoId: workerInfo.processInfoId,
+          },
+        },
+        targetOrigin: workerInfo.ideUrl,
+      };
+
+      logger.debug('Posting SessionDetails response:', response);
+
+      postResponseMessage(response);
+
+      return;
+    }
+
+    logger.debug('Unknown message type', message);
+  }
 
   private _onOpenPanels = async (
     serverUrl: URL,
@@ -72,11 +136,17 @@ export class PanelController implements Disposable {
           }
         );
 
+        const subscription = panel.webview.onDidReceiveMessage(({ data }) => {
+          const postMessage = panel.webview.postMessage.bind(panel.webview);
+          this._onPanelMessage(serverUrl, data, postMessage);
+        });
+
         this._panelService.setPanel(serverUrl, id, panel);
 
         // If panel gets disposed, remove it from the caches
         panel.onDidDispose(() => {
           this._panelService.deletePanel(serverUrl, id);
+          subscription.dispose();
         });
       }
 
@@ -126,12 +196,15 @@ export class PanelController implements Disposable {
     for (const { id, title } of variables) {
       const panel = this._panelService.getPanelOrThrow(serverUrl, id);
 
-      const iframeUrl = getEmbedWidgetUrl(
+      const iframeUrl = getEmbedWidgetUrl({
         serverUrl,
         title,
-        getDHThemeKey(),
-        connection instanceof DhcService ? connection.getPsk() : undefined
-      );
+        themeKey: getDHThemeKey(),
+        authProvider: this._serverManager.getWorkerInfo(serverUrl)
+          ? 'parent'
+          : undefined,
+        psk: connection instanceof DhcService ? connection.getPsk() : undefined,
+      });
 
       panel.webview.html = getPanelHtml(iframeUrl, title);
     }
