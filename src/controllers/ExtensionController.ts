@@ -19,6 +19,7 @@ import {
   assertDefined,
   getEditorForUri,
   getTempDir,
+  isInstanceOf,
   isSupportedLanguageId,
   Logger,
   OutputChannelWithHistory,
@@ -31,7 +32,12 @@ import {
   ServerConnectionPanelTreeProvider,
   runSelectedLinesHoverProvider,
 } from '../providers';
-import { DhcServiceFactory, PanelService, ServerManager } from '../services';
+import {
+  DhcServiceFactory,
+  DhService,
+  PanelService,
+  ServerManager,
+} from '../services';
 import type {
   Disposable,
   IConfigService,
@@ -535,9 +541,12 @@ export class ExtensionController implements Disposable {
     assertDefined(uri, 'uri');
 
     const editor = await getEditorForUri(uri);
-    const dhService =
+    const connectionState =
       await this._connectionController.getOrCreateConnection(uri);
-    await dhService?.runEditorCode(editor, selectionOnly === true);
+
+    if (isInstanceOf(connectionState, DhService)) {
+      await connectionState?.runEditorCode(editor, selectionOnly === true);
+    }
   };
 
   /**

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import type {
-  IDhService,
+  ConnectionState,
   ServerGroupState,
   ServerState,
   VariableDefintion,
@@ -12,6 +12,8 @@ import {
   SERVER_TREE_ITEM_CONTEXT,
   type ServerTreeItemContextValue,
 } from '../common';
+import { DhService } from '../services';
+import { isInstanceOf } from './isInstanceOf';
 
 /**
  * Get a tree item vscode.ThemeIcon for a variable type.
@@ -50,11 +52,12 @@ export function getVariableIconPath(
  * @param connection
  */
 export async function getPanelConnectionTreeItem(
-  connection: IDhService
+  connection: ConnectionState
 ): Promise<vscode.TreeItem> {
-  const [consoleType] = connection.isInitialized
-    ? await connection.getConsoleTypes()
-    : [];
+  const [consoleType] =
+    isInstanceOf(connection, DhService) && connection.isInitialized
+      ? await connection.getConsoleTypes()
+      : [];
 
   return {
     label: new URL(connection.serverUrl.toString()).host,

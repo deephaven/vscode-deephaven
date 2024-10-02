@@ -9,9 +9,9 @@ import {
   createSeparatorPickItem,
 } from './uiUtils';
 import type {
+  ConnectionState,
   CoreConnectionConfig,
   IDhService,
-  ServerConnection,
   ServerState,
 } from '../types';
 
@@ -54,9 +54,9 @@ describe('createConnectionQuickPickOptions', () => {
         { type: 'DHC', url: serverUrlB },
         { type: 'DHC', url: serverUrlD },
       ];
-      const connections: ServerConnection[] = [
-        { serverUrl: serverUrlA },
-        { serverUrl: serverUrlC },
+      const connections: ConnectionState[] = [
+        { serverUrl: serverUrlA, isConnected: true },
+        { serverUrl: serverUrlC, isConnected: true },
       ];
 
       const actual = createConnectionQuickPickOptions(

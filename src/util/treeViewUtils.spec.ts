@@ -19,9 +19,11 @@ import type {
   VariableDefintion,
   VariableType,
 } from '../types';
+import { isInstanceOf } from './isInstanceOf';
 
 // See __mocks__/vscode.ts for the mock implementation
 vi.mock('vscode');
+vi.mock('../util/isInstanceOf.ts');
 
 const variableTypes: readonly VariableType[] = [
   'deephaven.plot.express.DeephavenFigure',
@@ -53,6 +55,8 @@ describe('getPanelConnectionTreeItem', () => {
         serverUrl,
         getConsoleTypes,
       } as IDhService;
+
+      vi.mocked(isInstanceOf).mockReturnValue(true);
 
       const actual = await getPanelConnectionTreeItem(connection);
       expect(actual).toMatchSnapshot();

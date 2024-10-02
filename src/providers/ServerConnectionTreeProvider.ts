@@ -1,8 +1,13 @@
 import * as vscode from 'vscode';
 import { TreeDataProviderBase } from './TreeDataProviderBase';
 import { CONNECTION_TREE_ITEM_CONTEXT, ICON_ID } from '../common';
-import type { IDhService, ServerConnectionNode } from '../types';
-import { sortByStringProp } from '../util';
+import type {
+  IDhService,
+  ConnectionState,
+  ServerConnectionNode,
+} from '../types';
+import { isInstanceOf, sortByStringProp } from '../util';
+import { DhService } from '../services';
 
 /**
  * Provider for the server connection tree view.
@@ -24,9 +29,10 @@ export class ServerConnectionTreeProvider extends TreeDataProviderBase<ServerCon
       };
     }
 
-    const [consoleType] = connectionOrUri.isInitialized
-      ? await connectionOrUri.getConsoleTypes()
-      : [];
+    const [consoleType] =
+      isInstanceOf(connectionOrUri, DhService) && connectionOrUri.isInitialized
+        ? await connectionOrUri.getConsoleTypes()
+        : [];
 
     const hasUris = this.serverManager.hasConnectionUris(connectionOrUri);
 
@@ -61,7 +67,7 @@ export class ServerConnectionTreeProvider extends TreeDataProviderBase<ServerCon
    * for `TreeView.reveal` method to work.
    * @param element
    */
-  getParent = (element: ServerConnectionNode): IDhService | null => {
+  getParent = (element: ServerConnectionNode): ConnectionState | null => {
     if (element instanceof vscode.Uri) {
       return this.serverManager.getUriConnection(element);
     }

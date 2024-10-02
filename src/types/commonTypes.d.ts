@@ -38,7 +38,8 @@ export type ServerConnectionConfig =
   | EnterpriseConnectionConfig
   | URL;
 
-export interface ServerConnection {
+export interface ConnectionState {
+  readonly isConnected: boolean;
   readonly serverUrl: URL;
 }
 

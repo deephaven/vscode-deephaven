@@ -1,14 +1,16 @@
 import * as path from 'node:path';
 import type {
-  IDhService,
   ServerState,
   ServerType,
   ConsoleType,
   Port,
   ServerConnectionConfig,
+  ConnectionState,
 } from '../types';
 import { PIP_SERVER_STATUS_DIRECTORY, SERVER_LANGUAGE_SET } from '../common';
 import { getTempDir } from './tmpUtils';
+import { DhService } from '../services';
+import { isInstanceOf } from './isInstanceOf';
 
 /**
  * Get initial server states based on server configs.
@@ -34,10 +36,10 @@ export function getInitialServerStates(
  * @returns Connections supporting the given console type
  */
 export async function getConnectionsForConsoleType(
-  connections: IDhService[],
+  connections: ConnectionState[],
   consoleType: ConsoleType
-): Promise<IDhService[]> {
-  const filteredConnections: IDhService[] = [];
+): Promise<ConnectionState[]> {
+  const filteredConnections: ConnectionState[] = [];
 
   for await (const connection of iterateConnectionsForConsoleType(
     connections,
@@ -56,9 +58,9 @@ export async function getConnectionsForConsoleType(
  * @returns First connection supporting the given console type
  */
 export async function getFirstConnectionForConsoleType(
-  connections: IDhService[],
+  connections: ConnectionState[],
   consoleType: ConsoleType
-): Promise<IDhService<unknown, unknown> | null> {
+): Promise<ConnectionState | null> {
   const first = await iterateConnectionsForConsoleType(
     connections,
     consoleType
@@ -107,15 +109,16 @@ export function isSupportedLanguageId(
  * @returns Async iterator for connections supporting the given console type
  */
 export async function* iterateConnectionsForConsoleType(
-  connections: IDhService[],
+  connections: ConnectionState[],
   consoleType: ConsoleType
-): AsyncGenerator<IDhService, void, unknown> {
-  for (const dhService of connections) {
+): AsyncGenerator<ConnectionState, void, unknown> {
+  for (const connection of connections) {
     const isConsoleTypeSupported =
-      await dhService.supportsConsoleType(consoleType);
+      isInstanceOf(connection, DhService) &&
+      (await connection.supportsConsoleType(consoleType));
 
     if (isConsoleTypeSupported) {
-      yield dhService;
+      yield connection;
     }
   }
 }
