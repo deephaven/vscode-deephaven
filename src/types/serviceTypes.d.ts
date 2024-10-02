@@ -89,23 +89,23 @@ export interface IPanelService extends Disposable {
 export interface IServerManager extends Disposable {
   canStartServer: boolean;
 
-  connectToServer: (serverUrl: URL) => Promise<IDhService | null>;
+  connectToServer: (serverUrl: URL) => Promise<ServerConnection | null>;
   disconnectEditor: (uri: vscode.Uri) => void;
   disconnectFromServer: (serverUrl: URL) => Promise<void>;
   loadServerConfig: () => Promise<void>;
 
   hasConnection: (serverUrl: URL) => boolean;
-  hasConnectionUris: (connection: IDhService) => boolean;
+  hasConnectionUris: (connection: ServerConnection) => boolean;
 
-  getConnection: (serverUrl: URL) => IDhService | undefined;
-  getConnections: () => IDhService[];
-  getConnectionUris: (connection: IDhService) => vscode.Uri[];
+  getConnection: (serverUrl: URL) => ServerConnection | undefined;
+  getConnections: () => ServerConnection[];
+  getConnectionUris: (connection: ServerConnection) => vscode.Uri[];
   getEditorConnection: (
     editor: vscode.TextEditor
-  ) => Promise<IDhService | null>;
+  ) => Promise<ServerConnection | null>;
   setEditorConnection: (
     editor: vscode.TextEditor,
-    dhService: IDhService
+    dhService: ServerConnection
   ) => Promise<void>;
 
   getServer: (serverUrl: URL) => ServerState | undefined;
@@ -113,7 +113,7 @@ export interface IServerManager extends Disposable {
     isRunning?: boolean;
     hasConnections?: boolean;
   }) => ServerState[];
-  getUriConnection: (uri: vscode.Uri) => IDhService | null;
+  getUriConnection: (uri: vscode.Uri) => ServerConnection | null;
   hasEverUpdatedStatus: () => boolean;
   syncManagedServers: (urls: URL[]) => void;
   updateStatus: (filterBy?: URL[]) => Promise<void>;

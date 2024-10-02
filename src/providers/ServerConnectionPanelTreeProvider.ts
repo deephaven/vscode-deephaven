@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import type {
-  IDhService,
   IPanelService,
   IServerManager,
+  ServerConnection,
   ServerConnectionPanelNode,
 } from '../types';
 import { TreeDataProviderBase } from './TreeDataProviderBase';
@@ -35,7 +35,7 @@ export class ServerConnectionPanelTreeProvider extends TreeDataProviderBase<Serv
   };
 
   getChildren = (
-    connectionOrRoot?: IDhService
+    connectionOrRoot?: ServerConnection
   ): vscode.ProviderResult<ServerConnectionPanelNode[]> => {
     if (connectionOrRoot == null) {
       return this.serverManager

@@ -9,7 +9,6 @@ import type {
   ConnectionType,
   ConsoleType,
   ConnectionPickItem,
-  IDhService,
   ServerState,
   SeparatorPickItem,
   ConnectionPickOption,
@@ -95,8 +94,8 @@ export function createConnectionQuickPickOptions<
  * Create quickpick for selecting a connection.
  */
 export async function createConnectionQuickPick(
-  options: ConnectionPickOption<IDhService>[]
-): Promise<ServerState | IDhService | null> {
+  options: ConnectionPickOption<ServerConnection>[]
+): Promise<ServerConnection | ServerState | null> {
   const result = await vscode.window.showQuickPick(options, {
     title: 'Connect Editor',
   });

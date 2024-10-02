@@ -8,14 +8,15 @@ import { UnsupportedConsoleTypeError } from '../common';
 import type {
   ConsoleType,
   IConfigService,
-  IDhService,
   IDhServiceFactory,
   IServerManager,
+  ServerConnection,
   ServerState,
 } from '../types';
 import { getInitialServerStates, Logger } from '../util';
 import { URLMap } from './URLMap';
 import { URIMap } from './URIMap';
+import DhService from './DhService';
 
 const logger = new Logger('ServerManager');
 
@@ -28,8 +29,8 @@ export class ServerManager implements IServerManager {
     this._dhcServiceFactory = dhcServiceFactory;
 
     this._serverMap = new URLMap<ServerState>();
-    this._connectionMap = new URLMap<IDhService>();
-    this._uriConnectionsMap = new URIMap<IDhService>();
+    this._connectionMap = new URLMap<ServerConnection>();
+    this._uriConnectionsMap = new URIMap<ServerConnection>();
 
     this.canStartServer = false;
 
@@ -37,9 +38,9 @@ export class ServerManager implements IServerManager {
   }
 
   private readonly _configService: IConfigService;
-  private readonly _connectionMap: URLMap<IDhService>;
+  private readonly _connectionMap: URLMap<ServerConnection>;
   private readonly _dhcServiceFactory: IDhServiceFactory;
-  private readonly _uriConnectionsMap: URIMap<IDhService>;
+  private readonly _uriConnectionsMap: URIMap<ServerConnection>;
   private _serverMap: URLMap<ServerState>;
 
   private readonly _onDidConnect = new vscode.EventEmitter<URL>();
@@ -106,7 +107,9 @@ export class ServerManager implements IServerManager {
     this._onDidLoadConfig.fire();
   };
 
-  connectToServer = async (serverUrl: URL): Promise<IDhService | null> => {
+  connectToServer = async (
+    serverUrl: URL
+  ): Promise<ServerConnection | null> => {
     if (this.hasConnection(serverUrl)) {
       logger.info('Already connected to server:', serverUrl);
       return null;
@@ -152,8 +155,8 @@ export class ServerManager implements IServerManager {
     this._connectionMap.delete(serverUrl);
 
     // Remove any editor URIs associated with this connection
-    this._uriConnectionsMap.forEach((dhService, uri) => {
-      if (dhService === connection) {
+    this._uriConnectionsMap.forEach((serverConnection, uri) => {
+      if (serverConnection === connection) {
         this._uriConnectionsMap.delete(uri);
       }
     });
@@ -176,7 +179,7 @@ export class ServerManager implements IServerManager {
    * Determine if the given connection is assicated with any editor URIs.
    * @param connection
    */
-  hasConnectionUris = (connection: IDhService): boolean => {
+  hasConnectionUris = (connection: ServerConnection): boolean => {
     for (const cn of this._uriConnectionsMap.values()) {
       if (cn === connection) {
         return true;
@@ -225,7 +228,7 @@ export class ServerManager implements IServerManager {
    * @returns The connection, or `undefined` if no connection exists for the
    * given server URL.
    */
-  getConnection = (serverUrl: URL): IDhService | undefined => {
+  getConnection = (serverUrl: URL): ServerConnection | undefined => {
     return this._connectionMap.get(serverUrl);
   };
 
@@ -233,7 +236,7 @@ export class ServerManager implements IServerManager {
    * Get all connections.
    * @returns An array of all connections.
    */
-  getConnections = (): IDhService[] => {
+  getConnections = (): ServerConnection[] => {
     return [...this._connectionMap.values()];
   };
 
@@ -241,7 +244,7 @@ export class ServerManager implements IServerManager {
    * Get all URIs associated with a connection.
    * @param connection
    */
-  getConnectionUris = (connection: IDhService): vscode.Uri[] => {
+  getConnectionUris = (connection: ServerConnection): vscode.Uri[] => {
     return [...this._uriConnectionsMap.entries()]
       .filter(([, cn]) => cn === connection)
       .map(([uri]) => uri);
@@ -253,7 +256,7 @@ export class ServerManager implements IServerManager {
    */
   getEditorConnection = async (
     editor: vscode.TextEditor
-  ): Promise<IDhService | null> => {
+  ): Promise<ServerConnection | null> => {
     const uri = editor.document.uri;
     return this._uriConnectionsMap.get(uri) ?? null;
   };
@@ -262,29 +265,31 @@ export class ServerManager implements IServerManager {
    * Get connection associated with the given URI.
    * @param uri
    */
-  getUriConnection = (uri: vscode.Uri): IDhService | null => {
+  getUriConnection = (uri: vscode.Uri): ServerConnection | null => {
     return this._uriConnectionsMap.get(uri) ?? null;
   };
 
   setEditorConnection = async (
     editor: vscode.TextEditor,
-    dhService: IDhService
+    serverConnection: ServerConnection
   ): Promise<void> => {
     const uri = editor.document.uri;
 
-    if (
-      !(await dhService.supportsConsoleType(
+    const isConsoleTypeSupported =
+      serverConnection instanceof DhService &&
+      (await serverConnection.supportsConsoleType(
         editor.document.languageId as ConsoleType
-      ))
-    ) {
+      ));
+
+    if (!isConsoleTypeSupported) {
       throw new UnsupportedConsoleTypeError(
-        `Connection '${dhService.serverUrl}' does not support '${editor.document.languageId}'.`
+        `Connection '${serverConnection.serverUrl}' does not support '${editor.document.languageId}'.`
       );
     }
 
     this._uriConnectionsMap.delete(uri);
 
-    this._uriConnectionsMap.set(uri, dhService);
+    this._uriConnectionsMap.set(uri, serverConnection);
     this._onDidUpdate.fire();
     this._onDidRegisterEditor.fire(uri);
   };

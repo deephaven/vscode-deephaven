@@ -31,7 +31,12 @@ import {
   ServerConnectionPanelTreeProvider,
   runSelectedLinesHoverProvider,
 } from '../providers';
-import { DhcServiceFactory, PanelService, ServerManager } from '../services';
+import {
+  DhcServiceFactory,
+  DhService,
+  PanelService,
+  ServerManager,
+} from '../services';
 import type {
   Disposable,
   IConfigService,
@@ -537,7 +542,10 @@ export class ExtensionController implements Disposable {
     const editor = await getEditorForUri(uri);
     const dhService =
       await this._connectionController.getOrCreateConnection(uri);
-    await dhService?.runEditorCode(editor, selectionOnly === true);
+
+    if (dhService instanceof DhService) {
+      await dhService?.runEditorCode(editor, selectionOnly === true);
+    }
   };
 
   /**

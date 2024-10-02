@@ -2,9 +2,9 @@ import * as vscode from 'vscode';
 import type {
   ConsoleType,
   Disposable,
-  IDhService,
   IServerManager,
   IToastService,
+  ServerConnection,
   ServerState,
 } from '../types';
 import {
@@ -122,7 +122,7 @@ export class ConnectionController implements Disposable {
   };
 
   connectEditor = async (
-    connectionOrServer: ServerState | IDhService,
+    connectionOrServer: ServerConnection | ServerState,
     editor: vscode.TextEditor
   ): Promise<void> => {
     updateConnectionStatusBarItem(this._connectStatusBarItem, 'connecting');
@@ -169,7 +169,7 @@ export class ConnectionController implements Disposable {
    */
   getOrCreateConnection = async (
     uri: vscode.Uri
-  ): Promise<IDhService | null> => {
+  ): Promise<ServerConnection | null> => {
     assertDefined(this._outputChannel, 'outputChannel');
     assertDefined(this._serverManager, 'serverManager');
     assertDefined(this._toaster, 'toaster');
@@ -257,7 +257,7 @@ export class ConnectionController implements Disposable {
       hasConnections: false,
     });
 
-    const connectionsForConsoleType: IDhService[] =
+    const connectionsForConsoleType: ServerConnection[] =
       await getConnectionsForConsoleType(
         this._serverManager.getConnections(),
         editor.document.languageId as ConsoleType
@@ -267,7 +267,7 @@ export class ConnectionController implements Disposable {
       editor.document.uri
     )?.serverUrl;
 
-    let selectedCnResult: ServerState | IDhService | null = null;
+    let selectedCnResult: ServerConnection | ServerState | null = null;
 
     try {
       selectedCnResult = await createConnectionQuickPick(
