@@ -19,6 +19,7 @@ import {
   assertDefined,
   getEditorForUri,
   getTempDir,
+  isInstanceOf,
   isSupportedLanguageId,
   Logger,
   OutputChannelWithHistory,
@@ -543,7 +544,7 @@ export class ExtensionController implements Disposable {
     const connectionState =
       await this._connectionController.getOrCreateConnection(uri);
 
-    if (connectionState instanceof DhService) {
+    if (isInstanceOf(connectionState, DhService)) {
       await connectionState?.runEditorCode(editor, selectionOnly === true);
     }
   };

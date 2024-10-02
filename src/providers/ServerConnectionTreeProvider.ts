@@ -6,7 +6,7 @@ import type {
   ConnectionState,
   ServerConnectionNode,
 } from '../types';
-import { sortByStringProp } from '../util';
+import { isInstanceOf, sortByStringProp } from '../util';
 import { DhService } from '../services';
 
 /**
@@ -30,7 +30,7 @@ export class ServerConnectionTreeProvider extends TreeDataProviderBase<ServerCon
     }
 
     const [consoleType] =
-      connectionOrUri instanceof DhService && connectionOrUri.isInitialized
+      isInstanceOf(connectionOrUri, DhService) && connectionOrUri.isInitialized
         ? await connectionOrUri.getConsoleTypes()
         : [];
 

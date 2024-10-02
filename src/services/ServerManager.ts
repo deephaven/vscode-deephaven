@@ -13,7 +13,12 @@ import type {
   ConnectionState,
   ServerState,
 } from '../types';
-import { getInitialServerStates, isDisposable, Logger } from '../util';
+import {
+  getInitialServerStates,
+  isDisposable,
+  isInstanceOf,
+  Logger,
+} from '../util';
 import { URLMap } from './URLMap';
 import { URIMap } from './URIMap';
 import DhService from './DhService';
@@ -276,7 +281,7 @@ export class ServerManager implements IServerManager {
     const uri = editor.document.uri;
 
     const isConsoleTypeSupported =
-      connectionState instanceof DhService &&
+      isInstanceOf(connectionState, DhService) &&
       (await connectionState.supportsConsoleType(
         editor.document.languageId as ConsoleType
       ));
