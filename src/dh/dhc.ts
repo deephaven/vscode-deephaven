@@ -56,7 +56,12 @@ export async function initDhcSession(
   client: DhType.CoreClient,
   credentials: DhType.LoginCredentials
 ): Promise<ConnectionAndSession<DhType.IdeConnection, DhType.IdeSession>> {
-  await client.login(credentials);
+  try {
+    await client.login(credentials);
+  } catch (err) {
+    console.error(err);
+    throw err;
+  }
 
   const cn = await client.getAsIdeConnection();
 

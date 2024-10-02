@@ -179,80 +179,14 @@ export class ServerManager implements IServerManager {
         return null;
       }
 
-      // const newQueryName = `vscode extension - ${randomUUID()}`;
-
-      // new DraftQuery({
-      //   isClientSide: true,
-      //   name: newQueryName,
-      //   type: 'InteractiveConsole',
-      //   dbServerName: dbServers[0]?.name ?? 'Query 1',
-      //   draftOwner: dheCredentials.username,
-      //   heapSize: queryConstants.pqDefaultHeap,
-      //   jvmProfile: serverConfigValues.jvmProfileDefault,
-      //   restartQueryWhenRunning:
-      //     serverConfigValues.restartQueryWhenRunningDefault,
-      //   scriptLanguage:
-      //     serverConfigValues.scriptSessionProviders?.[0] ?? 'Python',
-      //   timeZone:
-      //     serverConfigValues.timeZone ??
-      //     Intl.DateTimeFormat().resolvedOptions().timeZone,
-      //   workerKind: serverConfigValues.workerKinds?.[0]?.name,
-      // });
-      // const draftQuery = createDraftQuery({
-      //   name: newQueryName,
-      //   type: 'InteractiveConsole',
-      //   dbServerName: dbServers[0]?.name ?? 'Query 1',
-      //   draftOwner: dheCredentials.username,
-      //   heapSize: queryConstants.pqDefaultHeap,
-      //   jvmProfile: serverConfigValues.jvmProfileDefault,
-      //   restartQueryWhenRunning:
-      //     serverConfigValues.restartQueryWhenRunningDefault,
-      //   scriptLanguage:
-      //     serverConfigValues.scriptSessionProviders?.[0] ?? 'Python',
-      //   timeZone:
-      //     serverConfigValues.timeZone ??
-      //     Intl.DateTimeFormat().resolvedOptions().timeZone,
-      //   workerKind: serverConfigValues.workerKinds?.[0]?.name,
-      // });
-
-      // const draftQuery = defaultDraftQuery({
-      //   name: newQueryName,
-      //   type: 'InteractiveConsole',
-      //   owner: HACK_USERNAME,
-      //   // heapSize: 1,
-      //   jvmArgs: '-Dhttp.websockets=true',
-      //   scriptLanguage: 'Python',
-      // });
-
-      // new DraftManager(
-      //   userName,
-      //   controllerConfiguration.dbServers,
-      //   workspaceStorage,
-      //   defaultCalendar,
-      //   controllerConfiguration.queryConstants.pqDefaultHeap,
-      //   serverConfigValues.restartQueryWhenRunningDefault,
-      //   serverConfigValues.jvmProfileDefault,
-      //   serverConfigValues.scriptSessionProviders?.[0],
-      //   newSettings.timeZone,
-      //   serverConfigValues.defaultWorkerKind,
-      //   serverConfigValues.workerKinds?.[0]?.name
-      // )
-      // draftOwner: string,
-      // dbServers: readonly ConsoleServerAddress[],
-      // workspaceStorage: WorkspaceStorage,
-      // defaultCalendar: string,
-      // defaultHeapSize: number,
-      // defaultRestartQueryWhenRunning: string,
-      // defaultJvmProfile: string,
-      // defaultScriptLanguage: string,
-      // defaultTimeZone: string,
-      // defaultWorkerKind: string,
-      // firstWorkerKind: string
-
       const draftQuery = await createDraftQuery(
         dheClient,
         dheCredentials.username
       );
+
+      if (draftQuery.serial == null) {
+        draftQuery.updateSchedule();
+      }
 
       try {
         const newSerial = await dheClient.createQuery(draftQuery);
@@ -266,10 +200,7 @@ export class ServerManager implements IServerManager {
                 .find(({ serial }) => serial === newSerial);
 
               if (queryInfo?.designated?.grpcUrl != null) {
-                console.log('[TESTING] match', queryInfo);
                 resolve(queryInfo);
-              } else {
-                console.log('[TESTING] no match', queryInfo);
               }
             }
           );

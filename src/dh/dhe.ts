@@ -68,7 +68,7 @@ export async function hasInteractivePermission(
 export async function createDraftQuery(
   dheClient: EnterpriseClient,
   owner: string
-): Promise<IDraftQuery> {
+): Promise<DraftQuery> {
   const [dbServers, queryConstants, serverConfigValues] = await Promise.all([
     dheClient.getDbServers(),
     dheClient.getQueryConstants(),
@@ -76,11 +76,12 @@ export async function createDraftQuery(
   ]);
 
   const name = `vscode extension - ${randomUUID()}`;
+  const type = 'InteractiveConsole';
   const dbServerName = dbServers[0]?.name ?? 'Query 1';
   const heapSize = queryConstants.pqDefaultHeap;
   const jvmProfile = serverConfigValues.jvmProfileDefault;
-  const scriptLanguage =
-    serverConfigValues.scriptSessionProviders?.[0] ?? 'Python';
+  const scriptLanguage = 'Python'; // TODO: determine from languageid
+  // serverConfigValues.scriptSessionProviders?.[0] ?? 'Python';
   const workerKind = serverConfigValues.workerKinds?.[0]?.name;
 
   const timeZone =
@@ -96,10 +97,12 @@ export async function createDraftQuery(
     isClientSide: true,
     draftOwner: owner,
     name,
+    type,
     owner,
     dbServerName,
-    heapSize,
+    heapSize: heapSize && 0.5, // TODO: set this to default
     scheduling,
+    jvmArgs: '-Dhttp.websockets=true', // TODO: Probably need to connect securely
     jvmProfile,
     scriptLanguage,
     workerKind,
