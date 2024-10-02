@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import type { dh as DhcType } from '@deephaven/jsapi-types';
+import type { EnterpriseDhType as DheType } from '@deephaven-enterprise/jsapi-types';
 import {
   CONNECT_TO_SERVER_CMD,
   CREATE_NEW_TEXT_DOC_CMD,
@@ -33,13 +35,16 @@ import {
   runSelectedLinesHoverProvider,
 } from '../providers';
 import {
+  CacheByUrlService,
   DhcServiceFactory,
   DhService,
   PanelService,
   ServerManager,
+  URLMap,
 } from '../services';
 import type {
   Disposable,
+  ICacheService,
   IConfigService,
   IDhService,
   IDhServiceFactory,
@@ -56,6 +61,7 @@ import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTre
 import { ConnectionController } from './ConnectionController';
 import { PipServerController } from './PipServerController';
 import { PanelController } from './PanelController';
+import { initDheApi } from '../dh/dhe';
 
 const logger = new Logger('ExtensionController');
 
@@ -89,10 +95,12 @@ export class ExtensionController implements Disposable {
   readonly _config: IConfigService;
 
   private _connectionController: ConnectionController | null = null;
+  private _credentialsCache: URLMap<DhcType.LoginCredentials> | null = null;
   private _panelController: PanelController | null = null;
   private _panelService: IPanelService | null = null;
   private _pipServerController: PipServerController | null = null;
   private _dhcServiceFactory: IDhServiceFactory | null = null;
+  private _dheJsApiCache: ICacheService<URL, DheType> | null = null;
   private _serverManager: IServerManager | null = null;
 
   // Tree providers
@@ -247,19 +255,27 @@ export class ExtensionController implements Disposable {
     assertDefined(this._outputChannel, 'outputChannel');
     assertDefined(this._toaster, 'toaster');
 
+    this._credentialsCache = new URLMap<DhcType.LoginCredentials>();
+
     this._panelService = new PanelService();
     this._context.subscriptions.push(this._panelService);
 
     this._dhcServiceFactory = new DhcServiceFactory(
+      this._credentialsCache,
       this._panelService,
       this._pythonDiagnostics,
       this._outputChannel,
       this._toaster
     );
 
+    this._dheJsApiCache = new CacheByUrlService(initDheApi);
+    this._context.subscriptions.push(this._dheJsApiCache);
+
     this._serverManager = new ServerManager(
       this._config,
-      this._dhcServiceFactory
+      this._credentialsCache,
+      this._dhcServiceFactory,
+      this._dheJsApiCache
     );
     this._context.subscriptions.push(this._serverManager);
 

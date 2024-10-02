@@ -1,12 +1,16 @@
 import * as vscode from 'vscode';
 import { randomUUID } from 'node:crypto';
+import type { dh as DhcType } from '@deephaven/jsapi-types';
+import type { EnterpriseDhType as DheType } from '@deephaven-enterprise/jsapi-types';
 import {
+  AUTH_HANDLER_TYPE_PSK,
   isDhcServerRunning,
   isDheServerRunning,
 } from '@deephaven/require-jsapi';
 import { UnsupportedConsoleTypeError } from '../common';
 import type {
   ConsoleType,
+  ICacheService,
   IConfigService,
   IDhServiceFactory,
   IServerManager,
@@ -28,11 +32,14 @@ const logger = new Logger('ServerManager');
 export class ServerManager implements IServerManager {
   constructor(
     configService: IConfigService,
-    dhcServiceFactory: IDhServiceFactory
+    credentialsCache: URLMap<DhcType.LoginCredentials>,
+    dhcServiceFactory: IDhServiceFactory,
+    dheJsApiCache: ICacheService<URL, DheType>
   ) {
     this._configService = configService;
+    this._credentialsCache = credentialsCache;
     this._dhcServiceFactory = dhcServiceFactory;
-
+    this._dheJsApiCache = dheJsApiCache;
     this._serverMap = new URLMap<ServerState>();
     this._connectionMap = new URLMap<ConnectionState>();
     this._uriConnectionsMap = new URIMap<ConnectionState>();
@@ -44,7 +51,9 @@ export class ServerManager implements IServerManager {
 
   private readonly _configService: IConfigService;
   private readonly _connectionMap: URLMap<ConnectionState>;
+  private readonly _credentialsCache: URLMap<DhcType.LoginCredentials>;
   private readonly _dhcServiceFactory: IDhServiceFactory;
+  private readonly _dheJsApiCache: ICacheService<URL, DheType>;
   private readonly _uriConnectionsMap: URIMap<ConnectionState>;
   private _serverMap: URLMap<ServerState>;
 
@@ -120,15 +129,20 @@ export class ServerManager implements IServerManager {
 
     const serverState = this._serverMap.get(serverUrl);
 
-    // TODO: implement DHE #76
-    if (serverState == null || serverState.type !== 'DHC') {
+    if (serverState == null) {
       return null;
     }
 
-    const connection = this._dhcServiceFactory.create(
-      serverUrl,
-      serverState.isManaged ? serverState.psk : undefined
-    );
+    if (serverState.isManaged) {
+      this._credentialsCache.set(serverUrl, {
+        type: AUTH_HANDLER_TYPE_PSK,
+        token: serverState.psk,
+      });
+    } else if (serverState.type === 'DHE') {
+      return null;
+    }
+
+    const connection = this._dhcServiceFactory.create(serverUrl);
 
     this._connectionMap.set(serverUrl, connection);
     this._onDidUpdate.fire();

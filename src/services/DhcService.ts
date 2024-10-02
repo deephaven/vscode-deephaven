@@ -13,14 +13,14 @@ import {
 const logger = new Logger('DhcService');
 
 export class DhcService extends DhService<typeof DhcType, DhcType.CoreClient> {
-  private _psk?: string;
+  getPsk(): string | null {
+    const credentials = this.credentialsCache.get(this.serverUrl);
 
-  getPsk(): string | undefined {
-    return this._psk;
-  }
+    if (credentials?.type !== AUTH_HANDLER_TYPE_PSK) {
+      return null;
+    }
 
-  setPsk(psk: string): void {
-    this._psk = psk;
+    return credentials.token ?? null;
   }
 
   protected async initApi(): Promise<typeof DhcType> {
@@ -45,29 +45,29 @@ export class DhcService extends DhService<typeof DhcType, DhcType.CoreClient> {
     dh: typeof DhcType,
     client: DhcType.CoreClient
   ): Promise<ConnectionAndSession<DhcType.IdeConnection, DhcType.IdeSession>> {
-    const authConfig = new Set(
-      (await client.getAuthConfigValues()).map(([, value]) => value)
-    );
+    if (!this.credentialsCache.has(this.serverUrl)) {
+      const authConfig = new Set(
+        (await client.getAuthConfigValues()).map(([, value]) => value)
+      );
 
-    if (authConfig.has(AUTH_HANDLER_TYPE_ANONYMOUS)) {
-      return initDhcSession(client, {
-        type: dh.CoreClient.LOGIN_TYPE_ANONYMOUS,
-      });
-    } else if (authConfig.has(AUTH_HANDLER_TYPE_PSK)) {
-      if (this._psk == null) {
-        this._psk = await vscode.window.showInputBox({
-          placeHolder: 'Pre-Shared Key',
-          prompt: 'Enter your Deephaven pre-shared key',
-          password: true,
+      if (authConfig.has(AUTH_HANDLER_TYPE_ANONYMOUS)) {
+        this.credentialsCache.set(this.serverUrl, {
+          type: dh.CoreClient.LOGIN_TYPE_ANONYMOUS,
+        });
+      } else if (authConfig.has(AUTH_HANDLER_TYPE_PSK)) {
+        this.credentialsCache.set(this.serverUrl, {
+          type: AUTH_HANDLER_TYPE_PSK,
+          token: await vscode.window.showInputBox({
+            placeHolder: 'Pre-Shared Key',
+            prompt: 'Enter your Deephaven pre-shared key',
+            password: true,
+          }),
         });
       }
+    }
 
-      const connectionAndSession = await initDhcSession(client, {
-        type: 'io.deephaven.authentication.psk.PskAuthenticationHandler',
-        token: this._psk,
-      });
-
-      return connectionAndSession;
+    if (this.credentialsCache.has(this.serverUrl)) {
+      return initDhcSession(client, this.credentialsCache.get(this.serverUrl)!);
     }
 
     throw new Error('No supported authentication methods found.');

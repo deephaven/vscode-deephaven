@@ -13,6 +13,11 @@ import type {
   VariableID,
 } from '../types/commonTypes';
 
+export interface ICacheService<TKey, TValue> extends Disposable {
+  get: (key: TKey) => Promise<TValue>;
+  invalidate: (key: TKey) => void;
+}
+
 /**
  * Configuration service interface.
  */
@@ -61,10 +66,7 @@ export interface IFactory<T, TArgs extends unknown[] = []> {
 /**
  * Factory for creating IDhService instances.
  */
-export type IDhServiceFactory = IFactory<
-  IDhService,
-  [serverUrl: URL, psk?: string]
->;
+export type IDhServiceFactory = IFactory<IDhService, [serverUrl: URL]>;
 
 export interface IPanelService extends Disposable {
   readonly onDidUpdate: vscode.Event<void>;
