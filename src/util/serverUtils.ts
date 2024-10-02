@@ -5,7 +5,7 @@ import type {
   ConsoleType,
   Port,
   ServerConnectionConfig,
-  ServerConnection,
+  ConnectionState,
 } from '../types';
 import { PIP_SERVER_STATUS_DIRECTORY, SERVER_LANGUAGE_SET } from '../common';
 import { getTempDir } from './tmpUtils';
@@ -35,10 +35,10 @@ export function getInitialServerStates(
  * @returns Connections supporting the given console type
  */
 export async function getConnectionsForConsoleType(
-  connections: ServerConnection[],
+  connections: ConnectionState[],
   consoleType: ConsoleType
-): Promise<ServerConnection[]> {
-  const filteredConnections: ServerConnection[] = [];
+): Promise<ConnectionState[]> {
+  const filteredConnections: ConnectionState[] = [];
 
   for await (const connection of iterateConnectionsForConsoleType(
     connections,
@@ -57,9 +57,9 @@ export async function getConnectionsForConsoleType(
  * @returns First connection supporting the given console type
  */
 export async function getFirstConnectionForConsoleType(
-  connections: ServerConnection[],
+  connections: ConnectionState[],
   consoleType: ConsoleType
-): Promise<ServerConnection | null> {
+): Promise<ConnectionState | null> {
   const first = await iterateConnectionsForConsoleType(
     connections,
     consoleType
@@ -108,9 +108,9 @@ export function isSupportedLanguageId(
  * @returns Async iterator for connections supporting the given console type
  */
 export async function* iterateConnectionsForConsoleType(
-  connections: ServerConnection[],
+  connections: ConnectionState[],
   consoleType: ConsoleType
-): AsyncGenerator<ServerConnection, void, unknown> {
+): AsyncGenerator<ConnectionState, void, unknown> {
   for (const connection of connections) {
     const isConsoleTypeSupported =
       connection instanceof DhService &&

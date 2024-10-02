@@ -12,7 +12,7 @@ import type {
   ServerState,
   SeparatorPickItem,
   ConnectionPickOption,
-  ServerConnection,
+  ConnectionState,
 } from '../types';
 import { sortByStringProp } from './dataUtils';
 
@@ -41,7 +41,7 @@ export interface WorkspaceFolderConfig {
  * @returns
  */
 export function createConnectionQuickPickOptions<
-  TConnection extends ServerConnection,
+  TConnection extends ConnectionState,
 >(
   servers: ServerState[],
   connections: TConnection[],
@@ -94,8 +94,8 @@ export function createConnectionQuickPickOptions<
  * Create quickpick for selecting a connection.
  */
 export async function createConnectionQuickPick(
-  options: ConnectionPickOption<ServerConnection>[]
-): Promise<ServerConnection | ServerState | null> {
+  options: ConnectionPickOption<ConnectionState>[]
+): Promise<ConnectionState | ServerState | null> {
   const result = await vscode.window.showQuickPick(options, {
     title: 'Connect Editor',
   });

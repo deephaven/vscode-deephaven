@@ -5,7 +5,7 @@ import type {
   Disposable,
   EnterpriseConnectionConfig,
   EventListenerT,
-  ServerConnection,
+  ConnectionState,
   ServerState,
   UnsubscribeEventListener,
   VariableChanges,
@@ -26,7 +26,7 @@ export interface IConfigService {
  */
 export interface IDhService<TDH = unknown, TClient = unknown>
   extends Disposable,
-    ServerConnection {
+    ConnectionState {
   readonly isInitialized: boolean;
   readonly isConnected: boolean;
   readonly onDidDisconnect: vscode.Event<URL>;
@@ -89,23 +89,23 @@ export interface IPanelService extends Disposable {
 export interface IServerManager extends Disposable {
   canStartServer: boolean;
 
-  connectToServer: (serverUrl: URL) => Promise<ServerConnection | null>;
+  connectToServer: (serverUrl: URL) => Promise<ConnectionState | null>;
   disconnectEditor: (uri: vscode.Uri) => void;
   disconnectFromServer: (serverUrl: URL) => Promise<void>;
   loadServerConfig: () => Promise<void>;
 
   hasConnection: (serverUrl: URL) => boolean;
-  hasConnectionUris: (connection: ServerConnection) => boolean;
+  hasConnectionUris: (connection: ConnectionState) => boolean;
 
-  getConnection: (serverUrl: URL) => ServerConnection | undefined;
-  getConnections: () => ServerConnection[];
-  getConnectionUris: (connection: ServerConnection) => vscode.Uri[];
+  getConnection: (serverUrl: URL) => ConnectionState | undefined;
+  getConnections: () => ConnectionState[];
+  getConnectionUris: (connection: ConnectionState) => vscode.Uri[];
   getEditorConnection: (
     editor: vscode.TextEditor
-  ) => Promise<ServerConnection | null>;
+  ) => Promise<ConnectionState | null>;
   setEditorConnection: (
     editor: vscode.TextEditor,
-    dhService: ServerConnection
+    dhService: ConnectionState
   ) => Promise<void>;
 
   getServer: (serverUrl: URL) => ServerState | undefined;
@@ -113,7 +113,7 @@ export interface IServerManager extends Disposable {
     isRunning?: boolean;
     hasConnections?: boolean;
   }) => ServerState[];
-  getUriConnection: (uri: vscode.Uri) => ServerConnection | null;
+  getUriConnection: (uri: vscode.Uri) => ConnectionState | null;
   hasEverUpdatedStatus: () => boolean;
   syncManagedServers: (urls: URL[]) => void;
   updateStatus: (filterBy?: URL[]) => Promise<void>;

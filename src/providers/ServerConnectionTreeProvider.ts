@@ -3,7 +3,7 @@ import { TreeDataProviderBase } from './TreeDataProviderBase';
 import { CONNECTION_TREE_ITEM_CONTEXT, ICON_ID } from '../common';
 import type {
   IDhService,
-  ServerConnection,
+  ConnectionState,
   ServerConnectionNode,
 } from '../types';
 import { sortByStringProp } from '../util';
@@ -67,7 +67,7 @@ export class ServerConnectionTreeProvider extends TreeDataProviderBase<ServerCon
    * for `TreeView.reveal` method to work.
    * @param element
    */
-  getParent = (element: ServerConnectionNode): ServerConnection | null => {
+  getParent = (element: ServerConnectionNode): ConnectionState | null => {
     if (element instanceof vscode.Uri) {
       return this.serverManager.getUriConnection(element);
     }

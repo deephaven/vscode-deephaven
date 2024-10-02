@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import type {
-  ServerConnection,
+  ConnectionState,
   ServerGroupState,
   ServerState,
   VariableDefintion,
@@ -51,7 +51,7 @@ export function getVariableIconPath(
  * @param connection
  */
 export async function getPanelConnectionTreeItem(
-  connection: ServerConnection
+  connection: ConnectionState
 ): Promise<vscode.TreeItem> {
   const [consoleType] =
     connection instanceof DhService && connection.isInitialized

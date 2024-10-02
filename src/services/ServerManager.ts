@@ -10,7 +10,7 @@ import type {
   IConfigService,
   IDhServiceFactory,
   IServerManager,
-  ServerConnection,
+  ConnectionState,
   ServerState,
 } from '../types';
 import { getInitialServerStates, isDisposable, Logger } from '../util';
@@ -29,8 +29,8 @@ export class ServerManager implements IServerManager {
     this._dhcServiceFactory = dhcServiceFactory;
 
     this._serverMap = new URLMap<ServerState>();
-    this._connectionMap = new URLMap<ServerConnection>();
-    this._uriConnectionsMap = new URIMap<ServerConnection>();
+    this._connectionMap = new URLMap<ConnectionState>();
+    this._uriConnectionsMap = new URIMap<ConnectionState>();
 
     this.canStartServer = false;
 
@@ -38,9 +38,9 @@ export class ServerManager implements IServerManager {
   }
 
   private readonly _configService: IConfigService;
-  private readonly _connectionMap: URLMap<ServerConnection>;
+  private readonly _connectionMap: URLMap<ConnectionState>;
   private readonly _dhcServiceFactory: IDhServiceFactory;
-  private readonly _uriConnectionsMap: URIMap<ServerConnection>;
+  private readonly _uriConnectionsMap: URIMap<ConnectionState>;
   private _serverMap: URLMap<ServerState>;
 
   private readonly _onDidConnect = new vscode.EventEmitter<URL>();
@@ -107,9 +107,7 @@ export class ServerManager implements IServerManager {
     this._onDidLoadConfig.fire();
   };
 
-  connectToServer = async (
-    serverUrl: URL
-  ): Promise<ServerConnection | null> => {
+  connectToServer = async (serverUrl: URL): Promise<ConnectionState | null> => {
     if (this.hasConnection(serverUrl)) {
       logger.info('Already connected to server:', serverUrl);
       return null;
@@ -181,7 +179,7 @@ export class ServerManager implements IServerManager {
    * Determine if the given connection is assicated with any editor URIs.
    * @param connection
    */
-  hasConnectionUris = (connection: ServerConnection): boolean => {
+  hasConnectionUris = (connection: ConnectionState): boolean => {
     for (const cn of this._uriConnectionsMap.values()) {
       if (cn === connection) {
         return true;
@@ -230,7 +228,7 @@ export class ServerManager implements IServerManager {
    * @returns The connection, or `undefined` if no connection exists for the
    * given server URL.
    */
-  getConnection = (serverUrl: URL): ServerConnection | undefined => {
+  getConnection = (serverUrl: URL): ConnectionState | undefined => {
     return this._connectionMap.get(serverUrl);
   };
 
@@ -238,7 +236,7 @@ export class ServerManager implements IServerManager {
    * Get all connections.
    * @returns An array of all connections.
    */
-  getConnections = (): ServerConnection[] => {
+  getConnections = (): ConnectionState[] => {
     return [...this._connectionMap.values()];
   };
 
@@ -246,7 +244,7 @@ export class ServerManager implements IServerManager {
    * Get all URIs associated with a connection.
    * @param connection
    */
-  getConnectionUris = (connection: ServerConnection): vscode.Uri[] => {
+  getConnectionUris = (connection: ConnectionState): vscode.Uri[] => {
     return [...this._uriConnectionsMap.entries()]
       .filter(([, cn]) => cn === connection)
       .map(([uri]) => uri);
@@ -258,7 +256,7 @@ export class ServerManager implements IServerManager {
    */
   getEditorConnection = async (
     editor: vscode.TextEditor
-  ): Promise<ServerConnection | null> => {
+  ): Promise<ConnectionState | null> => {
     const uri = editor.document.uri;
     return this._uriConnectionsMap.get(uri) ?? null;
   };
@@ -267,13 +265,13 @@ export class ServerManager implements IServerManager {
    * Get connection associated with the given URI.
    * @param uri
    */
-  getUriConnection = (uri: vscode.Uri): ServerConnection | null => {
+  getUriConnection = (uri: vscode.Uri): ConnectionState | null => {
     return this._uriConnectionsMap.get(uri) ?? null;
   };
 
   setEditorConnection = async (
     editor: vscode.TextEditor,
-    serverConnection: ServerConnection
+    serverConnection: ConnectionState
   ): Promise<void> => {
     const uri = editor.document.uri;
 
