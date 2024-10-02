@@ -13,7 +13,7 @@ import type {
   ServerConnection,
   ServerState,
 } from '../types';
-import { getInitialServerStates, Logger } from '../util';
+import { getInitialServerStates, isDisposable, Logger } from '../util';
 import { URLMap } from './URLMap';
 import { URIMap } from './URIMap';
 import DhService from './DhService';
@@ -161,7 +161,9 @@ export class ServerManager implements IServerManager {
       }
     });
 
-    await connection.dispose();
+    if (isDisposable(connection)) {
+      await connection.dispose();
+    }
 
     this._onDidDisconnect.fire(serverUrl);
     this._onDidUpdate.fire();

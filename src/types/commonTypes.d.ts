@@ -38,7 +38,7 @@ export type ServerConnectionConfig =
   | EnterpriseConnectionConfig
   | URL;
 
-export interface ServerConnection extends Disposable {
+export interface ServerConnection {
   readonly isConnected: boolean;
   readonly serverUrl: URL;
 }
