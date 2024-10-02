@@ -156,12 +156,12 @@ export class PanelController implements Disposable {
       const connection = this._serverManager.getConnection(serverUrl);
       assertDefined(connection, 'connection');
 
-      const iframeUrl = getEmbedWidgetUrl(
+      const iframeUrl = getEmbedWidgetUrl({
         serverUrl,
         title,
-        getDHThemeKey(),
-        connection instanceof DhcService ? connection.getPsk() : undefined
-      );
+        themeKey: getDHThemeKey(),
+        psk: connection instanceof DhcService ? connection.getPsk() : undefined,
+      });
 
       panel.webview.html = getPanelHtml(iframeUrl, title);
 

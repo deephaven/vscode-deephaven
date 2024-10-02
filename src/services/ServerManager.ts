@@ -6,7 +6,6 @@ import type {
   QueryInfo,
 } from '@deephaven-enterprise/jsapi-types';
 import {
-  AUTH_HANDLER_TYPE_PSK,
   createDheClient,
   defaultDraftQuery,
   getDheAuthToken,
@@ -34,7 +33,8 @@ import {
 } from '../util';
 import { URLMap } from './URLMap';
 import { URIMap } from './URIMap';
-import DhService from './DhService';
+import { DhService } from './DhService';
+import { AUTH_HANDLER_TYPE_PSK } from '../dh/dhc';
 
 // TODO: Dev only to avoid storing credentials in the codebase. Will implement
 // proper credential management later.

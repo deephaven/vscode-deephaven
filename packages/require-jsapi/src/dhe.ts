@@ -1,4 +1,4 @@
-import { downloadFromURL, hasStatusCode } from './serverUtils';
+import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type {
@@ -7,7 +7,7 @@ import type {
   EnterpriseClient,
 } from '@deephaven-enterprise/jsapi-types';
 import { polyfillDh } from './polyfill';
-import { randomUUID } from 'node:crypto';
+import { downloadFromURL, hasStatusCode } from './serverUtils';
 
 /**
  * Check if a given server is running by checking if the `irisapi/irisapi.nocache.js`
