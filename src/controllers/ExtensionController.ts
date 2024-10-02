@@ -540,11 +540,11 @@ export class ExtensionController implements Disposable {
     assertDefined(uri, 'uri');
 
     const editor = await getEditorForUri(uri);
-    const dhService =
+    const serverConnection =
       await this._connectionController.getOrCreateConnection(uri);
 
-    if (dhService instanceof DhService) {
-      await dhService?.runEditorCode(editor, selectionOnly === true);
+    if (serverConnection instanceof DhService) {
+      await serverConnection?.runEditorCode(editor, selectionOnly === true);
     }
   };
 
