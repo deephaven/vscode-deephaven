@@ -7,7 +7,7 @@ import type {
   QueryInfo,
 } from '@deephaven-enterprise/jsapi-types';
 import { DraftQuery, QueryScheduler } from '@deephaven-enterprise/query-utils';
-import type { WorkerInfo } from '../types';
+import type { IdeURL, WorkerInfo, WorkerURL } from '../types';
 
 const INTERACTIVE_CONSOLE_QUERY_TYPE = 'InteractiveConsole';
 
@@ -116,12 +116,10 @@ export async function createCoreWorker(
 
   return {
     serial,
-    grpcUrl,
-    ideUrl,
+    grpcUrl: new URL(grpcUrl) as WorkerURL,
+    ideUrl: new URL(ideUrl) as IdeURL,
     processInfoId,
     workerName,
-    // dispose: () => (dheClient as any).deleteQueries([serial]),
-    // getCredentials: async () => getDheAuthToken(dheClient),
   };
 }
 

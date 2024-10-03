@@ -14,6 +14,7 @@ import type {
   VariableDefintion,
   VariableID,
   WorkerInfo,
+  WorkerURL,
 } from '../types/commonTypes';
 
 export interface ICacheService<TKey, TValue> extends Disposable {
@@ -53,9 +54,9 @@ export interface IDhService<TDH = unknown, TClient = unknown>
 export interface IDheService extends ConnectionState, Disposable {
   readonly workerCount: number;
   init: () => Promise<EnterpriseClient | null>;
-  getWorkerInfo: (workerUrl: URL) => WorkerInfo | undefined;
+  getWorkerInfo: (workerUrl: WorkerURL) => WorkerInfo | undefined;
   createWorker: () => Promise<WorkerInfo>;
-  deleteWorker: (workerUrl: URL) => Promise<void>;
+  deleteWorker: (workerUrl: WorkerURL) => Promise<void>;
 }
 
 /**
@@ -117,7 +118,7 @@ export interface IServerManager extends Disposable {
   getEditorConnection: (
     editor: vscode.TextEditor
   ) => Promise<ConnectionState | null>;
-  getWorkerInfo: (workerUrl: URL) => Promise<WorkerInfo | undefined>;
+  getWorkerInfo: (workerUrl: WorkerURL) => Promise<WorkerInfo | undefined>;
   setEditorConnection: (
     editor: vscode.TextEditor,
     dhService: ConnectionState

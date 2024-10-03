@@ -43,9 +43,12 @@ export interface ConnectionState {
   readonly serverUrl: URL;
 }
 
+export type WorkerURL = Brand<'GrpcUrl', URL>;
+export type IdeURL = Brand<'IdeUrl', URL>;
+
 export interface WorkerInfo {
-  grpcUrl: string;
-  ideUrl: string;
+  grpcUrl: WorkerURL;
+  ideUrl: IdeURL;
   processInfoId: string | null;
   serial: string;
   workerName: string | null;

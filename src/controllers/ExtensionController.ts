@@ -280,6 +280,7 @@ export class ExtensionController implements Disposable {
     this._dheJsApiCache = new CacheByUrlService(url =>
       initDheApi(url, getTempDir({ subDirectory: urlToDirectoryName(url) }))
     );
+    this._context.subscriptions.push(this._dheJsApiCache);
 
     this._dheClientCache = new CacheByUrlService(async (url: URL) => {
       assertDefined(this._dheJsApiCache, 'dheJsApiCache');
@@ -287,6 +288,7 @@ export class ExtensionController implements Disposable {
       const dhe = await this._dheJsApiCache.get(url);
       return createDheClient(dhe, getWsUrl(url));
     });
+    this._context.subscriptions.push(this._dheClientCache);
 
     this._panelService = new PanelService();
     this._context.subscriptions.push(this._panelService);
@@ -310,8 +312,7 @@ export class ExtensionController implements Disposable {
       assertDefined(this._dheServiceFactory, 'dheServiceFactory');
       return this._dheServiceFactory.create(url);
     });
-
-    this._context.subscriptions.push(this._dheJsApiCache);
+    this._context.subscriptions.push(this._dheServiceCache);
 
     this._serverManager = new ServerManager(
       this._config,

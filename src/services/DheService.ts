@@ -4,11 +4,12 @@ import type {
   EnterpriseClient,
   LoginCredentials as DheLoginCredentials,
 } from '@deephaven-enterprise/jsapi-types';
-import type {
-  ICacheService,
-  IDheService,
-  IDheServiceFactory,
-  WorkerInfo,
+import {
+  WorkerURL,
+  type ICacheService,
+  type IDheService,
+  type IDheServiceFactory,
+  type WorkerInfo,
 } from '../types';
 import { URLMap } from './URLMap';
 import { assertDefined, Logger } from '../util';
@@ -72,7 +73,7 @@ export class DheService implements IDheService {
     this._dheClientCache = dheClientCache;
     this._dheCredentialsCache = dheCredentialsCache;
     this._dheJsApiCache = dheJsApiCache;
-    this._workerInfoMap = new URLMap<WorkerInfo>();
+    this._workerInfoMap = new URLMap<WorkerInfo, WorkerURL>();
   }
 
   private _isConnected: boolean = false;
@@ -84,7 +85,7 @@ export class DheService implements IDheService {
   private readonly _dheClientCache: ICacheService<URL, EnterpriseClient>;
   private readonly _dheCredentialsCache: URLMap<DheLoginCredentials>;
   private readonly _dheJsApiCache: ICacheService<URL, DheType>;
-  private readonly _workerInfoMap: URLMap<WorkerInfo>;
+  private readonly _workerInfoMap: URLMap<WorkerInfo, WorkerURL>;
 
   readonly serverUrl: URL;
 
@@ -96,7 +97,7 @@ export class DheService implements IDheService {
     return this._workerCount;
   }
 
-  getWorkerInfo = (workerUrl: URL): WorkerInfo | undefined => {
+  getWorkerInfo = (workerUrl: WorkerURL): WorkerInfo | undefined => {
     return this._workerInfoMap.get(workerUrl);
   };
 
@@ -166,7 +167,7 @@ export class DheService implements IDheService {
         getWorkerCredentials(dheClient)
       );
 
-      this._workerInfoMap.set(workerUrl, workerInfo);
+      this._workerInfoMap.set(workerInfo.grpcUrl, workerInfo);
 
       return workerInfo;
     } catch (err) {
@@ -175,7 +176,7 @@ export class DheService implements IDheService {
     }
   };
 
-  deleteWorker = async (workerUrl: URL): Promise<void> => {
+  deleteWorker = async (workerUrl: WorkerURL): Promise<void> => {
     this._workerCount -= 1;
 
     const workerInfo = await this._workerInfoMap.get(workerUrl);
@@ -183,7 +184,7 @@ export class DheService implements IDheService {
       return;
     }
 
-    this._workerInfoMap.delete(this.serverUrl);
+    this._workerInfoMap.delete(workerUrl);
 
     const dheClient = await this.init();
     if (dheClient == null) {
@@ -193,5 +194,11 @@ export class DheService implements IDheService {
     deleteWorker(dheClient, workerInfo.serial);
   };
 
-  dispose = async (): Promise<void> => {};
+  dispose = async (): Promise<void> => {
+    const promises = this._workerInfoMap.values().map(({ grpcUrl }) => {
+      this.deleteWorker(grpcUrl);
+    });
+
+    await Promise.all(promises);
+  };
 }

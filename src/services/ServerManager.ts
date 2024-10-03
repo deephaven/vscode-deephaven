@@ -16,6 +16,7 @@ import type {
   WorkerInfo,
   IDheService,
   ICacheService,
+  WorkerURL,
 } from '../types';
 import {
   assertDefined,
@@ -237,7 +238,9 @@ export class ServerManager implements IServerManager {
     this._onDidUpdate.fire();
   };
 
-  disconnectFromServer = async (serverOrWorkerUrl: URL): Promise<void> => {
+  disconnectFromServer = async (
+    serverOrWorkerUrl: URL | WorkerURL
+  ): Promise<void> => {
     const connection = this._connectionMap.get(serverOrWorkerUrl);
 
     if (connection == null) {
@@ -248,7 +251,7 @@ export class ServerManager implements IServerManager {
     const dheServerUrl = this._workerURLToServerURLMap.get(serverOrWorkerUrl);
     if (dheServerUrl != null) {
       const dheService = await this._dheServiceCache.get(dheServerUrl);
-      await dheService.deleteWorker(serverOrWorkerUrl);
+      await dheService.deleteWorker(serverOrWorkerUrl as WorkerURL);
     }
 
     this._connectionMap.delete(serverOrWorkerUrl);
@@ -371,7 +374,9 @@ export class ServerManager implements IServerManager {
   };
 
   /** Get worker info associated with the given server URL. */
-  getWorkerInfo = async (workerUrl: URL): Promise<WorkerInfo | undefined> => {
+  getWorkerInfo = async (
+    workerUrl: WorkerURL
+  ): Promise<WorkerInfo | undefined> => {
     const dheServerUrl = this._workerURLToServerURLMap.get(workerUrl);
     if (dheServerUrl == null) {
       return;

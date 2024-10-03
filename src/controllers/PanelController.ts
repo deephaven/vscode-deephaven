@@ -5,6 +5,7 @@ import type {
   IPanelService,
   IServerManager,
   VariableDefintion,
+  WorkerURL,
 } from '../types';
 import { assertDefined, getDHThemeKey, getPanelHtml, Logger } from '../util';
 import { DhcService, type URLMap } from '../services';
@@ -58,12 +59,13 @@ export class PanelController implements Disposable {
   };
 
   protected async _onPanelMessage(
-    serverOrWorkerUrl: URL,
+    serverOrWorkerUrl: URL | WorkerURL,
     { id, message }: { id: string; message: string },
     postResponseMessage: (response: unknown) => void
   ): Promise<void> {
-    const workerInfo =
-      await this._serverManager.getWorkerInfo(serverOrWorkerUrl);
+    const workerInfo = await this._serverManager.getWorkerInfo(
+      serverOrWorkerUrl as WorkerURL
+    );
 
     if (workerInfo == null) {
       return;
@@ -194,14 +196,14 @@ export class PanelController implements Disposable {
    * @param variables Variables identifying the panels to refresh.
    */
   private _onRefreshPanelsContent = async (
-    serverUrl: URL,
+    serverUrl: URL | WorkerURL,
     variables: VariableDefintion[]
   ): Promise<void> => {
     const connection = this._serverManager.getConnection(serverUrl);
     assertDefined(connection, 'connection');
 
     const isWorkerUrl = Boolean(
-      await this._serverManager.getWorkerInfo(serverUrl)
+      await this._serverManager.getWorkerInfo(serverUrl as WorkerURL)
     );
 
     for (const { id, title } of variables) {
