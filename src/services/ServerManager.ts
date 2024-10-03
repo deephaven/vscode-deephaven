@@ -1,10 +1,6 @@
 import * as vscode from 'vscode';
 import { randomUUID } from 'node:crypto';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
-import type {
-  EnterpriseDhType as DheType,
-  QueryInfo,
-} from '@deephaven-enterprise/jsapi-types';
 import {
   isDhcServerRunning,
   isDheServerRunning,
@@ -12,13 +8,14 @@ import {
 import { UnsupportedConsoleTypeError } from '../common';
 import type {
   ConsoleType,
-  ICacheService,
   IConfigService,
   IDhServiceFactory,
   IServerManager,
   ConnectionState,
   ServerState,
   WorkerInfo,
+  IDheService,
+  ICacheService,
 } from '../types';
 import {
   assertDefined,
@@ -31,13 +28,6 @@ import { URLMap } from './URLMap';
 import { URIMap } from './URIMap';
 import { DhService } from './DhService';
 import { AUTH_HANDLER_TYPE_PSK } from '../dh/dhc';
-import {
-  createDheClient,
-  createDraftQuery,
-  getDheAuthToken,
-  getWsUrl,
-  hasInteractivePermission,
-} from '../dh/dhe';
 
 // TODO: Dev only to avoid storing credentials in the codebase. Will implement
 // proper credential management later.
@@ -51,16 +41,17 @@ export class ServerManager implements IServerManager {
     configService: IConfigService,
     credentialsCache: URLMap<DhcType.LoginCredentials>,
     dhcServiceFactory: IDhServiceFactory,
-    dheJsApiCache: ICacheService<URL, DheType>
+    dheServiceCache: ICacheService<URL, IDheService>
   ) {
     this._configService = configService;
+    this._connectionMap = new URLMap<ConnectionState>();
     this._credentialsCache = credentialsCache;
     this._dhcServiceFactory = dhcServiceFactory;
-    this._dheJsApiCache = dheJsApiCache;
+    this._dheServiceCache = dheServiceCache;
+    this._placeholderConnectionUrls = new Set();
     this._serverMap = new URLMap<ServerState>();
-    this._connectionMap = new URLMap<ConnectionState>();
     this._uriConnectionsMap = new URIMap<ConnectionState>();
-    this._workerInfoMap = new URLMap<WorkerInfo>();
+    this._workerURLToServerURLMap = new URLMap<URL>();
 
     this.canStartServer = false;
 
@@ -71,9 +62,10 @@ export class ServerManager implements IServerManager {
   private readonly _connectionMap: URLMap<ConnectionState>;
   private readonly _credentialsCache: URLMap<DhcType.LoginCredentials>;
   private readonly _dhcServiceFactory: IDhServiceFactory;
-  private readonly _dheJsApiCache: ICacheService<URL, DheType>;
+  private readonly _dheServiceCache: ICacheService<URL, IDheService>;
+  private readonly _placeholderConnectionUrls: Set<string>;
   private readonly _uriConnectionsMap: URIMap<ConnectionState>;
-  private readonly _workerInfoMap: URLMap<WorkerInfo>;
+  private readonly _workerURLToServerURLMap: URLMap<URL>;
   private _serverMap: URLMap<ServerState>;
 
   private readonly _onDidConnect = new vscode.EventEmitter<URL>();
@@ -158,71 +150,27 @@ export class ServerManager implements IServerManager {
         token: serverState.psk,
       });
     } else if (serverState.type === 'DHE') {
-      const dhe = await this._dheJsApiCache.get(serverUrl);
-      const dheClient = await createDheClient(dhe, getWsUrl(serverUrl));
+      const placeholderUrl = this.addPlaceholderConnection(serverUrl);
 
-      const dheCredentials = {
-        username: HACK_USERNAME,
-        token: HACK_USERNAME,
-        type: 'password',
-      };
+      const dheService = await this._dheServiceCache.get(serverUrl);
 
       try {
-        await dheClient.login(dheCredentials);
+        const workerInfo = await dheService.createWorker();
+
+        // Map the worker URL to the server URL to make things easier to dispose
+        // later.
+        this._workerURLToServerURLMap.set(
+          new URL(workerInfo.grpcUrl),
+          serverUrl
+        );
+
+        this.removePlaceholderConnection(placeholderUrl);
+
+        // Update the server URL to the worker url to be used below with core
+        // connection creation.
+        serverUrl = new URL(workerInfo.grpcUrl);
       } catch (err) {
-        logger.error('An error occurred while connecting to DHE server:', err);
-        return null;
-      }
-
-      if (!hasInteractivePermission(dheClient)) {
-        logger.error('User does not have permission to run queries.');
-        return null;
-      }
-
-      const draftQuery = await createDraftQuery(
-        dheClient,
-        dheCredentials.username
-      );
-
-      if (draftQuery.serial == null) {
-        draftQuery.updateSchedule();
-      }
-
-      try {
-        const newSerial = await dheClient.createQuery(draftQuery);
-
-        const queryInfo = await new Promise<QueryInfo>(resolve => {
-          dheClient.addEventListener(
-            dhe.Client.EVENT_CONFIG_UPDATED,
-            _event => {
-              const queryInfo = dheClient
-                .getKnownConfigs()
-                .find(({ serial }) => serial === newSerial);
-
-              if (queryInfo?.designated?.grpcUrl != null) {
-                resolve(queryInfo);
-              }
-            }
-          );
-        });
-
-        if (queryInfo?.designated?.grpcUrl == null) {
-          return null;
-        }
-
-        serverUrl = new URL(queryInfo.designated.grpcUrl);
-
-        this._workerInfoMap.set(serverUrl, {
-          ideUrl: queryInfo.designated.ideUrl,
-          processInfoId: queryInfo.designated.processInfoId,
-          workerName: queryInfo.designated.workerName,
-          getCredentials: async () => getDheAuthToken(dheClient),
-        });
-
-        const credentials = await getDheAuthToken(dheClient);
-        this._credentialsCache.set(serverUrl, credentials);
-      } catch (err) {
-        console.error(err);
+        logger.error(err);
         return null;
       }
 
@@ -259,20 +207,49 @@ export class ServerManager implements IServerManager {
     return this._connectionMap.get(serverUrl) ?? null;
   };
 
+  addPlaceholderConnection = (serverUrl: URL): URL => {
+    // simple way to keep placeholder urls unique by just adding an incrementing pathname
+    const placeholderUrl = new URL(serverUrl);
+    placeholderUrl.pathname = String(this._placeholderConnectionUrls.size + 1);
+
+    this._placeholderConnectionUrls.add(placeholderUrl.toString());
+
+    this._connectionMap.set(placeholderUrl, {
+      isConnected: false,
+      serverUrl,
+    });
+
+    this._onDidUpdate.fire();
+
+    return placeholderUrl;
+  };
+
+  removePlaceholderConnection = (placeholderUrl: URL): void => {
+    this._placeholderConnectionUrls.delete(placeholderUrl.toString());
+    this._connectionMap.delete(placeholderUrl);
+    this._onDidUpdate.fire();
+  };
+
   disconnectEditor = (uri: vscode.Uri): void => {
     this._uriConnectionsMap.delete(uri);
     this._onDidUpdate.fire();
   };
 
-  disconnectFromServer = async (serverUrl: URL): Promise<void> => {
-    const connection = this._connectionMap.get(serverUrl);
+  disconnectFromServer = async (serverOrWorkerUrl: URL): Promise<void> => {
+    const connection = this._connectionMap.get(serverOrWorkerUrl);
 
     if (connection == null) {
       return;
     }
 
-    this._connectionMap.delete(serverUrl);
-    this._workerInfoMap.delete(serverUrl);
+    // If this is a Core+ worker in a DHE server, delete the worker.
+    const dheServerUrl = this._workerURLToServerURLMap.get(serverOrWorkerUrl);
+    if (dheServerUrl != null) {
+      const dheService = await this._dheServiceCache.get(dheServerUrl);
+      await dheService.deleteWorker(serverOrWorkerUrl);
+    }
+
+    this._connectionMap.delete(serverOrWorkerUrl);
 
     // Remove any editor URIs associated with this connection
     this._uriConnectionsMap.forEach((connectionState, uri) => {
@@ -285,7 +262,7 @@ export class ServerManager implements IServerManager {
       await connection.dispose();
     }
 
-    this._onDidDisconnect.fire(serverUrl);
+    this._onDidDisconnect.fire(serverOrWorkerUrl);
     this._onDidUpdate.fire();
   };
 
@@ -391,9 +368,31 @@ export class ServerManager implements IServerManager {
     return this._uriConnectionsMap.get(uri) ?? null;
   };
 
+  getWorkerCredentials = async (
+    workerUrl: URL
+  ): Promise<DhcType.LoginCredentials> => {
+    const dheServerUrl = this._workerURLToServerURLMap.get(workerUrl);
+    if (dheServerUrl == null) {
+      throw new Error(
+        `Credentials requested for unregistered worker url: ${workerUrl}`
+      );
+    }
+
+    const dheService = await this._dheServiceCache.get(dheServerUrl);
+
+    return dheService.getWorkerCredentials();
+  };
+
   /** Get worker info associated with the given server URL. */
-  getWorkerInfo = (serverUrl: URL): WorkerInfo | undefined => {
-    return this._workerInfoMap.get(serverUrl);
+  getWorkerInfo = async (workerUrl: URL): Promise<WorkerInfo | undefined> => {
+    const dheServerUrl = this._workerURLToServerURLMap.get(workerUrl);
+    if (dheServerUrl == null) {
+      return;
+    }
+
+    const dheService = await this._dheServiceCache.get(dheServerUrl);
+
+    return dheService.getWorkerInfo(workerUrl);
   };
 
   setEditorConnection = async (

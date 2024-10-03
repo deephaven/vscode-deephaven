@@ -44,9 +44,10 @@ export interface ConnectionState {
 }
 
 export interface WorkerInfo {
-  getCredentials: () => Promise<DhcType.LoginCredentials>;
+  grpcUrl: string;
   ideUrl: string;
   processInfoId: string | null;
+  serial: string;
   workerName: string | null;
 }
 

@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import type { dh as DhcType } from '@deephaven/jsapi-types';
+import type { EnterpriseClient } from '@deephaven-enterprise/jsapi-types';
 import type {
   ConsoleType,
   CoreConnectionConfig,
@@ -48,6 +50,15 @@ export interface IDhService<TDH = unknown, TClient = unknown>
   ) => Promise<void>;
 }
 
+export interface IDheService extends ConnectionState, Disposable {
+  readonly workerCount: number;
+  init: () => Promise<EnterpriseClient | null>;
+  getWorkerCredentials: () => Promise<DhcType.LoginCredentials>;
+  getWorkerInfo: (workerUrl: URL) => WorkerInfo | undefined;
+  createWorker: () => Promise<WorkerInfo>;
+  deleteWorker: (workerUrl: URL) => Promise<void>;
+}
+
 /**
  * @deprecated Use `vscode.EventEmitter` instead.
  */
@@ -68,6 +79,7 @@ export interface IFactory<T, TArgs extends unknown[] = []> {
  * Factory for creating IDhService instances.
  */
 export type IDhServiceFactory = IFactory<IDhService, [serverUrl: URL]>;
+export type IDheServiceFactory = IFactory<IDheService, [serverUrl: URL]>;
 
 export interface IPanelService extends Disposable {
   readonly onDidUpdate: vscode.Event<void>;
@@ -106,7 +118,8 @@ export interface IServerManager extends Disposable {
   getEditorConnection: (
     editor: vscode.TextEditor
   ) => Promise<ConnectionState | null>;
-  getWorkerInfo: (serverUrl: URL) => WorkerInfo | undefined;
+  getWorkerCredentials: (workerUrl: URL) => Promise<DhcType.LoginCredentials>;
+  getWorkerInfo: (workerUrl: URL) => Promise<WorkerInfo | undefined>;
   setEditorConnection: (
     editor: vscode.TextEditor,
     dhService: ConnectionState

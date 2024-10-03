@@ -1,6 +1,10 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
-import type { EnterpriseDhType as DheType } from '@deephaven-enterprise/jsapi-types';
+import type {
+  EnterpriseDhType as DheType,
+  EnterpriseClient,
+  LoginCredentials as DheLoginCredentials,
+} from '@deephaven-enterprise/jsapi-types';
 import {
   CONNECT_TO_SERVER_CMD,
   CREATE_NEW_TEXT_DOC_CMD,
@@ -47,6 +51,8 @@ import type {
   Disposable,
   ICacheService,
   IConfigService,
+  IDheService,
+  IDheServiceFactory,
   IDhService,
   IDhServiceFactory,
   IPanelService,
@@ -63,6 +69,8 @@ import { ConnectionController } from './ConnectionController';
 import { PipServerController } from './PipServerController';
 import { PanelController } from './PanelController';
 import { initDheApi } from '@deephaven/require-jsapi';
+import { createDheClient, getWsUrl } from '../dh/dhe';
+import { DheService } from '../services/DheService';
 
 const logger = new Logger('ExtensionController');
 
@@ -96,12 +104,16 @@ export class ExtensionController implements Disposable {
   readonly _config: IConfigService;
 
   private _connectionController: ConnectionController | null = null;
-  private _credentialsCache: URLMap<DhcType.LoginCredentials> | null = null;
+  private _coreCredentialsCache: URLMap<DhcType.LoginCredentials> | null = null;
+  private _dheClientCache: ICacheService<URL, EnterpriseClient> | null = null;
+  private _dheCredentialsCache: URLMap<DheLoginCredentials> | null = null;
+  private _dheServiceCache: ICacheService<URL, IDheService> | null = null;
   private _panelController: PanelController | null = null;
   private _panelService: IPanelService | null = null;
   private _pipServerController: PipServerController | null = null;
   private _dhcServiceFactory: IDhServiceFactory | null = null;
   private _dheJsApiCache: ICacheService<URL, DheType> | null = null;
+  private _dheServiceFactory: IDheServiceFactory | null = null;
   private _serverManager: IServerManager | null = null;
 
   // Tree providers
@@ -171,12 +183,12 @@ export class ExtensionController implements Disposable {
    * Initialize panel controller.
    */
   initializePanelController = (): void => {
-    assertDefined(this._credentialsCache, 'credentialsCache');
+    assertDefined(this._coreCredentialsCache, 'credentialsCache');
     assertDefined(this._panelService, 'panelService');
     assertDefined(this._serverManager, 'serverManager');
 
     this._panelController = new PanelController(
-      this._credentialsCache,
+      this._coreCredentialsCache,
       this._serverManager,
       this._panelService
     );
@@ -258,29 +270,50 @@ export class ExtensionController implements Disposable {
     assertDefined(this._outputChannel, 'outputChannel');
     assertDefined(this._toaster, 'toaster');
 
-    this._credentialsCache = new URLMap<DhcType.LoginCredentials>();
+    this._coreCredentialsCache = new URLMap<DhcType.LoginCredentials>();
+    this._dheCredentialsCache = new URLMap<DheLoginCredentials>();
+
+    this._dheJsApiCache = new CacheByUrlService(url =>
+      initDheApi(url, getTempDir({ subDirectory: urlToDirectoryName(url) }))
+    );
+
+    this._dheClientCache = new CacheByUrlService(async (url: URL) => {
+      assertDefined(this._dheJsApiCache, 'dheJsApiCache');
+
+      const dhe = await this._dheJsApiCache.get(url);
+      return createDheClient(dhe, getWsUrl(url));
+    });
 
     this._panelService = new PanelService();
     this._context.subscriptions.push(this._panelService);
 
     this._dhcServiceFactory = new DhcServiceFactory(
-      this._credentialsCache,
+      this._coreCredentialsCache,
       this._panelService,
       this._pythonDiagnostics,
       this._outputChannel,
       this._toaster
     );
 
-    this._dheJsApiCache = new CacheByUrlService(url =>
-      initDheApi(url, getTempDir({ subDirectory: urlToDirectoryName(url) }))
+    this._dheServiceFactory = DheService.factory(
+      this._coreCredentialsCache,
+      this._dheClientCache,
+      this._dheCredentialsCache,
+      this._dheJsApiCache
     );
+
+    this._dheServiceCache = new CacheByUrlService(async url => {
+      assertDefined(this._dheServiceFactory, 'dheServiceFactory');
+      return this._dheServiceFactory.create(url);
+    });
+
     this._context.subscriptions.push(this._dheJsApiCache);
 
     this._serverManager = new ServerManager(
       this._config,
-      this._credentialsCache,
+      this._coreCredentialsCache,
       this._dhcServiceFactory,
-      this._dheJsApiCache
+      this._dheServiceCache
     );
     this._context.subscriptions.push(this._serverManager);
 

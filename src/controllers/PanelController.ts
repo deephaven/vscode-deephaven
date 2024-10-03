@@ -56,21 +56,19 @@ export class PanelController implements Disposable {
   };
 
   protected async _onPanelMessage(
-    serverUrl: URL,
+    serverOrWorkerUrl: URL,
     { id, message }: { id: string; message: string },
     postResponseMessage: (response: unknown) => void
   ): Promise<void> {
-    // logger.debug('Received panel message:', message, this.worker);
-
-    const workerInfo = this._serverManager.getWorkerInfo(serverUrl);
+    const workerInfo =
+      await this._serverManager.getWorkerInfo(serverOrWorkerUrl);
 
     if (workerInfo == null) {
       return;
     }
 
-    const credentials = await workerInfo.getCredentials(); //this._credentialsCache.get(serverUrl);
-
-    console.log('[TESTING] credentials', credentials);
+    const credentials =
+      await this._serverManager.getWorkerCredentials(serverOrWorkerUrl);
 
     if (message === 'io.deephaven.message.LoginOptions.request') {
       const response = {
@@ -186,12 +184,16 @@ export class PanelController implements Disposable {
    * @param serverUrl The server url.
    * @param variables Variables identifying the panels to refresh.
    */
-  private _onRefreshPanelsContent = (
+  private _onRefreshPanelsContent = async (
     serverUrl: URL,
     variables: VariableDefintion[]
-  ): void => {
+  ): Promise<void> => {
     const connection = this._serverManager.getConnection(serverUrl);
     assertDefined(connection, 'connection');
+
+    const isWorkerUrl = Boolean(
+      await this._serverManager.getWorkerInfo(serverUrl)
+    );
 
     for (const { id, title } of variables) {
       const panel = this._panelService.getPanelOrThrow(serverUrl, id);
@@ -200,9 +202,7 @@ export class PanelController implements Disposable {
         serverUrl,
         title,
         themeKey: getDHThemeKey(),
-        authProvider: this._serverManager.getWorkerInfo(serverUrl)
-          ? 'parent'
-          : undefined,
+        authProvider: isWorkerUrl ? 'parent' : undefined,
         psk: connection instanceof DhcService ? connection.getPsk() : undefined,
       });
 
