@@ -13,8 +13,8 @@ import {
 const logger = new Logger('DhcService');
 
 export class DhcService extends DhService<typeof DhcType, DhcType.CoreClient> {
-  getPsk(): string | null {
-    const credentials = this.credentialsCache.get(this.serverUrl);
+  async getPsk(): Promise<string | null> {
+    const credentials = await this.coreCredentialsCache.get(this.serverUrl)?.();
 
     if (credentials?.type !== AUTH_HANDLER_TYPE_PSK) {
       return null;
@@ -45,29 +45,31 @@ export class DhcService extends DhService<typeof DhcType, DhcType.CoreClient> {
     dh: typeof DhcType,
     client: DhcType.CoreClient
   ): Promise<ConnectionAndSession<DhcType.IdeConnection, DhcType.IdeSession>> {
-    if (!this.credentialsCache.has(this.serverUrl)) {
+    if (!this.coreCredentialsCache.has(this.serverUrl)) {
       const authConfig = new Set(
         (await client.getAuthConfigValues()).map(([, value]) => value)
       );
 
       if (authConfig.has(AUTH_HANDLER_TYPE_ANONYMOUS)) {
-        this.credentialsCache.set(this.serverUrl, {
+        this.coreCredentialsCache.set(this.serverUrl, async () => ({
           type: dh.CoreClient.LOGIN_TYPE_ANONYMOUS,
-        });
+        }));
       } else if (authConfig.has(AUTH_HANDLER_TYPE_PSK)) {
-        this.credentialsCache.set(this.serverUrl, {
+        this.coreCredentialsCache.set(this.serverUrl, async () => ({
           type: AUTH_HANDLER_TYPE_PSK,
           token: await vscode.window.showInputBox({
             placeHolder: 'Pre-Shared Key',
             prompt: 'Enter your Deephaven pre-shared key',
             password: true,
           }),
-        });
+        }));
       }
     }
 
-    if (this.credentialsCache.has(this.serverUrl)) {
-      const credentials = this.credentialsCache.get(this.serverUrl)!;
+    if (this.coreCredentialsCache.has(this.serverUrl)) {
+      const credentials = await this.coreCredentialsCache.get(
+        this.serverUrl
+      )!();
       return initDhcSession(client, credentials);
     }
 

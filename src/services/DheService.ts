@@ -39,7 +39,7 @@ export class DheService implements IDheService {
    * @returns A factory function that can be used to create DheService instances.
    */
   static factory = (
-    coreCredentialsCache: URLMap<DhcType.LoginCredentials>,
+    coreCredentialsCache: URLMap<() => Promise<DhcType.LoginCredentials>>,
     dheClientCache: ICacheService<URL, EnterpriseClient>,
     dheCredentialsCache: URLMap<DheLoginCredentials>,
     dheJsApiCache: ICacheService<URL, DheType>
@@ -62,7 +62,7 @@ export class DheService implements IDheService {
    */
   private constructor(
     serverUrl: URL,
-    coreCredentialsCache: URLMap<DhcType.LoginCredentials>,
+    coreCredentialsCache: URLMap<() => Promise<DhcType.LoginCredentials>>,
     dheClientCache: ICacheService<URL, EnterpriseClient>,
     dheCredentialsCache: URLMap<DheLoginCredentials>,
     dheJsApiCache: ICacheService<URL, DheType>
@@ -78,7 +78,9 @@ export class DheService implements IDheService {
   private _isConnected: boolean = false;
   private _initPromise: Promise<EnterpriseClient | null> | null = null;
   private _workerCount: number = 0;
-  private readonly _coreCredentialsCache: URLMap<DhcType.LoginCredentials>;
+  private readonly _coreCredentialsCache: URLMap<
+    () => Promise<DhcType.LoginCredentials>
+  >;
   private readonly _dheClientCache: ICacheService<URL, EnterpriseClient>;
   private readonly _dheCredentialsCache: URLMap<DheLoginCredentials>;
   private readonly _dheJsApiCache: ICacheService<URL, DheType>;
@@ -93,17 +95,6 @@ export class DheService implements IDheService {
   get workerCount(): number {
     return this._workerCount;
   }
-
-  getWorkerCredentials = async (): Promise<DhcType.LoginCredentials> => {
-    const dheClient = await this.init();
-    if (dheClient == null) {
-      const msg = 'Failed to create worker credentials.';
-      logger.error(msg);
-      throw new Error(msg);
-    }
-
-    return getWorkerCredentials(dheClient);
-  };
 
   getWorkerInfo = (workerUrl: URL): WorkerInfo | undefined => {
     return this._workerInfoMap.get(workerUrl);
@@ -171,8 +162,9 @@ export class DheService implements IDheService {
       }
 
       const workerUrl = new URL(workerInfo.grpcUrl);
-      const coreCredentials = await this.getWorkerCredentials();
-      this._coreCredentialsCache.set(workerUrl, coreCredentials);
+      this._coreCredentialsCache.set(workerUrl, () =>
+        getWorkerCredentials(dheClient)
+      );
 
       this._workerInfoMap.set(workerUrl, workerInfo);
 

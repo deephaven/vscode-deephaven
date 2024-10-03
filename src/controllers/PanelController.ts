@@ -19,11 +19,11 @@ const logger = new Logger('PanelController');
 
 export class PanelController implements Disposable {
   constructor(
-    credentialsCache: URLMap<DhcType.LoginCredentials>,
+    coreCredentialsCache: URLMap<() => Promise<DhcType.LoginCredentials>>,
     serverManager: IServerManager,
     panelService: IPanelService
   ) {
-    this._credentialsCache = credentialsCache;
+    this._coreCredentialsCache = coreCredentialsCache;
     this._panelService = panelService;
     this._serverManager = serverManager;
     this._subscriptions = [];
@@ -43,7 +43,9 @@ export class PanelController implements Disposable {
     );
   }
 
-  protected readonly _credentialsCache: URLMap<DhcType.LoginCredentials>;
+  private readonly _coreCredentialsCache: URLMap<
+    () => Promise<DhcType.LoginCredentials>
+  >;
   private readonly _panelService: IPanelService;
   private readonly _serverManager: IServerManager;
   private readonly _subscriptions: vscode.Disposable[];
@@ -68,7 +70,11 @@ export class PanelController implements Disposable {
     }
 
     const credentials =
-      await this._serverManager.getWorkerCredentials(serverOrWorkerUrl);
+      await this._coreCredentialsCache.get(serverOrWorkerUrl)?.();
+
+    if (credentials == null) {
+      logger.error('Failed to get credentials for worker', serverOrWorkerUrl);
+    }
 
     if (message === 'io.deephaven.message.LoginOptions.request') {
       const response = {
@@ -158,7 +164,10 @@ export class PanelController implements Disposable {
         serverUrl,
         title,
         themeKey: getDHThemeKey(),
-        psk: connection instanceof DhcService ? connection.getPsk() : undefined,
+        psk:
+          connection instanceof DhcService
+            ? await connection.getPsk()
+            : undefined,
       });
 
       panel.webview.html = getPanelHtml(iframeUrl, title);
@@ -203,7 +212,10 @@ export class PanelController implements Disposable {
         title,
         themeKey: getDHThemeKey(),
         authProvider: isWorkerUrl ? 'parent' : undefined,
-        psk: connection instanceof DhcService ? connection.getPsk() : undefined,
+        psk:
+          connection instanceof DhcService
+            ? await connection.getPsk()
+            : undefined,
       });
 
       panel.webview.html = getPanelHtml(iframeUrl, title);

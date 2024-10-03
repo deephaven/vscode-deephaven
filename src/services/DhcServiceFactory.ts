@@ -9,7 +9,9 @@ import type { URLMap } from './URLMap';
  */
 export class DhcServiceFactory implements IDhServiceFactory {
   constructor(
-    private credentialsCache: URLMap<DhcType.LoginCredentials>,
+    private coreCredentialsCache: URLMap<
+      () => Promise<DhcType.LoginCredentials>
+    >,
     private panelService: IPanelService,
     private diagnosticsCollection: vscode.DiagnosticCollection,
     private outputChannel: vscode.OutputChannel,
@@ -19,7 +21,7 @@ export class DhcServiceFactory implements IDhServiceFactory {
   create = (serverUrl: URL): DhcService => {
     const dhService = new DhcService(
       serverUrl,
-      this.credentialsCache,
+      this.coreCredentialsCache,
       this.panelService,
       this.diagnosticsCollection,
       this.outputChannel,

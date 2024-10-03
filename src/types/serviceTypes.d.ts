@@ -53,7 +53,6 @@ export interface IDhService<TDH = unknown, TClient = unknown>
 export interface IDheService extends ConnectionState, Disposable {
   readonly workerCount: number;
   init: () => Promise<EnterpriseClient | null>;
-  getWorkerCredentials: () => Promise<DhcType.LoginCredentials>;
   getWorkerInfo: (workerUrl: URL) => WorkerInfo | undefined;
   createWorker: () => Promise<WorkerInfo>;
   deleteWorker: (workerUrl: URL) => Promise<void>;
@@ -118,7 +117,6 @@ export interface IServerManager extends Disposable {
   getEditorConnection: (
     editor: vscode.TextEditor
   ) => Promise<ConnectionState | null>;
-  getWorkerCredentials: (workerUrl: URL) => Promise<DhcType.LoginCredentials>;
   getWorkerInfo: (workerUrl: URL) => Promise<WorkerInfo | undefined>;
   setEditorConnection: (
     editor: vscode.TextEditor,

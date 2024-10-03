@@ -39,13 +39,13 @@ const logger = new Logger('ServerManager');
 export class ServerManager implements IServerManager {
   constructor(
     configService: IConfigService,
-    credentialsCache: URLMap<DhcType.LoginCredentials>,
+    coreCredentialsCache: URLMap<() => Promise<DhcType.LoginCredentials>>,
     dhcServiceFactory: IDhServiceFactory,
     dheServiceCache: ICacheService<URL, IDheService>
   ) {
     this._configService = configService;
     this._connectionMap = new URLMap<ConnectionState>();
-    this._credentialsCache = credentialsCache;
+    this._coreCredentialsCache = coreCredentialsCache;
     this._dhcServiceFactory = dhcServiceFactory;
     this._dheServiceCache = dheServiceCache;
     this._placeholderConnectionUrls = new Set();
@@ -60,7 +60,9 @@ export class ServerManager implements IServerManager {
 
   private readonly _configService: IConfigService;
   private readonly _connectionMap: URLMap<ConnectionState>;
-  private readonly _credentialsCache: URLMap<DhcType.LoginCredentials>;
+  private readonly _coreCredentialsCache: URLMap<
+    () => Promise<DhcType.LoginCredentials>
+  >;
   private readonly _dhcServiceFactory: IDhServiceFactory;
   private readonly _dheServiceCache: ICacheService<URL, IDheService>;
   private readonly _placeholderConnectionUrls: Set<string>;
@@ -145,10 +147,10 @@ export class ServerManager implements IServerManager {
     }
 
     if (serverState.isManaged) {
-      this._credentialsCache.set(serverUrl, {
+      this._coreCredentialsCache.set(serverUrl, async () => ({
         type: AUTH_HANDLER_TYPE_PSK,
         token: serverState.psk,
-      });
+      }));
     } else if (serverState.type === 'DHE') {
       const placeholderUrl = this.addPlaceholderConnection(serverUrl);
 
@@ -366,21 +368,6 @@ export class ServerManager implements IServerManager {
    */
   getUriConnection = (uri: vscode.Uri): ConnectionState | null => {
     return this._uriConnectionsMap.get(uri) ?? null;
-  };
-
-  getWorkerCredentials = async (
-    workerUrl: URL
-  ): Promise<DhcType.LoginCredentials> => {
-    const dheServerUrl = this._workerURLToServerURLMap.get(workerUrl);
-    if (dheServerUrl == null) {
-      throw new Error(
-        `Credentials requested for unregistered worker url: ${workerUrl}`
-      );
-    }
-
-    const dheService = await this._dheServiceCache.get(dheServerUrl);
-
-    return dheService.getWorkerCredentials();
   };
 
   /** Get worker info associated with the given server URL. */

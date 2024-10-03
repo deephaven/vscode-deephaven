@@ -104,7 +104,9 @@ export class ExtensionController implements Disposable {
   readonly _config: IConfigService;
 
   private _connectionController: ConnectionController | null = null;
-  private _coreCredentialsCache: URLMap<DhcType.LoginCredentials> | null = null;
+  private _coreCredentialsCache: URLMap<
+    () => Promise<DhcType.LoginCredentials>
+  > | null = null;
   private _dheClientCache: ICacheService<URL, EnterpriseClient> | null = null;
   private _dheCredentialsCache: URLMap<DheLoginCredentials> | null = null;
   private _dheServiceCache: ICacheService<URL, IDheService> | null = null;
@@ -270,7 +272,9 @@ export class ExtensionController implements Disposable {
     assertDefined(this._outputChannel, 'outputChannel');
     assertDefined(this._toaster, 'toaster');
 
-    this._coreCredentialsCache = new URLMap<DhcType.LoginCredentials>();
+    this._coreCredentialsCache = new URLMap<
+      () => Promise<DhcType.LoginCredentials>
+    >();
     this._dheCredentialsCache = new URLMap<DheLoginCredentials>();
 
     this._dheJsApiCache = new CacheByUrlService(url =>

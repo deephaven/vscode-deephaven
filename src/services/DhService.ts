@@ -28,13 +28,13 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
 {
   constructor(
     serverUrl: URL,
-    credentialsCache: URLMap<DhcType.LoginCredentials>,
+    coreCredentialsCache: URLMap<() => Promise<DhcType.LoginCredentials>>,
     panelService: IPanelService,
     diagnosticsCollection: vscode.DiagnosticCollection,
     outputChannel: vscode.OutputChannel,
     toaster: IToastService
   ) {
-    this.credentialsCache = credentialsCache;
+    this.coreCredentialsCache = coreCredentialsCache;
     this.serverUrl = serverUrl;
     this.panelService = panelService;
     this.diagnosticsCollection = diagnosticsCollection;
@@ -48,7 +48,9 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
   public readonly serverUrl: URL;
   protected readonly subscriptions: (() => void)[] = [];
 
-  protected readonly credentialsCache: URLMap<DhcType.LoginCredentials>;
+  protected readonly coreCredentialsCache: URLMap<
+    () => Promise<DhcType.LoginCredentials>
+  >;
   protected readonly outputChannel: vscode.OutputChannel;
   protected readonly toaster: IToastService;
   private readonly panelService: IPanelService;
