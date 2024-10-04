@@ -30,7 +30,6 @@ import {
   Logger,
   OutputChannelWithHistory,
   Toaster,
-  urlToDirectoryName,
 } from '../util';
 import {
   RunCommandCodeLensProvider,
@@ -40,7 +39,6 @@ import {
   runSelectedLinesHoverProvider,
 } from '../providers';
 import {
-  CacheByUrlService,
   DhcServiceFactory,
   DhService,
   PanelService,
@@ -68,9 +66,12 @@ import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTre
 import { ConnectionController } from './ConnectionController';
 import { PipServerController } from './PipServerController';
 import { PanelController } from './PanelController';
-import { initDheApi } from '@deephaven/require-jsapi';
-import { createDheClient, getWsUrl } from '../dh/dhe';
 import { DheService } from '../services/DheService';
+import {
+  DheClientCache,
+  DheJsApiCache,
+  DheServiceCache,
+} from '../services/cache';
 
 const logger = new Logger('ExtensionController');
 
@@ -277,17 +278,12 @@ export class ExtensionController implements Disposable {
     >();
     this._dheCredentialsCache = new URLMap<DheLoginCredentials>();
 
-    this._dheJsApiCache = new CacheByUrlService(url =>
-      initDheApi(url, getTempDir({ subDirectory: urlToDirectoryName(url) }))
+    this._dheJsApiCache = new DheJsApiCache();
+    this._context.subscriptions.push(
+      (this._dheJsApiCache = new DheJsApiCache())
     );
-    this._context.subscriptions.push(this._dheJsApiCache);
 
-    this._dheClientCache = new CacheByUrlService(async (url: URL) => {
-      assertDefined(this._dheJsApiCache, 'dheJsApiCache');
-
-      const dhe = await this._dheJsApiCache.get(url);
-      return createDheClient(dhe, getWsUrl(url));
-    });
+    this._dheClientCache = new DheClientCache(this._dheJsApiCache);
     this._context.subscriptions.push(this._dheClientCache);
 
     this._panelService = new PanelService();
@@ -308,10 +304,7 @@ export class ExtensionController implements Disposable {
       this._dheJsApiCache
     );
 
-    this._dheServiceCache = new CacheByUrlService(async url => {
-      assertDefined(this._dheServiceFactory, 'dheServiceFactory');
-      return this._dheServiceFactory.create(url);
-    });
+    this._dheServiceCache = new DheServiceCache(this._dheServiceFactory);
     this._context.subscriptions.push(this._dheServiceCache);
 
     this._serverManager = new ServerManager(
