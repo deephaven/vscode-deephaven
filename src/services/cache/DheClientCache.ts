@@ -2,7 +2,7 @@ import type {
   EnterpriseDhType as DheType,
   EnterpriseClient,
 } from '@deephaven-enterprise/jsapi-types';
-import { CacheByUrlService } from '../CacheByUrlService';
+import { CacheByUrlService } from './CacheByUrlService';
 import { createDheClient, getWsUrl } from '../../dh/dhe';
 import type { ICacheService } from '../../types';
 

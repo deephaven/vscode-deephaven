@@ -1,6 +1,6 @@
-import type { ICacheService } from '../types';
-import { isDisposable } from '../util';
-import { URLMap } from './URLMap';
+import type { ICacheService } from '../../types';
+import { isDisposable } from '../../util';
+import { URLMap } from '../URLMap';
 
 /**
  * Cache service that stores values by URL.

@@ -1,4 +1,4 @@
-import { CacheByUrlService } from '../CacheByUrlService';
+import { CacheByUrlService } from './CacheByUrlService';
 import type { IDheService, IDheServiceFactory } from '../../types';
 
 /**
