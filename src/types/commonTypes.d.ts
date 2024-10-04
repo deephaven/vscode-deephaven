@@ -61,6 +61,7 @@ export interface Disposable {
 
 export type EventListenerT = <TEvent>(event: TEvent) => void;
 export type UnsubscribeEventListener = () => void;
+export type CoreCredentialsFactory = () => Promise<DhcType.LoginCredentials>;
 
 export type ServerType = 'DHC' | 'DHE';
 

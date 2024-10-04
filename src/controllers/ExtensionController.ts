@@ -46,6 +46,7 @@ import {
   URLMap,
 } from '../services';
 import type {
+  CoreCredentialsFactory,
   Disposable,
   ICacheService,
   IConfigService,
@@ -273,9 +274,7 @@ export class ExtensionController implements Disposable {
     assertDefined(this._outputChannel, 'outputChannel');
     assertDefined(this._toaster, 'toaster');
 
-    this._coreCredentialsCache = new URLMap<
-      () => Promise<DhcType.LoginCredentials>
-    >();
+    this._coreCredentialsCache = new URLMap<CoreCredentialsFactory>();
     this._dheCredentialsCache = new URLMap<DheLoginCredentials>();
 
     this._dheJsApiCache = new DheJsApiCache();
