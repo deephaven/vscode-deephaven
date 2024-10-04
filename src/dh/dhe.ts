@@ -7,7 +7,7 @@ import type {
   QueryInfo,
 } from '@deephaven-enterprise/jsapi-types';
 import { DraftQuery, QueryScheduler } from '@deephaven-enterprise/query-utils';
-import type { IdeURL, WorkerInfo, WorkerURL } from '../types';
+import type { IdeURL, QuerySerial, WorkerInfo, WorkerURL } from '../types';
 
 const INTERACTIVE_CONSOLE_QUERY_TYPE = 'InteractiveConsole';
 
@@ -79,62 +79,13 @@ export function findQueryConfigForSerial(
     .find(({ serial }) => serial === matchSerial);
 }
 
-export async function createCoreWorker(
-  dhe: DheType,
+export async function createInteractiveConsoleDraftQuery(
   dheClient: EnterpriseClient
-): Promise<WorkerInfo | undefined> {
+): Promise<QuerySerial> {
   const userInfo = await dheClient.getUserInfo();
-  const draftQuery = await createDraftQuery(
-    dheClient,
-    INTERACTIVE_CONSOLE_QUERY_TYPE,
-    userInfo.username
-  );
+  const owner = userInfo.username;
+  const type = INTERACTIVE_CONSOLE_QUERY_TYPE;
 
-  if (draftQuery.serial == null) {
-    draftQuery.updateSchedule();
-  }
-
-  const serial = await dheClient.createQuery(draftQuery);
-
-  // The query will go through multiple config updates before the worker is ready.
-  // This Promise will respond to config update events and resolve when the worker
-  // is ready.
-  const queryInfo = await new Promise<QueryInfo>(resolve => {
-    dheClient.addEventListener(dhe.Client.EVENT_CONFIG_UPDATED, _event => {
-      const queryInfo = findQueryConfigForSerial(dheClient, serial);
-      if (queryInfo?.designated?.grpcUrl != null) {
-        resolve(queryInfo);
-      }
-    });
-  });
-
-  if (queryInfo.designated == null) {
-    return;
-  }
-
-  const { grpcUrl, ideUrl, processInfoId, workerName } = queryInfo.designated;
-
-  return {
-    serial,
-    grpcUrl: new URL(grpcUrl) as WorkerURL,
-    ideUrl: new URL(ideUrl) as IdeURL,
-    processInfoId,
-    workerName,
-  };
-}
-
-export async function deleteWorker(
-  dheClient: EnterpriseClient,
-  serial: string
-): Promise<void> {
-  await (dheClient as any).deleteQueries([serial]);
-}
-
-export async function createDraftQuery(
-  dheClient: EnterpriseClient,
-  type: string,
-  owner: string
-): Promise<DraftQuery> {
   const [dbServers, queryConstants, serverConfigValues] = await Promise.all([
     dheClient.getDbServers(),
     dheClient.getQueryConstants(),
@@ -158,7 +109,7 @@ export async function createDraftQuery(
     timeZone
   );
 
-  return new DraftQuery({
+  const draftQuery = new DraftQuery({
     isClientSide: true,
     draftOwner: owner,
     name,
@@ -172,4 +123,49 @@ export async function createDraftQuery(
     scriptLanguage,
     workerKind,
   });
+
+  if (draftQuery.serial == null) {
+    draftQuery.updateSchedule();
+  }
+
+  return dheClient.createQuery(draftQuery) as Promise<QuerySerial>;
+}
+
+export async function deleteQueries(
+  dheClient: EnterpriseClient,
+  querySerials: Iterable<QuerySerial>
+): Promise<void> {
+  await dheClient.deleteQueries([...querySerials]);
+}
+
+export async function getWorkerInfoFromQuery(
+  dhe: DheType,
+  dheClient: EnterpriseClient,
+  querySerial: QuerySerial
+): Promise<WorkerInfo | undefined> {
+  // The query will go through multiple config updates before the worker is ready.
+  // This Promise will respond to config update events and resolve when the worker
+  // is ready.
+  const queryInfo = await new Promise<QueryInfo>(resolve => {
+    dheClient.addEventListener(dhe.Client.EVENT_CONFIG_UPDATED, _event => {
+      const queryInfo = findQueryConfigForSerial(dheClient, querySerial);
+      if (queryInfo?.designated?.grpcUrl != null) {
+        resolve(queryInfo);
+      }
+    });
+  });
+
+  if (queryInfo.designated == null) {
+    return;
+  }
+
+  const { grpcUrl, ideUrl, processInfoId, workerName } = queryInfo.designated;
+
+  return {
+    serial: querySerial,
+    grpcUrl: new URL(grpcUrl) as WorkerURL,
+    ideUrl: new URL(ideUrl) as IdeURL,
+    processInfoId,
+    workerName,
+  };
 }

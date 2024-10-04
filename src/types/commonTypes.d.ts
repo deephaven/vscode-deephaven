@@ -45,12 +45,13 @@ export interface ConnectionState {
 
 export type WorkerURL = Brand<'GrpcUrl', URL>;
 export type IdeURL = Brand<'IdeUrl', URL>;
+export type QuerySerial = Brand<'QuerySerial', string>;
 
 export interface WorkerInfo {
   grpcUrl: WorkerURL;
   ideUrl: IdeURL;
   processInfoId: string | null;
-  serial: string;
+  serial: QuerySerial;
   workerName: string | null;
 }
 

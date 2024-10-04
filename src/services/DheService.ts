@@ -9,14 +9,16 @@ import {
   type ICacheService,
   type IDheService,
   type IDheServiceFactory,
+  type QuerySerial,
   type WorkerInfo,
 } from '../types';
 import { URLMap } from './URLMap';
 import { assertDefined, Logger } from '../util';
 import {
-  createCoreWorker,
-  deleteWorker,
+  createInteractiveConsoleDraftQuery,
+  deleteQueries,
   getWorkerCredentials,
+  getWorkerInfoFromQuery,
   hasInteractivePermission,
 } from '../dh/dhe';
 
@@ -73,11 +75,12 @@ export class DheService implements IDheService {
     this._dheClientCache = dheClientCache;
     this._dheCredentialsCache = dheCredentialsCache;
     this._dheJsApiCache = dheJsApiCache;
+    this._querySerialSet = new Set<QuerySerial>();
     this._workerInfoMap = new URLMap<WorkerInfo, WorkerURL>();
   }
 
+  private _clientPromise: Promise<EnterpriseClient | null> | null = null;
   private _isConnected: boolean = false;
-  private _initPromise: Promise<EnterpriseClient | null> | null = null;
   private _workerCount: number = 0;
   private readonly _coreCredentialsCache: URLMap<
     () => Promise<DhcType.LoginCredentials>
@@ -85,6 +88,7 @@ export class DheService implements IDheService {
   private readonly _dheClientCache: ICacheService<URL, EnterpriseClient>;
   private readonly _dheCredentialsCache: URLMap<DheLoginCredentials>;
   private readonly _dheJsApiCache: ICacheService<URL, DheType>;
+  private readonly _querySerialSet: Set<QuerySerial>;
   private readonly _workerInfoMap: URLMap<WorkerInfo, WorkerURL>;
 
   readonly serverUrl: URL;
@@ -132,12 +136,28 @@ export class DheService implements IDheService {
     return dheClient;
   };
 
-  init = async (): Promise<EnterpriseClient | null> => {
-    if (this._initPromise == null) {
-      this._initPromise = this._doInit();
+  private _disposeQueries = async (
+    querySerials: Iterable<QuerySerial>
+  ): Promise<void> => {
+    const dheClient = await this.getClient(false);
+
+    if (dheClient != null) {
+      await deleteQueries(dheClient, querySerials);
+    }
+  };
+
+  getClient = async (
+    initializeIfNull: boolean
+  ): Promise<EnterpriseClient | null> => {
+    if (this._clientPromise == null) {
+      if (!initializeIfNull) {
+        return null;
+      }
+
+      this._clientPromise = this._doInit();
     }
 
-    const dheClient = await this._initPromise;
+    const dheClient = await this._clientPromise;
     this._isConnected = Boolean(dheClient);
 
     return dheClient;
@@ -147,7 +167,7 @@ export class DheService implements IDheService {
     this._workerCount += 1;
 
     try {
-      const dheClient = await this.init();
+      const dheClient = await this.getClient(true);
       if (dheClient == null) {
         const msg =
           'Failed to create worker because DHE client failed to initialize.';
@@ -157,7 +177,14 @@ export class DheService implements IDheService {
 
       const dhe = await this._dheJsApiCache.get(this.serverUrl);
 
-      const workerInfo = await createCoreWorker(dhe, dheClient);
+      const querySerial = await createInteractiveConsoleDraftQuery(dheClient);
+      this._querySerialSet.add(querySerial);
+
+      const workerInfo = await getWorkerInfoFromQuery(
+        dhe,
+        dheClient,
+        querySerial
+      );
       if (workerInfo == null) {
         throw new Error('Failed to create worker.');
       }
@@ -179,26 +206,21 @@ export class DheService implements IDheService {
   deleteWorker = async (workerUrl: WorkerURL): Promise<void> => {
     this._workerCount -= 1;
 
-    const workerInfo = await this._workerInfoMap.get(workerUrl);
+    const workerInfo = this._workerInfoMap.get(workerUrl);
     if (workerInfo == null) {
       return;
     }
 
+    this._querySerialSet.delete(workerInfo.serial);
     this._workerInfoMap.delete(workerUrl);
 
-    const dheClient = await this.init();
-    if (dheClient == null) {
-      return;
-    }
-
-    deleteWorker(dheClient, workerInfo.serial);
+    await this._disposeQueries([workerInfo.serial]);
   };
 
   dispose = async (): Promise<void> => {
-    const promises = this._workerInfoMap.values().map(({ grpcUrl }) => {
-      this.deleteWorker(grpcUrl);
-    });
+    await this._disposeQueries(this._querySerialSet);
 
-    await Promise.all(promises);
+    this._querySerialSet.clear();
+    this._workerInfoMap.clear();
   };
 }
