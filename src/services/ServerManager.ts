@@ -176,23 +176,6 @@ export class ServerManager implements IServerManager {
         logger.error(err);
         return null;
       }
-
-      // const config = new dhe.ConsoleConfig();
-      // config.jvmArgs = ['-Dhttp.websockets=true'];
-      // config.workerKind = 'DeephavenCommunity';
-      // config.workerCreationJson = JSON.stringify({
-      //   // eslint-disable-next-line @typescript-eslint/naming-convention
-      //   script_language: 'python',
-      //   // kubernetes_worker_control: kubernetesWorkerControl,
-      // });
-
-      // const ide = new dhe.Ide(dheClient);
-      // const { grpcUrl } = await ide.startWorker(config);
-
-      // serverUrl = new URL(grpcUrl);
-
-      // const credentials = await getDheAuthToken(dheClient);
-      // this._credentialsCache.set(serverUrl, credentials);
     }
 
     const connection = this._dhcServiceFactory.create(serverUrl);
