@@ -133,9 +133,9 @@ export async function createInteractiveConsoleDraftQuery(
 
 export async function deleteQueries(
   dheClient: EnterpriseClient,
-  querySerials: Iterable<QuerySerial>
+  querySerials: QuerySerial[]
 ): Promise<void> {
-  await dheClient.deleteQueries([...querySerials]);
+  await dheClient.deleteQueries(querySerials);
 }
 
 export async function getWorkerInfoFromQuery(

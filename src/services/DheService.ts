@@ -137,7 +137,7 @@ export class DheService implements IDheService {
   };
 
   private _disposeQueries = async (
-    querySerials: Iterable<QuerySerial>
+    querySerials: QuerySerial[]
   ): Promise<void> => {
     const dheClient = await this.getClient(false);
 
@@ -218,9 +218,11 @@ export class DheService implements IDheService {
   };
 
   dispose = async (): Promise<void> => {
-    await this._disposeQueries(this._querySerialSet);
+    const querySerials = [...this._querySerialSet];
 
     this._querySerialSet.clear();
     this._workerInfoMap.clear();
+
+    await this._disposeQueries(querySerials);
   };
 }
