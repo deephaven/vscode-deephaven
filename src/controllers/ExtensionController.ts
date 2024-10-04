@@ -279,9 +279,7 @@ export class ExtensionController implements Disposable {
     this._dheCredentialsCache = new URLMap<DheLoginCredentials>();
 
     this._dheJsApiCache = new DheJsApiCache();
-    this._context.subscriptions.push(
-      (this._dheJsApiCache = new DheJsApiCache())
-    );
+    this._context.subscriptions.push(this._dheJsApiCache);
 
     this._dheClientCache = new DheClientCache(this._dheJsApiCache);
     this._context.subscriptions.push(this._dheClientCache);
