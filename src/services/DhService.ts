@@ -260,7 +260,9 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
     let error: string | null = null;
 
     try {
+      const start = performance.now();
       result = await this.session.runCode(text);
+      logger.debug('Command took', performance.now() - start, 'ms');
       error = result.error;
     } catch (err) {
       error = String(err);
