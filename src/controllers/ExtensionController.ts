@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type {
   EnterpriseDhType as DheType,
   EnterpriseClient,
@@ -49,7 +50,6 @@ import {
   URLMap,
 } from '../services';
 import type {
-  CoreCredentialsFactory,
   Disposable,
   ICacheService,
   IConfigService,
@@ -60,6 +60,7 @@ import type {
   IPanelService,
   IServerManager,
   IToastService,
+  Lazy,
   ServerConnectionPanelNode,
   ServerConnectionPanelTreeView,
   ServerConnectionTreeView,
@@ -105,7 +106,8 @@ export class ExtensionController implements Disposable {
   readonly _config: IConfigService;
 
   private _connectionController: ConnectionController | null = null;
-  private _coreCredentialsCache: URLMap<CoreCredentialsFactory> | null = null;
+  private _coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>> | null =
+    null;
   private _dheClientCache: ICacheService<URL, EnterpriseClient> | null = null;
   private _dheCredentialsCache: URLMap<DheLoginCredentials> | null = null;
   private _dheServiceCache: ICacheService<URL, IDheService> | null = null;
@@ -285,7 +287,7 @@ export class ExtensionController implements Disposable {
     assertDefined(this._outputChannel, 'outputChannel');
     assertDefined(this._toaster, 'toaster');
 
-    this._coreCredentialsCache = new URLMap<CoreCredentialsFactory>();
+    this._coreCredentialsCache = new URLMap<Lazy<DhcType.LoginCredentials>>();
     this._dheCredentialsCache = new URLMap<DheLoginCredentials>();
 
     this._dheJsApiCache = new DheJsApiCache();
