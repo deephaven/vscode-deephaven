@@ -3,6 +3,7 @@ export * from './ConfigService';
 export * from './DhService';
 export * from './DhcService';
 export * from './DhcServiceFactory';
+export * from './DheService';
 export * from './PanelService';
 export * from './PollingService';
 export * from './SerializedKeyMap';

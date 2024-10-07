@@ -40,6 +40,10 @@ import {
 } from '../providers';
 import {
   DhcServiceFactory,
+  DheClientCache,
+  DheJsApiCache,
+  DheService,
+  DheServiceCache,
   DhService,
   PanelService,
   ServerManager,
@@ -67,12 +71,6 @@ import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTre
 import { ConnectionController } from './ConnectionController';
 import { PipServerController } from './PipServerController';
 import { PanelController } from './PanelController';
-import { DheService } from '../services/DheService';
-import {
-  DheClientCache,
-  DheJsApiCache,
-  DheServiceCache,
-} from '../services/cache';
 import { UserLoginController } from './UserLoginController';
 
 const logger = new Logger('ExtensionController');
