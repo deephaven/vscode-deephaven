@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type {
   EnterpriseDhType as DheType,
   EnterpriseClient,
@@ -215,6 +214,9 @@ export class ExtensionController implements Disposable {
     );
   };
 
+  /**
+   * Initialize user login controller.
+   */
   initializeUserLoginController = (): void => {
     assertDefined(this._dheCredentialsCache, 'dheCredentialsCache');
 
