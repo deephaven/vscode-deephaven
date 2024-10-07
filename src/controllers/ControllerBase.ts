@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import type { Disposable } from '../types';
 
+/**
+ * Base controller class.
+ */
 export abstract class ControllerBase implements Disposable {
   protected readonly disposables: Disposable[] = [];
 
