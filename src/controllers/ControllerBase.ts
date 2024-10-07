@@ -24,6 +24,8 @@ export abstract class ControllerBase implements Disposable {
     const disposing = this.disposables.map(subscription =>
       subscription.dispose()
     );
+    this.disposables.length = 0;
+
     await Promise.all(disposing);
   }
 }

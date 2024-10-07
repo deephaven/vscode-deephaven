@@ -97,3 +97,13 @@ export const SERVER_TREE_ITEM_CONTEXT = {
 } as const;
 
 export type ServerTreeItemContextValue = keyof typeof SERVER_TREE_ITEM_CONTEXT;
+
+export const DEEPHAVEN_POST_MSG = {
+  loginOptionsRequest: 'io.deephaven.message.LoginOptions.request',
+  sessionDetailsRequest: 'io.deephaven.message.SessionDetails.request',
+} as const;
+
+export const VSCODE_POST_MSG = {
+  loginOptionsResponse: 'vscode-ext.loginOptions',
+  sessionDetailsResponse: 'vscode-ext.sessionDetails',
+} as const;

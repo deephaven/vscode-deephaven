@@ -109,3 +109,25 @@ export type VariableType =
   | 'TableMap'
   | 'Treemap'
   | 'TreeTable';
+
+// Panel post messages
+export interface LoginOptionsResponsePostMessage {
+  message: 'vscode-ext.loginOptions';
+  payload: {
+    id: string;
+    payload: DhcType.LoginCredentials;
+  };
+  targetOrigin: IdeURL;
+}
+
+export interface SessionDetailsResponsePostMessage {
+  message: 'vscode-ext.sessionDetails';
+  payload: {
+    id: string;
+    payload: {
+      workerName: string | null;
+      processInfoId: string | null;
+    };
+  };
+  targetOrigin: IdeURL;
+}

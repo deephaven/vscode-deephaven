@@ -1,44 +1,51 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type {
-  Disposable,
   IPanelService,
   IServerManager,
   Lazy,
   VariableDefintion,
   WorkerURL,
 } from '../types';
-import { assertDefined, getDHThemeKey, getPanelHtml, Logger } from '../util';
+import {
+  assertDefined,
+  createLoginOptionsResponsePostMessage,
+  createSessionDetailsResponsePostMessage,
+  getDHThemeKey,
+  getPanelHtml,
+  Logger,
+} from '../util';
 import { DhcService, type URLMap } from '../services';
 import {
+  DEEPHAVEN_POST_MSG,
   OPEN_VARIABLE_PANELS_CMD,
   REFRESH_VARIABLE_PANELS_CMD,
 } from '../common';
 import { waitFor } from '../util/promiseUtils';
 import { getEmbedWidgetUrl } from '../dh/dhc';
+import { ControllerBase } from './ControllerBase';
 
 const logger = new Logger('PanelController');
 
-export class PanelController implements Disposable {
+export class PanelController extends ControllerBase {
   constructor(
     coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
     serverManager: IServerManager,
     panelService: IPanelService
   ) {
+    super();
+
     this._coreCredentialsCache = coreCredentialsCache;
     this._panelService = panelService;
     this._serverManager = serverManager;
-    this._subscriptions = [];
 
-    this._subscriptions.push(
-      vscode.commands.registerCommand(
-        OPEN_VARIABLE_PANELS_CMD,
-        this._onOpenPanels
-      ),
-      vscode.commands.registerCommand(
-        REFRESH_VARIABLE_PANELS_CMD,
-        this._onRefreshPanelsContent
-      ),
+    this.registerCommand(OPEN_VARIABLE_PANELS_CMD, this._onOpenPanels);
+    this.registerCommand(
+      REFRESH_VARIABLE_PANELS_CMD,
+      this._onRefreshPanelsContent
+    );
+
+    this.disposables.push(
       vscode.window.onDidChangeActiveColorTheme(
         this._onDidChangeActiveColorTheme
       )
@@ -50,16 +57,17 @@ export class PanelController implements Disposable {
   >;
   private readonly _panelService: IPanelService;
   private readonly _serverManager: IServerManager;
-  private readonly _subscriptions: vscode.Disposable[];
 
-  dispose = async (): Promise<void> => {
-    for (const subscription of this._subscriptions) {
-      subscription.dispose();
-    }
-    this._subscriptions.length = 0;
-  };
-
-  protected async _onPanelMessage(
+  /**
+   * Handle `postMessage` messages from the panel.
+   * See `getPanelHtml` util for the panel html which wires up the `postMessage`
+   * communication between the extension and the DH iframe.
+   * @param serverOrWorkerUrl The server or worker url.
+   * @param message The message data.
+   * @param postResponseMessage The function to post a response message.
+   * @returns A promise that resolves when the message has been handled.
+   */
+  private async _onPanelMessage(
     serverOrWorkerUrl: URL | WorkerURL,
     { id, message }: { id: string; message: string },
     postResponseMessage: (response: unknown) => void
@@ -72,22 +80,21 @@ export class PanelController implements Disposable {
       return;
     }
 
-    const credentials =
-      await this._coreCredentialsCache.get(serverOrWorkerUrl)?.();
+    // Respond to login credentials request from DH iframe
+    if (message === DEEPHAVEN_POST_MSG.loginOptionsRequest) {
+      const credentials =
+        await this._coreCredentialsCache.get(serverOrWorkerUrl)?.();
 
-    if (credentials == null) {
-      logger.error('Failed to get credentials for worker', serverOrWorkerUrl);
-    }
+      if (credentials == null) {
+        logger.error('Failed to get credentials for worker', serverOrWorkerUrl);
+        return;
+      }
 
-    if (message === 'io.deephaven.message.LoginOptions.request') {
-      const response = {
-        message: 'vscode-ext.loginOptions',
-        payload: {
-          id,
-          payload: credentials,
-        },
-        targetOrigin: workerInfo.ideUrl,
-      };
+      const response = createLoginOptionsResponsePostMessage({
+        id,
+        credentials,
+        workerInfo,
+      });
 
       logger.debug('Posting LoginOptions response:', response);
 
@@ -96,18 +103,12 @@ export class PanelController implements Disposable {
       return;
     }
 
-    if (message === 'io.deephaven.message.SessionDetails.request') {
-      const response = {
-        message: 'vscode-ext.sessionDetails',
-        payload: {
-          id,
-          payload: {
-            workerName: workerInfo.workerName,
-            processInfoId: workerInfo.processInfoId,
-          },
-        },
-        targetOrigin: workerInfo.ideUrl,
-      };
+    // Respond to session details request from DH iframe
+    if (message === DEEPHAVEN_POST_MSG.sessionDetailsRequest) {
+      const response = createSessionDetailsResponsePostMessage({
+        id,
+        workerInfo,
+      });
 
       logger.debug('Posting SessionDetails response:', response);
 
