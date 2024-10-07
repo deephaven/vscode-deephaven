@@ -93,19 +93,25 @@ export class DheService implements IDheService {
 
   readonly serverUrl: URL;
 
+  /**
+   * Whether the DHE client is connected.
+   */
   get isConnected(): boolean {
     return this._isConnected;
   }
 
+  /**
+   * Number of workers created.
+   */
   get workerCount(): number {
     return this._workerCount;
   }
 
-  getWorkerInfo = (workerUrl: WorkerURL): WorkerInfo | undefined => {
-    return this._workerInfoMap.get(workerUrl);
-  };
-
-  private _doInit = async (): Promise<EnterpriseClient | null> => {
+  /**
+   * Initialize DHE client and login.
+   * @returns DHE client or null if initialization failed.
+   */
+  private _initClient = async (): Promise<EnterpriseClient | null> => {
     const dheClient = await this._dheClientCache.get(this.serverUrl);
 
     if (!this._dheCredentialsCache.has(this.serverUrl)) {
@@ -136,6 +142,10 @@ export class DheService implements IDheService {
     return dheClient;
   };
 
+  /**
+   * Dispose queries for given query serials.
+   * @param querySerials Query serials to dispose.
+   */
   private _disposeQueries = async (
     querySerials: QuerySerial[]
   ): Promise<void> => {
@@ -146,6 +156,20 @@ export class DheService implements IDheService {
     }
   };
 
+  /**
+   * Get worker info for given worker URL.
+   * @param workerUrl Worker URL to get info for.
+   * @returns Worker info or undefined if not found.
+   */
+  getWorkerInfo = (workerUrl: WorkerURL): WorkerInfo | undefined => {
+    return this._workerInfoMap.get(workerUrl);
+  };
+
+  /**
+   * Get DHE client.
+   * @param initializeIfNull Whether to initialize client if it's not already initialized.
+   * @returns DHE client or null if not initialized.
+   */
   getClient = async (
     initializeIfNull: boolean
   ): Promise<EnterpriseClient | null> => {
@@ -154,7 +178,7 @@ export class DheService implements IDheService {
         return null;
       }
 
-      this._clientPromise = this._doInit();
+      this._clientPromise = this._initClient();
     }
 
     const dheClient = await this._clientPromise;
@@ -163,6 +187,10 @@ export class DheService implements IDheService {
     return dheClient;
   };
 
+  /**
+   * Create an InteractiveConsole query and get worker info from it.
+   * @returns Worker info.
+   */
   createWorker = async (): Promise<WorkerInfo> => {
     this._workerCount += 1;
 
@@ -203,6 +231,10 @@ export class DheService implements IDheService {
     }
   };
 
+  /**
+   * Delete a worker.
+   * @param workerUrl Worker URL to delete.
+   */
   deleteWorker = async (workerUrl: WorkerURL): Promise<void> => {
     this._workerCount -= 1;
 

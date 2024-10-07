@@ -19,7 +19,6 @@ import type {
   WorkerURL,
 } from '../types';
 import {
-  assertDefined,
   getInitialServerStates,
   isDisposable,
   isInstanceOf,
@@ -29,11 +28,6 @@ import { URLMap } from './URLMap';
 import { URIMap } from './URIMap';
 import { DhService } from './DhService';
 import { AUTH_HANDLER_TYPE_PSK } from '../dh/dhc';
-
-// TODO: Dev only to avoid storing credentials in the codebase. Will implement
-// proper credential management later.
-const HACK_USERNAME = process.env.VSCODE_DHE_USER!;
-assertDefined(HACK_USERNAME, 'VSCODE_DHE_USER must be defined');
 
 const logger = new Logger('ServerManager');
 
