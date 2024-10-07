@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type {
+  ConnectionState,
   IPanelService,
   IServerManager,
   Lazy,
@@ -164,15 +165,11 @@ export class PanelController extends ControllerBase {
       const connection = this._serverManager.getConnection(serverUrl);
       assertDefined(connection, 'connection');
 
-      const iframeUrl = getEmbedWidgetUrl({
-        serverUrl,
+      const iframeUrl = await getEmbedWidgetUrlForConnection(
+        connection,
         title,
-        themeKey: getDHThemeKey(),
-        psk:
-          connection instanceof DhcService
-            ? await connection.getPsk()
-            : undefined,
-      });
+        false
+      );
 
       panel.webview.html = getPanelHtml(iframeUrl, title);
 
@@ -211,16 +208,11 @@ export class PanelController extends ControllerBase {
     for (const { id, title } of variables) {
       const panel = this._panelService.getPanelOrThrow(serverUrl, id);
 
-      const iframeUrl = getEmbedWidgetUrl({
-        serverUrl,
+      const iframeUrl = await getEmbedWidgetUrlForConnection(
+        connection,
         title,
-        themeKey: getDHThemeKey(),
-        authProvider: isWorkerUrl ? 'parent' : undefined,
-        psk:
-          connection instanceof DhcService
-            ? await connection.getPsk()
-            : undefined,
-      });
+        isWorkerUrl
+      );
 
       panel.webview.html = getPanelHtml(iframeUrl, title);
     }
@@ -235,4 +227,31 @@ export class PanelController extends ControllerBase {
       this._onRefreshPanelsContent(url, [...variables]);
     }
   };
+}
+
+/**
+ * Get the embed widget url for a connection. This should probably be moved
+ * to some utils location, but it has dependencies on utils, dh, and services
+ * so it's not clear where it should go to avoid circular dependencies.
+ * @param connection The connection.
+ * @param title The title of the widget.
+ * @param isWorkerUrl Whether the connection is a worker url.
+ * @returns The embed widget url.
+ */
+export async function getEmbedWidgetUrlForConnection(
+  connection: ConnectionState,
+  title: string,
+  isWorkerUrl: boolean
+): Promise<URL> {
+  return getEmbedWidgetUrl({
+    serverUrl: connection.serverUrl,
+    title,
+    themeKey: getDHThemeKey(),
+    // For Core+ workers in DHE, we use `postMessage` apis for auth where DH
+    // iframe communicates with parent (the extension) to get login credentials
+    // from the DHE client. See `getPanelHtml` util for more details.
+    authProvider: isWorkerUrl ? 'parent' : undefined,
+    psk:
+      connection instanceof DhcService ? await connection.getPsk() : undefined,
+  });
 }
