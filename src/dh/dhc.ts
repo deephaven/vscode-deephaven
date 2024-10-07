@@ -1,6 +1,5 @@
 import type { dh as DhType } from '@deephaven/jsapi-types';
 import { NoConsoleTypesError } from './errorUtils';
-import type { ConnectionState } from '../types';
 
 export const AUTH_HANDLER_TYPE_ANONYMOUS =
   'io.deephaven.auth.AnonymousAuthenticationHandler';
@@ -60,6 +59,7 @@ export async function initDhcSession(
   try {
     await client.login(credentials);
   } catch (err) {
+    // eslint-disable-next-line no-console
     console.error(err);
     throw err;
   }
