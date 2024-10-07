@@ -1,3 +1,4 @@
+import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type {
   EnterpriseDhType as DheType,
@@ -13,7 +14,7 @@ import {
   type WorkerInfo,
 } from '../types';
 import { URLMap } from './URLMap';
-import { assertDefined, Logger } from '../util';
+import { Logger } from '../util';
 import {
   createInteractiveConsoleDraftQuery,
   deleteQueries,
@@ -21,13 +22,9 @@ import {
   getWorkerInfoFromQuery,
   hasInteractivePermission,
 } from '../dh/dhe';
+import { REQUEST_DHE_USER_CREDENTIALS_CMD } from '../common';
 
 const logger = new Logger('DheService');
-
-// TODO: Dev only to avoid storing credentials in the codebase. Will implement
-// proper credential management later.
-const HACK_USERNAME = process.env.VSCODE_DHE_USER!;
-assertDefined(HACK_USERNAME, 'VSCODE_DHE_USER must be defined');
 
 /**
  * Service for managing DHE connections, sessions, workers, etc.
@@ -115,14 +112,10 @@ export class DheService implements IDheService {
     const dheClient = await this._dheClientCache.get(this.serverUrl);
 
     if (!this._dheCredentialsCache.has(this.serverUrl)) {
-      // TODO: Login flow
-      const dheCredentials = {
-        username: HACK_USERNAME,
-        token: HACK_USERNAME,
-        type: 'password',
-      };
-
-      this._dheCredentialsCache.set(this.serverUrl, dheCredentials);
+      await vscode.commands.executeCommand(
+        REQUEST_DHE_USER_CREDENTIALS_CMD,
+        this.serverUrl
+      );
     }
 
     const dheCredentials = this._dheCredentialsCache.get(this.serverUrl)!;

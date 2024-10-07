@@ -161,6 +161,10 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "vscode-deephaven.requestDheUserCredentials",
+        "title": "Deephaven: Request DHE User Credentials"
+      },
+      {
         "command": "vscode-deephaven.startServer",
         "title": "Deephaven: Start Server",
         "icon": "$(debug-start)"
@@ -623,6 +627,10 @@
         },
         {
           "command": "vscode-deephaven.refreshVariablePanels",
+          "when": "false"
+        },
+        {
+          "command": "vscode-deephaven.requestDheUserCredentials",
           "when": "false"
         }
       ],

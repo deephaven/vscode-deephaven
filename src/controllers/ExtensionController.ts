@@ -73,6 +73,7 @@ import {
   DheJsApiCache,
   DheServiceCache,
 } from '../services/cache';
+import { UserLoginController } from './UserLoginController';
 
 const logger = new Logger('ExtensionController');
 
@@ -91,6 +92,7 @@ export class ExtensionController implements Disposable {
     this.initializeConnectionController();
     this.initializePanelController();
     this.initializePipServerController();
+    this.initializeUserLoginController();
     this.initializeCommands();
     this.initializeWebViews();
     this.initializeServerUpdates();
@@ -119,6 +121,7 @@ export class ExtensionController implements Disposable {
   private _dheJsApiCache: ICacheService<URL, DheType> | null = null;
   private _dheServiceFactory: IDheServiceFactory | null = null;
   private _serverManager: IServerManager | null = null;
+  private _userLoginController: UserLoginController | null = null;
 
   // Tree providers
   private _serverTreeProvider: ServerTreeProvider | null = null;
@@ -214,6 +217,16 @@ export class ExtensionController implements Disposable {
       this._outputChannel,
       this._toaster
     );
+  };
+
+  initializeUserLoginController = (): void => {
+    assertDefined(this._dheCredentialsCache, 'dheCredentialsCache');
+
+    this._userLoginController = new UserLoginController(
+      this._dheCredentialsCache
+    );
+
+    this._context.subscriptions.push(this._userLoginController);
   };
 
   /**
