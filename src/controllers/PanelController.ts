@@ -4,6 +4,7 @@ import type {
   Disposable,
   IPanelService,
   IServerManager,
+  Lazy,
   VariableDefintion,
   WorkerURL,
 } from '../types';
@@ -20,7 +21,7 @@ const logger = new Logger('PanelController');
 
 export class PanelController implements Disposable {
   constructor(
-    coreCredentialsCache: URLMap<() => Promise<DhcType.LoginCredentials>>,
+    coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
     serverManager: IServerManager,
     panelService: IPanelService
   ) {
@@ -45,7 +46,7 @@ export class PanelController implements Disposable {
   }
 
   private readonly _coreCredentialsCache: URLMap<
-    () => Promise<DhcType.LoginCredentials>
+    Lazy<DhcType.LoginCredentials>
   >;
   private readonly _panelService: IPanelService;
   private readonly _serverManager: IServerManager;

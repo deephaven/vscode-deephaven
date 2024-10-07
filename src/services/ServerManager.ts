@@ -17,6 +17,7 @@ import type {
   IDheService,
   ICacheService,
   WorkerURL,
+  Lazy,
 } from '../types';
 import {
   getInitialServerStates,
@@ -34,7 +35,7 @@ const logger = new Logger('ServerManager');
 export class ServerManager implements IServerManager {
   constructor(
     configService: IConfigService,
-    coreCredentialsCache: URLMap<() => Promise<DhcType.LoginCredentials>>,
+    coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
     dhcServiceFactory: IDhServiceFactory,
     dheServiceCache: ICacheService<URL, IDheService>
   ) {
@@ -56,7 +57,7 @@ export class ServerManager implements IServerManager {
   private readonly _configService: IConfigService;
   private readonly _connectionMap: URLMap<ConnectionState>;
   private readonly _coreCredentialsCache: URLMap<
-    () => Promise<DhcType.LoginCredentials>
+    Lazy<DhcType.LoginCredentials>
   >;
   private readonly _dhcServiceFactory: IDhServiceFactory;
   private readonly _dheServiceCache: ICacheService<URL, IDheService>;

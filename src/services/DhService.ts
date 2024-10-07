@@ -7,6 +7,7 @@ import type {
   IDhService,
   IPanelService,
   IToastService,
+  Lazy,
   VariableChanges,
   VariableDefintion,
   VariableID,
@@ -28,7 +29,7 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
 {
   constructor(
     serverUrl: URL,
-    coreCredentialsCache: URLMap<() => Promise<DhcType.LoginCredentials>>,
+    coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
     panelService: IPanelService,
     diagnosticsCollection: vscode.DiagnosticCollection,
     outputChannel: vscode.OutputChannel,
@@ -49,7 +50,7 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
   protected readonly subscriptions: (() => void)[] = [];
 
   protected readonly coreCredentialsCache: URLMap<
-    () => Promise<DhcType.LoginCredentials>
+    Lazy<DhcType.LoginCredentials>
   >;
   protected readonly outputChannel: vscode.OutputChannel;
   protected readonly toaster: IToastService;

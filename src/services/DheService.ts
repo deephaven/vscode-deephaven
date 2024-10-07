@@ -10,6 +10,7 @@ import {
   type ICacheService,
   type IDheService,
   type IDheServiceFactory,
+  type Lazy,
   type QuerySerial,
   type WorkerInfo,
 } from '../types';
@@ -39,7 +40,7 @@ export class DheService implements IDheService {
    * @returns A factory function that can be used to create DheService instances.
    */
   static factory = (
-    coreCredentialsCache: URLMap<() => Promise<DhcType.LoginCredentials>>,
+    coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
     dheClientCache: ICacheService<URL, EnterpriseClient>,
     dheCredentialsCache: URLMap<DheLoginCredentials>,
     dheJsApiCache: ICacheService<URL, DheType>
@@ -62,7 +63,7 @@ export class DheService implements IDheService {
    */
   private constructor(
     serverUrl: URL,
-    coreCredentialsCache: URLMap<() => Promise<DhcType.LoginCredentials>>,
+    coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
     dheClientCache: ICacheService<URL, EnterpriseClient>,
     dheCredentialsCache: URLMap<DheLoginCredentials>,
     dheJsApiCache: ICacheService<URL, DheType>
@@ -80,7 +81,7 @@ export class DheService implements IDheService {
   private _isConnected: boolean = false;
   private _workerCount: number = 0;
   private readonly _coreCredentialsCache: URLMap<
-    () => Promise<DhcType.LoginCredentials>
+    Lazy<DhcType.LoginCredentials>
   >;
   private readonly _dheClientCache: ICacheService<URL, EnterpriseClient>;
   private readonly _dheCredentialsCache: URLMap<DheLoginCredentials>;
