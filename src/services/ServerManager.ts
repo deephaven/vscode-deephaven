@@ -159,7 +159,13 @@ export class ServerManager implements IServerManager {
         type: AUTH_HANDLER_TYPE_PSK,
         token: serverState.psk,
       }));
-    } else if (serverState.type === 'DHE') {
+    }
+    // Non-managed DHC server
+    else if (serverState.type === 'DHC') {
+      this.updateConnectionCount(serverUrl, 1);
+    }
+    // DHE server
+    else if (serverState.type === 'DHE') {
       const dheService = await this._dheServiceCache.get(serverUrl);
 
       // Initial login flow if not already connected
