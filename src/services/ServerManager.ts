@@ -46,7 +46,6 @@ export class ServerManager implements IServerManager {
     this._coreCredentialsCache = coreCredentialsCache;
     this._dhcServiceFactory = dhcServiceFactory;
     this._dheServiceCache = dheServiceCache;
-    this._placeholderURLToServerURLMap = new URLMap<URL>();
     this._serverMap = new URLMap<ServerState>();
     this._uriConnectionsMap = new URIMap<ConnectionState>();
     this._workerURLToServerURLMap = new URLMap<URL>();
@@ -63,7 +62,6 @@ export class ServerManager implements IServerManager {
   >;
   private readonly _dhcServiceFactory: IDhServiceFactory;
   private readonly _dheServiceCache: ICacheService<URL, IDheService>;
-  private readonly _placeholderURLToServerURLMap: URLMap<URL>;
   private readonly _uriConnectionsMap: URIMap<ConnectionState>;
   private readonly _workerURLToServerURLMap: URLMap<URL>;
   private _serverMap: URLMap<ServerState>;
@@ -231,7 +229,7 @@ export class ServerManager implements IServerManager {
     const placeholderUrl = new URL(serverUrl);
     placeholderUrl.pathname = tagId;
 
-    this._placeholderURLToServerURLMap.set(placeholderUrl, serverUrl);
+    this._workerURLToServerURLMap.set(placeholderUrl, serverUrl);
 
     this._connectionMap.set(placeholderUrl, {
       isConnected: false,
@@ -249,7 +247,7 @@ export class ServerManager implements IServerManager {
    * @param placeholderUrl The placeholder URL to remove.
    */
   removeWorkerPlaceholderConnection = (placeholderUrl: URL): void => {
-    this._placeholderURLToServerURLMap.delete(placeholderUrl);
+    this._workerURLToServerURLMap.delete(placeholderUrl);
     this._connectionMap.delete(placeholderUrl);
     this._onDidUpdate.fire();
   };
@@ -262,25 +260,14 @@ export class ServerManager implements IServerManager {
   disconnectFromServer = async (
     serverOrWorkerUrl: URL | WorkerURL
   ): Promise<void> => {
-    const serverUrlFromPlaceholder =
-      this._placeholderURLToServerURLMap.get(serverOrWorkerUrl);
-
-    const serverUrlFromWorker =
-      this._workerURLToServerURLMap.get(serverOrWorkerUrl);
-
-    // Delete map entries
-    this._placeholderURLToServerURLMap.delete(serverOrWorkerUrl);
+    const dheServerUrl = this._workerURLToServerURLMap.get(serverOrWorkerUrl);
     this._workerURLToServerURLMap.delete(serverOrWorkerUrl);
 
-    // Decrement server connection count
-    this.updateConnectionCount(
-      serverUrlFromPlaceholder ?? serverUrlFromWorker ?? serverOrWorkerUrl,
-      -1
-    );
+    this.updateConnectionCount(dheServerUrl ?? serverOrWorkerUrl, -1);
 
     // If this is a Core+ worker in a DHE server, delete the worker.
-    if (serverUrlFromWorker) {
-      const dheService = await this._dheServiceCache.get(serverUrlFromWorker);
+    if (dheServerUrl && this._dheServiceCache.has(dheServerUrl)) {
+      const dheService = await this._dheServiceCache.get(dheServerUrl);
       await dheService.deleteWorker(serverOrWorkerUrl as WorkerURL);
     }
 
@@ -288,7 +275,6 @@ export class ServerManager implements IServerManager {
     if (connection == null) {
       return;
     }
-
     this._connectionMap.delete(serverOrWorkerUrl);
 
     // Remove any editor URIs associated with this connection
