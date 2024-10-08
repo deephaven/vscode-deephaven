@@ -130,7 +130,10 @@ export class ServerManager implements IServerManager {
     this._onDidLoadConfig.fire();
   };
 
-  connectToServer = async (serverUrl: URL): Promise<ConnectionState | null> => {
+  connectToServer = async (
+    serverUrl: URL,
+    consoleTypeIfCreate?: ConsoleType
+  ): Promise<ConnectionState | null> => {
     const serverState = this._serverMap.get(serverUrl);
 
     if (serverState == null) {
@@ -175,7 +178,7 @@ export class ServerManager implements IServerManager {
 
       let workerInfo: WorkerInfo;
       try {
-        workerInfo = await dheService.createWorker(tagId);
+        workerInfo = await dheService.createWorker(tagId, consoleTypeIfCreate);
 
         // If connection was closed by user before worker finished creating,
         // dispose of the worker

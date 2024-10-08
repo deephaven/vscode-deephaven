@@ -7,6 +7,7 @@ import type {
 } from '@deephaven-enterprise/jsapi-types';
 import { DraftQuery, QueryScheduler } from '@deephaven-enterprise/query-utils';
 import type {
+  ConsoleType,
   IdeURL,
   QuerySerial,
   UniqueID,
@@ -115,13 +116,15 @@ export function findQueryConfigForSerial(
  * Create a query of type `InteractiveConsole`.
  * @param tagId Unique tag id to include in the query name.
  * @param dheClient The DHE client to use to create the query.
+ * @param consoleType The type of console to create.
  * @returns A promise that resolves to the serial of the created query. Note
  * that this will resolve before the query is actually ready to use. Use
  * `getWorkerInfoFromQuery` to get the worker info when the query is ready.
  */
 export async function createInteractiveConsoleQuery(
   tagId: UniqueID,
-  dheClient: EnterpriseClient
+  dheClient: EnterpriseClient,
+  consoleType?: ConsoleType
 ): Promise<QuerySerial> {
   const userInfo = await dheClient.getUserInfo();
   const owner = userInfo.username;
@@ -137,8 +140,10 @@ export async function createInteractiveConsoleQuery(
   const dbServerName = dbServers[0]?.name ?? 'Query 1';
   const heapSize = queryConstants.pqDefaultHeap;
   const jvmProfile = serverConfigValues.jvmProfileDefault;
-  const scriptLanguage = 'Python'; // TODO: determine from languageid
-  // serverConfigValues.scriptSessionProviders?.[0] ?? 'Python';
+  const scriptLanguage =
+    serverConfigValues.scriptSessionProviders?.find(
+      p => p.toLocaleLowerCase() === consoleType
+    ) ?? 'Python';
   const workerKind = serverConfigValues.workerKinds?.[0]?.name;
 
   const timeZone =

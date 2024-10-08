@@ -7,6 +7,7 @@ import type {
 } from '@deephaven-enterprise/jsapi-types';
 import {
   WorkerURL,
+  type ConsoleType,
   type ICacheService,
   type IDheService,
   type IDheServiceFactory,
@@ -188,9 +189,14 @@ export class DheService implements IDheService {
 
   /**
    * Create an InteractiveConsole query and get worker info from it.
+   * @param tagId Unique tag id to include in the worker info.
+   * @param consoleType Console type to create.
    * @returns Worker info.
    */
-  createWorker = async (tagId: UniqueID): Promise<WorkerInfo> => {
+  createWorker = async (
+    tagId: UniqueID,
+    consoleType?: ConsoleType
+  ): Promise<WorkerInfo> => {
     this._workerCount += 1;
 
     try {
@@ -204,7 +210,11 @@ export class DheService implements IDheService {
 
       const dhe = await this._dheJsApiCache.get(this.serverUrl);
 
-      const querySerial = await createInteractiveConsoleQuery(tagId, dheClient);
+      const querySerial = await createInteractiveConsoleQuery(
+        tagId,
+        dheClient,
+        consoleType
+      );
       this._querySerialSet.add(querySerial);
 
       const workerInfo = await getWorkerInfoFromQuery(

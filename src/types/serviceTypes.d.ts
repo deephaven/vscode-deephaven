@@ -56,7 +56,10 @@ export interface IDheService extends ConnectionState, Disposable {
   readonly workerCount: number;
   getClient: (initializeIfNull: boolean) => Promise<EnterpriseClient | null>;
   getWorkerInfo: (workerUrl: WorkerURL) => WorkerInfo | undefined;
-  createWorker: (tagId: UniqueID) => Promise<WorkerInfo>;
+  createWorker: (
+    tagId: UniqueID,
+    consoleType?: ConsoleType
+  ) => Promise<WorkerInfo>;
   deleteWorker: (workerUrl: WorkerURL) => Promise<void>;
 }
 
@@ -108,7 +111,10 @@ export interface IPanelService extends Disposable {
 export interface IServerManager extends Disposable {
   canStartServer: boolean;
 
-  connectToServer: (serverUrl: URL) => Promise<ConnectionState | null>;
+  connectToServer: (
+    serverUrl: URL,
+    consoleTypeIfCreate?: ConsoleType
+  ) => Promise<ConnectionState | null>;
   disconnectEditor: (uri: vscode.Uri) => void;
   disconnectFromServer: (serverUrl: URL) => Promise<void>;
   loadServerConfig: () => Promise<void>;

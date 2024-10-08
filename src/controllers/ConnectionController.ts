@@ -131,7 +131,8 @@ export class ConnectionController implements Disposable {
 
     if ('url' in connectionOrServer) {
       const cn = await this._serverManager.connectToServer(
-        connectionOrServer.url
+        connectionOrServer.url,
+        editor.document.languageId as ConsoleType
       );
 
       if (cn == null) {
