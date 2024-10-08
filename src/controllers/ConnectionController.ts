@@ -84,7 +84,7 @@ export class ConnectionController implements Disposable {
       server => {
         // Auto connect to servers managed by extension when they start
         if (server.isManaged && server.isRunning) {
-          this._serverManager.connectToServer(server.url);
+          this._serverManager.connectToServer(server.url, 'python');
         }
       },
       undefined,
@@ -232,8 +232,8 @@ export class ConnectionController implements Disposable {
    * Prompt user to select a connection and apply the selection. The options
    * presented to the user consist of:
    * 1. Active connections that support the console type of the active editor.
-   * 2. A list of running servers that consists of:
-   *   - DHC servers that don't yet have a connection, and
+   * 2. A list of running servers composed of:
+   *   - DHC servers that don't yet have a connection
    *   - All running DHE servers
    */
   onPromptUserToSelectConnection = async (): Promise<boolean> => {

@@ -55,6 +55,20 @@ export async function getConnectionsForConsoleType(
 }
 
 /**
+ * If the given value is a valid console type, return it, otherwise default to 'python'.
+ * @param maybeConsoleType
+ * @returns A console type.
+ */
+export function getConsoleTypeOrDefault(
+  maybeConsoleType?: string
+): ConsoleType {
+  return typeof maybeConsoleType === 'string' &&
+    SERVER_LANGUAGE_SET.has(maybeConsoleType as ConsoleType)
+    ? (maybeConsoleType as ConsoleType)
+    : 'python';
+}
+
+/**
  * Get the first connection supporting the given console type.
  * @param connections Connections to filter
  * @param consoleType Console type to filter by

@@ -23,6 +23,7 @@ import {
 } from '../common';
 import {
   assertDefined,
+  getConsoleTypeOrDefault,
   getEditorForUri,
   getTempDir,
   isInstanceOf,
@@ -521,7 +522,17 @@ export class ExtensionController implements Disposable {
    * Handle connecting to a server
    */
   onConnectToServer = async (serverState: ServerState): Promise<void> => {
-    this._serverManager?.connectToServer(serverState.url);
+    const languageId = vscode.window.activeTextEditor?.document.languageId;
+
+    // DHE servers need to specify the console type for each worker creation.
+    // Use the active editor's language id to determine the console type or
+    // fallback to 'python'.
+    const workerConsoleType =
+      serverState.type === 'DHE'
+        ? getConsoleTypeOrDefault(languageId)
+        : undefined;
+
+    this._serverManager?.connectToServer(serverState.url, workerConsoleType);
   };
 
   /**

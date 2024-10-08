@@ -132,7 +132,7 @@ export class ServerManager implements IServerManager {
 
   connectToServer = async (
     serverUrl: URL,
-    consoleTypeIfCreate?: ConsoleType
+    workerConsoleType?: ConsoleType
   ): Promise<ConnectionState | null> => {
     const serverState = this._serverMap.get(serverUrl);
 
@@ -184,7 +184,7 @@ export class ServerManager implements IServerManager {
 
       let workerInfo: WorkerInfo;
       try {
-        workerInfo = await dheService.createWorker(tagId, consoleTypeIfCreate);
+        workerInfo = await dheService.createWorker(tagId, workerConsoleType);
 
         // If connection was closed by user before worker finished creating,
         // dispose of the worker
