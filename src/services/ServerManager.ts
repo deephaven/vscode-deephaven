@@ -168,7 +168,8 @@ export class ServerManager implements IServerManager {
     else if (serverState.type === 'DHE') {
       const dheService = await this._dheServiceCache.get(serverUrl);
 
-      // Initial login flow if not already connected
+      // Get client. Client will be initialized if it doesn't exist (including
+      // prompting user for login).
       if (!(await dheService.getClient(true))) {
         return null;
       }
@@ -191,7 +192,6 @@ export class ServerManager implements IServerManager {
         if (!this._connectionMap.has(placeholderUrl)) {
           dheService.deleteWorker(workerInfo.grpcUrl);
           this._onDidUpdate.fire();
-          // throw new Error('Worker creation cancelled.');
           return null;
         }
       } catch (err) {
@@ -274,7 +274,10 @@ export class ServerManager implements IServerManager {
 
     this.updateConnectionCount(dheServerUrl ?? serverOrWorkerUrl, -1);
 
-    // If this is a Core+ worker in a DHE server, delete the worker.
+    // `dheServerUrl` can either be associated with a placeholder worker or a real
+    // worker. Check if there is a corresponding DHE service in the cache, and if
+    // so delete the associated worker. Otherwise, we are dealing with a placeholder,
+    // and cleanup will happen once the worker is ready in `connectToServer`.
     if (dheServerUrl && this._dheServiceCache.has(dheServerUrl)) {
       const dheService = await this._dheServiceCache.get(dheServerUrl);
       await dheService.deleteWorker(serverOrWorkerUrl as WorkerURL);
@@ -403,7 +406,12 @@ export class ServerManager implements IServerManager {
     workerUrl: WorkerURL
   ): Promise<WorkerInfo | undefined> => {
     const dheServerUrl = this._workerURLToServerURLMap.get(workerUrl);
-    if (dheServerUrl == null) {
+
+    // `dheServerUrl` could be for a placeholder, so check for DheService before
+    // retrieving it from the cache below. This is important since the cache
+    // will attempt to create a new DheService if it doesn't exist when calling
+    // `this._dheServiceCache.get`.
+    if (dheServerUrl == null || !this._dheServiceCache.has(dheServerUrl)) {
       return;
     }
 
