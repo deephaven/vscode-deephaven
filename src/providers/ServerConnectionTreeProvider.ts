@@ -29,17 +29,28 @@ export class ServerConnectionTreeProvider extends TreeDataProviderBase<ServerCon
       };
     }
 
-    const [consoleType] =
-      isInstanceOf(connectionOrUri, DhService) && connectionOrUri.isInitialized
-        ? await connectionOrUri.getConsoleTypes()
-        : [];
+    const descriptionTokens: string[] = [];
+
+    if (
+      isInstanceOf(connectionOrUri, DhService) &&
+      connectionOrUri.isInitialized
+    ) {
+      const [consoleType] = await connectionOrUri.getConsoleTypes();
+      if (consoleType) {
+        descriptionTokens.push(consoleType);
+      }
+    }
+
+    if (connectionOrUri.tagId) {
+      descriptionTokens.push(connectionOrUri.tagId);
+    }
 
     const hasUris = this.serverManager.hasConnectionUris(connectionOrUri);
 
     // Connection node
     return {
       label: new URL(connectionOrUri.serverUrl.toString()).host,
-      description: consoleType,
+      description: descriptionTokens.join(' - '),
       contextValue: CONNECTION_TREE_ITEM_CONTEXT.isConnection,
       collapsibleState: hasUris
         ? vscode.TreeItemCollapsibleState.Expanded

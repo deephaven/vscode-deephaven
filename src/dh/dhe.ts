@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type {
   EnterpriseDhType as DheType,
@@ -7,7 +6,13 @@ import type {
   QueryInfo,
 } from '@deephaven-enterprise/jsapi-types';
 import { DraftQuery, QueryScheduler } from '@deephaven-enterprise/query-utils';
-import type { IdeURL, QuerySerial, WorkerInfo, WorkerURL } from '../types';
+import type {
+  IdeURL,
+  QuerySerial,
+  UniqueID,
+  WorkerInfo,
+  WorkerURL,
+} from '../types';
 
 const INTERACTIVE_CONSOLE_QUERY_TYPE = 'InteractiveConsole';
 
@@ -80,6 +85,7 @@ export function findQueryConfigForSerial(
 }
 
 export async function createInteractiveConsoleDraftQuery(
+  tagId: UniqueID,
   dheClient: EnterpriseClient
 ): Promise<QuerySerial> {
   const userInfo = await dheClient.getUserInfo();
@@ -92,7 +98,7 @@ export async function createInteractiveConsoleDraftQuery(
     dheClient.getServerConfigValues(),
   ]);
 
-  const name = `vscode extension - ${randomUUID()}`;
+  const name = `IC - VS Code - ${tagId}`;
   const dbServerName = dbServers[0]?.name ?? 'Query 1';
   const heapSize = queryConstants.pqDefaultHeap;
   const jvmProfile = serverConfigValues.jvmProfileDefault;
@@ -139,6 +145,7 @@ export async function deleteQueries(
 }
 
 export async function getWorkerInfoFromQuery(
+  tagId: UniqueID,
   dhe: DheType,
   dheClient: EnterpriseClient,
   querySerial: QuerySerial
@@ -162,6 +169,7 @@ export async function getWorkerInfoFromQuery(
   const { grpcUrl, ideUrl, processInfoId, workerName } = queryInfo.designated;
 
   return {
+    tagId,
     serial: querySerial,
     grpcUrl: new URL(grpcUrl) as WorkerURL,
     ideUrl: new URL(ideUrl) as IdeURL,

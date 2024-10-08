@@ -7,6 +7,8 @@ export type Brand<T extends string, TBase = string> = TBase & {
   readonly [__brand]: T;
 };
 
+export type UniqueID = Brand<'UniqueID', string>;
+
 export type Port = Brand<'Port', number>;
 
 export type ConnectionType = 'DHC';
@@ -41,6 +43,7 @@ export type ServerConnectionConfig =
 export interface ConnectionState {
   readonly isConnected: boolean;
   readonly serverUrl: URL;
+  readonly tagId?: UniqueID;
 }
 
 export type WorkerURL = Brand<'GrpcUrl', URL>;
@@ -48,6 +51,7 @@ export type IdeURL = Brand<'IdeUrl', URL>;
 export type QuerySerial = Brand<'QuerySerial', string>;
 
 export interface WorkerInfo {
+  tagId: UniqueID;
   grpcUrl: WorkerURL;
   ideUrl: IdeURL;
   processInfoId: string | null;

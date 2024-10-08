@@ -12,6 +12,7 @@ import {
   type IDheServiceFactory,
   type Lazy,
   type QuerySerial,
+  type UniqueID,
   type WorkerInfo,
 } from '../types';
 import { URLMap } from './URLMap';
@@ -185,7 +186,7 @@ export class DheService implements IDheService {
    * Create an InteractiveConsole query and get worker info from it.
    * @returns Worker info.
    */
-  createWorker = async (): Promise<WorkerInfo> => {
+  createWorker = async (tagId: UniqueID): Promise<WorkerInfo> => {
     this._workerCount += 1;
 
     try {
@@ -199,10 +200,14 @@ export class DheService implements IDheService {
 
       const dhe = await this._dheJsApiCache.get(this.serverUrl);
 
-      const querySerial = await createInteractiveConsoleDraftQuery(dheClient);
+      const querySerial = await createInteractiveConsoleDraftQuery(
+        tagId,
+        dheClient
+      );
       this._querySerialSet.add(querySerial);
 
       const workerInfo = await getWorkerInfoFromQuery(
+        tagId,
         dhe,
         dheClient,
         querySerial

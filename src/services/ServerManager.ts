@@ -18,17 +18,20 @@ import type {
   ICacheService,
   WorkerURL,
   Lazy,
+  UniqueID,
 } from '../types';
 import {
   getInitialServerStates,
   isDisposable,
   isInstanceOf,
   Logger,
+  uniqueId,
 } from '../util';
 import { URLMap } from './URLMap';
 import { URIMap } from './URIMap';
 import { DhService } from './DhService';
 import { AUTH_HANDLER_TYPE_PSK } from '../dh/dhc';
+import { URLCountMap } from './URLCountMap';
 
 const logger = new Logger('ServerManager');
 
@@ -40,6 +43,7 @@ export class ServerManager implements IServerManager {
     dheServiceCache: ICacheService<URL, IDheService>
   ) {
     this._configService = configService;
+    this._connectionCountMap = new URLCountMap();
     this._connectionMap = new URLMap<ConnectionState>();
     this._coreCredentialsCache = coreCredentialsCache;
     this._dhcServiceFactory = dhcServiceFactory;
@@ -55,6 +59,7 @@ export class ServerManager implements IServerManager {
   }
 
   private readonly _configService: IConfigService;
+  private readonly _connectionCountMap: URLCountMap;
   private readonly _connectionMap: URLMap<ConnectionState>;
   private readonly _coreCredentialsCache: URLMap<
     Lazy<DhcType.LoginCredentials>
@@ -131,10 +136,16 @@ export class ServerManager implements IServerManager {
   };
 
   connectToServer = async (serverUrl: URL): Promise<ConnectionState | null> => {
-    if (this.hasConnection(serverUrl)) {
+    // DHE supports multiple connections, but DHC does not.
+    if (
+      !this._dheServiceCache.has(serverUrl) &&
+      this.connectionCount(serverUrl) > 0
+    ) {
       logger.info('Already connected to server:', serverUrl);
       return null;
     }
+
+    this._connectionCountMap.increment(serverUrl);
 
     const serverState = this._serverMap.get(serverUrl);
 
@@ -142,38 +153,41 @@ export class ServerManager implements IServerManager {
       return null;
     }
 
+    let tagId: UniqueID | undefined;
+
     if (serverState.isManaged) {
       this._coreCredentialsCache.set(serverUrl, async () => ({
         type: AUTH_HANDLER_TYPE_PSK,
         token: serverState.psk,
       }));
     } else if (serverState.type === 'DHE') {
-      const placeholderUrl = this.addPlaceholderConnection(serverUrl);
-
       const dheService = await this._dheServiceCache.get(serverUrl);
+      await dheService.getClient(true);
 
+      tagId = uniqueId();
+      const placeholderUrl = this.addPlaceholderConnection(serverUrl, tagId);
+
+      let workerInfo: WorkerInfo;
       try {
-        const workerInfo = await dheService.createWorker();
-
-        // Map the worker URL to the server URL to make things easier to dispose
-        // later.
-        this._workerURLToServerURLMap.set(
-          new URL(workerInfo.grpcUrl),
-          serverUrl
-        );
-
-        this.removePlaceholderConnection(placeholderUrl);
-
-        // Update the server URL to the worker url to be used below with core
-        // connection creation.
-        serverUrl = new URL(workerInfo.grpcUrl);
+        workerInfo = await dheService.createWorker(tagId);
       } catch (err) {
         logger.error(err);
+        this._connectionCountMap.decrement(serverUrl);
         return null;
       }
+
+      this.removePlaceholderConnection(placeholderUrl);
+
+      // Map the worker URL to the server URL to make things easier to dispose
+      // later.
+      this._workerURLToServerURLMap.set(new URL(workerInfo.grpcUrl), serverUrl);
+
+      // Update the server URL to the worker url to be used below with core
+      // connection creation.
+      serverUrl = new URL(workerInfo.grpcUrl);
     }
 
-    const connection = this._dhcServiceFactory.create(serverUrl);
+    const connection = this._dhcServiceFactory.create(serverUrl, tagId);
 
     this._connectionMap.set(serverUrl, connection);
     this._onDidUpdate.fire();
@@ -188,16 +202,17 @@ export class ServerManager implements IServerManager {
     return this._connectionMap.get(serverUrl) ?? null;
   };
 
-  addPlaceholderConnection = (serverUrl: URL): URL => {
-    // simple way to keep placeholder urls unique by just adding an incrementing pathname
+  addPlaceholderConnection = (serverUrl: URL, tagId: UniqueID): URL => {
+    // simple way to keep placeholder urls unique by just adding a tagId as the pathname
     const placeholderUrl = new URL(serverUrl);
-    placeholderUrl.pathname = String(this._placeholderConnectionUrls.size + 1);
+    placeholderUrl.pathname = tagId;
 
     this._placeholderConnectionUrls.add(placeholderUrl.toString());
 
     this._connectionMap.set(placeholderUrl, {
       isConnected: false,
       serverUrl,
+      tagId,
     });
 
     this._onDidUpdate.fire();
@@ -225,9 +240,15 @@ export class ServerManager implements IServerManager {
       return;
     }
 
-    // If this is a Core+ worker in a DHE server, delete the worker.
     const dheServerUrl = this._workerURLToServerURLMap.get(serverOrWorkerUrl);
-    if (dheServerUrl != null) {
+
+    if (dheServerUrl == null) {
+      this._connectionCountMap.decrement(serverOrWorkerUrl);
+    }
+    // If this is a Core+ worker in a DHE server, delete the worker.
+    else {
+      this._connectionCountMap.decrement(dheServerUrl);
+
       const dheService = await this._dheServiceCache.get(dheServerUrl);
       await dheService.deleteWorker(serverOrWorkerUrl as WorkerURL);
     }
@@ -250,11 +271,11 @@ export class ServerManager implements IServerManager {
   };
 
   /**
-   * Determine if the given server URL has any active connections.
+   * Get the count of active connections for the given serverUrl.
    * @param serverUrl
    */
-  hasConnection = (serverUrl: URL): boolean => {
-    return this._connectionMap.has(serverUrl);
+  connectionCount = (serverUrl: URL): number => {
+    return this._connectionCountMap.get(serverUrl);
   };
 
   /**
@@ -299,7 +320,7 @@ export class ServerManager implements IServerManager {
     const match = (server: ServerState): boolean =>
       (isRunning == null || server.isRunning === isRunning) &&
       (hasConnections == null ||
-        this.hasConnection(server.url) === hasConnections);
+        this.connectionCount(server.url) > 0 === hasConnections);
 
     return servers.filter(match);
   };

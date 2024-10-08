@@ -767,7 +767,8 @@
   },
   "dependencies": {
     "@deephaven-enterprise/query-utils": "^1.20240723.74-alpha-npm-publish-test.23413",
-    "@deephaven/require-jsapi": "file:./packages/require-jsapi"
+    "@deephaven/require-jsapi": "file:./packages/require-jsapi",
+    "nanoid": "^5.0.7"
   },
   "overrides": {
     "event-target-shim": "^6.0.2"

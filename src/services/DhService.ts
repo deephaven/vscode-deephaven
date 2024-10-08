@@ -8,6 +8,7 @@ import type {
   IPanelService,
   IToastService,
   Lazy,
+  UniqueID,
   VariableChanges,
   VariableDefintion,
   VariableID,
@@ -33,7 +34,8 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
     panelService: IPanelService,
     diagnosticsCollection: vscode.DiagnosticCollection,
     outputChannel: vscode.OutputChannel,
-    toaster: IToastService
+    toaster: IToastService,
+    tagId?: UniqueID
   ) {
     this.coreCredentialsCache = coreCredentialsCache;
     this.serverUrl = serverUrl;
@@ -41,12 +43,14 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
     this.diagnosticsCollection = diagnosticsCollection;
     this.outputChannel = outputChannel;
     this.toaster = toaster;
+    this.tagId = tagId;
   }
 
   private readonly _onDidDisconnect = new vscode.EventEmitter<URL>();
   readonly onDidDisconnect = this._onDidDisconnect.event;
 
   public readonly serverUrl: URL;
+  public readonly tagId?: UniqueID;
   protected readonly subscriptions: (() => void)[] = [];
 
   protected readonly coreCredentialsCache: URLMap<

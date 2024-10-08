@@ -21,13 +21,13 @@ export class ServerTreeProvider extends TreeDataProviderBase<ServerNode> {
       return getServerGroupTreeItem(element, this.serverManager.canStartServer);
     }
 
-    const isConnected = this.serverManager.hasConnection(element.url);
+    const connectionCount = this.serverManager.connectionCount(element.url);
     const isManaged = element.isManaged ?? false;
     const isRunning = element.isRunning ?? false;
 
     return getServerTreeItem({
       server: element,
-      isConnected,
+      connectionCount,
       isManaged,
       isRunning,
     });

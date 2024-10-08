@@ -212,22 +212,25 @@ export function getServerIconID({
 /**
  * Get tree item for a server.
  * @param server Server state
- * @param isConnected Whether the server is connected
+ * @param connectionCount The number of connections to the server (will be the
+ * number of connected workers in the case of DHE)
  * @param isManaged Whether the server is managed
  * @param isRunning Whether the server is running
  * @returns Tree item representing the server
  */
 export function getServerTreeItem({
   server,
-  isConnected,
+  connectionCount,
   isManaged,
   isRunning,
 }: {
   server: ServerState;
-  isConnected: boolean;
+  connectionCount: number;
   isManaged: boolean;
   isRunning: boolean;
 }): vscode.TreeItem {
+  const isConnected = connectionCount > 0;
+
   const contextValue = getServerContextValue({
     isConnected,
     isManaged,
@@ -235,7 +238,7 @@ export function getServerTreeItem({
   });
 
   const description = getServerDescription(
-    isConnected ? 1 : 0,
+    connectionCount,
     isManaged,
     server.label
   );

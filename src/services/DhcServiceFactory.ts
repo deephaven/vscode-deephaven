@@ -6,6 +6,7 @@ import type {
   IPanelService,
   IToastService,
   Lazy,
+  UniqueID,
 } from '../types';
 import type { URLMap } from './URLMap';
 
@@ -21,14 +22,15 @@ export class DhcServiceFactory implements IDhServiceFactory {
     private toaster: IToastService
   ) {}
 
-  create = (serverUrl: URL): DhcService => {
+  create = (serverUrl: URL, tagId?: UniqueID): DhcService => {
     const dhService = new DhcService(
       serverUrl,
       this.coreCredentialsCache,
       this.panelService,
       this.diagnosticsCollection,
       this.outputChannel,
-      this.toaster
+      this.toaster,
+      tagId
     );
 
     return dhService;

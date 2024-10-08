@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type { EnterpriseClient } from '@deephaven-enterprise/jsapi-types';
 import type {
   ConsoleType,
@@ -15,10 +14,12 @@ import type {
   VariableID,
   WorkerInfo,
   WorkerURL,
+  UniqueID,
 } from '../types/commonTypes';
 
 export interface ICacheService<TKey, TValue> extends Disposable {
   get: (key: TKey) => Promise<TValue>;
+  has: (key: TKey) => boolean;
   invalidate: (key: TKey) => void;
 }
 
@@ -55,7 +56,7 @@ export interface IDheService extends ConnectionState, Disposable {
   readonly workerCount: number;
   getClient: (initializeIfNull: boolean) => Promise<EnterpriseClient | null>;
   getWorkerInfo: (workerUrl: WorkerURL) => WorkerInfo | undefined;
-  createWorker: () => Promise<WorkerInfo>;
+  createWorker: (tagId: UniqueID) => Promise<WorkerInfo>;
   deleteWorker: (workerUrl: WorkerURL) => Promise<void>;
 }
 
@@ -78,7 +79,10 @@ export interface IFactory<T, TArgs extends unknown[] = []> {
 /**
  * Factory for creating IDhService instances.
  */
-export type IDhServiceFactory = IFactory<IDhService, [serverUrl: URL]>;
+export type IDhServiceFactory = IFactory<
+  IDhService,
+  [serverUrl: URL, tagId?: UniqueID]
+>;
 export type IDheServiceFactory = IFactory<IDheService, [serverUrl: URL]>;
 
 export interface IPanelService extends Disposable {
@@ -109,7 +113,7 @@ export interface IServerManager extends Disposable {
   disconnectFromServer: (serverUrl: URL) => Promise<void>;
   loadServerConfig: () => Promise<void>;
 
-  hasConnection: (serverUrl: URL) => boolean;
+  connectionCount: (serverUrl: URL) => number;
   hasConnectionUris: (connection: ConnectionState) => boolean;
 
   getConnection: (serverUrl: URL) => ConnectionState | undefined;
