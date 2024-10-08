@@ -152,7 +152,8 @@ export class PanelController extends ControllerBase {
 
         this._panelService.setPanel(serverUrl, id, panel);
 
-        // If panel gets disposed, remove it from the caches
+        // If panel gets disposed, remove it from the cache and dispose the
+        // postMessage subscription.
         panel.onDidDispose(() => {
           this._panelService.deletePanel(serverUrl, id);
           subscription.dispose();
@@ -236,7 +237,7 @@ export class PanelController extends ControllerBase {
  * @param connection The connection.
  * @param title The title of the widget.
  * @param isWorkerUrl Whether the connection is a worker url.
- * @returns The embed widget url.
+ * @returns A Promise to the embed widget url.
  */
 export async function getEmbedWidgetUrlForConnection(
   connection: ConnectionState,
