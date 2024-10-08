@@ -5,7 +5,7 @@ import { URLMap } from '../URLMap';
 /**
  * Cache service that stores values by URL.
  */
-export class CacheByUrlService<TValue> implements ICacheService<URL, TValue> {
+export class UrlKeyCache<TValue> implements ICacheService<URL, TValue> {
   constructor(loader: (url: URL) => Promise<TValue>) {
     this._loader = loader;
     this._promiseMap = new URLMap<Promise<TValue>>();
