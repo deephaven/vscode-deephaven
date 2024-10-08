@@ -18,7 +18,7 @@ import {
 import { URLMap } from './URLMap';
 import { Logger } from '../util';
 import {
-  createInteractiveConsoleDraftQuery,
+  createInteractiveConsoleQuery,
   deleteQueries,
   getWorkerCredentials,
   getWorkerInfoFromQuery,
@@ -204,10 +204,7 @@ export class DheService implements IDheService {
 
       const dhe = await this._dheJsApiCache.get(this.serverUrl);
 
-      const querySerial = await createInteractiveConsoleDraftQuery(
-        tagId,
-        dheClient
-      );
+      const querySerial = await createInteractiveConsoleQuery(tagId, dheClient);
       this._querySerialSet.add(querySerial);
 
       const workerInfo = await getWorkerInfoFromQuery(

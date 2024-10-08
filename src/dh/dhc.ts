@@ -52,6 +52,12 @@ export function getEmbedWidgetUrl({
   return url;
 }
 
+/**
+ * Initialize a connection and session to a DHC server.
+ * @param client The client to use for the connection.
+ * @param credentials The credentials to use for the connection.
+ * @returns A promise that resolves to the connection and session.
+ */
 export async function initDhcSession(
   client: DhType.CoreClient,
   credentials: DhType.LoginCredentials

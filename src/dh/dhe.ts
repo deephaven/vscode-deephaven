@@ -21,6 +21,12 @@ export type IDraftQuery = EditableQueryInfo & {
   draftOwner: string;
 };
 
+/**
+ * Create DHE client.
+ * @param dhe DHE JsApi
+ * @param serverUrl Server URL
+ * @returns A promise that resolves to the DHE client.
+ */
 export async function createDheClient(
   dhe: DheType,
   serverUrl: URL
@@ -38,6 +44,11 @@ export async function createDheClient(
   });
 }
 
+/**
+ * Get credentials for a Core+ worker associated with a given DHE client.
+ * @param client The DHE client.
+ * @returns A promise that resolves to the worker credentials.
+ */
 export async function getWorkerCredentials(
   client: EnterpriseClient
 ): Promise<DhcType.LoginCredentials> {
@@ -48,6 +59,11 @@ export async function getWorkerCredentials(
   };
 }
 
+/**
+ * Get the WebSocket URL for a DHE server URL.
+ * @param serverUrl The DHE server URL.
+ * @returns The WebSocket URL.
+ */
 export function getWsUrl(serverUrl: URL): URL {
   const url = new URL('/socket', serverUrl);
   if (url.protocol === 'http:') {
@@ -58,6 +74,11 @@ export function getWsUrl(serverUrl: URL): URL {
   return url;
 }
 
+/**
+ * Determine if the logged in user has permission to interact with the UI.
+ * @param dheClient The DHE client.
+ * @returns A promise that resolves to true if the user has permission to interact with the UI.
+ */
 export async function hasInteractivePermission(
   dheClient: EnterpriseClient
 ): Promise<boolean> {
@@ -75,6 +96,12 @@ export async function hasInteractivePermission(
   return isSuperUser || isInteractive;
 }
 
+/**
+ * Find the `QueryInfo` matching the given serial.
+ * @param dheClient DHE client to search.
+ * @param matchSerial Serial to match.
+ * @returns The matching `QueryInfo` or `undefined` if not found.
+ */
 export function findQueryConfigForSerial(
   dheClient: EnterpriseClient,
   matchSerial: string
@@ -84,7 +111,15 @@ export function findQueryConfigForSerial(
     .find(({ serial }) => serial === matchSerial);
 }
 
-export async function createInteractiveConsoleDraftQuery(
+/**
+ * Create a query of type `InteractiveConsole`.
+ * @param tagId Unique tag id to include in the query name.
+ * @param dheClient The DHE client to use to create the query.
+ * @returns A promise that resolves to the serial of the created query. Note
+ * that this will resolve before the query is actually ready to use. Use
+ * `getWorkerInfoFromQuery` to get the worker info when the query is ready.
+ */
+export async function createInteractiveConsoleQuery(
   tagId: UniqueID,
   dheClient: EnterpriseClient
 ): Promise<QuerySerial> {
@@ -137,6 +172,11 @@ export async function createInteractiveConsoleDraftQuery(
   return dheClient.createQuery(draftQuery) as Promise<QuerySerial>;
 }
 
+/**
+ * Delete queries by serial.
+ * @param dheClient DHE client to use.
+ * @param querySerials Serials of queries to delete.
+ */
 export async function deleteQueries(
   dheClient: EnterpriseClient,
   querySerials: QuerySerial[]
@@ -144,6 +184,14 @@ export async function deleteQueries(
   await dheClient.deleteQueries(querySerials);
 }
 
+/**
+ * Get worker info from a query serial.
+ * @param tagId Unique tag id to include in the worker info.
+ * @param dhe DHE JsApi instance.
+ * @param dheClient DHE client to use.
+ * @param querySerial Serial of the query to get worker info for.
+ * @returns A promise that resolves to the worker info when the worker is ready.
+ */
 export async function getWorkerInfoFromQuery(
   tagId: UniqueID,
   dhe: DheType,
