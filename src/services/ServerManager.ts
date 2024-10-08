@@ -31,7 +31,6 @@ import { URLMap } from './URLMap';
 import { URIMap } from './URIMap';
 import { DhService } from './DhService';
 import { AUTH_HANDLER_TYPE_PSK } from '../dh/dhc';
-import { URLCountMap } from './URLCountMap';
 
 const logger = new Logger('ServerManager');
 
@@ -43,7 +42,6 @@ export class ServerManager implements IServerManager {
     dheServiceCache: ICacheService<URL, IDheService>
   ) {
     this._configService = configService;
-    this._connectionCountMap = new URLCountMap();
     this._connectionMap = new URLMap<ConnectionState>();
     this._coreCredentialsCache = coreCredentialsCache;
     this._dhcServiceFactory = dhcServiceFactory;
@@ -59,7 +57,6 @@ export class ServerManager implements IServerManager {
   }
 
   private readonly _configService: IConfigService;
-  private readonly _connectionCountMap: URLCountMap;
   private readonly _connectionMap: URLMap<ConnectionState>;
   private readonly _coreCredentialsCache: URLMap<
     Lazy<DhcType.LoginCredentials>
@@ -136,22 +133,22 @@ export class ServerManager implements IServerManager {
   };
 
   connectToServer = async (serverUrl: URL): Promise<ConnectionState | null> => {
-    // DHE supports multiple connections, but DHC does not.
-    if (
-      !this._dheServiceCache.has(serverUrl) &&
-      this.connectionCount(serverUrl) > 0
-    ) {
-      logger.info('Already connected to server:', serverUrl);
-      return null;
-    }
-
-    this._connectionCountMap.increment(serverUrl);
-
     const serverState = this._serverMap.get(serverUrl);
 
     if (serverState == null) {
       return null;
     }
+
+    // DHE supports multiple connections, but DHC does not.
+    if (
+      !this._dheServiceCache.has(serverUrl) &&
+      serverState.connectionCount > 0
+    ) {
+      logger.info('Already connected to server:', serverUrl);
+      return null;
+    }
+
+    this.updateConnectionCount(serverUrl, 1);
 
     let tagId: UniqueID | undefined;
 
@@ -165,18 +162,21 @@ export class ServerManager implements IServerManager {
       await dheService.getClient(true);
 
       tagId = uniqueId();
-      const placeholderUrl = this.addPlaceholderConnection(serverUrl, tagId);
+      const placeholderUrl = this.addWorkerPlaceholderConnection(
+        serverUrl,
+        tagId
+      );
 
       let workerInfo: WorkerInfo;
       try {
         workerInfo = await dheService.createWorker(tagId);
       } catch (err) {
         logger.error(err);
-        this._connectionCountMap.decrement(serverUrl);
+        this.updateConnectionCount(serverUrl, -1);
         return null;
       }
 
-      this.removePlaceholderConnection(placeholderUrl);
+      this.removeWorkerPlaceholderConnection(placeholderUrl);
 
       // Map the worker URL to the server URL to make things easier to dispose
       // later.
@@ -202,7 +202,13 @@ export class ServerManager implements IServerManager {
     return this._connectionMap.get(serverUrl) ?? null;
   };
 
-  addPlaceholderConnection = (serverUrl: URL, tagId: UniqueID): URL => {
+  /**
+   * Add a placeholder connection to represent a pending DHE Core+ woker creation.
+   * @param serverUrl The DHE server URL the pending worker is associated with.
+   * @param tagId The tag ID of the worker.
+   * @returns The placeholder URL.
+   */
+  addWorkerPlaceholderConnection = (serverUrl: URL, tagId: UniqueID): URL => {
     // simple way to keep placeholder urls unique by just adding a tagId as the pathname
     const placeholderUrl = new URL(serverUrl);
     placeholderUrl.pathname = tagId;
@@ -220,10 +226,40 @@ export class ServerManager implements IServerManager {
     return placeholderUrl;
   };
 
-  removePlaceholderConnection = (placeholderUrl: URL): void => {
+  /**
+   * Remove a worker placeholder connection.
+   * @param placeholderUrl The placeholder URL to remove.
+   */
+  removeWorkerPlaceholderConnection = (placeholderUrl: URL): void => {
     this._placeholderConnectionUrls.delete(placeholderUrl.toString());
     this._connectionMap.delete(placeholderUrl);
     this._onDidUpdate.fire();
+  };
+
+  /**
+   * Increment or decrement the connection count for the given server URL.
+   * @param serverUrl
+   * @param incrementOrDecrement
+   * @returns The new connection count.
+   */
+  updateConnectionCount = (
+    serverUrl: URL,
+    incrementOrDecrement: 1 | -1
+  ): number => {
+    const serverState = this._serverMap.get(serverUrl);
+    if (serverState == null) {
+      return 0;
+    }
+
+    const connectionCount = serverState.connectionCount + incrementOrDecrement;
+
+    this._serverMap.set(serverUrl, {
+      ...serverState,
+      isConnected: connectionCount > 0 || this._dheServiceCache.has(serverUrl),
+      connectionCount,
+    });
+
+    return connectionCount;
   };
 
   disconnectEditor = (uri: vscode.Uri): void => {
@@ -243,11 +279,11 @@ export class ServerManager implements IServerManager {
     const dheServerUrl = this._workerURLToServerURLMap.get(serverOrWorkerUrl);
 
     if (dheServerUrl == null) {
-      this._connectionCountMap.decrement(serverOrWorkerUrl);
+      this.updateConnectionCount(serverOrWorkerUrl, -1);
     }
     // If this is a Core+ worker in a DHE server, delete the worker.
     else {
-      this._connectionCountMap.decrement(dheServerUrl);
+      this.updateConnectionCount(dheServerUrl, -1);
 
       const dheService = await this._dheServiceCache.get(dheServerUrl);
       await dheService.deleteWorker(serverOrWorkerUrl as WorkerURL);
@@ -268,14 +304,6 @@ export class ServerManager implements IServerManager {
 
     this._onDidDisconnect.fire(serverOrWorkerUrl);
     this._onDidUpdate.fire();
-  };
-
-  /**
-   * Get the count of active connections for the given serverUrl.
-   * @param serverUrl
-   */
-  connectionCount = (serverUrl: URL): number => {
-    return this._connectionCountMap.get(serverUrl);
   };
 
   /**
@@ -319,8 +347,7 @@ export class ServerManager implements IServerManager {
 
     const match = (server: ServerState): boolean =>
       (isRunning == null || server.isRunning === isRunning) &&
-      (hasConnections == null ||
-        this.connectionCount(server.url) > 0 === hasConnections);
+      (hasConnections == null || server.connectionCount > 0 === hasConnections);
 
     return servers.filter(match);
   };
@@ -458,7 +485,7 @@ export class ServerManager implements IServerManager {
         ? isDhcServerRunning(server.url)
         : isDheServerRunning(server.url));
 
-      if ((server.isRunning ?? false) !== isRunning) {
+      if (server.isRunning !== isRunning) {
         const newServerState = {
           ...server,
           isRunning,

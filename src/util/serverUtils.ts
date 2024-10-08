@@ -26,6 +26,9 @@ export function getInitialServerStates(
     type,
     label: config instanceof URL ? undefined : config.label,
     url: config instanceof URL ? config : config.url,
+    isConnected: false,
+    isRunning: false,
+    connectionCount: 0,
   }));
 }
 

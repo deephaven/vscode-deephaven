@@ -21,16 +21,7 @@ export class ServerTreeProvider extends TreeDataProviderBase<ServerNode> {
       return getServerGroupTreeItem(element, this.serverManager.canStartServer);
     }
 
-    const connectionCount = this.serverManager.connectionCount(element.url);
-    const isManaged = element.isManaged ?? false;
-    const isRunning = element.isRunning ?? false;
-
-    return getServerTreeItem({
-      server: element,
-      connectionCount,
-      isManaged,
-      isRunning,
-    });
+    return getServerTreeItem(element);
   };
 
   getChildren(elementOrRoot?: ServerNode): vscode.ProviderResult<ServerNode[]> {

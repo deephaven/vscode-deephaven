@@ -93,15 +93,18 @@ export function getPanelVariableTreeItem([url, variable]: [
 /**
  * Get `contextValue` for server tree items.
  * @param isConnected Whether the server is connected
+ * @param isDHE Whether the server is a DHE server
  * @param isManaged Whether the server is managed
  * @param isRunning Whether the server is running
  */
 export function getServerContextValue({
   isConnected,
+  isDHE,
   isManaged,
   isRunning,
 }: {
   isConnected: boolean;
+  isDHE: boolean;
   isManaged: boolean;
   isRunning: boolean;
 }): ServerTreeItemContextValue {
@@ -114,6 +117,10 @@ export function getServerContextValue({
   }
 
   if (isRunning) {
+    if (isDHE) {
+      return SERVER_TREE_ITEM_CONTEXT.isDHEServerRunning;
+    }
+
     return isConnected
       ? SERVER_TREE_ITEM_CONTEXT.isServerRunningConnected
       : SERVER_TREE_ITEM_CONTEXT.isServerRunningDisconnected;
@@ -218,21 +225,18 @@ export function getServerIconID({
  * @param isRunning Whether the server is running
  * @returns Tree item representing the server
  */
-export function getServerTreeItem({
-  server,
-  connectionCount,
-  isManaged,
-  isRunning,
-}: {
-  server: ServerState;
-  connectionCount: number;
-  isManaged: boolean;
-  isRunning: boolean;
-}): vscode.TreeItem {
-  const isConnected = connectionCount > 0;
+export function getServerTreeItem(server: ServerState): vscode.TreeItem {
+  const {
+    connectionCount,
+    isConnected,
+    isManaged = false,
+    isRunning,
+    type,
+  } = server;
 
   const contextValue = getServerContextValue({
     isConnected,
+    isDHE: type === 'DHE',
     isManaged,
     isRunning,
   });
@@ -247,7 +251,8 @@ export function getServerTreeItem({
 
   const canConnect =
     contextValue === SERVER_TREE_ITEM_CONTEXT.isManagedServerDisconnected ||
-    contextValue === SERVER_TREE_ITEM_CONTEXT.isServerRunningDisconnected;
+    contextValue === SERVER_TREE_ITEM_CONTEXT.isServerRunningDisconnected ||
+    contextValue === SERVER_TREE_ITEM_CONTEXT.isDHEServerRunning;
 
   return {
     label: new URL(urlStr).host,

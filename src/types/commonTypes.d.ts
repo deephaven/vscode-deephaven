@@ -82,7 +82,9 @@ export type ServerState = {
   type: ServerType;
   url: URL;
   label?: string;
-  isRunning?: boolean;
+  isConnected: boolean;
+  isRunning: boolean;
+  connectionCount: number;
 } & (UnmanagedServerState | ManagedServerState);
 
 export type VariableID = Brand<'VariableID'>;

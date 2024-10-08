@@ -113,7 +113,6 @@ export interface IServerManager extends Disposable {
   disconnectFromServer: (serverUrl: URL) => Promise<void>;
   loadServerConfig: () => Promise<void>;
 
-  connectionCount: (serverUrl: URL) => number;
   hasConnectionUris: (connection: ConnectionState) => boolean;
 
   getConnection: (serverUrl: URL) => ConnectionState | undefined;
