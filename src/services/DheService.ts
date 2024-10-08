@@ -111,13 +111,17 @@ export class DheService implements IDheService {
         REQUEST_DHE_USER_CREDENTIALS_CMD,
         this.serverUrl
       );
+
+      if (!this._dheCredentialsCache.has(this.serverUrl)) {
+        logger.error(
+          'Failed to get DHE credentials for server:',
+          this.serverUrl
+        );
+        return null;
+      }
     }
 
-    const dheCredentials = this._dheCredentialsCache.get(this.serverUrl);
-    if (dheCredentials == null) {
-      logger.error('Failed to get DHE credentials for server:', this.serverUrl);
-      return null;
-    }
+    const dheCredentials = this._dheCredentialsCache.get(this.serverUrl)!;
 
     try {
       await dheClient.login(dheCredentials);
