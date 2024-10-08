@@ -83,7 +83,7 @@ export class ConnectionController implements Disposable {
 
     this._serverManager.onDidServerStatusChange(
       server => {
-        // Auto connect to servers managed by extension when they start
+        // Auto connect to pip servers managed by extension when they start
         if (server.isManaged && server.isRunning) {
           this._serverManager.connectToServer(server.url, 'python');
         }
