@@ -53,7 +53,6 @@ export interface IDhService<TDH = unknown, TClient = unknown>
 }
 
 export interface IDheService extends ConnectionState, Disposable {
-  readonly workerCount: number;
   getClient: (initializeIfNull: boolean) => Promise<EnterpriseClient | null>;
   getWorkerInfo: (workerUrl: WorkerURL) => WorkerInfo | undefined;
   createWorker: (

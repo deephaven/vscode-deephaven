@@ -81,7 +81,6 @@ export class DheService implements IDheService {
 
   private _clientPromise: Promise<EnterpriseClient | null> | null = null;
   private _isConnected: boolean = false;
-  private _workerCount: number = 0;
   private readonly _coreCredentialsCache: URLMap<
     Lazy<DhcType.LoginCredentials>
   >;
@@ -98,13 +97,6 @@ export class DheService implements IDheService {
    */
   get isConnected(): boolean {
     return this._isConnected;
-  }
-
-  /**
-   * Number of workers created.
-   */
-  get workerCount(): number {
-    return this._workerCount;
   }
 
   /**
@@ -197,48 +189,41 @@ export class DheService implements IDheService {
     tagId: UniqueID,
     consoleType?: ConsoleType
   ): Promise<WorkerInfo> => {
-    this._workerCount += 1;
-
-    try {
-      const dheClient = await this.getClient(true);
-      if (dheClient == null) {
-        const msg =
-          'Failed to create worker because DHE client failed to initialize.';
-        logger.error(msg);
-        throw new Error(msg);
-      }
-
-      const dhe = await this._dheJsApiCache.get(this.serverUrl);
-
-      const querySerial = await createInteractiveConsoleQuery(
-        tagId,
-        dheClient,
-        consoleType
-      );
-      this._querySerialSet.add(querySerial);
-
-      const workerInfo = await getWorkerInfoFromQuery(
-        tagId,
-        dhe,
-        dheClient,
-        querySerial
-      );
-      if (workerInfo == null) {
-        throw new Error('Failed to create worker.');
-      }
-
-      const workerUrl = new URL(workerInfo.grpcUrl);
-      this._coreCredentialsCache.set(workerUrl, () =>
-        getWorkerCredentials(dheClient)
-      );
-
-      this._workerInfoMap.set(workerInfo.grpcUrl, workerInfo);
-
-      return workerInfo;
-    } catch (err) {
-      this._workerCount -= 1;
-      throw err;
+    const dheClient = await this.getClient(true);
+    if (dheClient == null) {
+      const msg =
+        'Failed to create worker because DHE client failed to initialize.';
+      logger.error(msg);
+      throw new Error(msg);
     }
+
+    const dhe = await this._dheJsApiCache.get(this.serverUrl);
+
+    const querySerial = await createInteractiveConsoleQuery(
+      tagId,
+      dheClient,
+      consoleType
+    );
+    this._querySerialSet.add(querySerial);
+
+    const workerInfo = await getWorkerInfoFromQuery(
+      tagId,
+      dhe,
+      dheClient,
+      querySerial
+    );
+    if (workerInfo == null) {
+      throw new Error('Failed to create worker.');
+    }
+
+    const workerUrl = new URL(workerInfo.grpcUrl);
+    this._coreCredentialsCache.set(workerUrl, () =>
+      getWorkerCredentials(dheClient)
+    );
+
+    this._workerInfoMap.set(workerInfo.grpcUrl, workerInfo);
+
+    return workerInfo;
   };
 
   /**
@@ -246,8 +231,6 @@ export class DheService implements IDheService {
    * @param workerUrl Worker URL to delete.
    */
   deleteWorker = async (workerUrl: WorkerURL): Promise<void> => {
-    this._workerCount -= 1;
-
     const workerInfo = this._workerInfoMap.get(workerUrl);
     if (workerInfo == null) {
       return;

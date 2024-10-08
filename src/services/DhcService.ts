@@ -57,6 +57,8 @@ export class DhcService extends DhService<typeof DhcType, DhcType.CoreClient> {
       } else if (authConfig.has(AUTH_HANDLER_TYPE_PSK)) {
         this.coreCredentialsCache.set(this.serverUrl, async () => ({
           type: AUTH_HANDLER_TYPE_PSK,
+          // TODO: Login flow UI should be a separate concern
+          // deephaven/vscode-deephaven/issues/151
           token: await vscode.window.showInputBox({
             placeHolder: 'Pre-Shared Key',
             prompt: 'Enter your Deephaven pre-shared key',

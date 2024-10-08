@@ -175,6 +175,8 @@ export async function createInteractiveConsoleQuery(
     draftQuery.updateSchedule();
   }
 
+  // type assertion gives us stronger type safety than the Promise<string>
+  // return type defined by the JS API types.
   return dheClient.createQuery(draftQuery) as Promise<QuerySerial>;
 }
 
