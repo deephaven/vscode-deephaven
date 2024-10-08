@@ -9,5 +9,4 @@ export * from './PollingService';
 export * from './SerializedKeyMap';
 export * from './ServerManager';
 export * from './URIMap';
-export * from './URLCountMap';
 export * from './URLMap';
