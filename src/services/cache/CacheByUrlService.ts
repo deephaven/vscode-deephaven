@@ -22,6 +22,8 @@ export class CacheByUrlService<TValue> implements ICacheService<URL, TValue> {
     return this._promiseMap.get(url)!;
   };
 
+  has = (url: URL): boolean => this._promiseMap.has(url);
+
   invalidate = (url: URL): void => {
     this._promiseMap.delete(url);
   };
