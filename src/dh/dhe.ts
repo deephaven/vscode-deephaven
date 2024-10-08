@@ -162,9 +162,10 @@ export async function createInteractiveConsoleQuery(
     type,
     owner,
     dbServerName,
-    heapSize: heapSize && 0.5, // TODO: set this to default
+    heapSize: heapSize,
     scheduling,
-    jvmArgs: '-Dhttp.websockets=true', // TODO: Probably need to connect securely
+    // TODO: deephaven/vscode-deephaven/issues/153 to update this to secure websocket connection
+    jvmArgs: '-Dhttp.websockets=true',
     jvmProfile,
     scriptLanguage,
     workerKind,
