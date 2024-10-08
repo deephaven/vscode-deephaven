@@ -271,7 +271,6 @@ export class ServerManager implements IServerManager {
     // Delete map entries
     this._placeholderURLToServerURLMap.delete(serverOrWorkerUrl);
     this._workerURLToServerURLMap.delete(serverOrWorkerUrl);
-    this._connectionMap.delete(serverOrWorkerUrl);
 
     // Decrement server connection count
     this.updateConnectionCount(
@@ -289,6 +288,8 @@ export class ServerManager implements IServerManager {
     if (connection == null) {
       return;
     }
+
+    this._connectionMap.delete(serverOrWorkerUrl);
 
     // Remove any editor URIs associated with this connection
     this._uriConnectionsMap.forEach((connectionState, uri) => {
