@@ -2,14 +2,14 @@ import type {
   EnterpriseDhType as DheType,
   EnterpriseClient,
 } from '@deephaven-enterprise/jsapi-types';
-import { UrlKeyCache } from './UrlKeyCache';
+import { UrlPromiseMapCache } from './UrlPromiseMapCache';
 import { createDheClient, getWsUrl } from '../../dh/dhe';
 import type { ICacheService } from '../../types';
 
 /**
  * Cache DHE client instances by URL.
  */
-export class DheClientCache extends UrlKeyCache<EnterpriseClient> {
+export class DheClientCache extends UrlPromiseMapCache<EnterpriseClient> {
   constructor(dheJsApiCache: ICacheService<URL, DheType>) {
     super(async (url: URL) => {
       const dhe = await dheJsApiCache.get(url);
