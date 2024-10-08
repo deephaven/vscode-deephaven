@@ -148,12 +148,12 @@ export class ServerManager implements IServerManager {
       return null;
     }
 
-    this.updateConnectionCount(serverUrl, 1);
-
     let tagId: UniqueID | undefined;
 
     // Pip managed local server
     if (serverState.isManaged) {
+      this.updateConnectionCount(serverUrl, 1);
+
       this._coreCredentialsCache.set(serverUrl, async () => ({
         type: AUTH_HANDLER_TYPE_PSK,
         token: serverState.psk,
@@ -162,8 +162,11 @@ export class ServerManager implements IServerManager {
       const dheService = await this._dheServiceCache.get(serverUrl);
 
       // Initial login flow if not already connected
-      await dheService.getClient(true);
+      if (!(await dheService.getClient(true))) {
+        return null;
+      }
 
+      this.updateConnectionCount(serverUrl, 1);
       tagId = uniqueId();
 
       // Put a placeholder connection in place until the worker is ready.
@@ -180,6 +183,7 @@ export class ServerManager implements IServerManager {
         // dispose of the worker
         if (!this._connectionMap.has(placeholderUrl)) {
           dheService.deleteWorker(workerInfo.grpcUrl);
+          this._onDidUpdate.fire();
           // throw new Error('Worker creation cancelled.');
           return null;
         }
@@ -231,7 +235,7 @@ export class ServerManager implements IServerManager {
 
     this._connectionMap.set(placeholderUrl, {
       isConnected: false,
-      serverUrl,
+      serverUrl: placeholderUrl,
       tagId,
     });
 
@@ -258,12 +262,6 @@ export class ServerManager implements IServerManager {
   disconnectFromServer = async (
     serverOrWorkerUrl: URL | WorkerURL
   ): Promise<void> => {
-    const connection = this._connectionMap.get(serverOrWorkerUrl);
-
-    if (connection == null) {
-      return;
-    }
-
     const serverUrlFromPlaceholder =
       this._placeholderURLToServerURLMap.get(serverOrWorkerUrl);
 
@@ -285,6 +283,11 @@ export class ServerManager implements IServerManager {
     if (serverUrlFromWorker) {
       const dheService = await this._dheServiceCache.get(serverUrlFromWorker);
       await dheService.deleteWorker(serverOrWorkerUrl as WorkerURL);
+    }
+
+    const connection = this._connectionMap.get(serverOrWorkerUrl);
+    if (connection == null) {
+      return;
     }
 
     // Remove any editor URIs associated with this connection

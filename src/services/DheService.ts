@@ -179,6 +179,10 @@ export class DheService implements IDheService {
     const dheClient = await this._clientPromise;
     this._isConnected = Boolean(dheClient);
 
+    if (dheClient == null) {
+      this._clientPromise = null;
+    }
+
     return dheClient;
   };
 

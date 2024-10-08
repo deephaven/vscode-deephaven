@@ -35,13 +35,17 @@ export class UserLoginController extends ControllerBase {
       prompt: 'Enter your Deephaven username',
     });
 
+    if (username == null) {
+      return;
+    }
+
     const token = await vscode.window.showInputBox({
       placeHolder: 'Password',
       prompt: 'Enter your Deephaven password',
       password: true,
     });
 
-    if (username == null || token == null) {
+    if (token == null) {
       return;
     }
 
