@@ -253,9 +253,15 @@ export class ConnectionController implements Disposable {
       await updateStatusPromise;
     }
 
-    const runningServersWithoutConnections = this._serverManager.getServers({
+    const runningDHCServersWithoutConnections = this._serverManager.getServers({
       isRunning: true,
       hasConnections: false,
+      type: 'DHC',
+    });
+
+    const runningDHEServers = this._serverManager.getServers({
+      isRunning: true,
+      type: 'DHE',
     });
 
     const connectionsForConsoleType: ConnectionState[] =
@@ -273,7 +279,7 @@ export class ConnectionController implements Disposable {
     try {
       selectedCnResult = await createConnectionQuickPick(
         createConnectionQuickPickOptions(
-          runningServersWithoutConnections,
+          [...runningDHCServersWithoutConnections, ...runningDHEServers],
           connectionsForConsoleType,
           editor.document.languageId,
           editorActiveConnectionUrl

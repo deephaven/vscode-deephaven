@@ -137,6 +137,7 @@ export interface IServerManager extends Disposable {
   getServers: (filter?: {
     isRunning?: boolean;
     hasConnections?: boolean;
+    type?: 'DHC' | 'DHE';
   }) => ServerState[];
   getUriConnection: (uri: vscode.Uri) => ConnectionState | null;
   hasEverUpdatedStatus: () => boolean;

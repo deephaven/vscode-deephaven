@@ -334,15 +334,19 @@ export class ServerManager implements IServerManager {
   getServers = ({
     isRunning,
     hasConnections,
+    type,
   }: {
     isRunning?: boolean;
     hasConnections?: boolean;
+    type?: 'DHC' | 'DHE';
   } = {}): ServerState[] => {
     const servers = [...this._serverMap.values()];
 
     const match = (server: ServerState): boolean =>
       (isRunning == null || server.isRunning === isRunning) &&
-      (hasConnections == null || server.connectionCount > 0 === hasConnections);
+      (hasConnections == null ||
+        server.connectionCount > 0 === hasConnections) &&
+      (type == null || server.type === type);
 
     return servers.filter(match);
   };
