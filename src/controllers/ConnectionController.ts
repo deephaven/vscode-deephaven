@@ -14,6 +14,7 @@ import {
   createConnectionQuickPickOptions,
   createConnectStatusBarItem,
   getConnectionsForConsoleType,
+  getConsoleType,
   getEditorForUri,
   isSupportedLanguageId,
   Logger,
@@ -132,7 +133,7 @@ export class ConnectionController implements Disposable {
     if ('url' in connectionOrServer) {
       const cn = await this._serverManager.connectToServer(
         connectionOrServer.url,
-        editor.document.languageId as ConsoleType
+        getConsoleType(editor.document.languageId)
       );
 
       if (cn == null) {

@@ -23,7 +23,7 @@ import {
 } from '../common';
 import {
   assertDefined,
-  getConsoleTypeOrDefault,
+  getConsoleType,
   getEditorForUri,
   getTempDir,
   isInstanceOf,
@@ -528,9 +528,7 @@ export class ExtensionController implements Disposable {
     // Use the active editor's language id to determine the console type or
     // fallback to 'python'.
     const workerConsoleType =
-      serverState.type === 'DHE'
-        ? getConsoleTypeOrDefault(languageId)
-        : undefined;
+      serverState.type === 'DHE' ? getConsoleType(languageId) : undefined;
 
     this._serverManager?.connectToServer(serverState.url, workerConsoleType);
   };
