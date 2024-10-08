@@ -229,7 +229,12 @@ export class ConnectionController implements Disposable {
   };
 
   /**
-   * Prompt user to select a connection and apply the selection.
+   * Prompt user to select a connection and apply the selection. The options
+   * presented to the user consist of:
+   * 1. Active connections that support the console type of the active editor.
+   * 2. A list of running servers that consists of:
+   *   - DHC servers that don't yet have a connection, and
+   *   - All running DHE servers
    */
   onPromptUserToSelectConnection = async (): Promise<boolean> => {
     assertDefined(vscode.window.activeTextEditor, 'activeTextEditor');
