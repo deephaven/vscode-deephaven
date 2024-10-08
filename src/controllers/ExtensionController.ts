@@ -525,8 +525,7 @@ export class ExtensionController implements Disposable {
     const languageId = vscode.window.activeTextEditor?.document.languageId;
 
     // DHE servers need to specify the console type for each worker creation.
-    // Use the active editor's language id to determine the console type or
-    // fallback to 'python'.
+    // Use the active editor's language id to determine the console type.
     const workerConsoleType =
       serverState.type === 'DHE' ? getConsoleType(languageId) : undefined;
 
