@@ -188,7 +188,7 @@ export class ExtensionController implements Disposable {
    * Initialize panel controller.
    */
   initializePanelController = (): void => {
-    assertDefined(this._coreCredentialsCache, 'credentialsCache');
+    assertDefined(this._coreCredentialsCache, 'coreCredentialsCache');
     assertDefined(this._panelService, 'panelService');
     assertDefined(this._serverManager, 'serverManager');
 
