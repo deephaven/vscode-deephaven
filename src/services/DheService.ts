@@ -115,7 +115,7 @@ export class DheService implements IDheService {
       if (!this._dheCredentialsCache.has(this.serverUrl)) {
         logger.error(
           'Failed to get DHE credentials for server:',
-          this.serverUrl
+          this.serverUrl.toString()
         );
         return null;
       }
