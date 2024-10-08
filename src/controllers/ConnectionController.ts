@@ -253,12 +253,16 @@ export class ConnectionController implements Disposable {
       await updateStatusPromise;
     }
 
+    // Only include DHC servers that don't have any connections yet since their
+    // single connection will be included in the `connectionsForConsoleType` list.
     const runningDHCServersWithoutConnections = this._serverManager.getServers({
       isRunning: true,
       hasConnections: false,
       type: 'DHC',
     });
 
+    // Since DHE servers allow creating multiple workers, always include the
+    // server in the list regardless of how many worker connections already exist.
     const runningDHEServers = this._serverManager.getServers({
       isRunning: true,
       type: 'DHE',
