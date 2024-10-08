@@ -46,7 +46,7 @@ export class ServerManager implements IServerManager {
     this._coreCredentialsCache = coreCredentialsCache;
     this._dhcServiceFactory = dhcServiceFactory;
     this._dheServiceCache = dheServiceCache;
-    this._placeholderConnectionUrls = new Set();
+    this._placeholderURLToServerURLMap = new URLMap<URL>();
     this._serverMap = new URLMap<ServerState>();
     this._uriConnectionsMap = new URIMap<ConnectionState>();
     this._workerURLToServerURLMap = new URLMap<URL>();
@@ -63,7 +63,7 @@ export class ServerManager implements IServerManager {
   >;
   private readonly _dhcServiceFactory: IDhServiceFactory;
   private readonly _dheServiceCache: ICacheService<URL, IDheService>;
-  private readonly _placeholderConnectionUrls: Set<string>;
+  private readonly _placeholderURLToServerURLMap: URLMap<URL>;
   private readonly _uriConnectionsMap: URIMap<ConnectionState>;
   private readonly _workerURLToServerURLMap: URLMap<URL>;
   private _serverMap: URLMap<ServerState>;
@@ -152,6 +152,7 @@ export class ServerManager implements IServerManager {
 
     let tagId: UniqueID | undefined;
 
+    // Pip managed local server
     if (serverState.isManaged) {
       this._coreCredentialsCache.set(serverUrl, async () => ({
         type: AUTH_HANDLER_TYPE_PSK,
@@ -159,9 +160,13 @@ export class ServerManager implements IServerManager {
       }));
     } else if (serverState.type === 'DHE') {
       const dheService = await this._dheServiceCache.get(serverUrl);
+
+      // Initial login flow if not already connected
       await dheService.getClient(true);
 
       tagId = uniqueId();
+
+      // Put a placeholder connection in place until the worker is ready.
       const placeholderUrl = this.addWorkerPlaceholderConnection(
         serverUrl,
         tagId
@@ -170,12 +175,21 @@ export class ServerManager implements IServerManager {
       let workerInfo: WorkerInfo;
       try {
         workerInfo = await dheService.createWorker(tagId);
+
+        // If connection was closed by user before worker finished creating,
+        // dispose of the worker
+        if (!this._connectionMap.has(placeholderUrl)) {
+          dheService.deleteWorker(workerInfo.grpcUrl);
+          // throw new Error('Worker creation cancelled.');
+          return null;
+        }
       } catch (err) {
         logger.error(err);
         this.updateConnectionCount(serverUrl, -1);
         return null;
       }
 
+      // Remove placeholder connection
       this.removeWorkerPlaceholderConnection(placeholderUrl);
 
       // Map the worker URL to the server URL to make things easier to dispose
@@ -213,7 +227,7 @@ export class ServerManager implements IServerManager {
     const placeholderUrl = new URL(serverUrl);
     placeholderUrl.pathname = tagId;
 
-    this._placeholderConnectionUrls.add(placeholderUrl.toString());
+    this._placeholderURLToServerURLMap.set(placeholderUrl, serverUrl);
 
     this._connectionMap.set(placeholderUrl, {
       isConnected: false,
@@ -231,35 +245,9 @@ export class ServerManager implements IServerManager {
    * @param placeholderUrl The placeholder URL to remove.
    */
   removeWorkerPlaceholderConnection = (placeholderUrl: URL): void => {
-    this._placeholderConnectionUrls.delete(placeholderUrl.toString());
+    this._placeholderURLToServerURLMap.delete(placeholderUrl);
     this._connectionMap.delete(placeholderUrl);
     this._onDidUpdate.fire();
-  };
-
-  /**
-   * Increment or decrement the connection count for the given server URL.
-   * @param serverUrl
-   * @param incrementOrDecrement
-   * @returns The new connection count.
-   */
-  updateConnectionCount = (
-    serverUrl: URL,
-    incrementOrDecrement: 1 | -1
-  ): number => {
-    const serverState = this._serverMap.get(serverUrl);
-    if (serverState == null) {
-      return 0;
-    }
-
-    const connectionCount = serverState.connectionCount + incrementOrDecrement;
-
-    this._serverMap.set(serverUrl, {
-      ...serverState,
-      isConnected: connectionCount > 0 || this._dheServiceCache.has(serverUrl),
-      connectionCount,
-    });
-
-    return connectionCount;
   };
 
   disconnectEditor = (uri: vscode.Uri): void => {
@@ -276,20 +264,28 @@ export class ServerManager implements IServerManager {
       return;
     }
 
-    const dheServerUrl = this._workerURLToServerURLMap.get(serverOrWorkerUrl);
+    const serverUrlFromPlaceholder =
+      this._placeholderURLToServerURLMap.get(serverOrWorkerUrl);
 
-    if (dheServerUrl == null) {
-      this.updateConnectionCount(serverOrWorkerUrl, -1);
-    }
+    const serverUrlFromWorker =
+      this._workerURLToServerURLMap.get(serverOrWorkerUrl);
+
+    // Delete map entries
+    this._placeholderURLToServerURLMap.delete(serverOrWorkerUrl);
+    this._workerURLToServerURLMap.delete(serverOrWorkerUrl);
+    this._connectionMap.delete(serverOrWorkerUrl);
+
+    // Decrement server connection count
+    this.updateConnectionCount(
+      serverUrlFromPlaceholder ?? serverUrlFromWorker ?? serverOrWorkerUrl,
+      -1
+    );
+
     // If this is a Core+ worker in a DHE server, delete the worker.
-    else {
-      this.updateConnectionCount(dheServerUrl, -1);
-
-      const dheService = await this._dheServiceCache.get(dheServerUrl);
+    if (serverUrlFromWorker) {
+      const dheService = await this._dheServiceCache.get(serverUrlFromWorker);
       await dheService.deleteWorker(serverOrWorkerUrl as WorkerURL);
     }
-
-    this._connectionMap.delete(serverOrWorkerUrl);
 
     // Remove any editor URIs associated with this connection
     this._uriConnectionsMap.forEach((connectionState, uri) => {
@@ -464,6 +460,34 @@ export class ServerManager implements IServerManager {
     }
 
     this._onDidUpdate.fire();
+  };
+
+  /**
+   * Increment or decrement the connection count for the given server URL.
+   * @param serverUrl
+   * @param incrementOrDecrement
+   * @returns The new connection count.
+   */
+  updateConnectionCount = (
+    serverUrl: URL,
+    incrementOrDecrement: 1 | -1
+  ): number => {
+    const serverState = this._serverMap.get(serverUrl);
+    if (serverState == null) {
+      return 0;
+    }
+
+    const connectionCount = serverState.connectionCount + incrementOrDecrement;
+
+    this._serverMap.set(serverUrl, {
+      ...serverState,
+      isConnected: connectionCount > 0 || this._dheServiceCache.has(serverUrl),
+      connectionCount,
+    });
+
+    this._onDidUpdate.fire();
+
+    return connectionCount;
   };
 
   /**

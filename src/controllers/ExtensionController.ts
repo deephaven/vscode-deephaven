@@ -50,6 +50,7 @@ import {
   URLMap,
 } from '../services';
 import type {
+  ConnectionState,
   Disposable,
   ICacheService,
   IConfigService,
@@ -552,8 +553,10 @@ export class ExtensionController implements Disposable {
   /**
    * Handle disconnecting from a server.
    */
-  onDisconnectFromServer = async (dhService: IDhService): Promise<void> => {
-    this._serverManager?.disconnectFromServer(dhService.serverUrl);
+  onDisconnectFromServer = async (
+    connectionState: ConnectionState
+  ): Promise<void> => {
+    this._serverManager?.disconnectFromServer(connectionState.serverUrl);
   };
 
   /**
