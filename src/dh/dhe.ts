@@ -11,6 +11,7 @@ import type {
   IdeURL,
   QuerySerial,
   UniqueID,
+  WorkerConfig,
   WorkerInfo,
   WorkerURL,
 } from '../types';
@@ -116,6 +117,7 @@ export function findQueryConfigForSerial(
  * Create a query of type `InteractiveConsole`.
  * @param tagId Unique tag id to include in the query name.
  * @param dheClient The DHE client to use to create the query.
+ * @param workerConfig Worker configuration overrides.
  * @param consoleType The type of console to create.
  * @returns A promise that resolves to the serial of the created query. Note
  * that this will resolve before the query is actually ready to use. Use
@@ -124,6 +126,7 @@ export function findQueryConfigForSerial(
 export async function createInteractiveConsoleQuery(
   tagId: UniqueID,
   dheClient: EnterpriseClient,
+  workerConfig: WorkerConfig = {},
   consoleType?: ConsoleType
 ): Promise<QuerySerial> {
   const userInfo = await dheClient.getUserInfo();
@@ -137,13 +140,22 @@ export async function createInteractiveConsoleQuery(
   ]);
 
   const name = `IC - VS Code - ${tagId}`;
-  const dbServerName = dbServers[0]?.name ?? 'Query 1';
-  const heapSize = queryConstants.pqDefaultHeap;
-  const jvmProfile = serverConfigValues.jvmProfileDefault;
+  const dbServerName =
+    workerConfig?.dbServerName ?? dbServers[0]?.name ?? 'Query 1';
+  const heapSize = workerConfig?.heapSize ?? queryConstants.pqDefaultHeap;
+  // TODO: deephaven/vscode-deephaven/issues/153 to update this to secure websocket
+  // connection and remove the http.websockets property
+  const jvmArgs = workerConfig?.jvmArgs
+    ? `'-Dhttp.websockets=true' ${workerConfig.jvmArgs}`
+    : '-Dhttp.websockets=true';
+  const jvmProfile =
+    workerConfig?.jvmProfile ?? serverConfigValues.jvmProfileDefault;
   const scriptLanguage =
+    workerConfig?.scriptLanguage ??
     serverConfigValues.scriptSessionProviders?.find(
       p => p.toLocaleLowerCase() === consoleType
-    ) ?? 'Python';
+    ) ??
+    'Python';
   const workerKind = serverConfigValues.workerKinds?.[0]?.name;
 
   const timeZone =
@@ -164,8 +176,7 @@ export async function createInteractiveConsoleQuery(
     dbServerName,
     heapSize: heapSize,
     scheduling,
-    // TODO: deephaven/vscode-deephaven/issues/153 to update this to secure websocket connection
-    jvmArgs: '-Dhttp.websockets=true',
+    jvmArgs,
     jvmProfile,
     scriptLanguage,
     workerKind,

@@ -86,7 +86,48 @@
           "description": "List of Deephaven Enterprise servers that the extension can connect to.",
           "type": "array",
           "items": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "Deephaven Enterprise server URL"
+              },
+              {
+                "type": "object",
+                "description": "Deephaven Enterprise server config",
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "description": "Deephaven Enterprise server URL"
+                  },
+                  "label": {
+                    "type": "string",
+                    "title": "Label",
+                    "description": "Optional label for the server"
+                  },
+                  "experimentalWorkerConfig": {
+                    "type": "object",
+                    "description": "(experimental) Worker configuration used when creating new connections to the server",
+                    "properties": {
+                      "dbServerName": {
+                        "type": "string"
+                      },
+                      "heapSize": {
+                        "type": "number"
+                      },
+                      "jvmArgs": {
+                        "type": "string"
+                      },
+                      "jvmProfile": {
+                        "type": "string"
+                      },
+                      "scriptLanguage": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
           },
           "default": []
         }
