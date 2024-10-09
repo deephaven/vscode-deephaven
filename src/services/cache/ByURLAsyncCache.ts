@@ -1,11 +1,13 @@
-import type { ICacheService } from '../../types';
+import type { IAsyncCacheService } from '../../types';
 import { isDisposable } from '../../util';
 import { URLMap } from '../URLMap';
 
 /**
  * Cache service that stores values by URL.
  */
-export class URLPromiseMapCache<TValue> implements ICacheService<URL, TValue> {
+export class ByURLAsyncCache<TValue>
+  implements IAsyncCacheService<URL, TValue>
+{
   constructor(loader: (url: URL) => Promise<TValue>) {
     this._loader = loader;
     this._promiseMap = new URLMap<Promise<TValue>>();

@@ -15,7 +15,7 @@ import type {
   ServerState,
   WorkerInfo,
   IDheService,
-  ICacheService,
+  IAsyncCacheService,
   WorkerURL,
   Lazy,
   UniqueID,
@@ -39,7 +39,7 @@ export class ServerManager implements IServerManager {
     configService: IConfigService,
     coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
     dhcServiceFactory: IDhServiceFactory,
-    dheServiceCache: ICacheService<URL, IDheService>
+    dheServiceCache: IAsyncCacheService<URL, IDheService>
   ) {
     this._configService = configService;
     this._connectionMap = new URLMap<ConnectionState>();
@@ -61,7 +61,7 @@ export class ServerManager implements IServerManager {
     Lazy<DhcType.LoginCredentials>
   >;
   private readonly _dhcServiceFactory: IDhServiceFactory;
-  private readonly _dheServiceCache: ICacheService<URL, IDheService>;
+  private readonly _dheServiceCache: IAsyncCacheService<URL, IDheService>;
   private readonly _uriConnectionsMap: URIMap<ConnectionState>;
   private readonly _workerURLToServerURLMap: URLMap<URL>;
   private _serverMap: URLMap<ServerState>;

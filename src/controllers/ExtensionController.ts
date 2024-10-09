@@ -53,7 +53,7 @@ import {
 import type {
   ConnectionState,
   Disposable,
-  ICacheService,
+  IAsyncCacheService,
   IConfigService,
   IDheService,
   IDheServiceFactory,
@@ -110,14 +110,15 @@ export class ExtensionController implements Disposable {
   private _connectionController: ConnectionController | null = null;
   private _coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>> | null =
     null;
-  private _dheClientCache: ICacheService<URL, EnterpriseClient> | null = null;
+  private _dheClientCache: IAsyncCacheService<URL, EnterpriseClient> | null =
+    null;
   private _dheCredentialsCache: URLMap<DheLoginCredentials> | null = null;
-  private _dheServiceCache: ICacheService<URL, IDheService> | null = null;
+  private _dheServiceCache: IAsyncCacheService<URL, IDheService> | null = null;
   private _panelController: PanelController | null = null;
   private _panelService: IPanelService | null = null;
   private _pipServerController: PipServerController | null = null;
   private _dhcServiceFactory: IDhServiceFactory | null = null;
-  private _dheJsApiCache: ICacheService<URL, DheType> | null = null;
+  private _dheJsApiCache: IAsyncCacheService<URL, DheType> | null = null;
   private _dheServiceFactory: IDheServiceFactory | null = null;
   private _serverManager: IServerManager | null = null;
   private _userLoginController: UserLoginController | null = null;

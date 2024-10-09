@@ -8,7 +8,7 @@ import type {
 import {
   WorkerURL,
   type ConsoleType,
-  type ICacheService,
+  type IAsyncCacheService,
   type IDheService,
   type IDheServiceFactory,
   type Lazy,
@@ -43,9 +43,9 @@ export class DheService implements IDheService {
    */
   static factory = (
     coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
-    dheClientCache: ICacheService<URL, EnterpriseClient>,
+    dheClientCache: IAsyncCacheService<URL, EnterpriseClient>,
     dheCredentialsCache: URLMap<DheLoginCredentials>,
-    dheJsApiCache: ICacheService<URL, DheType>
+    dheJsApiCache: IAsyncCacheService<URL, DheType>
   ): IDheServiceFactory => {
     return {
       create: (serverUrl: URL): IDheService =>
@@ -66,9 +66,9 @@ export class DheService implements IDheService {
   private constructor(
     serverUrl: URL,
     coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
-    dheClientCache: ICacheService<URL, EnterpriseClient>,
+    dheClientCache: IAsyncCacheService<URL, EnterpriseClient>,
     dheCredentialsCache: URLMap<DheLoginCredentials>,
-    dheJsApiCache: ICacheService<URL, DheType>
+    dheJsApiCache: IAsyncCacheService<URL, DheType>
   ) {
     this.serverUrl = serverUrl;
     this._coreCredentialsCache = coreCredentialsCache;
@@ -84,9 +84,9 @@ export class DheService implements IDheService {
   private readonly _coreCredentialsCache: URLMap<
     Lazy<DhcType.LoginCredentials>
   >;
-  private readonly _dheClientCache: ICacheService<URL, EnterpriseClient>;
+  private readonly _dheClientCache: IAsyncCacheService<URL, EnterpriseClient>;
   private readonly _dheCredentialsCache: URLMap<DheLoginCredentials>;
-  private readonly _dheJsApiCache: ICacheService<URL, DheType>;
+  private readonly _dheJsApiCache: IAsyncCacheService<URL, DheType>;
   private readonly _querySerialSet: Set<QuerySerial>;
   private readonly _workerInfoMap: URLMap<WorkerInfo, WorkerURL>;
 

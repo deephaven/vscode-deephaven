@@ -1,12 +1,12 @@
 import { initDheApi } from '@deephaven/require-jsapi';
 import type { EnterpriseDhType as DheType } from '@deephaven-enterprise/jsapi-types';
 import { getTempDir, urlToDirectoryName } from '../../util';
-import { URLPromiseMapCache } from './URLPromiseMapCache';
+import { ByURLAsyncCache } from './ByURLAsyncCache';
 
 /**
  * Cache DHE jsapi instances by URL.
  */
-export class DheJsApiCache extends URLPromiseMapCache<DheType> {
+export class DheJsApiCache extends ByURLAsyncCache<DheType> {
   constructor() {
     super(async url =>
       initDheApi(url, getTempDir({ subDirectory: urlToDirectoryName(url) }))

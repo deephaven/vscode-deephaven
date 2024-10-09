@@ -17,7 +17,7 @@ import type {
   UniqueID,
 } from '../types/commonTypes';
 
-export interface ICacheService<TKey, TValue> extends Disposable {
+export interface IAsyncCacheService<TKey, TValue> extends Disposable {
   get: (key: TKey) => Promise<TValue>;
   has: (key: TKey) => boolean;
   invalidate: (key: TKey) => void;
