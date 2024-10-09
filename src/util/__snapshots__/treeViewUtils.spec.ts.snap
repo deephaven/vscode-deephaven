@@ -405,7 +405,7 @@ exports[`getServerIconID > should return icon id based on server state: isConnec
 
 exports[`getServerIconID > should return icon id based on server state: isConnected=true, isManaged=true, isRunning=true 1`] = `"circle-large-filled"`;
 
-exports[`getServerTreeItem > should return DHC server tree item: type=DHC, isConnected=false, isManaged=false, isRunning=false 1`] = `
+exports[`getServerTreeItem > should return server tree item: type=DHC, isConnected=false, isManaged=false, isRunning=false 1`] = `
 {
   "command": undefined,
   "contextValue": "isServerStopped",
@@ -419,7 +419,7 @@ exports[`getServerTreeItem > should return DHC server tree item: type=DHC, isCon
 }
 `;
 
-exports[`getServerTreeItem > should return DHC server tree item: type=DHC, isConnected=false, isManaged=false, isRunning=true 1`] = `
+exports[`getServerTreeItem > should return server tree item: type=DHC, isConnected=false, isManaged=false, isRunning=true 1`] = `
 {
   "command": {
     "arguments": [
@@ -446,7 +446,7 @@ exports[`getServerTreeItem > should return DHC server tree item: type=DHC, isCon
 }
 `;
 
-exports[`getServerTreeItem > should return DHC server tree item: type=DHC, isConnected=false, isManaged=true, isRunning=false 1`] = `
+exports[`getServerTreeItem > should return server tree item: type=DHC, isConnected=false, isManaged=true, isRunning=false 1`] = `
 {
   "command": undefined,
   "contextValue": "isManagedServerConnecting",
@@ -460,7 +460,7 @@ exports[`getServerTreeItem > should return DHC server tree item: type=DHC, isCon
 }
 `;
 
-exports[`getServerTreeItem > should return DHC server tree item: type=DHC, isConnected=false, isManaged=true, isRunning=true 1`] = `
+exports[`getServerTreeItem > should return server tree item: type=DHC, isConnected=false, isManaged=true, isRunning=true 1`] = `
 {
   "command": {
     "arguments": [
@@ -488,7 +488,7 @@ exports[`getServerTreeItem > should return DHC server tree item: type=DHC, isCon
 }
 `;
 
-exports[`getServerTreeItem > should return DHC server tree item: type=DHC, isConnected=true, isManaged=false, isRunning=false 1`] = `
+exports[`getServerTreeItem > should return server tree item: type=DHC, isConnected=true, isManaged=false, isRunning=false 1`] = `
 {
   "command": undefined,
   "contextValue": "isServerStopped",
@@ -502,7 +502,7 @@ exports[`getServerTreeItem > should return DHC server tree item: type=DHC, isCon
 }
 `;
 
-exports[`getServerTreeItem > should return DHC server tree item: type=DHC, isConnected=true, isManaged=false, isRunning=true 1`] = `
+exports[`getServerTreeItem > should return server tree item: type=DHC, isConnected=true, isManaged=false, isRunning=true 1`] = `
 {
   "command": undefined,
   "contextValue": "isServerRunningConnected",
@@ -516,7 +516,7 @@ exports[`getServerTreeItem > should return DHC server tree item: type=DHC, isCon
 }
 `;
 
-exports[`getServerTreeItem > should return DHC server tree item: type=DHC, isConnected=true, isManaged=true, isRunning=false 1`] = `
+exports[`getServerTreeItem > should return server tree item: type=DHC, isConnected=true, isManaged=true, isRunning=false 1`] = `
 {
   "command": undefined,
   "contextValue": "isManagedServerConnected",
@@ -530,7 +530,7 @@ exports[`getServerTreeItem > should return DHC server tree item: type=DHC, isCon
 }
 `;
 
-exports[`getServerTreeItem > should return DHC server tree item: type=DHC, isConnected=true, isManaged=true, isRunning=true 1`] = `
+exports[`getServerTreeItem > should return server tree item: type=DHC, isConnected=true, isManaged=true, isRunning=true 1`] = `
 {
   "command": undefined,
   "contextValue": "isManagedServerConnected",
@@ -544,7 +544,7 @@ exports[`getServerTreeItem > should return DHC server tree item: type=DHC, isCon
 }
 `;
 
-exports[`getServerTreeItem > should return DHC server tree item: type=DHE, isConnected=false, isManaged=false, isRunning=false 1`] = `
+exports[`getServerTreeItem > should return server tree item: type=DHE, isConnected=false, isManaged=false, isRunning=false 1`] = `
 {
   "command": undefined,
   "contextValue": "isServerStopped",
@@ -558,7 +558,7 @@ exports[`getServerTreeItem > should return DHC server tree item: type=DHE, isCon
 }
 `;
 
-exports[`getServerTreeItem > should return DHC server tree item: type=DHE, isConnected=false, isManaged=false, isRunning=true 1`] = `
+exports[`getServerTreeItem > should return server tree item: type=DHE, isConnected=false, isManaged=false, isRunning=true 1`] = `
 {
   "command": {
     "arguments": [
@@ -585,7 +585,7 @@ exports[`getServerTreeItem > should return DHC server tree item: type=DHE, isCon
 }
 `;
 
-exports[`getServerTreeItem > should return DHC server tree item: type=DHE, isConnected=false, isManaged=true, isRunning=false 1`] = `
+exports[`getServerTreeItem > should return server tree item: type=DHE, isConnected=false, isManaged=true, isRunning=false 1`] = `
 {
   "command": undefined,
   "contextValue": "isManagedServerConnecting",
@@ -599,7 +599,7 @@ exports[`getServerTreeItem > should return DHC server tree item: type=DHE, isCon
 }
 `;
 
-exports[`getServerTreeItem > should return DHC server tree item: type=DHE, isConnected=false, isManaged=true, isRunning=true 1`] = `
+exports[`getServerTreeItem > should return server tree item: type=DHE, isConnected=false, isManaged=true, isRunning=true 1`] = `
 {
   "command": {
     "arguments": [
@@ -627,7 +627,7 @@ exports[`getServerTreeItem > should return DHC server tree item: type=DHE, isCon
 }
 `;
 
-exports[`getServerTreeItem > should return DHC server tree item: type=DHE, isConnected=true, isManaged=false, isRunning=false 1`] = `
+exports[`getServerTreeItem > should return server tree item: type=DHE, isConnected=true, isManaged=false, isRunning=false 1`] = `
 {
   "command": undefined,
   "contextValue": "isServerStopped",
@@ -641,7 +641,7 @@ exports[`getServerTreeItem > should return DHC server tree item: type=DHE, isCon
 }
 `;
 
-exports[`getServerTreeItem > should return DHC server tree item: type=DHE, isConnected=true, isManaged=false, isRunning=true 1`] = `
+exports[`getServerTreeItem > should return server tree item: type=DHE, isConnected=true, isManaged=false, isRunning=true 1`] = `
 {
   "command": {
     "arguments": [
@@ -668,7 +668,7 @@ exports[`getServerTreeItem > should return DHC server tree item: type=DHE, isCon
 }
 `;
 
-exports[`getServerTreeItem > should return DHC server tree item: type=DHE, isConnected=true, isManaged=true, isRunning=false 1`] = `
+exports[`getServerTreeItem > should return server tree item: type=DHE, isConnected=true, isManaged=true, isRunning=false 1`] = `
 {
   "command": undefined,
   "contextValue": "isManagedServerConnected",
@@ -682,7 +682,7 @@ exports[`getServerTreeItem > should return DHC server tree item: type=DHE, isCon
 }
 `;
 
-exports[`getServerTreeItem > should return DHC server tree item: type=DHE, isConnected=true, isManaged=true, isRunning=true 1`] = `
+exports[`getServerTreeItem > should return server tree item: type=DHE, isConnected=true, isManaged=true, isRunning=true 1`] = `
 {
   "command": undefined,
   "contextValue": "isManagedServerConnected",

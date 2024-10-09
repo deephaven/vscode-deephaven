@@ -154,7 +154,7 @@ describe('getServerTreeItem', () => {
   };
 
   it.each(matrix(typeValues, boolValues, boolValues, boolValues))(
-    'should return DHC server tree item: type=%s, isConnected=%s, isManaged=%s, isRunning=%s',
+    'should return server tree item: type=%s, isConnected=%s, isManaged=%s, isRunning=%s',
     (type, isConnected, isManaged, isRunning) => {
       const actual = getServerTreeItem({
         ...dhcServerState,
