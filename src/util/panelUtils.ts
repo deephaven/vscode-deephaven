@@ -108,32 +108,32 @@ export function getPanelHtml(iframeUrl: URL, title: string): string {
 
         window.addEventListener('message', ({ data }) => {
           if (data.message === '${DEEPHAVEN_POST_MSG.loginOptionsRequest}') {
-            console.log('LoginOptions request received from iframe', data);
+            console.log('LoginOptions request received from iframe');
             vscode.postMessage({ data });
             return;
           }
 
           if (data.message === '${DEEPHAVEN_POST_MSG.sessionDetailsRequest}') {
-            console.log('SessionDetails request received from iframe', data);
+            console.log('SessionDetails request received from iframe');
             vscode.postMessage({ data });
             return;
           }
 
           if (data.message === '${VSCODE_POST_MSG.loginOptionsResponse}') {
-            console.log('Received login message from ext', data);
+            console.log('Received login message from ext');
             const iframeWindow = document.getElementById('content-iframe').contentWindow;
             iframeWindow.postMessage(data.payload, data.targetOrigin);
             return;
           }
 
           if (data.message === '${VSCODE_POST_MSG.sessionDetailsResponse}') {
-            console.log('Received session message from ext', data);
+            console.log('Received session message from ext');
             const iframeWindow = document.getElementById('content-iframe').contentWindow;
             iframeWindow.postMessage(data.payload, data.targetOrigin);
             return;
           }
 
-          console.log('Unknown message type', data);
+          console.log('Unknown message type');
         });
       }())
       </script>
