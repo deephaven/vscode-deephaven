@@ -116,7 +116,6 @@ export type VariableType =
   | 'Treemap'
   | 'TreeTable';
 
-// Panel post messages
 export interface LoginOptionsResponsePostMessage {
   message: 'vscode-ext.loginOptions';
   payload: {
