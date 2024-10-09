@@ -405,7 +405,7 @@ exports[`getServerIconID > should return icon id based on server state: isConnec
 
 exports[`getServerIconID > should return icon id based on server state: isConnected=true, isManaged=true, isRunning=true 1`] = `"circle-large-filled"`;
 
-exports[`getServerTreeItem > should return DHC server tree item: isConnected=false, isManaged=false, isRunning=false 1`] = `
+exports[`getServerTreeItem > should return DHC server tree item: type=DHC, isConnected=false, isManaged=false, isRunning=false 1`] = `
 {
   "command": undefined,
   "contextValue": "isServerStopped",
@@ -419,11 +419,15 @@ exports[`getServerTreeItem > should return DHC server tree item: isConnected=fal
 }
 `;
 
-exports[`getServerTreeItem > should return DHC server tree item: isConnected=false, isManaged=false, isRunning=true 1`] = `
+exports[`getServerTreeItem > should return DHC server tree item: type=DHC, isConnected=false, isManaged=false, isRunning=true 1`] = `
 {
   "command": {
     "arguments": [
       {
+        "connectionCount": 0,
+        "isConnected": false,
+        "isManaged": false,
+        "isRunning": true,
         "type": "DHC",
         "url": "http://localhost:10000/",
       },
@@ -442,7 +446,7 @@ exports[`getServerTreeItem > should return DHC server tree item: isConnected=fal
 }
 `;
 
-exports[`getServerTreeItem > should return DHC server tree item: isConnected=false, isManaged=true, isRunning=false 1`] = `
+exports[`getServerTreeItem > should return DHC server tree item: type=DHC, isConnected=false, isManaged=true, isRunning=false 1`] = `
 {
   "command": undefined,
   "contextValue": "isManagedServerConnecting",
@@ -456,11 +460,16 @@ exports[`getServerTreeItem > should return DHC server tree item: isConnected=fal
 }
 `;
 
-exports[`getServerTreeItem > should return DHC server tree item: isConnected=false, isManaged=true, isRunning=true 1`] = `
+exports[`getServerTreeItem > should return DHC server tree item: type=DHC, isConnected=false, isManaged=true, isRunning=true 1`] = `
 {
   "command": {
     "arguments": [
       {
+        "connectionCount": 0,
+        "isConnected": false,
+        "isManaged": true,
+        "isRunning": true,
+        "psk": "mock.psk",
         "type": "DHC",
         "url": "http://localhost:10000/",
       },
@@ -479,7 +488,7 @@ exports[`getServerTreeItem > should return DHC server tree item: isConnected=fal
 }
 `;
 
-exports[`getServerTreeItem > should return DHC server tree item: isConnected=true, isManaged=false, isRunning=false 1`] = `
+exports[`getServerTreeItem > should return DHC server tree item: type=DHC, isConnected=true, isManaged=false, isRunning=false 1`] = `
 {
   "command": undefined,
   "contextValue": "isServerStopped",
@@ -493,7 +502,7 @@ exports[`getServerTreeItem > should return DHC server tree item: isConnected=tru
 }
 `;
 
-exports[`getServerTreeItem > should return DHC server tree item: isConnected=true, isManaged=false, isRunning=true 1`] = `
+exports[`getServerTreeItem > should return DHC server tree item: type=DHC, isConnected=true, isManaged=false, isRunning=true 1`] = `
 {
   "command": undefined,
   "contextValue": "isServerRunningConnected",
@@ -507,7 +516,7 @@ exports[`getServerTreeItem > should return DHC server tree item: isConnected=tru
 }
 `;
 
-exports[`getServerTreeItem > should return DHC server tree item: isConnected=true, isManaged=true, isRunning=false 1`] = `
+exports[`getServerTreeItem > should return DHC server tree item: type=DHC, isConnected=true, isManaged=true, isRunning=false 1`] = `
 {
   "command": undefined,
   "contextValue": "isManagedServerConnected",
@@ -521,7 +530,159 @@ exports[`getServerTreeItem > should return DHC server tree item: isConnected=tru
 }
 `;
 
-exports[`getServerTreeItem > should return DHC server tree item: isConnected=true, isManaged=true, isRunning=true 1`] = `
+exports[`getServerTreeItem > should return DHC server tree item: type=DHC, isConnected=true, isManaged=true, isRunning=true 1`] = `
+{
+  "command": undefined,
+  "contextValue": "isManagedServerConnected",
+  "description": "pip (1)",
+  "iconPath": {
+    "color": undefined,
+    "id": "circle-large-filled",
+  },
+  "label": "localhost:10000",
+  "tooltip": "http://localhost:10000/",
+}
+`;
+
+exports[`getServerTreeItem > should return DHC server tree item: type=DHE, isConnected=false, isManaged=false, isRunning=false 1`] = `
+{
+  "command": undefined,
+  "contextValue": "isServerStopped",
+  "description": "",
+  "iconPath": {
+    "color": undefined,
+    "id": "circle-slash",
+  },
+  "label": "localhost:10000",
+  "tooltip": "http://localhost:10000/",
+}
+`;
+
+exports[`getServerTreeItem > should return DHC server tree item: type=DHE, isConnected=false, isManaged=false, isRunning=true 1`] = `
+{
+  "command": {
+    "arguments": [
+      {
+        "connectionCount": 0,
+        "isConnected": false,
+        "isManaged": false,
+        "isRunning": true,
+        "type": "DHE",
+        "url": "http://localhost:10000/",
+      },
+    ],
+    "command": "vscode-deephaven.connectToServer",
+    "title": "Connect to server",
+  },
+  "contextValue": "isDHEServerRunning",
+  "description": "",
+  "iconPath": {
+    "color": undefined,
+    "id": "circle-large-outline",
+  },
+  "label": "localhost:10000",
+  "tooltip": "Click to connect to http://localhost:10000/",
+}
+`;
+
+exports[`getServerTreeItem > should return DHC server tree item: type=DHE, isConnected=false, isManaged=true, isRunning=false 1`] = `
+{
+  "command": undefined,
+  "contextValue": "isManagedServerConnecting",
+  "description": "pip",
+  "iconPath": {
+    "color": undefined,
+    "id": "sync~spin",
+  },
+  "label": "localhost:10000",
+  "tooltip": "http://localhost:10000/",
+}
+`;
+
+exports[`getServerTreeItem > should return DHC server tree item: type=DHE, isConnected=false, isManaged=true, isRunning=true 1`] = `
+{
+  "command": {
+    "arguments": [
+      {
+        "connectionCount": 0,
+        "isConnected": false,
+        "isManaged": true,
+        "isRunning": true,
+        "psk": "mock.psk",
+        "type": "DHE",
+        "url": "http://localhost:10000/",
+      },
+    ],
+    "command": "vscode-deephaven.connectToServer",
+    "title": "Connect to server",
+  },
+  "contextValue": "isManagedServerDisconnected",
+  "description": "pip",
+  "iconPath": {
+    "color": undefined,
+    "id": "circle-large-outline",
+  },
+  "label": "localhost:10000",
+  "tooltip": "Click to connect to http://localhost:10000/",
+}
+`;
+
+exports[`getServerTreeItem > should return DHC server tree item: type=DHE, isConnected=true, isManaged=false, isRunning=false 1`] = `
+{
+  "command": undefined,
+  "contextValue": "isServerStopped",
+  "description": "(1)",
+  "iconPath": {
+    "color": undefined,
+    "id": "circle-slash",
+  },
+  "label": "localhost:10000",
+  "tooltip": "http://localhost:10000/",
+}
+`;
+
+exports[`getServerTreeItem > should return DHC server tree item: type=DHE, isConnected=true, isManaged=false, isRunning=true 1`] = `
+{
+  "command": {
+    "arguments": [
+      {
+        "connectionCount": 1,
+        "isConnected": true,
+        "isManaged": false,
+        "isRunning": true,
+        "type": "DHE",
+        "url": "http://localhost:10000/",
+      },
+    ],
+    "command": "vscode-deephaven.connectToServer",
+    "title": "Connect to server",
+  },
+  "contextValue": "isDHEServerRunning",
+  "description": "(1)",
+  "iconPath": {
+    "color": undefined,
+    "id": "circle-large-filled",
+  },
+  "label": "localhost:10000",
+  "tooltip": "Click to connect to http://localhost:10000/",
+}
+`;
+
+exports[`getServerTreeItem > should return DHC server tree item: type=DHE, isConnected=true, isManaged=true, isRunning=false 1`] = `
+{
+  "command": undefined,
+  "contextValue": "isManagedServerConnected",
+  "description": "pip (1)",
+  "iconPath": {
+    "color": undefined,
+    "id": "sync~spin",
+  },
+  "label": "localhost:10000",
+  "tooltip": "http://localhost:10000/",
+}
+`;
+
+exports[`getServerTreeItem > should return DHC server tree item: type=DHE, isConnected=true, isManaged=true, isRunning=true 1`] = `
 {
   "command": undefined,
   "contextValue": "isManagedServerConnected",

@@ -19,21 +19,7 @@ describe('getInitialServerStates', () => {
 
     const actual = getInitialServerStates('DHC', givenConfigs);
 
-    expect(actual).toEqual([
-      {
-        label: 'SomeLabel',
-        type: 'DHC',
-        url: new URL('http://localhost:10000'),
-      },
-      {
-        type: 'DHC',
-        url: new URL('http://localhost:10001'),
-      },
-      {
-        type: 'DHC',
-        url: new URL('http://localhost:10002'),
-      },
-    ]);
+    expect(actual).toMatchSnapshot();
   });
 });
 
