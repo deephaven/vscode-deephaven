@@ -57,27 +57,29 @@
         "deephaven.coreServers": {
           "description": "List of Deephaven Core servers that the extension can connect to.",
           "type": "array",
-          "items": [
-            {
-              "type": "string",
-              "description": "Deephaven Core server URL"
-            },
-            {
-              "type": "object",
-              "description": "Deephaven Core server config",
-              "properties": {
-                "url": {
-                  "type": "string",
-                  "description": "Deephaven Core server URL"
-                },
-                "label": {
-                  "type": "string",
-                  "title": "Label",
-                  "description": "Optional label for the server"
+          "items": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "Deephaven Core server URL"
+              },
+              {
+                "type": "object",
+                "description": "Deephaven Core server config",
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "description": "Deephaven Core server URL"
+                  },
+                  "label": {
+                    "type": "string",
+                    "title": "Label",
+                    "description": "Optional label for the server"
+                  }
                 }
               }
-            }
-          ],
+            ]
+          },
           "default": [
             "http://localhost:10000/"
           ]
