@@ -488,7 +488,10 @@ export class ServerManager implements IServerManager {
       return 0;
     }
 
-    const connectionCount = serverState.connectionCount + incrementOrDecrement;
+    const connectionCount = Math.max(
+      0,
+      serverState.connectionCount + incrementOrDecrement
+    );
 
     this._serverMap.set(serverUrl, {
       ...serverState,
