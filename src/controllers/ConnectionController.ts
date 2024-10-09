@@ -14,6 +14,7 @@ import {
   createConnectionQuickPickOptions,
   createConnectStatusBarItem,
   getConnectionsForConsoleType,
+  getConsoleType,
   getEditorForUri,
   isSupportedLanguageId,
   Logger,
@@ -82,9 +83,9 @@ export class ConnectionController implements Disposable {
 
     this._serverManager.onDidServerStatusChange(
       server => {
-        // Auto connect to servers managed by extension when they start
+        // Auto connect to pip servers managed by extension when they start
         if (server.isManaged && server.isRunning) {
-          this._serverManager.connectToServer(server.url);
+          this._serverManager.connectToServer(server.url, 'python');
         }
       },
       undefined,
@@ -131,7 +132,8 @@ export class ConnectionController implements Disposable {
 
     if ('url' in connectionOrServer) {
       const cn = await this._serverManager.connectToServer(
-        connectionOrServer.url
+        connectionOrServer.url,
+        getConsoleType(editor.document.languageId)
       );
 
       if (cn == null) {
@@ -228,7 +230,12 @@ export class ConnectionController implements Disposable {
   };
 
   /**
-   * Prompt user to select a connection and apply the selection.
+   * Prompt user to select a connection and apply the selection. The options
+   * presented to the user consist of:
+   * 1. Active connections that support the console type of the active editor.
+   * 2. A list of running servers composed of:
+   *   - DHC servers that don't yet have a connection
+   *   - All running DHE servers
    */
   onPromptUserToSelectConnection = async (): Promise<boolean> => {
     assertDefined(vscode.window.activeTextEditor, 'activeTextEditor');
@@ -252,9 +259,19 @@ export class ConnectionController implements Disposable {
       await updateStatusPromise;
     }
 
-    const runningServersWithoutConnections = this._serverManager.getServers({
+    // Only include DHC servers that don't have any connections yet since their
+    // single connection will be included in the `connectionsForConsoleType` list.
+    const runningDHCServersWithoutConnections = this._serverManager.getServers({
       isRunning: true,
       hasConnections: false,
+      type: 'DHC',
+    });
+
+    // Since DHE servers allow creating multiple workers, always include the
+    // server in the list regardless of how many worker connections already exist.
+    const runningDHEServers = this._serverManager.getServers({
+      isRunning: true,
+      type: 'DHE',
     });
 
     const connectionsForConsoleType: ConnectionState[] =
@@ -272,7 +289,7 @@ export class ConnectionController implements Disposable {
     try {
       selectedCnResult = await createConnectionQuickPick(
         createConnectionQuickPickOptions(
-          runningServersWithoutConnections,
+          [...runningDHCServersWithoutConnections, ...runningDHEServers],
           connectionsForConsoleType,
           editor.document.languageId,
           editorActiveConnectionUrl
