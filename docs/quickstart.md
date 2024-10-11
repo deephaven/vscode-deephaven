@@ -14,6 +14,12 @@ The "SERVERS" tree will show the status of any configured servers.
 
 ![Server Status](./images/server-status.png)
 
+To run a script against a running server, simply click the `Run Deephaven File` action at the top of a file supported by the server.
+
+![Connect to Community Server](./images/dhc-connect-to-server.gif)
+
+A new connection will show up in the "CONNECTIONS" tree, and the "PANELS" should show any variables exposed on the connection.
+
 ## Configuration
 
 Community servers can be configured via the `"deephaven.coreServers"` setting in vscode user or workspace settings.
