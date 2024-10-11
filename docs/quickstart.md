@@ -18,7 +18,7 @@ To run a script against a running server, simply click the `Run Deephaven File` 
 
 ![Connect to Community Server](./images/dhc-connect-to-server.gif)
 
-A new connection will show up in the "CONNECTIONS" tree, and the "PANELS" should show any variables exposed on the connection.
+A new connection will show up in the "CONNECTIONS" tree, and the "PANELS" should show any variables exposed on the connection. To disconnect, hover over the connection item and click the trash icon.
 
 ## Configuration
 
