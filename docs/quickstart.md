@@ -10,11 +10,7 @@ Once installed, there will be a new icon in the `activity bar` (the sidebar cont
 
 ![Vscode Activity Bar](./images/dh-activty-bar.gif)
 
-The "SERVERS" tree will show the status of any configured servers.
-
-![Server Status](./images/server-status.png)
-
-To run a script against a running server, simply click the `Run Deephaven File` action at the top of a file supported by the server.
+The "SERVERS" tree will show the status of any configured servers. To run a script against a running server, simply click the `Run Deephaven File` action at the top of a file supported by the server (`python` or `groovy`).
 
 ![Connect to Community Server](./images/dhc-connect-to-server.gif)
 
@@ -22,12 +18,19 @@ A new connection will show up in the "CONNECTIONS" tree, and the "PANELS" should
 
 ## Configuration
 
+A single Community server `http://localhost:10000/` is configured by default and doesn't require any additional config. Additional connections can be configured in `vscode` settings.
+
+> Note: There are some `vscode` bugs that cause some flakiness with the `run` button. vscode `v90` introduced an optional `workbench.editor.alwaysShowEditorActions` setting. Setting this to `true` improves the experience here. Namely the run button will not disappear when running commands or selecting its dropdown. See https://github.com/deephaven/vscode-deephaven/issues/1 for more details.
+
+### Community Servers
+
 Community servers can be configured via the `"deephaven.coreServers"` setting in vscode user or workspace settings.
 
 ![Community Server Settings](./images/add-community-server.gif)
 
 Enterprise servers can be configured via the `"deephaven.enterpriseServers"` setting in vscode user or workspace settings.
 
+### Enterprise Servers
 ![Enterprise Server Settings](./images/dhe-settings.gif)
 
 ## Workspace Setup
