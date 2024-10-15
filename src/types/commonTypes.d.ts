@@ -37,12 +37,12 @@ export interface EnterpriseConnectionConfig {
   experimentalWorkerConfig?: WorkerConfig;
 }
 
+export type Base64PrivateKey = Brand<'Base64PrivateKey', string>;
+export type Base64PublicKey = Brand<'Base64PublicKey', string>;
 export type DHPrivateKey = Brand<'DHPrivateKey', string>;
 export type DHPublicKey = Brand<'DHPublicKey', string>;
-export type DHKeyPair = {
-  privateKey: DHPrivateKey;
-  publicKey: DHPublicKey;
-};
+export type OperateAsUserStored = Record<string, string>;
+export type ServerSecretKeysStored = Record<string, Base64PrivateKey>;
 
 export type ServerConnectionConfig =
   | CoreConnectionConfig

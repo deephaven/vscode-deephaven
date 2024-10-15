@@ -1,16 +1,15 @@
 import { generateKeyPairSync } from 'node:crypto';
-import type { DHKeyPair, DHPrivateKey, DHPublicKey } from '../types';
+import type {
+  Base64PrivateKey,
+  Base64PublicKey,
+  DHPrivateKey,
+  DHPublicKey,
+} from '../types';
 
 // synonymous with secp256r1
 const NAMED_CURVE = 'prime256v1' as const;
 
-/**
- * Generate a new keypair in Deephaven format.
- * @param userName The userName to generate the keypair for.
- */
-export function generateKeyPairForUser<TUser extends string>(
-  userName: TUser
-): DHKeyPair {
+export function generateBase64KeyPair(): [Base64PublicKey, Base64PrivateKey] {
   const { publicKey: publicKeyBuffer, privateKey: privateKeyBuffer } =
     generateKeyPairSync('ec', {
       namedCurve: NAMED_CURVE,
@@ -18,21 +17,31 @@ export function generateKeyPairForUser<TUser extends string>(
       privateKeyEncoding: { type: 'pkcs8', format: 'der' },
     });
 
-  const publicBase64Str = toEcBase64String(publicKeyBuffer);
-  const privateBase64Str = toEcBase64String(privateKeyBuffer);
+  const publicKey = toEcBase64String(publicKeyBuffer) as Base64PublicKey;
+  const privateKey = toEcBase64String(privateKeyBuffer) as Base64PrivateKey;
 
-  const publicKey = `${userName} ${publicBase64Str}` as DHPublicKey;
-  const privateKey = [
+  return [publicKey, privateKey];
+}
+
+export function formatDHPublicKey(
+  userName: string,
+  base64PublicKey: Base64PublicKey
+): string {
+  return `${userName} ${base64PublicKey}` as DHPublicKey;
+}
+
+export function formatDHPrivateKey(
+  userName: string,
+  operateAs: string,
+  base64PublicKey: Base64PublicKey,
+  base64PrivateKey: Base64PrivateKey
+): string {
+  return [
     `user ${userName}`,
-    `operateas ${userName}`,
-    `public ${publicBase64Str}`,
-    `private ${privateBase64Str}`,
+    `operateas ${operateAs}`,
+    `public ${base64PublicKey}`,
+    `private ${base64PrivateKey}`,
   ].join('\n') as DHPrivateKey;
-
-  return {
-    publicKey,
-    privateKey,
-  };
 }
 
 /**
