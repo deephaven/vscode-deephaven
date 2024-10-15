@@ -1,4 +1,5 @@
 export * from './assertUtil';
+export * from './authUtils';
 export * from './dataUtils';
 export * from './idUtils';
 export * from './isInstanceOf';
