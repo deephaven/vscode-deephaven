@@ -6,7 +6,7 @@ import {
   GENERATE_DHE_KEY_PAIR_CMD,
   REQUEST_DHE_USER_CREDENTIALS_CMD,
 } from '../common';
-import { generateKeyPairForUser, Logger } from '../util';
+import { formatDHPublicKey, generateBase64KeyPair, Logger } from '../util';
 import type { ServerState } from '../types';
 
 const logger = new Logger('UserLoginController');
@@ -52,18 +52,23 @@ export class UserLoginController extends ControllerBase {
       return;
     }
 
-    const { publicKey, privateKey } = generateKeyPairForUser(
-      credentials.username
-    );
+    const [publicKey, privateKey] = generateBase64KeyPair();
 
     // TODO: Challenge response send public key to server
-    logger.debug('Public key:', publicKey);
-
-    await this.secretService.storePrivateKey(
-      credentials.username,
-      serverUrl,
-      privateKey
+    logger.debug(
+      'Public key:',
+      formatDHPublicKey(credentials.username, publicKey)
     );
+
+    // Get existing server keys or create a new object
+    const serverKeys =
+      (await this.secretService.getServerKeys(serverUrl)) ?? {};
+
+    // Store the new private key for the user
+    await this.secretService.storeServerKeys(serverUrl, {
+      ...serverKeys,
+      [credentials.username]: privateKey,
+    });
 
     // Remove credentials from cache since presumably a valid key pair was
     // generated and we'll want the user to authenticate with the private key
