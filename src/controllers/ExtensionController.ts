@@ -47,6 +47,7 @@ import {
   DheServiceCache,
   DhService,
   PanelService,
+  SecretService,
   ServerManager,
   URLMap,
 } from '../services';
@@ -84,6 +85,7 @@ export class ExtensionController implements Disposable {
 
     this.initializeDiagnostics();
     this.initializeConfig();
+    this.initializeSecrets();
     this.initializeCodeLenses();
     this.initializeHoverProviders();
     this.initializeMessaging();
@@ -120,6 +122,7 @@ export class ExtensionController implements Disposable {
   private _dhcServiceFactory: IDhServiceFactory | null = null;
   private _dheJsApiCache: IAsyncCacheService<URL, DheType> | null = null;
   private _dheServiceFactory: IDheServiceFactory | null = null;
+  private _secretService: SecretService | null = null;
   private _serverManager: IServerManager | null = null;
   private _userLoginController: UserLoginController | null = null;
 
@@ -166,6 +169,13 @@ export class ExtensionController implements Disposable {
       null,
       this._context.subscriptions
     );
+  };
+
+  /**
+   * Initialize secrets.
+   */
+  initializeSecrets = (): void => {
+    this._secretService = new SecretService(this._context.secrets);
   };
 
   /**
@@ -224,9 +234,11 @@ export class ExtensionController implements Disposable {
    */
   initializeUserLoginController = (): void => {
     assertDefined(this._dheCredentialsCache, 'dheCredentialsCache');
+    assertDefined(this._secretService, 'secretService');
 
     this._userLoginController = new UserLoginController(
-      this._dheCredentialsCache
+      this._dheCredentialsCache,
+      this._secretService
     );
 
     this._context.subscriptions.push(this._userLoginController);

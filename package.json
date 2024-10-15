@@ -181,6 +181,11 @@
         "icon": "$(trash)"
       },
       {
+        "command": "vscode-deephaven.generateDHEKeyPair",
+        "title": "Deephaven: Generate DHE Key Pair",
+        "icon": "$(key)"
+      },
+      {
         "command": "vscode-deephaven.openInBrowser",
         "title": "Deephaven: Open in Browser",
         "icon": "$(globe)"
@@ -657,6 +662,10 @@
           "when": "false"
         },
         {
+          "command": "vscode-deephaven.generateDHEKeyPair",
+          "when:": "false"
+        },
+        {
           "command": "vscode-deephaven.openVariablePanels",
           "when": "false"
         },
@@ -733,6 +742,11 @@
           "command": "vscode-deephaven.disconnectFromServer",
           "when": "view == vscode-deephaven.serverConnectionTree && viewItem == isConnection",
           "group": "inline@2"
+        },
+        {
+          "command": "vscode-deephaven.generateDHEKeyPair",
+          "when": "view == vscode-deephaven.serverTree && viewItem == isDHEServerRunning",
+          "group": "inline"
         },
         {
           "command": "vscode-deephaven.openInBrowser",

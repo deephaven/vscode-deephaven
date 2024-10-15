@@ -37,6 +37,13 @@ export interface EnterpriseConnectionConfig {
   experimentalWorkerConfig?: WorkerConfig;
 }
 
+export type DHPrivateKey = Brand<'DHPrivateKey', string>;
+export type DHPublicKey = Brand<'DHPublicKey', string>;
+export type DHKeyPair = {
+  privateKey: DHPrivateKey;
+  publicKey: DHPublicKey;
+};
+
 export type ServerConnectionConfig =
   | CoreConnectionConfig
   | EnterpriseConnectionConfig
