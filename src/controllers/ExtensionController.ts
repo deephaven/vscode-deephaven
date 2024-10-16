@@ -233,10 +233,12 @@ export class ExtensionController implements Disposable {
    * Initialize user login controller.
    */
   initializeUserLoginController = (): void => {
+    assertDefined(this._dheClientCache, 'dheClientCache');
     assertDefined(this._dheCredentialsCache, 'dheCredentialsCache');
     assertDefined(this._secretService, 'secretService');
 
     this._userLoginController = new UserLoginController(
+      this._dheClientCache,
       this._dheCredentialsCache,
       this._secretService
     );

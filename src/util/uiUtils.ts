@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import type { LoginCredentials as DheLoginCredentials } from '@deephaven-enterprise/jsapi-types';
 import {
   SELECT_CONNECTION_COMMAND,
   STATUS_BAR_CONNECTING_TEXT,
@@ -16,6 +17,7 @@ import type {
   Username,
   OperateAsUsername,
   AuthenticationMethodPickItem,
+  UserLoginPreferences,
 } from '../types';
 import { sortByStringProp } from './dataUtils';
 
@@ -108,6 +110,50 @@ export async function createConnectionQuickPick(
   }
 
   return result.data;
+}
+
+export async function runUserLoginWorkflow(
+  title: string,
+  userLoginPreferences: UserLoginPreferences,
+  showOperateAs?: boolean
+): Promise<
+  | (DheLoginCredentials & { username: Username; operateAs: Username })
+  | undefined
+> {
+  // Username
+  const username = await promptForUsername(
+    title,
+    userLoginPreferences.lastLogin
+  );
+  if (username == null) {
+    return;
+  }
+
+  // Password
+  const token = await promptForPassword(title);
+  if (token == null) {
+    return;
+  }
+
+  let operateAs = username;
+
+  // Operate As
+  if (showOperateAs) {
+    const operateAs = await promptForOperateAs(
+      title,
+      userLoginPreferences.operateAsUser[username] ?? username
+    );
+    if (operateAs == null) {
+      return;
+    }
+  }
+
+  return {
+    type: 'password',
+    username,
+    token,
+    operateAs,
+  };
 }
 
 /**
