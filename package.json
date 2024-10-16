@@ -725,7 +725,7 @@
       "view/item/context": [
         {
           "command": "vscode-deephaven.connectToServer",
-          "when": "view == vscode-deephaven.serverTree && (viewItem == isManagedServerDisconnected || viewItem == isServerRunningDisconnected || viewItem == isDHEServerRunning)",
+          "when": "view == vscode-deephaven.serverTree && (viewItem == isManagedServerDisconnected || viewItem == isServerRunningDisconnected || viewItem == isDHEServerRunningConnected || viewItem == isDHEServerRunningDisconnected)",
           "group": "inline"
         },
         {
@@ -740,17 +740,17 @@
         },
         {
           "command": "vscode-deephaven.disconnectFromServer",
-          "when": "view == vscode-deephaven.serverConnectionTree && viewItem == isConnection",
+          "when": "(view == vscode-deephaven.serverTree && (viewItem == isServerRunningConnected || viewItem == isDHEServerRunningConnected)) || (view == vscode-deephaven.serverConnectionTree && viewItem == isConnection)",
           "group": "inline@2"
         },
         {
           "command": "vscode-deephaven.generateDHEKeyPair",
-          "when": "view == vscode-deephaven.serverTree && viewItem == isDHEServerRunning",
+          "when": "view == vscode-deephaven.serverTree && (viewItem == isDHEServerRunningConnected || viewItem == isDHEServerRunningDisconnected)",
           "group": "inline"
         },
         {
           "command": "vscode-deephaven.openInBrowser",
-          "when": "view == vscode-deephaven.serverTree && (viewItem == isManagedServerConnected || viewItem == isServerRunningConnected || viewItem == isServerRunningDisconnected || viewItem == isManagedServerDisconnected || viewItem == isDHEServerRunning)",
+          "when": "view == vscode-deephaven.serverTree && (viewItem == isManagedServerConnected || viewItem == isManagedServerDisconnected || viewItem == isServerRunningConnected || viewItem == isServerRunningDisconnected || viewItem == isDHEServerRunningConnected || viewItem == isDHEServerRunningDisconnected)",
           "group": "inline"
         },
         {
