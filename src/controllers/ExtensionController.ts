@@ -579,9 +579,26 @@ export class ExtensionController implements Disposable {
    * Handle disconnecting from a server.
    */
   onDisconnectFromServer = async (
-    connectionState: ConnectionState
+    serverOrConnectionState: ServerState | ConnectionState
   ): Promise<void> => {
-    this._serverManager?.disconnectFromServer(connectionState.serverUrl);
+    // ConnectionState
+    if ('serverUrl' in serverOrConnectionState) {
+      this._serverManager?.disconnectFromServer(
+        serverOrConnectionState.serverUrl
+      );
+      return;
+    }
+
+    // DHC ServerState
+    if (serverOrConnectionState.type === 'DHC') {
+      this._coreCredentialsCache?.delete(serverOrConnectionState.url);
+      this._serverManager?.disconnectFromServer(serverOrConnectionState.url);
+      return;
+    }
+
+    // DHE ServerState
+    this._dheCredentialsCache?.delete(serverOrConnectionState.url);
+    this._serverManager?.disconnectFromDHEServer(serverOrConnectionState.url);
   };
 
   /**

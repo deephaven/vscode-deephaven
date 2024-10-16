@@ -279,6 +279,37 @@ export class ServerManager implements IServerManager {
     this._onDidUpdate.fire();
   };
 
+  /**
+   * Completely disconnect from a DHE server. This including all workers plus
+   * the primary DHE client connection.
+   * @param dheServerUrl The URL of the DHE server to disconnect from.
+   * @returns Promise that resolves when all connections have been discarded.
+   */
+  disconnectFromDHEServer = async (dheServerUrl: URL): Promise<void> => {
+    const workerUrls = [...this._workerURLToServerURLMap.entries()].filter(
+      ([, url]) => url.toString() === dheServerUrl.toString()
+    );
+
+    for (const [workerUrl] of workerUrls) {
+      await this.disconnectFromServer(workerUrl);
+    }
+
+    this._dheServiceCache.invalidate(dheServerUrl);
+
+    const serverState = this._serverMap.get(dheServerUrl);
+    if (serverState == null) {
+      return;
+    }
+
+    this._serverMap.set(dheServerUrl, {
+      ...serverState,
+      isConnected: false,
+      connectionCount: 0,
+    });
+
+    this._onDidUpdate.fire();
+  };
+
   disconnectFromServer = async (
     serverOrWorkerUrl: URL | WorkerURL
   ): Promise<void> => {

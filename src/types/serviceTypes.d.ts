@@ -115,6 +115,7 @@ export interface IServerManager extends Disposable {
     workerConsoleType?: ConsoleType
   ) => Promise<ConnectionState | null>;
   disconnectEditor: (uri: vscode.Uri) => void;
+  disconnectFromDHEServer: (dheServerUrl: URL) => Promise<void>;
   disconnectFromServer: (serverUrl: URL) => Promise<void>;
   loadServerConfig: () => Promise<void>;
 
