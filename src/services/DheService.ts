@@ -12,6 +12,7 @@ import {
   type IConfigService,
   type IDheService,
   type IDheServiceFactory,
+  type IToastService,
   type Lazy,
   type QuerySerial,
   type UniqueID,
@@ -48,7 +49,8 @@ export class DheService implements IDheService {
     coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
     dheClientCache: IAsyncCacheService<URL, EnterpriseClient>,
     dheCredentialsCache: URLMap<DheLoginCredentials>,
-    dheJsApiCache: IAsyncCacheService<URL, DheType>
+    dheJsApiCache: IAsyncCacheService<URL, DheType>,
+    toaster: IToastService
   ): IDheServiceFactory => {
     return {
       create: (serverUrl: URL): IDheService =>
@@ -58,7 +60,8 @@ export class DheService implements IDheService {
           coreCredentialsCache,
           dheClientCache,
           dheCredentialsCache,
-          dheJsApiCache
+          dheJsApiCache,
+          toaster
         ),
     };
   };
@@ -73,7 +76,8 @@ export class DheService implements IDheService {
     coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
     dheClientCache: IAsyncCacheService<URL, EnterpriseClient>,
     dheCredentialsCache: URLMap<DheLoginCredentials>,
-    dheJsApiCache: IAsyncCacheService<URL, DheType>
+    dheJsApiCache: IAsyncCacheService<URL, DheType>,
+    toaster: IToastService
   ) {
     this.serverUrl = serverUrl;
     this._config = configService;
@@ -82,6 +86,7 @@ export class DheService implements IDheService {
     this._dheCredentialsCache = dheCredentialsCache;
     this._dheJsApiCache = dheJsApiCache;
     this._querySerialSet = new Set<QuerySerial>();
+    this._toaster = toaster;
     this._workerInfoMap = new URLMap<WorkerInfo, WorkerURL>();
   }
 
@@ -95,6 +100,7 @@ export class DheService implements IDheService {
   private readonly _dheCredentialsCache: URLMap<DheLoginCredentials>;
   private readonly _dheJsApiCache: IAsyncCacheService<URL, DheType>;
   private readonly _querySerialSet: Set<QuerySerial>;
+  private readonly _toaster: IToastService;
   private readonly _workerInfoMap: URLMap<WorkerInfo, WorkerURL>;
 
   readonly serverUrl: URL;
@@ -111,7 +117,7 @@ export class DheService implements IDheService {
    * @returns DHE client or null if initialization failed.
    */
   private _initClient = async (): Promise<EnterpriseClient | null> => {
-    const dheClient = await this._dheClientCache.get(this.serverUrl);
+    const dheClientPromise = this._dheClientCache.get(this.serverUrl);
 
     if (!this._dheCredentialsCache.has(this.serverUrl)) {
       await vscode.commands.executeCommand(
@@ -128,12 +134,15 @@ export class DheService implements IDheService {
       }
     }
 
+    const dheClient = await dheClientPromise;
     const dheCredentials = this._dheCredentialsCache.get(this.serverUrl)!;
 
     try {
       await dheClient.login(dheCredentials);
     } catch (err) {
+      this._dheCredentialsCache.delete(this.serverUrl);
       logger.error('An error occurred while connecting to DHE server:', err);
+      this._toaster.error(`Login failed to '${this.serverUrl.toString()}'`);
       return null;
     }
 

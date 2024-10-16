@@ -1,5 +1,5 @@
 import type { SecretStorage } from 'vscode';
-import type { OperateAsUserStored, ServerSecretKeysStored } from '../types';
+import type { ServerSecretKeys, UserLoginPreferences } from '../types';
 
 class Key {
   static operateAsUser(serverUrl: URL): string {
@@ -53,27 +53,30 @@ export class SecretService {
   };
 
   /**
-   * Get a map of user -> operatas users for a given server.
+   * Get user login preferences for a given server.
    * @param serverUrl The server URL to get the map for.
-   * @returns The map of user -> operate as user or null.
+   * @returns The user login preferences for the server.
    */
-  getOperateAsUser = async (
+  getUserLoginPreferences = async (
     serverUrl: URL
-  ): Promise<OperateAsUserStored | null> => {
-    return this._getJson(Key.operateAsUser(serverUrl));
+  ): Promise<UserLoginPreferences> => {
+    const preferences = await this._getJson<UserLoginPreferences>(
+      Key.operateAsUser(serverUrl)
+    );
+    return preferences ?? { operateAsUser: {} };
   };
 
   /**
-   * Store a map of user -> operate as user for a given server.
+   * Store user login preferences for a given server.
    * @param serverUrl The server URL to store the map for.
-   * @param operateAsUser The map of user -> operate as user.
+   * @param preferences The user login preferences to store.
    */
-  storeOperateAsUser = async (
+  storeUserLoginPreferences = async (
     serverUrl: URL,
-    operateAsUser: string
+    preferences: UserLoginPreferences
   ): Promise<void> => {
     const key = Key.operateAsUser(serverUrl);
-    await this._storeJson(key, operateAsUser);
+    await this._storeJson(key, preferences);
   };
 
   /**
@@ -81,10 +84,11 @@ export class SecretService {
    * @param serverUrl
    * @returns The map of user -> private key or null.
    */
-  getServerKeys = async (
-    serverUrl: URL
-  ): Promise<ServerSecretKeysStored | null> => {
-    return this._getJson(Key.serverKeys(serverUrl));
+  getServerKeys = async (serverUrl: URL): Promise<ServerSecretKeys> => {
+    const maybeServerKeys = await this._getJson<ServerSecretKeys>(
+      Key.serverKeys(serverUrl)
+    );
+    return maybeServerKeys ?? {};
   };
 
   /**
@@ -94,7 +98,7 @@ export class SecretService {
    */
   storeServerKeys = async (
     serverUrl: URL,
-    serverKeys: ServerSecretKeysStored
+    serverKeys: ServerSecretKeys
   ): Promise<void> => {
     const key = Key.serverKeys(serverUrl);
     await this._storeJson(key, serverKeys);

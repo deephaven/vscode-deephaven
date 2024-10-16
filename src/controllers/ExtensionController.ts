@@ -327,7 +327,8 @@ export class ExtensionController implements Disposable {
       this._coreCredentialsCache,
       this._dheClientCache,
       this._dheCredentialsCache,
-      this._dheJsApiCache
+      this._dheJsApiCache,
+      this._toaster
     );
 
     this._dheServiceCache = new DheServiceCache(this._dheServiceFactory);

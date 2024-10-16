@@ -37,12 +37,19 @@ export interface EnterpriseConnectionConfig {
   experimentalWorkerConfig?: WorkerConfig;
 }
 
+export type AuthenticationMethod = 'password' | 'privateKey';
+export type LoginWorkflowType = 'login' | 'generatePrivateKey';
+export type Username = Brand<'Username', string>;
+export type OperateAsUsername = Brand<'OperateAsUsername', string>;
 export type Base64PrivateKey = Brand<'Base64PrivateKey', string>;
 export type Base64PublicKey = Brand<'Base64PublicKey', string>;
 export type DHPrivateKey = Brand<'DHPrivateKey', string>;
 export type DHPublicKey = Brand<'DHPublicKey', string>;
-export type OperateAsUserStored = Record<string, string>;
-export type ServerSecretKeysStored = Record<string, Base64PrivateKey>;
+export type ServerSecretKeys = Record<string, Base64PrivateKey>;
+export type UserLoginPreferences = {
+  lastLogin?: Username;
+  operateAsUser: Record<Username, OperateAsUsername>;
+};
 
 export type ServerConnectionConfig =
   | CoreConnectionConfig
