@@ -1,4 +1,3 @@
-import * as vscode from 'vscode';
 import type { SecretService, URLMap } from '../services';
 import { ControllerBase } from './ControllerBase';
 import type { LoginCredentials as DheLoginCredentials } from '@deephaven-enterprise/jsapi-types';
@@ -6,8 +5,16 @@ import {
   GENERATE_DHE_KEY_PAIR_CMD,
   REQUEST_DHE_USER_CREDENTIALS_CMD,
 } from '../common';
-import { formatDHPublicKey, generateBase64KeyPair, Logger } from '../util';
-import type { ServerState } from '../types';
+import {
+  createAuthenticationMethodQuickPick,
+  formatDHPublicKey,
+  generateBase64KeyPair,
+  Logger,
+  promptForOperateAs,
+  promptForPassword,
+  promptForUsername,
+} from '../util';
+import type { LoginWorkflowType, ServerState, Username } from '../types';
 
 const logger = new Logger('UserLoginController');
 
@@ -45,7 +52,7 @@ export class UserLoginController extends ControllerBase {
     serverState: ServerState
   ): Promise<void> => {
     const serverUrl = serverState.url;
-    await this.onDidRequestDheUserCredentials(serverUrl);
+    await this.onDidRequestDheUserCredentials(serverUrl, 'generatePrivateKey');
 
     const credentials = this.dheCredentialsCache.get(serverUrl);
     if (credentials?.username == null) {
@@ -61,8 +68,7 @@ export class UserLoginController extends ControllerBase {
     );
 
     // Get existing server keys or create a new object
-    const serverKeys =
-      (await this.secretService.getServerKeys(serverUrl)) ?? {};
+    const serverKeys = await this.secretService.getServerKeys(serverUrl);
 
     // Store the new private key for the user
     await this.secretService.storeServerKeys(serverUrl, {
@@ -80,30 +86,89 @@ export class UserLoginController extends ControllerBase {
    * Handle the request for DHE user credentials. If credentials are provided,
    * they will be stored in the credentials cache.
    * @param serverUrl The server URL to request credentials for.
+   * @param isGeneratePrivateKeyWorkflow Whether the request is part of a private key generation workflow.
    * @returns A promise that resolves when the credentials have been provided or declined.
    */
-  onDidRequestDheUserCredentials = async (serverUrl: URL): Promise<void> => {
+  onDidRequestDheUserCredentials = async (
+    serverUrl: URL,
+    workflowType: LoginWorkflowType = 'login'
+  ): Promise<void> => {
     // Remove any existing credentials for the server
     this.dheCredentialsCache.delete(serverUrl);
 
-    const username = await vscode.window.showInputBox({
-      placeHolder: 'Username',
-      prompt: 'Enter your Deephaven username',
-    });
+    const title =
+      workflowType === 'generatePrivateKey' ? 'Generate Private Key' : 'Login';
 
+    const secretKeys = await this.secretService.getServerKeys(serverUrl);
+    const userLoginPreferences =
+      await this.secretService.getUserLoginPreferences(serverUrl);
+
+    const privateKeyUserNames = Object.keys(secretKeys) as Username[];
+
+    if (workflowType === 'login' && privateKeyUserNames.length > 0) {
+      const authenticationMethod = await createAuthenticationMethodQuickPick(
+        title,
+        privateKeyUserNames
+      );
+
+      if (authenticationMethod?.type === 'privateKey') {
+        const username = authenticationMethod.label;
+
+        // Operate As
+        const operateAs = await promptForOperateAs(
+          title,
+          userLoginPreferences.operateAsUser[username] ?? username
+        );
+        if (operateAs == null) {
+          return;
+        }
+
+        await this.secretService.storeUserLoginPreferences(serverUrl, {
+          lastLogin: username,
+          operateAsUser: {
+            ...userLoginPreferences.operateAsUser,
+            [username]: operateAs,
+          },
+        });
+
+        // TODO: login with private key
+        logger.debug('Login with private key:', authenticationMethod.label);
+
+        return;
+      }
+    }
+
+    // Username
+    const username = await promptForUsername(
+      title,
+      userLoginPreferences.lastLogin
+    );
     if (username == null) {
       return;
     }
 
-    const token = await vscode.window.showInputBox({
-      placeHolder: 'Password',
-      prompt: 'Enter your Deephaven password',
-      password: true,
-    });
-
+    // Password
+    const token = await promptForPassword(title);
     if (token == null) {
       return;
     }
+
+    // Operate As
+    const operateAs = await promptForOperateAs(
+      title,
+      userLoginPreferences.operateAsUser[username] ?? username
+    );
+    if (operateAs == null) {
+      return;
+    }
+
+    await this.secretService.storeUserLoginPreferences(serverUrl, {
+      lastLogin: username,
+      operateAsUser: {
+        ...userLoginPreferences.operateAsUser,
+        [username]: operateAs,
+      },
+    });
 
     const dheCredentials: DheLoginCredentials = {
       username,

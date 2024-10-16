@@ -13,6 +13,9 @@ import type {
   SeparatorPickItem,
   ConnectionPickOption,
   ConnectionState,
+  Username,
+  OperateAsUsername,
+  AuthenticationMethodPickItem,
 } from '../types';
 import { sortByStringProp } from './dataUtils';
 
@@ -105,6 +108,45 @@ export async function createConnectionQuickPick(
   }
 
   return result.data;
+}
+
+/**
+ * Create quickpick for selecting an authentication method.
+ * @param title
+ * @param privateKeyUserNames
+ * @returns Result of the quickpick. Null if selection cancelled.
+ */
+export async function createAuthenticationMethodQuickPick(
+  title: string,
+  privateKeyUserNames: Username[]
+): Promise<AuthenticationMethodPickItem | null> {
+  const result = await vscode.window.showQuickPick<
+    AuthenticationMethodPickItem | SeparatorPickItem
+  >(
+    [
+      {
+        label: 'Username / Password',
+        type: 'password',
+        iconPath: new vscode.ThemeIcon('account'),
+      },
+      createSeparatorPickItem('Private Key'),
+      ...privateKeyUserNames.map(userName => ({
+        label: userName,
+        type: 'privateKey' as const,
+        iconPath: new vscode.ThemeIcon('key'),
+      })),
+    ],
+    {
+      title,
+      placeHolder: 'Select authentication method',
+    }
+  );
+
+  if (result == null || !('type' in result)) {
+    return null;
+  }
+
+  return result;
 }
 
 /**
@@ -269,4 +311,37 @@ export function updateConnectionStatusBarItem(
 
   const text = createConnectText(status, option);
   statusBarItem.text = text;
+}
+
+export function promptForUsername(
+  title: string,
+  lastLogin?: Username
+): Promise<Username | undefined> {
+  return vscode.window.showInputBox({
+    placeHolder: 'Username',
+    prompt: 'Deephaven username',
+    title,
+    value: lastLogin,
+  }) as Promise<Username | undefined>;
+}
+
+export function promptForPassword(title: string): Promise<string | undefined> {
+  return vscode.window.showInputBox({
+    placeHolder: 'Password',
+    prompt: 'Deephaven password',
+    password: true,
+    title,
+  }) as Promise<string | undefined>;
+}
+
+export function promptForOperateAs(
+  title: string,
+  lastOperateAs?: OperateAsUsername
+): Promise<OperateAsUsername | undefined> {
+  return vscode.window.showInputBox({
+    placeHolder: 'Operate As',
+    prompt: 'Deephaven `Operate As` username',
+    title,
+    value: lastOperateAs,
+  }) as Promise<OperateAsUsername | undefined>;
 }
