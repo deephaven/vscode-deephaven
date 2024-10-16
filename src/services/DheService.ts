@@ -48,7 +48,7 @@ export class DheService implements IDheService {
     configService: IConfigService,
     coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
     dheClientCache: IAsyncCacheService<URL, EnterpriseClient>,
-    dheCredentialsCache: URLMap<DheLoginCredentials>,
+    dheCredentialsCache: URLMap<Lazy<DheLoginCredentials>>,
     dheJsApiCache: IAsyncCacheService<URL, DheType>,
     toaster: IToastService
   ): IDheServiceFactory => {
@@ -75,7 +75,7 @@ export class DheService implements IDheService {
     configService: IConfigService,
     coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
     dheClientCache: IAsyncCacheService<URL, EnterpriseClient>,
-    dheCredentialsCache: URLMap<DheLoginCredentials>,
+    dheCredentialsCache: URLMap<Lazy<DheLoginCredentials>>,
     dheJsApiCache: IAsyncCacheService<URL, DheType>,
     toaster: IToastService
   ) {
@@ -97,7 +97,7 @@ export class DheService implements IDheService {
     Lazy<DhcType.LoginCredentials>
   >;
   private readonly _dheClientCache: IAsyncCacheService<URL, EnterpriseClient>;
-  private readonly _dheCredentialsCache: URLMap<DheLoginCredentials>;
+  private readonly _dheCredentialsCache: URLMap<Lazy<DheLoginCredentials>>;
   private readonly _dheJsApiCache: IAsyncCacheService<URL, DheType>;
   private readonly _querySerialSet: Set<QuerySerial>;
   private readonly _toaster: IToastService;
@@ -135,7 +135,9 @@ export class DheService implements IDheService {
     }
 
     const dheClient = await dheClientPromise;
-    const dheCredentials = this._dheCredentialsCache.get(this.serverUrl)!;
+    const dheCredentials = await this._dheCredentialsCache.get(
+      this.serverUrl
+    )!();
 
     try {
       await dheClient.login(dheCredentials);

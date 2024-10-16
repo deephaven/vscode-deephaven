@@ -114,7 +114,7 @@ export class ExtensionController implements Disposable {
     null;
   private _dheClientCache: IAsyncCacheService<URL, EnterpriseClient> | null =
     null;
-  private _dheCredentialsCache: URLMap<DheLoginCredentials> | null = null;
+  private _dheCredentialsCache: URLMap<Lazy<DheLoginCredentials>> | null = null;
   private _dheServiceCache: IAsyncCacheService<URL, IDheService> | null = null;
   private _panelController: PanelController | null = null;
   private _panelService: IPanelService | null = null;
@@ -303,7 +303,7 @@ export class ExtensionController implements Disposable {
     assertDefined(this._toaster, 'toaster');
 
     this._coreCredentialsCache = new URLMap<Lazy<DhcType.LoginCredentials>>();
-    this._dheCredentialsCache = new URLMap<DheLoginCredentials>();
+    this._dheCredentialsCache = new URLMap<Lazy<DheLoginCredentials>>();
 
     this._dheJsApiCache = new DheJsApiCache();
     this._context.subscriptions.push(this._dheJsApiCache);
