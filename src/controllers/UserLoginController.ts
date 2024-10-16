@@ -1,6 +1,9 @@
 import type { SecretService, URLMap } from '../services';
 import { ControllerBase } from './ControllerBase';
-import type { LoginCredentials as DheLoginCredentials } from '@deephaven-enterprise/jsapi-types';
+import type {
+  LoginCredentials as DheLoginCredentials,
+  EnterpriseClient,
+} from '@deephaven-enterprise/jsapi-types';
 import {
   GENERATE_DHE_KEY_PAIR_CMD,
   REQUEST_DHE_USER_CREDENTIALS_CMD,
@@ -13,8 +16,9 @@ import {
   promptForOperateAs,
   promptForPassword,
   promptForUsername,
+  runUserLoginWorkflow,
 } from '../util';
-import type { Lazy, LoginWorkflowType, ServerState, Username } from '../types';
+import type { IAsyncCacheService, Lazy, ServerState, Username } from '../types';
 
 const logger = new Logger('UserLoginController');
 
@@ -23,10 +27,13 @@ const logger = new Logger('UserLoginController');
  */
 export class UserLoginController extends ControllerBase {
   constructor(
+    dheClientCache: IAsyncCacheService<URL, EnterpriseClient>,
     dheCredentialsCache: URLMap<Lazy<DheLoginCredentials>>,
     secretService: SecretService
   ) {
     super();
+
+    this.dheClientCache = dheClientCache;
     this.dheCredentialsCache = dheCredentialsCache;
     this.secretService = secretService;
 
@@ -41,6 +48,7 @@ export class UserLoginController extends ControllerBase {
     );
   }
 
+  private readonly dheClientCache: IAsyncCacheService<URL, EnterpriseClient>;
   private readonly dheCredentialsCache: URLMap<Lazy<DheLoginCredentials>>;
   private readonly secretService: SecretService;
 
@@ -52,19 +60,46 @@ export class UserLoginController extends ControllerBase {
     serverState: ServerState
   ): Promise<void> => {
     const serverUrl = serverState.url;
-    await this.onDidRequestDheUserCredentials(serverUrl, 'generatePrivateKey');
+    // await this.onDidRequestDheUserCredentials(serverUrl, 'generatePrivateKey');
 
-    const credentials = await this.dheCredentialsCache.get(serverUrl)?.();
-    if (credentials?.username == null) {
+    // const credentials = await this.dheCredentialsCache.get(serverUrl)?.();
+    // if (credentials?.username == null) {
+    //   return;
+    // }
+
+    const title = 'Generate Private Key';
+
+    // Username
+    const username = await promptForUsername(title);
+    if (username == null) {
       return;
     }
 
+    // Password
+    const token = await promptForPassword(title);
+    if (token == null) {
+      return;
+    }
+
+    const dheCredentials = {
+      username,
+      token,
+      type: 'password',
+    } as const satisfies DheLoginCredentials;
+
     const [publicKey, privateKey] = generateBase64KeyPair();
+
+    const dheClient = await this.dheClientCache.get(serverUrl);
+    await dheClient.login(dheCredentials);
+    const { dbAclWriterHost, dbAclWriterPort } =
+      await dheClient.getServerConfigValues();
+
+    console.log('ACL Server:', `https://${dbAclWriterHost}:${dbAclWriterPort}`);
 
     // TODO: Challenge response send public key to server
     logger.debug(
       'Public key:',
-      formatDHPublicKey(credentials.username, publicKey)
+      formatDHPublicKey(dheCredentials.username, publicKey)
     );
 
     // Get existing server keys or create a new object
@@ -73,7 +108,7 @@ export class UserLoginController extends ControllerBase {
     // Store the new private key for the user
     await this.secretService.storeServerKeys(serverUrl, {
       ...serverKeys,
-      [credentials.username]: privateKey,
+      [dheCredentials.username]: privateKey,
     });
 
     // Remove credentials from cache since presumably a valid key pair was
@@ -86,18 +121,13 @@ export class UserLoginController extends ControllerBase {
    * Handle the request for DHE user credentials. If credentials are provided,
    * they will be stored in the credentials cache.
    * @param serverUrl The server URL to request credentials for.
-   * @param isGeneratePrivateKeyWorkflow Whether the request is part of a private key generation workflow.
    * @returns A promise that resolves when the credentials have been provided or declined.
    */
-  onDidRequestDheUserCredentials = async (
-    serverUrl: URL,
-    workflowType: LoginWorkflowType = 'login'
-  ): Promise<void> => {
+  onDidRequestDheUserCredentials = async (serverUrl: URL): Promise<void> => {
     // Remove any existing credentials for the server
     this.dheCredentialsCache.delete(serverUrl);
 
-    const title =
-      workflowType === 'generatePrivateKey' ? 'Generate Private Key' : 'Login';
+    const title = 'Login';
 
     const secretKeys = await this.secretService.getServerKeys(serverUrl);
     const userLoginPreferences =
@@ -105,11 +135,15 @@ export class UserLoginController extends ControllerBase {
 
     const privateKeyUserNames = Object.keys(secretKeys) as Username[];
 
-    if (workflowType === 'login' && privateKeyUserNames.length > 0) {
+    if (privateKeyUserNames.length > 0) {
       const authenticationMethod = await createAuthenticationMethodQuickPick(
         title,
         privateKeyUserNames
       );
+
+      if (authenticationMethod == null) {
+        return;
+      }
 
       if (authenticationMethod?.type === 'privateKey') {
         const username = authenticationMethod.label;
@@ -141,43 +175,23 @@ export class UserLoginController extends ControllerBase {
       }
     }
 
-    // Username
-    const username = await promptForUsername(
+    const dheCredentials = await runUserLoginWorkflow(
       title,
-      userLoginPreferences.lastLogin
+      userLoginPreferences,
+      true
     );
-    if (username == null) {
-      return;
-    }
 
-    // Password
-    const token = await promptForPassword(title);
-    if (token == null) {
-      return;
-    }
-
-    // Operate As
-    const operateAs = await promptForOperateAs(
-      title,
-      userLoginPreferences.operateAsUser[username] ?? username
-    );
-    if (operateAs == null) {
+    if (dheCredentials == null) {
       return;
     }
 
     await this.secretService.storeUserLoginPreferences(serverUrl, {
-      lastLogin: username,
+      lastLogin: dheCredentials.username,
       operateAsUser: {
         ...userLoginPreferences.operateAsUser,
-        [username]: operateAs,
+        [dheCredentials.username]: dheCredentials.operateAs,
       },
     });
-
-    const dheCredentials: DheLoginCredentials = {
-      username,
-      token,
-      type: 'password',
-    };
 
     this.dheCredentialsCache.set(serverUrl, async () => dheCredentials);
   };
