@@ -14,7 +14,7 @@ import {
   promptForPassword,
   promptForUsername,
 } from '../util';
-import type { LoginWorkflowType, ServerState, Username } from '../types';
+import type { Lazy, LoginWorkflowType, ServerState, Username } from '../types';
 
 const logger = new Logger('UserLoginController');
 
@@ -23,7 +23,7 @@ const logger = new Logger('UserLoginController');
  */
 export class UserLoginController extends ControllerBase {
   constructor(
-    dheCredentialsCache: URLMap<DheLoginCredentials>,
+    dheCredentialsCache: URLMap<Lazy<DheLoginCredentials>>,
     secretService: SecretService
   ) {
     super();
@@ -41,7 +41,7 @@ export class UserLoginController extends ControllerBase {
     );
   }
 
-  private readonly dheCredentialsCache: URLMap<DheLoginCredentials>;
+  private readonly dheCredentialsCache: URLMap<Lazy<DheLoginCredentials>>;
   private readonly secretService: SecretService;
 
   /**
@@ -54,7 +54,7 @@ export class UserLoginController extends ControllerBase {
     const serverUrl = serverState.url;
     await this.onDidRequestDheUserCredentials(serverUrl, 'generatePrivateKey');
 
-    const credentials = this.dheCredentialsCache.get(serverUrl);
+    const credentials = await this.dheCredentialsCache.get(serverUrl)?.();
     if (credentials?.username == null) {
       return;
     }
@@ -131,8 +131,11 @@ export class UserLoginController extends ControllerBase {
           },
         });
 
-        // TODO: login with private key
-        logger.debug('Login with private key:', authenticationMethod.label);
+        this.dheCredentialsCache.set(serverUrl, async () => {
+          logger.debug('Login with private key:', authenticationMethod.label);
+          // TODO: login with private key
+          throw new Error('Login with private key not implemented');
+        });
 
         return;
       }
@@ -176,6 +179,6 @@ export class UserLoginController extends ControllerBase {
       type: 'password',
     };
 
-    this.dheCredentialsCache.set(serverUrl, dheCredentials);
+    this.dheCredentialsCache.set(serverUrl, async () => dheCredentials);
   };
 }
