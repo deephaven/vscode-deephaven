@@ -11,6 +11,7 @@ export const CONFIG_KEY = {
 
 export const DEFAULT_CONSOLE_TYPE = 'python' as const;
 // export const DHFS_SCHEME = 'dhfs';
+export const DEFAULT_TEMPORARY_QUERY_TIMEOUT_MS = 60000 as const;
 
 export const PYTHON_ENV_WAIT = 1500 as const;
 

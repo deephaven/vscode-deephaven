@@ -14,6 +14,7 @@ import type {
   WorkerInfo,
   WorkerURL,
 } from '../types';
+import { DEFAULT_TEMPORARY_QUERY_TIMEOUT_MS } from '../common';
 
 const INTERACTIVE_CONSOLE_QUERY_TYPE = 'InteractiveConsole';
 
@@ -131,14 +132,10 @@ export async function createInteractiveConsoleQuery(
     ) ?? 'Python';
   const workerKind = serverConfigValues.workerKinds?.[0]?.name;
 
-  const timeZone =
-    serverConfigValues.timeZone ??
-    Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-  const scheduling = QueryScheduler.makeDefaultScheduling(
-    serverConfigValues.restartQueryWhenRunningDefault,
-    timeZone
-  );
+  const scheduling = QueryScheduler.makeTemporaryScheduling({
+    autoDelete: true,
+    queueName: 'InteractiveConsoleTemporaryQueue',
+  });
 
   const draftQuery = new DraftQuery({
     isClientSide: true,
@@ -149,10 +146,12 @@ export async function createInteractiveConsoleQuery(
     dbServerName,
     heapSize: heapSize,
     scheduling,
-    // TODO: deephaven/vscode-deephaven/issues/153 to update this to secure websocket connection
+    // We have to use websockets since http2 is not sufficiently supported in
+    // the nodejs environment (v20 at time of this comment).
     jvmArgs: '-Dhttp.websockets=true',
     jvmProfile,
     scriptLanguage,
+    timeout: DEFAULT_TEMPORARY_QUERY_TIMEOUT_MS,
     workerKind,
   });
 
@@ -162,7 +161,12 @@ export async function createInteractiveConsoleQuery(
 
   // type assertion gives us stronger type safety than the Promise<string>
   // return type defined by the JS API types.
-  return dheClient.createQuery(draftQuery) as Promise<QuerySerial>;
+  const serial = (await dheClient.createQuery(draftQuery)) as QuerySerial;
+
+  // Temporary queries don't auto start, so we need to start it manually.
+  dheClient.restartQueries([serial]);
+
+  return serial;
 }
 
 /**
