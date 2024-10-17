@@ -4,6 +4,7 @@ import type {
   EditableQueryInfo,
   EnterpriseClient,
   QueryInfo,
+  TypeSpecificFields,
 } from '@deephaven-enterprise/jsapi-types';
 import { DraftQuery, QueryScheduler } from '@deephaven-enterprise/query-utils';
 import type {
@@ -14,9 +15,12 @@ import type {
   WorkerInfo,
   WorkerURL,
 } from '../types';
-import { DEFAULT_TEMPORARY_QUERY_TIMEOUT_MS } from '../common';
-
-const INTERACTIVE_CONSOLE_QUERY_TYPE = 'InteractiveConsole';
+import {
+  DEFAULT_TEMPORARY_QUERY_AUTO_TIMEOUT_MS,
+  DEFAULT_TEMPORARY_QUERY_TIMEOUT_MS,
+  INTERACTIVE_CONSOLE_QUERY_TYPE,
+  INTERACTIVE_CONSOLE_TEMPORARY_QUEUE_NAME,
+} from '../common';
 
 export type IDraftQuery = EditableQueryInfo & {
   isClientSide: boolean;
@@ -115,6 +119,9 @@ export async function createInteractiveConsoleQuery(
   const userInfo = await dheClient.getUserInfo();
   const owner = userInfo.username;
   const type = INTERACTIVE_CONSOLE_QUERY_TYPE;
+  const queueName = INTERACTIVE_CONSOLE_TEMPORARY_QUEUE_NAME;
+  const autoDeleteTimeoutMs = DEFAULT_TEMPORARY_QUERY_AUTO_TIMEOUT_MS;
+  const timeout = DEFAULT_TEMPORARY_QUERY_TIMEOUT_MS;
 
   const [dbServers, queryConstants, serverConfigValues] = await Promise.all([
     dheClient.getDbServers(),
@@ -132,9 +139,22 @@ export async function createInteractiveConsoleQuery(
     ) ?? 'Python';
   const workerKind = serverConfigValues.workerKinds?.[0]?.name;
 
+  const autoDelete = autoDeleteTimeoutMs > 0;
+
+  const typeSpecificFields: TypeSpecificFields<string> | null =
+    autoDeleteTimeoutMs > 0
+      ? {
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          TerminationDelay: {
+            type: 'long',
+            value: String(autoDeleteTimeoutMs),
+          },
+        }
+      : null;
+
   const scheduling = QueryScheduler.makeTemporaryScheduling({
-    autoDelete: true,
-    queueName: 'InteractiveConsoleTemporaryQueue',
+    autoDelete,
+    queueName,
   });
 
   const draftQuery = new DraftQuery({
@@ -151,7 +171,8 @@ export async function createInteractiveConsoleQuery(
     jvmArgs: '-Dhttp.websockets=true',
     jvmProfile,
     scriptLanguage,
-    timeout: DEFAULT_TEMPORARY_QUERY_TIMEOUT_MS,
+    timeout,
+    typeSpecificFields,
     workerKind,
   });
 
