@@ -175,6 +175,8 @@ export async function createInteractiveConsoleQuery(
     draftQuery.updateSchedule();
   }
 
+  console.log('[TESTING] schedule:', draftQuery.scheduler);
+
   // type assertion gives us stronger type safety than the Promise<string>
   // return type defined by the JS API types.
   return dheClient.createQuery(draftQuery) as Promise<QuerySerial>;
@@ -210,12 +212,15 @@ export async function getWorkerInfoFromQuery(
   // This Promise will respond to config update events and resolve when the worker
   // is ready.
   const queryInfo = await new Promise<QueryInfo>(resolve => {
-    dheClient.addEventListener(dhe.Client.EVENT_CONFIG_UPDATED, _event => {
-      const queryInfo = findQueryConfigForSerial(dheClient, querySerial);
-      if (queryInfo?.designated?.grpcUrl != null) {
-        resolve(queryInfo);
+    dheClient.addEventListener(
+      dhe.Client.EVENT_CONFIG_UPDATED,
+      (event: CustomEvent<QueryInfo>) => {
+        // const queryInfo = findQueryConfigForSerial(dheClient, querySerial);
+        if (queryInfo?.designated?.grpcUrl != null) {
+          resolve(queryInfo);
+        }
       }
-    });
+    );
   });
 
   if (queryInfo.designated == null) {
