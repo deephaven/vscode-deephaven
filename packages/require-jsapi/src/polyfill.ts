@@ -1,5 +1,17 @@
 import ws from 'ws';
 
+class Event {
+  type: string;
+  detail: unknown;
+
+  constructor(type: string, dict: { detail: unknown }) {
+    this.type = type;
+    if (dict) {
+      this.detail = dict.detail;
+    }
+  }
+}
+
 export class CustomEvent extends Event {
   constructor(...args: ConstructorParameters<typeof Event>) {
     super(...args);
@@ -7,18 +19,6 @@ export class CustomEvent extends Event {
 }
 
 export function polyfillDh(): void {
-  class Event {
-    type: string;
-    detail: unknown;
-
-    constructor(type: string, dict: { detail: unknown }) {
-      this.type = type;
-      if (dict) {
-        this.detail = dict.detail;
-      }
-    }
-  }
-
   // Copilot will look for `window.document.currentScript` if it finds `window`.
   // Since we are polyfilling `window` below, we also need to set `document` to
   // avoid a "Cannot read properties of undefined (reading 'currentScript')"

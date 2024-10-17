@@ -161,6 +161,10 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "vscode-deephaven.requestDheUserCredentials",
+        "title": "Deephaven: Request DHE User Credentials"
+      },
+      {
         "command": "vscode-deephaven.startServer",
         "title": "Deephaven: Start Server",
         "icon": "$(debug-start)"
@@ -624,6 +628,10 @@
         {
           "command": "vscode-deephaven.refreshVariablePanels",
           "when": "false"
+        },
+        {
+          "command": "vscode-deephaven.requestDheUserCredentials",
+          "when": "false"
         }
       ],
       "editor/context": [
@@ -665,7 +673,7 @@
       "view/item/context": [
         {
           "command": "vscode-deephaven.connectToServer",
-          "when": "view == vscode-deephaven.serverTree && (viewItem == isManagedServerDisconnected || viewItem == isServerRunningDisconnected)",
+          "when": "view == vscode-deephaven.serverTree && (viewItem == isManagedServerDisconnected || viewItem == isServerRunningDisconnected || viewItem == isDHEServerRunning)",
           "group": "inline"
         },
         {
@@ -685,7 +693,7 @@
         },
         {
           "command": "vscode-deephaven.openInBrowser",
-          "when": "view == vscode-deephaven.serverTree && (viewItem == isManagedServerConnected || viewItem == isServerRunningConnected || viewItem == isServerRunningDisconnected || viewItem == isManagedServerDisconnected)",
+          "when": "view == vscode-deephaven.serverTree && (viewItem == isManagedServerConnected || viewItem == isServerRunningConnected || viewItem == isServerRunningDisconnected || viewItem == isManagedServerDisconnected || viewItem == isDHEServerRunning)",
           "group": "inline"
         },
         {
@@ -730,6 +738,7 @@
     }
   },
   "devDependencies": {
+    "@deephaven-enterprise/jsapi-types": "^1.20240723.95-beta",
     "@deephaven/jsapi-types": "^1.0.0-dev0.35.3",
     "@types/node": "22.5.4",
     "@types/vscode": "^1.91.0",
@@ -757,7 +766,11 @@
     "wdio-vscode-service": "^6.1.0"
   },
   "dependencies": {
+    "@deephaven-enterprise/query-utils": "^1.20240723.95-beta",
     "@deephaven/require-jsapi": "file:./packages/require-jsapi",
-    "ws": "^8.18.0"
+    "nanoid": "^5.0.7"
+  },
+  "overrides": {
+    "event-target-shim": "^6.0.2"
   }
 }

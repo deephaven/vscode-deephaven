@@ -5,12 +5,15 @@ import { SerializedKeyMap } from './SerializedKeyMap';
  * equality. Since keys are deserialized back to URLs, they will not maintain
  * reference equalty with original keys.
  */
-export class URLMap<T> extends SerializedKeyMap<URL, T> {
-  deserializeKey(urlString: string): URL {
-    return new URL(urlString);
+export class URLMap<T, TURL extends URL = URL> extends SerializedKeyMap<
+  TURL,
+  T
+> {
+  deserializeKey(urlString: string): TURL {
+    return new URL(urlString) as TURL;
   }
 
-  serializeKey(url: URL): string {
+  serializeKey(url: TURL): string {
     return url.toString();
   }
 }
