@@ -98,21 +98,6 @@ export async function hasInteractivePermission(
 }
 
 /**
- * Find the `QueryInfo` matching the given serial.
- * @param dheClient DHE client to search.
- * @param matchSerial Serial to match.
- * @returns The matching `QueryInfo` or `undefined` if not found.
- */
-export function findQueryConfigForSerial(
-  dheClient: EnterpriseClient,
-  matchSerial: string
-): QueryInfo | undefined {
-  return dheClient
-    .getKnownConfigs()
-    .find(({ serial }) => serial === matchSerial);
-}
-
-/**
  * Create a query of type `InteractiveConsole`.
  * @param tagId Unique tag id to include in the query name.
  * @param dheClient The DHE client to use to create the query.
@@ -175,8 +160,6 @@ export async function createInteractiveConsoleQuery(
     draftQuery.updateSchedule();
   }
 
-  console.log('[TESTING] schedule:', draftQuery.scheduler);
-
   // type assertion gives us stronger type safety than the Promise<string>
   // return type defined by the JS API types.
   return dheClient.createQuery(draftQuery) as Promise<QuerySerial>;
@@ -214,9 +197,11 @@ export async function getWorkerInfoFromQuery(
   const queryInfo = await new Promise<QueryInfo>(resolve => {
     dheClient.addEventListener(
       dhe.Client.EVENT_CONFIG_UPDATED,
-      (event: CustomEvent<QueryInfo>) => {
-        // const queryInfo = findQueryConfigForSerial(dheClient, querySerial);
-        if (queryInfo?.designated?.grpcUrl != null) {
+      ({ detail: queryInfo }: CustomEvent<QueryInfo>) => {
+        if (
+          queryInfo.serial === querySerial &&
+          queryInfo.designated?.grpcUrl != null
+        ) {
           resolve(queryInfo);
         }
       }
