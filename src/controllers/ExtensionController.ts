@@ -324,7 +324,9 @@ export class ExtensionController implements Disposable {
       this._config,
       this._coreCredentialsCache,
       this._dhcServiceFactory,
-      this._dheServiceCache
+      this._dheServiceCache,
+      this._outputChannel,
+      this._toaster
     );
     this._context.subscriptions.push(this._serverManager);
 

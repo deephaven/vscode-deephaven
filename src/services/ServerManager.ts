@@ -19,6 +19,7 @@ import type {
   WorkerURL,
   Lazy,
   UniqueID,
+  IToastService,
 } from '../types';
 import {
   getInitialServerStates,
@@ -39,14 +40,18 @@ export class ServerManager implements IServerManager {
     configService: IConfigService,
     coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
     dhcServiceFactory: IDhServiceFactory,
-    dheServiceCache: IAsyncCacheService<URL, IDheService>
+    dheServiceCache: IAsyncCacheService<URL, IDheService>,
+    outputChannel: vscode.OutputChannel,
+    toaster: IToastService
   ) {
     this._configService = configService;
     this._connectionMap = new URLMap<ConnectionState>();
     this._coreCredentialsCache = coreCredentialsCache;
     this._dhcServiceFactory = dhcServiceFactory;
     this._dheServiceCache = dheServiceCache;
+    this._outputChannel = outputChannel;
     this._serverMap = new URLMap<ServerState>();
+    this._toaster = toaster;
     this._uriConnectionsMap = new URIMap<ConnectionState>();
     this._workerURLToServerURLMap = new URLMap<URL>();
 
@@ -62,6 +67,8 @@ export class ServerManager implements IServerManager {
   >;
   private readonly _dhcServiceFactory: IDhServiceFactory;
   private readonly _dheServiceCache: IAsyncCacheService<URL, IDheService>;
+  private readonly _outputChannel: vscode.OutputChannel;
+  private readonly _toaster: IToastService;
   private readonly _uriConnectionsMap: URIMap<ConnectionState>;
   private readonly _workerURLToServerURLMap: URLMap<URL>;
   private _serverMap: URLMap<ServerState>;
@@ -187,8 +194,9 @@ export class ServerManager implements IServerManager {
       try {
         workerInfo = await dheService.createWorker(tagId, workerConsoleType);
 
-        // If connection was closed by user before worker finished creating,
-        // dispose of the worker
+        // If the worker finished creating, but there is no placeholder connection,
+        // this indicates that the user cancelled the creation before it was ready.
+        // In this case, dispose of the worker.
         if (!this._connectionMap.has(placeholderUrl)) {
           dheService.deleteWorker(workerInfo.grpcUrl);
           this._onDidUpdate.fire();
@@ -196,7 +204,12 @@ export class ServerManager implements IServerManager {
         }
       } catch (err) {
         logger.error(err);
+        const msg = 'Failed to create worker.';
+        this._outputChannel.appendLine(msg);
+        this._toaster.error(msg);
+
         this.updateConnectionCount(serverUrl, -1);
+        this._connectionMap.delete(placeholderUrl);
         return null;
       }
 
