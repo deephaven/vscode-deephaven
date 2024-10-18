@@ -136,11 +136,13 @@ export async function createInteractiveConsoleQuery(
   const dbServerName =
     workerConfig?.dbServerName ?? dbServers[0]?.name ?? 'Query 1';
   const heapSize = workerConfig?.heapSize ?? queryConstants.pqDefaultHeap;
-  // TODO: deephaven/vscode-deephaven/issues/153 to update this to secure websocket
-  // connection and remove the http.websockets property
+
+  // We have to use websockets since fetch over http2 is not sufficiently
+  // supported in the nodejs environment (v20 at time of this comment).
   const jvmArgs = workerConfig?.jvmArgs
     ? `'-Dhttp.websockets=true' ${workerConfig.jvmArgs}`
     : '-Dhttp.websockets=true';
+
   const jvmProfile =
     workerConfig?.jvmProfile ?? serverConfigValues.jvmProfileDefault;
   const scriptLanguage =
@@ -178,9 +180,7 @@ export async function createInteractiveConsoleQuery(
     dbServerName,
     heapSize: heapSize,
     scheduling,
-    // We have to use websockets since http2 is not sufficiently supported in
-    // the nodejs environment (v20 at time of this comment).
-    jvmArgs: '-Dhttp.websockets=true',
+    jvmArgs,
     jvmProfile,
     scriptLanguage,
     timeout,
