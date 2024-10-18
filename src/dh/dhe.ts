@@ -138,7 +138,9 @@ export async function createInteractiveConsoleQuery(
   const heapSize = workerConfig?.heapSize ?? queryConstants.pqDefaultHeap;
 
   // We have to use websockets since fetch over http2 is not sufficiently
-  // supported in the nodejs environment (v20 at time of this comment).
+  // supported in the nodejs environment bundled with `vscode` (v20 at time of
+  // this comment). Note that the `http` in the key name does not indicate
+  // insecure websockets. The connection will be a `wss:` secure connection.
   const jvmArgs = workerConfig?.jvmArgs
     ? `'-Dhttp.websockets=true' ${workerConfig.jvmArgs}`
     : '-Dhttp.websockets=true';
