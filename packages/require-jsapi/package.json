@@ -15,5 +15,11 @@
   "sideEffects": false,
   "scripts": {
     "build": "tsc --build"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@deephaven-enterprise/jsapi-types": "^1.20240723.95-beta"
   }
 }

@@ -87,6 +87,7 @@ describe('getServerContextValue', () => {
     (isConnected, isManaged, isRunning) => {
       const actual = getServerContextValue({
         isConnected,
+        isDHE: false,
         isManaged,
         isRunning,
       });
@@ -142,18 +143,27 @@ describe('getServerIconID', () => {
 });
 
 describe('getServerTreeItem', () => {
+  const typeValues = ['DHC', 'DHE'] as const;
+
   const dhcServerState: ServerState = {
     type: 'DHC',
     url: new URL('http://localhost:10000'),
+    isConnected: false,
+    isRunning: false,
+    connectionCount: 0,
   };
 
-  it.each(matrix(boolValues, boolValues, boolValues))(
-    'should return DHC server tree item: isConnected=%s, isManaged=%s, isRunning=%s',
-    (isConnected, isManaged, isRunning) => {
+  it.each(matrix(typeValues, boolValues, boolValues, boolValues))(
+    'should return server tree item: type=%s, isConnected=%s, isManaged=%s, isRunning=%s',
+    (type, isConnected, isManaged, isRunning) => {
       const actual = getServerTreeItem({
-        server: dhcServerState,
+        ...dhcServerState,
+        ...(isManaged
+          ? { isManaged: true, psk: 'mock.psk' }
+          : { isManaged: false }),
+        type,
+        connectionCount: isConnected ? 1 : 0,
         isConnected,
-        isManaged,
         isRunning,
       });
 

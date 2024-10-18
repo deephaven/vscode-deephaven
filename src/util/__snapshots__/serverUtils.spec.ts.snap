@@ -1,0 +1,30 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`getInitialServerStates > should derive server states from config 1`] = `
+[
+  {
+    "connectionCount": 0,
+    "isConnected": false,
+    "isRunning": false,
+    "label": "SomeLabel",
+    "type": "DHC",
+    "url": "http://localhost:10000/",
+  },
+  {
+    "connectionCount": 0,
+    "isConnected": false,
+    "isRunning": false,
+    "label": undefined,
+    "type": "DHC",
+    "url": "http://localhost:10001/",
+  },
+  {
+    "connectionCount": 0,
+    "isConnected": false,
+    "isRunning": false,
+    "label": undefined,
+    "type": "DHC",
+    "url": "http://localhost:10002/",
+  },
+]
+`;

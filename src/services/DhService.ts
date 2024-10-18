@@ -7,6 +7,8 @@ import type {
   IDhService,
   IPanelService,
   IToastService,
+  Lazy,
+  UniqueID,
   VariableChanges,
   VariableDefintion,
   VariableID,
@@ -19,6 +21,7 @@ import {
 } from '../common';
 import type { ConnectionAndSession } from '../dh/dhc';
 import { NoConsoleTypesError, parseServerError } from '../dh/errorUtils';
+import type { URLMap } from './URLMap';
 
 const logger = new Logger('DhService');
 
@@ -27,24 +30,32 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
 {
   constructor(
     serverUrl: URL,
+    coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
     panelService: IPanelService,
     diagnosticsCollection: vscode.DiagnosticCollection,
     outputChannel: vscode.OutputChannel,
-    toaster: IToastService
+    toaster: IToastService,
+    tagId?: UniqueID
   ) {
+    this.coreCredentialsCache = coreCredentialsCache;
     this.serverUrl = serverUrl;
     this.panelService = panelService;
     this.diagnosticsCollection = diagnosticsCollection;
     this.outputChannel = outputChannel;
     this.toaster = toaster;
+    this.tagId = tagId;
   }
 
   private readonly _onDidDisconnect = new vscode.EventEmitter<URL>();
   readonly onDidDisconnect = this._onDidDisconnect.event;
 
   public readonly serverUrl: URL;
+  public readonly tagId?: UniqueID;
   protected readonly subscriptions: (() => void)[] = [];
 
+  protected readonly coreCredentialsCache: URLMap<
+    Lazy<DhcType.LoginCredentials>
+  >;
   protected readonly outputChannel: vscode.OutputChannel;
   protected readonly toaster: IToastService;
   private readonly panelService: IPanelService;
@@ -254,7 +265,9 @@ export abstract class DhService<TDH = unknown, TClient = unknown>
     let error: string | null = null;
 
     try {
+      const start = performance.now();
       result = await this.session.runCode(text);
+      logger.debug('Command took', performance.now() - start, 'ms');
       error = result.error;
     } catch (err) {
       error = String(err);

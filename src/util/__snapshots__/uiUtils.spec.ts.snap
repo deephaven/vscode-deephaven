@@ -60,6 +60,9 @@ exports[`createConnectionQuickPickOptions > should return quick pick options: ed
   },
   {
     "data": {
+      "connectionCount": 0,
+      "isConnected": false,
+      "isRunning": false,
       "type": "DHC",
       "url": "http://localhost:10001/",
     },
@@ -73,6 +76,9 @@ exports[`createConnectionQuickPickOptions > should return quick pick options: ed
   },
   {
     "data": {
+      "connectionCount": 0,
+      "isConnected": false,
+      "isRunning": false,
       "type": "DHC",
       "url": "http://localhost:10003/",
     },
@@ -125,6 +131,9 @@ exports[`createConnectionQuickPickOptions > should return quick pick options: ed
   },
   {
     "data": {
+      "connectionCount": 0,
+      "isConnected": false,
+      "isRunning": false,
       "type": "DHC",
       "url": "http://localhost:10001/",
     },
@@ -138,6 +147,9 @@ exports[`createConnectionQuickPickOptions > should return quick pick options: ed
   },
   {
     "data": {
+      "connectionCount": 0,
+      "isConnected": false,
+      "isRunning": false,
       "type": "DHC",
       "url": "http://localhost:10003/",
     },

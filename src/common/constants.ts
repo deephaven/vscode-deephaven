@@ -12,6 +12,15 @@ export const CONFIG_KEY = {
 export const DEFAULT_CONSOLE_TYPE = 'python' as const;
 // export const DHFS_SCHEME = 'dhfs';
 
+// 600 seconds is based on default `auto_delete_timeout` in
+// `ControllerClient.make_temporary_config`
+export const DEFAULT_TEMPORARY_QUERY_AUTO_TIMEOUT_MS = 600000 as const;
+export const DEFAULT_TEMPORARY_QUERY_TIMEOUT_MS = 60000 as const;
+
+export const INTERACTIVE_CONSOLE_QUERY_TYPE = 'InteractiveConsole';
+export const INTERACTIVE_CONSOLE_TEMPORARY_QUEUE_NAME =
+  'InteractiveConsoleTemporaryQueue';
+
 export const PYTHON_ENV_WAIT = 1500 as const;
 
 export const PIP_SERVER_STATUS_CHECK_INTERVAL = 3000;
@@ -88,6 +97,7 @@ export const PIP_SERVER_STATUS_DIRECTORY = 'pip-server-status';
 
 export const SERVER_TREE_ITEM_CONTEXT = {
   canStartServer: 'canStartServer',
+  isDHEServerRunning: 'isDHEServerRunning',
   isManagedServerConnected: 'isManagedServerConnected',
   isManagedServerConnecting: 'isManagedServerConnecting',
   isManagedServerDisconnected: 'isManagedServerDisconnected',
@@ -97,3 +107,13 @@ export const SERVER_TREE_ITEM_CONTEXT = {
 } as const;
 
 export type ServerTreeItemContextValue = keyof typeof SERVER_TREE_ITEM_CONTEXT;
+
+export const DEEPHAVEN_POST_MSG = {
+  loginOptionsRequest: 'io.deephaven.message.LoginOptions.request',
+  sessionDetailsRequest: 'io.deephaven.message.SessionDetails.request',
+} as const;
+
+export const VSCODE_POST_MSG = {
+  loginOptionsResponse: 'vscode-ext.loginOptions',
+  sessionDetailsResponse: 'vscode-ext.sessionDetails',
+} as const;

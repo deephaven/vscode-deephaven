@@ -51,8 +51,20 @@ describe('createConnectionQuickPickOptions', () => {
     'should return quick pick options: editorActiveConnectionUrl=%s',
     (_label, editorActiveConnectionUrl) => {
       const serversWithoutConnections: ServerState[] = [
-        { type: 'DHC', url: serverUrlB },
-        { type: 'DHC', url: serverUrlD },
+        {
+          type: 'DHC',
+          url: serverUrlB,
+          isConnected: false,
+          isRunning: false,
+          connectionCount: 0,
+        },
+        {
+          type: 'DHC',
+          url: serverUrlD,
+          isConnected: false,
+          isRunning: false,
+          connectionCount: 0,
+        },
       ];
       const connections: ConnectionState[] = [
         { serverUrl: serverUrlA, isConnected: true },

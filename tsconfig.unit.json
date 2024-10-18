@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig.json",
-  "include": ["src/**/*.spec.ts"],
+  "include": ["src/**/*.spec.ts", "src/dh/modules.d.ts"],
   // Override ./tsconfig `exclude` so that *.spec.ts files are included
   "exclude": ["node_modules"],
   "references": [{ "path": "./packages/require-jsapi" }]

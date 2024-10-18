@@ -7,6 +7,8 @@ export type Brand<T extends string, TBase = string> = TBase & {
   readonly [__brand]: T;
 };
 
+export type UniqueID = Brand<'UniqueID', string>;
+
 export type Port = Brand<'Port', number>;
 
 export type ConnectionType = 'DHC';
@@ -41,6 +43,20 @@ export type ServerConnectionConfig =
 export interface ConnectionState {
   readonly isConnected: boolean;
   readonly serverUrl: URL;
+  readonly tagId?: UniqueID;
+}
+
+export type WorkerURL = Brand<'GrpcUrl', URL>;
+export type IdeURL = Brand<'IdeUrl', URL>;
+export type QuerySerial = Brand<'QuerySerial', string>;
+
+export interface WorkerInfo {
+  tagId: UniqueID;
+  grpcUrl: WorkerURL;
+  ideUrl: IdeURL;
+  processInfoId: string | null;
+  serial: QuerySerial;
+  workerName: string | null;
 }
 
 export interface Disposable {
@@ -48,6 +64,7 @@ export interface Disposable {
 }
 
 export type EventListenerT = <TEvent>(event: TEvent) => void;
+export type Lazy<T> = () => Promise<T>;
 export type UnsubscribeEventListener = () => void;
 
 export type ServerType = 'DHC' | 'DHE';
@@ -65,7 +82,9 @@ export type ServerState = {
   type: ServerType;
   url: URL;
   label?: string;
-  isRunning?: boolean;
+  isConnected: boolean;
+  isRunning: boolean;
+  connectionCount: number;
 } & (UnmanagedServerState | ManagedServerState);
 
 export type VariableID = Brand<'VariableID'>;
@@ -96,3 +115,24 @@ export type VariableType =
   | 'TableMap'
   | 'Treemap'
   | 'TreeTable';
+
+export interface LoginOptionsResponsePostMessage {
+  message: 'vscode-ext.loginOptions';
+  payload: {
+    id: string;
+    payload: DhcType.LoginCredentials;
+  };
+  targetOrigin: IdeURL;
+}
+
+export interface SessionDetailsResponsePostMessage {
+  message: 'vscode-ext.sessionDetails';
+  payload: {
+    id: string;
+    payload: {
+      workerName: string | null;
+      processInfoId: string | null;
+    };
+  };
+  targetOrigin: IdeURL;
+}

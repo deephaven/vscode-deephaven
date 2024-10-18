@@ -1,4 +1,10 @@
 import * as vscode from 'vscode';
+import type { dh as DhcType } from '@deephaven/jsapi-types';
+import type {
+  EnterpriseDhType as DheType,
+  EnterpriseClient,
+  LoginCredentials as DheLoginCredentials,
+} from '@deephaven-enterprise/jsapi-types';
 import {
   CONNECT_TO_SERVER_CMD,
   CREATE_NEW_TEXT_DOC_CMD,
@@ -17,6 +23,7 @@ import {
 } from '../common';
 import {
   assertDefined,
+  getConsoleType,
   getEditorForUri,
   getTempDir,
   isInstanceOf,
@@ -34,18 +41,28 @@ import {
 } from '../providers';
 import {
   DhcServiceFactory,
+  DheClientCache,
+  DheJsApiCache,
+  DheService,
+  DheServiceCache,
   DhService,
   PanelService,
   ServerManager,
+  URLMap,
 } from '../services';
 import type {
+  ConnectionState,
   Disposable,
+  IAsyncCacheService,
   IConfigService,
+  IDheService,
+  IDheServiceFactory,
   IDhService,
   IDhServiceFactory,
   IPanelService,
   IServerManager,
   IToastService,
+  Lazy,
   ServerConnectionPanelNode,
   ServerConnectionPanelTreeView,
   ServerConnectionTreeView,
@@ -56,6 +73,7 @@ import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTre
 import { ConnectionController } from './ConnectionController';
 import { PipServerController } from './PipServerController';
 import { PanelController } from './PanelController';
+import { UserLoginController } from './UserLoginController';
 
 const logger = new Logger('ExtensionController');
 
@@ -74,6 +92,7 @@ export class ExtensionController implements Disposable {
     this.initializeConnectionController();
     this.initializePanelController();
     this.initializePipServerController();
+    this.initializeUserLoginController();
     this.initializeCommands();
     this.initializeWebViews();
     this.initializeServerUpdates();
@@ -89,11 +108,20 @@ export class ExtensionController implements Disposable {
   readonly _config: IConfigService;
 
   private _connectionController: ConnectionController | null = null;
+  private _coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>> | null =
+    null;
+  private _dheClientCache: IAsyncCacheService<URL, EnterpriseClient> | null =
+    null;
+  private _dheCredentialsCache: URLMap<DheLoginCredentials> | null = null;
+  private _dheServiceCache: IAsyncCacheService<URL, IDheService> | null = null;
   private _panelController: PanelController | null = null;
   private _panelService: IPanelService | null = null;
   private _pipServerController: PipServerController | null = null;
   private _dhcServiceFactory: IDhServiceFactory | null = null;
+  private _dheJsApiCache: IAsyncCacheService<URL, DheType> | null = null;
+  private _dheServiceFactory: IDheServiceFactory | null = null;
   private _serverManager: IServerManager | null = null;
+  private _userLoginController: UserLoginController | null = null;
 
   // Tree providers
   private _serverTreeProvider: ServerTreeProvider | null = null;
@@ -162,10 +190,12 @@ export class ExtensionController implements Disposable {
    * Initialize panel controller.
    */
   initializePanelController = (): void => {
+    assertDefined(this._coreCredentialsCache, 'coreCredentialsCache');
     assertDefined(this._panelService, 'panelService');
     assertDefined(this._serverManager, 'serverManager');
 
     this._panelController = new PanelController(
+      this._coreCredentialsCache,
       this._serverManager,
       this._panelService
     );
@@ -187,6 +217,19 @@ export class ExtensionController implements Disposable {
       this._outputChannel,
       this._toaster
     );
+  };
+
+  /**
+   * Initialize user login controller.
+   */
+  initializeUserLoginController = (): void => {
+    assertDefined(this._dheCredentialsCache, 'dheCredentialsCache');
+
+    this._userLoginController = new UserLoginController(
+      this._dheCredentialsCache
+    );
+
+    this._context.subscriptions.push(this._userLoginController);
   };
 
   /**
@@ -247,19 +290,43 @@ export class ExtensionController implements Disposable {
     assertDefined(this._outputChannel, 'outputChannel');
     assertDefined(this._toaster, 'toaster');
 
+    this._coreCredentialsCache = new URLMap<Lazy<DhcType.LoginCredentials>>();
+    this._dheCredentialsCache = new URLMap<DheLoginCredentials>();
+
+    this._dheJsApiCache = new DheJsApiCache();
+    this._context.subscriptions.push(this._dheJsApiCache);
+
+    this._dheClientCache = new DheClientCache(this._dheJsApiCache);
+    this._context.subscriptions.push(this._dheClientCache);
+
     this._panelService = new PanelService();
     this._context.subscriptions.push(this._panelService);
 
     this._dhcServiceFactory = new DhcServiceFactory(
+      this._coreCredentialsCache,
       this._panelService,
       this._pythonDiagnostics,
       this._outputChannel,
       this._toaster
     );
 
+    this._dheServiceFactory = DheService.factory(
+      this._coreCredentialsCache,
+      this._dheClientCache,
+      this._dheCredentialsCache,
+      this._dheJsApiCache
+    );
+
+    this._dheServiceCache = new DheServiceCache(this._dheServiceFactory);
+    this._context.subscriptions.push(this._dheServiceCache);
+
     this._serverManager = new ServerManager(
       this._config,
-      this._dhcServiceFactory
+      this._coreCredentialsCache,
+      this._dhcServiceFactory,
+      this._dheServiceCache,
+      this._outputChannel,
+      this._toaster
     );
     this._context.subscriptions.push(this._serverManager);
 
@@ -458,7 +525,14 @@ export class ExtensionController implements Disposable {
    * Handle connecting to a server
    */
   onConnectToServer = async (serverState: ServerState): Promise<void> => {
-    this._serverManager?.connectToServer(serverState.url);
+    const languageId = vscode.window.activeTextEditor?.document.languageId;
+
+    // DHE servers need to specify the console type for each worker creation.
+    // Use the active editor's language id to determine the console type.
+    const workerConsoleType =
+      serverState.type === 'DHE' ? getConsoleType(languageId) : undefined;
+
+    this._serverManager?.connectToServer(serverState.url, workerConsoleType);
   };
 
   /**
@@ -490,8 +564,10 @@ export class ExtensionController implements Disposable {
   /**
    * Handle disconnecting from a server.
    */
-  onDisconnectFromServer = async (dhService: IDhService): Promise<void> => {
-    this._serverManager?.disconnectFromServer(dhService.serverUrl);
+  onDisconnectFromServer = async (
+    connectionState: ConnectionState
+  ): Promise<void> => {
+    this._serverManager?.disconnectFromServer(connectionState.serverUrl);
   };
 
   /**

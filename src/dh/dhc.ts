@@ -7,6 +7,9 @@ export const AUTH_HANDLER_TYPE_ANONYMOUS =
 export const AUTH_HANDLER_TYPE_PSK =
   'io.deephaven.authentication.psk.PskAuthenticationHandler';
 
+export const AUTH_HANDLER_TYPE_DHE =
+  'io.deephaven.enterprise.dnd.authentication.DheAuthenticationHandler';
+
 export type ConnectionAndSession<TConnection, TSession> = {
   cn: TConnection;
   session: TSession;
@@ -14,26 +17,58 @@ export type ConnectionAndSession<TConnection, TSession> = {
 
 /**
  * Get embed widget url for a widget.
- * @param serverUrl
- * @param title
- * @param themeKey
- * @param psk
+ * @param serverUrl Server URL
+ * @param title Widget title
+ * @param themeKey Theme key
+ * @param authProvider Optional auth provider
+ * @param psk Optional psk
  */
-export function getEmbedWidgetUrl(
-  serverUrl: URL,
-  title: string,
-  themeKey: string,
-  psk?: string
-): string {
-  const serverUrlStr = serverUrl.toString().replace(/\/$/, '');
-  return `${serverUrlStr}/iframe/widget/?theme=${themeKey}&name=${title}${psk ? `&psk=${psk}` : ''}`;
+export function getEmbedWidgetUrl({
+  serverUrl,
+  title,
+  themeKey,
+  authProvider,
+  psk,
+}: {
+  serverUrl: URL;
+  title: string;
+  themeKey: string;
+  authProvider?: 'parent';
+  psk?: string | null;
+}): URL {
+  const url = new URL('/iframe/widget', serverUrl);
+
+  url.searchParams.set('name', title);
+  url.searchParams.set('theme', themeKey);
+
+  if (authProvider) {
+    url.searchParams.set('authProvider', authProvider);
+  }
+
+  if (psk) {
+    url.searchParams.set('psk', psk);
+  }
+
+  return url;
 }
 
+/**
+ * Initialize a connection and session to a DHC server.
+ * @param client The client to use for the connection.
+ * @param credentials The credentials to use for the connection.
+ * @returns A promise that resolves to the connection and session.
+ */
 export async function initDhcSession(
   client: DhType.CoreClient,
   credentials: DhType.LoginCredentials
 ): Promise<ConnectionAndSession<DhType.IdeConnection, DhType.IdeSession>> {
-  await client.login(credentials);
+  try {
+    await client.login(credentials);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error(err);
+    throw err;
+  }
 
   const cn = await client.getAsIdeConnection();
 

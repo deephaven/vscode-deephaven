@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import type { EnterpriseClient } from '@deephaven-enterprise/jsapi-types';
 import type {
   ConsoleType,
   CoreConnectionConfig,
@@ -11,7 +12,16 @@ import type {
   VariableChanges,
   VariableDefintion,
   VariableID,
+  WorkerInfo,
+  WorkerURL,
+  UniqueID,
 } from '../types/commonTypes';
+
+export interface IAsyncCacheService<TKey, TValue> extends Disposable {
+  get: (key: TKey) => Promise<TValue>;
+  has: (key: TKey) => boolean;
+  invalidate: (key: TKey) => void;
+}
 
 /**
  * Configuration service interface.
@@ -42,6 +52,16 @@ export interface IDhService<TDH = unknown, TClient = unknown>
   ) => Promise<void>;
 }
 
+export interface IDheService extends ConnectionState, Disposable {
+  getClient: (initializeIfNull: boolean) => Promise<EnterpriseClient | null>;
+  getWorkerInfo: (workerUrl: WorkerURL) => WorkerInfo | undefined;
+  createWorker: (
+    tagId: UniqueID,
+    consoleType?: ConsoleType
+  ) => Promise<WorkerInfo>;
+  deleteWorker: (workerUrl: WorkerURL) => Promise<void>;
+}
+
 /**
  * @deprecated Use `vscode.EventEmitter` instead.
  */
@@ -63,8 +83,9 @@ export interface IFactory<T, TArgs extends unknown[] = []> {
  */
 export type IDhServiceFactory = IFactory<
   IDhService,
-  [serverUrl: URL, psk?: string]
+  [serverUrl: URL, tagId?: UniqueID]
 >;
+export type IDheServiceFactory = IFactory<IDheService, [serverUrl: URL]>;
 
 export interface IPanelService extends Disposable {
   readonly onDidUpdate: vscode.Event<void>;
@@ -89,12 +110,14 @@ export interface IPanelService extends Disposable {
 export interface IServerManager extends Disposable {
   canStartServer: boolean;
 
-  connectToServer: (serverUrl: URL) => Promise<ConnectionState | null>;
+  connectToServer: (
+    serverUrl: URL,
+    workerConsoleType?: ConsoleType
+  ) => Promise<ConnectionState | null>;
   disconnectEditor: (uri: vscode.Uri) => void;
   disconnectFromServer: (serverUrl: URL) => Promise<void>;
   loadServerConfig: () => Promise<void>;
 
-  hasConnection: (serverUrl: URL) => boolean;
   hasConnectionUris: (connection: ConnectionState) => boolean;
 
   getConnection: (serverUrl: URL) => ConnectionState | undefined;
@@ -103,6 +126,7 @@ export interface IServerManager extends Disposable {
   getEditorConnection: (
     editor: vscode.TextEditor
   ) => Promise<ConnectionState | null>;
+  getWorkerInfo: (workerUrl: WorkerURL) => Promise<WorkerInfo | undefined>;
   setEditorConnection: (
     editor: vscode.TextEditor,
     dhService: ConnectionState
@@ -112,6 +136,7 @@ export interface IServerManager extends Disposable {
   getServers: (filter?: {
     isRunning?: boolean;
     hasConnections?: boolean;
+    type?: 'DHC' | 'DHE';
   }) => ServerState[];
   getUriConnection: (uri: vscode.Uri) => ConnectionState | null;
   hasEverUpdatedStatus: () => boolean;

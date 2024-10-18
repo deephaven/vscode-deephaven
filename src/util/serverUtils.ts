@@ -26,6 +26,9 @@ export function getInitialServerStates(
     type,
     label: config instanceof URL ? undefined : config.label,
     url: config instanceof URL ? config : config.url,
+    isConnected: false,
+    isRunning: false,
+    connectionCount: 0,
   }));
 }
 
@@ -49,6 +52,20 @@ export async function getConnectionsForConsoleType(
   }
 
   return filteredConnections;
+}
+
+/**
+ * If the given value is a valid console type, return it, otherwise return undefined.
+ * @param maybeConsoleType
+ * @returns A console type or undefined if given value is invalid.
+ */
+export function getConsoleType(
+  maybeConsoleType?: string
+): ConsoleType | undefined {
+  return typeof maybeConsoleType === 'string' &&
+    SERVER_LANGUAGE_SET.has(maybeConsoleType as ConsoleType)
+    ? (maybeConsoleType as ConsoleType)
+    : undefined;
 }
 
 /**

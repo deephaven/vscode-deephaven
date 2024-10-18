@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { randomUUID } from 'node:crypto';
+import type { dh as DhcType } from '@deephaven/jsapi-types';
 import {
   isDhcServerRunning,
   isDheServerRunning,
@@ -12,30 +13,47 @@ import type {
   IServerManager,
   ConnectionState,
   ServerState,
+  WorkerInfo,
+  IDheService,
+  IAsyncCacheService,
+  WorkerURL,
+  Lazy,
+  UniqueID,
+  IToastService,
 } from '../types';
 import {
   getInitialServerStates,
   isDisposable,
   isInstanceOf,
   Logger,
+  uniqueId,
 } from '../util';
 import { URLMap } from './URLMap';
 import { URIMap } from './URIMap';
-import DhService from './DhService';
+import { DhService } from './DhService';
+import { AUTH_HANDLER_TYPE_PSK } from '../dh/dhc';
 
 const logger = new Logger('ServerManager');
 
 export class ServerManager implements IServerManager {
   constructor(
     configService: IConfigService,
-    dhcServiceFactory: IDhServiceFactory
+    coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
+    dhcServiceFactory: IDhServiceFactory,
+    dheServiceCache: IAsyncCacheService<URL, IDheService>,
+    outputChannel: vscode.OutputChannel,
+    toaster: IToastService
   ) {
     this._configService = configService;
-    this._dhcServiceFactory = dhcServiceFactory;
-
-    this._serverMap = new URLMap<ServerState>();
     this._connectionMap = new URLMap<ConnectionState>();
+    this._coreCredentialsCache = coreCredentialsCache;
+    this._dhcServiceFactory = dhcServiceFactory;
+    this._dheServiceCache = dheServiceCache;
+    this._outputChannel = outputChannel;
+    this._serverMap = new URLMap<ServerState>();
+    this._toaster = toaster;
     this._uriConnectionsMap = new URIMap<ConnectionState>();
+    this._workerURLToServerURLMap = new URLMap<URL>();
 
     this.canStartServer = false;
 
@@ -44,8 +62,15 @@ export class ServerManager implements IServerManager {
 
   private readonly _configService: IConfigService;
   private readonly _connectionMap: URLMap<ConnectionState>;
+  private readonly _coreCredentialsCache: URLMap<
+    Lazy<DhcType.LoginCredentials>
+  >;
   private readonly _dhcServiceFactory: IDhServiceFactory;
+  private readonly _dheServiceCache: IAsyncCacheService<URL, IDheService>;
+  private readonly _outputChannel: vscode.OutputChannel;
+  private readonly _toaster: IToastService;
   private readonly _uriConnectionsMap: URIMap<ConnectionState>;
+  private readonly _workerURLToServerURLMap: URLMap<URL>;
   private _serverMap: URLMap<ServerState>;
 
   private readonly _onDidConnect = new vscode.EventEmitter<URL>();
@@ -112,23 +137,95 @@ export class ServerManager implements IServerManager {
     this._onDidLoadConfig.fire();
   };
 
-  connectToServer = async (serverUrl: URL): Promise<ConnectionState | null> => {
-    if (this.hasConnection(serverUrl)) {
+  connectToServer = async (
+    serverUrl: URL,
+    workerConsoleType?: ConsoleType
+  ): Promise<ConnectionState | null> => {
+    const serverState = this._serverMap.get(serverUrl);
+
+    if (serverState == null) {
+      return null;
+    }
+
+    // DHE supports multiple connections, but DHC does not.
+    if (
+      !this._dheServiceCache.has(serverUrl) &&
+      serverState.connectionCount > 0
+    ) {
       logger.info('Already connected to server:', serverUrl);
       return null;
     }
 
-    const serverState = this._serverMap.get(serverUrl);
+    let tagId: UniqueID | undefined;
 
-    // TODO: implement DHE #76
-    if (serverState == null || serverState.type !== 'DHC') {
-      return null;
+    // Pip managed local server
+    if (serverState.isManaged) {
+      this.updateConnectionCount(serverUrl, 1);
+
+      this._coreCredentialsCache.set(serverUrl, async () => ({
+        type: AUTH_HANDLER_TYPE_PSK,
+        token: serverState.psk,
+      }));
+    }
+    // Non-managed DHC server
+    else if (serverState.type === 'DHC') {
+      this.updateConnectionCount(serverUrl, 1);
+    }
+    // DHE server
+    else if (serverState.type === 'DHE') {
+      const dheService = await this._dheServiceCache.get(serverUrl);
+
+      // Get client. Client will be initialized if it doesn't exist (including
+      // prompting user for login).
+      if (!(await dheService.getClient(true))) {
+        return null;
+      }
+
+      this.updateConnectionCount(serverUrl, 1);
+      tagId = uniqueId();
+
+      // Put a placeholder connection in place until the worker is ready.
+      const placeholderUrl = this.addWorkerPlaceholderConnection(
+        serverUrl,
+        tagId
+      );
+
+      let workerInfo: WorkerInfo;
+      try {
+        workerInfo = await dheService.createWorker(tagId, workerConsoleType);
+
+        // If the worker finished creating, but there is no placeholder connection,
+        // this indicates that the user cancelled the creation before it was ready.
+        // In this case, dispose of the worker.
+        if (!this._connectionMap.has(placeholderUrl)) {
+          dheService.deleteWorker(workerInfo.grpcUrl);
+          this._onDidUpdate.fire();
+          return null;
+        }
+      } catch (err) {
+        logger.error(err);
+        const msg = 'Failed to create worker.';
+        this._outputChannel.appendLine(msg);
+        this._toaster.error(msg);
+
+        this.updateConnectionCount(serverUrl, -1);
+        this._connectionMap.delete(placeholderUrl);
+        return null;
+      }
+
+      // Remove placeholder connection
+      this.removeWorkerPlaceholderConnection(placeholderUrl);
+
+      // Map the worker URL to the server URL to make things easier to dispose
+      // later.
+      this._workerURLToServerURLMap.set(new URL(workerInfo.grpcUrl), serverUrl);
+
+      // Update the server URL to the worker url to be used below with core
+      // connection creation.
+      serverUrl = new URL(workerInfo.grpcUrl);
     }
 
-    const connection = this._dhcServiceFactory.create(
-      serverUrl,
-      serverState.isManaged ? serverState.psk : undefined
-    );
+    const connection = this._dhcServiceFactory.create(serverUrl, tagId);
 
     this._connectionMap.set(serverUrl, connection);
     this._onDidUpdate.fire();
@@ -143,19 +240,67 @@ export class ServerManager implements IServerManager {
     return this._connectionMap.get(serverUrl) ?? null;
   };
 
+  /**
+   * Add a placeholder connection to represent a pending DHE Core+ woker creation.
+   * @param serverUrl The DHE server URL the pending worker is associated with.
+   * @param tagId The tag ID of the worker.
+   * @returns The placeholder URL.
+   */
+  addWorkerPlaceholderConnection = (serverUrl: URL, tagId: UniqueID): URL => {
+    // simple way to keep placeholder urls unique by just adding a tagId as the pathname
+    const placeholderUrl = new URL(serverUrl);
+    placeholderUrl.pathname = tagId;
+
+    this._workerURLToServerURLMap.set(placeholderUrl, serverUrl);
+
+    this._connectionMap.set(placeholderUrl, {
+      isConnected: false,
+      serverUrl: placeholderUrl,
+      tagId,
+    });
+
+    this._onDidUpdate.fire();
+
+    return placeholderUrl;
+  };
+
+  /**
+   * Remove a worker placeholder connection.
+   * @param placeholderUrl The placeholder URL to remove.
+   */
+  removeWorkerPlaceholderConnection = (placeholderUrl: URL): void => {
+    this._workerURLToServerURLMap.delete(placeholderUrl);
+    this._connectionMap.delete(placeholderUrl);
+    this._onDidUpdate.fire();
+  };
+
   disconnectEditor = (uri: vscode.Uri): void => {
     this._uriConnectionsMap.delete(uri);
     this._onDidUpdate.fire();
   };
 
-  disconnectFromServer = async (serverUrl: URL): Promise<void> => {
-    const connection = this._connectionMap.get(serverUrl);
+  disconnectFromServer = async (
+    serverOrWorkerUrl: URL | WorkerURL
+  ): Promise<void> => {
+    const dheServerUrl = this._workerURLToServerURLMap.get(serverOrWorkerUrl);
+    this._workerURLToServerURLMap.delete(serverOrWorkerUrl);
 
+    this.updateConnectionCount(dheServerUrl ?? serverOrWorkerUrl, -1);
+
+    // `dheServerUrl` can either be associated with a placeholder worker or a real
+    // worker. Check if there is a corresponding DHE service in the cache, and if
+    // so delete the associated worker. Otherwise, we are dealing with a placeholder,
+    // and cleanup will happen once the worker is ready in `connectToServer`.
+    if (dheServerUrl && this._dheServiceCache.has(dheServerUrl)) {
+      const dheService = await this._dheServiceCache.get(dheServerUrl);
+      await dheService.deleteWorker(serverOrWorkerUrl as WorkerURL);
+    }
+
+    const connection = this._connectionMap.get(serverOrWorkerUrl);
     if (connection == null) {
       return;
     }
-
-    this._connectionMap.delete(serverUrl);
+    this._connectionMap.delete(serverOrWorkerUrl);
 
     // Remove any editor URIs associated with this connection
     this._uriConnectionsMap.forEach((connectionState, uri) => {
@@ -168,16 +313,8 @@ export class ServerManager implements IServerManager {
       await connection.dispose();
     }
 
-    this._onDidDisconnect.fire(serverUrl);
+    this._onDidDisconnect.fire(serverOrWorkerUrl);
     this._onDidUpdate.fire();
-  };
-
-  /**
-   * Determine if the given server URL has any active connections.
-   * @param serverUrl
-   */
-  hasConnection = (serverUrl: URL): boolean => {
-    return this._connectionMap.has(serverUrl);
   };
 
   /**
@@ -213,16 +350,19 @@ export class ServerManager implements IServerManager {
   getServers = ({
     isRunning,
     hasConnections,
+    type,
   }: {
     isRunning?: boolean;
     hasConnections?: boolean;
+    type?: 'DHC' | 'DHE';
   } = {}): ServerState[] => {
     const servers = [...this._serverMap.values()];
 
     const match = (server: ServerState): boolean =>
       (isRunning == null || server.isRunning === isRunning) &&
       (hasConnections == null ||
-        this.hasConnection(server.url) === hasConnections);
+        server.connectionCount > 0 === hasConnections) &&
+      (type == null || server.type === type);
 
     return servers.filter(match);
   };
@@ -272,6 +412,25 @@ export class ServerManager implements IServerManager {
    */
   getUriConnection = (uri: vscode.Uri): ConnectionState | null => {
     return this._uriConnectionsMap.get(uri) ?? null;
+  };
+
+  /** Get worker info associated with the given server URL. */
+  getWorkerInfo = async (
+    workerUrl: WorkerURL
+  ): Promise<WorkerInfo | undefined> => {
+    const dheServerUrl = this._workerURLToServerURLMap.get(workerUrl);
+
+    // `dheServerUrl` could be for a placeholder, so check for DheService before
+    // retrieving it from the cache below. This is important since the cache
+    // will attempt to create a new DheService if it doesn't exist when calling
+    // `this._dheServiceCache.get`.
+    if (dheServerUrl == null || !this._dheServiceCache.has(dheServerUrl)) {
+      return;
+    }
+
+    const dheService = await this._dheServiceCache.get(dheServerUrl);
+
+    return dheService.getWorkerInfo(workerUrl);
   };
 
   setEditorConnection = async (
@@ -328,6 +487,37 @@ export class ServerManager implements IServerManager {
   };
 
   /**
+   * Increment or decrement the connection count for the given server URL.
+   * @param serverUrl
+   * @param incrementOrDecrement
+   * @returns The new connection count.
+   */
+  updateConnectionCount = (
+    serverUrl: URL,
+    incrementOrDecrement: 1 | -1
+  ): number => {
+    const serverState = this._serverMap.get(serverUrl);
+    if (serverState == null) {
+      return 0;
+    }
+
+    const connectionCount = Math.max(
+      0,
+      serverState.connectionCount + incrementOrDecrement
+    );
+
+    this._serverMap.set(serverUrl, {
+      ...serverState,
+      isConnected: connectionCount > 0 || this._dheServiceCache.has(serverUrl),
+      connectionCount,
+    });
+
+    this._onDidUpdate.fire();
+
+    return connectionCount;
+  };
+
+  /**
    * Update server statuses. Optionally filter servers to update by a list of urls.
    * @param filterBy Optional list of urls to filter servers by.
    */
@@ -346,7 +536,7 @@ export class ServerManager implements IServerManager {
         ? isDhcServerRunning(server.url)
         : isDheServerRunning(server.url));
 
-      if ((server.isRunning ?? false) !== isRunning) {
+      if (server.isRunning !== isRunning) {
         const newServerState = {
           ...server,
           isRunning,
