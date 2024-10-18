@@ -12,6 +12,7 @@ import type {
   IdeURL,
   QuerySerial,
   UniqueID,
+  WorkerConfig,
   WorkerInfo,
   WorkerURL,
 } from '../types';
@@ -106,6 +107,7 @@ export async function hasInteractivePermission(
  * Create a query of type `InteractiveConsole`.
  * @param tagId Unique tag id to include in the query name.
  * @param dheClient The DHE client to use to create the query.
+ * @param workerConfig Worker configuration overrides.
  * @param consoleType The type of console to create.
  * @returns A promise that resolves to the serial of the created query. Note
  * that this will resolve before the query is actually ready to use. Use
@@ -114,6 +116,7 @@ export async function hasInteractivePermission(
 export async function createInteractiveConsoleQuery(
   tagId: UniqueID,
   dheClient: EnterpriseClient,
+  workerConfig: WorkerConfig = {},
   consoleType?: ConsoleType
 ): Promise<QuerySerial> {
   const userInfo = await dheClient.getUserInfo();
@@ -130,13 +133,26 @@ export async function createInteractiveConsoleQuery(
   ]);
 
   const name = `IC - VS Code - ${tagId}`;
-  const dbServerName = dbServers[0]?.name ?? 'Query 1';
-  const heapSize = queryConstants.pqDefaultHeap;
-  const jvmProfile = serverConfigValues.jvmProfileDefault;
+  const dbServerName =
+    workerConfig?.dbServerName ?? dbServers[0]?.name ?? 'Query 1';
+  const heapSize = workerConfig?.heapSize ?? queryConstants.pqDefaultHeap;
+
+  // We have to use websockets since fetch over http2 is not sufficiently
+  // supported in the nodejs environment bundled with `vscode` (v20 at time of
+  // this comment). Note that the `http` in the key name does not indicate
+  // insecure websockets. The connection will be a `wss:` secure connection.
+  const jvmArgs = workerConfig?.jvmArgs
+    ? `'-Dhttp.websockets=true' ${workerConfig.jvmArgs}`
+    : '-Dhttp.websockets=true';
+
+  const jvmProfile =
+    workerConfig?.jvmProfile ?? serverConfigValues.jvmProfileDefault;
   const scriptLanguage =
+    workerConfig?.scriptLanguage ??
     serverConfigValues.scriptSessionProviders?.find(
       p => p.toLocaleLowerCase() === consoleType
-    ) ?? 'Python';
+    ) ??
+    'Python';
   const workerKind = serverConfigValues.workerKinds?.[0]?.name;
 
   const autoDelete = autoDeleteTimeoutMs > 0;
@@ -166,9 +182,7 @@ export async function createInteractiveConsoleQuery(
     dbServerName,
     heapSize: heapSize,
     scheduling,
-    // We have to use websockets since http2 is not sufficiently supported in
-    // the nodejs environment (v20 at time of this comment).
-    jvmArgs: '-Dhttp.websockets=true',
+    jvmArgs,
     jvmProfile,
     scriptLanguage,
     timeout,

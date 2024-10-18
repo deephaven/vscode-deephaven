@@ -311,6 +311,7 @@ export class ExtensionController implements Disposable {
     );
 
     this._dheServiceFactory = DheService.factory(
+      this._config,
       this._coreCredentialsCache,
       this._dheClientCache,
       this._dheCredentialsCache,

@@ -29,17 +29,7 @@ function getCoreServers(): CoreConnectionConfig[] {
   logger.info('Core servers:', JSON.stringify(expandedConfig));
 
   return expandedConfig
-    .filter(server => {
-      try {
-        // Filter out any invalid server configs to avoid crashing the extension
-        // further upstream.
-        new URL(server.url);
-        return true;
-      } catch (err) {
-        logger.error(err, server.url);
-        return false;
-      }
-    })
+    .filter(hasValidURL)
     .map(server => ({ ...server, url: new URL(server.url) }));
 }
 
@@ -49,23 +39,31 @@ function getEnterpriseServers(): EnterpriseConnectionConfig[] {
     []
   );
 
-  const expandedConfig = config.map(url => ({ url }));
+  // Expand each server config to a full `ConnectionConfig` object.
+  const expandedConfig = config.map(server =>
+    typeof server === 'string' ? { url: server } : server
+  );
 
   logger.info('Enterprise servers:', JSON.stringify(expandedConfig));
 
   return expandedConfig
-    .filter(server => {
-      try {
-        // Filter out any invalid server configs to avoid crashing the extension
-        // further upstream.
-        new URL(server.url);
-        return true;
-      } catch (err) {
-        logger.error(err, server.url);
-        return false;
-      }
-    })
+    .filter(hasValidURL)
     .map(server => ({ ...server, url: new URL(server.url) }));
+}
+
+/**
+ * Attempt to parse a `url` string prop into a `URL` object.
+ * @param objectWithUrl An object with a `url` string prop.
+ * @returns `true` if the `url` prop is a valid URL, `false` otherwise.
+ */
+function hasValidURL({ url }: { url: string }): boolean {
+  try {
+    new URL(url);
+    return true;
+  } catch (err) {
+    logger.error(err, url);
+    return false;
+  }
 }
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
