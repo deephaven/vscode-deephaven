@@ -28,17 +28,27 @@ export interface CoreConnectionConfig {
 }
 
 export type EnterpriseConnectionConfigStored =
-  Brand<'EnterpriseConnectionConfigStored'>;
+  | Brand<'EnterpriseConnectionConfigStored'>
+  | { url: string; label?: string; experimentalWorkerConfig?: WorkerConfig };
 
 export interface EnterpriseConnectionConfig {
-  label?: string;
   url: URL;
+  label?: string;
+  experimentalWorkerConfig?: WorkerConfig;
 }
 
 export type ServerConnectionConfig =
   | CoreConnectionConfig
   | EnterpriseConnectionConfig
   | URL;
+
+export interface WorkerConfig {
+  dbServerName?: string;
+  heapSize?: number;
+  jvmArgs?: string;
+  jvmProfile?: string;
+  scriptLanguage?: string;
+}
 
 export interface ConnectionState {
   readonly isConnected: boolean;
