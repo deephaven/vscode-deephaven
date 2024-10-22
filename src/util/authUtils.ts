@@ -1,14 +1,28 @@
-import { generateKeyPairSync } from 'node:crypto';
+import { generateKeyPairSync, sign } from 'node:crypto';
 import type {
+  Base64Nonce,
   Base64PrivateKey,
   Base64PublicKey,
   DHPrivateKey,
   DHPublicKey,
 } from '../types';
 
-// synonymous with secp256r1
+/*
+ * Base64 encoded value of 'EC:'. Used to identify that a key is an EC key when
+ * passing to DH server.
+ */
+export const EC_SENTINEL = 'RUM6' as const;
+
+/*
+ * Named curve to use for generating key pairs.
+ * Note that 'prime256v1' is synonymous with 'secp256r1'.
+ */
 const NAMED_CURVE = 'prime256v1' as const;
 
+/**
+ * Generate a base64 encoded asymmetric key pair using eliptic curve.
+ * @returns A tuple containing the base64 encoded public and private keys.
+ */
 export function generateBase64KeyPair(): [Base64PublicKey, Base64PrivateKey] {
   const { publicKey: publicKeyBuffer, privateKey: privateKeyBuffer } =
     generateKeyPairSync('ec', {
@@ -17,8 +31,8 @@ export function generateBase64KeyPair(): [Base64PublicKey, Base64PrivateKey] {
       privateKeyEncoding: { type: 'pkcs8', format: 'der' },
     });
 
-  const publicKey = toEcBase64String(publicKeyBuffer) as Base64PublicKey;
-  const privateKey = toEcBase64String(privateKeyBuffer) as Base64PrivateKey;
+  const publicKey = publicKeyBuffer.toString('base64') as Base64PublicKey;
+  const privateKey = privateKeyBuffer.toString('base64') as Base64PrivateKey;
 
   return [publicKey, privateKey];
 }
@@ -44,11 +58,16 @@ export function formatDHPrivateKey(
   ].join('\n') as DHPrivateKey;
 }
 
-/**
- * Prepend 'EC:' to the key and convert to a base64 string.
- * @param keyBuffer
- */
-export function toEcBase64String(keyBuffer: Buffer): string {
-  const ecSentinel = Buffer.from('EC:');
-  return Buffer.concat([ecSentinel, keyBuffer]).toString('base64');
+export function signWithPrivateKey(
+  nonce: Base64Nonce,
+  privateKey: Base64PrivateKey
+): string {
+  const nonceBytes = Buffer.from(nonce, 'base64');
+  const privateKeyBytes = Buffer.from(privateKey, 'base64');
+
+  return sign('sha256', nonceBytes, {
+    key: privateKeyBytes,
+    format: 'der',
+    type: 'pkcs8',
+  }).toString('base64');
 }
