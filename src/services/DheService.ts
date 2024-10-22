@@ -9,11 +9,13 @@ import {
   WorkerURL,
   type ConsoleType,
   type IAsyncCacheService,
+  type IConfigService,
   type IDheService,
   type IDheServiceFactory,
   type Lazy,
   type QuerySerial,
   type UniqueID,
+  type WorkerConfig,
   type WorkerInfo,
 } from '../types';
 import { URLMap } from './URLMap';
@@ -42,6 +44,7 @@ export class DheService implements IDheService {
    * @returns A factory function that can be used to create DheService instances.
    */
   static factory = (
+    configService: IConfigService,
     coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
     dheClientCache: IAsyncCacheService<URL, EnterpriseClient>,
     dheCredentialsCache: URLMap<DheLoginCredentials>,
@@ -51,6 +54,7 @@ export class DheService implements IDheService {
       create: (serverUrl: URL): IDheService =>
         new DheService(
           serverUrl,
+          configService,
           coreCredentialsCache,
           dheClientCache,
           dheCredentialsCache,
@@ -65,12 +69,14 @@ export class DheService implements IDheService {
    */
   private constructor(
     serverUrl: URL,
+    configService: IConfigService,
     coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
     dheClientCache: IAsyncCacheService<URL, EnterpriseClient>,
     dheCredentialsCache: URLMap<DheLoginCredentials>,
     dheJsApiCache: IAsyncCacheService<URL, DheType>
   ) {
     this.serverUrl = serverUrl;
+    this._config = configService;
     this._coreCredentialsCache = coreCredentialsCache;
     this._dheClientCache = dheClientCache;
     this._dheCredentialsCache = dheCredentialsCache;
@@ -81,6 +87,7 @@ export class DheService implements IDheService {
 
   private _clientPromise: Promise<EnterpriseClient | null> | null = null;
   private _isConnected: boolean = false;
+  private readonly _config: IConfigService;
   private readonly _coreCredentialsCache: URLMap<
     Lazy<DhcType.LoginCredentials>
   >;
@@ -153,6 +160,17 @@ export class DheService implements IDheService {
   };
 
   /**
+   * Get the config for creating new workers.
+   * @returns Worker config or undefined if not found.
+   */
+  getWorkerConfig = (): WorkerConfig | undefined => {
+    return this._config
+      .getEnterpriseServers()
+      .find(server => server.url.toString() === this.serverUrl.toString())
+      ?.experimentalWorkerConfig;
+  };
+
+  /**
    * Get worker info for given worker URL.
    * @param workerUrl Worker URL to get info for.
    * @returns Worker info or undefined if not found.
@@ -210,6 +228,7 @@ export class DheService implements IDheService {
     const querySerial = await createInteractiveConsoleQuery(
       tagId,
       dheClient,
+      this.getWorkerConfig(),
       consoleType
     );
     this._querySerialSet.add(querySerial);
