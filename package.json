@@ -161,6 +161,10 @@
         "title": "Deephaven: Download Logs"
       },
       {
+        "command": "vscode-deephaven.clearSecretStorage",
+        "title": "Deephaven: Clear Secrets"
+      },
+      {
         "command": "vscode-deephaven.connectToServer",
         "title": "Deephaven: Connect to Server",
         "icon": "$(plug)"
@@ -635,6 +639,10 @@
       "commandPalette": [
         {
           "command": "vscode-deephaven.selectConnection",
+          "when": "true"
+        },
+        {
+          "command": "vscode-deephaven.clearSecretStorage",
           "when": "true"
         },
         {

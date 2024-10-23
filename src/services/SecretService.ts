@@ -1,18 +1,14 @@
 import type { SecretStorage } from 'vscode';
-import type { ServerSecretKeys, UserLoginPreferences } from '../types';
+import type { UserKeyPairs, UserLoginPreferences } from '../types';
 
-class Key {
-  static operateAsUser(serverUrl: URL): string {
-    return `operateAsUser.${serverUrl.toString()}`;
-  }
-
-  static serverKeys(serverUrl: URL): string {
-    return `serverKeys.${serverUrl.toString()}`;
-  }
-}
+const OPERATE_AS_USER_KEY = 'operateAsUser' as const;
+const SERVER_KEYS_KEY = 'serverKeys' as const;
 
 /**
- * Wrapper around `vscode.SecretStorage` for storing and retrieving secrets.
+ * Wrapper around `vscode.SecretStorage` for storing and retrieving secrets. We
+ * are storing everything as known keys so that we can easily find and delete
+ * them. There don't appear to be any apis to delete all secrets at once or to
+ * determine which keys exist.
  * NOTE: For debugging, the secret store contents can be dumped to devtools
  * console via:
  * > Developer: Log Storage Database Contents
@@ -44,6 +40,14 @@ export class SecretService {
   };
 
   /**
+   * Clear all stored secrets.
+   */
+  clearStorage = async (): Promise<void> => {
+    await this._secrets.delete(OPERATE_AS_USER_KEY);
+    await this._secrets.delete(SERVER_KEYS_KEY);
+  };
+
+  /**
    * Store a JSON-serializable value.
    * @param key Secret storage key
    * @param value Value to store
@@ -60,10 +64,12 @@ export class SecretService {
   getUserLoginPreferences = async (
     serverUrl: URL
   ): Promise<UserLoginPreferences> => {
-    const preferences = await this._getJson<UserLoginPreferences>(
-      Key.operateAsUser(serverUrl)
-    );
-    return preferences ?? { operateAsUser: {} };
+    const preferences =
+      await this._getJson<Record<string, UserLoginPreferences>>(
+        SERVER_KEYS_KEY
+      );
+
+    return preferences?.[serverUrl.toString()] ?? { operateAsUser: {} };
   };
 
   /**
@@ -75,8 +81,15 @@ export class SecretService {
     serverUrl: URL,
     preferences: UserLoginPreferences
   ): Promise<void> => {
-    const key = Key.operateAsUser(serverUrl);
-    await this._storeJson(key, preferences);
+    const existingPreferences =
+      await this._getJson<Record<string, UserLoginPreferences>>(
+        SERVER_KEYS_KEY
+      );
+
+    await this._storeJson(OPERATE_AS_USER_KEY, {
+      ...existingPreferences,
+      [serverUrl.toString()]: preferences,
+    });
   };
 
   /**
@@ -84,11 +97,11 @@ export class SecretService {
    * @param serverUrl
    * @returns The map of user -> private key or null.
    */
-  getServerKeys = async (serverUrl: URL): Promise<ServerSecretKeys> => {
-    const maybeServerKeys = await this._getJson<ServerSecretKeys>(
-      Key.serverKeys(serverUrl)
-    );
-    return maybeServerKeys ?? {};
+  getServerKeys = async (serverUrl: URL): Promise<UserKeyPairs> => {
+    const maybeServerKeys =
+      await this._getJson<Record<string, UserKeyPairs>>(SERVER_KEYS_KEY);
+
+    return maybeServerKeys?.[serverUrl.toString()] ?? {};
   };
 
   /**
@@ -98,9 +111,14 @@ export class SecretService {
    */
   storeServerKeys = async (
     serverUrl: URL,
-    serverKeys: ServerSecretKeys
+    serverKeys: UserKeyPairs
   ): Promise<void> => {
-    const key = Key.serverKeys(serverUrl);
-    await this._storeJson(key, serverKeys);
+    const existingKeys =
+      await this._getJson<Record<string, UserKeyPairs>>(SERVER_KEYS_KEY);
+
+    await this._storeJson(SERVER_KEYS_KEY, {
+      ...existingKeys,
+      [serverUrl.toString()]: serverKeys,
+    });
   };
 }

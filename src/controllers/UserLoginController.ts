@@ -61,12 +61,6 @@ export class UserLoginController extends ControllerBase {
     serverState: ServerState
   ): Promise<void> => {
     const serverUrl = serverState.url;
-    // await this.onDidRequestDheUserCredentials(serverUrl, 'generatePrivateKey');
-
-    // const credentials = await this.dheCredentialsCache.get(serverUrl)?.();
-    // if (credentials?.username == null) {
-    //   return;
-    // }
 
     const title = 'Generate Private Key';
 
@@ -93,32 +87,9 @@ export class UserLoginController extends ControllerBase {
     const keyPair = generateBase64KeyPair();
     const { type, publicKey } = keyPair;
 
-    let dheClient = await this.dheClientCache.get(serverUrl);
+    const dheClient = await this.dheClientCache.get(serverUrl);
 
-    const uploadKeyResult = await uploadPublicKey(
-      dheClient,
-      dheCredentials,
-      publicKey,
-      type
-    );
-    logger.debug('uploadKeyResult:', uploadKeyResult.status);
-
-    // TODO: Need to move the login logic to lazy credentials call
-
-    // Have to use a new client to login with the private key
-    this.dheClientCache.invalidate(serverUrl);
-    dheClient = await this.dheClientCache.get(serverUrl);
-
-    await authWithPrivateKey({
-      dheClient,
-      keyPair,
-      username,
-      operateAs: username,
-    });
-
-    return;
-
-    // TODO: Need to store public key + algorithm in the server keys
+    await uploadPublicKey(dheClient, dheCredentials, publicKey, type);
 
     // Get existing server keys or create a new object
     const serverKeys = await this.secretService.getServerKeys(serverUrl);
@@ -128,11 +99,6 @@ export class UserLoginController extends ControllerBase {
       ...serverKeys,
       [dheCredentials.username]: keyPair,
     });
-
-    // Remove credentials from cache since presumably a valid key pair was
-    // generated and we'll want the user to authenticate with the private key
-    // instead.
-    this.dheCredentialsCache.delete(serverUrl);
   };
 
   /**
@@ -183,11 +149,30 @@ export class UserLoginController extends ControllerBase {
           },
         });
 
-        this.dheCredentialsCache.set(serverUrl, async () => {
-          logger.debug('Login with private key:', authenticationMethod.label);
-          // TODO: login with private key
-          throw new Error('Login with private key not implemented');
+        logger.debug('Login with private key:', authenticationMethod.label);
+        // Have to use a new client to login with the private key
+        this.dheClientCache.invalidate(serverUrl);
+        const dheClient = await this.dheClientCache.get(serverUrl);
+
+        const keyPair = (await this.secretService.getServerKeys(serverUrl))?.[
+          username
+        ];
+
+        await authWithPrivateKey({
+          dheClient,
+          keyPair,
+          username,
+          operateAs: username,
         });
+
+        this.dheCredentialsCache.set(
+          serverUrl,
+          async (): Promise<DheLoginCredentials> => {
+            // TODO: Need to figure out how to instantiate client + login at
+            // connection time
+            throw new Error('Not implemented');
+          }
+        );
 
         return;
       }

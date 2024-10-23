@@ -8,6 +8,7 @@ function cmd<T extends string>(cmd: T): `${typeof EXTENSION_ID}.${T}` {
   return `${EXTENSION_ID}.${cmd}`;
 }
 
+export const CLEAR_SECRET_STORAGE_CMD = cmd('clearSecretStorage');
 export const CONNECT_TO_SERVER_CMD = cmd('connectToServer');
 export const CREATE_NEW_TEXT_DOC_CMD = cmd('createNewTextDoc');
 export const DISCONNECT_EDITOR_CMD = cmd('disconnectEditor');

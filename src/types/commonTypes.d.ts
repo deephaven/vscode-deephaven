@@ -51,7 +51,7 @@ export type Base64KeyPair = {
   publicKey: Base64PublicKey;
   privateKey: Base64PrivateKey;
 };
-export type ServerSecretKeys = Record<string, Base64KeyPair>;
+export type UserKeyPairs = Record<Username, Base64KeyPair>;
 export type UserLoginPreferences = {
   lastLogin?: Username;
   operateAsUser: Record<Username, OperateAsUsername>;

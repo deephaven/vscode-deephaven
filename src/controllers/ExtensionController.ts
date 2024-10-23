@@ -6,6 +6,7 @@ import type {
   LoginCredentials as DheLoginCredentials,
 } from '@deephaven-enterprise/jsapi-types';
 import {
+  CLEAR_SECRET_STORAGE_CMD,
   CONNECT_TO_SERVER_CMD,
   CREATE_NEW_TEXT_DOC_CMD,
   DISCONNECT_EDITOR_CMD,
@@ -389,6 +390,9 @@ export class ExtensionController implements Disposable {
   initializeCommands = (): void => {
     assertDefined(this._connectionController, 'connectionController');
 
+    /** Clear secret storage */
+    this.registerCommand(CLEAR_SECRET_STORAGE_CMD, this.onClearSecretStorage);
+
     /** Create server connection */
     this.registerCommand(CONNECT_TO_SERVER_CMD, this.onConnectToServer);
 
@@ -535,6 +539,14 @@ export class ExtensionController implements Disposable {
     }
 
     this._serverManager?.updateStatus();
+  };
+
+  /**
+   * Handle clearing secret storage.
+   */
+  onClearSecretStorage = async (): Promise<void> => {
+    await this._secretService?.clearStorage();
+    this._toaster?.info('Stored secrets have been removed.');
   };
 
   /**
