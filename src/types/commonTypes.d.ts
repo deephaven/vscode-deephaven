@@ -45,9 +45,13 @@ export type Base64PrivateKey = Brand<'Base64PrivateKey', string>;
 export type Base64PublicKey = Brand<'Base64PublicKey', string>;
 export type Base64Nonce = Brand<'Base64Nonce', string>;
 export type Base64Signature = Brand<'Base64Signature', string>;
-export type DHPrivateKey = Brand<'DHPrivateKey', string>;
-export type DHPublicKey = Brand<'DHPublicKey', string>;
-export type ServerSecretKeys = Record<string, Base64PrivateKey>;
+export type KeyPairType = 'ec';
+export type Base64KeyPair = {
+  type: KeyPairType;
+  publicKey: Base64PublicKey;
+  privateKey: Base64PrivateKey;
+};
+export type ServerSecretKeys = Record<string, Base64KeyPair>;
 export type UserLoginPreferences = {
   lastLogin?: Username;
   operateAsUser: Record<Username, OperateAsUsername>;
