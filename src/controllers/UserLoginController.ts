@@ -21,8 +21,6 @@ import {
 } from '../util';
 import type {
   Base64Nonce,
-  Base64PrivateKey,
-  Base64PublicKey,
   IAsyncCacheService,
   Lazy,
   ServerState,

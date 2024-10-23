@@ -3,6 +3,7 @@ import type {
   Base64Nonce,
   Base64PrivateKey,
   Base64PublicKey,
+  Base64Signature,
   DHPrivateKey,
   DHPublicKey,
 } from '../types';
@@ -58,10 +59,16 @@ export function formatDHPrivateKey(
   ].join('\n') as DHPrivateKey;
 }
 
+/**
+ * Sign a nonce using a private key.
+ * @param nonce
+ * @param privateKey
+ * @returns The base64 encoded signature.
+ */
 export function signWithPrivateKey(
   nonce: Base64Nonce,
   privateKey: Base64PrivateKey
-): string {
+): Base64Signature {
   const nonceBytes = Buffer.from(nonce, 'base64');
   const privateKeyBytes = Buffer.from(privateKey, 'base64');
 
@@ -69,5 +76,5 @@ export function signWithPrivateKey(
     key: privateKeyBytes,
     format: 'der',
     type: 'pkcs8',
-  }).toString('base64');
+  }).toString('base64') as Base64Signature;
 }
