@@ -143,6 +143,10 @@
     ],
     "commands": [
       {
+        "command": "vscode-deephaven.disposeDHEClient",
+        "title": "Deephaven: Dispose DHE Client"
+      },
+      {
         "command": "vscode-deephaven.runCode",
         "title": "Run Deephaven File",
         "icon": "$(run-all)"
@@ -159,6 +163,10 @@
       {
         "command": "vscode-deephaven.downloadLogs",
         "title": "Deephaven: Download Logs"
+      },
+      {
+        "command": "vscode-deephaven.clearSecretStorage",
+        "title": "Deephaven: Clear Secrets"
       },
       {
         "command": "vscode-deephaven.connectToServer",
@@ -179,6 +187,11 @@
         "command": "vscode-deephaven.disconnectFromServer",
         "title": "Deephaven: Discard Connection",
         "icon": "$(trash)"
+      },
+      {
+        "command": "vscode-deephaven.generateDHEKeyPair",
+        "title": "Deephaven: Generate DHE Key Pair",
+        "icon": "$(key)"
       },
       {
         "command": "vscode-deephaven.openInBrowser",
@@ -633,6 +646,14 @@
           "when": "true"
         },
         {
+          "command": "vscode-deephaven.clearSecretStorage",
+          "when": "true"
+        },
+        {
+          "command": "vscode-deephaven.disposeDHEClient",
+          "when": "false"
+        },
+        {
           "command": "vscode-deephaven.downloadLogs",
           "when": "true"
         },
@@ -655,6 +676,10 @@
         {
           "command": "vscode-deephaven.disconnectFromServer",
           "when": "false"
+        },
+        {
+          "command": "vscode-deephaven.generateDHEKeyPair",
+          "when:": "false"
         },
         {
           "command": "vscode-deephaven.openVariablePanels",
@@ -716,7 +741,7 @@
       "view/item/context": [
         {
           "command": "vscode-deephaven.connectToServer",
-          "when": "view == vscode-deephaven.serverTree && (viewItem == isManagedServerDisconnected || viewItem == isServerRunningDisconnected || viewItem == isDHEServerRunning)",
+          "when": "view == vscode-deephaven.serverTree && (viewItem == isManagedServerDisconnected || viewItem == isServerRunningDisconnected || viewItem == isDHEServerRunningConnected || viewItem == isDHEServerRunningDisconnected)",
           "group": "inline"
         },
         {
@@ -731,12 +756,17 @@
         },
         {
           "command": "vscode-deephaven.disconnectFromServer",
-          "when": "view == vscode-deephaven.serverConnectionTree && viewItem == isConnection",
+          "when": "(view == vscode-deephaven.serverTree && (viewItem == isServerRunningConnected || viewItem == isDHEServerRunningConnected)) || (view == vscode-deephaven.serverConnectionTree && viewItem == isConnection)",
           "group": "inline@2"
         },
         {
+          "command": "vscode-deephaven.generateDHEKeyPair",
+          "when": "view == vscode-deephaven.serverTree && (viewItem == isDHEServerRunningConnected || viewItem == isDHEServerRunningDisconnected)",
+          "group": "inline"
+        },
+        {
           "command": "vscode-deephaven.openInBrowser",
-          "when": "view == vscode-deephaven.serverTree && (viewItem == isManagedServerConnected || viewItem == isServerRunningConnected || viewItem == isServerRunningDisconnected || viewItem == isManagedServerDisconnected || viewItem == isDHEServerRunning)",
+          "when": "view == vscode-deephaven.serverTree && (viewItem == isManagedServerConnected || viewItem == isManagedServerDisconnected || viewItem == isServerRunningConnected || viewItem == isServerRunningDisconnected || viewItem == isDHEServerRunningConnected || viewItem == isDHEServerRunningDisconnected)",
           "group": "inline"
         },
         {

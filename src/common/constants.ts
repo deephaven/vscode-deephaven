@@ -97,7 +97,8 @@ export const PIP_SERVER_STATUS_DIRECTORY = 'pip-server-status';
 
 export const SERVER_TREE_ITEM_CONTEXT = {
   canStartServer: 'canStartServer',
-  isDHEServerRunning: 'isDHEServerRunning',
+  isDHEServerRunningConnected: 'isDHEServerRunningConnected',
+  isDHEServerRunningDisconnected: 'isDHEServerRunningDisconnected',
   isManagedServerConnected: 'isManagedServerConnected',
   isManagedServerConnecting: 'isManagedServerConnecting',
   isManagedServerDisconnected: 'isManagedServerDisconnected',

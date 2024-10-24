@@ -1,10 +1,27 @@
 import * as vscode from 'vscode';
-import type { ConnectionState, ServerState } from './commonTypes';
+import type {
+  AuthenticationMethod,
+  ConnectionState,
+  ServerState,
+  Username,
+} from './commonTypes';
 
 export type SeparatorPickItem = {
   label: string;
   kind: vscode.QuickPickItemKind.Separator;
 };
+
+export type AuthenticationMethodPickItem =
+  | {
+      label: 'Username / Password';
+      type: 'password';
+      iconPath: vscode.ThemeIcon;
+    }
+  | {
+      label: Username;
+      type: 'privateKey';
+      iconPath: vscode.ThemeIcon;
+    };
 
 export type ConnectionPickItem<TType, TData> = vscode.QuickPickItem & {
   type: TType;

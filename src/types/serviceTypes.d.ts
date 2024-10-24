@@ -21,6 +21,7 @@ export interface IAsyncCacheService<TKey, TValue> extends Disposable {
   get: (key: TKey) => Promise<TValue>;
   has: (key: TKey) => boolean;
   invalidate: (key: TKey) => void;
+  onDidInvalidate: vscode.Event<TKey>;
 }
 
 /**
@@ -115,6 +116,7 @@ export interface IServerManager extends Disposable {
     workerConsoleType?: ConsoleType
   ) => Promise<ConnectionState | null>;
   disconnectEditor: (uri: vscode.Uri) => void;
+  disconnectFromDHEServer: (dheServerUrl: URL) => Promise<void>;
   disconnectFromServer: (serverUrl: URL) => Promise<void>;
   loadServerConfig: () => Promise<void>;
 
