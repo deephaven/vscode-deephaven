@@ -624,6 +624,8 @@ export class ExtensionController implements Disposable {
     }
     // DHE ServerState
     else {
+      // TODO: Seems we probably should dispose of workers associated with this
+      // server as well.
       this.onDisposeDHEClient(serverOrConnectionState.url);
 
       await this._serverManager?.disconnectFromDHEServer(
