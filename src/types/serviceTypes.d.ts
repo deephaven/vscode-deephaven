@@ -21,6 +21,7 @@ export interface IAsyncCacheService<TKey, TValue> extends Disposable {
   get: (key: TKey) => Promise<TValue>;
   has: (key: TKey) => boolean;
   invalidate: (key: TKey) => void;
+  onDidInvalidate: vscode.Event<TKey>;
 }
 
 /**

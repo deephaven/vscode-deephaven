@@ -88,6 +88,8 @@ export class DheService implements IDheService {
     this._querySerialSet = new Set<QuerySerial>();
     this._toaster = toaster;
     this._workerInfoMap = new URLMap<WorkerInfo, WorkerURL>();
+
+    this._dheClientCache.onDidInvalidate(this._onDidDheClientCacheInvalidate);
   }
 
   private _clientPromise: Promise<EnterpriseClient | null> | null = null;
@@ -167,6 +169,14 @@ export class DheService implements IDheService {
 
     if (dheClient != null) {
       await deleteQueries(dheClient, querySerials);
+    }
+  };
+
+  private _onDidDheClientCacheInvalidate = (url: URL): void => {
+    if (url.toString() === this.serverUrl.toString()) {
+      // Reset the client promise so that the next call to `getClient` can
+      // reinitialize it if necessary.
+      this._clientPromise = null;
     }
   };
 
