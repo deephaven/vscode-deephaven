@@ -83,7 +83,7 @@ export class SecretService {
   ): Promise<void> => {
     const existingPreferences =
       await this._getJson<Record<string, UserLoginPreferences>>(
-        SERVER_KEYS_KEY
+        OPERATE_AS_USER_KEY
       );
 
     await this._storeJson(OPERATE_AS_USER_KEY, {
