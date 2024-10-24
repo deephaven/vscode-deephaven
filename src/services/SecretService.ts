@@ -66,7 +66,7 @@ export class SecretService {
   ): Promise<UserLoginPreferences> => {
     const preferences =
       await this._getJson<Record<string, UserLoginPreferences>>(
-        SERVER_KEYS_KEY
+        OPERATE_AS_USER_KEY
       );
 
     return preferences?.[serverUrl.toString()] ?? { operateAsUser: {} };
