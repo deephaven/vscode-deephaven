@@ -150,7 +150,7 @@ export class DheService implements IDheService {
       return null;
     }
 
-    if (!hasInteractivePermission(dheClient)) {
+    if (!(await hasInteractivePermission(dheClient))) {
       logger.error('User does not have permission to run queries.');
       return null;
     }
