@@ -42,11 +42,11 @@ export function generateBase64KeyPair(): Base64KeyPair {
 }
 
 /**
- * Prepend a sentinal value to a private key based on the given type where
+ * Prepend a sentinal value to a public key based on the given type. The
  * sentinel is the uppercase type followed by a colon.
  * @param type Keypair type.
- * @param key
- * @returns
+ * @param key Base64 encoded public key.
+ * @returns The key with the sentinel prepended.
  */
 export function keyWithSentinel(type: 'ec', key: Base64PublicKey): string {
   const sentinelBytes = Buffer.from(`${type.toUpperCase()}:`);

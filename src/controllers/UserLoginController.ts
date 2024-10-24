@@ -21,7 +21,13 @@ import {
   runUserLoginWorkflow,
   uploadPublicKey,
 } from '../util';
-import type { IAsyncCacheService, Lazy, ServerState, Username } from '../types';
+import type {
+  IAsyncCacheService,
+  IToastService,
+  PrivateKeyCredentialsPlaceholder,
+  ServerState,
+  Username,
+} from '../types';
 
 const logger = new Logger('UserLoginController');
 
@@ -31,14 +37,18 @@ const logger = new Logger('UserLoginController');
 export class UserLoginController extends ControllerBase {
   constructor(
     dheClientCache: IAsyncCacheService<URL, EnterpriseClient>,
-    dheCredentialsCache: URLMap<Lazy<DheLoginCredentials>>,
-    secretService: SecretService
+    dheCredentialsCache: URLMap<
+      DheLoginCredentials | PrivateKeyCredentialsPlaceholder
+    >,
+    secretService: SecretService,
+    toastService: IToastService
   ) {
     super();
 
     this.dheClientCache = dheClientCache;
     this.dheCredentialsCache = dheCredentialsCache;
     this.secretService = secretService;
+    this.toast = toastService;
 
     this.registerCommand(
       GENERATE_DHE_KEY_PAIR_CMD,
@@ -52,8 +62,11 @@ export class UserLoginController extends ControllerBase {
   }
 
   private readonly dheClientCache: IAsyncCacheService<URL, EnterpriseClient>;
-  private readonly dheCredentialsCache: URLMap<Lazy<DheLoginCredentials>>;
+  private readonly dheCredentialsCache: URLMap<
+    DheLoginCredentials | PrivateKeyCredentialsPlaceholder
+  >;
   private readonly secretService: SecretService;
+  private readonly toast: IToastService;
 
   /**
    * Handle request for generating a DHE key pair.
@@ -101,6 +114,8 @@ export class UserLoginController extends ControllerBase {
       ...serverKeys,
       [dheCredentials.username]: keyPair,
     });
+
+    this.toast.info(`Successfully generated a new key pair for ${username}.`);
   };
 
   /**
@@ -171,11 +186,7 @@ export class UserLoginController extends ControllerBase {
 
         this.dheCredentialsCache.set(
           serverUrl,
-          async (): Promise<DheLoginCredentials> => {
-            // TODO: Need to figure out how to instantiate client + login at
-            // connection time
-            throw new Error('Not implemented');
-          }
+          'PrivateKeyCredentialsPlaceholder'
         );
 
         return;
@@ -200,6 +211,6 @@ export class UserLoginController extends ControllerBase {
       },
     });
 
-    this.dheCredentialsCache.set(serverUrl, async () => dheCredentials);
+    this.dheCredentialsCache.set(serverUrl, dheCredentials);
   };
 }

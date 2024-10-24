@@ -71,6 +71,7 @@ import type {
   ServerConnectionTreeView,
   ServerState,
   ServerTreeView,
+  PrivateKeyCredentialsPlaceholder,
 } from '../types';
 import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTreeDragAndDropController';
 import { ConnectionController } from './ConnectionController';
@@ -116,7 +117,9 @@ export class ExtensionController implements Disposable {
     null;
   private _dheClientCache: IAsyncCacheService<URL, EnterpriseClient> | null =
     null;
-  private _dheCredentialsCache: URLMap<Lazy<DheLoginCredentials>> | null = null;
+  private _dheCredentialsCache: URLMap<
+    DheLoginCredentials | PrivateKeyCredentialsPlaceholder
+  > | null = null;
   private _dheServiceCache: IAsyncCacheService<URL, IDheService> | null = null;
   private _panelController: PanelController | null = null;
   private _panelService: IPanelService | null = null;
@@ -238,11 +241,13 @@ export class ExtensionController implements Disposable {
     assertDefined(this._dheClientCache, 'dheClientCache');
     assertDefined(this._dheCredentialsCache, 'dheCredentialsCache');
     assertDefined(this._secretService, 'secretService');
+    assertDefined(this._toaster, 'toaster');
 
     this._userLoginController = new UserLoginController(
       this._dheClientCache,
       this._dheCredentialsCache,
-      this._secretService
+      this._secretService,
+      this._toaster
     );
 
     this._context.subscriptions.push(this._userLoginController);
@@ -307,7 +312,9 @@ export class ExtensionController implements Disposable {
     assertDefined(this._toaster, 'toaster');
 
     this._coreCredentialsCache = new URLMap<Lazy<DhcType.LoginCredentials>>();
-    this._dheCredentialsCache = new URLMap<Lazy<DheLoginCredentials>>();
+    this._dheCredentialsCache = new URLMap<
+      DheLoginCredentials | PrivateKeyCredentialsPlaceholder
+    >();
 
     this._dheJsApiCache = new DheJsApiCache();
     this._context.subscriptions.push(this._dheJsApiCache);

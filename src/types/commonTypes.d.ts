@@ -56,6 +56,8 @@ export type UserLoginPreferences = {
   lastLogin?: Username;
   operateAsUser: Record<Username, OperateAsUsername>;
 };
+export type PrivateKeyCredentialsPlaceholder =
+  'PrivateKeyCredentialsPlaceholder';
 
 export type ServerConnectionConfig =
   | CoreConnectionConfig

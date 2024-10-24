@@ -15,6 +15,7 @@ import {
   type IToastService,
   type Lazy,
   type QuerySerial,
+  type PrivateKeyCredentialsPlaceholder,
   type UniqueID,
   type WorkerConfig,
   type WorkerInfo,
@@ -48,7 +49,9 @@ export class DheService implements IDheService {
     configService: IConfigService,
     coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
     dheClientCache: IAsyncCacheService<URL, EnterpriseClient>,
-    dheCredentialsCache: URLMap<Lazy<DheLoginCredentials>>,
+    dheCredentialsCache: URLMap<
+      DheLoginCredentials | PrivateKeyCredentialsPlaceholder
+    >,
     dheJsApiCache: IAsyncCacheService<URL, DheType>,
     toaster: IToastService
   ): IDheServiceFactory => {
@@ -75,7 +78,9 @@ export class DheService implements IDheService {
     configService: IConfigService,
     coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
     dheClientCache: IAsyncCacheService<URL, EnterpriseClient>,
-    dheCredentialsCache: URLMap<Lazy<DheLoginCredentials>>,
+    dheCredentialsCache: URLMap<
+      DheLoginCredentials | PrivateKeyCredentialsPlaceholder
+    >,
     dheJsApiCache: IAsyncCacheService<URL, DheType>,
     toaster: IToastService
   ) {
@@ -99,7 +104,9 @@ export class DheService implements IDheService {
     Lazy<DhcType.LoginCredentials>
   >;
   private readonly _dheClientCache: IAsyncCacheService<URL, EnterpriseClient>;
-  private readonly _dheCredentialsCache: URLMap<Lazy<DheLoginCredentials>>;
+  private readonly _dheCredentialsCache: URLMap<
+    DheLoginCredentials | PrivateKeyCredentialsPlaceholder
+  >;
   private readonly _dheJsApiCache: IAsyncCacheService<URL, DheType>;
   private readonly _querySerialSet: Set<QuerySerial>;
   private readonly _toaster: IToastService;
@@ -119,8 +126,6 @@ export class DheService implements IDheService {
    * @returns DHE client or null if initialization failed.
    */
   private _initClient = async (): Promise<EnterpriseClient | null> => {
-    const dheClientPromise = this._dheClientCache.get(this.serverUrl);
-
     if (!this._dheCredentialsCache.has(this.serverUrl)) {
       await vscode.commands.executeCommand(
         REQUEST_DHE_USER_CREDENTIALS_CMD,
@@ -136,18 +141,23 @@ export class DheService implements IDheService {
       }
     }
 
-    const dheClient = await dheClientPromise;
-    const dheCredentials = await this._dheCredentialsCache.get(
-      this.serverUrl
-    )!();
+    // It's important to fetch the client after the auth flow has run to ensure
+    // we have the current client. This is because the private key flow may
+    // replace the cached client.
+    const dheClient = await this._dheClientCache.get(this.serverUrl);
+    const dheCredentials = await this._dheCredentialsCache.get(this.serverUrl)!;
 
-    try {
-      await dheClient.login(dheCredentials);
-    } catch (err) {
-      this._dheCredentialsCache.delete(this.serverUrl);
-      logger.error('An error occurred while connecting to DHE server:', err);
-      this._toaster.error(`Login failed to '${this.serverUrl.toString()}'`);
-      return null;
+    // Login unless we have 'PrivateKeyCredentialsPlaceholder' (happens for private key auth
+    // since client should already be authenticated by the time we get here)
+    if (dheCredentials !== 'PrivateKeyCredentialsPlaceholder') {
+      try {
+        await dheClient.login(dheCredentials);
+      } catch (err) {
+        this._dheCredentialsCache.delete(this.serverUrl);
+        logger.error('An error occurred while connecting to DHE server:', err);
+        this._toaster.error(`Login failed to '${this.serverUrl.toString()}'`);
+        return null;
+      }
     }
 
     if (!(await hasInteractivePermission(dheClient))) {
@@ -263,7 +273,6 @@ export class DheService implements IDheService {
     if (workerInfo == null) {
       throw new Error('Failed to create worker.');
     }
-
     const workerUrl = new URL(workerInfo.grpcUrl);
     this._coreCredentialsCache.set(workerUrl, () =>
       getWorkerCredentials(dheClient)
