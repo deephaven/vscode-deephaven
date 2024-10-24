@@ -294,8 +294,6 @@ export class ServerManager implements IServerManager {
       await this.disconnectFromServer(workerUrl);
     }
 
-    this._dheServiceCache.invalidate(dheServerUrl);
-
     const serverState = this._serverMap.get(dheServerUrl);
     if (serverState == null) {
       return;

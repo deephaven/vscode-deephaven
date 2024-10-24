@@ -11,6 +11,7 @@ import {
   CREATE_NEW_TEXT_DOC_CMD,
   DISCONNECT_EDITOR_CMD,
   DISCONNECT_FROM_SERVER_CMD,
+  DISPOSE_DHE_CLIENT_CMD,
   DOWNLOAD_LOGS_CMD,
   OPEN_IN_BROWSER_CMD,
   REFRESH_SERVER_CONNECTION_TREE_CMD,
@@ -408,6 +409,9 @@ export class ExtensionController implements Disposable {
       this.onDisconnectFromServer
     );
 
+    /** Dispose DHE client */
+    this.registerCommand(DISPOSE_DHE_CLIENT_CMD, this.onDisposeDHEClient);
+
     /** Download logs and open in editor */
     this.registerCommand(DOWNLOAD_LOGS_CMD, this.onDownloadLogs);
 
@@ -595,7 +599,7 @@ export class ExtensionController implements Disposable {
   onDisconnectFromServer = async (
     serverOrConnectionState: ServerState | ConnectionState
   ): Promise<void> => {
-    // ConnectionState
+    // ConnectionState (connection only disconnect)
     if ('serverUrl' in serverOrConnectionState) {
       this._serverManager?.disconnectFromServer(
         serverOrConnectionState.serverUrl
@@ -606,13 +610,29 @@ export class ExtensionController implements Disposable {
     // DHC ServerState
     if (serverOrConnectionState.type === 'DHC') {
       this._coreCredentialsCache?.delete(serverOrConnectionState.url);
-      this._serverManager?.disconnectFromServer(serverOrConnectionState.url);
-      return;
-    }
 
+      await this._serverManager?.disconnectFromServer(
+        serverOrConnectionState.url
+      );
+    }
     // DHE ServerState
-    this._dheCredentialsCache?.delete(serverOrConnectionState.url);
-    this._serverManager?.disconnectFromDHEServer(serverOrConnectionState.url);
+    else {
+      this.onDisposeDHEClient(serverOrConnectionState.url);
+
+      await this._serverManager?.disconnectFromDHEServer(
+        serverOrConnectionState.url
+      );
+    }
+  };
+
+  /**
+   * Dispose DHE client and clear associated caches. Note that this will not
+   * dispose of Core+ workers already created from the client.
+   * @param serverUrl The server URL to dispose the client for.
+   */
+  onDisposeDHEClient = async (serverUrl: URL): Promise<void> => {
+    this._dheCredentialsCache?.delete(serverUrl);
+    this._dheClientCache?.invalidate(serverUrl);
   };
 
   /**

@@ -1,3 +1,4 @@
+import * as vscode from 'vscode';
 import type { SecretService, URLMap } from '../services';
 import { ControllerBase } from './ControllerBase';
 import type {
@@ -5,6 +6,7 @@ import type {
   EnterpriseClient,
 } from '@deephaven-enterprise/jsapi-types';
 import {
+  DISPOSE_DHE_CLIENT_CMD,
   GENERATE_DHE_KEY_PAIR_CMD,
   REQUEST_DHE_USER_CREDENTIALS_CMD,
 } from '../common';
@@ -150,8 +152,10 @@ export class UserLoginController extends ControllerBase {
         });
 
         logger.debug('Login with private key:', authenticationMethod.label);
+
         // Have to use a new client to login with the private key
-        this.dheClientCache.invalidate(serverUrl);
+        await vscode.commands.executeCommand(DISPOSE_DHE_CLIENT_CMD, serverUrl);
+
         const dheClient = await this.dheClientCache.get(serverUrl);
 
         const keyPair = (await this.secretService.getServerKeys(serverUrl))?.[
