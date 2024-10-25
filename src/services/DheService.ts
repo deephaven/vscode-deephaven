@@ -26,7 +26,6 @@ import {
   deleteQueries,
   getWorkerCredentials,
   getWorkerInfoFromQuery,
-  hasInteractivePermission,
 } from '../dh/dhe';
 import { REQUEST_DHE_USER_CREDENTIALS_CMD } from '../common';
 
@@ -119,46 +118,17 @@ export class DheService implements IDheService {
    * @returns DHE client or null if initialization failed.
    */
   private _initClient = async (): Promise<EnterpriseClient | null> => {
-    if (!this._dheCredentialsCache.has(this.serverUrl)) {
+    if (!this._dheClientCache.has(this.serverUrl)) {
       await vscode.commands.executeCommand(
         REQUEST_DHE_USER_CREDENTIALS_CMD,
         this.serverUrl
       );
-
-      if (!this._dheCredentialsCache.has(this.serverUrl)) {
-        logger.error(
-          'Failed to get DHE credentials for server:',
-          this.serverUrl.toString()
-        );
-        return null;
-      }
     }
 
     // It's important to fetch the client after the auth flow has run to ensure
     // we have the current client. This is because the private key flow may
     // replace the cached client.
-    const dheClient = await this._dheClientCache.get(this.serverUrl);
-    const dheCredentials = await this._dheCredentialsCache.get(this.serverUrl)!;
-
-    // Login unless we have 'PrivateKeyCredentialsPlaceholder' (happens for private key auth
-    // since client should already be authenticated by the time we get here)
-    if (dheCredentials.type === 'password') {
-      try {
-        await dheClient.login(dheCredentials);
-      } catch (err) {
-        this._dheCredentialsCache.delete(this.serverUrl);
-        logger.error('An error occurred while connecting to DHE server:', err);
-        this._toaster.error(`Login failed to '${this.serverUrl.toString()}'`);
-        return null;
-      }
-    }
-
-    if (!(await hasInteractivePermission(dheClient))) {
-      logger.error('User does not have permission to run queries.');
-      return null;
-    }
-
-    return dheClient;
+    return this._dheClientCache.get(this.serverUrl);
   };
 
   /**

@@ -21,6 +21,7 @@ import type {
   ServerState,
   Username,
 } from '../types';
+import { hasInteractivePermission } from '../dh/dhe';
 
 const logger = new Logger('UserLoginController');
 
@@ -70,7 +71,6 @@ export class UserLoginController extends ControllerBase {
 
     const credentials = await runUserLoginWorkflow({
       title,
-      showOperatesAs: true,
     });
 
     // Cancelled by user
@@ -100,8 +100,7 @@ export class UserLoginController extends ControllerBase {
   };
 
   /**
-   * Handle the request for DHE user credentials. If credentials are provided,
-   * they will be stored in the credentials cache.
+   * Handle the request for DHE user credentials.
    * @param serverUrl The server URL to request credentials for.
    * @returns A promise that resolves when the credentials have been provided or declined.
    */
@@ -143,21 +142,32 @@ export class UserLoginController extends ControllerBase {
     await vscode.commands.executeCommand(DISPOSE_DHE_CLIENT_CMD, serverUrl);
     const dheClient = await this.dheClientCache.get(serverUrl);
 
-    if (credentials.type === 'password') {
-      // TODO: login with password
-    } else {
-      logger.debug('Login with private key:', username);
+    try {
+      if (credentials.type === 'password') {
+        logger.debug('Login with username / password:', username);
 
-      const keyPair = (await this.secretService.getServerKeys(serverUrl))?.[
-        username
-      ];
+        await dheClient.login(credentials);
+      } else {
+        logger.debug('Login with private key:', username);
 
-      await authWithPrivateKey({
-        dheClient,
-        keyPair,
-        username,
-        operateAs: username,
-      });
+        const keyPair = (await this.secretService.getServerKeys(serverUrl))?.[
+          username
+        ];
+
+        await authWithPrivateKey({
+          dheClient,
+          keyPair,
+          username,
+          operateAs: username,
+        });
+      }
+
+      if (!(await hasInteractivePermission(dheClient))) {
+        throw new Error('User does not have interactive permissions.');
+      }
+    } catch (err) {
+      logger.error('An error occurred while connecting to DHE server:', err);
+      await vscode.commands.executeCommand(DISPOSE_DHE_CLIENT_CMD, serverUrl);
     }
 
     this.dheCredentialsCache.set(serverUrl, credentials);
