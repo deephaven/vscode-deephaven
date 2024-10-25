@@ -133,10 +133,7 @@ export class UserLoginController extends ControllerBase {
       },
     });
 
-    // Ensure we have a new client before logging in
-    this.dheClientCache.set(serverUrl, await this.dheClientFactory(serverUrl));
-
-    const dheClient = await this.dheClientCache.getOrThrow(serverUrl);
+    const dheClient = await this.dheClientFactory(serverUrl);
 
     try {
       if (credentials.type === 'password') {
@@ -161,6 +158,8 @@ export class UserLoginController extends ControllerBase {
       if (!(await hasInteractivePermission(dheClient))) {
         throw new Error('User does not have interactive permissions.');
       }
+
+      this.dheClientCache.set(serverUrl, dheClient);
     } catch (err) {
       logger.error('An error occurred while connecting to DHE server:', err);
       this.dheClientCache.delete(serverUrl);
