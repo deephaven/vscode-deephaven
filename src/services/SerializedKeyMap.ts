@@ -1,3 +1,5 @@
+import * as vscode from 'vscode';
+
 /**
  * Base class for Maps that need to store their keys as serialized string values
  * internally for equality checks. Externally, the keys are deserialized back to
@@ -17,6 +19,9 @@ export abstract class SerializedKeyMap<TKey, TValue> {
     );
   }
 
+  private readonly _onDidChange = new vscode.EventEmitter<TKey>();
+  readonly onDidChange = this._onDidChange.event;
+
   private readonly _map: Map<string, TValue>;
 
   /** Serialize from a key to a string. */
@@ -30,15 +35,26 @@ export abstract class SerializedKeyMap<TKey, TValue> {
   }
 
   clear(): void {
+    const keys = [...this.keys()];
     this._map.clear();
+    keys.forEach(key => this._onDidChange.fire(key));
   }
 
   get(key: TKey): TValue | undefined {
     return this._map.get(this.serializeKey(key));
   }
 
+  getOrThrow(key: TKey): TValue {
+    const value = this.get(key);
+    if (value == null) {
+      throw new Error(`Key not found: ${key}`);
+    }
+    return value;
+  }
+
   set(key: TKey, value: TValue): this {
     this._map.set(this.serializeKey(key), value);
+    this._onDidChange.fire(key);
     return this;
   }
 
@@ -47,7 +63,13 @@ export abstract class SerializedKeyMap<TKey, TValue> {
   }
 
   delete(key: TKey): boolean {
-    return this._map.delete(this.serializeKey(key));
+    const deleted = this._map.delete(this.serializeKey(key));
+
+    if (deleted) {
+      this._onDidChange.fire(key);
+    }
+
+    return deleted;
   }
 
   forEach(
