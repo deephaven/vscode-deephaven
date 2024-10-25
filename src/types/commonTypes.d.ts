@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
+import type { EnterpriseClient } from '@deephaven-enterprise/jsapi-types';
 
 // Branded type helpers
 declare const __brand: unique symbol;
@@ -39,6 +40,14 @@ export interface EnterpriseConnectionConfig {
   experimentalWorkerConfig?: WorkerConfig;
 }
 
+export type DheAuthenticatedClient = Brand<
+  'DheAuthenticatedClient',
+  EnterpriseClient
+>;
+export type DheUnauthenticatedClient = Brand<
+  'DheUnauthenticatedClient',
+  EnterpriseClient
+>;
 export type LoginWorkflowType = 'login' | 'generatePrivateKey';
 export type Username = Brand<'Username', string>;
 export type OperateAsUsername = Brand<'OperateAsUsername', string>;

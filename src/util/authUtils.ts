@@ -9,7 +9,11 @@ import type {
   Base64PrivateKey,
   Base64PublicKey,
   Base64Signature,
+  DheAuthenticatedClient,
+  DheUnauthenticatedClient,
+  ISecretService,
   KeyPairType,
+  PasswordOrPrivateKeyCredentials,
 } from '../types';
 import { Logger } from './Logger';
 
@@ -101,7 +105,7 @@ declare module '@deephaven-enterprise/jsapi-types' {
  * @returns The response from the server.
  */
 export async function uploadPublicKey(
-  dheClient: EnterpriseClient,
+  dheClient: DheUnauthenticatedClient,
   dheCredentials: DheLoginCredentials,
   publicKey: Base64PublicKey,
   type: KeyPairType
@@ -165,4 +169,32 @@ export async function authWithPrivateKey({
     );
     throw e;
   }
+}
+
+export async function loginClient(
+  dheClient: DheUnauthenticatedClient,
+  credentials: PasswordOrPrivateKeyCredentials,
+  serverUrl: URL,
+  secretService: ISecretService
+): Promise<DheAuthenticatedClient> {
+  const { username } = credentials;
+
+  if (credentials.type === 'password') {
+    logger.debug('Login with username / password:', username);
+
+    await dheClient.login(credentials);
+  } else {
+    logger.debug('Login with private key:', username);
+
+    const keyPair = (await secretService.getServerKeys(serverUrl))?.[username];
+
+    await authWithPrivateKey({
+      dheClient,
+      keyPair,
+      username,
+      operateAs: username,
+    });
+  }
+
+  return dheClient as unknown as DheAuthenticatedClient;
 }

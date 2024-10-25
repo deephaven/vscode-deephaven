@@ -1,12 +1,10 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
-import type {
-  EnterpriseDhType as DheType,
-  EnterpriseClient,
-} from '@deephaven-enterprise/jsapi-types';
+import type { EnterpriseDhType as DheType } from '@deephaven-enterprise/jsapi-types';
 import {
   WorkerURL,
   type ConsoleType,
+  type DheAuthenticatedClient,
   type IAsyncCacheService,
   type IConfigService,
   type IDheService,
@@ -46,7 +44,7 @@ export class DheService implements IDheService {
   static factory = (
     configService: IConfigService,
     coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
-    dheClientCache: URLMap<EnterpriseClient>,
+    dheClientCache: URLMap<DheAuthenticatedClient>,
     dheJsApiCache: IAsyncCacheService<URL, DheType>,
     toaster: IToastService
   ): IDheServiceFactory => {
@@ -71,7 +69,7 @@ export class DheService implements IDheService {
     serverUrl: URL,
     configService: IConfigService,
     coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
-    dheClientCache: URLMap<EnterpriseClient>,
+    dheClientCache: URLMap<DheAuthenticatedClient>,
     dheJsApiCache: IAsyncCacheService<URL, DheType>,
     toaster: IToastService
   ) {
@@ -87,13 +85,13 @@ export class DheService implements IDheService {
     this._dheClientCache.onDidChange(this._onDidDheClientCacheInvalidate);
   }
 
-  private _clientPromise: Promise<EnterpriseClient | null> | null = null;
+  private _clientPromise: Promise<DheAuthenticatedClient | null> | null = null;
   private _isConnected: boolean = false;
   private readonly _config: IConfigService;
   private readonly _coreCredentialsCache: URLMap<
     Lazy<DhcType.LoginCredentials>
   >;
-  private readonly _dheClientCache: URLMap<EnterpriseClient>;
+  private readonly _dheClientCache: URLMap<DheAuthenticatedClient>;
   private readonly _dheJsApiCache: IAsyncCacheService<URL, DheType>;
   private readonly _querySerialSet: Set<QuerySerial>;
   private readonly _toaster: IToastService;
@@ -112,7 +110,7 @@ export class DheService implements IDheService {
    * Initialize DHE client and login.
    * @returns DHE client or null if initialization failed.
    */
-  private _initClient = async (): Promise<EnterpriseClient | null> => {
+  private _initClient = async (): Promise<DheAuthenticatedClient | null> => {
     if (!this._dheClientCache.has(this.serverUrl)) {
       await vscode.commands.executeCommand(
         CREATE_AUTHENTICATED_CLIENT_CMD,
@@ -172,7 +170,7 @@ export class DheService implements IDheService {
    */
   getClient = async (
     initializeIfNull: boolean
-  ): Promise<EnterpriseClient | null> => {
+  ): Promise<DheAuthenticatedClient | null> => {
     if (this._clientPromise == null) {
       if (!initializeIfNull) {
         return null;

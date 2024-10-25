@@ -1,5 +1,9 @@
 import type { SecretStorage } from 'vscode';
-import type { UserKeyPairs, UserLoginPreferences } from '../types';
+import type {
+  ISecretService,
+  UserKeyPairs,
+  UserLoginPreferences,
+} from '../types';
 
 const OPERATE_AS_USER_KEY = 'operateAsUser' as const;
 const SERVER_KEYS_KEY = 'serverKeys' as const;
@@ -13,7 +17,7 @@ const SERVER_KEYS_KEY = 'serverKeys' as const;
  * console via:
  * > Developer: Log Storage Database Contents
  */
-export class SecretService {
+export class SecretService implements ISecretService {
   constructor(secrets: SecretStorage) {
     this._secrets = secrets;
   }
@@ -25,7 +29,7 @@ export class SecretService {
    * @param key Secret storage key
    * @returns An object of type T or null if a value cannot be found or parsed.
    */
-  _getJson = async <T>(key: string): Promise<T | null> => {
+  private _getJson = async <T>(key: string): Promise<T | null> => {
     const raw = await this._secrets.get(key);
     if (raw == null) {
       return null;
@@ -40,20 +44,20 @@ export class SecretService {
   };
 
   /**
+   * Store a JSON-serializable value.
+   * @param key Secret storage key
+   * @param value Value to store
+   */
+  private _storeJson = async <T>(key: string, value: T): Promise<void> => {
+    return this._secrets.store(key, JSON.stringify(value));
+  };
+
+  /**
    * Clear all stored secrets.
    */
   clearStorage = async (): Promise<void> => {
     await this._secrets.delete(OPERATE_AS_USER_KEY);
     await this._secrets.delete(SERVER_KEYS_KEY);
-  };
-
-  /**
-   * Store a JSON-serializable value.
-   * @param key Secret storage key
-   * @param value Value to store
-   */
-  _storeJson = async <T>(key: string, value: T): Promise<void> => {
-    return this._secrets.store(key, JSON.stringify(value));
   };
 
   /**

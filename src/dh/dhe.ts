@@ -9,6 +9,8 @@ import type {
 import { DraftQuery, QueryScheduler } from '@deephaven-enterprise/query-utils';
 import type {
   ConsoleType,
+  DheAuthenticatedClient,
+  DheUnauthenticatedClient,
   IdeURL,
   QuerySerial,
   UniqueID,
@@ -37,8 +39,10 @@ export type IDraftQuery = EditableQueryInfo & {
 export async function createDheClient(
   dhe: DheType,
   serverUrl: URL
-): Promise<EnterpriseClient> {
-  const dheClient = new dhe.Client(serverUrl.toString());
+): Promise<DheUnauthenticatedClient> {
+  const dheClient = new dhe.Client(
+    serverUrl.toString()
+  ) as DheUnauthenticatedClient;
 
   return new Promise(resolve => {
     const unsubscribe = dheClient.addEventListener(
@@ -57,7 +61,7 @@ export async function createDheClient(
  * @returns A promise that resolves to the worker credentials.
  */
 export async function getWorkerCredentials(
-  client: EnterpriseClient
+  client: DheAuthenticatedClient
 ): Promise<DhcType.LoginCredentials> {
   const token = await client.createAuthToken('RemoteQueryProcessor');
   return {
@@ -87,7 +91,7 @@ export function getWsUrl(serverUrl: URL): URL {
  * @returns A promise that resolves to true if the user has permission to interact with the UI.
  */
 export async function hasInteractivePermission(
-  dheClient: EnterpriseClient
+  dheClient: DheAuthenticatedClient
 ): Promise<boolean> {
   // TODO: Retrieve these group names from the server:
   // https://deephaven.atlassian.net/browse/DH-9418
@@ -115,7 +119,7 @@ export async function hasInteractivePermission(
  */
 export async function createInteractiveConsoleQuery(
   tagId: UniqueID,
-  dheClient: EnterpriseClient,
+  dheClient: DheAuthenticatedClient,
   workerConfig: WorkerConfig = {},
   consoleType?: ConsoleType
 ): Promise<QuerySerial> {
@@ -210,7 +214,7 @@ export async function createInteractiveConsoleQuery(
  * @param querySerials Serials of queries to delete.
  */
 export async function deleteQueries(
-  dheClient: EnterpriseClient,
+  dheClient: DheAuthenticatedClient,
   querySerials: QuerySerial[]
 ): Promise<void> {
   await dheClient.deleteQueries(querySerials);
@@ -227,7 +231,7 @@ export async function deleteQueries(
 export async function getWorkerInfoFromQuery(
   tagId: UniqueID,
   dhe: DheType,
-  dheClient: EnterpriseClient,
+  dheClient: DheAuthenticatedClient,
   querySerial: QuerySerial
 ): Promise<WorkerInfo | undefined> {
   // The query will go through multiple config updates before the worker is ready.

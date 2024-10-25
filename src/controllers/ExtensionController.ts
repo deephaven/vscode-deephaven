@@ -1,9 +1,6 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
-import type {
-  EnterpriseDhType as DheType,
-  EnterpriseClient,
-} from '@deephaven-enterprise/jsapi-types';
+import type { EnterpriseDhType as DheType } from '@deephaven-enterprise/jsapi-types';
 import {
   CLEAR_SECRET_STORAGE_CMD,
   CONNECT_TO_SERVER_CMD,
@@ -52,6 +49,8 @@ import {
 } from '../services';
 import type {
   ConnectionState,
+  DheAuthenticatedClient,
+  DheUnauthenticatedClient,
   Disposable,
   IAsyncCacheService,
   IConfigService,
@@ -61,6 +60,7 @@ import type {
   IDhService,
   IDhServiceFactory,
   IPanelService,
+  ISecretService,
   IServerManager,
   IToastService,
   Lazy,
@@ -113,7 +113,7 @@ export class ExtensionController implements Disposable {
   private _connectionController: ConnectionController | null = null;
   private _coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>> | null =
     null;
-  private _dheClientCache: URLMap<EnterpriseClient> | null = null;
+  private _dheClientCache: URLMap<DheAuthenticatedClient> | null = null;
   private _dheClientFactory: IDheClientFactory | null = null;
   private _dheServiceCache: IAsyncCacheService<URL, IDheService> | null = null;
   private _panelController: PanelController | null = null;
@@ -122,7 +122,7 @@ export class ExtensionController implements Disposable {
   private _dhcServiceFactory: IDhServiceFactory | null = null;
   private _dheJsApiCache: IAsyncCacheService<URL, DheType> | null = null;
   private _dheServiceFactory: IDheServiceFactory | null = null;
-  private _secretService: SecretService | null = null;
+  private _secretService: ISecretService | null = null;
   private _serverManager: IServerManager | null = null;
   private _userLoginController: UserLoginController | null = null;
 
@@ -311,7 +311,9 @@ export class ExtensionController implements Disposable {
     this._dheJsApiCache = new DheJsApiCache();
     this._context.subscriptions.push(this._dheJsApiCache);
 
-    this._dheClientFactory = async (url: URL): Promise<EnterpriseClient> => {
+    this._dheClientFactory = async (
+      url: URL
+    ): Promise<DheUnauthenticatedClient> => {
       assertDefined(this._dheJsApiCache, 'dheJsApiCache');
       const dhe = await this._dheJsApiCache.get(url);
       return createDheClient(dhe, getWsUrl(url));

@@ -1,6 +1,5 @@
-import type { SecretService, URLMap } from '../services';
+import type { URLMap } from '../services';
 import { ControllerBase } from './ControllerBase';
-import type { EnterpriseClient } from '@deephaven-enterprise/jsapi-types';
 import {
   CREATE_AUTHENTICATED_CLIENT_CMD,
   GENERATE_DHE_KEY_PAIR_CMD,
@@ -9,12 +8,17 @@ import {
   authWithPrivateKey,
   generateBase64KeyPair,
   Logger,
+  loginClient,
   runUserLoginWorkflow,
   uploadPublicKey,
 } from '../util';
 import type {
+  DheAuthenticatedClient,
+  DheUnauthenticatedClient,
   IDheClientFactory,
+  ISecretService,
   IToastService,
+  PasswordOrPrivateKeyCredentials,
   ServerState,
   Username,
 } from '../types';
@@ -27,9 +31,9 @@ const logger = new Logger('UserLoginController');
  */
 export class UserLoginController extends ControllerBase {
   constructor(
-    dheClientCache: URLMap<EnterpriseClient>,
+    dheClientCache: URLMap<DheAuthenticatedClient>,
     dheClientFactory: IDheClientFactory,
-    secretService: SecretService,
+    secretService: ISecretService,
     toastService: IToastService
   ) {
     super();
@@ -50,9 +54,9 @@ export class UserLoginController extends ControllerBase {
     );
   }
 
-  private readonly dheClientCache: URLMap<EnterpriseClient>;
+  private readonly dheClientCache: URLMap<DheAuthenticatedClient>;
   private readonly dheClientFactory: IDheClientFactory;
-  private readonly secretService: SecretService;
+  private readonly secretService: ISecretService;
   private readonly toast: IToastService;
 
   /**
@@ -136,33 +140,50 @@ export class UserLoginController extends ControllerBase {
     const dheClient = await this.dheClientFactory(serverUrl);
 
     try {
-      if (credentials.type === 'password') {
-        logger.debug('Login with username / password:', username);
+      const authenticatedClient = await loginClient(
+        dheClient,
+        credentials,
+        serverUrl,
+        this.secretService
+      );
 
-        await dheClient.login(credentials);
-      } else {
-        logger.debug('Login with private key:', username);
-
-        const keyPair = (await this.secretService.getServerKeys(serverUrl))?.[
-          username
-        ];
-
-        await authWithPrivateKey({
-          dheClient,
-          keyPair,
-          username,
-          operateAs: username,
-        });
-      }
-
-      if (!(await hasInteractivePermission(dheClient))) {
+      if (!(await hasInteractivePermission(authenticatedClient))) {
         throw new Error('User does not have interactive permissions.');
       }
 
-      this.dheClientCache.set(serverUrl, dheClient);
+      this.dheClientCache.set(serverUrl, authenticatedClient);
     } catch (err) {
       logger.error('An error occurred while connecting to DHE server:', err);
       this.dheClientCache.delete(serverUrl);
     }
+  };
+
+  private _loginClient = async (
+    dheClient: DheUnauthenticatedClient,
+    credentials: PasswordOrPrivateKeyCredentials,
+    serverUrl: URL
+  ): Promise<DheAuthenticatedClient> => {
+    const { username } = credentials;
+
+    if (credentials.type === 'password') {
+      logger.debug('Login with username / password:', username);
+
+      await dheClient.login(credentials);
+    } else {
+      logger.debug('Login with private key:', username);
+
+      const keyPair = (await this.secretService.getServerKeys(serverUrl))?.[
+        username
+      ];
+
+      await authWithPrivateKey({
+        dheClient,
+        keyPair,
+        username,
+        operateAs: username,
+      });
+    }
+
+    return dheClient as unknown as DheAuthenticatedClient;
   };
 }

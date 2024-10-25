@@ -15,6 +15,10 @@ import type {
   WorkerInfo,
   WorkerURL,
   UniqueID,
+  DheAuthenticatedClient,
+  DheUnauthenticatedClient,
+  UserKeyPairs,
+  UserLoginPreferences,
 } from '../types/commonTypes';
 
 export interface IAsyncCacheService<TKey, TValue> extends Disposable {
@@ -54,7 +58,9 @@ export interface IDhService<TDH = unknown, TClient = unknown>
 }
 
 export interface IDheService extends ConnectionState, Disposable {
-  getClient: (initializeIfNull: boolean) => Promise<EnterpriseClient | null>;
+  getClient: (
+    initializeIfNull: boolean
+  ) => Promise<DheAuthenticatedClient | null>;
   getWorkerInfo: (workerUrl: WorkerURL) => WorkerInfo | undefined;
   createWorker: (
     tagId: UniqueID,
@@ -86,7 +92,9 @@ export type IDhServiceFactory = IFactory<
   IDhService,
   [serverUrl: URL, tagId?: UniqueID]
 >;
-export type IDheClientFactory = (serverUrl: URL) => Promise<EnterpriseClient>;
+export type IDheClientFactory = (
+  serverUrl: URL
+) => Promise<DheUnauthenticatedClient>;
 export type IDheServiceFactory = IFactory<IDheService, [serverUrl: URL]>;
 
 export interface IPanelService extends Disposable {
@@ -104,6 +112,20 @@ export interface IPanelService extends Disposable {
   ) => void;
   getVariables: (url: URL) => Iterable<VariableDefintion>;
   updateVariables: (url: URL, changes: VariableChanges) => void;
+}
+
+/**
+ * Secret service interface.
+ */
+export interface ISecretService {
+  getServerKeys(serverUrl: URL): Promise<UserKeyPairs>;
+  storeServerKeys(serverUrl: URL, serverKeys: UserKeyPairs): Promise<void>;
+  clearStorage(): Promise<void>;
+  getUserLoginPreferences(serverUrl: URL): Promise<UserLoginPreferences>;
+  storeUserLoginPreferences(
+    serverUrl: URL,
+    preferences: UserLoginPreferences
+  ): Promise<void>;
 }
 
 /**
