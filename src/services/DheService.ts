@@ -3,7 +3,6 @@ import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type {
   EnterpriseDhType as DheType,
   EnterpriseClient,
-  LoginCredentials as DheLoginCredentials,
 } from '@deephaven-enterprise/jsapi-types';
 import {
   WorkerURL,
@@ -14,8 +13,8 @@ import {
   type IDheServiceFactory,
   type IToastService,
   type Lazy,
+  type PasswordOrPrivateKeyCredentials,
   type QuerySerial,
-  type PrivateKeyCredentialsPlaceholder,
   type UniqueID,
   type WorkerConfig,
   type WorkerInfo,
@@ -49,9 +48,7 @@ export class DheService implements IDheService {
     configService: IConfigService,
     coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
     dheClientCache: IAsyncCacheService<URL, EnterpriseClient>,
-    dheCredentialsCache: URLMap<
-      DheLoginCredentials | PrivateKeyCredentialsPlaceholder
-    >,
+    dheCredentialsCache: URLMap<PasswordOrPrivateKeyCredentials>,
     dheJsApiCache: IAsyncCacheService<URL, DheType>,
     toaster: IToastService
   ): IDheServiceFactory => {
@@ -78,9 +75,7 @@ export class DheService implements IDheService {
     configService: IConfigService,
     coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
     dheClientCache: IAsyncCacheService<URL, EnterpriseClient>,
-    dheCredentialsCache: URLMap<
-      DheLoginCredentials | PrivateKeyCredentialsPlaceholder
-    >,
+    dheCredentialsCache: URLMap<PasswordOrPrivateKeyCredentials>,
     dheJsApiCache: IAsyncCacheService<URL, DheType>,
     toaster: IToastService
   ) {
@@ -104,9 +99,7 @@ export class DheService implements IDheService {
     Lazy<DhcType.LoginCredentials>
   >;
   private readonly _dheClientCache: IAsyncCacheService<URL, EnterpriseClient>;
-  private readonly _dheCredentialsCache: URLMap<
-    DheLoginCredentials | PrivateKeyCredentialsPlaceholder
-  >;
+  private readonly _dheCredentialsCache: URLMap<PasswordOrPrivateKeyCredentials>;
   private readonly _dheJsApiCache: IAsyncCacheService<URL, DheType>;
   private readonly _querySerialSet: Set<QuerySerial>;
   private readonly _toaster: IToastService;
@@ -149,7 +142,7 @@ export class DheService implements IDheService {
 
     // Login unless we have 'PrivateKeyCredentialsPlaceholder' (happens for private key auth
     // since client should already be authenticated by the time we get here)
-    if (dheCredentials !== 'PrivateKeyCredentialsPlaceholder') {
+    if (dheCredentials.type === 'password') {
       try {
         await dheClient.login(dheCredentials);
       } catch (err) {

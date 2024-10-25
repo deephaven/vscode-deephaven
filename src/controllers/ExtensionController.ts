@@ -3,7 +3,6 @@ import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type {
   EnterpriseDhType as DheType,
   EnterpriseClient,
-  LoginCredentials as DheLoginCredentials,
 } from '@deephaven-enterprise/jsapi-types';
 import {
   CLEAR_SECRET_STORAGE_CMD,
@@ -71,7 +70,7 @@ import type {
   ServerConnectionTreeView,
   ServerState,
   ServerTreeView,
-  PrivateKeyCredentialsPlaceholder,
+  PasswordOrPrivateKeyCredentials,
 } from '../types';
 import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTreeDragAndDropController';
 import { ConnectionController } from './ConnectionController';
@@ -117,9 +116,8 @@ export class ExtensionController implements Disposable {
     null;
   private _dheClientCache: IAsyncCacheService<URL, EnterpriseClient> | null =
     null;
-  private _dheCredentialsCache: URLMap<
-    DheLoginCredentials | PrivateKeyCredentialsPlaceholder
-  > | null = null;
+  private _dheCredentialsCache: URLMap<PasswordOrPrivateKeyCredentials> | null =
+    null;
   private _dheServiceCache: IAsyncCacheService<URL, IDheService> | null = null;
   private _panelController: PanelController | null = null;
   private _panelService: IPanelService | null = null;
@@ -312,9 +310,7 @@ export class ExtensionController implements Disposable {
     assertDefined(this._toaster, 'toaster');
 
     this._coreCredentialsCache = new URLMap<Lazy<DhcType.LoginCredentials>>();
-    this._dheCredentialsCache = new URLMap<
-      DheLoginCredentials | PrivateKeyCredentialsPlaceholder
-    >();
+    this._dheCredentialsCache = new URLMap<PasswordOrPrivateKeyCredentials>();
 
     this._dheJsApiCache = new DheJsApiCache();
     this._context.subscriptions.push(this._dheJsApiCache);

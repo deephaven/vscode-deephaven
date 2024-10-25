@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
 import type {
-  AuthenticationMethod,
   ConnectionState,
+  PasswordCredentialsType,
+  PrivateKeyCredentialsType,
   ServerState,
   Username,
 } from './commonTypes';
@@ -14,13 +15,13 @@ export type SeparatorPickItem = {
 export type AuthenticationMethodPickItem =
   | {
       label: 'Username / Password';
-      type: 'password';
-      iconPath: vscode.ThemeIcon;
+      type: PasswordCredentialsType;
+      iconPath?: vscode.ThemeIcon;
     }
   | {
       label: Username;
-      type: 'privateKey';
-      iconPath: vscode.ThemeIcon;
+      type: PrivateKeyCredentialsType;
+      iconPath?: vscode.ThemeIcon;
     };
 
 export type ConnectionPickItem<TType, TData> = vscode.QuickPickItem & {
@@ -32,3 +33,9 @@ export type ConnectionPickOption<TConnection extends ConnectionState> =
   | SeparatorPickItem
   | ConnectionPickItem<'server', ServerState>
   | ConnectionPickItem<'connection', TConnection>;
+
+export type LoginWorkflowPromptType =
+  | 'authenticationMethod'
+  | 'user'
+  | 'password'
+  | 'operateAs';

@@ -7,6 +7,8 @@ export type Brand<T extends string, TBase = string> = TBase & {
   readonly [__brand]: T;
 };
 
+export type NonEmptyArray<T> = [T, ...T[]];
+
 export type UniqueID = Brand<'UniqueID', string>;
 
 export type Port = Brand<'Port', number>;
@@ -37,10 +39,11 @@ export interface EnterpriseConnectionConfig {
   experimentalWorkerConfig?: WorkerConfig;
 }
 
-export type AuthenticationMethod = 'password' | 'privateKey';
 export type LoginWorkflowType = 'login' | 'generatePrivateKey';
 export type Username = Brand<'Username', string>;
 export type OperateAsUsername = Brand<'OperateAsUsername', string>;
+export type PasswordCredentialsType = 'password';
+export type PrivateKeyCredentialsType = 'privateKey';
 export type Base64PrivateKey = Brand<'Base64PrivateKey', string>;
 export type Base64PublicKey = Brand<'Base64PublicKey', string>;
 export type Base64Nonce = Brand<'Base64Nonce', string>;
@@ -51,13 +54,25 @@ export type Base64KeyPair = {
   publicKey: Base64PublicKey;
   privateKey: Base64PrivateKey;
 };
+export type PasswordCredentials = {
+  type: PasswordCredentialsType;
+  username: Username;
+  token: string;
+  operateAs?: OperateAsUsername;
+};
+export type PrivateKeyCredentials = {
+  type: PrivateKeyCredentialsType;
+  username: Username;
+  operateAs?: OperateAsUsername;
+};
+export type PasswordOrPrivateKeyCredentials =
+  | PasswordCredentials
+  | PrivateKeyCredentials;
 export type UserKeyPairs = Record<Username, Base64KeyPair>;
 export type UserLoginPreferences = {
   lastLogin?: Username;
   operateAsUser: Record<Username, OperateAsUsername>;
 };
-export type PrivateKeyCredentialsPlaceholder =
-  'PrivateKeyCredentialsPlaceholder';
 
 export type ServerConnectionConfig =
   | CoreConnectionConfig

@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import type { LoginCredentials as DheLoginCredentials } from '@deephaven-enterprise/jsapi-types';
 import {
   SELECT_CONNECTION_COMMAND,
   STATUS_BAR_CONNECTING_TEXT,
@@ -18,8 +17,13 @@ import type {
   OperateAsUsername,
   AuthenticationMethodPickItem,
   UserLoginPreferences,
+  PasswordOrPrivateKeyCredentials,
+  PasswordCredentials,
+  PrivateKeyCredentials,
+  NonEmptyArray,
 } from '../types';
 import { sortByStringProp } from './dataUtils';
+import { assertDefined } from './assertUtil';
 
 export interface ConnectionOption {
   type: ConnectionType;
@@ -36,6 +40,12 @@ export interface WorkspaceFolderConfig {
   readonly uri: vscode.Uri;
   readonly name?: string;
 }
+
+const PASSWORD_AUTHENTICATION_METHOD_PICK_ITEM = {
+  label: 'Username / Password',
+  type: 'password',
+  iconPath: new vscode.ThemeIcon('account'),
+} as const;
 
 /**
  * Create options for a connection quick pick.
@@ -112,46 +122,107 @@ export async function createConnectionQuickPick(
   return result.data;
 }
 
-export async function runUserLoginWorkflow(
-  title: string,
-  userLoginPreferences: UserLoginPreferences,
-  showOperateAs?: boolean
-): Promise<
-  | (DheLoginCredentials & { username: Username; operateAs: Username })
-  | undefined
-> {
-  // Username
-  const username = await promptForUsername(
+/**
+ * Run user login workflow that prompts user for credentials. Prompts are
+ * conditional based on the provided arguments.
+ * @param title Title for the prompts
+ * @param userLoginPreferences User login preferences to determine default values
+ * for user / operate as prompts.
+ * @param privateKeyUserNames Optional list of private key user names. If provided,
+ * the authentication method will be prompted to determine if user wants to use
+ * one of these private keys or username/password.
+ * @param showOperatesAs Whether to show the operate as prompt.
+ */
+export async function runUserLoginWorkflow(args: {
+  title: string;
+  userLoginPreferences?: UserLoginPreferences;
+  privateKeyUserNames?: undefined | [];
+  showOperatesAs?: boolean;
+}): Promise<PasswordCredentials | undefined>;
+export async function runUserLoginWorkflow(args: {
+  title: string;
+  userLoginPreferences: UserLoginPreferences;
+  privateKeyUserNames: NonEmptyArray<Username>;
+  showOperatesAs?: boolean;
+}): Promise<PrivateKeyCredentials | undefined>;
+export async function runUserLoginWorkflow(args: {
+  title: string;
+  userLoginPreferences?: UserLoginPreferences;
+  privateKeyUserNames?: Username[];
+  showOperatesAs?: boolean;
+}): Promise<PasswordOrPrivateKeyCredentials | undefined> {
+  const {
     title,
-    userLoginPreferences.lastLogin
-  );
+    userLoginPreferences,
+    privateKeyUserNames = [],
+    showOperatesAs,
+  } = args;
+
+  // Authentication method (only prompt if private key user names are given)
+  const promptForAuthenticationMethod = privateKeyUserNames.length > 0;
+
+  const authenticationMethod: AuthenticationMethodPickItem | null =
+    promptForAuthenticationMethod
+      ? await createAuthenticationMethodQuickPick(title, privateKeyUserNames)
+      : PASSWORD_AUTHENTICATION_METHOD_PICK_ITEM;
+
+  if (authenticationMethod == null) {
+    return;
+  }
+
+  let username: Username | undefined;
+  let token: string | undefined;
+  let operateAs: OperateAsUsername | undefined;
+
+  // Username comes from private key item or prompt
+  username =
+    authenticationMethod.type === 'privateKey'
+      ? authenticationMethod.label
+      : await promptForUsername(title, userLoginPreferences?.lastLogin);
+
+  // Cancelled by user
   if (username == null) {
     return;
   }
 
-  // Password
-  const token = await promptForPassword(title);
-  if (token == null) {
-    return;
+  // Password prompts only apply to `type` 'password'
+  if (authenticationMethod.type === 'password') {
+    token = await promptForPassword(title);
+
+    // Cancelled by user
+    if (token == null) {
+      return;
+    }
   }
 
-  let operateAs = username;
-
   // Operate As
-  if (showOperateAs) {
+  if (showOperatesAs) {
+    const defaultValue = username as unknown as OperateAsUsername | undefined;
+
     const operateAs = await promptForOperateAs(
       title,
-      userLoginPreferences.operateAsUser[username] ?? username
+      userLoginPreferences?.operateAsUser[username] ?? defaultValue
     );
+
+    // Cancelled by user
     if (operateAs == null) {
       return;
     }
   }
 
+  if (authenticationMethod.type === 'password') {
+    assertDefined(token, 'token');
+    return {
+      type: authenticationMethod.type,
+      username,
+      token,
+      operateAs,
+    };
+  }
+
   return {
-    type: 'password',
+    type: authenticationMethod.type,
     username,
-    token,
     operateAs,
   };
 }
@@ -170,11 +241,7 @@ export async function createAuthenticationMethodQuickPick(
     AuthenticationMethodPickItem | SeparatorPickItem
   >(
     [
-      {
-        label: 'Username / Password',
-        type: 'password',
-        iconPath: new vscode.ThemeIcon('account'),
-      },
+      PASSWORD_AUTHENTICATION_METHOD_PICK_ITEM,
       createSeparatorPickItem('Private Key'),
       ...privateKeyUserNames.map(userName => ({
         label: userName,
@@ -382,12 +449,12 @@ export function promptForPassword(title: string): Promise<string | undefined> {
 
 export function promptForOperateAs(
   title: string,
-  lastOperateAs?: OperateAsUsername
+  defaultValue?: OperateAsUsername
 ): Promise<OperateAsUsername | undefined> {
   return vscode.window.showInputBox({
     placeHolder: 'Operate As',
     prompt: 'Deephaven `Operate As` username',
     title,
-    value: lastOperateAs,
+    value: defaultValue,
   }) as Promise<OperateAsUsername | undefined>;
 }
