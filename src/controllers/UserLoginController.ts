@@ -10,7 +10,6 @@ import {
 import {
   authWithPrivateKey,
   generateBase64KeyPair,
-  isNonEmptyArray,
   Logger,
   runUserLoginWorkflow,
   uploadPublicKey,
@@ -118,35 +117,36 @@ export class UserLoginController extends ControllerBase {
 
     const privateKeyUserNames = Object.keys(secretKeys) as Username[];
 
-    if (isNonEmptyArray(privateKeyUserNames)) {
-      const credentials = await runUserLoginWorkflow({
-        title,
-        userLoginPreferences,
-        privateKeyUserNames,
-        showOperatesAs: true,
-      });
+    const credentials = await runUserLoginWorkflow({
+      title,
+      userLoginPreferences,
+      privateKeyUserNames,
+      showOperatesAs: true,
+    });
 
-      // Cancelled by user
-      if (credentials == null) {
-        return;
-      }
+    // Cancelled by user
+    if (credentials == null) {
+      return;
+    }
 
-      const { username, operateAs } = credentials;
+    const { username, operateAs = username } = credentials;
 
-      await this.secretService.storeUserLoginPreferences(serverUrl, {
-        lastLogin: username,
-        operateAsUser: {
-          ...userLoginPreferences.operateAsUser,
-          [username]: operateAs,
-        },
-      });
+    await this.secretService.storeUserLoginPreferences(serverUrl, {
+      lastLogin: username,
+      operateAsUser: {
+        ...userLoginPreferences.operateAsUser,
+        [username]: operateAs,
+      },
+    });
 
+    // Have to use a new client to login
+    await vscode.commands.executeCommand(DISPOSE_DHE_CLIENT_CMD, serverUrl);
+    const dheClient = await this.dheClientCache.get(serverUrl);
+
+    if (credentials.type === 'password') {
+      // TODO: login with password
+    } else {
       logger.debug('Login with private key:', username);
-
-      // Have to use a new client to login with the private key
-      await vscode.commands.executeCommand(DISPOSE_DHE_CLIENT_CMD, serverUrl);
-
-      const dheClient = await this.dheClientCache.get(serverUrl);
 
       const keyPair = (await this.secretService.getServerKeys(serverUrl))?.[
         username
@@ -158,30 +158,8 @@ export class UserLoginController extends ControllerBase {
         username,
         operateAs: username,
       });
-
-      this.dheCredentialsCache.set(serverUrl, credentials);
-
-      return;
     }
 
-    const dheCredentials = await runUserLoginWorkflow({
-      title,
-      userLoginPreferences,
-      showOperatesAs: true,
-    });
-
-    if (dheCredentials == null) {
-      return;
-    }
-
-    await this.secretService.storeUserLoginPreferences(serverUrl, {
-      lastLogin: dheCredentials.username,
-      operateAsUser: {
-        ...userLoginPreferences.operateAsUser,
-        [dheCredentials.username]: dheCredentials.operateAs,
-      },
-    });
-
-    this.dheCredentialsCache.set(serverUrl, dheCredentials);
+    this.dheCredentialsCache.set(serverUrl, credentials);
   };
 }

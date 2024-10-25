@@ -19,8 +19,6 @@ import type {
   UserLoginPreferences,
   PasswordOrPrivateKeyCredentials,
   PasswordCredentials,
-  PrivateKeyCredentials,
-  NonEmptyArray,
 } from '../types';
 import { sortByStringProp } from './dataUtils';
 import { assertDefined } from './assertUtil';
@@ -141,10 +139,10 @@ export async function runUserLoginWorkflow(args: {
 }): Promise<PasswordCredentials | undefined>;
 export async function runUserLoginWorkflow(args: {
   title: string;
-  userLoginPreferences: UserLoginPreferences;
-  privateKeyUserNames: NonEmptyArray<Username>;
+  userLoginPreferences?: UserLoginPreferences;
+  privateKeyUserNames?: Username[];
   showOperatesAs?: boolean;
-}): Promise<PrivateKeyCredentials | undefined>;
+}): Promise<PasswordOrPrivateKeyCredentials | undefined>;
 export async function runUserLoginWorkflow(args: {
   title: string;
   userLoginPreferences?: UserLoginPreferences;
