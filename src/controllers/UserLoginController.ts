@@ -14,6 +14,7 @@ import {
 } from '../util';
 import type {
   IAsyncCacheService,
+  IDheClientFactory,
   IToastService,
   ServerState,
   Username,
@@ -28,12 +29,14 @@ const logger = new Logger('UserLoginController');
 export class UserLoginController extends ControllerBase {
   constructor(
     dheClientCache: IAsyncCacheService<URL, EnterpriseClient>,
+    dheClientFactory: IDheClientFactory,
     secretService: SecretService,
     toastService: IToastService
   ) {
     super();
 
     this.dheClientCache = dheClientCache;
+    this.dheClientFactory = dheClientFactory;
     this.secretService = secretService;
     this.toast = toastService;
 
@@ -49,6 +52,7 @@ export class UserLoginController extends ControllerBase {
   }
 
   private readonly dheClientCache: IAsyncCacheService<URL, EnterpriseClient>;
+  private readonly dheClientFactory: IDheClientFactory;
   private readonly secretService: SecretService;
   private readonly toast: IToastService;
 
@@ -75,9 +79,8 @@ export class UserLoginController extends ControllerBase {
     const keyPair = generateBase64KeyPair();
     const { type, publicKey } = keyPair;
 
-    // Ensure we have a new client before loggging in
-    this.dheClientCache.invalidate(serverUrl);
-    const dheClient = await this.dheClientCache.get(serverUrl);
+    // Create a new temporary client to upload the public key
+    const dheClient = await this.dheClientFactory(serverUrl);
 
     await uploadPublicKey(dheClient, credentials, publicKey, type);
 

@@ -56,6 +56,7 @@ import type {
   Disposable,
   IAsyncCacheService,
   IConfigService,
+  IDheClientFactory,
   IDheService,
   IDheServiceFactory,
   IDhService,
@@ -75,6 +76,7 @@ import { ConnectionController } from './ConnectionController';
 import { PipServerController } from './PipServerController';
 import { PanelController } from './PanelController';
 import { UserLoginController } from './UserLoginController';
+import { createDheClient, getWsUrl } from '../dh/dhe';
 
 const logger = new Logger('ExtensionController');
 
@@ -114,6 +116,7 @@ export class ExtensionController implements Disposable {
     null;
   private _dheClientCache: IAsyncCacheService<URL, EnterpriseClient> | null =
     null;
+  private _dheClientFactory: IDheClientFactory | null = null;
   private _dheServiceCache: IAsyncCacheService<URL, IDheService> | null = null;
   private _panelController: PanelController | null = null;
   private _panelService: IPanelService | null = null;
@@ -233,11 +236,13 @@ export class ExtensionController implements Disposable {
    */
   initializeUserLoginController = (): void => {
     assertDefined(this._dheClientCache, 'dheClientCache');
+    assertDefined(this._dheClientFactory, 'dheClientFactory');
     assertDefined(this._secretService, 'secretService');
     assertDefined(this._toaster, 'toaster');
 
     this._userLoginController = new UserLoginController(
       this._dheClientCache,
+      this._dheClientFactory,
       this._secretService,
       this._toaster
     );
@@ -308,7 +313,13 @@ export class ExtensionController implements Disposable {
     this._dheJsApiCache = new DheJsApiCache();
     this._context.subscriptions.push(this._dheJsApiCache);
 
-    this._dheClientCache = new DheClientCache(this._dheJsApiCache);
+    this._dheClientFactory = async (url: URL): Promise<EnterpriseClient> => {
+      assertDefined(this._dheJsApiCache, 'dheJsApiCache');
+      const dhe = await this._dheJsApiCache.get(url);
+      return createDheClient(dhe, getWsUrl(url));
+    };
+
+    this._dheClientCache = new DheClientCache(this._dheClientFactory);
     this._context.subscriptions.push(this._dheClientCache);
 
     this._panelService = new PanelService();

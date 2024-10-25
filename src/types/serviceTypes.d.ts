@@ -86,6 +86,7 @@ export type IDhServiceFactory = IFactory<
   IDhService,
   [serverUrl: URL, tagId?: UniqueID]
 >;
+export type IDheClientFactory = (serverUrl: URL) => Promise<EnterpriseClient>;
 export type IDheServiceFactory = IFactory<IDheService, [serverUrl: URL]>;
 
 export interface IPanelService extends Disposable {
