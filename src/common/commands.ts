@@ -13,7 +13,6 @@ export const CONNECT_TO_SERVER_CMD = cmd('connectToServer');
 export const CREATE_NEW_TEXT_DOC_CMD = cmd('createNewTextDoc');
 export const DISCONNECT_EDITOR_CMD = cmd('disconnectEditor');
 export const DISCONNECT_FROM_SERVER_CMD = cmd('disconnectFromServer');
-export const DISPOSE_DHE_CLIENT_CMD = cmd('disposeDHEClient');
 export const DOWNLOAD_LOGS_CMD = cmd('downloadLogs');
 export const GENERATE_DHE_KEY_PAIR_CMD = cmd('generateDHEKeyPair');
 export const OPEN_IN_BROWSER_CMD = cmd('openInBrowser');

@@ -1,9 +1,7 @@
-import * as vscode from 'vscode';
-import type { SecretService, URLMap } from '../services';
+import type { SecretService } from '../services';
 import { ControllerBase } from './ControllerBase';
 import type { EnterpriseClient } from '@deephaven-enterprise/jsapi-types';
 import {
-  DISPOSE_DHE_CLIENT_CMD,
   GENERATE_DHE_KEY_PAIR_CMD,
   REQUEST_DHE_USER_CREDENTIALS_CMD,
 } from '../common';
@@ -17,7 +15,6 @@ import {
 import type {
   IAsyncCacheService,
   IToastService,
-  PasswordOrPrivateKeyCredentials,
   ServerState,
   Username,
 } from '../types';
@@ -31,14 +28,12 @@ const logger = new Logger('UserLoginController');
 export class UserLoginController extends ControllerBase {
   constructor(
     dheClientCache: IAsyncCacheService<URL, EnterpriseClient>,
-    dheCredentialsCache: URLMap<PasswordOrPrivateKeyCredentials>,
     secretService: SecretService,
     toastService: IToastService
   ) {
     super();
 
     this.dheClientCache = dheClientCache;
-    this.dheCredentialsCache = dheCredentialsCache;
     this.secretService = secretService;
     this.toast = toastService;
 
@@ -54,7 +49,6 @@ export class UserLoginController extends ControllerBase {
   }
 
   private readonly dheClientCache: IAsyncCacheService<URL, EnterpriseClient>;
-  private readonly dheCredentialsCache: URLMap<PasswordOrPrivateKeyCredentials>;
   private readonly secretService: SecretService;
   private readonly toast: IToastService;
 
@@ -81,6 +75,8 @@ export class UserLoginController extends ControllerBase {
     const keyPair = generateBase64KeyPair();
     const { type, publicKey } = keyPair;
 
+    // Ensure we have a new client before loggging in
+    this.dheClientCache.invalidate(serverUrl);
     const dheClient = await this.dheClientCache.get(serverUrl);
 
     await uploadPublicKey(dheClient, credentials, publicKey, type);
@@ -105,9 +101,6 @@ export class UserLoginController extends ControllerBase {
    * @returns A promise that resolves when the credentials have been provided or declined.
    */
   onDidRequestDheUserCredentials = async (serverUrl: URL): Promise<void> => {
-    // Remove any existing credentials for the server
-    this.dheCredentialsCache.delete(serverUrl);
-
     const title = 'Login';
 
     const secretKeys = await this.secretService.getServerKeys(serverUrl);
@@ -138,8 +131,8 @@ export class UserLoginController extends ControllerBase {
       },
     });
 
-    // Have to use a new client to login
-    await vscode.commands.executeCommand(DISPOSE_DHE_CLIENT_CMD, serverUrl);
+    // Ensure we have a new client before logging in
+    this.dheClientCache.invalidate(serverUrl);
     const dheClient = await this.dheClientCache.get(serverUrl);
 
     try {
@@ -167,9 +160,7 @@ export class UserLoginController extends ControllerBase {
       }
     } catch (err) {
       logger.error('An error occurred while connecting to DHE server:', err);
-      await vscode.commands.executeCommand(DISPOSE_DHE_CLIENT_CMD, serverUrl);
+      this.dheClientCache.invalidate(serverUrl);
     }
-
-    this.dheCredentialsCache.set(serverUrl, credentials);
   };
 }

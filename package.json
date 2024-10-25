@@ -143,10 +143,6 @@
     ],
     "commands": [
       {
-        "command": "vscode-deephaven.disposeDHEClient",
-        "title": "Deephaven: Dispose DHE Client"
-      },
-      {
         "command": "vscode-deephaven.runCode",
         "title": "Run Deephaven File",
         "icon": "$(run-all)"
@@ -648,10 +644,6 @@
         {
           "command": "vscode-deephaven.clearSecretStorage",
           "when": "true"
-        },
-        {
-          "command": "vscode-deephaven.disposeDHEClient",
-          "when": "false"
         },
         {
           "command": "vscode-deephaven.downloadLogs",

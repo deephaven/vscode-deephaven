@@ -13,7 +13,6 @@ import {
   type IDheServiceFactory,
   type IToastService,
   type Lazy,
-  type PasswordOrPrivateKeyCredentials,
   type QuerySerial,
   type UniqueID,
   type WorkerConfig,
@@ -37,17 +36,17 @@ const logger = new Logger('DheService');
 export class DheService implements IDheService {
   /**
    * Creates a factory function that can be used to create DheService instances.
+   * @param configService Configuration service.
    * @param coreCredentialsCache Core credentials cache.
    * @param dheClientCache DHE client cache.
-   * @param dheCredentialsCache DHE credentials cache.
    * @param dheJsApiCache DHE JS API cache.
+   * @param toaster Toast service for notifications.
    * @returns A factory function that can be used to create DheService instances.
    */
   static factory = (
     configService: IConfigService,
     coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
     dheClientCache: IAsyncCacheService<URL, EnterpriseClient>,
-    dheCredentialsCache: URLMap<PasswordOrPrivateKeyCredentials>,
     dheJsApiCache: IAsyncCacheService<URL, DheType>,
     toaster: IToastService
   ): IDheServiceFactory => {
@@ -58,7 +57,6 @@ export class DheService implements IDheService {
           configService,
           coreCredentialsCache,
           dheClientCache,
-          dheCredentialsCache,
           dheJsApiCache,
           toaster
         ),
@@ -74,7 +72,6 @@ export class DheService implements IDheService {
     configService: IConfigService,
     coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
     dheClientCache: IAsyncCacheService<URL, EnterpriseClient>,
-    dheCredentialsCache: URLMap<PasswordOrPrivateKeyCredentials>,
     dheJsApiCache: IAsyncCacheService<URL, DheType>,
     toaster: IToastService
   ) {
@@ -82,7 +79,6 @@ export class DheService implements IDheService {
     this._config = configService;
     this._coreCredentialsCache = coreCredentialsCache;
     this._dheClientCache = dheClientCache;
-    this._dheCredentialsCache = dheCredentialsCache;
     this._dheJsApiCache = dheJsApiCache;
     this._querySerialSet = new Set<QuerySerial>();
     this._toaster = toaster;
@@ -98,7 +94,6 @@ export class DheService implements IDheService {
     Lazy<DhcType.LoginCredentials>
   >;
   private readonly _dheClientCache: IAsyncCacheService<URL, EnterpriseClient>;
-  private readonly _dheCredentialsCache: URLMap<PasswordOrPrivateKeyCredentials>;
   private readonly _dheJsApiCache: IAsyncCacheService<URL, DheType>;
   private readonly _querySerialSet: Set<QuerySerial>;
   private readonly _toaster: IToastService;
@@ -125,9 +120,6 @@ export class DheService implements IDheService {
       );
     }
 
-    // It's important to fetch the client after the auth flow has run to ensure
-    // we have the current client. This is because the private key flow may
-    // replace the cached client.
     return this._dheClientCache.get(this.serverUrl);
   };
 

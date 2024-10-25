@@ -10,7 +10,6 @@ import {
   CREATE_NEW_TEXT_DOC_CMD,
   DISCONNECT_EDITOR_CMD,
   DISCONNECT_FROM_SERVER_CMD,
-  DISPOSE_DHE_CLIENT_CMD,
   DOWNLOAD_LOGS_CMD,
   OPEN_IN_BROWSER_CMD,
   REFRESH_SERVER_CONNECTION_TREE_CMD,
@@ -70,7 +69,6 @@ import type {
   ServerConnectionTreeView,
   ServerState,
   ServerTreeView,
-  PasswordOrPrivateKeyCredentials,
 } from '../types';
 import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTreeDragAndDropController';
 import { ConnectionController } from './ConnectionController';
@@ -115,8 +113,6 @@ export class ExtensionController implements Disposable {
   private _coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>> | null =
     null;
   private _dheClientCache: IAsyncCacheService<URL, EnterpriseClient> | null =
-    null;
-  private _dheCredentialsCache: URLMap<PasswordOrPrivateKeyCredentials> | null =
     null;
   private _dheServiceCache: IAsyncCacheService<URL, IDheService> | null = null;
   private _panelController: PanelController | null = null;
@@ -237,13 +233,11 @@ export class ExtensionController implements Disposable {
    */
   initializeUserLoginController = (): void => {
     assertDefined(this._dheClientCache, 'dheClientCache');
-    assertDefined(this._dheCredentialsCache, 'dheCredentialsCache');
     assertDefined(this._secretService, 'secretService');
     assertDefined(this._toaster, 'toaster');
 
     this._userLoginController = new UserLoginController(
       this._dheClientCache,
-      this._dheCredentialsCache,
       this._secretService,
       this._toaster
     );
@@ -310,7 +304,6 @@ export class ExtensionController implements Disposable {
     assertDefined(this._toaster, 'toaster');
 
     this._coreCredentialsCache = new URLMap<Lazy<DhcType.LoginCredentials>>();
-    this._dheCredentialsCache = new URLMap<PasswordOrPrivateKeyCredentials>();
 
     this._dheJsApiCache = new DheJsApiCache();
     this._context.subscriptions.push(this._dheJsApiCache);
@@ -333,7 +326,6 @@ export class ExtensionController implements Disposable {
       this._config,
       this._coreCredentialsCache,
       this._dheClientCache,
-      this._dheCredentialsCache,
       this._dheJsApiCache,
       this._toaster
     );
@@ -411,9 +403,6 @@ export class ExtensionController implements Disposable {
       DISCONNECT_FROM_SERVER_CMD,
       this.onDisconnectFromServer
     );
-
-    /** Dispose DHE client */
-    this.registerCommand(DISPOSE_DHE_CLIENT_CMD, this.onDisposeDHEClient);
 
     /** Download logs and open in editor */
     this.registerCommand(DOWNLOAD_LOGS_CMD, this.onDownloadLogs);
@@ -622,22 +611,12 @@ export class ExtensionController implements Disposable {
     else {
       // TODO: Seems we probably should dispose of workers associated with this
       // server as well.
-      this.onDisposeDHEClient(serverOrConnectionState.url);
+      this._dheClientCache?.invalidate(serverOrConnectionState.url);
 
       await this._serverManager?.disconnectFromDHEServer(
         serverOrConnectionState.url
       );
     }
-  };
-
-  /**
-   * Dispose DHE client and clear associated caches. Note that this will not
-   * dispose of Core+ workers already created from the client.
-   * @param serverUrl The server URL to dispose the client for.
-   */
-  onDisposeDHEClient = async (serverUrl: URL): Promise<void> => {
-    this._dheCredentialsCache?.delete(serverUrl);
-    this._dheClientCache?.invalidate(serverUrl);
   };
 
   /**
