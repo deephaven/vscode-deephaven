@@ -46,7 +46,7 @@ export class DheService implements IDheService {
   static factory = (
     configService: IConfigService,
     coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
-    dheClientCache: IAsyncCacheService<URL, EnterpriseClient>,
+    dheClientCache: URLMap<EnterpriseClient>,
     dheJsApiCache: IAsyncCacheService<URL, DheType>,
     toaster: IToastService
   ): IDheServiceFactory => {
@@ -71,7 +71,7 @@ export class DheService implements IDheService {
     serverUrl: URL,
     configService: IConfigService,
     coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
-    dheClientCache: IAsyncCacheService<URL, EnterpriseClient>,
+    dheClientCache: URLMap<EnterpriseClient>,
     dheJsApiCache: IAsyncCacheService<URL, DheType>,
     toaster: IToastService
   ) {
@@ -84,7 +84,7 @@ export class DheService implements IDheService {
     this._toaster = toaster;
     this._workerInfoMap = new URLMap<WorkerInfo, WorkerURL>();
 
-    this._dheClientCache.onDidInvalidate(this._onDidDheClientCacheInvalidate);
+    this._dheClientCache.onDidChange(this._onDidDheClientCacheInvalidate);
   }
 
   private _clientPromise: Promise<EnterpriseClient | null> | null = null;
@@ -93,7 +93,7 @@ export class DheService implements IDheService {
   private readonly _coreCredentialsCache: URLMap<
     Lazy<DhcType.LoginCredentials>
   >;
-  private readonly _dheClientCache: IAsyncCacheService<URL, EnterpriseClient>;
+  private readonly _dheClientCache: URLMap<EnterpriseClient>;
   private readonly _dheJsApiCache: IAsyncCacheService<URL, DheType>;
   private readonly _querySerialSet: Set<QuerySerial>;
   private readonly _toaster: IToastService;
@@ -120,7 +120,7 @@ export class DheService implements IDheService {
       );
     }
 
-    return this._dheClientCache.get(this.serverUrl);
+    return this._dheClientCache.getOrThrow(this.serverUrl);
   };
 
   /**

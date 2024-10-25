@@ -41,7 +41,6 @@ import {
 } from '../providers';
 import {
   DhcServiceFactory,
-  DheClientCache,
   DheJsApiCache,
   DheService,
   DheServiceCache,
@@ -114,8 +113,7 @@ export class ExtensionController implements Disposable {
   private _connectionController: ConnectionController | null = null;
   private _coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>> | null =
     null;
-  private _dheClientCache: IAsyncCacheService<URL, EnterpriseClient> | null =
-    null;
+  private _dheClientCache: URLMap<EnterpriseClient> | null = null;
   private _dheClientFactory: IDheClientFactory | null = null;
   private _dheServiceCache: IAsyncCacheService<URL, IDheService> | null = null;
   private _panelController: PanelController | null = null;
@@ -319,8 +317,7 @@ export class ExtensionController implements Disposable {
       return createDheClient(dhe, getWsUrl(url));
     };
 
-    this._dheClientCache = new DheClientCache(this._dheClientFactory);
-    this._context.subscriptions.push(this._dheClientCache);
+    this._dheClientCache = new URLMap();
 
     this._panelService = new PanelService();
     this._context.subscriptions.push(this._panelService);
@@ -622,7 +619,7 @@ export class ExtensionController implements Disposable {
     else {
       // TODO: Seems we probably should dispose of workers associated with this
       // server as well.
-      this._dheClientCache?.invalidate(serverOrConnectionState.url);
+      this._dheClientCache?.delete(serverOrConnectionState.url);
 
       await this._serverManager?.disconnectFromDHEServer(
         serverOrConnectionState.url

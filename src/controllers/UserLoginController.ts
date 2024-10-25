@@ -1,4 +1,4 @@
-import type { SecretService } from '../services';
+import type { SecretService, URLMap } from '../services';
 import { ControllerBase } from './ControllerBase';
 import type { EnterpriseClient } from '@deephaven-enterprise/jsapi-types';
 import {
@@ -13,7 +13,6 @@ import {
   uploadPublicKey,
 } from '../util';
 import type {
-  IAsyncCacheService,
   IDheClientFactory,
   IToastService,
   ServerState,
@@ -28,7 +27,7 @@ const logger = new Logger('UserLoginController');
  */
 export class UserLoginController extends ControllerBase {
   constructor(
-    dheClientCache: IAsyncCacheService<URL, EnterpriseClient>,
+    dheClientCache: URLMap<EnterpriseClient>,
     dheClientFactory: IDheClientFactory,
     secretService: SecretService,
     toastService: IToastService
@@ -51,7 +50,7 @@ export class UserLoginController extends ControllerBase {
     );
   }
 
-  private readonly dheClientCache: IAsyncCacheService<URL, EnterpriseClient>;
+  private readonly dheClientCache: URLMap<EnterpriseClient>;
   private readonly dheClientFactory: IDheClientFactory;
   private readonly secretService: SecretService;
   private readonly toast: IToastService;
@@ -135,8 +134,9 @@ export class UserLoginController extends ControllerBase {
     });
 
     // Ensure we have a new client before logging in
-    this.dheClientCache.invalidate(serverUrl);
-    const dheClient = await this.dheClientCache.get(serverUrl);
+    this.dheClientCache.set(serverUrl, await this.dheClientFactory(serverUrl));
+
+    const dheClient = await this.dheClientCache.getOrThrow(serverUrl);
 
     try {
       if (credentials.type === 'password') {
@@ -163,7 +163,7 @@ export class UserLoginController extends ControllerBase {
       }
     } catch (err) {
       logger.error('An error occurred while connecting to DHE server:', err);
-      this.dheClientCache.invalidate(serverUrl);
+      this.dheClientCache.delete(serverUrl);
     }
   };
 }
