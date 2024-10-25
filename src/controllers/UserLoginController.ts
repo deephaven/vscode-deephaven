@@ -2,8 +2,8 @@ import type { SecretService } from '../services';
 import { ControllerBase } from './ControllerBase';
 import type { EnterpriseClient } from '@deephaven-enterprise/jsapi-types';
 import {
+  CREATE_AUTHENTICATED_CLIENT_CMD,
   GENERATE_DHE_KEY_PAIR_CMD,
-  REQUEST_DHE_USER_CREDENTIALS_CMD,
 } from '../common';
 import {
   authWithPrivateKey,
@@ -46,8 +46,8 @@ export class UserLoginController extends ControllerBase {
     );
 
     this.registerCommand(
-      REQUEST_DHE_USER_CREDENTIALS_CMD,
-      this.onDidRequestDheUserCredentials
+      CREATE_AUTHENTICATED_CLIENT_CMD,
+      this.onCreateAuthenticatedClient
     );
   }
 
@@ -99,11 +99,11 @@ export class UserLoginController extends ControllerBase {
   };
 
   /**
-   * Handle the request for DHE user credentials.
-   * @param serverUrl The server URL to request credentials for.
-   * @returns A promise that resolves when the credentials have been provided or declined.
+   * Create an authenticated client.
+   * @param serverUrl The server URL to create a client for.
+   * @returns A promise that resolves when the client has been created or failed.
    */
-  onDidRequestDheUserCredentials = async (serverUrl: URL): Promise<void> => {
+  onCreateAuthenticatedClient = async (serverUrl: URL): Promise<void> => {
     const title = 'Login';
 
     const secretKeys = await this.secretService.getServerKeys(serverUrl);

@@ -213,8 +213,8 @@
         "icon": "$(refresh)"
       },
       {
-        "command": "vscode-deephaven.requestDheUserCredentials",
-        "title": "Deephaven: Request DHE User Credentials"
+        "command": "vscode-deephaven.createAuthenticatedClient",
+        "title": "Deephaven: Create Authenticated Client"
       },
       {
         "command": "vscode-deephaven.startServer",
@@ -690,7 +690,7 @@
           "when": "false"
         },
         {
-          "command": "vscode-deephaven.requestDheUserCredentials",
+          "command": "vscode-deephaven.createAuthenticatedClient",
           "when": "false"
         }
       ],
