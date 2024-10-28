@@ -75,7 +75,9 @@ Hovering over the "Managed" node should show a play button. Clicking it will sta
 
 ## Panels
 ### Servers Panel
-The `servers` panel shows the status of all configured servers. If the `deephaven-server` pip package is available your workspace, the panel will also show a "Managed" servers node.
+The `servers` panel shows the status of all configured servers.
+
+If the `deephaven-server` pip package is available your local workspace, the panel will also show a "Managed" servers node (note that managed servers are Community servers that target the current vscode workspace).
 
 ![Servers Panel](./images/servers-panel.png)
 
