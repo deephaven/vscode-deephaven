@@ -60,8 +60,8 @@ deephaven-plugin-plotly-express
 deephaven-plugin-ui
 ```
 
-### Managed Pip Servers
-If you want to manage DH servers from within the extension, you can include `deephaven-server` in the pip installation.
+### Managed Pip Servers (Community only)
+If you want to manage DH servers from within the extension, you can include `deephaven-server` in the venv pip installation.
 
 Once installed, clicking the "refresh" button in the server tree panel should reveal a "Managed" servers node.
 
