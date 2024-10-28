@@ -6,6 +6,10 @@
  */
 import { vi } from 'vitest';
 
+export class EventEmitter {
+  fire = vi.fn().mockName('fire');
+}
+
 export enum QuickPickItemKind {
   Separator = -1,
   Default = 0,
