@@ -242,7 +242,7 @@ export async function getWorkerInfoFromQuery(
       ({ detail: queryInfo }: CustomEvent<QueryInfo>) => {
         if (
           queryInfo.serial === querySerial &&
-          queryInfo.designated?.grpcUrl != null
+          queryInfo.designated?.status === 'Running'
         ) {
           resolve(queryInfo);
         }
