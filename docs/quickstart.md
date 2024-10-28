@@ -28,9 +28,26 @@ Community servers can be configured via the `"deephaven.coreServers"` setting in
 
 ![Community Server Settings](./images/add-community-server.gif)
 
-Enterprise servers can be configured via the `"deephaven.enterpriseServers"` setting in vscode user or workspace settings.
 
 ### Enterprise Servers
+Enterprise servers can be configured via the `"deephaven.enterpriseServers"` setting in vscode user or workspace settings.
+
+```jsonc
+"deephaven.enterpriseServers": [
+  // Simplest config is to provide the server URL
+  "https://my-server-a.acme.org:8123/",
+  // Advanced config
+  {
+    "url": "https://my-server-b.acme.org:8123/",
+    "label": "Server B",
+    // Configure PQ workers created by the extension
+    "experimentalWorkerConfig": {
+      "heapSize": 0.5
+    }
+  }
+]
+```
+
 ![Enterprise Server Settings](./images/dhe-settings.gif)
 
 ## Workspace Setup
