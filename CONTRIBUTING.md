@@ -93,7 +93,11 @@ https://code.visualstudio.com/api/working-with-extensions/publishing-extension#p
    # Pre-release
    npm run publish:pre
    ```
-1. Create a version tag with `-pre` suffix. e.g. `git tag v0.1.10-pre` 
+1. Create a version tag with `-pre` suffix.
+   ```sh
+   npm run vscode:tag
+   git push --tags
+   ```
 
 ## PNG Generation
 

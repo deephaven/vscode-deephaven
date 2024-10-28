@@ -45,6 +45,7 @@
     "test:unit": "vitest --reporter=default --reporter=junit --outputFile=./test-reports/vitest.junit.xml",
     "test": "npm run test:unit",
     "vscode:prepublish": "npm run package",
+    "vscode:tag": "git tag v$(node -p -e \"require('./package.json').version\")-pre",
     "vsix:latest": "vsce package -o releases/vscode-deephaven-latest.vsix",
     "watch:esbuild": "node scripts/esbuild.js --watch",
     "watch:tsc": "npm run clean && tsc --build ./tsconfig.json --watch",
