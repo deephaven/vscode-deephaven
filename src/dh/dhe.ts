@@ -2,7 +2,6 @@ import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type {
   EnterpriseDhType as DheType,
   EditableQueryInfo,
-  EnterpriseClient,
   QueryInfo,
   TypeSpecificFields,
 } from '@deephaven-enterprise/jsapi-types';
