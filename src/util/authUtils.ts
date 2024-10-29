@@ -11,9 +11,9 @@ import type {
   Base64Signature,
   DheAuthenticatedClient,
   DheUnauthenticatedClient,
-  ISecretService,
   KeyPairType,
-  PasswordOrPrivateKeyCredentials,
+  PasswordCredentials,
+  PrivateKeyCredentials,
 } from '../types';
 import { Logger } from './Logger';
 
@@ -171,30 +171,31 @@ export async function authWithPrivateKey({
   }
 }
 
-export async function loginClient(
+export async function loginClientWithPassword(
   dheClient: DheUnauthenticatedClient,
-  credentials: PasswordOrPrivateKeyCredentials,
-  serverUrl: URL,
-  secretService: ISecretService
+  credentials: PasswordCredentials
 ): Promise<DheAuthenticatedClient> {
-  const { username } = credentials;
+  logger.debug('Login with username / password:', credentials.username);
 
-  if (credentials.type === 'password') {
-    logger.debug('Login with username / password:', username);
+  await dheClient.login(credentials);
 
-    await dheClient.login(credentials);
-  } else {
-    logger.debug('Login with private key:', username);
+  return dheClient as unknown as DheAuthenticatedClient;
+}
 
-    const keyPair = (await secretService.getServerKeys(serverUrl))?.[username];
+export async function loginClientWithKeyPair(
+  dheClient: DheUnauthenticatedClient,
+  credentials: PrivateKeyCredentials
+): Promise<DheAuthenticatedClient> {
+  logger.debug('Login with private key:', credentials.username);
 
-    await authWithPrivateKey({
-      dheClient,
-      keyPair,
-      username,
-      operateAs: username,
-    });
-  }
+  const { username, keyPair, operateAs = username } = credentials;
+
+  await authWithPrivateKey({
+    dheClient,
+    keyPair,
+    username,
+    operateAs,
+  });
 
   return dheClient as unknown as DheAuthenticatedClient;
 }

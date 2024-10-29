@@ -8,7 +8,8 @@ import {
   authWithPrivateKey,
   generateBase64KeyPair,
   Logger,
-  loginClient,
+  loginClientWithKeyPair,
+  loginClientWithPassword,
   runUserLoginWorkflow,
   uploadPublicKey,
 } from '../util';
@@ -18,7 +19,8 @@ import type {
   IDheClientFactory,
   ISecretService,
   IToastService,
-  PasswordOrPrivateKeyCredentials,
+  PasswordCredentials,
+  PrivateKeyCredentials,
   ServerState,
   Username,
 } from '../types';
@@ -140,12 +142,15 @@ export class UserLoginController extends ControllerBase {
     const dheClient = await this.dheClientFactory(serverUrl);
 
     try {
-      const authenticatedClient = await loginClient(
-        dheClient,
-        credentials,
-        serverUrl,
-        this.secretService
-      );
+      const authenticatedClient =
+        credentials.type === 'password'
+          ? await loginClientWithPassword(dheClient, credentials)
+          : await loginClientWithKeyPair(dheClient, {
+              ...credentials,
+              keyPair: (await this.secretService.getServerKeys(serverUrl))?.[
+                username
+              ],
+            });
 
       if (!(await hasInteractivePermission(authenticatedClient))) {
         throw new Error('User does not have interactive permissions.');
@@ -160,7 +165,7 @@ export class UserLoginController extends ControllerBase {
 
   private _loginClient = async (
     dheClient: DheUnauthenticatedClient,
-    credentials: PasswordOrPrivateKeyCredentials,
+    credentials: PasswordCredentials | PrivateKeyCredentials,
     serverUrl: URL
   ): Promise<DheAuthenticatedClient> => {
     const { username } = credentials;

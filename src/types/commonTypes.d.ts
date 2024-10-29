@@ -49,6 +49,10 @@ export type DheUnauthenticatedClient = Brand<
   EnterpriseClient
 >;
 export type LoginWorkflowType = 'login' | 'generatePrivateKey';
+export type LoginWorkflowResult =
+  | PasswordCredentials
+  | Omit<PrivateKeyCredentials, 'keyPair'>;
+
 export type Username = Brand<'Username', string>;
 export type OperateAsUsername = Brand<'OperateAsUsername', string>;
 export type PasswordCredentialsType = 'password';
@@ -72,11 +76,9 @@ export type PasswordCredentials = {
 export type PrivateKeyCredentials = {
   type: PrivateKeyCredentialsType;
   username: Username;
+  keyPair: Base64KeyPair;
   operateAs?: OperateAsUsername;
 };
-export type PasswordOrPrivateKeyCredentials =
-  | PasswordCredentials
-  | PrivateKeyCredentials;
 export type UserKeyPairs = Record<Username, Base64KeyPair>;
 export type UserLoginPreferences = {
   lastLogin?: Username;

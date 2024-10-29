@@ -17,8 +17,8 @@ import type {
   OperateAsUsername,
   AuthenticationMethodPickItem,
   UserLoginPreferences,
-  PasswordOrPrivateKeyCredentials,
   PasswordCredentials,
+  PrivateKeyCredentials,
 } from '../types';
 import { sortByStringProp } from './dataUtils';
 import { assertDefined } from './assertUtil';
@@ -142,13 +142,17 @@ export async function runUserLoginWorkflow(args: {
   userLoginPreferences?: UserLoginPreferences;
   privateKeyUserNames?: Username[];
   showOperatesAs?: boolean;
-}): Promise<PasswordOrPrivateKeyCredentials | undefined>;
+}): Promise<
+  PasswordCredentials | Omit<PrivateKeyCredentials, 'keyPair'> | undefined
+>;
 export async function runUserLoginWorkflow(args: {
   title: string;
   userLoginPreferences?: UserLoginPreferences;
   privateKeyUserNames?: Username[];
   showOperatesAs?: boolean;
-}): Promise<PasswordOrPrivateKeyCredentials | undefined> {
+}): Promise<
+  PasswordCredentials | Omit<PrivateKeyCredentials, 'keyPair'> | undefined
+> {
   const {
     title,
     userLoginPreferences,
