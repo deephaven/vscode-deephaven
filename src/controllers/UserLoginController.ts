@@ -101,9 +101,13 @@ export class UserLoginController extends ControllerBase {
   /**
    * Create an authenticated client.
    * @param serverUrl The server URL to create a client for.
+   * @param operateAsAnotherUser Whether to operate as another user.
    * @returns A promise that resolves when the client has been created or failed.
    */
-  onCreateAuthenticatedClient = async (serverUrl: URL): Promise<void> => {
+  onCreateAuthenticatedClient = async (
+    serverUrl: URL,
+    operateAsAnotherUser: boolean
+  ): Promise<void> => {
     const title = 'Login';
 
     const secretKeys = await this.secretService.getServerKeys(serverUrl);
@@ -116,7 +120,7 @@ export class UserLoginController extends ControllerBase {
       title,
       userLoginPreferences,
       privateKeyUserNames,
-      showOperatesAs: true,
+      showOperatesAs: operateAsAnotherUser,
     });
 
     // Cancelled by user

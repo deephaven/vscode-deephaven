@@ -60,9 +60,11 @@ export interface IDhService<TDH = unknown, TClient = unknown>
 }
 
 export interface IDheService extends ConnectionState, Disposable {
-  getClient: (
-    initializeIfNull: boolean
-  ) => Promise<DheAuthenticatedClient | null>;
+  getClient(initializeIfNull: false): Promise<DheAuthenticatedClient | null>;
+  getClient(
+    initializeIfNull: true,
+    operateAsAnotherUser: boolean
+  ): Promise<DheAuthenticatedClient | null>;
   getWorkerInfo: (workerUrl: WorkerURL) => WorkerInfo | undefined;
   createWorker: (
     tagId: UniqueID,
@@ -138,7 +140,8 @@ export interface IServerManager extends Disposable {
 
   connectToServer: (
     serverUrl: URL,
-    workerConsoleType?: ConsoleType
+    workerConsoleType?: ConsoleType,
+    operateAsAnotherUser?: boolean
   ) => Promise<ConnectionState | null>;
   disconnectEditor: (uri: vscode.Uri) => void;
   disconnectFromDHEServer: (dheServerUrl: URL) => Promise<void>;

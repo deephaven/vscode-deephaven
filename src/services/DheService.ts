@@ -108,13 +108,17 @@ export class DheService implements IDheService {
 
   /**
    * Initialize DHE client and login.
+   * @param operateAsAnotherUser Whether to operate as another user.
    * @returns DHE client or null if initialization failed.
    */
-  private _initClient = async (): Promise<DheAuthenticatedClient | null> => {
+  private _initClient = async (
+    operateAsAnotherUser: boolean
+  ): Promise<DheAuthenticatedClient | null> => {
     if (!this._dheClientCache.has(this.serverUrl)) {
       await vscode.commands.executeCommand(
         CREATE_AUTHENTICATED_CLIENT_CMD,
-        this.serverUrl
+        this.serverUrl,
+        operateAsAnotherUser
       );
     }
 
@@ -166,17 +170,26 @@ export class DheService implements IDheService {
   /**
    * Get DHE client.
    * @param initializeIfNull Whether to initialize client if it's not already initialized.
+   * @param operateAsAnotherUser Whether to operate as another user.
    * @returns DHE client or null if not initialized.
    */
-  getClient = async (
-    initializeIfNull: boolean
-  ): Promise<DheAuthenticatedClient | null> => {
+  async getClient(
+    initializeIfNull: false
+  ): Promise<DheAuthenticatedClient | null>;
+  async getClient(
+    initializeIfNull: true,
+    operateAsAnotherUser: boolean
+  ): Promise<DheAuthenticatedClient | null>;
+  async getClient(
+    initializeIfNull: boolean,
+    operateAsAnotherUser = false
+  ): Promise<DheAuthenticatedClient | null> {
     if (this._clientPromise == null) {
       if (!initializeIfNull) {
         return null;
       }
 
-      this._clientPromise = this._initClient();
+      this._clientPromise = this._initClient(operateAsAnotherUser);
     }
 
     const dheClient = await this._clientPromise;
@@ -187,7 +200,7 @@ export class DheService implements IDheService {
     }
 
     return dheClient;
-  };
+  }
 
   /**
    * Create an InteractiveConsole query and get worker info from it.
@@ -199,7 +212,7 @@ export class DheService implements IDheService {
     tagId: UniqueID,
     consoleType?: ConsoleType
   ): Promise<WorkerInfo> => {
-    const dheClient = await this.getClient(true);
+    const dheClient = await this.getClient(true, false);
     if (dheClient == null) {
       const msg =
         'Failed to create worker because DHE client failed to initialize.';

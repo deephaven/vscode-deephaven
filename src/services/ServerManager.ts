@@ -139,7 +139,8 @@ export class ServerManager implements IServerManager {
 
   connectToServer = async (
     serverUrl: URL,
-    workerConsoleType?: ConsoleType
+    workerConsoleType?: ConsoleType,
+    operateAsAnotherUser: boolean = false
   ): Promise<ConnectionState | null> => {
     const serverState = this._serverMap.get(serverUrl);
 
@@ -177,7 +178,7 @@ export class ServerManager implements IServerManager {
 
       // Get client. Client will be initialized if it doesn't exist (including
       // prompting user for login).
-      if (!(await dheService.getClient(true))) {
+      if (!(await dheService.getClient(true, operateAsAnotherUser))) {
         return null;
       }
 

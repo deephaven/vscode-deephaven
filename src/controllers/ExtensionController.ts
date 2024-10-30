@@ -4,6 +4,7 @@ import type { EnterpriseDhType as DheType } from '@deephaven-enterprise/jsapi-ty
 import {
   CLEAR_SECRET_STORAGE_CMD,
   CONNECT_TO_SERVER_CMD,
+  CONNECT_TO_SERVER_OPERATE_AS_CMD,
   CREATE_NEW_TEXT_DOC_CMD,
   DISCONNECT_EDITOR_CMD,
   DISCONNECT_FROM_SERVER_CMD,
@@ -405,6 +406,12 @@ export class ExtensionController implements Disposable {
     /** Create server connection */
     this.registerCommand(CONNECT_TO_SERVER_CMD, this.onConnectToServer);
 
+    /** Create server connection operating as another user */
+    this.registerCommand(
+      CONNECT_TO_SERVER_OPERATE_AS_CMD,
+      this.onConnectToServerOperateAs
+    );
+
     /** Create new document */
     this.registerCommand(CREATE_NEW_TEXT_DOC_CMD, this.onCreateNewDocument);
 
@@ -561,7 +568,10 @@ export class ExtensionController implements Disposable {
   /**
    * Handle connecting to a server
    */
-  onConnectToServer = async (serverState: ServerState): Promise<void> => {
+  onConnectToServer = async (
+    serverState: ServerState,
+    operateAsAnotherUser?: boolean
+  ): Promise<void> => {
     const languageId = vscode.window.activeTextEditor?.document.languageId;
 
     // DHE servers need to specify the console type for each worker creation.
@@ -569,7 +579,21 @@ export class ExtensionController implements Disposable {
     const workerConsoleType =
       serverState.type === 'DHE' ? getConsoleType(languageId) : undefined;
 
-    this._serverManager?.connectToServer(serverState.url, workerConsoleType);
+    this._serverManager?.connectToServer(
+      serverState.url,
+      workerConsoleType,
+      operateAsAnotherUser
+    );
+  };
+
+  /**
+   * Handle connecting to a server as another user.
+   * @param serverState
+   */
+  onConnectToServerOperateAs = async (
+    serverState: ServerState
+  ): Promise<void> => {
+    this.onConnectToServer(serverState, true);
   };
 
   /**

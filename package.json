@@ -170,6 +170,11 @@
         "icon": "$(plug)"
       },
       {
+        "command": "vscode-deephaven.connectToServerOperateAs",
+        "title": "Deephaven: Connect to Server as Another User",
+        "icon": "$(account)"
+      },
+      {
         "command": "vscode-deephaven.createNewTextDoc",
         "title": "New File",
         "icon": "$(new-file)"
@@ -662,6 +667,10 @@
           "when": "false"
         },
         {
+          "command": "vscode-deephaven.connectToServerOperateAs",
+          "when": "false"
+        },
+        {
           "command": "vscode-deephaven.disconnectEditor",
           "when": "false"
         },
@@ -732,8 +741,8 @@
       ],
       "view/item/context": [
         {
-          "command": "vscode-deephaven.connectToServer",
-          "when": "view == vscode-deephaven.serverTree && (viewItem == isManagedServerDisconnected || viewItem == isServerRunningDisconnected || viewItem == isDHEServerRunningConnected || viewItem == isDHEServerRunningDisconnected)",
+          "command": "vscode-deephaven.connectToServerOperateAs",
+          "when": "view == vscode-deephaven.serverTree && viewItem == isDHEServerRunningDisconnected",
           "group": "inline"
         },
         {

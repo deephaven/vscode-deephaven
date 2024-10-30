@@ -10,6 +10,7 @@ function cmd<T extends string>(cmd: T): `${typeof EXTENSION_ID}.${T}` {
 
 export const CLEAR_SECRET_STORAGE_CMD = cmd('clearSecretStorage');
 export const CONNECT_TO_SERVER_CMD = cmd('connectToServer');
+export const CONNECT_TO_SERVER_OPERATE_AS_CMD = cmd('connectToServerOperateAs');
 export const CREATE_AUTHENTICATED_CLIENT_CMD = cmd('createAuthenticatedClient');
 export const CREATE_NEW_TEXT_DOC_CMD = cmd('createNewTextDoc');
 export const DISCONNECT_EDITOR_CMD = cmd('disconnectEditor');
