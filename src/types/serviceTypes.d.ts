@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { EnterpriseClient } from '@deephaven-enterprise/jsapi-types';
+
 import type {
   ConsoleType,
   CoreConnectionConfig,
@@ -15,11 +15,13 @@ import type {
   WorkerInfo,
   WorkerURL,
   UniqueID,
-  DheAuthenticatedClient,
-  DheUnauthenticatedClient,
   UserKeyPairs,
   UserLoginPreferences,
 } from '../types/commonTypes';
+import type {
+  AuthenticatedClient as DheAuthenticatedClient,
+  UnauthenticatedClient as DheUnauthenticatedClient,
+} from '@deephaven-enterprise/auth-nodejs';
 
 export interface IAsyncCacheService<TKey, TValue> extends Disposable {
   get: (key: TKey) => Promise<TValue>;

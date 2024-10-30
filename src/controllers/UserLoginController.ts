@@ -4,27 +4,22 @@ import {
   CREATE_AUTHENTICATED_CLIENT_CMD,
   GENERATE_DHE_KEY_PAIR_CMD,
 } from '../common';
-import {
-  authWithPrivateKey,
-  generateBase64KeyPair,
-  Logger,
-  loginClientWithKeyPair,
-  loginClientWithPassword,
-  runUserLoginWorkflow,
-  uploadPublicKey,
-} from '../util';
+import { Logger, runUserLoginWorkflow } from '../util';
 import type {
-  DheAuthenticatedClient,
-  DheUnauthenticatedClient,
   IDheClientFactory,
   ISecretService,
   IToastService,
-  PasswordCredentials,
-  PrivateKeyCredentials,
   ServerState,
-  Username,
 } from '../types';
 import { hasInteractivePermission } from '../dh/dhe';
+import {
+  generateBase64KeyPair,
+  loginClientWithKeyPair,
+  loginClientWithPassword,
+  uploadPublicKey,
+  type AuthenticatedClient as DheAuthenticatedClient,
+  type Username,
+} from '@deephaven-enterprise/auth-nodejs';
 
 const logger = new Logger('UserLoginController');
 
@@ -161,34 +156,5 @@ export class UserLoginController extends ControllerBase {
       logger.error('An error occurred while connecting to DHE server:', err);
       this.dheClientCache.delete(serverUrl);
     }
-  };
-
-  private _loginClient = async (
-    dheClient: DheUnauthenticatedClient,
-    credentials: PasswordCredentials | PrivateKeyCredentials,
-    serverUrl: URL
-  ): Promise<DheAuthenticatedClient> => {
-    const { username } = credentials;
-
-    if (credentials.type === 'password') {
-      logger.debug('Login with username / password:', username);
-
-      await dheClient.login(credentials);
-    } else {
-      logger.debug('Login with private key:', username);
-
-      const keyPair = (await this.secretService.getServerKeys(serverUrl))?.[
-        username
-      ];
-
-      await authWithPrivateKey({
-        dheClient,
-        keyPair,
-        username,
-        operateAs: username,
-      });
-    }
-
-    return dheClient as unknown as DheAuthenticatedClient;
   };
 }

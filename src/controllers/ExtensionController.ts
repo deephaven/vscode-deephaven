@@ -49,8 +49,6 @@ import {
 } from '../services';
 import type {
   ConnectionState,
-  DheAuthenticatedClient,
-  DheUnauthenticatedClient,
   Disposable,
   IAsyncCacheService,
   IConfigService,
@@ -75,7 +73,12 @@ import { ConnectionController } from './ConnectionController';
 import { PipServerController } from './PipServerController';
 import { PanelController } from './PanelController';
 import { UserLoginController } from './UserLoginController';
-import { createDheClient, getWsUrl } from '../dh/dhe';
+import {
+  createClient as createDheClient,
+  getWsUrl,
+  type AuthenticatedClient as DheAuthenticatedClient,
+  type UnauthenticatedClient as DheUnauthenticatedClient,
+} from '@deephaven-enterprise/auth-nodejs';
 
 const logger = new Logger('ExtensionController');
 

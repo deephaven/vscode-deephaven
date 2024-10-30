@@ -1,6 +1,12 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
-import type { EnterpriseClient } from '@deephaven-enterprise/jsapi-types';
+import type {
+  Base64KeyPair,
+  KeyPairCredentials,
+  OperateAsUsername,
+  PasswordCredentials,
+  Username,
+} from '@deephaven-enterprise/auth-nodejs';
 
 // Branded type helpers
 declare const __brand: unique symbol;
@@ -40,45 +46,37 @@ export interface EnterpriseConnectionConfig {
   experimentalWorkerConfig?: WorkerConfig;
 }
 
-export type DheAuthenticatedClient = Brand<
-  'DheAuthenticatedClient',
-  EnterpriseClient
->;
-export type DheUnauthenticatedClient = Brand<
-  'DheUnauthenticatedClient',
-  EnterpriseClient
->;
 export type LoginWorkflowType = 'login' | 'generatePrivateKey';
 export type LoginWorkflowResult =
   | PasswordCredentials
-  | Omit<PrivateKeyCredentials, 'keyPair'>;
+  | Omit<KeyPairCredentials, 'keyPair'>;
 
-export type Username = Brand<'Username', string>;
-export type OperateAsUsername = Brand<'OperateAsUsername', string>;
-export type PasswordCredentialsType = 'password';
-export type PrivateKeyCredentialsType = 'privateKey';
-export type Base64PrivateKey = Brand<'Base64PrivateKey', string>;
-export type Base64PublicKey = Brand<'Base64PublicKey', string>;
-export type Base64Nonce = Brand<'Base64Nonce', string>;
-export type Base64Signature = Brand<'Base64Signature', string>;
-export type KeyPairType = 'ec';
-export type Base64KeyPair = {
-  type: KeyPairType;
-  publicKey: Base64PublicKey;
-  privateKey: Base64PrivateKey;
-};
-export type PasswordCredentials = {
-  type: PasswordCredentialsType;
-  username: Username;
-  token: string;
-  operateAs?: OperateAsUsername;
-};
-export type PrivateKeyCredentials = {
-  type: PrivateKeyCredentialsType;
-  username: Username;
-  keyPair: Base64KeyPair;
-  operateAs?: OperateAsUsername;
-};
+// export type Username = Brand<'Username', string>;
+// export type OperateAsUsername = Brand<'OperateAsUsername', string>;
+// export type PasswordCredentialsType = 'password';
+// export type PrivateKeyCredentialsType = 'privateKey';
+// export type Base64PrivateKey = Brand<'Base64PrivateKey', string>;
+// export type Base64PublicKey = Brand<'Base64PublicKey', string>;
+// export type Base64Nonce = Brand<'Base64Nonce', string>;
+// export type Base64Signature = Brand<'Base64Signature', string>;
+// export type KeyPairType = 'ec';
+// export type Base64KeyPair = {
+//   type: KeyPairType;
+//   publicKey: Base64PublicKey;
+//   privateKey: Base64PrivateKey;
+// };
+// export type PasswordCredentials = {
+//   type: PasswordCredentialsType;
+//   username: Username;
+//   token: string;
+//   operateAs?: OperateAsUsername;
+// };
+// export type PrivateKeyCredentials = {
+//   type: PrivateKeyCredentialsType;
+//   username: Username;
+//   keyPair: Base64KeyPair;
+//   operateAs?: OperateAsUsername;
+// };
 export type UserKeyPairs = Record<Username, Base64KeyPair>;
 export type UserLoginPreferences = {
   lastLogin?: Username;

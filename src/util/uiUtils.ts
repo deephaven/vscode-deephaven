@@ -13,15 +13,17 @@ import type {
   SeparatorPickItem,
   ConnectionPickOption,
   ConnectionState,
-  Username,
-  OperateAsUsername,
   AuthenticationMethodPickItem,
   UserLoginPreferences,
-  PasswordCredentials,
-  PrivateKeyCredentials,
 } from '../types';
 import { sortByStringProp } from './dataUtils';
 import { assertDefined } from './assertUtil';
+import type {
+  KeyPairCredentials,
+  OperateAsUsername,
+  PasswordCredentials,
+  Username,
+} from '@deephaven-enterprise/auth-nodejs';
 
 export interface ConnectionOption {
   type: ConnectionType;
@@ -143,7 +145,7 @@ export async function runUserLoginWorkflow(args: {
   privateKeyUserNames?: Username[];
   showOperatesAs?: boolean;
 }): Promise<
-  PasswordCredentials | Omit<PrivateKeyCredentials, 'keyPair'> | undefined
+  PasswordCredentials | Omit<KeyPairCredentials, 'keyPair'> | undefined
 >;
 export async function runUserLoginWorkflow(args: {
   title: string;
@@ -151,7 +153,7 @@ export async function runUserLoginWorkflow(args: {
   privateKeyUserNames?: Username[];
   showOperatesAs?: boolean;
 }): Promise<
-  PasswordCredentials | Omit<PrivateKeyCredentials, 'keyPair'> | undefined
+  PasswordCredentials | Omit<KeyPairCredentials, 'keyPair'> | undefined
 > {
   const {
     title,
@@ -178,7 +180,7 @@ export async function runUserLoginWorkflow(args: {
 
   // Username comes from private key item or prompt
   username =
-    authenticationMethod.type === 'privateKey'
+    authenticationMethod.type === 'keyPair'
       ? authenticationMethod.label
       : await promptForUsername(title, userLoginPreferences?.lastLogin);
 
@@ -247,7 +249,7 @@ export async function createAuthenticationMethodQuickPick(
       createSeparatorPickItem('Private Key'),
       ...privateKeyUserNames.map(userName => ({
         label: userName,
-        type: 'privateKey' as const,
+        type: 'keyPair' as const,
         iconPath: new vscode.ThemeIcon('key'),
       })),
     ],

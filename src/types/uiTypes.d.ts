@@ -1,11 +1,10 @@
 import * as vscode from 'vscode';
+import type { ConnectionState, ServerState } from './commonTypes';
 import type {
-  ConnectionState,
+  KeyPairCredentialsType,
   PasswordCredentialsType,
-  PrivateKeyCredentialsType,
-  ServerState,
   Username,
-} from './commonTypes';
+} from '@deephaven-enterprise/auth-nodejs';
 
 export type SeparatorPickItem = {
   label: string;
@@ -20,7 +19,7 @@ export type AuthenticationMethodPickItem =
     }
   | {
       label: Username;
-      type: PrivateKeyCredentialsType;
+      type: KeyPairCredentialsType;
       iconPath?: vscode.ThemeIcon;
     };
 

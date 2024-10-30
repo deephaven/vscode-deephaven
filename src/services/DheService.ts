@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
+import type { AuthenticatedClient as DheAuthenticatedClient } from '@deephaven-enterprise/auth-nodejs';
 import type { EnterpriseDhType as DheType } from '@deephaven-enterprise/jsapi-types';
 import {
   WorkerURL,
   type ConsoleType,
-  type DheAuthenticatedClient,
   type IAsyncCacheService,
   type IConfigService,
   type IDheService,

@@ -8,8 +8,6 @@ import type {
 import { DraftQuery, QueryScheduler } from '@deephaven-enterprise/query-utils';
 import type {
   ConsoleType,
-  DheAuthenticatedClient,
-  DheUnauthenticatedClient,
   IdeURL,
   QuerySerial,
   UniqueID,
@@ -23,36 +21,12 @@ import {
   INTERACTIVE_CONSOLE_QUERY_TYPE,
   INTERACTIVE_CONSOLE_TEMPORARY_QUEUE_NAME,
 } from '../common';
+import type { AuthenticatedClient as DheAuthenticatedClient } from '@deephaven-enterprise/auth-nodejs';
 
 export type IDraftQuery = EditableQueryInfo & {
   isClientSide: boolean;
   draftOwner: string;
 };
-
-/**
- * Create DHE client.
- * @param dhe DHE JsApi
- * @param serverUrl Server URL
- * @returns A promise that resolves to the DHE client.
- */
-export async function createDheClient(
-  dhe: DheType,
-  serverUrl: URL
-): Promise<DheUnauthenticatedClient> {
-  const dheClient = new dhe.Client(
-    serverUrl.toString()
-  ) as DheUnauthenticatedClient;
-
-  return new Promise(resolve => {
-    const unsubscribe = dheClient.addEventListener(
-      dhe.Client.EVENT_CONNECT,
-      () => {
-        unsubscribe();
-        resolve(dheClient);
-      }
-    );
-  });
-}
 
 /**
  * Get credentials for a Core+ worker associated with a given DHE client.
@@ -67,21 +41,6 @@ export async function getWorkerCredentials(
     type: 'io.deephaven.proto.auth.Token',
     token,
   };
-}
-
-/**
- * Get the WebSocket URL for a DHE server URL.
- * @param serverUrl The DHE server URL.
- * @returns The WebSocket URL.
- */
-export function getWsUrl(serverUrl: URL): URL {
-  const url = new URL('/socket', serverUrl);
-  if (url.protocol === 'http:') {
-    url.protocol = 'ws:';
-  } else {
-    url.protocol = 'wss:';
-  }
-  return url;
 }
 
 /**
