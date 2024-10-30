@@ -803,8 +803,8 @@
     }
   },
   "devDependencies": {
-    "@deephaven-enterprise/jsapi-types": "^1.20240723.95-beta",
-    "@deephaven/jsapi-types": "^1.0.0-dev0.35.3",
+    "@deephaven-enterprise/jsapi-types": "^1.20240723.107-alpha-auth-nodejs.23557",
+    "@deephaven/jsapi-types": "^1.0.0-dev0.36.1",
     "@types/node": "22.5.4",
     "@types/vscode": "^1.91.0",
     "@types/ws": "^8.5.10",
@@ -831,7 +831,8 @@
     "wdio-vscode-service": "^6.1.0"
   },
   "dependencies": {
-    "@deephaven-enterprise/query-utils": "^1.20240723.95-beta",
+    "@deephaven-enterprise/auth-nodejs": "^1.20240723.107-alpha-auth-nodejs.23557",
+    "@deephaven-enterprise/query-utils": "^1.20240723.107-alpha-auth-nodejs.23557",
     "@deephaven/require-jsapi": "file:./packages/require-jsapi",
     "nanoid": "^5.0.7"
   },
