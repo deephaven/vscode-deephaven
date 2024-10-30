@@ -122,7 +122,9 @@ export class DheService implements IDheService {
       );
     }
 
-    return this._dheClientCache.getOrThrow(this.serverUrl);
+    const maybeClient = await this._dheClientCache.get(this.serverUrl);
+
+    return maybeClient ?? null;
   };
 
   /**

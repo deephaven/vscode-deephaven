@@ -125,6 +125,7 @@ export class UserLoginController extends ControllerBase {
 
     // Cancelled by user
     if (credentials == null) {
+      this.toast.info('Login cancelled.');
       return;
     }
 
