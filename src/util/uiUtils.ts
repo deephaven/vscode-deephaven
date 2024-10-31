@@ -112,7 +112,9 @@ export async function createConnectionQuickPick(
   options: ConnectionPickOption<ConnectionState>[]
 ): Promise<ConnectionState | ServerState | null> {
   const result = await vscode.window.showQuickPick(options, {
+    ignoreFocusOut: true,
     title: 'Connect Editor',
+    placeHolder: "Select connection (Press 'Escape' to cancel)",
   });
 
   if (result == null || !('type' in result)) {
@@ -254,8 +256,9 @@ export async function createAuthenticationMethodQuickPick(
       })),
     ],
     {
+      ignoreFocusOut: true,
       title,
-      placeHolder: 'Select authentication method',
+      placeHolder: "Select authentication method (Press 'Escape' to cancel)",
     }
   );
 
@@ -435,6 +438,7 @@ export function promptForUsername(
   lastLogin?: Username
 ): Promise<Username | undefined> {
   return vscode.window.showInputBox({
+    ignoreFocusOut: true,
     placeHolder: 'Username',
     prompt: 'Deephaven username',
     title,
@@ -444,6 +448,7 @@ export function promptForUsername(
 
 export function promptForPassword(title: string): Promise<string | undefined> {
   return vscode.window.showInputBox({
+    ignoreFocusOut: true,
     placeHolder: 'Password',
     prompt: 'Deephaven password',
     password: true,
@@ -456,6 +461,7 @@ export function promptForOperateAs(
   defaultValue?: OperateAsUsername
 ): Promise<OperateAsUsername | undefined> {
   return vscode.window.showInputBox({
+    ignoreFocusOut: true,
     placeHolder: 'Operate As',
     prompt: 'Deephaven `Operate As` username',
     title,
