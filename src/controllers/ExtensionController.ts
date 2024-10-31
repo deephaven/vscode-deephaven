@@ -239,12 +239,14 @@ export class ExtensionController implements Disposable {
   initializeUserLoginController = (): void => {
     assertDefined(this._dheClientCache, 'dheClientCache');
     assertDefined(this._dheClientFactory, 'dheClientFactory');
+    assertDefined(this._dheJsApiCache, 'dheJsApiCache');
     assertDefined(this._secretService, 'secretService');
     assertDefined(this._toaster, 'toaster');
 
     this._userLoginController = new UserLoginController(
       this._dheClientCache,
       this._dheClientFactory,
+      this._dheJsApiCache,
       this._secretService,
       this._toaster
     );

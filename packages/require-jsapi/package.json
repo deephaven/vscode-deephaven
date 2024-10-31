@@ -20,6 +20,6 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
-    "@deephaven-enterprise/jsapi-types": "^1.20240723.107-alpha-auth-nodejs.23557"
+    "@deephaven-enterprise/jsapi-types": "^1.20240723.107-alpha-auth-nodejs.23563"
   }
 }

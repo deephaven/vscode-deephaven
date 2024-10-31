@@ -811,8 +811,14 @@
       ]
     }
   },
+  "dependencies": {
+    "@deephaven-enterprise/auth-nodejs": "^1.20240723.107-alpha-auth-nodejs.23563",
+    "@deephaven-enterprise/query-utils": "^1.20240723.107-alpha-auth-nodejs.23563",
+    "@deephaven/require-jsapi": "file:./packages/require-jsapi",
+    "nanoid": "^5.0.7"
+  },
   "devDependencies": {
-    "@deephaven-enterprise/jsapi-types": "^1.20240723.107-alpha-auth-nodejs.23557",
+    "@deephaven-enterprise/jsapi-types": "^1.20240723.107-alpha-auth-nodejs.23563",
     "@deephaven/jsapi-types": "^1.0.0-dev0.36.1",
     "@types/node": "22.5.4",
     "@types/vscode": "^1.91.0",
@@ -838,12 +844,6 @@
     "vitest": "^2.0.3",
     "wdio-ctrf-json-reporter": "^0.0.10",
     "wdio-vscode-service": "^6.1.0"
-  },
-  "dependencies": {
-    "@deephaven-enterprise/auth-nodejs": "^1.20240723.107-alpha-auth-nodejs.23557",
-    "@deephaven-enterprise/query-utils": "^1.20240723.107-alpha-auth-nodejs.23557",
-    "@deephaven/require-jsapi": "file:./packages/require-jsapi",
-    "nanoid": "^5.0.7"
   },
   "overrides": {
     "event-target-shim": "^6.0.2"
