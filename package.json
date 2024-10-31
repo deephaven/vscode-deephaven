@@ -166,12 +166,12 @@
       },
       {
         "command": "vscode-deephaven.connectToServer",
-        "title": "Deephaven: Connect to Server",
+        "title": "Connect to Server",
         "icon": "$(plug)"
       },
       {
         "command": "vscode-deephaven.connectToServerOperateAs",
-        "title": "Deephaven: Connect to Server as Another User",
+        "title": "Connect to Server as Another User",
         "icon": "$(account)"
       },
       {
@@ -181,17 +181,17 @@
       },
       {
         "command": "vscode-deephaven.disconnectEditor",
-        "title": "Deephaven: Disconnect Editor",
+        "title": "Disconnect Editor",
         "icon": "$(debug-disconnect)"
       },
       {
         "command": "vscode-deephaven.disconnectFromServer",
-        "title": "Deephaven: Discard Connection",
+        "title": "Discard Connection",
         "icon": "$(trash)"
       },
       {
         "command": "vscode-deephaven.generateDHEKeyPair",
-        "title": "Deephaven: Generate DHE Key Pair",
+        "title": "Generate DHE Key Pair",
         "icon": "$(key)"
       },
       {
@@ -201,25 +201,25 @@
       },
       {
         "command": "vscode-deephaven.openVariablePanels",
-        "title": "Deephaven: Open Variable Panels"
+        "title": "Open Variable Panels"
       },
       {
         "command": "vscode-deephaven.refreshVariablePanels",
-        "title": "Deephaven: Refresh Variable Panels"
+        "title": "Refresh Variable Panels"
       },
       {
         "command": "vscode-deephaven.refreshServerTree",
-        "title": "Deephaven: Refresh Server Tree",
+        "title": "Refresh Server Tree",
         "icon": "$(refresh)"
       },
       {
         "command": "vscode-deephaven.refreshServerConnectionTree",
-        "title": "Deephaven: Refresh Server Connection Tree",
+        "title": "Refresh Server Connection Tree",
         "icon": "$(refresh)"
       },
       {
         "command": "vscode-deephaven.createAuthenticatedClient",
-        "title": "Deephaven: Create Authenticated Client"
+        "title": "Create Authenticated Client"
       },
       {
         "command": "vscode-deephaven.startServer",
@@ -742,8 +742,7 @@
       "view/item/context": [
         {
           "command": "vscode-deephaven.connectToServerOperateAs",
-          "when": "view == vscode-deephaven.serverTree && viewItem == isDHEServerRunningDisconnected",
-          "group": "inline"
+          "when": "view == vscode-deephaven.serverTree && viewItem == isDHEServerRunningDisconnected"
         },
         {
           "command": "vscode-deephaven.createNewTextDoc",
@@ -762,8 +761,7 @@
         },
         {
           "command": "vscode-deephaven.generateDHEKeyPair",
-          "when": "view == vscode-deephaven.serverTree && (viewItem == isDHEServerRunningConnected || viewItem == isDHEServerRunningDisconnected)",
-          "group": "inline"
+          "when": "view == vscode-deephaven.serverTree && (viewItem == isDHEServerRunningConnected || viewItem == isDHEServerRunningDisconnected)"
         },
         {
           "command": "vscode-deephaven.openInBrowser",
