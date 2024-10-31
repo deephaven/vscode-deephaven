@@ -97,9 +97,9 @@ export class SecretService implements ISecretService {
   };
 
   /**
-   * Get a map of user -> private keys for a given server.
+   * Get a map of user -> key pairs for a given server.
    * @param serverUrl
-   * @returns The map of user -> private key or null.
+   * @returns The map of user -> key pairs or null.
    */
   getServerKeys = async (serverUrl: URL): Promise<UserKeyPairs> => {
     const maybeServerKeys =
@@ -109,9 +109,9 @@ export class SecretService implements ISecretService {
   };
 
   /**
-   * Store a map of user -> private keys for a given server.
+   * Store a map of user -> key pairs for a given server.
    * @param serverUrl The server URL to store the map for.
-   * @param serverKeys The map of user -> private key.
+   * @param serverKeys The map of user -> key pairs.
    */
   storeServerKeys = async (
     serverUrl: URL,
