@@ -172,6 +172,7 @@ export async function runUserLoginWorkflow(args: {
       ? await createAuthenticationMethodQuickPick(title, privateKeyUserNames)
       : PASSWORD_AUTHENTICATION_METHOD_PICK_ITEM;
 
+  // Cancelled by user
   if (authenticationMethod == null) {
     return;
   }
