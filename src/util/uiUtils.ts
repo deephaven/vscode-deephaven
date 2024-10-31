@@ -263,6 +263,9 @@ export async function createAuthenticationMethodQuickPick(
     }
   );
 
+  // Cancelled by user or separator item returned (don't think the 2nd case is
+  // possible, but it narrows the type since the picker types include the
+  // separator item)
   if (result == null || !('type' in result)) {
     return null;
   }
