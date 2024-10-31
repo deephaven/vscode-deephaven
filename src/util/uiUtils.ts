@@ -437,6 +437,12 @@ export function updateConnectionStatusBarItem(
   statusBarItem.text = text;
 }
 
+/**
+ * Prompt user for username.
+ * @param title Title of the prompt
+ * @param lastLogin Optional last login username
+ * @returns The username or undefined if cancelled by the user.
+ */
 export function promptForUsername(
   title: string,
   lastLogin?: Username
@@ -450,6 +456,11 @@ export function promptForUsername(
   }) as Promise<Username | undefined>;
 }
 
+/**
+ * Prompt the user for a password.
+ * @param title Title of the prompt
+ * @returns The password or undefined if cancelled by the user.
+ */
 export function promptForPassword(title: string): Promise<string | undefined> {
   return vscode.window.showInputBox({
     ignoreFocusOut: true,
@@ -460,6 +471,12 @@ export function promptForPassword(title: string): Promise<string | undefined> {
   }) as Promise<string | undefined>;
 }
 
+/**
+ * Prompt the user for an `Operate As` username.
+ * @param title Title of the prompt
+ * @param defaultValue Optional default value
+ * @returns The `Operate As` username or undefined if cancelled by the user.
+ */
 export function promptForOperateAs(
   title: string,
   defaultValue?: OperateAsUsername
