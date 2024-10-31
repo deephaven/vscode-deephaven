@@ -353,6 +353,7 @@ export class ExtensionController implements Disposable {
       this._config,
       this._coreCredentialsCache,
       this._dhcServiceFactory,
+      this._dheClientCache,
       this._dheServiceCache,
       this._outputChannel,
       this._toaster
@@ -651,10 +652,6 @@ export class ExtensionController implements Disposable {
       await this._serverManager?.disconnectFromDHEServer(
         serverOrConnectionState.url
       );
-
-      // Delete the client needs to happen last since an active client is needed
-      // to dispose workers.
-      this._dheClientCache?.delete(serverOrConnectionState.url);
     }
   };
 

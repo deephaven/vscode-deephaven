@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { randomUUID } from 'node:crypto';
+import type { AuthenticatedClient as DheAuthenticatedClient } from '@deephaven-enterprise/auth-nodejs';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import {
   isDhcServerRunning,
@@ -40,6 +41,7 @@ export class ServerManager implements IServerManager {
     configService: IConfigService,
     coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
     dhcServiceFactory: IDhServiceFactory,
+    dheClientCache: URLMap<DheAuthenticatedClient>,
     dheServiceCache: IAsyncCacheService<URL, IDheService>,
     outputChannel: vscode.OutputChannel,
     toaster: IToastService
@@ -48,6 +50,7 @@ export class ServerManager implements IServerManager {
     this._connectionMap = new URLMap<ConnectionState>();
     this._coreCredentialsCache = coreCredentialsCache;
     this._dhcServiceFactory = dhcServiceFactory;
+    this._dheClientCache = dheClientCache;
     this._dheServiceCache = dheServiceCache;
     this._outputChannel = outputChannel;
     this._serverMap = new URLMap<ServerState>();
@@ -66,6 +69,7 @@ export class ServerManager implements IServerManager {
     Lazy<DhcType.LoginCredentials>
   >;
   private readonly _dhcServiceFactory: IDhServiceFactory;
+  private readonly _dheClientCache: URLMap<DheAuthenticatedClient>;
   private readonly _dheServiceCache: IAsyncCacheService<URL, IDheService>;
   private readonly _outputChannel: vscode.OutputChannel;
   private readonly _toaster: IToastService;
@@ -294,6 +298,10 @@ export class ServerManager implements IServerManager {
     for (const [workerUrl] of workerUrls) {
       await this.disconnectFromServer(workerUrl);
     }
+
+    // Deleting the DHE client needs to happen after worker disposal since an
+    // active client is needed to dispose workers.
+    this._dheClientCache?.delete(dheServerUrl);
 
     const serverState = this._serverMap.get(dheServerUrl);
     if (serverState == null) {
