@@ -72,8 +72,12 @@ export class UserLoginController extends ControllerBase {
 
     const title = 'Generate Private Key';
 
+    const userLoginPreferences =
+      await this.secretService.getUserLoginPreferences(serverUrl);
+
     const credentials = await runUserLoginWorkflow({
       title,
+      userLoginPreferences,
     });
 
     // Cancelled by user
