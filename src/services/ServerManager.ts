@@ -301,7 +301,8 @@ export class ServerManager implements IServerManager {
 
     // Deleting the DHE client needs to happen after worker disposal since an
     // active client is needed to dispose workers.
-    this._dheClientCache?.delete(dheServerUrl);
+    this._dheClientCache.get(dheServerUrl)?.disconnect();
+    this._dheClientCache.delete(dheServerUrl);
 
     const serverState = this._serverMap.get(dheServerUrl);
     if (serverState == null) {
