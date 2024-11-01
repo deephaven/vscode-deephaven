@@ -98,7 +98,7 @@ export class SecretService implements ISecretService {
 
   /**
    * Get a map of user -> key pairs for a given server.
-   * @param serverUrl
+   * @param serverUrl The server URL to get the map for
    * @returns The map of user -> key pairs or null.
    */
   getServerKeys = async (serverUrl: URL): Promise<UserKeyPairs> => {
