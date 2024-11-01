@@ -32,6 +32,7 @@
     "check:types": "npm run clean && tsc --build ./tsconfig.json && tsc -p tsconfig.unit.json --noEmit --module preserve --moduleResolution bundler && tsc -p e2e/tsconfig.json --noEmit --skipLibCheck",
     "clean": "rm -rf out packages/*/tsconfig.tsbuildinfo",
     "compile": "npm run check:types && node scripts/esbuild.js",
+    "compile:prod": "npm run check:types && npm run test:lint && node scripts/esbuild.js --production",
     "icon:gen": "node icons/generate.mjs",
     "package:latest": "vsce package -o releases/vscode-deephaven-latest.vsix",
     "publish:prerelease": "vsce publish --pre-release",
@@ -45,7 +46,7 @@
     "test:lint": "eslint . --ext ts",
     "test:unit": "vitest --reporter=default --reporter=junit --outputFile=./test-reports/vitest.junit.xml",
     "test": "npm run test:unit",
-    "vscode:prepublish": "npm run check:types && npm run test:lint && node scripts/esbuild.js --production",
+    "vscode:prepublish": "compile:prod",
     "watch:esbuild": "node scripts/esbuild.js --watch",
     "watch:tsc": "npm run clean && tsc --build ./tsconfig.json --watch",
     "watch": "npm-run-all -p watch:*"

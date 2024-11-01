@@ -44,6 +44,9 @@ To run using `vscode` debugger:
 
 4. You should see the tests start and `vscode` stop at the breakpoint.
 
+## VSCE
+[vsce](https://github.com/microsoft/vscode-vsce), short for "Visual Studio Code Extensions", is a command-line tool for packaging, publishing and managing VS Code extensions. The Deephaven extension calls `vsce` via npm scripts. Note that `vsce package` and `vsce publish` both call the `vscode:prepublish` script.
+
 ## Installation from .VSIX
 
 This extension can also be installed directly from a `.vsix`. To get a `.vsix`, you can either:
@@ -52,7 +55,7 @@ Download one from the [releases/](releases/) folder.
 
 or
 
-Build a .vsix locally via `npm run package:latest`
+Build a .vsix locally via `npm run package:latest` (see [VSCE](#vsce) section)
 
 Then install in vscode:
 ![Install Deephaven in VS Code](docs/install.png)
