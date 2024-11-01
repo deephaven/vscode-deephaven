@@ -31,7 +31,7 @@ import {
 } from '../util';
 import { URLMap } from './URLMap';
 import { URIMap } from './URIMap';
-import { DhService } from './DhService';
+import { DhcService } from './DhcService';
 import { AUTH_HANDLER_TYPE_PSK } from '../dh/dhc';
 
 const logger = new Logger('ServerManager');
@@ -479,7 +479,7 @@ export class ServerManager implements IServerManager {
     const uri = editor.document.uri;
 
     const isConsoleTypeSupported =
-      isInstanceOf(connectionState, DhService) &&
+      isInstanceOf(connectionState, DhcService) &&
       (await connectionState.supportsConsoleType(
         editor.document.languageId as ConsoleType
       ));

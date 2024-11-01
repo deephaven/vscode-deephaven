@@ -9,7 +9,7 @@ import type {
 } from '../types';
 import { PIP_SERVER_STATUS_DIRECTORY, SERVER_LANGUAGE_SET } from '../common';
 import { getTempDir } from './tmpUtils';
-import { DhService } from '../services';
+import { DhcService } from '../services';
 import { isInstanceOf } from './isInstanceOf';
 
 /**
@@ -131,7 +131,7 @@ export async function* iterateConnectionsForConsoleType(
 ): AsyncGenerator<ConnectionState, void, unknown> {
   for (const connection of connections) {
     const isConsoleTypeSupported =
-      isInstanceOf(connection, DhService) &&
+      isInstanceOf(connection, DhcService) &&
       (await connection.supportsConsoleType(consoleType));
 
     if (isConsoleTypeSupported) {

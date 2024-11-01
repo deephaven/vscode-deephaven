@@ -2,12 +2,12 @@ import * as vscode from 'vscode';
 import { TreeDataProviderBase } from './TreeDataProviderBase';
 import { CONNECTION_TREE_ITEM_CONTEXT, ICON_ID } from '../common';
 import type {
-  IDhService,
+  IDhcService,
   ConnectionState,
   ServerConnectionNode,
 } from '../types';
 import { isInstanceOf, sortByStringProp } from '../util';
-import { DhService } from '../services';
+import { DhcService } from '../services';
 
 /**
  * Provider for the server connection tree view.
@@ -32,7 +32,7 @@ export class ServerConnectionTreeProvider extends TreeDataProviderBase<ServerCon
     const descriptionTokens: string[] = [];
 
     if (
-      isInstanceOf(connectionOrUri, DhService) &&
+      isInstanceOf(connectionOrUri, DhcService) &&
       connectionOrUri.isInitialized
     ) {
       const [consoleType] = await connectionOrUri.getConsoleTypes();
@@ -62,7 +62,7 @@ export class ServerConnectionTreeProvider extends TreeDataProviderBase<ServerCon
   };
 
   getChildren = (
-    elementOrRoot?: IDhService
+    elementOrRoot?: IDhcService
   ): vscode.ProviderResult<ServerConnectionNode[]> => {
     if (elementOrRoot == null) {
       return this.serverManager

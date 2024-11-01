@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { DhcService } from './DhcService';
 import type {
+  IDhcService,
   IDhServiceFactory,
   IPanelService,
   IToastService,
@@ -22,7 +23,7 @@ export class DhcServiceFactory implements IDhServiceFactory {
     private toaster: IToastService
   ) {}
 
-  create = (serverUrl: URL, tagId?: UniqueID): DhcService => {
+  create = (serverUrl: URL, tagId?: UniqueID): IDhcService => {
     const dhService = new DhcService(
       serverUrl,
       this.coreCredentialsCache,
