@@ -13,7 +13,6 @@ import type {
   SeparatorPickItem,
   ConnectionPickOption,
   ConnectionState,
-  AuthenticationMethodPickItem,
   UserLoginPreferences,
 } from '../types';
 import { sortByStringProp } from './dataUtils';
@@ -40,12 +39,6 @@ export interface WorkspaceFolderConfig {
   readonly uri: vscode.Uri;
   readonly name?: string;
 }
-
-const PASSWORD_AUTHENTICATION_METHOD_PICK_ITEM = {
-  label: 'Username / Password',
-  type: 'password',
-  iconPath: new vscode.ThemeIcon('account'),
-} as const;
 
 /**
  * Create options for a connection quick pick.
@@ -164,36 +157,22 @@ export async function runUserLoginWorkflow(args: {
     showOperatesAs,
   } = args;
 
-  // Authentication method (only prompt if private key user names are given)
-  const promptForAuthenticationMethod = privateKeyUserNames.length > 0;
-
-  const authenticationMethod: AuthenticationMethodPickItem | null =
-    promptForAuthenticationMethod
-      ? await createAuthenticationMethodQuickPick(title, privateKeyUserNames)
-      : PASSWORD_AUTHENTICATION_METHOD_PICK_ITEM;
-
-  // Cancelled by user
-  if (authenticationMethod == null) {
-    return;
-  }
-
-  let username: Username | undefined;
+  const username = await promptForUsername(
+    title,
+    userLoginPreferences?.lastLogin
+  );
   let token: string | undefined;
   let operateAs: OperateAsUsername | undefined;
-
-  // Username comes from private key item or prompt
-  username =
-    authenticationMethod.type === 'keyPair'
-      ? authenticationMethod.label
-      : await promptForUsername(title, userLoginPreferences?.lastLogin);
 
   // Cancelled by user
   if (username == null) {
     return;
   }
 
-  // Password prompts only apply to `type` 'password'
-  if (authenticationMethod.type === 'password') {
+  const hasPrivateKey = privateKeyUserNames.includes(username);
+
+  // Password
+  if (!hasPrivateKey) {
     token = await promptForPassword(title);
 
     // Cancelled by user
@@ -217,60 +196,21 @@ export async function runUserLoginWorkflow(args: {
     }
   }
 
-  if (authenticationMethod.type === 'password') {
-    assertDefined(token, 'token');
+  if (hasPrivateKey) {
     return {
-      type: authenticationMethod.type,
+      type: 'keyPair',
       username,
-      token,
       operateAs,
     };
   }
 
+  assertDefined(token, 'token');
   return {
-    type: authenticationMethod.type,
+    type: 'password',
     username,
+    token,
     operateAs,
   };
-}
-
-/**
- * Create quickpick for selecting an authentication method.
- * @param title
- * @param privateKeyUserNames
- * @returns Result of the quickpick. Null if selection cancelled.
- */
-export async function createAuthenticationMethodQuickPick(
-  title: string,
-  privateKeyUserNames: Username[]
-): Promise<AuthenticationMethodPickItem | null> {
-  const result = await vscode.window.showQuickPick<
-    AuthenticationMethodPickItem | SeparatorPickItem
-  >(
-    [
-      PASSWORD_AUTHENTICATION_METHOD_PICK_ITEM,
-      createSeparatorPickItem('Private Key'),
-      ...privateKeyUserNames.map(userName => ({
-        label: userName,
-        type: 'keyPair' as const,
-        iconPath: new vscode.ThemeIcon('key'),
-      })),
-    ],
-    {
-      ignoreFocusOut: true,
-      title,
-      placeHolder: "Select authentication method (Press 'Escape' to cancel)",
-    }
-  );
-
-  // Cancelled by user or separator item returned (don't think the 2nd case is
-  // possible, but it narrows the type since the picker types include the
-  // separator item)
-  if (result == null || !('type' in result)) {
-    return null;
-  }
-
-  return result;
 }
 
 /**
