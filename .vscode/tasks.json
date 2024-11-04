@@ -15,24 +15,35 @@
       }
     },
     {
+      "label": "npm: clean",
+      "type": "npm",
+      "script": "clean",
+      "presentation": {
+        "reveal": "never"
+      },
+      "group": "build"
+    },
+    {
+      "label": "npm: watch:esbuild",
       "type": "npm",
       "script": "watch:esbuild",
+      "dependsOn": "npm: clean",
       "group": "build",
       "problemMatcher": "$esbuild-watch",
       "isBackground": true,
-      "label": "npm: watch:esbuild",
       "presentation": {
         "group": "watch",
         "reveal": "never"
       }
     },
     {
+      "label": "npm: watch:tsc",
       "type": "npm",
       "script": "watch:tsc",
+      "dependsOn": "npm: clean",
       "group": "build",
       "problemMatcher": "$tsc-watch",
       "isBackground": true,
-      "label": "npm: watch:tsc",
       "presentation": {
         "group": "watch",
         "reveal": "never"
