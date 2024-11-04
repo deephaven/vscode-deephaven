@@ -1,4 +1,5 @@
 import type { SecretStorage } from 'vscode';
+import type { Username } from '@deephaven-enterprise/auth-nodejs';
 import type {
   ISecretService,
   UserKeyPairs,
@@ -94,6 +95,27 @@ export class SecretService implements ISecretService {
       ...existingPreferences,
       [serverUrl.toString()]: preferences,
     });
+  };
+
+  /**
+   * Delete server keys for a given server + user.
+   * @param serverUrl The server to delete keys for.
+   * @param userName The user to delete keys for.
+   * @returns A promise that resolves when the keys have been deleted.
+   */
+  deleteUserServerKeys = async (
+    serverUrl: URL,
+    userName: Username
+  ): Promise<void> => {
+    const existingKeys = await this.getServerKeys(serverUrl);
+
+    if (existingKeys == null) {
+      return;
+    }
+
+    delete existingKeys[userName];
+
+    await this.storeServerKeys(serverUrl, existingKeys);
   };
 
   /**

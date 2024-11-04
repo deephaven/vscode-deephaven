@@ -173,7 +173,11 @@ export class UserLoginController extends ControllerBase {
       logger.error('An error occurred while connecting to DHE server:', err);
       this.dheClientCache.delete(serverUrl);
 
-      // TODO: Need to delete invalid keypair if login fails
+      if (credentials.type === 'keyPair') {
+        this.toast.error(`Failed to login as ${username}.`);
+
+        await this.secretService.deleteUserServerKeys(serverUrl, username);
+      }
     }
   };
 }

@@ -21,6 +21,7 @@ import type {
 import type {
   AuthenticatedClient as DheAuthenticatedClient,
   UnauthenticatedClient as DheUnauthenticatedClient,
+  Username,
 } from '@deephaven-enterprise/auth-nodejs';
 
 export interface IAsyncCacheService<TKey, TValue> extends Disposable {
@@ -122,6 +123,7 @@ export interface IPanelService extends Disposable {
  * Secret service interface.
  */
 export interface ISecretService {
+  deleteUserServerKeys(serverUrl: URL, userName: Username): Promise<void>;
   getServerKeys(serverUrl: URL): Promise<UserKeyPairs>;
   storeServerKeys(serverUrl: URL, serverKeys: UserKeyPairs): Promise<void>;
   clearStorage(): Promise<void>;
