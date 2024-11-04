@@ -187,8 +187,8 @@
       },
       {
         "command": "vscode-deephaven.disconnectFromServer",
-        "title": "Discard Connection",
-        "icon": "$(trash)"
+        "title": "Disconnect from Server",
+        "icon": "$(debug-disconnect)"
       },
       {
         "command": "vscode-deephaven.generateDHEKeyPair",
