@@ -1,10 +1,7 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
-import type {
-  EnterpriseDhType as DheType,
-  EnterpriseClient,
-  LoginCredentials as DheLoginCredentials,
-} from '@deephaven-enterprise/jsapi-types';
+import type { AuthenticatedClient as DheAuthenticatedClient } from '@deephaven-enterprise/auth-nodejs';
+import type { EnterpriseDhType as DheType } from '@deephaven-enterprise/jsapi-types';
 import {
   WorkerURL,
   type ConsoleType,
@@ -12,6 +9,7 @@ import {
   type IConfigService,
   type IDheService,
   type IDheServiceFactory,
+  type IToastService,
   type Lazy,
   type QuerySerial,
   type UniqueID,
@@ -25,9 +23,8 @@ import {
   deleteQueries,
   getWorkerCredentials,
   getWorkerInfoFromQuery,
-  hasInteractivePermission,
 } from '../dh/dhe';
-import { REQUEST_DHE_USER_CREDENTIALS_CMD } from '../common';
+import { CREATE_AUTHENTICATED_CLIENT_CMD } from '../common';
 
 const logger = new Logger('DheService');
 
@@ -37,18 +34,19 @@ const logger = new Logger('DheService');
 export class DheService implements IDheService {
   /**
    * Creates a factory function that can be used to create DheService instances.
+   * @param configService Configuration service.
    * @param coreCredentialsCache Core credentials cache.
    * @param dheClientCache DHE client cache.
-   * @param dheCredentialsCache DHE credentials cache.
    * @param dheJsApiCache DHE JS API cache.
+   * @param toaster Toast service for notifications.
    * @returns A factory function that can be used to create DheService instances.
    */
   static factory = (
     configService: IConfigService,
     coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
-    dheClientCache: IAsyncCacheService<URL, EnterpriseClient>,
-    dheCredentialsCache: URLMap<DheLoginCredentials>,
-    dheJsApiCache: IAsyncCacheService<URL, DheType>
+    dheClientCache: URLMap<DheAuthenticatedClient>,
+    dheJsApiCache: IAsyncCacheService<URL, DheType>,
+    toaster: IToastService
   ): IDheServiceFactory => {
     return {
       create: (serverUrl: URL): IDheService =>
@@ -57,8 +55,8 @@ export class DheService implements IDheService {
           configService,
           coreCredentialsCache,
           dheClientCache,
-          dheCredentialsCache,
-          dheJsApiCache
+          dheJsApiCache,
+          toaster
         ),
     };
   };
@@ -71,30 +69,32 @@ export class DheService implements IDheService {
     serverUrl: URL,
     configService: IConfigService,
     coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
-    dheClientCache: IAsyncCacheService<URL, EnterpriseClient>,
-    dheCredentialsCache: URLMap<DheLoginCredentials>,
-    dheJsApiCache: IAsyncCacheService<URL, DheType>
+    dheClientCache: URLMap<DheAuthenticatedClient>,
+    dheJsApiCache: IAsyncCacheService<URL, DheType>,
+    toaster: IToastService
   ) {
     this.serverUrl = serverUrl;
     this._config = configService;
     this._coreCredentialsCache = coreCredentialsCache;
     this._dheClientCache = dheClientCache;
-    this._dheCredentialsCache = dheCredentialsCache;
     this._dheJsApiCache = dheJsApiCache;
     this._querySerialSet = new Set<QuerySerial>();
+    this._toaster = toaster;
     this._workerInfoMap = new URLMap<WorkerInfo, WorkerURL>();
+
+    this._dheClientCache.onDidChange(this._onDidDheClientCacheInvalidate);
   }
 
-  private _clientPromise: Promise<EnterpriseClient | null> | null = null;
+  private _clientPromise: Promise<DheAuthenticatedClient | null> | null = null;
   private _isConnected: boolean = false;
   private readonly _config: IConfigService;
   private readonly _coreCredentialsCache: URLMap<
     Lazy<DhcType.LoginCredentials>
   >;
-  private readonly _dheClientCache: IAsyncCacheService<URL, EnterpriseClient>;
-  private readonly _dheCredentialsCache: URLMap<DheLoginCredentials>;
+  private readonly _dheClientCache: URLMap<DheAuthenticatedClient>;
   private readonly _dheJsApiCache: IAsyncCacheService<URL, DheType>;
   private readonly _querySerialSet: Set<QuerySerial>;
+  private readonly _toaster: IToastService;
   private readonly _workerInfoMap: URLMap<WorkerInfo, WorkerURL>;
 
   readonly serverUrl: URL;
@@ -108,41 +108,23 @@ export class DheService implements IDheService {
 
   /**
    * Initialize DHE client and login.
+   * @param operateAsAnotherUser Whether to operate as another user.
    * @returns DHE client or null if initialization failed.
    */
-  private _initClient = async (): Promise<EnterpriseClient | null> => {
-    const dheClient = await this._dheClientCache.get(this.serverUrl);
-
-    if (!this._dheCredentialsCache.has(this.serverUrl)) {
+  private _initClient = async (
+    operateAsAnotherUser: boolean
+  ): Promise<DheAuthenticatedClient | null> => {
+    if (!this._dheClientCache.has(this.serverUrl)) {
       await vscode.commands.executeCommand(
-        REQUEST_DHE_USER_CREDENTIALS_CMD,
-        this.serverUrl
+        CREATE_AUTHENTICATED_CLIENT_CMD,
+        this.serverUrl,
+        operateAsAnotherUser
       );
-
-      if (!this._dheCredentialsCache.has(this.serverUrl)) {
-        logger.error(
-          'Failed to get DHE credentials for server:',
-          this.serverUrl.toString()
-        );
-        return null;
-      }
     }
 
-    const dheCredentials = this._dheCredentialsCache.get(this.serverUrl)!;
+    const maybeClient = await this._dheClientCache.get(this.serverUrl);
 
-    try {
-      await dheClient.login(dheCredentials);
-    } catch (err) {
-      logger.error('An error occurred while connecting to DHE server:', err);
-      return null;
-    }
-
-    if (!hasInteractivePermission(dheClient)) {
-      logger.error('User does not have permission to run queries.');
-      return null;
-    }
-
-    return dheClient;
+    return maybeClient ?? null;
   };
 
   /**
@@ -156,6 +138,14 @@ export class DheService implements IDheService {
 
     if (dheClient != null) {
       await deleteQueries(dheClient, querySerials);
+    }
+  };
+
+  private _onDidDheClientCacheInvalidate = (url: URL): void => {
+    if (url.toString() === this.serverUrl.toString()) {
+      // Reset the client promise so that the next call to `getClient` can
+      // reinitialize it if necessary.
+      this._clientPromise = null;
     }
   };
 
@@ -182,17 +172,26 @@ export class DheService implements IDheService {
   /**
    * Get DHE client.
    * @param initializeIfNull Whether to initialize client if it's not already initialized.
+   * @param operateAsAnotherUser Whether to operate as another user.
    * @returns DHE client or null if not initialized.
    */
-  getClient = async (
-    initializeIfNull: boolean
-  ): Promise<EnterpriseClient | null> => {
+  async getClient(
+    initializeIfNull: false
+  ): Promise<DheAuthenticatedClient | null>;
+  async getClient(
+    initializeIfNull: true,
+    operateAsAnotherUser: boolean
+  ): Promise<DheAuthenticatedClient | null>;
+  async getClient(
+    initializeIfNull: boolean,
+    operateAsAnotherUser = false
+  ): Promise<DheAuthenticatedClient | null> {
     if (this._clientPromise == null) {
       if (!initializeIfNull) {
         return null;
       }
 
-      this._clientPromise = this._initClient();
+      this._clientPromise = this._initClient(operateAsAnotherUser);
     }
 
     const dheClient = await this._clientPromise;
@@ -203,7 +202,7 @@ export class DheService implements IDheService {
     }
 
     return dheClient;
-  };
+  }
 
   /**
    * Create an InteractiveConsole query and get worker info from it.
@@ -215,7 +214,7 @@ export class DheService implements IDheService {
     tagId: UniqueID,
     consoleType?: ConsoleType
   ): Promise<WorkerInfo> => {
-    const dheClient = await this.getClient(true);
+    const dheClient = await this.getClient(true, false);
     if (dheClient == null) {
       const msg =
         'Failed to create worker because DHE client failed to initialize.';
@@ -242,7 +241,6 @@ export class DheService implements IDheService {
     if (workerInfo == null) {
       throw new Error('Failed to create worker.');
     }
-
     const workerUrl = new URL(workerInfo.grpcUrl);
     this._coreCredentialsCache.set(workerUrl, () =>
       getWorkerCredentials(dheClient)

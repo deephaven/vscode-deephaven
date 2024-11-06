@@ -2,7 +2,6 @@ import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type {
   EnterpriseDhType as DheType,
   EditableQueryInfo,
-  EnterpriseClient,
   QueryInfo,
   TypeSpecificFields,
 } from '@deephaven-enterprise/jsapi-types';
@@ -22,6 +21,7 @@ import {
   INTERACTIVE_CONSOLE_QUERY_TYPE,
   INTERACTIVE_CONSOLE_TEMPORARY_QUEUE_NAME,
 } from '../common';
+import type { AuthenticatedClient as DheAuthenticatedClient } from '@deephaven-enterprise/auth-nodejs';
 
 export type IDraftQuery = EditableQueryInfo & {
   isClientSide: boolean;
@@ -29,35 +29,12 @@ export type IDraftQuery = EditableQueryInfo & {
 };
 
 /**
- * Create DHE client.
- * @param dhe DHE JsApi
- * @param serverUrl Server URL
- * @returns A promise that resolves to the DHE client.
- */
-export async function createDheClient(
-  dhe: DheType,
-  serverUrl: URL
-): Promise<EnterpriseClient> {
-  const dheClient = new dhe.Client(serverUrl.toString());
-
-  return new Promise(resolve => {
-    const unsubscribe = dheClient.addEventListener(
-      dhe.Client.EVENT_CONNECT,
-      () => {
-        unsubscribe();
-        resolve(dheClient);
-      }
-    );
-  });
-}
-
-/**
  * Get credentials for a Core+ worker associated with a given DHE client.
  * @param client The DHE client.
  * @returns A promise that resolves to the worker credentials.
  */
 export async function getWorkerCredentials(
-  client: EnterpriseClient
+  client: DheAuthenticatedClient
 ): Promise<DhcType.LoginCredentials> {
   const token = await client.createAuthToken('RemoteQueryProcessor');
   return {
@@ -67,27 +44,12 @@ export async function getWorkerCredentials(
 }
 
 /**
- * Get the WebSocket URL for a DHE server URL.
- * @param serverUrl The DHE server URL.
- * @returns The WebSocket URL.
- */
-export function getWsUrl(serverUrl: URL): URL {
-  const url = new URL('/socket', serverUrl);
-  if (url.protocol === 'http:') {
-    url.protocol = 'ws:';
-  } else {
-    url.protocol = 'wss:';
-  }
-  return url;
-}
-
-/**
  * Determine if the logged in user has permission to interact with the UI.
  * @param dheClient The DHE client.
  * @returns A promise that resolves to true if the user has permission to interact with the UI.
  */
 export async function hasInteractivePermission(
-  dheClient: EnterpriseClient
+  dheClient: DheAuthenticatedClient
 ): Promise<boolean> {
   // TODO: Retrieve these group names from the server:
   // https://deephaven.atlassian.net/browse/DH-9418
@@ -115,7 +77,7 @@ export async function hasInteractivePermission(
  */
 export async function createInteractiveConsoleQuery(
   tagId: UniqueID,
-  dheClient: EnterpriseClient,
+  dheClient: DheAuthenticatedClient,
   workerConfig: WorkerConfig = {},
   consoleType?: ConsoleType
 ): Promise<QuerySerial> {
@@ -210,7 +172,7 @@ export async function createInteractiveConsoleQuery(
  * @param querySerials Serials of queries to delete.
  */
 export async function deleteQueries(
-  dheClient: EnterpriseClient,
+  dheClient: DheAuthenticatedClient,
   querySerials: QuerySerial[]
 ): Promise<void> {
   await dheClient.deleteQueries(querySerials);
@@ -227,7 +189,7 @@ export async function deleteQueries(
 export async function getWorkerInfoFromQuery(
   tagId: UniqueID,
   dhe: DheType,
-  dheClient: EnterpriseClient,
+  dheClient: DheAuthenticatedClient,
   querySerial: QuerySerial
 ): Promise<WorkerInfo | undefined> {
   // The query will go through multiple config updates before the worker is ready.
@@ -239,7 +201,7 @@ export async function getWorkerInfoFromQuery(
       ({ detail: queryInfo }: CustomEvent<QueryInfo>) => {
         if (
           queryInfo.serial === querySerial &&
-          queryInfo.designated?.grpcUrl != null
+          queryInfo.designated?.status === 'Running'
         ) {
           resolve(queryInfo);
         }

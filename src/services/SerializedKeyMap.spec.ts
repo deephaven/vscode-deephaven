@@ -1,6 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
 import { SerializedKeyMap } from './SerializedKeyMap';
 
+// See __mocks__/vscode.ts for the mock implementation
+vi.mock('vscode');
+
 describe('SerializedKeyMap', () => {
   const deserializeKey = (key: string): Object => JSON.parse(key);
   const serializeKey = (key: Object): string => JSON.stringify(key);

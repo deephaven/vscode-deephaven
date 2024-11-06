@@ -162,9 +162,18 @@
         "title": "Deephaven: Download Logs"
       },
       {
+        "command": "vscode-deephaven.clearSecretStorage",
+        "title": "Deephaven: Clear Secrets"
+      },
+      {
         "command": "vscode-deephaven.connectToServer",
-        "title": "Deephaven: Connect to Server",
+        "title": "Connect to Server",
         "icon": "$(plug)"
+      },
+      {
+        "command": "vscode-deephaven.connectToServerOperateAs",
+        "title": "Connect to Server as Another User",
+        "icon": "$(account)"
       },
       {
         "command": "vscode-deephaven.createNewTextDoc",
@@ -173,13 +182,18 @@
       },
       {
         "command": "vscode-deephaven.disconnectEditor",
-        "title": "Deephaven: Disconnect Editor",
+        "title": "Disconnect Editor",
         "icon": "$(debug-disconnect)"
       },
       {
         "command": "vscode-deephaven.disconnectFromServer",
-        "title": "Deephaven: Discard Connection",
-        "icon": "$(trash)"
+        "title": "Disconnect from Server",
+        "icon": "$(debug-disconnect)"
+      },
+      {
+        "command": "vscode-deephaven.generateDHEKeyPair",
+        "title": "Generate DHE Key Pair",
+        "icon": "$(key)"
       },
       {
         "command": "vscode-deephaven.openInBrowser",
@@ -188,25 +202,25 @@
       },
       {
         "command": "vscode-deephaven.openVariablePanels",
-        "title": "Deephaven: Open Variable Panels"
+        "title": "Open Variable Panels"
       },
       {
         "command": "vscode-deephaven.refreshVariablePanels",
-        "title": "Deephaven: Refresh Variable Panels"
+        "title": "Refresh Variable Panels"
       },
       {
         "command": "vscode-deephaven.refreshServerTree",
-        "title": "Deephaven: Refresh Server Tree",
+        "title": "Refresh Server Tree",
         "icon": "$(refresh)"
       },
       {
         "command": "vscode-deephaven.refreshServerConnectionTree",
-        "title": "Deephaven: Refresh Server Connection Tree",
+        "title": "Refresh Server Connection Tree",
         "icon": "$(refresh)"
       },
       {
-        "command": "vscode-deephaven.requestDheUserCredentials",
-        "title": "Deephaven: Request DHE User Credentials"
+        "command": "vscode-deephaven.createAuthenticatedClient",
+        "title": "Create Authenticated Client"
       },
       {
         "command": "vscode-deephaven.startServer",
@@ -634,6 +648,10 @@
           "when": "true"
         },
         {
+          "command": "vscode-deephaven.clearSecretStorage",
+          "when": "true"
+        },
+        {
           "command": "vscode-deephaven.downloadLogs",
           "when": "true"
         },
@@ -650,12 +668,20 @@
           "when": "false"
         },
         {
+          "command": "vscode-deephaven.connectToServerOperateAs",
+          "when": "false"
+        },
+        {
           "command": "vscode-deephaven.disconnectEditor",
           "when": "false"
         },
         {
           "command": "vscode-deephaven.disconnectFromServer",
           "when": "false"
+        },
+        {
+          "command": "vscode-deephaven.generateDHEKeyPair",
+          "when:": "false"
         },
         {
           "command": "vscode-deephaven.openVariablePanels",
@@ -674,7 +700,7 @@
           "when": "false"
         },
         {
-          "command": "vscode-deephaven.requestDheUserCredentials",
+          "command": "vscode-deephaven.createAuthenticatedClient",
           "when": "false"
         }
       ],
@@ -716,9 +742,8 @@
       ],
       "view/item/context": [
         {
-          "command": "vscode-deephaven.connectToServer",
-          "when": "view == vscode-deephaven.serverTree && (viewItem == isManagedServerDisconnected || viewItem == isServerRunningDisconnected || viewItem == isDHEServerRunning)",
-          "group": "inline"
+          "command": "vscode-deephaven.connectToServerOperateAs",
+          "when": "view == vscode-deephaven.serverTree && viewItem == isDHEServerRunningDisconnected"
         },
         {
           "command": "vscode-deephaven.createNewTextDoc",
@@ -732,12 +757,16 @@
         },
         {
           "command": "vscode-deephaven.disconnectFromServer",
-          "when": "view == vscode-deephaven.serverConnectionTree && viewItem == isConnection",
+          "when": "(view == vscode-deephaven.serverTree && (viewItem == isServerRunningConnected || viewItem == isDHEServerRunningConnected)) || (view == vscode-deephaven.serverConnectionTree && viewItem == isConnection)",
           "group": "inline@2"
         },
         {
+          "command": "vscode-deephaven.generateDHEKeyPair",
+          "when": "view == vscode-deephaven.serverTree && (viewItem == isDHEServerRunningConnected || viewItem == isDHEServerRunningDisconnected)"
+        },
+        {
           "command": "vscode-deephaven.openInBrowser",
-          "when": "view == vscode-deephaven.serverTree && (viewItem == isManagedServerConnected || viewItem == isServerRunningConnected || viewItem == isServerRunningDisconnected || viewItem == isManagedServerDisconnected || viewItem == isDHEServerRunning)",
+          "when": "view == vscode-deephaven.serverTree && (viewItem == isManagedServerConnected || viewItem == isManagedServerDisconnected || viewItem == isServerRunningConnected || viewItem == isServerRunningDisconnected || viewItem == isDHEServerRunningConnected || viewItem == isDHEServerRunningDisconnected)",
           "group": "inline"
         },
         {
@@ -781,9 +810,15 @@
       ]
     }
   },
+  "dependencies": {
+    "@deephaven-enterprise/auth-nodejs": "^1.20240723.111-beta",
+    "@deephaven-enterprise/query-utils": "^1.20240723.111-beta",
+    "@deephaven/require-jsapi": "file:./packages/require-jsapi",
+    "nanoid": "^5.0.7"
+  },
   "devDependencies": {
-    "@deephaven-enterprise/jsapi-types": "^1.20240723.95-beta",
-    "@deephaven/jsapi-types": "^1.0.0-dev0.35.3",
+    "@deephaven-enterprise/jsapi-types": "^1.20240723.111-beta",
+    "@deephaven/jsapi-types": "^1.0.0-dev0.36.1",
     "@types/node": "22.5.4",
     "@types/vscode": "^1.91.0",
     "@types/ws": "^8.5.10",
@@ -808,11 +843,6 @@
     "vitest": "^2.0.3",
     "wdio-ctrf-json-reporter": "^0.0.10",
     "wdio-vscode-service": "^6.1.0"
-  },
-  "dependencies": {
-    "@deephaven-enterprise/query-utils": "^1.20240723.95-beta",
-    "@deephaven/require-jsapi": "file:./packages/require-jsapi",
-    "nanoid": "^5.0.7"
   },
   "overrides": {
     "event-target-shim": "^6.0.2"

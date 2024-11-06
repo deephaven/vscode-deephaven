@@ -118,7 +118,9 @@ export function getServerContextValue({
 
   if (isRunning) {
     if (isDHE) {
-      return SERVER_TREE_ITEM_CONTEXT.isDHEServerRunning;
+      return isConnected
+        ? SERVER_TREE_ITEM_CONTEXT.isDHEServerRunningConnected
+        : SERVER_TREE_ITEM_CONTEXT.isDHEServerRunningDisconnected;
     }
 
     return isConnected
@@ -252,7 +254,8 @@ export function getServerTreeItem(server: ServerState): vscode.TreeItem {
   const canConnect =
     contextValue === SERVER_TREE_ITEM_CONTEXT.isManagedServerDisconnected ||
     contextValue === SERVER_TREE_ITEM_CONTEXT.isServerRunningDisconnected ||
-    contextValue === SERVER_TREE_ITEM_CONTEXT.isDHEServerRunning;
+    contextValue === SERVER_TREE_ITEM_CONTEXT.isDHEServerRunningConnected ||
+    contextValue === SERVER_TREE_ITEM_CONTEXT.isDHEServerRunningDisconnected;
 
   return {
     label: new URL(urlStr).host,

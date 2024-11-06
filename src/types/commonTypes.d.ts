@@ -1,11 +1,20 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
+import type {
+  Base64KeyPair,
+  KeyPairCredentials,
+  OperateAsUsername,
+  PasswordCredentials,
+  Username,
+} from '@deephaven-enterprise/auth-nodejs';
 
 // Branded type helpers
 declare const __brand: unique symbol;
 export type Brand<T extends string, TBase = string> = TBase & {
   readonly [__brand]: T;
 };
+
+export type NonEmptyArray<T> = [T, ...T[]];
 
 export type UniqueID = Brand<'UniqueID', string>;
 
@@ -36,6 +45,17 @@ export interface EnterpriseConnectionConfig {
   label?: string;
   experimentalWorkerConfig?: WorkerConfig;
 }
+
+export type LoginWorkflowType = 'login' | 'generatePrivateKey';
+export type LoginWorkflowResult =
+  | PasswordCredentials
+  | Omit<KeyPairCredentials, 'keyPair'>;
+
+export type UserKeyPairs = Record<Username, Base64KeyPair>;
+export type UserLoginPreferences = {
+  lastLogin?: Username;
+  operateAsUser: Record<Username, OperateAsUsername>;
+};
 
 export type ServerConnectionConfig =
   | CoreConnectionConfig

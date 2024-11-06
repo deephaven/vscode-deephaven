@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { randomUUID } from 'node:crypto';
+import type { AuthenticatedClient as DheAuthenticatedClient } from '@deephaven-enterprise/auth-nodejs';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import {
   isDhcServerRunning,
@@ -40,6 +41,7 @@ export class ServerManager implements IServerManager {
     configService: IConfigService,
     coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
     dhcServiceFactory: IDhServiceFactory,
+    dheClientCache: URLMap<DheAuthenticatedClient>,
     dheServiceCache: IAsyncCacheService<URL, IDheService>,
     outputChannel: vscode.OutputChannel,
     toaster: IToastService
@@ -48,6 +50,7 @@ export class ServerManager implements IServerManager {
     this._connectionMap = new URLMap<ConnectionState>();
     this._coreCredentialsCache = coreCredentialsCache;
     this._dhcServiceFactory = dhcServiceFactory;
+    this._dheClientCache = dheClientCache;
     this._dheServiceCache = dheServiceCache;
     this._outputChannel = outputChannel;
     this._serverMap = new URLMap<ServerState>();
@@ -66,6 +69,7 @@ export class ServerManager implements IServerManager {
     Lazy<DhcType.LoginCredentials>
   >;
   private readonly _dhcServiceFactory: IDhServiceFactory;
+  private readonly _dheClientCache: URLMap<DheAuthenticatedClient>;
   private readonly _dheServiceCache: IAsyncCacheService<URL, IDheService>;
   private readonly _outputChannel: vscode.OutputChannel;
   private readonly _toaster: IToastService;
@@ -139,7 +143,8 @@ export class ServerManager implements IServerManager {
 
   connectToServer = async (
     serverUrl: URL,
-    workerConsoleType?: ConsoleType
+    workerConsoleType?: ConsoleType,
+    operateAsAnotherUser: boolean = false
   ): Promise<ConnectionState | null> => {
     const serverState = this._serverMap.get(serverUrl);
 
@@ -177,7 +182,7 @@ export class ServerManager implements IServerManager {
 
       // Get client. Client will be initialized if it doesn't exist (including
       // prompting user for login).
-      if (!(await dheService.getClient(true))) {
+      if (!(await dheService.getClient(true, operateAsAnotherUser))) {
         return null;
       }
 
@@ -276,6 +281,40 @@ export class ServerManager implements IServerManager {
 
   disconnectEditor = (uri: vscode.Uri): void => {
     this._uriConnectionsMap.delete(uri);
+    this._onDidUpdate.fire();
+  };
+
+  /**
+   * Completely disconnect from a DHE server. This including all workers plus
+   * the primary DHE client connection.
+   * @param dheServerUrl The URL of the DHE server to disconnect from.
+   * @returns Promise that resolves when all connections have been discarded.
+   */
+  disconnectFromDHEServer = async (dheServerUrl: URL): Promise<void> => {
+    const workerUrls = [...this._workerURLToServerURLMap.entries()].filter(
+      ([, url]) => url.toString() === dheServerUrl.toString()
+    );
+
+    for (const [workerUrl] of workerUrls) {
+      await this.disconnectFromServer(workerUrl);
+    }
+
+    // Deleting the DHE client needs to happen after worker disposal since an
+    // active client is needed to dispose workers.
+    this._dheClientCache.get(dheServerUrl)?.disconnect();
+    this._dheClientCache.delete(dheServerUrl);
+
+    const serverState = this._serverMap.get(dheServerUrl);
+    if (serverState == null) {
+      return;
+    }
+
+    this._serverMap.set(dheServerUrl, {
+      ...serverState,
+      isConnected: false,
+      connectionCount: 0,
+    });
+
     this._onDidUpdate.fire();
   };
 

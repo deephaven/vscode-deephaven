@@ -13,8 +13,16 @@ import type {
   SeparatorPickItem,
   ConnectionPickOption,
   ConnectionState,
+  UserLoginPreferences,
 } from '../types';
 import { sortByStringProp } from './dataUtils';
+import { assertDefined } from './assertUtil';
+import type {
+  KeyPairCredentials,
+  OperateAsUsername,
+  PasswordCredentials,
+  Username,
+} from '@deephaven-enterprise/auth-nodejs';
 
 export interface ConnectionOption {
   type: ConnectionType;
@@ -97,7 +105,9 @@ export async function createConnectionQuickPick(
   options: ConnectionPickOption<ConnectionState>[]
 ): Promise<ConnectionState | ServerState | null> {
   const result = await vscode.window.showQuickPick(options, {
+    ignoreFocusOut: true,
     title: 'Connect Editor',
+    placeHolder: "Select connection (Press 'Escape' to cancel)",
   });
 
   if (result == null || !('type' in result)) {
@@ -105,6 +115,102 @@ export async function createConnectionQuickPick(
   }
 
   return result.data;
+}
+
+/**
+ * Run user login workflow that prompts user for credentials. Prompts are
+ * conditional based on the provided arguments.
+ * @param title Title for the prompts
+ * @param userLoginPreferences User login preferences to determine default values
+ * for user / operate as prompts.
+ * @param privateKeyUserNames Optional list of private key user names. If provided,
+ * the authentication method will be prompted to determine if user wants to use
+ * one of these private keys or username/password.
+ * @param showOperatesAs Whether to show the operate as prompt.
+ */
+export async function runUserLoginWorkflow(args: {
+  title: string;
+  userLoginPreferences?: UserLoginPreferences;
+  privateKeyUserNames?: undefined | [];
+  showOperatesAs?: boolean;
+}): Promise<PasswordCredentials | undefined>;
+export async function runUserLoginWorkflow(args: {
+  title: string;
+  userLoginPreferences?: UserLoginPreferences;
+  privateKeyUserNames?: Username[];
+  showOperatesAs?: boolean;
+}): Promise<
+  PasswordCredentials | Omit<KeyPairCredentials, 'keyPair'> | undefined
+>;
+export async function runUserLoginWorkflow(args: {
+  title: string;
+  userLoginPreferences?: UserLoginPreferences;
+  privateKeyUserNames?: Username[];
+  showOperatesAs?: boolean;
+}): Promise<
+  PasswordCredentials | Omit<KeyPairCredentials, 'keyPair'> | undefined
+> {
+  const {
+    title,
+    userLoginPreferences,
+    privateKeyUserNames = [],
+    showOperatesAs,
+  } = args;
+
+  const username = await promptForUsername(
+    title,
+    userLoginPreferences?.lastLogin
+  );
+  let token: string | undefined;
+  let operateAs: OperateAsUsername | undefined;
+
+  // Cancelled by user
+  if (username == null) {
+    return;
+  }
+
+  const hasPrivateKey = privateKeyUserNames.includes(username);
+
+  // Password
+  if (!hasPrivateKey) {
+    token = await promptForPassword(title);
+
+    // Cancelled by user
+    if (token == null) {
+      return;
+    }
+  }
+
+  // Operate As
+  if (showOperatesAs) {
+    const defaultValue = username as unknown as OperateAsUsername | undefined;
+
+    const operateAs = await promptForOperateAs(
+      title,
+      userLoginPreferences?.operateAsUser[username] ?? defaultValue
+    );
+
+    // Cancelled by user
+    if (operateAs == null) {
+      return;
+    }
+  }
+
+  if (hasPrivateKey) {
+    return {
+      type: 'keyPair',
+      username,
+      operateAs,
+    };
+  }
+
+  assertDefined(token, 'token');
+  return {
+    type: 'password',
+    username,
+    token,
+    operateAs,
+  };
 }
 
 /**
@@ -269,4 +375,57 @@ export function updateConnectionStatusBarItem(
 
   const text = createConnectText(status, option);
   statusBarItem.text = text;
+}
+
+/**
+ * Prompt user for username.
+ * @param title Title of the prompt
+ * @param lastLogin Optional last login username
+ * @returns The username or undefined if cancelled by the user.
+ */
+export function promptForUsername(
+  title: string,
+  lastLogin?: Username
+): Promise<Username | undefined> {
+  return vscode.window.showInputBox({
+    ignoreFocusOut: true,
+    placeHolder: 'Username',
+    prompt: 'Deephaven username',
+    title,
+    value: lastLogin,
+  }) as Promise<Username | undefined>;
+}
+
+/**
+ * Prompt the user for a password.
+ * @param title Title of the prompt
+ * @returns The password or undefined if cancelled by the user.
+ */
+export function promptForPassword(title: string): Promise<string | undefined> {
+  return vscode.window.showInputBox({
+    ignoreFocusOut: true,
+    placeHolder: 'Password',
+    prompt: 'Deephaven password',
+    password: true,
+    title,
+  }) as Promise<string | undefined>;
+}
+
+/**
+ * Prompt the user for an `Operate As` username.
+ * @param title Title of the prompt
+ * @param defaultValue Optional default value
+ * @returns The `Operate As` username or undefined if cancelled by the user.
+ */
+export function promptForOperateAs(
+  title: string,
+  defaultValue?: OperateAsUsername
+): Promise<OperateAsUsername | undefined> {
+  return vscode.window.showInputBox({
+    ignoreFocusOut: true,
+    placeHolder: 'Operate As',
+    prompt: 'Deephaven `Operate As` username',
+    title,
+    value: defaultValue,
+  }) as Promise<OperateAsUsername | undefined>;
 }

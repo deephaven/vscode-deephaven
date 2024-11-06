@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { EnterpriseClient } from '@deephaven-enterprise/jsapi-types';
+
 import type {
   ConsoleType,
   CoreConnectionConfig,
@@ -15,12 +15,20 @@ import type {
   WorkerInfo,
   WorkerURL,
   UniqueID,
+  UserKeyPairs,
+  UserLoginPreferences,
 } from '../types/commonTypes';
+import type {
+  AuthenticatedClient as DheAuthenticatedClient,
+  UnauthenticatedClient as DheUnauthenticatedClient,
+  Username,
+} from '@deephaven-enterprise/auth-nodejs';
 
 export interface IAsyncCacheService<TKey, TValue> extends Disposable {
   get: (key: TKey) => Promise<TValue>;
   has: (key: TKey) => boolean;
   invalidate: (key: TKey) => void;
+  onDidInvalidate: vscode.Event<TKey>;
 }
 
 /**
@@ -53,7 +61,11 @@ export interface IDhService<TDH = unknown, TClient = unknown>
 }
 
 export interface IDheService extends ConnectionState, Disposable {
-  getClient: (initializeIfNull: boolean) => Promise<EnterpriseClient | null>;
+  getClient(initializeIfNull: false): Promise<DheAuthenticatedClient | null>;
+  getClient(
+    initializeIfNull: true,
+    operateAsAnotherUser: boolean
+  ): Promise<DheAuthenticatedClient | null>;
   getWorkerInfo: (workerUrl: WorkerURL) => WorkerInfo | undefined;
   createWorker: (
     tagId: UniqueID,
@@ -85,6 +97,9 @@ export type IDhServiceFactory = IFactory<
   IDhService,
   [serverUrl: URL, tagId?: UniqueID]
 >;
+export type IDheClientFactory = (
+  serverUrl: URL
+) => Promise<DheUnauthenticatedClient>;
 export type IDheServiceFactory = IFactory<IDheService, [serverUrl: URL]>;
 
 export interface IPanelService extends Disposable {
@@ -105,6 +120,21 @@ export interface IPanelService extends Disposable {
 }
 
 /**
+ * Secret service interface.
+ */
+export interface ISecretService {
+  deleteUserServerKeys(serverUrl: URL, userName: Username): Promise<void>;
+  getServerKeys(serverUrl: URL): Promise<UserKeyPairs>;
+  storeServerKeys(serverUrl: URL, serverKeys: UserKeyPairs): Promise<void>;
+  clearStorage(): Promise<void>;
+  getUserLoginPreferences(serverUrl: URL): Promise<UserLoginPreferences>;
+  storeUserLoginPreferences(
+    serverUrl: URL,
+    preferences: UserLoginPreferences
+  ): Promise<void>;
+}
+
+/**
  * Server manager interface.
  */
 export interface IServerManager extends Disposable {
@@ -112,9 +142,11 @@ export interface IServerManager extends Disposable {
 
   connectToServer: (
     serverUrl: URL,
-    workerConsoleType?: ConsoleType
+    workerConsoleType?: ConsoleType,
+    operateAsAnotherUser?: boolean
   ) => Promise<ConnectionState | null>;
   disconnectEditor: (uri: vscode.Uri) => void;
+  disconnectFromDHEServer: (dheServerUrl: URL) => Promise<void>;
   disconnectFromServer: (serverUrl: URL) => Promise<void>;
   loadServerConfig: () => Promise<void>;
 

@@ -15,3 +15,9 @@ export type ConnectionPickOption<TConnection extends ConnectionState> =
   | SeparatorPickItem
   | ConnectionPickItem<'server', ServerState>
   | ConnectionPickItem<'connection', TConnection>;
+
+export type LoginWorkflowPromptType =
+  | 'authenticationMethod'
+  | 'user'
+  | 'password'
+  | 'operateAs';

@@ -60,6 +60,7 @@ export class DhcService extends DhService<typeof DhcType, DhcType.CoreClient> {
           // TODO: Login flow UI should be a separate concern
           // deephaven/vscode-deephaven/issues/151
           token: await vscode.window.showInputBox({
+            ignoreFocusOut: true,
             placeHolder: 'Pre-Shared Key',
             prompt: 'Enter your Deephaven pre-shared key',
             password: true,

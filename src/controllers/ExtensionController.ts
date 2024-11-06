@@ -1,12 +1,10 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
-import type {
-  EnterpriseDhType as DheType,
-  EnterpriseClient,
-  LoginCredentials as DheLoginCredentials,
-} from '@deephaven-enterprise/jsapi-types';
+import type { EnterpriseDhType as DheType } from '@deephaven-enterprise/jsapi-types';
 import {
+  CLEAR_SECRET_STORAGE_CMD,
   CONNECT_TO_SERVER_CMD,
+  CONNECT_TO_SERVER_OPERATE_AS_CMD,
   CREATE_NEW_TEXT_DOC_CMD,
   DISCONNECT_EDITOR_CMD,
   DISCONNECT_FROM_SERVER_CMD,
@@ -41,12 +39,12 @@ import {
 } from '../providers';
 import {
   DhcServiceFactory,
-  DheClientCache,
   DheJsApiCache,
   DheService,
   DheServiceCache,
   DhService,
   PanelService,
+  SecretService,
   ServerManager,
   URLMap,
 } from '../services';
@@ -55,11 +53,13 @@ import type {
   Disposable,
   IAsyncCacheService,
   IConfigService,
+  IDheClientFactory,
   IDheService,
   IDheServiceFactory,
   IDhService,
   IDhServiceFactory,
   IPanelService,
+  ISecretService,
   IServerManager,
   IToastService,
   Lazy,
@@ -74,6 +74,12 @@ import { ConnectionController } from './ConnectionController';
 import { PipServerController } from './PipServerController';
 import { PanelController } from './PanelController';
 import { UserLoginController } from './UserLoginController';
+import {
+  createClient as createDheClient,
+  getWsUrl,
+  type AuthenticatedClient as DheAuthenticatedClient,
+  type UnauthenticatedClient as DheUnauthenticatedClient,
+} from '@deephaven-enterprise/auth-nodejs';
 
 const logger = new Logger('ExtensionController');
 
@@ -84,6 +90,7 @@ export class ExtensionController implements Disposable {
 
     this.initializeDiagnostics();
     this.initializeConfig();
+    this.initializeSecrets();
     this.initializeCodeLenses();
     this.initializeHoverProviders();
     this.initializeMessaging();
@@ -110,9 +117,8 @@ export class ExtensionController implements Disposable {
   private _connectionController: ConnectionController | null = null;
   private _coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>> | null =
     null;
-  private _dheClientCache: IAsyncCacheService<URL, EnterpriseClient> | null =
-    null;
-  private _dheCredentialsCache: URLMap<DheLoginCredentials> | null = null;
+  private _dheClientCache: URLMap<DheAuthenticatedClient> | null = null;
+  private _dheClientFactory: IDheClientFactory | null = null;
   private _dheServiceCache: IAsyncCacheService<URL, IDheService> | null = null;
   private _panelController: PanelController | null = null;
   private _panelService: IPanelService | null = null;
@@ -120,6 +126,7 @@ export class ExtensionController implements Disposable {
   private _dhcServiceFactory: IDhServiceFactory | null = null;
   private _dheJsApiCache: IAsyncCacheService<URL, DheType> | null = null;
   private _dheServiceFactory: IDheServiceFactory | null = null;
+  private _secretService: ISecretService | null = null;
   private _serverManager: IServerManager | null = null;
   private _userLoginController: UserLoginController | null = null;
 
@@ -166,6 +173,13 @@ export class ExtensionController implements Disposable {
       null,
       this._context.subscriptions
     );
+  };
+
+  /**
+   * Initialize secrets.
+   */
+  initializeSecrets = (): void => {
+    this._secretService = new SecretService(this._context.secrets);
   };
 
   /**
@@ -223,10 +237,16 @@ export class ExtensionController implements Disposable {
    * Initialize user login controller.
    */
   initializeUserLoginController = (): void => {
-    assertDefined(this._dheCredentialsCache, 'dheCredentialsCache');
+    assertDefined(this._dheClientCache, 'dheClientCache');
+    assertDefined(this._dheClientFactory, 'dheClientFactory');
+    assertDefined(this._secretService, 'secretService');
+    assertDefined(this._toaster, 'toaster');
 
     this._userLoginController = new UserLoginController(
-      this._dheCredentialsCache
+      this._dheClientCache,
+      this._dheClientFactory,
+      this._secretService,
+      this._toaster
     );
 
     this._context.subscriptions.push(this._userLoginController);
@@ -291,13 +311,19 @@ export class ExtensionController implements Disposable {
     assertDefined(this._toaster, 'toaster');
 
     this._coreCredentialsCache = new URLMap<Lazy<DhcType.LoginCredentials>>();
-    this._dheCredentialsCache = new URLMap<DheLoginCredentials>();
 
     this._dheJsApiCache = new DheJsApiCache();
     this._context.subscriptions.push(this._dheJsApiCache);
 
-    this._dheClientCache = new DheClientCache(this._dheJsApiCache);
-    this._context.subscriptions.push(this._dheClientCache);
+    this._dheClientFactory = async (
+      url: URL
+    ): Promise<DheUnauthenticatedClient> => {
+      assertDefined(this._dheJsApiCache, 'dheJsApiCache');
+      const dhe = await this._dheJsApiCache.get(url);
+      return createDheClient(dhe, getWsUrl(url));
+    };
+
+    this._dheClientCache = new URLMap();
 
     this._panelService = new PanelService();
     this._context.subscriptions.push(this._panelService);
@@ -314,8 +340,8 @@ export class ExtensionController implements Disposable {
       this._config,
       this._coreCredentialsCache,
       this._dheClientCache,
-      this._dheCredentialsCache,
-      this._dheJsApiCache
+      this._dheJsApiCache,
+      this._toaster
     );
 
     this._dheServiceCache = new DheServiceCache(this._dheServiceFactory);
@@ -325,6 +351,7 @@ export class ExtensionController implements Disposable {
       this._config,
       this._coreCredentialsCache,
       this._dhcServiceFactory,
+      this._dheClientCache,
       this._dheServiceCache,
       this._outputChannel,
       this._toaster
@@ -374,8 +401,17 @@ export class ExtensionController implements Disposable {
   initializeCommands = (): void => {
     assertDefined(this._connectionController, 'connectionController');
 
+    /** Clear secret storage */
+    this.registerCommand(CLEAR_SECRET_STORAGE_CMD, this.onClearSecretStorage);
+
     /** Create server connection */
     this.registerCommand(CONNECT_TO_SERVER_CMD, this.onConnectToServer);
+
+    /** Create server connection operating as another user */
+    this.registerCommand(
+      CONNECT_TO_SERVER_OPERATE_AS_CMD,
+      this.onConnectToServerOperateAs
+    );
 
     /** Create new document */
     this.registerCommand(CREATE_NEW_TEXT_DOC_CMD, this.onCreateNewDocument);
@@ -523,9 +559,20 @@ export class ExtensionController implements Disposable {
   };
 
   /**
+   * Handle clearing secret storage.
+   */
+  onClearSecretStorage = async (): Promise<void> => {
+    await this._secretService?.clearStorage();
+    this._toaster?.info('Stored secrets have been removed.');
+  };
+
+  /**
    * Handle connecting to a server
    */
-  onConnectToServer = async (serverState: ServerState): Promise<void> => {
+  onConnectToServer = async (
+    serverState: ServerState,
+    operateAsAnotherUser?: boolean
+  ): Promise<void> => {
     const languageId = vscode.window.activeTextEditor?.document.languageId;
 
     // DHE servers need to specify the console type for each worker creation.
@@ -533,7 +580,21 @@ export class ExtensionController implements Disposable {
     const workerConsoleType =
       serverState.type === 'DHE' ? getConsoleType(languageId) : undefined;
 
-    this._serverManager?.connectToServer(serverState.url, workerConsoleType);
+    this._serverManager?.connectToServer(
+      serverState.url,
+      workerConsoleType,
+      operateAsAnotherUser
+    );
+  };
+
+  /**
+   * Handle connecting to a server as another user.
+   * @param serverState
+   */
+  onConnectToServerOperateAs = async (
+    serverState: ServerState
+  ): Promise<void> => {
+    this.onConnectToServer(serverState, true);
   };
 
   /**
@@ -566,9 +627,30 @@ export class ExtensionController implements Disposable {
    * Handle disconnecting from a server.
    */
   onDisconnectFromServer = async (
-    connectionState: ConnectionState
+    serverOrConnectionState: ServerState | ConnectionState
   ): Promise<void> => {
-    this._serverManager?.disconnectFromServer(connectionState.serverUrl);
+    // ConnectionState (connection only disconnect)
+    if ('serverUrl' in serverOrConnectionState) {
+      this._serverManager?.disconnectFromServer(
+        serverOrConnectionState.serverUrl
+      );
+      return;
+    }
+
+    // DHC ServerState
+    if (serverOrConnectionState.type === 'DHC') {
+      this._coreCredentialsCache?.delete(serverOrConnectionState.url);
+
+      await this._serverManager?.disconnectFromServer(
+        serverOrConnectionState.url
+      );
+    }
+    // DHE ServerState
+    else {
+      await this._serverManager?.disconnectFromDHEServer(
+        serverOrConnectionState.url
+      );
+    }
   };
 
   /**

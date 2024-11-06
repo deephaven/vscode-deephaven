@@ -574,7 +574,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHE, isConnect
     "command": "vscode-deephaven.connectToServer",
     "title": "Connect to server",
   },
-  "contextValue": "isDHEServerRunning",
+  "contextValue": "isDHEServerRunningDisconnected",
   "description": "",
   "iconPath": {
     "color": undefined,
@@ -657,7 +657,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHE, isConnect
     "command": "vscode-deephaven.connectToServer",
     "title": "Connect to server",
   },
-  "contextValue": "isDHEServerRunning",
+  "contextValue": "isDHEServerRunningConnected",
   "description": "(1)",
   "iconPath": {
     "color": undefined,
