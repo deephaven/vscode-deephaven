@@ -42,9 +42,7 @@ export interface IConfigService {
 /**
  * Service that manages connections + sessions to a DH worker.
  */
-export interface IDhService<TDH = unknown, TClient = unknown>
-  extends Disposable,
-    ConnectionState {
+export interface IDhcService extends Disposable, ConnectionState {
   readonly isInitialized: boolean;
   readonly isConnected: boolean;
   readonly onDidDisconnect: vscode.Event<URL>;
@@ -94,7 +92,7 @@ export interface IFactory<T, TArgs extends unknown[] = []> {
  * Factory for creating IDhService instances.
  */
 export type IDhServiceFactory = IFactory<
-  IDhService,
+  IDhcService,
   [serverUrl: URL, tagId?: UniqueID]
 >;
 export type IDheClientFactory = (

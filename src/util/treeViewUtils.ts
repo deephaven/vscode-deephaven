@@ -12,7 +12,7 @@ import {
   SERVER_TREE_ITEM_CONTEXT,
   type ServerTreeItemContextValue,
 } from '../common';
-import { DhService } from '../services';
+import { DhcService } from '../services';
 import { isInstanceOf } from './isInstanceOf';
 
 /**
@@ -55,7 +55,7 @@ export async function getPanelConnectionTreeItem(
   connection: ConnectionState
 ): Promise<vscode.TreeItem> {
   const [consoleType] =
-    isInstanceOf(connection, DhService) && connection.isInitialized
+    isInstanceOf(connection, DhcService) && connection.isInitialized
       ? await connection.getConsoleTypes()
       : [];
 

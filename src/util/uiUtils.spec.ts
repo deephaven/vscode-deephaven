@@ -11,7 +11,7 @@ import {
 import type {
   ConnectionState,
   CoreConnectionConfig,
-  IDhService,
+  IDhcService,
   ServerState,
 } from '../types';
 
@@ -83,7 +83,7 @@ describe('createConnectionQuickPickOptions', () => {
 
   it('should throw if no servers or connections', () => {
     const servers: ServerState[] = [];
-    const connections: IDhService[] = [];
+    const connections: IDhcService[] = [];
 
     expect(() =>
       createConnectionQuickPickOptions(servers, connections, 'python')

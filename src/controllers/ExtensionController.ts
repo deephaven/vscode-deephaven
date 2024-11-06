@@ -42,7 +42,7 @@ import {
   DheJsApiCache,
   DheService,
   DheServiceCache,
-  DhService,
+  DhcService,
   PanelService,
   SecretService,
   ServerManager,
@@ -56,7 +56,7 @@ import type {
   IDheClientFactory,
   IDheService,
   IDheServiceFactory,
-  IDhService,
+  IDhcService,
   IDhServiceFactory,
   IPanelService,
   ISecretService,
@@ -601,7 +601,7 @@ export class ExtensionController implements Disposable {
    * Create a new text document based on the given connection capabilities.
    * @param dhService
    */
-  onCreateNewDocument = async (dhService: IDhService): Promise<void> => {
+  onCreateNewDocument = async (dhService: IDhcService): Promise<void> => {
     const language = (await dhService.supportsConsoleType('python'))
       ? 'python'
       : 'groovy';
@@ -703,7 +703,7 @@ export class ExtensionController implements Disposable {
     const connectionState =
       await this._connectionController.getOrCreateConnection(uri);
 
-    if (isInstanceOf(connectionState, DhService)) {
+    if (isInstanceOf(connectionState, DhcService)) {
       await connectionState?.runEditorCode(editor, selectionOnly === true);
     }
   };
