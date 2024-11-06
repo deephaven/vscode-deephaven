@@ -1,8 +1,10 @@
 import {
+  deletePublicKeys,
   generateBase64KeyPair,
   loginClientWithKeyPair,
   loginClientWithPassword,
   uploadPublicKey,
+  type Base64KeyPair,
   type AuthenticatedClient as DheAuthenticatedClient,
   type Username,
 } from '@deephaven-enterprise/auth-nodejs';
@@ -57,6 +59,41 @@ export class UserLoginController extends ControllerBase {
   private readonly toast: IToastService;
 
   /**
+   * Login with a given key pair and remove the public key from the server.
+   * @param serverUrl The server URL to remove the key from.
+   * @param userName The user name to remove the key for.
+   * @param keyPair The key pair that contains the public key to be removed. The
+   * key pair is needed since a login is required before the deletion.
+   */
+  private _deleteUserPublicKey = async (
+    serverUrl: URL,
+    userName: Username,
+    keyPair: Base64KeyPair
+  ): Promise<void> => {
+    const dheClient = await loginClientWithKeyPair(
+      await this.dheClientFactory(serverUrl),
+      {
+        type: 'keyPair',
+        username: userName,
+        keyPair,
+      }
+    );
+
+    const { type, publicKey } = keyPair;
+
+    try {
+      await deletePublicKeys({
+        dheClient,
+        userName,
+        publicKeys: [publicKey],
+        type,
+      });
+    } finally {
+      dheClient.disconnect();
+    }
+  };
+
+  /**
    * Handle request for generating a DHE key pair.
    * @param serverState The server state to generate the key pair for.
    */
@@ -96,12 +133,26 @@ export class UserLoginController extends ControllerBase {
       type,
     });
 
-    // Get existing server keys or create a new object
-    const serverKeys = await this.secretService.getServerKeys(serverUrl);
+    const existingServerKeys =
+      await this.secretService.getServerKeys(serverUrl);
+
+    // Attempt to remove older keys / previously generated keys for other users
+    // from the server. Ignore errors since this is an optimistic cleanup, and
+    // it's possible the keys have already been removed.
+    Object.entries(existingServerKeys).forEach(async ([username, keyPair]) => {
+      try {
+        await this._deleteUserPublicKey(
+          serverUrl,
+          username as Username,
+          keyPair
+        );
+      } catch (err) {
+        logger.error(err);
+      }
+    });
 
     // Store the new private key for the user
     await this.secretService.storeServerKeys(serverUrl, {
-      ...serverKeys,
       [credentials.username]: keyPair,
     });
 
