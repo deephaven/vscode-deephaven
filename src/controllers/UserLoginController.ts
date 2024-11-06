@@ -139,9 +139,9 @@ export class UserLoginController extends ControllerBase {
     // Attempt to remove older keys / previously generated keys for other users
     // from the server. Ignore errors since this is an optimistic cleanup, and
     // it's possible the keys have already been removed.
-    for (const [username, keyPair] of Object.entries(existingServerKeys)) {
+    Object.entries(existingServerKeys).forEach(async ([username, keyPair]) => {
       try {
-        void this._deleteUserPublicKey(
+        await this._deleteUserPublicKey(
           serverUrl,
           username as Username,
           keyPair
@@ -149,7 +149,7 @@ export class UserLoginController extends ControllerBase {
       } catch (err) {
         logger.error(err);
       }
-    }
+    });
 
     // Store the new private key for the user
     await this.secretService.storeServerKeys(serverUrl, {
