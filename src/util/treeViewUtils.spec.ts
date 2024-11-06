@@ -14,7 +14,7 @@ import {
 } from './treeViewUtils';
 import type {
   ConsoleType,
-  IDhService,
+  IDhcService,
   ServerState,
   VariableDefintion,
   VariableType,
@@ -40,7 +40,7 @@ const variableTypes: readonly VariableType[] = [
 ] as const;
 
 describe('getPanelConnectionTreeItem', () => {
-  const getConsoleTypes: IDhService['getConsoleTypes'] = vi
+  const getConsoleTypes: IDhcService['getConsoleTypes'] = vi
     .fn()
     .mockResolvedValue(new Set<ConsoleType>(['python']));
 
@@ -54,7 +54,7 @@ describe('getPanelConnectionTreeItem', () => {
         isInitialized,
         serverUrl,
         getConsoleTypes,
-      } as IDhService;
+      } as IDhcService;
 
       vi.mocked(isInstanceOf).mockReturnValue(true);
 
