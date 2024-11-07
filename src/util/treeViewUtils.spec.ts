@@ -15,6 +15,7 @@ import {
 import type {
   ConsoleType,
   IDhcService,
+  Psk,
   ServerState,
   VariableDefintion,
   VariableType,
@@ -159,7 +160,7 @@ describe('getServerTreeItem', () => {
       const actual = getServerTreeItem({
         ...dhcServerState,
         ...(isManaged
-          ? { isManaged: true, psk: 'mock.psk' }
+          ? { isManaged: true, psk: 'mock.psk' as Psk }
           : { isManaged: false }),
         type,
         connectionCount: isConnected ? 1 : 0,
