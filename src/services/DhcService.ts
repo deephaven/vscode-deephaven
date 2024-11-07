@@ -30,6 +30,16 @@ import { hasErrorCode } from '../util/typeUtils';
 const logger = new Logger('DhcService');
 
 export class DhcService implements IDhcService {
+  /**
+   * Creates a factory function that can be used to create DhcService instances.
+   * @param coreClientCache Core client cache.
+   * @param panelService Panel service.
+   * @param diagnosticsCollection Diagnostics collection.
+   * @param outputChannel Output channel.
+   * @param secretService Secret service.
+   * @param toaster Toast service for notifications.
+   * @returns A factory function that can be used to create DhcService instances.
+   */
   static factory = (
     coreClientCache: URLMap<CoreAuthenticatedClient>,
     panelService: IPanelService,
@@ -54,6 +64,10 @@ export class DhcService implements IDhcService {
     };
   };
 
+  /**
+   * Private constructor since the static `factory` method is the intended
+   * mechanism for instantiating.
+   */
   private constructor(
     serverUrl: URL,
     coreClientCache: URLMap<CoreAuthenticatedClient>,
