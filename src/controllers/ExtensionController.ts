@@ -697,9 +697,16 @@ export class ExtensionController implements Disposable {
   };
 
   onOpenInBrowser = async (serverState: ServerState): Promise<void> => {
+    const psk = await this._secretService?.getPsk(serverState.url);
+    const serverUrl = new URL(serverState.url);
+
+    if (psk != null) {
+      serverUrl.searchParams.set('psk', psk);
+    }
+
     vscode.commands.executeCommand(
       'vscode.open',
-      vscode.Uri.parse(serverState.url.toString())
+      vscode.Uri.parse(serverUrl.toString())
     );
   };
 
