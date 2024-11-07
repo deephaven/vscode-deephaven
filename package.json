@@ -219,7 +219,11 @@
         "icon": "$(refresh)"
       },
       {
-        "command": "vscode-deephaven.createAuthenticatedClient",
+        "command": "vscode-deephaven.createCoreAuthenticatedClient",
+        "title": "Create Authenticated Client"
+      },
+      {
+        "command": "vscode-deephaven.createDHEAuthenticatedClient",
         "title": "Create Authenticated Client"
       },
       {
@@ -700,7 +704,11 @@
           "when": "false"
         },
         {
-          "command": "vscode-deephaven.createAuthenticatedClient",
+          "command": "vscode-deephaven.createCoreAuthenticatedClient",
+          "when": "false"
+        },
+        {
+          "command": "vscode-deephaven.createDHEAuthenticatedClient",
           "when": "false"
         }
       ],

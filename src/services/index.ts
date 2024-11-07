@@ -1,7 +1,6 @@
 export * from './cache';
 export * from './ConfigService';
 export * from './DhcService';
-export * from './DhcServiceFactory';
 export * from './DheService';
 export * from './PanelService';
 export * from './PollingService';

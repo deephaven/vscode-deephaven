@@ -2,11 +2,13 @@ import type { SecretStorage } from 'vscode';
 import type { Username } from '@deephaven-enterprise/auth-nodejs';
 import type {
   ISecretService,
+  Psk,
   UserKeyPairs,
   UserLoginPreferences,
 } from '../types';
 
 const OPERATE_AS_USER_KEY = 'operateAsUser' as const;
+const SERVER_PSK_KEY = 'serverPsk' as const;
 const SERVER_KEYS_KEY = 'serverKeys' as const;
 
 /**
@@ -58,7 +60,52 @@ export class SecretService implements ISecretService {
    */
   clearStorage = async (): Promise<void> => {
     await this._secrets.delete(OPERATE_AS_USER_KEY);
+    await this._secrets.delete(SERVER_PSK_KEY);
     await this._secrets.delete(SERVER_KEYS_KEY);
+  };
+
+  /**
+   * Delete PSK for given server url.
+   * @param serverUrl The server URL to delete the PSK for.
+   * @returns A promise that resolves when the PSK has been deleted. If key
+   * doesn't exist, the promise will still resolve, but it will be a no-op.
+   */
+  deletePsk = async (serverUrl: URL): Promise<void> => {
+    const existingServerPsks =
+      await this._getJson<Record<string, Psk>>(SERVER_PSK_KEY);
+
+    if (existingServerPsks == null) {
+      return;
+    }
+
+    delete existingServerPsks[serverUrl.toString()];
+
+    await this._storeJson(SERVER_PSK_KEY, existingServerPsks);
+  };
+
+  /**
+   * Get Psk for given server url.
+   * @param serverUrl The server URL to get the PSK for.
+   * @returns The PSK or null if not found.
+   */
+  getPsk = async (serverUrl: URL): Promise<Psk | undefined> => {
+    const psks = await this._getJson<Record<string, Psk>>(SERVER_PSK_KEY);
+    return psks?.[serverUrl.toString()];
+  };
+
+  /**
+   * Store Psk for given server url.
+   * @param serverUrl The server URL to store the PSK for.
+   * @param psk The PSK to store.
+   */
+  storePsk = async (serverUrl: URL, psk: Psk): Promise<void> => {
+    const existingServerPsks =
+      await this._getJson<Record<string, Psk>>(SERVER_PSK_KEY);
+
+    await this._storeJson(SERVER_PSK_KEY, {
+      ...existingServerPsks,
+      [serverUrl.toString()]: psk,
+    });
   };
 
   /**

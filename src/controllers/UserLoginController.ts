@@ -8,20 +8,30 @@ import {
   type AuthenticatedClient as DheAuthenticatedClient,
   type Username,
 } from '@deephaven-enterprise/auth-nodejs';
+import { type dh as DhcType } from '@deephaven/jsapi-types';
 import type { URLMap } from '../services';
 import { ControllerBase } from './ControllerBase';
 import {
-  CREATE_AUTHENTICATED_CLIENT_CMD,
+  CREATE_CORE_AUTHENTICATED_CLIENT_CMD,
+  CREATE_DHE_AUTHENTICATED_CLIENT_CMD,
   GENERATE_DHE_KEY_PAIR_CMD,
 } from '../common';
-import { Logger, runUserLoginWorkflow } from '../util';
+import { Logger, promptForPsk, runUserLoginWorkflow } from '../util';
 import type {
+  CoreAuthenticatedClient,
+  IAsyncCacheService,
+  ICoreClientFactory,
   IDheClientFactory,
   ISecretService,
   IToastService,
   ServerState,
 } from '../types';
 import { hasInteractivePermission } from '../dh/dhe';
+import {
+  AUTH_HANDLER_TYPE_ANONYMOUS,
+  AUTH_HANDLER_TYPE_PSK,
+  loginClient,
+} from '../dh/dhc';
 
 const logger = new Logger('UserLoginController');
 
@@ -30,6 +40,9 @@ const logger = new Logger('UserLoginController');
  */
 export class UserLoginController extends ControllerBase {
   constructor(
+    coreClientCache: URLMap<CoreAuthenticatedClient>,
+    coreClientFactory: ICoreClientFactory,
+    coreJsApiCache: IAsyncCacheService<URL, typeof DhcType>,
     dheClientCache: URLMap<DheAuthenticatedClient>,
     dheClientFactory: IDheClientFactory,
     secretService: ISecretService,
@@ -37,6 +50,9 @@ export class UserLoginController extends ControllerBase {
   ) {
     super();
 
+    this.coreClientCache = coreClientCache;
+    this.coreClientFactory = coreClientFactory;
+    this.coreJsApiCache = coreJsApiCache;
     this.dheClientCache = dheClientCache;
     this.dheClientFactory = dheClientFactory;
     this.secretService = secretService;
@@ -48,11 +64,19 @@ export class UserLoginController extends ControllerBase {
     );
 
     this.registerCommand(
-      CREATE_AUTHENTICATED_CLIENT_CMD,
-      this.onCreateAuthenticatedClient
+      CREATE_CORE_AUTHENTICATED_CLIENT_CMD,
+      this.onCreateCoreAuthenticatedClient
+    );
+
+    this.registerCommand(
+      CREATE_DHE_AUTHENTICATED_CLIENT_CMD,
+      this.onCreateDHEAuthenticatedClient
     );
   }
 
+  private readonly coreClientCache: URLMap<CoreAuthenticatedClient>;
+  private readonly coreClientFactory: ICoreClientFactory;
+  private readonly coreJsApiCache: IAsyncCacheService<URL, typeof DhcType>;
   private readonly dheClientCache: URLMap<DheAuthenticatedClient>;
   private readonly dheClientFactory: IDheClientFactory;
   private readonly secretService: ISecretService;
@@ -162,12 +186,69 @@ export class UserLoginController extends ControllerBase {
   };
 
   /**
-   * Create an authenticated client.
+   * Create a core authenticated client.
+   */
+  onCreateCoreAuthenticatedClient = async (serverUrl: URL): Promise<void> => {
+    const client = await this.coreClientFactory(serverUrl);
+
+    const authConfig = new Set(
+      (await client.getAuthConfigValues()).map(([, value]) => value)
+    );
+
+    let credentials: DhcType.LoginCredentials | null = null;
+
+    if (authConfig.has(AUTH_HANDLER_TYPE_ANONYMOUS)) {
+      const dh = await this.coreJsApiCache.get(serverUrl);
+      credentials = {
+        type: dh.CoreClient.LOGIN_TYPE_ANONYMOUS,
+      };
+    } else if (authConfig.has(AUTH_HANDLER_TYPE_PSK)) {
+      const token =
+        (await this.secretService.getPsk(serverUrl)) ??
+        (await promptForPsk('Enter your Pre-Shared Key'));
+
+      if (token == null) {
+        this.toast.info('Login cancelled.');
+        return;
+      }
+
+      credentials = {
+        type: AUTH_HANDLER_TYPE_PSK,
+        token,
+      };
+
+      this.secretService.storePsk(serverUrl, token);
+    } else {
+      throw new Error('No supported authentication methods found.');
+    }
+
+    try {
+      this.coreClientCache.set(
+        serverUrl,
+        await loginClient(client, credentials)
+      );
+    } catch (err) {
+      logger.error(
+        'An error occurred while connecting to Deephaven server:',
+        err
+      );
+      this.coreClientCache.delete(serverUrl);
+
+      this.toast.error('Login failed.');
+
+      if (credentials.type === AUTH_HANDLER_TYPE_PSK) {
+        await this.secretService.deletePsk(serverUrl);
+      }
+    }
+  };
+
+  /**
+   * Create a DHE authenticated client.
    * @param serverUrl The server URL to create a client for.
    * @param operateAsAnotherUser Whether to operate as another user.
    * @returns A promise that resolves when the client has been created or failed.
    */
-  onCreateAuthenticatedClient = async (
+  onCreateDHEAuthenticatedClient = async (
     serverUrl: URL,
     operateAsAnotherUser: boolean
   ): Promise<void> => {

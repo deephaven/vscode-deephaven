@@ -14,6 +14,7 @@ import type {
   ConnectionPickOption,
   ConnectionState,
   UserLoginPreferences,
+  Psk,
 } from '../types';
 import { sortByStringProp } from './dataUtils';
 import { assertDefined } from './assertUtil';
@@ -409,6 +410,21 @@ export function promptForPassword(title: string): Promise<string | undefined> {
     password: true,
     title,
   }) as Promise<string | undefined>;
+}
+
+/**
+ * Prompt the user for a pre-shared key.
+ * @param title Title of the prompt
+ * @returns The pre-shared key or undefined if cancelled by the user.
+ */
+export function promptForPsk(title: string): Promise<Psk | undefined> {
+  return vscode.window.showInputBox({
+    ignoreFocusOut: true,
+    placeHolder: 'Pre-Shared Key',
+    prompt: 'Enter your Deephaven pre-shared key',
+    password: true,
+    title,
+  }) as Promise<Psk | undefined>;
 }
 
 /**

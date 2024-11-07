@@ -1,10 +1,9 @@
 import * as vscode from 'vscode';
-import type { dh as DhcType } from '@deephaven/jsapi-types';
+import type { AuthenticatedClient as DheAuthenticatedClient } from '@deephaven-enterprise/auth-nodejs';
 import type {
   ConnectionState,
   IPanelService,
   IServerManager,
-  Lazy,
   VariableDefintion,
   WorkerURL,
 } from '../types';
@@ -25,18 +24,19 @@ import {
 import { waitFor } from '../util/promiseUtils';
 import { getEmbedWidgetUrl } from '../dh/dhc';
 import { ControllerBase } from './ControllerBase';
+import { getWorkerCredentials } from '../dh/dhe';
 
 const logger = new Logger('PanelController');
 
 export class PanelController extends ControllerBase {
   constructor(
-    coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
+    dheClientCache: URLMap<DheAuthenticatedClient>,
     serverManager: IServerManager,
     panelService: IPanelService
   ) {
     super();
 
-    this._coreCredentialsCache = coreCredentialsCache;
+    this._dheClientCache = dheClientCache;
     this._panelService = panelService;
     this._serverManager = serverManager;
 
@@ -53,9 +53,7 @@ export class PanelController extends ControllerBase {
     );
   }
 
-  private readonly _coreCredentialsCache: URLMap<
-    Lazy<DhcType.LoginCredentials>
-  >;
+  private readonly _dheClientCache: URLMap<DheAuthenticatedClient>;
   private readonly _panelService: IPanelService;
   private readonly _serverManager: IServerManager;
 
@@ -83,8 +81,10 @@ export class PanelController extends ControllerBase {
 
     // Respond to login credentials request from DH iframe
     if (message === DEEPHAVEN_POST_MSG.loginOptionsRequest) {
+      const dheClient = this._dheClientCache.get(serverOrWorkerUrl);
+
       const credentials =
-        await this._coreCredentialsCache.get(serverOrWorkerUrl)?.();
+        dheClient == null ? null : await getWorkerCredentials(dheClient);
 
       if (credentials == null) {
         logger.error('Failed to get credentials for worker', serverOrWorkerUrl);

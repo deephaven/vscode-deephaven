@@ -8,9 +8,7 @@
  */
 export function isInstanceOf<T>(
   value: unknown,
-  // Possible we'll need to include non-abstract constructor type, but this seems
-  // to work for both abstract and non-abstract constructors.
-  type: abstract new (...args: any[]) => T
+  type: Function & { prototype: T }
 ): value is T {
   return value instanceof type;
 }

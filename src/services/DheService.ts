@@ -24,7 +24,7 @@ import {
   getWorkerCredentials,
   getWorkerInfoFromQuery,
 } from '../dh/dhe';
-import { CREATE_AUTHENTICATED_CLIENT_CMD } from '../common';
+import { CREATE_DHE_AUTHENTICATED_CLIENT_CMD } from '../common';
 
 const logger = new Logger('DheService');
 
@@ -116,7 +116,7 @@ export class DheService implements IDheService {
   ): Promise<DheAuthenticatedClient | null> => {
     if (!this._dheClientCache.has(this.serverUrl)) {
       await vscode.commands.executeCommand(
-        CREATE_AUTHENTICATED_CLIENT_CMD,
+        CREATE_DHE_AUTHENTICATED_CLIENT_CMD,
         this.serverUrl,
         operateAsAnotherUser
       );

@@ -38,7 +38,6 @@ import {
   runSelectedLinesHoverProvider,
 } from '../providers';
 import {
-  DhcServiceFactory,
   DheJsApiCache,
   DheService,
   DheServiceCache,
@@ -47,6 +46,7 @@ import {
   SecretService,
   ServerManager,
   URLMap,
+  CoreJsApiCache,
 } from '../services';
 import type {
   ConnectionState,
@@ -57,7 +57,7 @@ import type {
   IDheService,
   IDheServiceFactory,
   IDhcService,
-  IDhServiceFactory,
+  IDhcServiceFactory,
   IPanelService,
   ISecretService,
   IServerManager,
@@ -68,6 +68,9 @@ import type {
   ServerConnectionTreeView,
   ServerState,
   ServerTreeView,
+  CoreAuthenticatedClient,
+  ICoreClientFactory,
+  CoreUnauthenticatedClient,
 } from '../types';
 import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTreeDragAndDropController';
 import { ConnectionController } from './ConnectionController';
@@ -115,7 +118,11 @@ export class ExtensionController implements Disposable {
   readonly _config: IConfigService;
 
   private _connectionController: ConnectionController | null = null;
+  private _coreClientCache: URLMap<CoreAuthenticatedClient> | null = null;
+  private _coreClientFactory: ICoreClientFactory | null = null;
   private _coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>> | null =
+    null;
+  private _coreJsApiCache: IAsyncCacheService<URL, typeof DhcType> | null =
     null;
   private _dheClientCache: URLMap<DheAuthenticatedClient> | null = null;
   private _dheClientFactory: IDheClientFactory | null = null;
@@ -123,7 +130,7 @@ export class ExtensionController implements Disposable {
   private _panelController: PanelController | null = null;
   private _panelService: IPanelService | null = null;
   private _pipServerController: PipServerController | null = null;
-  private _dhcServiceFactory: IDhServiceFactory | null = null;
+  private _dhcServiceFactory: IDhcServiceFactory | null = null;
   private _dheJsApiCache: IAsyncCacheService<URL, DheType> | null = null;
   private _dheServiceFactory: IDheServiceFactory | null = null;
   private _secretService: ISecretService | null = null;
@@ -204,12 +211,12 @@ export class ExtensionController implements Disposable {
    * Initialize panel controller.
    */
   initializePanelController = (): void => {
-    assertDefined(this._coreCredentialsCache, 'coreCredentialsCache');
+    assertDefined(this._dheClientCache, 'dheClientCache');
     assertDefined(this._panelService, 'panelService');
     assertDefined(this._serverManager, 'serverManager');
 
     this._panelController = new PanelController(
-      this._coreCredentialsCache,
+      this._dheClientCache,
       this._serverManager,
       this._panelService
     );
@@ -237,12 +244,18 @@ export class ExtensionController implements Disposable {
    * Initialize user login controller.
    */
   initializeUserLoginController = (): void => {
+    assertDefined(this._coreClientCache, 'coreClientCache');
+    assertDefined(this._coreClientFactory, 'coreClientFactory');
+    assertDefined(this._coreJsApiCache, 'coreJsApiCache');
     assertDefined(this._dheClientCache, 'dheClientCache');
     assertDefined(this._dheClientFactory, 'dheClientFactory');
     assertDefined(this._secretService, 'secretService');
     assertDefined(this._toaster, 'toaster');
 
     this._userLoginController = new UserLoginController(
+      this._coreClientCache,
+      this._coreClientFactory,
+      this._coreJsApiCache,
       this._dheClientCache,
       this._dheClientFactory,
       this._secretService,
@@ -308,12 +321,24 @@ export class ExtensionController implements Disposable {
   initializeServerManager = (): void => {
     assertDefined(this._pythonDiagnostics, 'pythonDiagnostics');
     assertDefined(this._outputChannel, 'outputChannel');
+    assertDefined(this._secretService, 'secretService');
     assertDefined(this._toaster, 'toaster');
 
     this._coreCredentialsCache = new URLMap<Lazy<DhcType.LoginCredentials>>();
 
+    this._coreJsApiCache = new CoreJsApiCache();
+    this._context.subscriptions.push(this._coreJsApiCache);
+
     this._dheJsApiCache = new DheJsApiCache();
     this._context.subscriptions.push(this._dheJsApiCache);
+
+    this._coreClientFactory = async (
+      url: URL
+    ): Promise<CoreUnauthenticatedClient> => {
+      assertDefined(this._coreJsApiCache, 'coreJsApiCache');
+      const dhc = await this._coreJsApiCache.get(url);
+      return new dhc.CoreClient(url.toString()) as CoreUnauthenticatedClient;
+    };
 
     this._dheClientFactory = async (
       url: URL
@@ -323,16 +348,18 @@ export class ExtensionController implements Disposable {
       return createDheClient(dhe, getWsUrl(url));
     };
 
+    this._coreClientCache = new URLMap();
     this._dheClientCache = new URLMap();
 
     this._panelService = new PanelService();
     this._context.subscriptions.push(this._panelService);
 
-    this._dhcServiceFactory = new DhcServiceFactory(
-      this._coreCredentialsCache,
+    this._dhcServiceFactory = DhcService.factory(
+      this._coreClientCache,
       this._panelService,
       this._pythonDiagnostics,
       this._outputChannel,
+      this._secretService,
       this._toaster
     );
 
@@ -349,11 +376,12 @@ export class ExtensionController implements Disposable {
 
     this._serverManager = new ServerManager(
       this._config,
-      this._coreCredentialsCache,
+      this._coreClientCache,
       this._dhcServiceFactory,
       this._dheClientCache,
       this._dheServiceCache,
       this._outputChannel,
+      this._secretService,
       this._toaster
     );
     this._context.subscriptions.push(this._serverManager);

@@ -1,5 +1,9 @@
 import type { dh as DhType } from '@deephaven/jsapi-types';
 import { NoConsoleTypesError } from './errorUtils';
+import type {
+  CoreAuthenticatedClient,
+  CoreUnauthenticatedClient,
+} from '../types';
 
 export const AUTH_HANDLER_TYPE_ANONYMOUS =
   'io.deephaven.auth.AnonymousAuthenticationHandler';
@@ -54,22 +58,12 @@ export function getEmbedWidgetUrl({
 
 /**
  * Initialize a connection and session to a DHC server.
- * @param client The client to use for the connection.
- * @param credentials The credentials to use for the connection.
+ * @param client The authenticated client to use for the connection.
  * @returns A promise that resolves to the connection and session.
  */
 export async function initDhcSession(
-  client: DhType.CoreClient,
-  credentials: DhType.LoginCredentials
+  client: CoreAuthenticatedClient
 ): Promise<ConnectionAndSession<DhType.IdeConnection, DhType.IdeSession>> {
-  try {
-    await client.login(credentials);
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error(err);
-    throw err;
-  }
-
   const cn = await client.getAsIdeConnection();
 
   const [type] = await cn.getConsoleTypes();
@@ -81,4 +75,18 @@ export async function initDhcSession(
   const session = await cn.startSession(type);
 
   return { cn, session };
+}
+
+/**
+ * Login a given unauthenticated client with the given credentials.
+ * @param client The client to login.
+ * @param credentials The credentials to use for the login.
+ * @returns The authenticated client.
+ */
+export async function loginClient(
+  client: CoreUnauthenticatedClient,
+  credentials: DhType.LoginCredentials
+): Promise<CoreAuthenticatedClient> {
+  await client.login(credentials);
+  return client as unknown as CoreAuthenticatedClient;
 }
