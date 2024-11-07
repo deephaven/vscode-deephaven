@@ -32,13 +32,15 @@ export class PanelController extends ControllerBase {
   constructor(
     dheClientCache: URLMap<DheAuthenticatedClient>,
     serverManager: IServerManager,
-    panelService: IPanelService
+    panelService: IPanelService,
+    workerURLToServerURLMap: URLMap<URL>
   ) {
     super();
 
     this._dheClientCache = dheClientCache;
     this._panelService = panelService;
     this._serverManager = serverManager;
+    this._workerURLToServerURLMap = workerURLToServerURLMap;
 
     this.registerCommand(OPEN_VARIABLE_PANELS_CMD, this._onOpenPanels);
     this.registerCommand(
@@ -56,6 +58,7 @@ export class PanelController extends ControllerBase {
   private readonly _dheClientCache: URLMap<DheAuthenticatedClient>;
   private readonly _panelService: IPanelService;
   private readonly _serverManager: IServerManager;
+  private readonly _workerURLToServerURLMap: URLMap<URL>;
 
   /**
    * Handle `postMessage` messages from the panel.
@@ -81,8 +84,9 @@ export class PanelController extends ControllerBase {
 
     // Respond to login credentials request from DH iframe
     if (message === DEEPHAVEN_POST_MSG.loginOptionsRequest) {
-      const dheClient = this._dheClientCache.get(serverOrWorkerUrl);
-
+      const dheServerUrl = this._workerURLToServerURLMap.get(serverOrWorkerUrl);
+      const dheClient =
+        dheServerUrl == null ? null : this._dheClientCache.get(dheServerUrl);
       const credentials =
         dheClient == null ? null : await getWorkerCredentials(dheClient);
 

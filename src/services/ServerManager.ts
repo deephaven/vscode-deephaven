@@ -45,7 +45,8 @@ export class ServerManager implements IServerManager {
     dheServiceCache: IAsyncCacheService<URL, IDheService>,
     outputChannel: vscode.OutputChannel,
     secretService: ISecretService,
-    toaster: IToastService
+    toaster: IToastService,
+    workerURLToServerURLMap: URLMap<URL>
   ) {
     this._configService = configService;
     this._connectionMap = new URLMap<ConnectionState>();
@@ -58,7 +59,7 @@ export class ServerManager implements IServerManager {
     this._serverMap = new URLMap<ServerState>();
     this._toaster = toaster;
     this._uriConnectionsMap = new URIMap<ConnectionState>();
-    this._workerURLToServerURLMap = new URLMap<URL>();
+    this._workerURLToServerURLMap = workerURLToServerURLMap;
 
     this.canStartServer = false;
 

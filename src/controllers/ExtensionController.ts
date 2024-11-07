@@ -62,7 +62,6 @@ import type {
   ISecretService,
   IServerManager,
   IToastService,
-  Lazy,
   ServerConnectionPanelNode,
   ServerConnectionPanelTreeView,
   ServerConnectionTreeView,
@@ -120,8 +119,6 @@ export class ExtensionController implements Disposable {
   private _connectionController: ConnectionController | null = null;
   private _coreClientCache: URLMap<CoreAuthenticatedClient> | null = null;
   private _coreClientFactory: ICoreClientFactory | null = null;
-  private _coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>> | null =
-    null;
   private _coreJsApiCache: IAsyncCacheService<URL, typeof DhcType> | null =
     null;
   private _dheClientCache: URLMap<DheAuthenticatedClient> | null = null;
@@ -136,6 +133,7 @@ export class ExtensionController implements Disposable {
   private _secretService: ISecretService | null = null;
   private _serverManager: IServerManager | null = null;
   private _userLoginController: UserLoginController | null = null;
+  private _workerURLToServerURLMap: URLMap<URL> | null = null;
 
   // Tree providers
   private _serverTreeProvider: ServerTreeProvider | null = null;
@@ -214,11 +212,13 @@ export class ExtensionController implements Disposable {
     assertDefined(this._dheClientCache, 'dheClientCache');
     assertDefined(this._panelService, 'panelService');
     assertDefined(this._serverManager, 'serverManager');
+    assertDefined(this._workerURLToServerURLMap, 'workerURLToServerURLMap');
 
     this._panelController = new PanelController(
       this._dheClientCache,
       this._serverManager,
-      this._panelService
+      this._panelService,
+      this._workerURLToServerURLMap
     );
 
     this._context.subscriptions.push(this._panelController);
@@ -251,6 +251,7 @@ export class ExtensionController implements Disposable {
     assertDefined(this._dheClientFactory, 'dheClientFactory');
     assertDefined(this._secretService, 'secretService');
     assertDefined(this._toaster, 'toaster');
+    assertDefined(this._workerURLToServerURLMap, 'workerURLToServerURLMap');
 
     this._userLoginController = new UserLoginController(
       this._coreClientCache,
@@ -259,7 +260,8 @@ export class ExtensionController implements Disposable {
       this._dheClientCache,
       this._dheClientFactory,
       this._secretService,
-      this._toaster
+      this._toaster,
+      this._workerURLToServerURLMap
     );
 
     this._context.subscriptions.push(this._userLoginController);
@@ -324,8 +326,6 @@ export class ExtensionController implements Disposable {
     assertDefined(this._secretService, 'secretService');
     assertDefined(this._toaster, 'toaster');
 
-    this._coreCredentialsCache = new URLMap<Lazy<DhcType.LoginCredentials>>();
-
     this._coreJsApiCache = new CoreJsApiCache();
     this._context.subscriptions.push(this._coreJsApiCache);
 
@@ -365,7 +365,6 @@ export class ExtensionController implements Disposable {
 
     this._dheServiceFactory = DheService.factory(
       this._config,
-      this._coreCredentialsCache,
       this._dheClientCache,
       this._dheJsApiCache,
       this._toaster
@@ -373,6 +372,8 @@ export class ExtensionController implements Disposable {
 
     this._dheServiceCache = new DheServiceCache(this._dheServiceFactory);
     this._context.subscriptions.push(this._dheServiceCache);
+
+    this._workerURLToServerURLMap = new URLMap();
 
     this._serverManager = new ServerManager(
       this._config,
@@ -382,7 +383,8 @@ export class ExtensionController implements Disposable {
       this._dheServiceCache,
       this._outputChannel,
       this._secretService,
-      this._toaster
+      this._toaster,
+      this._workerURLToServerURLMap
     );
     this._context.subscriptions.push(this._serverManager);
 
@@ -667,8 +669,6 @@ export class ExtensionController implements Disposable {
 
     // DHC ServerState
     if (serverOrConnectionState.type === 'DHC') {
-      this._coreCredentialsCache?.delete(serverOrConnectionState.url);
-
       await this._serverManager?.disconnectFromServer(
         serverOrConnectionState.url
       );

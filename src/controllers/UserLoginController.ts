@@ -26,9 +26,10 @@ import type {
   IToastService,
   ServerState,
 } from '../types';
-import { hasInteractivePermission } from '../dh/dhe';
+import { getWorkerCredentials, hasInteractivePermission } from '../dh/dhe';
 import {
   AUTH_HANDLER_TYPE_ANONYMOUS,
+  AUTH_HANDLER_TYPE_DHE,
   AUTH_HANDLER_TYPE_PSK,
   loginClient,
 } from '../dh/dhc';
@@ -46,7 +47,8 @@ export class UserLoginController extends ControllerBase {
     dheClientCache: URLMap<DheAuthenticatedClient>,
     dheClientFactory: IDheClientFactory,
     secretService: ISecretService,
-    toastService: IToastService
+    toastService: IToastService,
+    workerURLToServerURLMap: URLMap<URL>
   ) {
     super();
 
@@ -57,6 +59,7 @@ export class UserLoginController extends ControllerBase {
     this.dheClientFactory = dheClientFactory;
     this.secretService = secretService;
     this.toast = toastService;
+    this.workerURLToServerURLMap = workerURLToServerURLMap;
 
     this.registerCommand(
       GENERATE_DHE_KEY_PAIR_CMD,
@@ -81,6 +84,7 @@ export class UserLoginController extends ControllerBase {
   private readonly dheClientFactory: IDheClientFactory;
   private readonly secretService: ISecretService;
   private readonly toast: IToastService;
+  private readonly workerURLToServerURLMap: URLMap<URL>;
 
   /**
    * Login with a given key pair and remove the public key from the server.
@@ -218,6 +222,16 @@ export class UserLoginController extends ControllerBase {
       };
 
       this.secretService.storePsk(serverUrl, token);
+    } else if (authConfig.has(AUTH_HANDLER_TYPE_DHE)) {
+      const dheServerUrl = this.workerURLToServerURLMap.get(serverUrl);
+      const dheClient =
+        dheServerUrl == null ? null : this.dheClientCache.get(dheServerUrl);
+
+      if (dheClient == null) {
+        throw new Error(`No DHE server client found for worker '${serverUrl}'`);
+      }
+
+      credentials = await getWorkerCredentials(dheClient);
     } else {
       throw new Error('No supported authentication methods found.');
     }

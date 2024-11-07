@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type { AuthenticatedClient as DheAuthenticatedClient } from '@deephaven-enterprise/auth-nodejs';
 import type { EnterpriseDhType as DheType } from '@deephaven-enterprise/jsapi-types';
 import {
@@ -10,7 +9,6 @@ import {
   type IDheService,
   type IDheServiceFactory,
   type IToastService,
-  type Lazy,
   type QuerySerial,
   type UniqueID,
   type WorkerConfig,
@@ -21,7 +19,6 @@ import { Logger } from '../util';
 import {
   createInteractiveConsoleQuery,
   deleteQueries,
-  getWorkerCredentials,
   getWorkerInfoFromQuery,
 } from '../dh/dhe';
 import { CREATE_DHE_AUTHENTICATED_CLIENT_CMD } from '../common';
@@ -35,7 +32,6 @@ export class DheService implements IDheService {
   /**
    * Creates a factory function that can be used to create DheService instances.
    * @param configService Configuration service.
-   * @param coreCredentialsCache Core credentials cache.
    * @param dheClientCache DHE client cache.
    * @param dheJsApiCache DHE JS API cache.
    * @param toaster Toast service for notifications.
@@ -43,7 +39,6 @@ export class DheService implements IDheService {
    */
   static factory = (
     configService: IConfigService,
-    coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
     dheClientCache: URLMap<DheAuthenticatedClient>,
     dheJsApiCache: IAsyncCacheService<URL, DheType>,
     toaster: IToastService
@@ -53,7 +48,6 @@ export class DheService implements IDheService {
         new DheService(
           serverUrl,
           configService,
-          coreCredentialsCache,
           dheClientCache,
           dheJsApiCache,
           toaster
@@ -68,14 +62,12 @@ export class DheService implements IDheService {
   private constructor(
     serverUrl: URL,
     configService: IConfigService,
-    coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
     dheClientCache: URLMap<DheAuthenticatedClient>,
     dheJsApiCache: IAsyncCacheService<URL, DheType>,
     toaster: IToastService
   ) {
     this.serverUrl = serverUrl;
     this._config = configService;
-    this._coreCredentialsCache = coreCredentialsCache;
     this._dheClientCache = dheClientCache;
     this._dheJsApiCache = dheJsApiCache;
     this._querySerialSet = new Set<QuerySerial>();
@@ -88,9 +80,6 @@ export class DheService implements IDheService {
   private _clientPromise: Promise<DheAuthenticatedClient | null> | null = null;
   private _isConnected: boolean = false;
   private readonly _config: IConfigService;
-  private readonly _coreCredentialsCache: URLMap<
-    Lazy<DhcType.LoginCredentials>
-  >;
   private readonly _dheClientCache: URLMap<DheAuthenticatedClient>;
   private readonly _dheJsApiCache: IAsyncCacheService<URL, DheType>;
   private readonly _querySerialSet: Set<QuerySerial>;
@@ -241,10 +230,6 @@ export class DheService implements IDheService {
     if (workerInfo == null) {
       throw new Error('Failed to create worker.');
     }
-    const workerUrl = new URL(workerInfo.grpcUrl);
-    this._coreCredentialsCache.set(workerUrl, () =>
-      getWorkerCredentials(dheClient)
-    );
 
     this._workerInfoMap.set(workerInfo.grpcUrl, workerInfo);
 
