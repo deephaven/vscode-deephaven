@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import type { AuthenticatedClient as DheAuthenticatedClient } from '@deephaven-enterprise/auth-nodejs';
 import type {
   ConnectionState,
   IPanelService,
@@ -15,7 +14,7 @@ import {
   getPanelHtml,
   Logger,
 } from '../util';
-import { DhcService, type URLMap } from '../services';
+import { DhcService } from '../services';
 import {
   DEEPHAVEN_POST_MSG,
   OPEN_VARIABLE_PANELS_CMD,
@@ -24,23 +23,15 @@ import {
 import { waitFor } from '../util/promiseUtils';
 import { getEmbedWidgetUrl } from '../dh/dhc';
 import { ControllerBase } from './ControllerBase';
-import { getWorkerCredentials } from '../dh/dhe';
 
 const logger = new Logger('PanelController');
 
 export class PanelController extends ControllerBase {
-  constructor(
-    dheClientCache: URLMap<DheAuthenticatedClient>,
-    serverManager: IServerManager,
-    panelService: IPanelService,
-    workerURLToServerURLMap: URLMap<URL>
-  ) {
+  constructor(serverManager: IServerManager, panelService: IPanelService) {
     super();
 
-    this._dheClientCache = dheClientCache;
     this._panelService = panelService;
     this._serverManager = serverManager;
-    this._workerURLToServerURLMap = workerURLToServerURLMap;
 
     this.registerCommand(OPEN_VARIABLE_PANELS_CMD, this._onOpenPanels);
     this.registerCommand(
@@ -55,10 +46,8 @@ export class PanelController extends ControllerBase {
     );
   }
 
-  private readonly _dheClientCache: URLMap<DheAuthenticatedClient>;
   private readonly _panelService: IPanelService;
   private readonly _serverManager: IServerManager;
-  private readonly _workerURLToServerURLMap: URLMap<URL>;
 
   /**
    * Handle `postMessage` messages from the panel.
@@ -84,11 +73,8 @@ export class PanelController extends ControllerBase {
 
     // Respond to login credentials request from DH iframe
     if (message === DEEPHAVEN_POST_MSG.loginOptionsRequest) {
-      const dheServerUrl = this._workerURLToServerURLMap.get(serverOrWorkerUrl);
-      const dheClient =
-        dheServerUrl == null ? null : this._dheClientCache.get(dheServerUrl);
       const credentials =
-        dheClient == null ? null : await getWorkerCredentials(dheClient);
+        await this._serverManager.getWorkerCredentials(serverOrWorkerUrl);
 
       if (credentials == null) {
         logger.error('Failed to get credentials for worker', serverOrWorkerUrl);

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-
+import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type {
   ConsoleType,
   CoreConnectionConfig,
@@ -169,6 +169,9 @@ export interface IServerManager extends Disposable {
   getEditorConnection: (
     editor: vscode.TextEditor
   ) => Promise<ConnectionState | null>;
+  getWorkerCredentials: (
+    serverOrWorkerUrl: URL | WorkerURL
+  ) => Promise<DhcType.LoginCredentials | null>;
   getWorkerInfo: (workerUrl: WorkerURL) => Promise<WorkerInfo | undefined>;
   setEditorConnection: (
     editor: vscode.TextEditor,

@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { randomUUID } from 'node:crypto';
+import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type { AuthenticatedClient as DheAuthenticatedClient } from '@deephaven-enterprise/auth-nodejs';
 import {
   isDhcServerRunning,
@@ -33,6 +34,7 @@ import {
 import { URLMap } from './URLMap';
 import { URIMap } from './URIMap';
 import { DhcService } from './DhcService';
+import { getWorkerCredentials } from '../dh/dhe';
 
 const logger = new Logger('ServerManager');
 
@@ -45,8 +47,7 @@ export class ServerManager implements IServerManager {
     dheServiceCache: IAsyncCacheService<URL, IDheService>,
     outputChannel: vscode.OutputChannel,
     secretService: ISecretService,
-    toaster: IToastService,
-    workerURLToServerURLMap: URLMap<URL>
+    toaster: IToastService
   ) {
     this._configService = configService;
     this._connectionMap = new URLMap<ConnectionState>();
@@ -59,7 +60,7 @@ export class ServerManager implements IServerManager {
     this._serverMap = new URLMap<ServerState>();
     this._toaster = toaster;
     this._uriConnectionsMap = new URIMap<ConnectionState>();
-    this._workerURLToServerURLMap = workerURLToServerURLMap;
+    this._workerURLToServerURLMap = new URLMap<URL>();
 
     this.canStartServer = false;
 
@@ -457,6 +458,29 @@ export class ServerManager implements IServerManager {
    */
   getUriConnection = (uri: vscode.Uri): ConnectionState | null => {
     return this._uriConnectionsMap.get(uri) ?? null;
+  };
+
+  /**
+   * Get worker credentials for the given worker URL.
+   * @param serverOrWorkerUrl The worker URL to get credentials for.
+   * @returns The worker credentials, or `null` if no credentials are available.
+   */
+  getWorkerCredentials = async (
+    serverOrWorkerUrl: URL | WorkerURL
+  ): Promise<DhcType.LoginCredentials | null> => {
+    const dheServerUrl = this._workerURLToServerURLMap.get(serverOrWorkerUrl);
+
+    if (dheServerUrl == null) {
+      return null;
+    }
+
+    const dheClient = await this._dheClientCache.get(dheServerUrl);
+
+    if (dheClient == null) {
+      return null;
+    }
+
+    return getWorkerCredentials(dheClient);
   };
 
   /** Get worker info associated with the given server URL. */
