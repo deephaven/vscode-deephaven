@@ -2,10 +2,6 @@ import * as vscode from 'vscode';
 import { randomUUID } from 'node:crypto';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type { AuthenticatedClient as DheAuthenticatedClient } from '@deephaven-enterprise/auth-nodejs';
-import {
-  isDhcServerRunning,
-  isDheServerRunning,
-} from '@deephaven/require-jsapi';
 import { UnsupportedConsoleTypeError } from '../common';
 import type {
   ConsoleType,
@@ -34,7 +30,8 @@ import {
 import { URLMap } from './URLMap';
 import { URIMap } from './URIMap';
 import { DhcService } from './DhcService';
-import { getWorkerCredentials } from '../dh/dhe';
+import { getWorkerCredentials, isDheServerRunning } from '../dh/dhe';
+import { isDhcServerRunning } from '../dh/dhc';
 
 const logger = new Logger('ServerManager');
 

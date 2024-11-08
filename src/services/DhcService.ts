@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
-import { isAggregateError } from '@deephaven/require-jsapi';
 import { formatTimestamp, getCombinedSelectedLinesText, Logger } from '../util';
 import { initDhcSession, type ConnectionAndSession } from '../dh/dhc';
 import type {
@@ -26,6 +25,7 @@ import {
 } from '../common';
 import { NoConsoleTypesError, parseServerError } from '../dh/errorUtils';
 import { hasErrorCode } from '../util/typeUtils';
+import { isAggregateError } from '@deephaven/jsapi-nodejs';
 
 const logger = new Logger('DhcService');
 
