@@ -42,6 +42,15 @@ export async function getDhc(
     storageDir,
     sourceModuleType: 'esm',
     targetModuleType: 'cjs',
+    esbuildOptions: {
+      tsconfigRaw: {
+        compilerOptions: {
+          // This needs to be set to avoid adding `use strict` to the output
+          // which hits a protobuf bug. https://github.com/protocolbuffers/protobuf-javascript/issues/8
+          strict: false,
+        },
+      },
+    },
   });
 
   return coreModule.default;
