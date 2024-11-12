@@ -220,11 +220,11 @@
       },
       {
         "command": "vscode-deephaven.createCoreAuthenticatedClient",
-        "title": "Create Authenticated Client"
+        "title": "Create Core Authenticated Client"
       },
       {
         "command": "vscode-deephaven.createDHEAuthenticatedClient",
-        "title": "Create Authenticated Client"
+        "title": "Create DHE Authenticated Client"
       },
       {
         "command": "vscode-deephaven.startServer",
