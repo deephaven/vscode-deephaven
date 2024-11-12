@@ -30,6 +30,12 @@ declare global {
   }
 }
 
+/**
+ * Download the DH Core jsapi from a running server and return the `dh` object.
+ * @param serverUrl URL of the DH Core server to download the api from.
+ * @param storageDir Directory to store downloaded jsapi files.
+ * @returns A promise that resolves to the DH Core jsapi.
+ */
 export async function getDhc(
   serverUrl: URL,
   storageDir: string

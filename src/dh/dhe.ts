@@ -35,6 +35,12 @@ declare global {
   const iris: DheType;
 }
 
+/**
+ * Download the DHE jsapi from a running server and return the global `iris` object.
+ * @param serverUrl URL of the DHE server to download the api from.
+ * @param storageDir Directory to store downloaded jsapi files.
+ * @returns A promise that resolves to the DHE jsapi.
+ */
 export async function getDhe(
   serverUrl: URL,
   storageDir: string
@@ -277,8 +283,12 @@ export async function getWorkerInfoFromQuery(
   };
 }
 
+/**
+ * Polyfill some things needed by the DHE jsapi. The need for this should go
+ * away once DH-17942 is completed and the jsapi no longer relies on `window`
+ * or `self`.
+ */
 export function polyfillDhe(): void {
-  // These will eventually not be needed once JSAPI is updated to not rely on `window` and `self`.
   // @ts-ignore
   globalThis.self = globalThis;
   // @ts-ignore
