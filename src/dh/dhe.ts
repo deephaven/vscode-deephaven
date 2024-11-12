@@ -39,7 +39,7 @@ export async function getDhe(
   serverUrl: URL,
   storageDir: string
 ): Promise<DheType> {
-  polyfill();
+  polyfillDhe();
 
   // Download jsapi `ESM` files from DH Community server.
   await loadModules({
@@ -277,7 +277,7 @@ export async function getWorkerInfoFromQuery(
   };
 }
 
-export function polyfill(): void {
+export function polyfillDhe(): void {
   // These will eventually not be needed once JSAPI is updated to not rely on `window` and `self`.
   // @ts-ignore
   globalThis.self = globalThis;
