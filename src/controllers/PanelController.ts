@@ -122,8 +122,10 @@ export class PanelController extends ControllerBase {
     await waitFor(0);
 
     let lastPanel: vscode.WebviewPanel | null = null;
+    let lastFirstTimeActiveSubscription: vscode.Disposable | null = null;
 
-    for (const { id, title } of variables) {
+    for (const variable of variables) {
+      const { id, title } = variable;
       if (!this._panelService.hasPanel(serverUrl, id)) {
         const panel = vscode.window.createWebviewPanel(
           'dhPanel', // Identifies the type of the webview. Used internally
@@ -135,48 +137,46 @@ export class PanelController extends ControllerBase {
           }
         );
 
-        const subscription = panel.webview.onDidReceiveMessage(({ data }) => {
-          const postMessage = panel.webview.postMessage.bind(panel.webview);
-          this._onPanelMessage(serverUrl, data, postMessage);
-        });
+        // One time subscription to refresh the panel content the first time it
+        // becomes active.
+        const onFirstTimeActiveSubscription = panel.onDidChangeViewState(
+          async ({ webviewPanel }) => {
+            if (webviewPanel.active) {
+              this._onRefreshPanelsContent(serverUrl, [variable]);
+              onFirstTimeActiveSubscription.dispose();
+            }
+          }
+        );
+        lastFirstTimeActiveSubscription = onFirstTimeActiveSubscription;
+
+        const onDidReceiveMessageSubscription =
+          panel.webview.onDidReceiveMessage(({ data }) => {
+            const postMessage = panel.webview.postMessage.bind(panel.webview);
+            this._onPanelMessage(serverUrl, data, postMessage);
+          });
 
         this._panelService.setPanel(serverUrl, id, panel);
 
-        // If panel gets disposed, remove it from the cache and dispose the
-        // postMessage subscription.
+        // If panel gets disposed, remove it from the cache and dispose subscriptions.
         panel.onDidDispose(() => {
           this._panelService.deletePanel(serverUrl, id);
-          subscription.dispose();
+
+          onFirstTimeActiveSubscription.dispose();
+          onDidReceiveMessageSubscription.dispose();
         });
       }
 
       const panel = this._panelService.getPanelOrThrow(serverUrl, id);
       lastPanel = panel;
-
-      const connection = this._serverManager.getConnection(serverUrl);
-      assertDefined(connection, 'connection');
-
-      const iframeUrl = await getEmbedWidgetUrlForConnection(
-        connection,
-        title,
-        false
-      );
-
-      panel.webview.html = getPanelHtml(iframeUrl, title);
-
-      // TODO: The postMessage apis will be needed for auth in DHE (vscode-deephaven/issues/76).
-      // Leaving this here commented out for reference, but it will need some
-      // re-working. Namely this seems to subscribe multiple times. Should see
-      // if can move it inside of the panel creation block or unsubscribe older
-      // subscriptions whenever we subscribe.
-      // panel.webview.onDidReceiveMessage(({ data }) => {
-      //   const postMessage = panel.webview.postMessage.bind(panel.webview);
-      //   this.handlePanelMessage(data, postMessage);
-      // });
     }
 
+    // Panels get created in an active state, so the last panel won't necessarily
+    // change from inactive to active. Remove the firstTimeActiveSubscription
+    // and refresh explicitly.
+    lastFirstTimeActiveSubscription?.dispose();
+    this._onRefreshPanelsContent(serverUrl, variables.slice(-1));
+
     lastPanel?.reveal();
-    this._onRefreshPanelsContent(serverUrl, variables);
   };
 
   /**
