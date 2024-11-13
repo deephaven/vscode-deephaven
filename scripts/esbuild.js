@@ -44,7 +44,7 @@ async function main() {
     sourcesContent: false,
     platform: 'node',
     outfile: 'out/extension.js',
-    external: ['vscode'],
+    external: ['esbuild', 'vscode'],
     logLevel: 'silent',
     plugins: [
       /* add to the end of plugins array */

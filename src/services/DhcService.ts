@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
+import { isAggregateError } from '@deephaven/jsapi-nodejs';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
-import { isAggregateError } from '@deephaven/require-jsapi';
 import { formatTimestamp, getCombinedSelectedLinesText, Logger } from '../util';
 import { initDhcSession, type ConnectionAndSession } from '../dh/dhc';
 import type {

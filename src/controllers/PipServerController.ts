@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import * as fs from 'node:fs';
-import { isDhcServerRunning } from '@deephaven/require-jsapi';
 import {
   getPipServerUrl,
   getPipStatusFilePath,
@@ -15,6 +14,7 @@ import {
   PYTHON_ENV_WAIT,
 } from '../common';
 import { pollUntilTrue, waitFor } from '../util/promiseUtils';
+import { isDhcServerRunning } from '../dh/dhc';
 
 const logger = new Logger('PipServerController');
 

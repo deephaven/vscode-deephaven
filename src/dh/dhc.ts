@@ -4,6 +4,7 @@ import type {
   CoreAuthenticatedClient,
   CoreUnauthenticatedClient,
 } from '../types';
+import { hasStatusCode, loadModules } from '@deephaven/jsapi-nodejs';
 
 export const AUTH_HANDLER_TYPE_ANONYMOUS =
   'io.deephaven.auth.AnonymousAuthenticationHandler';
@@ -18,6 +19,48 @@ export type ConnectionAndSession<TConnection, TSession> = {
   cn: TConnection;
   session: TSession;
 };
+
+// TODO: https://github.com/deephaven/deephaven-core/issues/5911 to address the
+// underlying issue of jsapi-types being unaware of `dhinternal`. Once that is
+// addressed, this can be removed.
+declare global {
+  // eslint-disable-next-line no-unused-vars
+  namespace dhinternal.io.deephaven.proto.ticket_pb {
+    export type TypedTicket = unknown;
+  }
+}
+
+/**
+ * Download the DH Core jsapi from a running server and return the `dh` object.
+ * @param serverUrl URL of the DH Core server to download the api from.
+ * @param storageDir Directory to store downloaded jsapi files.
+ * @returns A promise that resolves to the DH Core jsapi.
+ */
+export async function getDhc(
+  serverUrl: URL,
+  storageDir: string
+): Promise<typeof DhType> {
+  // Download jsapi `ESM` files from DH Community server.
+  const coreModule = await loadModules<{ default: typeof DhType }>({
+    serverUrl,
+    serverPaths: ['jsapi/dh-core.js', 'jsapi/dh-internal.js'],
+    download: true,
+    storageDir,
+    sourceModuleType: 'esm',
+    targetModuleType: 'cjs',
+    esbuildOptions: {
+      tsconfigRaw: {
+        compilerOptions: {
+          // This needs to be set to avoid adding `use strict` to the output
+          // which hits a protobuf bug. https://github.com/protocolbuffers/protobuf-javascript/issues/8
+          strict: false,
+        },
+      },
+    },
+  });
+
+  return coreModule.default;
+}
 
 /**
  * Get embed widget url for a widget.
@@ -75,6 +118,22 @@ export async function initDhcSession(
   const session = await cn.startSession(type);
 
   return { cn, session };
+}
+
+/**
+ * Check if a given server is running by checking if the `dh-core.js` file is
+ * accessible.
+ * @param serverUrl
+ */
+export async function isDhcServerRunning(serverUrl: URL): Promise<boolean> {
+  try {
+    return await hasStatusCode(
+      new URL('jsapi/dh-core.js', serverUrl.toString()),
+      [200, 204]
+    );
+  } catch {
+    return false;
+  }
 }
 
 /**

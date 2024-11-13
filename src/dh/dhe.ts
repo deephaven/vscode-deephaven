@@ -6,6 +6,8 @@ import type {
   TypeSpecificFields,
 } from '@deephaven-enterprise/jsapi-types';
 import { DraftQuery, QueryScheduler } from '@deephaven-enterprise/query-utils';
+import type { AuthenticatedClient as DheAuthenticatedClient } from '@deephaven-enterprise/auth-nodejs';
+import { hasStatusCode, loadModules } from '@deephaven/jsapi-nodejs';
 import type {
   ConsoleType,
   IdeURL,
@@ -21,12 +23,42 @@ import {
   INTERACTIVE_CONSOLE_QUERY_TYPE,
   INTERACTIVE_CONSOLE_TEMPORARY_QUEUE_NAME,
 } from '../common';
-import type { AuthenticatedClient as DheAuthenticatedClient } from '@deephaven-enterprise/auth-nodejs';
 
 export type IDraftQuery = EditableQueryInfo & {
   isClientSide: boolean;
   draftOwner: string;
 };
+
+declare global {
+  // This gets added by the DHE jsapi.
+  // eslint-disable-next-line no-unused-vars
+  const iris: DheType;
+}
+
+/**
+ * Download the DHE jsapi from a running server and return the global `iris` object.
+ * @param serverUrl URL of the DHE server to download the api from.
+ * @param storageDir Directory to store downloaded jsapi files.
+ * @returns A promise that resolves to the DHE jsapi.
+ */
+export async function getDhe(
+  serverUrl: URL,
+  storageDir: string
+): Promise<DheType> {
+  polyfillDhe();
+
+  // Download jsapi `ESM` files from DH Community server.
+  await loadModules({
+    serverUrl,
+    serverPaths: ['irisapi/irisapi.nocache.js'],
+    download: true,
+    storageDir,
+    sourceModuleType: 'cjs',
+  });
+
+  // DHE currently exposes the jsapi via the global `iris` object.
+  return iris;
+}
 
 /**
  * Get credentials for a Core+ worker associated with a given DHE client.
@@ -63,6 +95,22 @@ export async function hasInteractivePermission(
   const isInteractive = !isNonInteractive;
 
   return isSuperUser || isInteractive;
+}
+
+/**
+ * Check if a given server is running by checking if the `irisapi/irisapi.nocache.js`
+ * file is accessible.
+ * @param serverUrl
+ */
+export async function isDheServerRunning(serverUrl: URL): Promise<boolean> {
+  try {
+    return await hasStatusCode(
+      new URL('irisapi/irisapi.nocache.js', serverUrl.toString()),
+      [200, 204]
+    );
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -233,4 +281,23 @@ export async function getWorkerInfoFromQuery(
     processInfoId,
     workerName,
   };
+}
+
+/**
+ * Polyfill some things needed by the DHE jsapi. The need for this should go
+ * away once DH-17942 is completed and the jsapi no longer relies on `window`
+ * or `self`.
+ */
+export function polyfillDhe(): void {
+  // @ts-ignore
+  globalThis.self = globalThis;
+  // @ts-ignore
+  globalThis.window = globalThis;
+
+  // This is needed to mimic running in a local http browser environment when
+  // making requests to the server. This at least impacts websocket connections.
+  // Not sure if it is needed for other requests. The url is an arbitrary
+  // non-https url just to make it stand out in logs.
+  // @ts-ignore
+  global.window.location = new URL('http://vscode-deephaven.localhost/');
 }
