@@ -36,6 +36,15 @@ export interface CoreConnectionConfig {
   url: URL;
 }
 
+export type CoreAuthenticatedClient = Brand<
+  'CoreAuthenticatedClient',
+  DhcType.CoreClient
+>;
+export type CoreUnauthenticatedClient = Brand<
+  'CoreUnauthenticatedClient',
+  DhcType.CoreClient
+>;
+
 export type EnterpriseConnectionConfigStored =
   | Brand<'EnterpriseConnectionConfigStored'>
   | { url: string; label?: string; experimentalWorkerConfig?: WorkerConfig };
@@ -50,6 +59,8 @@ export type LoginWorkflowType = 'login' | 'generatePrivateKey';
 export type LoginWorkflowResult =
   | PasswordCredentials
   | Omit<KeyPairCredentials, 'keyPair'>;
+
+export type Psk = Brand<'Psk', string>;
 
 export type UserKeyPairs = Record<Username, Base64KeyPair>;
 export type UserLoginPreferences = {
@@ -105,7 +116,7 @@ export interface UnmanagedServerState {
 
 export interface ManagedServerState {
   isManaged: true;
-  psk: string;
+  psk: Psk;
 }
 
 export type ServerState = {

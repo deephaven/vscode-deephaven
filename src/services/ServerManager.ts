@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { randomUUID } from 'node:crypto';
-import type { AuthenticatedClient as DheAuthenticatedClient } from '@deephaven-enterprise/auth-nodejs';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
+import type { AuthenticatedClient as DheAuthenticatedClient } from '@deephaven-enterprise/auth-nodejs';
 import {
   isDhcServerRunning,
   isDheServerRunning,
@@ -10,7 +10,7 @@ import { UnsupportedConsoleTypeError } from '../common';
 import type {
   ConsoleType,
   IConfigService,
-  IDhServiceFactory,
+  IDhcServiceFactory,
   IServerManager,
   ConnectionState,
   ServerState,
@@ -18,9 +18,11 @@ import type {
   IDheService,
   IAsyncCacheService,
   WorkerURL,
-  Lazy,
   UniqueID,
   IToastService,
+  CoreAuthenticatedClient,
+  ISecretService,
+  Psk,
 } from '../types';
 import {
   getInitialServerStates,
@@ -32,27 +34,29 @@ import {
 import { URLMap } from './URLMap';
 import { URIMap } from './URIMap';
 import { DhcService } from './DhcService';
-import { AUTH_HANDLER_TYPE_PSK } from '../dh/dhc';
+import { getWorkerCredentials } from '../dh/dhe';
 
 const logger = new Logger('ServerManager');
 
 export class ServerManager implements IServerManager {
   constructor(
     configService: IConfigService,
-    coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
-    dhcServiceFactory: IDhServiceFactory,
+    coreClientCache: URLMap<CoreAuthenticatedClient>,
+    dhcServiceFactory: IDhcServiceFactory,
     dheClientCache: URLMap<DheAuthenticatedClient>,
     dheServiceCache: IAsyncCacheService<URL, IDheService>,
     outputChannel: vscode.OutputChannel,
+    secretService: ISecretService,
     toaster: IToastService
   ) {
     this._configService = configService;
     this._connectionMap = new URLMap<ConnectionState>();
-    this._coreCredentialsCache = coreCredentialsCache;
+    this._coreClientCache = coreClientCache;
     this._dhcServiceFactory = dhcServiceFactory;
     this._dheClientCache = dheClientCache;
     this._dheServiceCache = dheServiceCache;
     this._outputChannel = outputChannel;
+    this._secretService = secretService;
     this._serverMap = new URLMap<ServerState>();
     this._toaster = toaster;
     this._uriConnectionsMap = new URIMap<ConnectionState>();
@@ -65,13 +69,12 @@ export class ServerManager implements IServerManager {
 
   private readonly _configService: IConfigService;
   private readonly _connectionMap: URLMap<ConnectionState>;
-  private readonly _coreCredentialsCache: URLMap<
-    Lazy<DhcType.LoginCredentials>
-  >;
-  private readonly _dhcServiceFactory: IDhServiceFactory;
+  private readonly _coreClientCache: URLMap<CoreAuthenticatedClient>;
+  private readonly _dhcServiceFactory: IDhcServiceFactory;
   private readonly _dheClientCache: URLMap<DheAuthenticatedClient>;
   private readonly _dheServiceCache: IAsyncCacheService<URL, IDheService>;
   private readonly _outputChannel: vscode.OutputChannel;
+  private readonly _secretService: ISecretService;
   private readonly _toaster: IToastService;
   private readonly _uriConnectionsMap: URIMap<ConnectionState>;
   private readonly _workerURLToServerURLMap: URLMap<URL>;
@@ -167,14 +170,7 @@ export class ServerManager implements IServerManager {
     if (serverState.isManaged) {
       this.updateConnectionCount(serverUrl, 1);
 
-      this._coreCredentialsCache.set(serverUrl, async () => ({
-        type: AUTH_HANDLER_TYPE_PSK,
-        token: serverState.psk,
-      }));
-    }
-    // Non-managed DHC server
-    else if (serverState.type === 'DHC') {
-      this.updateConnectionCount(serverUrl, 1);
+      this._secretService.storePsk(serverUrl, serverState.psk);
     }
     // DHE server
     else if (serverState.type === 'DHE') {
@@ -232,12 +228,20 @@ export class ServerManager implements IServerManager {
 
     const connection = this._dhcServiceFactory.create(serverUrl, tagId);
 
+    // Initialize client + prompt for login if necessary
+    if (!(await connection.getClient())) {
+      return null;
+    }
+
     this._connectionMap.set(serverUrl, connection);
     this._onDidUpdate.fire();
 
-    if (!(await connection.initDh())) {
+    if (!(await connection.initSession())) {
       this._connectionMap.delete(serverUrl);
+      return null;
     }
+
+    this.updateConnectionCount(serverUrl, 1);
 
     this._onDidConnect.fire(serverUrl);
     this._onDidUpdate.fire();
@@ -352,6 +356,9 @@ export class ServerManager implements IServerManager {
       await connection.dispose();
     }
 
+    this._coreClientCache.get(serverOrWorkerUrl)?.disconnect();
+    this._coreClientCache.delete(serverOrWorkerUrl);
+
     this._onDidDisconnect.fire(serverOrWorkerUrl);
     this._onDidUpdate.fire();
   };
@@ -453,6 +460,29 @@ export class ServerManager implements IServerManager {
     return this._uriConnectionsMap.get(uri) ?? null;
   };
 
+  /**
+   * Get worker credentials for the given worker URL.
+   * @param serverOrWorkerUrl The worker URL to get credentials for.
+   * @returns The worker credentials, or `null` if no credentials are available.
+   */
+  getWorkerCredentials = async (
+    serverOrWorkerUrl: URL | WorkerURL
+  ): Promise<DhcType.LoginCredentials | null> => {
+    const dheServerUrl = this._workerURLToServerURLMap.get(serverOrWorkerUrl);
+
+    if (dheServerUrl == null) {
+      return null;
+    }
+
+    const dheClient = await this._dheClientCache.get(dheServerUrl);
+
+    if (dheClient == null) {
+      return null;
+    }
+
+    return getWorkerCredentials(dheClient);
+  };
+
   /** Get worker info associated with the given server URL. */
   getWorkerInfo = async (
     workerUrl: WorkerURL
@@ -518,7 +548,7 @@ export class ServerManager implements IServerManager {
       this._serverMap.set(server.url, {
         ...server,
         isManaged: true,
-        psk: randomUUID(),
+        psk: randomUUID() as Psk,
       });
     }
 

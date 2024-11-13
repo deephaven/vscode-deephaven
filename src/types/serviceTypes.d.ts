@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-
+import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type {
   ConsoleType,
   CoreConnectionConfig,
@@ -17,6 +17,9 @@ import type {
   UniqueID,
   UserKeyPairs,
   UserLoginPreferences,
+  CoreUnauthenticatedClient,
+  Psk,
+  CoreAuthenticatedClient,
 } from '../types/commonTypes';
 import type {
   AuthenticatedClient as DheAuthenticatedClient,
@@ -47,8 +50,8 @@ export interface IDhcService extends Disposable, ConnectionState {
   readonly isConnected: boolean;
   readonly onDidDisconnect: vscode.Event<URL>;
 
-  initDh: () => Promise<boolean>;
-
+  initSession(): Promise<boolean>;
+  getClient(): Promise<CoreAuthenticatedClient | null>;
   getConsoleTypes: () => Promise<Set<ConsoleType>>;
   supportsConsoleType: (consoleType: ConsoleType) => Promise<boolean>;
 
@@ -88,10 +91,14 @@ export interface IFactory<T, TArgs extends unknown[] = []> {
   create: (...args: TArgs) => T;
 }
 
+export type ICoreClientFactory = (
+  serverUrl: URL
+) => Promise<CoreUnauthenticatedClient>;
+
 /**
  * Factory for creating IDhService instances.
  */
-export type IDhServiceFactory = IFactory<
+export type IDhcServiceFactory = IFactory<
   IDhcService,
   [serverUrl: URL, tagId?: UniqueID]
 >;
@@ -121,10 +128,16 @@ export interface IPanelService extends Disposable {
  * Secret service interface.
  */
 export interface ISecretService {
+  clearStorage(): Promise<void>;
+  // PSKs
+  deletePsk(serverUrl: URL): Promise<void>;
+  getPsk(serverUrl: URL): Promise<Psk | undefined>;
+  storePsk(serverUrl: URL, psk: Psk): Promise<void>;
+  // DHE Server keys
   deleteUserServerKeys(serverUrl: URL, userName: Username): Promise<void>;
   getServerKeys(serverUrl: URL): Promise<UserKeyPairs>;
   storeServerKeys(serverUrl: URL, serverKeys: UserKeyPairs): Promise<void>;
-  clearStorage(): Promise<void>;
+  // Login preferences
   getUserLoginPreferences(serverUrl: URL): Promise<UserLoginPreferences>;
   storeUserLoginPreferences(
     serverUrl: URL,
@@ -156,6 +169,9 @@ export interface IServerManager extends Disposable {
   getEditorConnection: (
     editor: vscode.TextEditor
   ) => Promise<ConnectionState | null>;
+  getWorkerCredentials: (
+    serverOrWorkerUrl: URL | WorkerURL
+  ) => Promise<DhcType.LoginCredentials | null>;
   getWorkerInfo: (workerUrl: WorkerURL) => Promise<WorkerInfo | undefined>;
   setEditorConnection: (
     editor: vscode.TextEditor,

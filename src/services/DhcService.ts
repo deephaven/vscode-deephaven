@@ -1,25 +1,17 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
-import { initDhcApi, isAggregateError } from '@deephaven/require-jsapi';
-import {
-  formatTimestamp,
-  getCombinedSelectedLinesText,
-  getTempDir,
-  Logger,
-  urlToDirectoryName,
-} from '../util';
-import {
-  AUTH_HANDLER_TYPE_ANONYMOUS,
-  AUTH_HANDLER_TYPE_PSK,
-  initDhcSession,
-  type ConnectionAndSession,
-} from '../dh/dhc';
+import { isAggregateError } from '@deephaven/require-jsapi';
+import { formatTimestamp, getCombinedSelectedLinesText, Logger } from '../util';
+import { initDhcSession, type ConnectionAndSession } from '../dh/dhc';
 import type {
   ConsoleType,
+  CoreAuthenticatedClient,
   IDhcService,
+  IDhcServiceFactory,
   IPanelService,
+  ISecretService,
   IToastService,
-  Lazy,
+  Psk,
   UniqueID,
   VariableChanges,
   VariableDefintion,
@@ -27,6 +19,7 @@ import type {
 } from '../types';
 import type { URLMap } from './URLMap';
 import {
+  CREATE_CORE_AUTHENTICATED_CLIENT_CMD,
   OPEN_VARIABLE_PANELS_CMD,
   REFRESH_VARIABLE_PANELS_CMD,
   VARIABLE_UNICODE_ICONS,
@@ -37,22 +30,64 @@ import { hasErrorCode } from '../util/typeUtils';
 const logger = new Logger('DhcService');
 
 export class DhcService implements IDhcService {
-  constructor(
-    serverUrl: URL,
-    coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
+  /**
+   * Creates a factory function that can be used to create DhcService instances.
+   * @param coreClientCache Core client cache.
+   * @param panelService Panel service.
+   * @param diagnosticsCollection Diagnostics collection.
+   * @param outputChannel Output channel.
+   * @param secretService Secret service.
+   * @param toaster Toast service for notifications.
+   * @returns A factory function that can be used to create DhcService instances.
+   */
+  static factory = (
+    coreClientCache: URLMap<CoreAuthenticatedClient>,
     panelService: IPanelService,
     diagnosticsCollection: vscode.DiagnosticCollection,
     outputChannel: vscode.OutputChannel,
+    secretService: ISecretService,
+    toaster: IToastService
+  ): IDhcServiceFactory => {
+    return {
+      create: (serverUrl: URL, tagId?: UniqueID): IDhcService => {
+        return new DhcService(
+          serverUrl,
+          coreClientCache,
+          panelService,
+          diagnosticsCollection,
+          outputChannel,
+          secretService,
+          toaster,
+          tagId
+        );
+      },
+    };
+  };
+
+  /**
+   * Private constructor since the static `factory` method is the intended
+   * mechanism for instantiating.
+   */
+  private constructor(
+    serverUrl: URL,
+    coreClientCache: URLMap<CoreAuthenticatedClient>,
+    panelService: IPanelService,
+    diagnosticsCollection: vscode.DiagnosticCollection,
+    outputChannel: vscode.OutputChannel,
+    secretService: ISecretService,
     toaster: IToastService,
     tagId?: UniqueID
   ) {
-    this.coreCredentialsCache = coreCredentialsCache;
+    this.coreClientCache = coreClientCache;
     this.serverUrl = serverUrl;
     this.panelService = panelService;
     this.diagnosticsCollection = diagnosticsCollection;
     this.outputChannel = outputChannel;
+    this.secretService = secretService;
     this.toaster = toaster;
     this.tagId = tagId;
+
+    this.coreClientCache.onDidChange(this.onDidCoreClientCacheInvalidate);
   }
 
   private readonly _onDidDisconnect = new vscode.EventEmitter<URL>();
@@ -62,43 +97,45 @@ export class DhcService implements IDhcService {
   public readonly tagId?: UniqueID;
   private readonly subscriptions: (() => void)[] = [];
 
-  private readonly coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>;
+  private readonly coreClientCache: URLMap<CoreAuthenticatedClient>;
   private readonly outputChannel: vscode.OutputChannel;
+  private readonly secretService: ISecretService;
   private readonly toaster: IToastService;
   private readonly panelService: IPanelService;
   private readonly diagnosticsCollection: vscode.DiagnosticCollection;
-  private cachedCreateClient: Promise<DhcType.CoreClient> | null = null;
-  private cachedCreateSession: Promise<
+  private clientPromise: Promise<CoreAuthenticatedClient | null> | null = null;
+  private initSessionPromise: Promise<
     ConnectionAndSession<DhcType.IdeConnection, DhcType.IdeSession>
   > | null = null;
-  private cachedInitApi: Promise<typeof DhcType> | null = null;
 
-  private dh: typeof DhcType | null = null;
   private cn: DhcType.IdeConnection | null = null;
-  private client: DhcType.CoreClient | null = null;
   private session: DhcType.IdeSession | null = null;
 
   get isInitialized(): boolean {
-    return this.cachedInitApi != null;
+    return this.initSessionPromise != null;
   }
 
   get isConnected(): boolean {
-    return this.dh != null && this.cn != null && this.session != null;
+    return this.cn != null && this.session != null;
   }
 
+  private onDidCoreClientCacheInvalidate = (url: URL): void => {
+    if (url.toString() === this.serverUrl.toString()) {
+      // Reset the client promise so that the next call to `getClient` can
+      // reinitialize it if necessary.
+      this.clientPromise = null;
+    }
+  };
+
   private clearCaches(): void {
-    this.cachedCreateClient = null;
-    this.cachedCreateSession = null;
-    this.cachedInitApi = null;
-    this.client = null;
+    this.clientPromise = null;
+    this.initSessionPromise = null;
 
     if (this.cn != null) {
       this.cn.close();
       this._onDidDisconnect.fire(this.serverUrl);
     }
     this.cn = null;
-
-    this.dh = null;
     this.session = null;
 
     this.subscriptions.forEach(dispose => dispose());
@@ -119,62 +156,27 @@ export class DhcService implements IDhcService {
     return defaultErrorMessage;
   }
 
-  async getPsk(): Promise<string | null> {
-    const credentials = await this.coreCredentialsCache.get(this.serverUrl)?.();
-
-    if (credentials?.type !== AUTH_HANDLER_TYPE_PSK) {
-      return null;
-    }
-
-    return credentials.token ?? null;
+  async getPsk(): Promise<Psk | undefined> {
+    return this.secretService.getPsk(this.serverUrl);
   }
 
-  async initApi(): Promise<typeof DhcType> {
-    return initDhcApi(
-      this.serverUrl,
-      getTempDir({ subDirectory: urlToDirectoryName(this.serverUrl) })
-    );
-  }
+  async initSession(): Promise<boolean> {
+    const client = await this.getClient();
 
-  async initDh(): Promise<boolean> {
-    try {
-      if (this.cachedInitApi == null) {
-        this.outputChannel.appendLine(
-          `Initializing Deephaven API...: ${this.serverUrl}`
-        );
-        this.cachedInitApi = this.initApi();
-      }
-      this.dh = await this.cachedInitApi;
-
-      this.outputChannel.appendLine(
-        `Initialized Deephaven API: ${this.serverUrl}`
-      );
-    } catch (err) {
-      this.clearCaches();
-      logger.error(err);
-      this.outputChannel.appendLine(
-        `Failed to initialize Deephaven API${err == null ? '.' : `: ${err}`}`
-      );
-      const toastMessage = this.getToastErrorMessage(
-        err,
-        'Failed to initialize Deephaven API'
-      );
-      this.toaster.error(toastMessage);
+    if (client == null) {
+      const msg = 'Failed to create Deephaven client';
+      logger.error(msg);
+      this.outputChannel.appendLine(msg);
+      this.toaster.error(msg);
       return false;
     }
 
-    if (this.cachedCreateClient == null) {
-      this.outputChannel.appendLine('Creating client...');
-      this.cachedCreateClient = this.createClient(this.dh);
-    }
-    this.client = await this.cachedCreateClient;
-
-    if (this.cachedCreateSession == null) {
+    if (this.initSessionPromise == null) {
       this.outputChannel.appendLine('Creating session...');
-      this.cachedCreateSession = this.createSession(this.dh, this.client);
+      this.initSessionPromise = initDhcSession(client);
 
       try {
-        const { cn, session } = await this.cachedCreateSession;
+        const { cn, session } = await this.initSessionPromise;
 
         cn.subscribeToFieldUpdates(changes => {
           this.panelService.updateVariables(
@@ -219,7 +221,7 @@ export class DhcService implements IDhcService {
     }
 
     try {
-      const { cn, session } = await this.cachedCreateSession;
+      const { cn, session } = await this.initSessionPromise;
       this.cn = cn;
       this.session = session;
     } catch (err) {
@@ -243,51 +245,34 @@ export class DhcService implements IDhcService {
     }
   }
 
-  async createClient(dh: typeof DhcType): Promise<DhcType.CoreClient> {
-    try {
-      return new dh.CoreClient(this.serverUrl.toString());
-    } catch (err) {
-      logger.error(err);
-      throw err;
-    }
-  }
-
-  async createSession(
-    dh: typeof DhcType,
-    client: DhcType.CoreClient
-  ): Promise<ConnectionAndSession<DhcType.IdeConnection, DhcType.IdeSession>> {
-    if (!this.coreCredentialsCache.has(this.serverUrl)) {
-      const authConfig = new Set(
-        (await client.getAuthConfigValues()).map(([, value]) => value)
-      );
-
-      if (authConfig.has(AUTH_HANDLER_TYPE_ANONYMOUS)) {
-        this.coreCredentialsCache.set(this.serverUrl, async () => ({
-          type: dh.CoreClient.LOGIN_TYPE_ANONYMOUS,
-        }));
-      } else if (authConfig.has(AUTH_HANDLER_TYPE_PSK)) {
-        this.coreCredentialsCache.set(this.serverUrl, async () => ({
-          type: AUTH_HANDLER_TYPE_PSK,
-          // TODO: Login flow UI should be a separate concern
-          // deephaven/vscode-deephaven/issues/151
-          token: await vscode.window.showInputBox({
-            ignoreFocusOut: true,
-            placeHolder: 'Pre-Shared Key',
-            prompt: 'Enter your Deephaven pre-shared key',
-            password: true,
-          }),
-        }));
-      }
-    }
-
-    if (this.coreCredentialsCache.has(this.serverUrl)) {
-      const credentials = await this.coreCredentialsCache.get(
+  /**
+   * Initialize client and login.
+   * @returns Client or null if initialization failed.
+   */
+  private _initClient = async (): Promise<CoreAuthenticatedClient | null> => {
+    if (!this.coreClientCache.has(this.serverUrl)) {
+      await vscode.commands.executeCommand(
+        CREATE_CORE_AUTHENTICATED_CLIENT_CMD,
         this.serverUrl
-      )!();
-      return initDhcSession(client, credentials);
+      );
     }
 
-    throw new Error('No supported authentication methods found.');
+    const maybeClient = await this.coreClientCache.get(this.serverUrl);
+
+    return maybeClient ?? null;
+  };
+
+  async getClient(): Promise<CoreAuthenticatedClient | null> {
+    if (this.clientPromise == null) {
+      this.clientPromise = this._initClient();
+    }
+
+    const client = await this.clientPromise;
+    if (client == null) {
+      this.clientPromise = null;
+    }
+
+    return client;
   }
 
   async dispose(): Promise<void> {
@@ -320,7 +305,7 @@ export class DhcService implements IDhcService {
     this.diagnosticsCollection.set(editor.document.uri, []);
 
     if (this.session == null) {
-      await this.initDh();
+      await this.initSession();
     }
 
     if (this.cn == null || this.session == null) {

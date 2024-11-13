@@ -1,10 +1,8 @@
 import * as vscode from 'vscode';
-import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type {
   ConnectionState,
   IPanelService,
   IServerManager,
-  Lazy,
   VariableDefintion,
   WorkerURL,
 } from '../types';
@@ -16,7 +14,7 @@ import {
   getPanelHtml,
   Logger,
 } from '../util';
-import { DhcService, type URLMap } from '../services';
+import { DhcService } from '../services';
 import {
   DEEPHAVEN_POST_MSG,
   OPEN_VARIABLE_PANELS_CMD,
@@ -29,14 +27,9 @@ import { ControllerBase } from './ControllerBase';
 const logger = new Logger('PanelController');
 
 export class PanelController extends ControllerBase {
-  constructor(
-    coreCredentialsCache: URLMap<Lazy<DhcType.LoginCredentials>>,
-    serverManager: IServerManager,
-    panelService: IPanelService
-  ) {
+  constructor(serverManager: IServerManager, panelService: IPanelService) {
     super();
 
-    this._coreCredentialsCache = coreCredentialsCache;
     this._panelService = panelService;
     this._serverManager = serverManager;
 
@@ -53,9 +46,6 @@ export class PanelController extends ControllerBase {
     );
   }
 
-  private readonly _coreCredentialsCache: URLMap<
-    Lazy<DhcType.LoginCredentials>
-  >;
   private readonly _panelService: IPanelService;
   private readonly _serverManager: IServerManager;
 
@@ -84,7 +74,7 @@ export class PanelController extends ControllerBase {
     // Respond to login credentials request from DH iframe
     if (message === DEEPHAVEN_POST_MSG.loginOptionsRequest) {
       const credentials =
-        await this._coreCredentialsCache.get(serverOrWorkerUrl)?.();
+        await this._serverManager.getWorkerCredentials(serverOrWorkerUrl);
 
       if (credentials == null) {
         logger.error('Failed to get credentials for worker', serverOrWorkerUrl);
