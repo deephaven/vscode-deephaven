@@ -75,18 +75,6 @@ export interface IDheService extends ConnectionState, Disposable {
   deleteWorker: (workerUrl: WorkerURL) => Promise<void>;
 }
 
-/**
- * @deprecated Use `vscode.EventEmitter` instead.
- */
-export interface IEventDispatcher<TEventName extends string> {
-  addEventListener: (
-    eventName: TEventName,
-    listener: EventListenerT
-  ) => UnsubscribeEventListener;
-
-  dispatchEvent: <TEvent>(eventName: TEventName, event?: TEvent) => void;
-}
-
 export interface IFactory<T, TArgs extends unknown[] = []> {
   create: (...args: TArgs) => T;
 }
