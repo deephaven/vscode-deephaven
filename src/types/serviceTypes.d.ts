@@ -110,6 +110,7 @@ export type IDheServiceFactory = IFactory<IDheService, [serverUrl: URL]>;
 export interface IPanelService extends Disposable {
   readonly onDidUpdate: vscode.Event<void>;
 
+  clearServerData: (url: URL) => void;
   getPanelUrls: () => URL[];
   getPanelVariables: (url: URL) => VariableDefintion[];
   getPanelOrThrow: (url: URL, variableId: VariableID) => vscode.WebviewPanel;

@@ -382,6 +382,7 @@ export class ExtensionController implements Disposable {
 
     this._serverManager.onDidDisconnect(
       serverUrl => {
+        this._panelService?.clearServerData(serverUrl);
         this._outputChannel?.appendLine(
           `Disconnected from server: '${serverUrl}'.`
         );

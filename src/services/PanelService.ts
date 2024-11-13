@@ -22,8 +22,14 @@ export class PanelService implements IPanelService, Disposable {
   private readonly _cnPanelMap: URLMap<VariablePanelMap>;
   private readonly _cnVariableMap: URLMap<VariableMap>;
 
+  clearServerData = (url: URL): void => {
+    this._cnPanelMap.delete(url);
+    this._cnVariableMap.delete(url);
+  };
+
   dispose = async (): Promise<void> => {
     this._cnPanelMap.clear();
+    this._cnVariableMap.clear();
   };
 
   /**
