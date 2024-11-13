@@ -22,6 +22,10 @@ export class PanelService implements IPanelService, Disposable {
   private readonly _cnPanelMap: URLMap<VariablePanelMap>;
   private readonly _cnVariableMap: URLMap<VariableMap>;
 
+  /**
+   * Clear panel data for the given connection url.
+   * @param url The connection url.
+   */
   clearServerData = (url: URL): void => {
     this._cnPanelMap.delete(url);
     this._cnVariableMap.delete(url);
