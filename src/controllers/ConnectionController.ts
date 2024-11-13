@@ -153,6 +153,7 @@ export class ConnectionController implements Disposable {
       // disconnect from it.
       if (err instanceof UnsupportedConsoleTypeError && newConnectionUrl) {
         this._serverManager.disconnectFromServer(newConnectionUrl);
+        this._toaster.error(err.message);
       }
 
       throw err;
