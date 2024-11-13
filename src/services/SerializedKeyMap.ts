@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import type { Disposable } from '../types';
+import { isDisposable } from '../util';
 
 /**
  * Base class for Maps that need to store their keys as serialized string values
@@ -42,8 +43,20 @@ export abstract class SerializedKeyMap<TKey, TValue> implements Disposable {
   }
 
   dispose = async (): Promise<void> => {
-    this._map.clear();
     this._onDidChange.dispose();
+
+    const promises = [...this._map.values()];
+    this._map.clear();
+
+    const disposing = promises.map(async maybePromise => {
+      // If value is a Promise, it has to be resolved before it can be disposed.
+      const resolved = await maybePromise;
+      if (isDisposable(resolved)) {
+        await resolved.dispose();
+      }
+    });
+
+    await Promise.all(disposing);
   };
 
   get(key: TKey): TValue | undefined {

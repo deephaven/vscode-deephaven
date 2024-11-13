@@ -345,7 +345,10 @@ export class ExtensionController implements Disposable {
     };
 
     this._coreClientCache = new URLMap();
+    this._context.subscriptions.push(this._coreClientCache);
+
     this._dheClientCache = new URLMap();
+    this._context.subscriptions.push(this._dheClientCache);
 
     this._panelService = new PanelService();
     this._context.subscriptions.push(this._panelService);

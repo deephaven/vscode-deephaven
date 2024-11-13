@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import type { IAsyncCacheService } from '../../types';
-import { isDisposable } from '../../util';
 import { URLMap } from '../URLMap';
 
 /**
@@ -37,18 +36,6 @@ export class ByURLAsyncCache<TValue>
 
   dispose = async (): Promise<void> => {
     this._onDidInvalidate.dispose();
-
-    const promises = [...this._promiseMap.values()];
-    this._promiseMap.clear();
-
-    // Values have to be resolved before they can be disposed.
-    const disposing = promises.map(async promise => {
-      const resolved = await promise;
-      if (isDisposable(resolved)) {
-        await resolved.dispose();
-      }
-    });
-
-    await Promise.all(disposing);
+    await this._promiseMap.dispose();
   };
 }

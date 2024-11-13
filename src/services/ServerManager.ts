@@ -100,14 +100,21 @@ export class ServerManager implements IServerManager {
 
   canStartServer: boolean;
 
-  async dispose(): Promise<void> {
+  dispose = async (): Promise<void> => {
     this._onDidConnect.dispose();
     this._onDidDisconnect.dispose();
     this._onDidLoadConfig.dispose();
     this._onDidServerStatusChange.dispose();
     this._onDidRegisterEditor.dispose();
     this._onDidUpdate.dispose();
-  }
+
+    await Promise.all([
+      this._connectionMap.dispose(),
+      this._serverMap.dispose(),
+      this._uriConnectionsMap.dispose(),
+      this._workerURLToServerURLMap.dispose(),
+    ]);
+  };
 
   loadServerConfig = async (): Promise<void> => {
     // We want to keep any existing managed servers that aren't overridden by
@@ -243,6 +250,7 @@ export class ServerManager implements IServerManager {
     this._onDidUpdate.fire();
 
     if (!(await connection.initSession())) {
+      connection.dispose();
       this._connectionMap.delete(serverUrl);
       return null;
     }
