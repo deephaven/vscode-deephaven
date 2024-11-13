@@ -11,6 +11,7 @@ import {
   getPanelVariableTreeItem,
   sortByStringProp,
 } from '../util';
+import { getFirstSupportedConsoleType } from '../services';
 
 export class ServerConnectionPanelTreeProvider extends TreeDataProviderBase<ServerConnectionPanelNode> {
   constructor(serverManager: IServerManager, panelService: IPanelService) {
@@ -31,7 +32,10 @@ export class ServerConnectionPanelTreeProvider extends TreeDataProviderBase<Serv
       return getPanelVariableTreeItem(connectionOrVariable);
     }
 
-    return getPanelConnectionTreeItem(connectionOrVariable);
+    return getPanelConnectionTreeItem(
+      connectionOrVariable,
+      getFirstSupportedConsoleType
+    );
   };
 
   getChildren = (

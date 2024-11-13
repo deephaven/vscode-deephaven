@@ -5,12 +5,9 @@ import type {
   ConsoleType,
   Port,
   ServerConnectionConfig,
-  ConnectionState,
 } from '../types';
 import { PIP_SERVER_STATUS_DIRECTORY, SERVER_LANGUAGE_SET } from '../common';
 import { getTempDir } from './tmpUtils';
-import { DhcService } from '../services';
-import { isInstanceOf } from './isInstanceOf';
 
 /**
  * Get initial server states based on server configs.
@@ -33,28 +30,6 @@ export function getInitialServerStates(
 }
 
 /**
- * Get connections supporting the given console type.
- * @param connections Connections to filter
- * @param consoleType Console type to filter by
- * @returns Connections supporting the given console type
- */
-export async function getConnectionsForConsoleType(
-  connections: ConnectionState[],
-  consoleType: ConsoleType
-): Promise<ConnectionState[]> {
-  const filteredConnections: ConnectionState[] = [];
-
-  for await (const connection of iterateConnectionsForConsoleType(
-    connections,
-    consoleType
-  )) {
-    filteredConnections.push(connection);
-  }
-
-  return filteredConnections;
-}
-
-/**
  * If the given value is a valid console type, return it, otherwise return undefined.
  * @param maybeConsoleType
  * @returns A console type or undefined if given value is invalid.
@@ -66,24 +41,6 @@ export function getConsoleType(
     SERVER_LANGUAGE_SET.has(maybeConsoleType as ConsoleType)
     ? (maybeConsoleType as ConsoleType)
     : undefined;
-}
-
-/**
- * Get the first connection supporting the given console type.
- * @param connections Connections to filter
- * @param consoleType Console type to filter by
- * @returns First connection supporting the given console type
- */
-export async function getFirstConnectionForConsoleType(
-  connections: ConnectionState[],
-  consoleType: ConsoleType
-): Promise<ConnectionState | null> {
-  const first = await iterateConnectionsForConsoleType(
-    connections,
-    consoleType
-  ).next();
-
-  return first.value ?? null;
 }
 
 /**
@@ -116,28 +73,6 @@ export function isSupportedLanguageId(
   maybeSupported?: string | null
 ): maybeSupported is ConsoleType {
   return SERVER_LANGUAGE_SET.has(maybeSupported as ConsoleType);
-}
-
-/**
- * Lazy async iterator that yields all connections supporting the given console
- * type.
- * @param connections Connections to iterate
- * @param consoleType Console type to filter by
- * @returns Async iterator for connections supporting the given console type
- */
-export async function* iterateConnectionsForConsoleType(
-  connections: ConnectionState[],
-  consoleType: ConsoleType
-): AsyncGenerator<ConnectionState, void, unknown> {
-  for (const connection of connections) {
-    const isConsoleTypeSupported =
-      isInstanceOf(connection, DhcService) &&
-      (await connection.supportsConsoleType(consoleType));
-
-    if (isConsoleTypeSupported) {
-      yield connection;
-    }
-  }
 }
 
 /**
