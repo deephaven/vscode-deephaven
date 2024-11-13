@@ -81,7 +81,7 @@ export interface IFactory<T, TArgs extends unknown[] = []> {
 
 export type ICoreClientFactory = (
   serverUrl: URL
-) => Promise<CoreUnauthenticatedClient>;
+) => Promise<CoreUnauthenticatedClient & Disposable>;
 
 /**
  * Factory for creating IDhService instances.
@@ -92,7 +92,7 @@ export type IDhcServiceFactory = IFactory<
 >;
 export type IDheClientFactory = (
   serverUrl: URL
-) => Promise<DheUnauthenticatedClient>;
+) => Promise<DheUnauthenticatedClient & Disposable>;
 export type IDheServiceFactory = IFactory<IDheService, [serverUrl: URL]>;
 
 export interface IPanelService extends Disposable {
