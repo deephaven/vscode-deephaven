@@ -13,7 +13,6 @@ import {
   createConnectionQuickPick,
   createConnectionQuickPickOptions,
   createConnectStatusBarItem,
-  getConnectionsForConsoleType,
   getConsoleType,
   getEditorForUri,
   isSupportedLanguageId,
@@ -21,6 +20,7 @@ import {
   updateConnectionStatusBarItem,
 } from '../util';
 import { UnsupportedConsoleTypeError } from '../common';
+import { getConnectionsForConsoleType } from '../services';
 
 const logger = new Logger('ConnectionController');
 

@@ -13,8 +13,9 @@ import {
   PIP_SERVER_SUPPORTED_PLATFORMS,
   PYTHON_ENV_WAIT,
 } from '../common';
-import { pollUntilTrue, waitFor } from '../util/promiseUtils';
+import { waitFor } from '../util';
 import { isDhcServerRunning } from '../dh/dhc';
+import { pollUntilTrue } from '../services';
 
 const logger = new Logger('PipServerController');
 
