@@ -36,6 +36,8 @@ export class ByURLAsyncCache<TValue>
   };
 
   dispose = async (): Promise<void> => {
+    this._onDidInvalidate.dispose();
+
     const promises = [...this._promiseMap.values()];
     this._promiseMap.clear();
 

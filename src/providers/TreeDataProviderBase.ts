@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
-import type { IServerManager } from '../types';
+import type { Disposable, IServerManager } from '../types';
 
 /**
  * Base class for tree view data providers.
  */
 export abstract class TreeDataProviderBase<T>
-  implements vscode.TreeDataProvider<T>
+  implements vscode.TreeDataProvider<T>, Disposable
 {
   constructor(serverManager: IServerManager) {
     this.serverManager = serverManager;
@@ -26,6 +26,10 @@ export abstract class TreeDataProviderBase<T>
   abstract getTreeItem(element: T): vscode.TreeItem | Thenable<vscode.TreeItem>;
 
   abstract getChildren(element?: T | undefined): vscode.ProviderResult<T[]>;
+
+  dispose = async (): Promise<void> => {
+    this._onDidChangeTreeData.dispose();
+  };
 
   refresh(): void {
     this._onDidChangeTreeData.fire();

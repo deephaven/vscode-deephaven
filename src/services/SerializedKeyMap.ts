@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import type { Disposable } from '../types';
 
 /**
  * Base class for Maps that need to store their keys as serialized string values
@@ -10,7 +11,7 @@ import * as vscode from 'vscode';
  * // New reference on every call
  * e.g. deserializeKey = (key: string) => new URL(key)
  */
-export abstract class SerializedKeyMap<TKey, TValue> {
+export abstract class SerializedKeyMap<TKey, TValue> implements Disposable {
   constructor();
   constructor(entries: readonly (readonly [TKey, TValue])[] | null);
   constructor(entries?: readonly (readonly [TKey, TValue])[] | null) {
@@ -39,6 +40,11 @@ export abstract class SerializedKeyMap<TKey, TValue> {
     this._map.clear();
     keys.forEach(key => this._onDidChange.fire(key));
   }
+
+  dispose = async (): Promise<void> => {
+    this._map.clear();
+    this._onDidChange.dispose();
+  };
 
   get(key: TKey): TValue | undefined {
     return this._map.get(this.serializeKey(key));

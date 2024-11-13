@@ -161,6 +161,7 @@ export class ExtensionController implements Disposable {
     const codelensProvider = new RunCommandCodeLensProvider();
 
     this._context.subscriptions.push(
+      codelensProvider,
       vscode.languages.registerCodeLensProvider('groovy', codelensProvider),
       vscode.languages.registerCodeLensProvider('python', codelensProvider)
     );
@@ -530,7 +531,10 @@ export class ExtensionController implements Disposable {
     this._context.subscriptions.push(
       this._serverTreeView,
       this._serverConnectionTreeView,
-      this._serverConnectionPanelTreeView
+      this._serverConnectionPanelTreeView,
+      this._serverTreeProvider,
+      this._serverConnectionTreeProvider,
+      this._serverConnectionPanelTreeProvider
     );
   };
 

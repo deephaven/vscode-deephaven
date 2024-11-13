@@ -37,6 +37,7 @@ export class PanelService implements IPanelService, Disposable {
   dispose = async (): Promise<void> => {
     this._cnPanelMap.clear();
     this._cnVariableMap.clear();
+    this._onDidUpdate.dispose();
   };
 
   /**

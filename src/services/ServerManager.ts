@@ -100,6 +100,15 @@ export class ServerManager implements IServerManager {
 
   canStartServer: boolean;
 
+  async dispose(): Promise<void> {
+    this._onDidConnect.dispose();
+    this._onDidDisconnect.dispose();
+    this._onDidLoadConfig.dispose();
+    this._onDidServerStatusChange.dispose();
+    this._onDidRegisterEditor.dispose();
+    this._onDidUpdate.dispose();
+  }
+
   loadServerConfig = async (): Promise<void> => {
     // We want to keep any existing managed servers that aren't overridden by
     // the latest config so we don't lose the PSKs that were generated when
@@ -625,6 +634,4 @@ export class ServerManager implements IServerManager {
 
     this._hasEverUpdatedStatus = true;
   };
-
-  async dispose(): Promise<void> {}
 }
