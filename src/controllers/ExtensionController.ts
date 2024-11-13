@@ -117,11 +117,14 @@ export class ExtensionController implements Disposable {
   readonly _config: IConfigService;
 
   private _connectionController: ConnectionController | null = null;
-  private _coreClientCache: URLMap<CoreAuthenticatedClient> | null = null;
+  private _coreClientCache: URLMap<
+    CoreAuthenticatedClient & Disposable
+  > | null = null;
   private _coreClientFactory: ICoreClientFactory | null = null;
   private _coreJsApiCache: IAsyncCacheService<URL, typeof DhcType> | null =
     null;
-  private _dheClientCache: URLMap<DheAuthenticatedClient> | null = null;
+  private _dheClientCache: URLMap<DheAuthenticatedClient & Disposable> | null =
+    null;
   private _dheClientFactory: IDheClientFactory | null = null;
   private _dheServiceCache: IAsyncCacheService<URL, IDheService> | null = null;
   private _panelController: PanelController | null = null;
@@ -362,10 +365,10 @@ export class ExtensionController implements Disposable {
       });
     };
 
-    this._coreClientCache = new URLMap<CoreAuthenticatedClient>();
+    this._coreClientCache = new URLMap<CoreAuthenticatedClient & Disposable>();
     this._context.subscriptions.push(this._coreClientCache);
 
-    this._dheClientCache = new URLMap<DheAuthenticatedClient>();
+    this._dheClientCache = new URLMap<DheAuthenticatedClient & Disposable>();
     this._context.subscriptions.push(this._dheClientCache);
 
     this._panelService = new PanelService();
