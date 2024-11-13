@@ -178,7 +178,7 @@ export class DhcService implements IDhcService {
       try {
         const { cn, session } = await this.initSessionPromise;
 
-        cn.subscribeToFieldUpdates(changes => {
+        const fieldUpdateSubscription = cn.subscribeToFieldUpdates(changes => {
           this.panelService.updateVariables(
             this.serverUrl,
             changes as VariableChanges
@@ -198,15 +198,15 @@ export class DhcService implements IDhcService {
             panelVariablesToUpdate
           );
         });
+        this.subscriptions.push(fieldUpdateSubscription);
 
         // TODO: Use constant 'disconnect' event name
-        this.subscriptions.push(
-          cn.addEventListener('disconnect', () => {
-            this.clearCaches();
-          })
-        );
+        const disconnectSubscription = cn.addEventListener('disconnect', () => {
+          this.clearCaches();
+        });
+        this.subscriptions.push(disconnectSubscription);
 
-        session.onLogMessage(logItem => {
+        const logMessageSubscription = session.onLogMessage(logItem => {
           // TODO: Should this pull log level from config somewhere?
           if (logItem.logLevel !== 'INFO') {
             const date = new Date(logItem.micros / 1000);
@@ -217,6 +217,7 @@ export class DhcService implements IDhcService {
             );
           }
         });
+        this.subscriptions.push(logMessageSubscription);
       } catch (err) {}
     }
 
