@@ -80,7 +80,7 @@ export function getPanelVariableTreeItem([url, variable]: [
   const iconPath = getVariableIconPath(variable.type);
 
   return {
-    description: variable.title,
+    label: variable.title,
     iconPath,
     command: {
       title: 'Open Panel',
