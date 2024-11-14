@@ -66,6 +66,7 @@ import type {
   CoreAuthenticatedClient,
   ICoreClientFactory,
   CoreUnauthenticatedClient,
+  WorkerURL,
 } from '../types';
 import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTreeDragAndDropController';
 import { ConnectionController } from './ConnectionController';
@@ -331,10 +332,26 @@ export class ExtensionController implements Disposable {
       url: URL
     ): Promise<CoreUnauthenticatedClient & Disposable> => {
       assertDefined(this._coreJsApiCache, 'coreJsApiCache');
+
+      const workerInfo = await this._serverManager?.getWorkerInfo(
+        url as WorkerURL
+      );
+
       const dhc = await this._coreJsApiCache.get(url);
 
+      const clientUrl = workerInfo == null ? url : workerInfo.grpcUrl;
+      const envoyPrefix = workerInfo?.envoyPrefix;
+
       const client = new dhc.CoreClient(
-        url.toString()
+        clientUrl.toString().replace(/\/$/, ''),
+        envoyPrefix == null
+          ? undefined
+          : {
+              headers: {
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                'envoy-prefix': envoyPrefix,
+              },
+            }
       ) as CoreUnauthenticatedClient;
 
       // Attach a dispose method so that client caches can dispose of the client
