@@ -63,11 +63,11 @@ exports[`getPanelVariableTreeItem > should return panel variable tree item: type
     "command": "vscode-deephaven.openVariablePanels",
     "title": "Open Panel",
   },
-  "description": "some title",
   "iconPath": {
     "color": undefined,
     "id": "graph",
   },
+  "label": "some title",
 }
 `;
 
@@ -86,11 +86,11 @@ exports[`getPanelVariableTreeItem > should return panel variable tree item: type
     "command": "vscode-deephaven.openVariablePanels",
     "title": "Open Panel",
   },
-  "description": "some title",
   "iconPath": {
     "color": undefined,
     "id": "dh-table",
   },
+  "label": "some title",
 }
 `;
 
@@ -109,11 +109,11 @@ exports[`getPanelVariableTreeItem > should return panel variable tree item: type
     "command": "vscode-deephaven.openVariablePanels",
     "title": "Open Panel",
   },
-  "description": "some title",
   "iconPath": {
     "color": undefined,
     "id": "preview",
   },
+  "label": "some title",
 }
 `;
 
@@ -132,11 +132,11 @@ exports[`getPanelVariableTreeItem > should return panel variable tree item: type
     "command": "vscode-deephaven.openVariablePanels",
     "title": "Open Panel",
   },
-  "description": "some title",
   "iconPath": {
     "color": undefined,
     "id": "dh-table",
   },
+  "label": "some title",
 }
 `;
 
@@ -155,11 +155,11 @@ exports[`getPanelVariableTreeItem > should return panel variable tree item: type
     "command": "vscode-deephaven.openVariablePanels",
     "title": "Open Panel",
   },
-  "description": "some title",
   "iconPath": {
     "color": undefined,
     "id": "dh-table",
   },
+  "label": "some title",
 }
 `;
 
@@ -178,11 +178,11 @@ exports[`getPanelVariableTreeItem > should return panel variable tree item: type
     "command": "vscode-deephaven.openVariablePanels",
     "title": "Open Panel",
   },
-  "description": "some title",
   "iconPath": {
     "color": undefined,
     "id": "dh-table",
   },
+  "label": "some title",
 }
 `;
 
@@ -201,11 +201,11 @@ exports[`getPanelVariableTreeItem > should return panel variable tree item: type
     "command": "vscode-deephaven.openVariablePanels",
     "title": "Open Panel",
   },
-  "description": "some title",
   "iconPath": {
     "color": undefined,
     "id": "dh-table",
   },
+  "label": "some title",
 }
 `;
 
@@ -224,11 +224,11 @@ exports[`getPanelVariableTreeItem > should return panel variable tree item: type
     "command": "vscode-deephaven.openVariablePanels",
     "title": "Open Panel",
   },
-  "description": "some title",
   "iconPath": {
     "color": undefined,
     "id": "preview",
   },
+  "label": "some title",
 }
 `;
 
@@ -247,11 +247,11 @@ exports[`getPanelVariableTreeItem > should return panel variable tree item: type
     "command": "vscode-deephaven.openVariablePanels",
     "title": "Open Panel",
   },
-  "description": "some title",
   "iconPath": {
     "color": undefined,
     "id": "graph",
   },
+  "label": "some title",
 }
 `;
 
@@ -270,11 +270,11 @@ exports[`getPanelVariableTreeItem > should return panel variable tree item: type
     "command": "vscode-deephaven.openVariablePanels",
     "title": "Open Panel",
   },
-  "description": "some title",
   "iconPath": {
     "color": undefined,
     "id": "preview",
   },
+  "label": "some title",
 }
 `;
 
@@ -293,11 +293,11 @@ exports[`getPanelVariableTreeItem > should return panel variable tree item: type
     "command": "vscode-deephaven.openVariablePanels",
     "title": "Open Panel",
   },
-  "description": "some title",
   "iconPath": {
     "color": undefined,
     "id": "dh-pandas",
   },
+  "label": "some title",
 }
 `;
 
