@@ -13,7 +13,6 @@ import {
   createConnectionQuickPick,
   createConnectionQuickPickOptions,
   createConnectStatusBarItem,
-  getConnectionsForConsoleType,
   getConsoleType,
   getEditorForUri,
   isSupportedLanguageId,
@@ -21,6 +20,7 @@ import {
   updateConnectionStatusBarItem,
 } from '../util';
 import { UnsupportedConsoleTypeError } from '../common';
+import { getConnectionsForConsoleType } from '../services';
 
 const logger = new Logger('ConnectionController');
 
@@ -153,6 +153,7 @@ export class ConnectionController implements Disposable {
       // disconnect from it.
       if (err instanceof UnsupportedConsoleTypeError && newConnectionUrl) {
         this._serverManager.disconnectFromServer(newConnectionUrl);
+        this._toaster.error(err.message);
       }
 
       throw err;

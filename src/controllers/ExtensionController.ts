@@ -117,11 +117,14 @@ export class ExtensionController implements Disposable {
   readonly _config: IConfigService;
 
   private _connectionController: ConnectionController | null = null;
-  private _coreClientCache: URLMap<CoreAuthenticatedClient> | null = null;
+  private _coreClientCache: URLMap<
+    CoreAuthenticatedClient & Disposable
+  > | null = null;
   private _coreClientFactory: ICoreClientFactory | null = null;
   private _coreJsApiCache: IAsyncCacheService<URL, typeof DhcType> | null =
     null;
-  private _dheClientCache: URLMap<DheAuthenticatedClient> | null = null;
+  private _dheClientCache: URLMap<DheAuthenticatedClient & Disposable> | null =
+    null;
   private _dheClientFactory: IDheClientFactory | null = null;
   private _dheServiceCache: IAsyncCacheService<URL, IDheService> | null = null;
   private _panelController: PanelController | null = null;
@@ -161,6 +164,7 @@ export class ExtensionController implements Disposable {
     const codelensProvider = new RunCommandCodeLensProvider();
 
     this._context.subscriptions.push(
+      codelensProvider,
       vscode.languages.registerCodeLensProvider('groovy', codelensProvider),
       vscode.languages.registerCodeLensProvider('python', codelensProvider)
     );
@@ -329,22 +333,43 @@ export class ExtensionController implements Disposable {
 
     this._coreClientFactory = async (
       url: URL
-    ): Promise<CoreUnauthenticatedClient> => {
+    ): Promise<CoreUnauthenticatedClient & Disposable> => {
       assertDefined(this._coreJsApiCache, 'coreJsApiCache');
       const dhc = await this._coreJsApiCache.get(url);
-      return new dhc.CoreClient(url.toString()) as CoreUnauthenticatedClient;
+
+      const client = new dhc.CoreClient(
+        url.toString()
+      ) as CoreUnauthenticatedClient;
+
+      // Attach a dispose method so that client caches can dispose of the client
+      return Object.assign(client, {
+        dispose: async () => {
+          client.disconnect();
+        },
+      });
     };
 
     this._dheClientFactory = async (
       url: URL
-    ): Promise<DheUnauthenticatedClient> => {
+    ): Promise<DheUnauthenticatedClient & Disposable> => {
       assertDefined(this._dheJsApiCache, 'dheJsApiCache');
       const dhe = await this._dheJsApiCache.get(url);
-      return createDheClient(dhe, getWsUrl(url));
+
+      const client = await createDheClient(dhe, getWsUrl(url));
+
+      // Attach a dispose method so that client caches can dispose of the client
+      return Object.assign(client, {
+        dispose: async () => {
+          client.disconnect();
+        },
+      });
     };
 
-    this._coreClientCache = new URLMap();
-    this._dheClientCache = new URLMap();
+    this._coreClientCache = new URLMap<CoreAuthenticatedClient & Disposable>();
+    this._context.subscriptions.push(this._coreClientCache);
+
+    this._dheClientCache = new URLMap<DheAuthenticatedClient & Disposable>();
+    this._context.subscriptions.push(this._dheClientCache);
 
     this._panelService = new PanelService();
     this._context.subscriptions.push(this._panelService);
@@ -382,6 +407,7 @@ export class ExtensionController implements Disposable {
 
     this._serverManager.onDidDisconnect(
       serverUrl => {
+        this._panelService?.clearServerData(serverUrl);
         this._outputChannel?.appendLine(
           `Disconnected from server: '${serverUrl}'.`
         );
@@ -529,7 +555,10 @@ export class ExtensionController implements Disposable {
     this._context.subscriptions.push(
       this._serverTreeView,
       this._serverConnectionTreeView,
-      this._serverConnectionPanelTreeView
+      this._serverConnectionPanelTreeView,
+      this._serverTreeProvider,
+      this._serverConnectionTreeProvider,
+      this._serverConnectionPanelTreeProvider
     );
   };
 

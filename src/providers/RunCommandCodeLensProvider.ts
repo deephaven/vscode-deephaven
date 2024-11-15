@@ -1,11 +1,12 @@
 import * as vscode from 'vscode';
 import { ICON_ID } from '../common';
+import type { Disposable } from '../types';
 
 /**
  * Provides inline editor code lenses for running Deephaven code.
  */
 export class RunCommandCodeLensProvider
-  implements vscode.CodeLensProvider<vscode.CodeLens>
+  implements vscode.CodeLensProvider<vscode.CodeLens>, Disposable
 {
   constructor() {
     vscode.workspace.onDidChangeConfiguration(() => {
@@ -21,6 +22,10 @@ export class RunCommandCodeLensProvider
 
   readonly onDidChangeCodeLenses: vscode.Event<void> =
     this._onDidChangeCodeLenses.event;
+
+  dispose = async (): Promise<void> => {
+    this._onDidChangeCodeLenses.dispose();
+  };
 
   provideCodeLenses(
     document: vscode.TextDocument,

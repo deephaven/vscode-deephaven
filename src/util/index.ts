@@ -6,6 +6,7 @@ export * from './isDisposable';
 export * from './Logger';
 export * from './OutputChannelWithHistory';
 export * from './panelUtils';
+export * from './promiseUtils';
 export * from './selectionUtils';
 export * from './serverUtils';
 export * from './testUtils';

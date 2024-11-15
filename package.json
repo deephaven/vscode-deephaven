@@ -46,7 +46,7 @@
     "test:lint": "eslint . --ext ts",
     "test:unit": "vitest --reporter=default --reporter=junit --outputFile=./test-reports/vitest.junit.xml",
     "test": "npm run test:unit",
-    "vscode:prepublish": "compile:prod",
+    "vscode:prepublish": "npm run compile:prod",
     "watch:esbuild": "node scripts/esbuild.js --watch",
     "watch:tsc": "tsc --build ./tsconfig.json --watch",
     "watch": "npm-run-all -p watch:*"

@@ -75,25 +75,13 @@ export interface IDheService extends ConnectionState, Disposable {
   deleteWorker: (workerUrl: WorkerURL) => Promise<void>;
 }
 
-/**
- * @deprecated Use `vscode.EventEmitter` instead.
- */
-export interface IEventDispatcher<TEventName extends string> {
-  addEventListener: (
-    eventName: TEventName,
-    listener: EventListenerT
-  ) => UnsubscribeEventListener;
-
-  dispatchEvent: <TEvent>(eventName: TEventName, event?: TEvent) => void;
-}
-
 export interface IFactory<T, TArgs extends unknown[] = []> {
   create: (...args: TArgs) => T;
 }
 
 export type ICoreClientFactory = (
   serverUrl: URL
-) => Promise<CoreUnauthenticatedClient>;
+) => Promise<CoreUnauthenticatedClient & Disposable>;
 
 /**
  * Factory for creating IDhService instances.
@@ -104,12 +92,13 @@ export type IDhcServiceFactory = IFactory<
 >;
 export type IDheClientFactory = (
   serverUrl: URL
-) => Promise<DheUnauthenticatedClient>;
+) => Promise<DheUnauthenticatedClient & Disposable>;
 export type IDheServiceFactory = IFactory<IDheService, [serverUrl: URL]>;
 
 export interface IPanelService extends Disposable {
   readonly onDidUpdate: vscode.Event<void>;
 
+  clearServerData: (url: URL) => void;
   getPanelUrls: () => URL[];
   getPanelVariables: (url: URL) => VariableDefintion[];
   getPanelOrThrow: (url: URL, variableId: VariableID) => vscode.WebviewPanel;

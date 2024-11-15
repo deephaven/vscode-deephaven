@@ -59,7 +59,10 @@ describe('getPanelConnectionTreeItem', () => {
 
       vi.mocked(isInstanceOf).mockReturnValue(true);
 
-      const actual = await getPanelConnectionTreeItem(connection);
+      const actual = await getPanelConnectionTreeItem(connection, async () => {
+        const [consoleType] = await getConsoleTypes();
+        return isInitialized ? consoleType : undefined;
+      });
       expect(actual).toMatchSnapshot();
     }
   );

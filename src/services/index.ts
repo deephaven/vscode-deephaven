@@ -1,5 +1,6 @@
 export * from './cache';
 export * from './ConfigService';
+export * from './consoleTypeUtils';
 export * from './DhcService';
 export * from './DheService';
 export * from './PanelService';

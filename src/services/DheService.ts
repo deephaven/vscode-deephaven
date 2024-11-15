@@ -256,8 +256,10 @@ export class DheService implements IDheService {
     const querySerials = [...this._querySerialSet];
 
     this._querySerialSet.clear();
-    this._workerInfoMap.clear();
 
-    await this._disposeQueries(querySerials);
+    await Promise.all([
+      this._workerInfoMap.dispose(),
+      this._disposeQueries(querySerials),
+    ]);
   };
 }

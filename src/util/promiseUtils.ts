@@ -1,5 +1,3 @@
-import { PollingService } from '../services';
-
 export interface PromiseWithResolvers<T> {
   promise: Promise<T>;
   resolve: (value: T | PromiseLike<T>) => void;
@@ -37,65 +35,5 @@ export function withResolvers<T>(): PromiseWithResolvers<T> {
     promise,
     resolve,
     reject,
-  };
-}
-
-/**
- * Call the given poll function at an interval.
- * - If the poll result resolves to true, stop polling and resolve the promise.
- * - If the poll function throws, stop polling and reject the promise.
- * @param poll
- * @param intervalMs
- * @param timeoutMs
- * @returns Promise that resolves when the poll function returns true + a `reject`
- * function that can be used to cancel the polling.
- */
-export function pollUntilTrue(
-  poll: () => Promise<boolean>,
-  intervalMs: number,
-  timeoutMs?: number
-): PromiseWithCancel<true> {
-  const { promise, resolve, reject } = withResolvers<true>();
-
-  let timeout: NodeJS.Timeout;
-  const poller = new PollingService();
-
-  /** Stop polling and resolve / reject promise */
-  function resolveOrReject(trueOrError: true | Error): void {
-    poller.stop();
-    clearTimeout(timeout);
-
-    if (trueOrError === true) {
-      resolve(trueOrError);
-    } else {
-      reject(trueOrError);
-    }
-  }
-
-  /** Cancel polling */
-  const cancel = (): void => {
-    resolveOrReject(new Error('Polling cancelled'));
-  };
-
-  if (timeoutMs != null) {
-    timeout = setTimeout(() => {
-      cancel();
-    }, timeoutMs);
-  }
-
-  poller.start(async () => {
-    try {
-      const isTrue = await poll();
-      if (isTrue) {
-        resolveOrReject(true);
-      }
-    } catch (err) {
-      resolveOrReject(err instanceof Error ? err : new Error(String(err)));
-    }
-  }, intervalMs);
-
-  return {
-    promise,
-    cancel,
   };
 }
