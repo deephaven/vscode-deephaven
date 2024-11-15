@@ -765,14 +765,6 @@ export class ExtensionController implements Disposable {
   };
 
   /**
-   * Open search connections.
-   */
-  onSearchConnections = async (): Promise<void> => {
-    vscode.commands.executeCommand(`${VIEW_ID.serverConnectionTree}.focus`);
-    vscode.commands.executeCommand('list.find');
-  };
-
-  /**
    * Open search input for tree panel.
    */
   onSearchTree = async function (this: ViewID): Promise<void> {
