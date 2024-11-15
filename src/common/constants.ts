@@ -55,6 +55,8 @@ export const VIEW_ID = {
   serverConnectionPanelTree: `${EXTENSION_ID}.serverConnectionPanelTree`,
 } as const;
 
+export type ViewID = (typeof VIEW_ID)[keyof typeof VIEW_ID];
+
 export const ICON_ID = {
   blank: 'blank',
   connected: 'vm-connect',
