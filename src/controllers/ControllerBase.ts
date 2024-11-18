@@ -10,10 +10,12 @@ export abstract class ControllerBase implements Disposable {
   /**
    * Register a command and add it's subscription to the disposables list.
    */
-  registerCommand = (
-    ...args: Parameters<typeof vscode.commands.registerCommand>
+  registerCommand = <TThis = any>(
+    command: string,
+    callback: (this: TThis, ...args: any[]) => any,
+    thisArg?: TThis
   ): void => {
-    const cmd = vscode.commands.registerCommand(...args);
+    const cmd = vscode.commands.registerCommand(command, callback, thisArg);
     this.disposables.push(cmd);
   };
 

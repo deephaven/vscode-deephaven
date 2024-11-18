@@ -14,10 +14,13 @@ import {
   REFRESH_SERVER_TREE_CMD,
   RUN_CODE_COMMAND,
   RUN_SELECTION_COMMAND,
+  SEARCH_CONNECTIONS_CMD,
+  SEARCH_PANELS_CMD,
   SELECT_CONNECTION_COMMAND,
   START_SERVER_CMD,
   STOP_SERVER_CMD,
   VIEW_ID,
+  type ViewID,
 } from '../common';
 import {
   assertDefined,
@@ -500,6 +503,20 @@ export class ExtensionController implements Disposable {
       this.onRefreshServerStatus
     );
 
+    /** Search connections */
+    this.registerCommand(
+      SEARCH_CONNECTIONS_CMD,
+      this.onSearchTree,
+      VIEW_ID.serverConnectionTree
+    );
+
+    /** Search variable panels */
+    this.registerCommand(
+      SEARCH_PANELS_CMD,
+      this.onSearchTree,
+      VIEW_ID.serverConnectionPanelTree
+    );
+
     /** Start a server */
     this.registerCommand(START_SERVER_CMD, this.onStartServer);
 
@@ -777,6 +794,14 @@ export class ExtensionController implements Disposable {
   };
 
   /**
+   * Open search input for tree panel.
+   */
+  onSearchTree = async function (this: ViewID): Promise<void> {
+    vscode.commands.executeCommand(`${this}.focus`);
+    vscode.commands.executeCommand('list.find');
+  };
+
+  /**
    * Start a server.
    */
   onStartServer = async (): Promise<void> => {
@@ -794,10 +819,12 @@ export class ExtensionController implements Disposable {
   /**
    * Register a command and add it's subscription to the context.
    */
-  registerCommand = (
-    ...args: Parameters<typeof vscode.commands.registerCommand>
+  registerCommand = <TThis = any>(
+    command: string,
+    callback: (this: TThis, ...args: any[]) => any,
+    thisArg?: TThis
   ): void => {
-    const cmd = vscode.commands.registerCommand(...args);
+    const cmd = vscode.commands.registerCommand(command, callback, thisArg);
     this._context.subscriptions.push(cmd);
   };
 }

@@ -227,6 +227,16 @@
         "title": "Create DHE Authenticated Client"
       },
       {
+        "command": "vscode-deephaven.searchConnections",
+        "title": "Search Connections",
+        "icon": "$(search)"
+      },
+      {
+        "command": "vscode-deephaven.searchPanels",
+        "title": "Search Panels",
+        "icon": "$(search)"
+      },
+      {
         "command": "vscode-deephaven.startServer",
         "title": "Deephaven: Start Server",
         "icon": "$(debug-start)"
@@ -704,6 +714,14 @@
           "when": "false"
         },
         {
+          "command": "vscode-deephaven.searchConnections",
+          "when": "false"
+        },
+        {
+          "command": "vscode-deephaven.searchPanels",
+          "when": "false"
+        },
+        {
           "command": "vscode-deephaven.createCoreAuthenticatedClient",
           "when": "false"
         },
@@ -746,6 +764,16 @@
           "command": "vscode-deephaven.refreshServerConnectionTree",
           "group": "navigation",
           "when": "view == vscode-deephaven.serverConnectionTree"
+        },
+        {
+          "command": "vscode-deephaven.searchConnections",
+          "group": "navigation",
+          "when": "view == vscode-deephaven.serverConnectionTree"
+        },
+        {
+          "command": "vscode-deephaven.searchPanels",
+          "group": "navigation",
+          "when": "view == vscode-deephaven.serverConnectionPanelTree"
         }
       ],
       "view/item/context": [
