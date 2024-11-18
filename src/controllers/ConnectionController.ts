@@ -19,18 +19,28 @@ import {
   Logger,
   updateConnectionStatusBarItem,
 } from '../util';
-import { UnsupportedConsoleTypeError } from '../common';
 import { getConnectionsForConsoleType } from '../services';
+import {
+  CONNECT_TO_SERVER_CMD,
+  CONNECT_TO_SERVER_OPERATE_AS_CMD,
+  DISCONNECT_EDITOR_CMD,
+  DISCONNECT_FROM_SERVER_CMD,
+  SELECT_CONNECTION_COMMAND,
+  UnsupportedConsoleTypeError,
+} from '../common';
+import { ControllerBase } from './ControllerBase';
 
 const logger = new Logger('ConnectionController');
 
-export class ConnectionController implements Disposable {
+export class ConnectionController extends ControllerBase implements Disposable {
   constructor(
     context: vscode.ExtensionContext,
     serverManager: IServerManager,
     outputChannel: vscode.OutputChannel,
     toastService: IToastService
   ) {
+    super();
+
     this._context = context;
     this._serverManager = serverManager;
     this._outputChannel = outputChannel;
@@ -38,6 +48,30 @@ export class ConnectionController implements Disposable {
 
     this.initializeConnectionStatusBarItem();
     this.initializeServerManager();
+
+    /** Create server connection */
+    this.registerCommand(CONNECT_TO_SERVER_CMD, this.onConnectToServer);
+
+    /** Create server connection operating as another user */
+    this.registerCommand(
+      CONNECT_TO_SERVER_OPERATE_AS_CMD,
+      this.onConnectToServerOperateAs
+    );
+
+    /** Disconnect editor */
+    this.registerCommand(DISCONNECT_EDITOR_CMD, this.onDisconnectEditor);
+
+    /** Disconnect from server */
+    this.registerCommand(
+      DISCONNECT_FROM_SERVER_CMD,
+      this.onDisconnectFromServer
+    );
+
+    /** Select connection to run scripts against */
+    this.registerCommand(
+      SELECT_CONNECTION_COMMAND,
+      this.onPromptUserToSelectConnection
+    );
   }
 
   private readonly _context: vscode.ExtensionContext;
@@ -228,6 +262,76 @@ export class ConnectionController implements Disposable {
     }
 
     return dhService;
+  };
+
+  /**
+   * Handle connecting to a server
+   */
+  onConnectToServer = async (
+    serverState: ServerState,
+    operateAsAnotherUser?: boolean
+  ): Promise<void> => {
+    const languageId = vscode.window.activeTextEditor?.document.languageId;
+
+    // DHE servers need to specify the console type for each worker creation.
+    // Use the active editor's language id to determine the console type.
+    const workerConsoleType =
+      serverState.type === 'DHE' ? getConsoleType(languageId) : undefined;
+
+    this._serverManager?.connectToServer(
+      serverState.url,
+      workerConsoleType,
+      operateAsAnotherUser
+    );
+  };
+
+  /**
+   * Handle connecting to a server as another user.
+   * @param serverState
+   */
+  onConnectToServerOperateAs = async (
+    serverState: ServerState
+  ): Promise<void> => {
+    this.onConnectToServer(serverState, true);
+  };
+
+  /**
+   * Disconnect editor from active connections.
+   * @param uri
+   */
+  onDisconnectEditor = (uri: vscode.Uri): void => {
+    this._serverManager?.disconnectEditor(uri);
+    this.updateConnectionStatusBarItem();
+  };
+
+  /**
+   * Handle disconnecting from a server.
+   */
+  onDisconnectFromServer = async (
+    serverOrConnectionState: ServerState | ConnectionState
+  ): Promise<void> => {
+    // ConnectionState (connection only disconnect)
+    if ('serverUrl' in serverOrConnectionState) {
+      this._serverManager?.disconnectFromServer(
+        serverOrConnectionState.serverUrl
+      );
+      return;
+    }
+
+    // DHC ServerState
+    if (serverOrConnectionState.type === 'DHC') {
+      await this._serverManager?.disconnectFromServer(
+        serverOrConnectionState.url
+      );
+    }
+    // DHE ServerState
+    else {
+      await this._serverManager?.disconnectFromDHEServer(
+        serverOrConnectionState.url
+      );
+    }
+
+    this.updateConnectionStatusBarItem();
   };
 
   /**

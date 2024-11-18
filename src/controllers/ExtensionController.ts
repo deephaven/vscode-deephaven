@@ -3,11 +3,7 @@ import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type { EnterpriseDhType as DheType } from '@deephaven-enterprise/jsapi-types';
 import {
   CLEAR_SECRET_STORAGE_CMD,
-  CONNECT_TO_SERVER_CMD,
-  CONNECT_TO_SERVER_OPERATE_AS_CMD,
   CREATE_NEW_TEXT_DOC_CMD,
-  DISCONNECT_EDITOR_CMD,
-  DISCONNECT_FROM_SERVER_CMD,
   DOWNLOAD_LOGS_CMD,
   OPEN_IN_BROWSER_CMD,
   REFRESH_SERVER_CONNECTION_TREE_CMD,
@@ -16,7 +12,6 @@ import {
   RUN_SELECTION_COMMAND,
   SEARCH_CONNECTIONS_CMD,
   SEARCH_PANELS_CMD,
-  SELECT_CONNECTION_COMMAND,
   START_SERVER_CMD,
   STOP_SERVER_CMD,
   VIEW_ID,
@@ -24,7 +19,6 @@ import {
 } from '../common';
 import {
   assertDefined,
-  getConsoleType,
   getEditorForUri,
   getTempDir,
   isInstanceOf,
@@ -52,7 +46,6 @@ import {
   CoreJsApiCache,
 } from '../services';
 import type {
-  ConnectionState,
   Disposable,
   IAsyncCacheService,
   IConfigService,
@@ -455,26 +448,8 @@ export class ExtensionController implements Disposable {
     /** Clear secret storage */
     this.registerCommand(CLEAR_SECRET_STORAGE_CMD, this.onClearSecretStorage);
 
-    /** Create server connection */
-    this.registerCommand(CONNECT_TO_SERVER_CMD, this.onConnectToServer);
-
-    /** Create server connection operating as another user */
-    this.registerCommand(
-      CONNECT_TO_SERVER_OPERATE_AS_CMD,
-      this.onConnectToServerOperateAs
-    );
-
     /** Create new document */
     this.registerCommand(CREATE_NEW_TEXT_DOC_CMD, this.onCreateNewDocument);
-
-    /** Disconnect editor */
-    this.registerCommand(DISCONNECT_EDITOR_CMD, this.onDisconnectEditor);
-
-    /** Disconnect from server */
-    this.registerCommand(
-      DISCONNECT_FROM_SERVER_CMD,
-      this.onDisconnectFromServer
-    );
 
     /** Download logs and open in editor */
     this.registerCommand(DOWNLOAD_LOGS_CMD, this.onDownloadLogs);
@@ -487,12 +462,6 @@ export class ExtensionController implements Disposable {
 
     /** Run selected code in active editor */
     this.registerCommand(RUN_SELECTION_COMMAND, this.onRunSelectedCode);
-
-    /** Select connection to run scripts against */
-    this.registerCommand(
-      SELECT_CONNECTION_COMMAND,
-      this._connectionController.onPromptUserToSelectConnection
-    );
 
     /** Refresh server tree */
     this.registerCommand(REFRESH_SERVER_TREE_CMD, this.onRefreshServerStatus);
@@ -635,37 +604,6 @@ export class ExtensionController implements Disposable {
   };
 
   /**
-   * Handle connecting to a server
-   */
-  onConnectToServer = async (
-    serverState: ServerState,
-    operateAsAnotherUser?: boolean
-  ): Promise<void> => {
-    const languageId = vscode.window.activeTextEditor?.document.languageId;
-
-    // DHE servers need to specify the console type for each worker creation.
-    // Use the active editor's language id to determine the console type.
-    const workerConsoleType =
-      serverState.type === 'DHE' ? getConsoleType(languageId) : undefined;
-
-    this._serverManager?.connectToServer(
-      serverState.url,
-      workerConsoleType,
-      operateAsAnotherUser
-    );
-  };
-
-  /**
-   * Handle connecting to a server as another user.
-   * @param serverState
-   */
-  onConnectToServerOperateAs = async (
-    serverState: ServerState
-  ): Promise<void> => {
-    this.onConnectToServer(serverState, true);
-  };
-
-  /**
    * Create a new text document based on the given connection capabilities.
    * @param dhService
    */
@@ -681,42 +619,6 @@ export class ExtensionController implements Disposable {
     const editor = await vscode.window.showTextDocument(doc);
 
     this._serverManager?.setEditorConnection(editor, dhService);
-  };
-
-  /**
-   * Disconnect editor from active connections.
-   * @param uri
-   */
-  onDisconnectEditor = (uri: vscode.Uri): void => {
-    this._serverManager?.disconnectEditor(uri);
-  };
-
-  /**
-   * Handle disconnecting from a server.
-   */
-  onDisconnectFromServer = async (
-    serverOrConnectionState: ServerState | ConnectionState
-  ): Promise<void> => {
-    // ConnectionState (connection only disconnect)
-    if ('serverUrl' in serverOrConnectionState) {
-      this._serverManager?.disconnectFromServer(
-        serverOrConnectionState.serverUrl
-      );
-      return;
-    }
-
-    // DHC ServerState
-    if (serverOrConnectionState.type === 'DHC') {
-      await this._serverManager?.disconnectFromServer(
-        serverOrConnectionState.url
-      );
-    }
-    // DHE ServerState
-    else {
-      await this._serverManager?.disconnectFromDHEServer(
-        serverOrConnectionState.url
-      );
-    }
   };
 
   /**
