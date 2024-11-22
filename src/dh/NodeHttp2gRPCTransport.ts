@@ -1,5 +1,6 @@
 import http2 from 'node:http2';
 import { grpc } from '@improbable-eng/grpc-web';
+import { assertDefined } from '../util';
 
 export class NodeHttp2gRPCTransport implements grpc.Transport {
   static _sessionMap: Map<string, http2.ClientHttp2Session> = new Map();
@@ -41,7 +42,6 @@ export class NodeHttp2gRPCTransport implements grpc.Transport {
 
   private readonly _options: grpc.TransportOptions;
   private readonly _session: http2.ClientHttp2Session;
-  private _metadata: grpc.Metadata | null = null;
   private _request: http2.ClientHttp2Stream | null = null;
 
   _createRequest = (
@@ -90,43 +90,34 @@ export class NodeHttp2gRPCTransport implements grpc.Transport {
   start(metadata: grpc.Metadata): void {
     console.log('[NodeHttp2Transport] start', metadata.headersMap);
 
-    if (this._metadata != null) {
+    if (this._request != null) {
       throw new Error('start called more than once');
     }
 
-    this._metadata = metadata;
+    const headers: Record<string, string> = {};
+    metadata?.forEach((key, values) => {
+      headers[key] = values.join(', ');
+    });
+
+    this._request = this._createRequest(headers);
   }
 
   sendMessage(msgBytes: Uint8Array): void {
     console.log('[NodeHttp2Transport] sendMessage', msgBytes);
-
-    const headers: Record<string, string> = {};
-    this._metadata?.forEach((key, values) => {
-      headers[key] = values.join(', ');
-    });
-
-    if (
-      !this._options.methodDefinition.requestStream &&
-      !this._options.methodDefinition.responseStream
-    ) {
-      // Disable chunked encoding for unary calls
-      headers['Content-Length'] = String(msgBytes.length);
-    }
-
-    const request = this._createRequest(headers);
-
-    request.write(msgBytes);
-    this._request = request;
+    assertDefined(this._request, '_request');
+    this._request.write(msgBytes);
   }
 
   finishSend(): void {
     console.log('[NodeHttp2Transport] finishSend');
-    this._request!.end();
+    assertDefined(this._request, '_request');
+    this._request.end();
   }
 
   cancel(): void {
     console.log('[NodeHttp2Transport] cancel');
-    this._request!.close();
+    assertDefined(this._request, '_request');
+    this._request.close();
   }
 
   /**
