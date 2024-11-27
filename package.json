@@ -1,6 +1,6 @@
 {
   "name": "vscode-deephaven",
-  "version": "0.1.14",
+  "version": "0.1.15",
   "displayName": "Deephaven in VS Code",
   "description": "",
   "publisher": "deephaven",
@@ -35,7 +35,7 @@
     "compile:prod": "npm run check:types && npm run test:lint && node scripts/esbuild.js --production",
     "icon:gen": "node icons/generate.mjs",
     "package:latest": "vsce package -o releases/vscode-deephaven-latest.vsix",
-    "publish:prerelease": "vsce publish --pre-release",
+    "publish:prerelease": "./scripts/publish-prerelease.sh",
     "report:ctrfmerge": "ctrf merge e2e/reports --keep-reports --output-dir test-reports --output ctrf-report.json",
     "report:ctrfsummary": "github-actions-ctrf test-reports/ctrf-report.json",
     "report:junit2ctrf": "junit-to-ctrf test-reports/vitest.junit.xml --output test-reports/ctrf-report.json",
