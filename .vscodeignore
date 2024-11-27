@@ -13,9 +13,4 @@
 !out/**/*.js
 !snippets.code-snippets
 
-!node_modules/**/LICENSE
-!node_modules/**/package.json
-!node_modules/**/README.md
-
-!node_modules/@deephaven/require-jsapi/**/*.js
-!node_modules/ws/**/*.{js,mjs}
+!node_modules
