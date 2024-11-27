@@ -1,11 +1,5 @@
 #!/bin/bash
 
-# Check if VSCE_PAT environment variable is set
-if [ -z "$VSCE_PAT" ]; then
-  echo "VSCE_PAT environment variable is not set"
-  exit 1
-fi
-
 set -e
 
 # Determine current npm version and calculate next patch version
