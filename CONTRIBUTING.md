@@ -85,22 +85,20 @@ https://code.visualstudio.com/api/working-with-extensions/publishing-extension#p
 
 ### Publish a new Version
 
-1. Set `VSCE_PAT` env variable to personal access token for a user in the https://dev.azure.com/deephaven-oss/ org.
-1. Increment the version number in `package.json` (be sure to run `npm i` to update package-lock as well)
-   > See [versioning strategy](#versioning-strategy) for details on our version number scheme.
-1. If new content has been added that needs to be packaged that is not included by `.vscodeignore`, make appropriate changes (this should not be common).
-1. Package latest `npm run package:latest` (inspect output to verify included files are as expected)
-1. Use `vsce` cli to publish to Visual Studio Marketplace
+See [versioning strategy](#versioning-strategy) for details on our version number scheme.
 
-   ```sh
-   # Pre-release
-   npm run publish:prerelease
-   ```
-1. Create a version tag with `-pre` suffix.
-   ```sh
-   npm run publish:tag
-   git push --tags
-   ```
+#### Before Publishing
+1. Verify the contents of the package will be what you expect:
+```sh
+npx vsce ls
+```
+1. If new content has been added that is not included in the output, you may need to tweak the `.vscodeignore`, to make sure it is included (this should not be common).
+1. Optionally run `npm run package:latest` if you want to locally install a `.vsix` for testing before publishing.
+
+#### Pre-Release Versions
+1. Make sure you are in a clean branch whose HEAD points to the commit to publish.
+1. Make sure you are logged in with `vsce` using a personal access token for a user in the https://dev.azure.com/deephaven-oss/ org. `npx vsce login deephaven`
+1. Run `npm run publish:prerelease`
 
 ## PNG Generation
 
