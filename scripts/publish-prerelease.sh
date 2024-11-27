@@ -16,7 +16,6 @@ next=$(npx semver $current -i patch)
 git checkout -b v$next-pre
 npm version --git-tag-version=false $next
 git tag $next-pre
+git push --tags
 
 npx vsce publish --pre-release
-
-git push --tags

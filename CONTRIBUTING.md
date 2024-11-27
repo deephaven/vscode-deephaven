@@ -97,7 +97,7 @@ npx vsce ls
 
 #### Pre-Release Versions
 1. Make sure you are in a clean branch whose HEAD points to the commit to publish.
-1. Set `VSCE_PAT` env variable to personal access token for a user in the https://dev.azure.com/deephaven-oss/ org.
+1. Make sure you are logged in with `vsce` using a personal access token for a user in the https://dev.azure.com/deephaven-oss/ org. `npx vsce login deephaven`
 1. Run `npm run publish:prerelease`
 
 ## PNG Generation
