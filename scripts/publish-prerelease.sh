@@ -17,6 +17,7 @@ npm version --git-tag-version=false $next
 git add package.json
 git add package-lock.json
 git commit -m "$tag"
+git push -u origin HEAD
 git tag $tag
 git push --tags
 
