@@ -36,7 +36,6 @@
     "icon:gen": "node icons/generate.mjs",
     "package:latest": "vsce package -o releases/vscode-deephaven-latest.vsix",
     "publish:prerelease": "vsce publish --pre-release",
-    "publish:tag": "git tag v$(node -p -e \"require('./package.json').version\")-pre",
     "report:ctrfmerge": "ctrf merge e2e/reports --keep-reports --output-dir test-reports --output ctrf-report.json",
     "report:ctrfsummary": "github-actions-ctrf test-reports/ctrf-report.json",
     "report:junit2ctrf": "junit-to-ctrf test-reports/vitest.junit.xml --output test-reports/ctrf-report.json",
