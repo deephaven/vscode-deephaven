@@ -12,4 +12,5 @@ npm version --git-tag-version=false $next
 git tag $next-pre
 git push --tags
 
+# Publish a pre-release version of the extension to the Marketplace
 npx vsce publish --pre-release
