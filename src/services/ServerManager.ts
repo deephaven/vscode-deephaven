@@ -404,10 +404,22 @@ export class ServerManager implements IServerManager {
   /**
    * Get the server state for the given URL.
    * @param serverUrl The URL of the server to get.
+   * @param matchPort If `true`, include the port when matching the server URL. Defaults to `true`.
    * @returns The server state, or `undefined` if no server with the given URL exists.
    */
-  getServer = (serverUrl: URL): ServerState | undefined => {
-    return this._serverMap.get(serverUrl);
+  getServer = (
+    serverUrl: URL,
+    matchPort: boolean = true
+  ): ServerState | undefined => {
+    if (matchPort) {
+      return this._serverMap.get(serverUrl);
+    }
+
+    for (const server of this._serverMap.values()) {
+      if (server.url.hostname === serverUrl.hostname) {
+        return server;
+      }
+    }
   };
 
   getServers = ({
