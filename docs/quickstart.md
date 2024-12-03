@@ -1,10 +1,10 @@
-# Deephaven in Vscode - Quickstart
+# Deephaven Vscode - Quickstart
 
 ## Installation
 
-The Deephaven in Vscode extension can be installed from the [Vscode Marketplace](https://marketplace.visualstudio.com/items?itemName=deephaven.vscode-deephaven) or from the extension browser inside of `vscode`. The extension is currently `pre-release`, so you'll need to install it as such.
+The Deephaven Vscode extension can be installed from the [Vscode Marketplace](https://marketplace.visualstudio.com/items?itemName=deephaven.vscode-deephaven) or from the extension browser inside of `vscode`. The extension is currently `pre-release`, so you'll need to install it as such.
 
-![Install Deephaven in Vscode Extension](./images/installation-pre-release.png)
+![Install Deephaven Vscode Extension](./images/installation-pre-release.png)
 
 Once installed, there will be a new icon in the `activity bar` (the sidebar containing navigation icons). Clicking the Deephaven icon will show a new panel containing details of configured Deephaven servers. By default, the extension is configured to connect to a single Community server hosted at `http:localhost:10000`.
 

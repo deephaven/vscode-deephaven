@@ -1,13 +1,13 @@
 # vscode-deephaven
 
-Deephaven in VS Code
+Deephaven VS Code
 
 - Run Python dh scripts from vscode against a running DH core server
   - Run all
   - Run selected code
 - View output in vscode panels
 
-![Deephaven in VS Code Extension](docs/extension.png)
+![Deephaven VS Code Extension](docs/extension.png)
 
 ## Installation
 

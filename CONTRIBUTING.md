@@ -1,4 +1,4 @@
-# Contributing to Deephaven in VS Code
+# Contributing to Deephaven VS Code Extension
 
 ## Development
 
@@ -58,7 +58,7 @@ or
 Build a .vsix locally via `npm run package:latest` (see [VSCE](#vsce) section)
 
 Then install in vscode:
-![Install Deephaven in VS Code](docs/install.png)
+![Install Deephaven VS Code](docs/install.png)
 
 ## Publishing
 
