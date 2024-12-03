@@ -49,7 +49,7 @@ export class ServerConnectionTreeProvider extends TreeDataProviderBase<ServerCon
 
     // Connection node
     return {
-      label: new URL(connectionOrUri.serverUrl.toString()).host,
+      label: `demo.deephaven.io:${connectionOrUri.serverUrl.port}`, // new URL(connectionOrUri.serverUrl.toString()).host,
       description: descriptionTokens.join(' - '),
       contextValue: CONNECTION_TREE_ITEM_CONTEXT.isConnection,
       collapsibleState: hasUris

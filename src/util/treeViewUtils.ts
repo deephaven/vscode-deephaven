@@ -60,7 +60,7 @@ export async function getPanelConnectionTreeItem(
   const consoleType = await getConsoleType(connection);
 
   return {
-    label: new URL(connection.serverUrl.toString()).host,
+    label: `demo.deephaven.io:${connection.serverUrl.port}`, //  new URL(connection.serverUrl.toString()).host,
     description: consoleType,
     collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
     iconPath: new vscode.ThemeIcon(
@@ -257,10 +257,13 @@ export function getServerTreeItem(server: ServerState): vscode.TreeItem {
     contextValue === SERVER_TREE_ITEM_CONTEXT.isDHEServerRunningConnected ||
     contextValue === SERVER_TREE_ITEM_CONTEXT.isDHEServerRunningDisconnected;
 
+  const mockUrl = new URL(urlStr);
+  mockUrl.hostname = 'demo.deephaven.io';
+
   return {
-    label: new URL(urlStr).host,
+    label: mockUrl.host,
     description,
-    tooltip: canConnect ? `Click to connect to ${urlStr}` : urlStr,
+    tooltip: canConnect ? `Click to connect to ${mockUrl.href}` : mockUrl.href,
     contextValue,
     iconPath: new vscode.ThemeIcon(
       getServerIconID({ isConnected, isManaged, isRunning })
