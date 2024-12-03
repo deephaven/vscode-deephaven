@@ -53,14 +53,14 @@ Enterprise servers can be configured via the `"deephaven.enterpriseServers"` set
 ## Workspace Setup
 It is recommended to configure a virtual python environment within your `VS Code` workspace. See https://code.visualstudio.com/docs/python/python-tutorial#_create-a-virtual-environment for a general overview. To get features like intellisense, you can install `deephaven` pip packages in the `venv`.
 
-> Note: For Community, the server can share the same workspace location as `VS Code`. For Enterprise, they will always be separate. For now, installing pip packages locally won't guarantee the same configuration that is running on the server, but it can still be helpful for many use cases. We will be implementing better support for this in the near future.
-
 For example here's a minimal `requirements.text` file that will enable intellisense for common DH packages:
 ```text
 deephaven-core
 deephaven-plugin-plotly-express
 deephaven-plugin-ui
 ```
+
+> Note: For Community, the server can share the same workspace environment as `VS Code`. For Enterprise, they will always be separate, so local pip installs will need to target the same versions installed on the server to ensure intellisense features match the apis running on the server. We plan to implement better support for this in the future.
 
 ### Managed Pip Servers (Community only)
 If you want to manage DH servers from within the extension, you can include `deephaven-server` in the venv pip installation.
