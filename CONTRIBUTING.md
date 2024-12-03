@@ -23,7 +23,7 @@ To run end-to-end tests:
 npm run test:e2e
 ```
 
-To run using `vscode` debugger:
+To run using `VS Code` debugger:
 
 1. Set a breakpoint in a test
 2. Either
@@ -42,10 +42,10 @@ To run using `vscode` debugger:
    npm run test:e2e
    ```
 
-4. You should see the tests start and `vscode` stop at the breakpoint.
+4. You should see the tests start and `VS Code` stop at the breakpoint.
 
 ## VSCE
-[vsce](https://github.com/microsoft/vscode-vsce), short for "Visual Studio Code Extensions", is a command-line tool for packaging, publishing and managing VS Code extensions. The Deephaven extension calls `vsce` via npm scripts. Note that `vsce package` and `vsce publish` both call the `vscode:prepublish` script.
+[vsce](https://github.com/microsoft/vscode-vsce), short for "Visual Studio Code Extensions", is a command-line tool for packaging, publishing and managing `VS Code` extensions. The Deephaven extension calls `vsce` via npm scripts. Note that `vsce package` and `vsce publish` both call the `vscode:prepublish` script.
 
 ## Installation from .VSIX
 
@@ -57,14 +57,14 @@ or
 
 Build a .vsix locally via `npm run package:latest` (see [VSCE](#vsce) section)
 
-Then install in vscode:
-![Install Deephaven VS Code](docs/install.png)
+Then install in `VS Code`:
+![Install Deephaven VS Code](./docs/assets/install-vsix.png)
 
 ## Publishing
 
 ### Configuration
 
-Publishing a vscode extension requires:
+Publishing a `VS Code` extension requires:
 
 - Azure AD organization - https://dev.azure.com/deephaven-oss/
 - Marketplace publisher - https://marketplace.visualstudio.com/publishers/deephaven
@@ -73,12 +73,12 @@ Publishing a vscode extension requires:
 
 ### Versioning Strategy
 
-We are following the official `vscode` extension publishing guidance.
+We are following the official `VS Code` extension publishing guidance.
 
 - Pre-release versions use `major.ODD_NUMBER.patch` version scheme (e.g. `1.1.3`)
 - Release versions use `major.EVEN_NUMBER.patch` versions scheme (e.g. `1.2.3`)
 
-> Note that `vscode` will always install a later release version instead of pre-release, so it's important to always have a pre-release version that is later than the release version if we want to allow pre-release users to stay on the latest pre-release.
+> Note that `VS Code` will always install a later release version instead of pre-release, so it's important to always have a pre-release version that is later than the release version if we want to allow pre-release users to stay on the latest pre-release.
 
 You can find additional details here:
 https://code.visualstudio.com/api/working-with-extensions/publishing-extension#prerelease-extensions
@@ -134,7 +134,7 @@ The first time a connection is made to a `DHC` server, the extension will:
 If auth succeeds and connection was initiated by running a script:
 
 1. Run the script against the server
-2. Update panels in vscode and deephaven.
+2. Update panels in `VS Code` and deephaven.
 
 On subsequent script runs, the session will be re-used and only steps 4 and 5 will run
 
