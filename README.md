@@ -60,7 +60,7 @@ deephaven-plugin-plotly-express
 deephaven-plugin-ui
 ```
 
-> Note: For Community, the server can share the same workspace environment as `VS Code`. For Enterprise, they will always be separate, so local pip installs will need to target the same versions installed on the server to ensure intellisense features match the apis running on the server. We plan to implement better support for this in the future.
+> Note: Python code executed by the extension always runs on the server, while the local environment drives language features in `VS Code` such as intellisense. Therefore, local pip installs will need to target the same versions installed on the server to ensure intellisense features match the apis running on the server. For Community, it is possible for the server to share the same environment as `VS Code`. For Enterprise, they will always be separate. We plan to implement better support for this in the future.
 
 ### Managed Pip Servers (Community only)
 If you want to manage DH servers from within the extension, you can include `deephaven-server` in the venv pip installation.
