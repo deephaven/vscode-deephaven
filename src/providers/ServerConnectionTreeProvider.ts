@@ -46,10 +46,15 @@ export class ServerConnectionTreeProvider extends TreeDataProviderBase<ServerCon
     }
 
     const hasUris = this.serverManager.hasConnectionUris(connectionOrUri);
+    const serverLabel = 'demo.deephaven.io';
+    const label =
+      serverLabel == null
+        ? connectionOrUri.serverUrl.host
+        : `${serverLabel}:${connectionOrUri.serverUrl.port}`;
 
     // Connection node
     return {
-      label: `demo.deephaven.io:${connectionOrUri.serverUrl.port}`, // new URL(connectionOrUri.serverUrl.toString()).host,
+      label,
       description: descriptionTokens.join(' - '),
       contextValue: CONNECTION_TREE_ITEM_CONTEXT.isConnection,
       collapsibleState: hasUris

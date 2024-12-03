@@ -34,7 +34,8 @@ export class ServerConnectionPanelTreeProvider extends TreeDataProviderBase<Serv
 
     return getPanelConnectionTreeItem(
       connectionOrVariable,
-      getFirstSupportedConsoleType
+      getFirstSupportedConsoleType,
+      'demo.deephaven.io'
     );
   };
 

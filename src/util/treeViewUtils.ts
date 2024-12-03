@@ -55,12 +55,17 @@ export async function getPanelConnectionTreeItem(
   connection: ConnectionState,
   getConsoleType: (
     connection: ConnectionState
-  ) => Promise<ConsoleType | undefined>
+  ) => Promise<ConsoleType | undefined>,
+  serverLabel?: string
 ): Promise<vscode.TreeItem> {
   const consoleType = await getConsoleType(connection);
+  const label =
+    serverLabel == null
+      ? new URL(connection.serverUrl).host
+      : `${serverLabel}:${connection.serverUrl.port}`;
 
   return {
-    label: `demo.deephaven.io:${connection.serverUrl.port}`, //  new URL(connection.serverUrl.toString()).host,
+    label,
     description: consoleType,
     collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
     iconPath: new vscode.ThemeIcon(
@@ -245,8 +250,8 @@ export function getServerTreeItem(server: ServerState): vscode.TreeItem {
 
   const description = getServerDescription(
     connectionCount,
-    isManaged,
-    server.label
+    isManaged
+    // server.label
   );
 
   const urlStr = server.url.toString();
@@ -257,13 +262,13 @@ export function getServerTreeItem(server: ServerState): vscode.TreeItem {
     contextValue === SERVER_TREE_ITEM_CONTEXT.isDHEServerRunningConnected ||
     contextValue === SERVER_TREE_ITEM_CONTEXT.isDHEServerRunningDisconnected;
 
-  const mockUrl = new URL(urlStr);
-  mockUrl.hostname = 'demo.deephaven.io';
+  const url = new URL(urlStr);
+  const label = server.label == null ? url.host : `${server.label}:${url.port}`;
 
   return {
-    label: mockUrl.host,
+    label,
     description,
-    tooltip: canConnect ? `Click to connect to ${mockUrl.href}` : mockUrl.href,
+    tooltip: canConnect ? `Click to connect to ${label}` : label,
     contextValue,
     iconPath: new vscode.ThemeIcon(
       getServerIconID({ isConnected, isManaged, isRunning })
