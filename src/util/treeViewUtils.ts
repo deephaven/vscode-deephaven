@@ -248,11 +248,7 @@ export function getServerTreeItem(server: ServerState): vscode.TreeItem {
     isRunning,
   });
 
-  const description = getServerDescription(
-    connectionCount,
-    isManaged
-    // server.label
-  );
+  const description = getServerDescription(connectionCount, isManaged);
 
   const urlStr = server.url.toString();
 
