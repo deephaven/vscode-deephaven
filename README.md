@@ -63,7 +63,7 @@ deephaven-plugin-ui
 > Note: Python code executed by the extension always runs on the server, while the local environment drives language features in `VS Code` such as intellisense. Therefore, local pip installs will need to target the same versions installed on the server to ensure intellisense features match the apis running on the server. For Community, it is possible for the server to share the same environment as `VS Code`. For Enterprise, they will always be separate. We plan to implement better support for this in the future.
 
 ### Managed Pip Servers (Community only)
-If you want to manage DH servers from within the extension, you can include `deephaven-server` in the venv pip installation.
+If you want to manage Deephaven servers from within the extension, include `deephaven-server` in the venv pip installation.
 
 Once installed, clicking the "refresh" button in the server tree panel should reveal a "Managed" servers node.
 
