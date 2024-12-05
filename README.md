@@ -53,7 +53,7 @@ Enterprise servers can be configured via the `"deephaven.enterpriseServers"` set
 ## Workspace Setup
 It is recommended to configure a virtual python environment within your `VS Code` workspace. See https://code.visualstudio.com/docs/python/python-tutorial#_create-a-virtual-environment for a general overview. To get features like intellisense, you can install `deephaven` pip packages in the `venv`.
 
-For example here's a minimal `requirements.text` file that will enable intellisense for common DH packages:
+For example here's a minimal `requirements.txt` file that enables intellisense for common Deephaven packages:
 ```text
 deephaven-core
 deephaven-plugin-plotly-express
@@ -69,7 +69,7 @@ Once installed, clicking the "refresh" button in the server tree panel should re
 
 ![Refresh Servers](./docs/assets/refresh-servers.png)
 
-Hovering over the "Managed" node should show a play button. Clicking it will start a server.
+Hovering over the "Managed" node shows a Play button that starts a server.
 
 ![Start Pip Server](./docs/assets/start-pip-server.png)
 
