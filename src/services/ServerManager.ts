@@ -179,6 +179,8 @@ export class ServerManager implements IServerManager {
 
     let tagId: UniqueID | undefined;
 
+    let placeholderUrl: URL | undefined;
+
     // Pip managed local server
     if (serverState.isManaged) {
       this.updateConnectionCount(serverUrl, 1);
@@ -199,10 +201,7 @@ export class ServerManager implements IServerManager {
       tagId = uniqueId();
 
       // Put a placeholder connection in place until the worker is ready.
-      const placeholderUrl = this.addWorkerPlaceholderConnection(
-        serverUrl,
-        tagId
-      );
+      placeholderUrl = this.addWorkerPlaceholderConnection(serverUrl, tagId);
 
       let workerInfo: WorkerInfo;
       try {
@@ -227,9 +226,6 @@ export class ServerManager implements IServerManager {
         return null;
       }
 
-      // Remove placeholder connection
-      this.removeWorkerPlaceholderConnection(placeholderUrl);
-
       // Map the worker URL to the server URL to make things easier to dispose
       // later.
       this._workerURLToServerURLMap.set(new URL(workerInfo.grpcUrl), serverUrl);
@@ -242,7 +238,14 @@ export class ServerManager implements IServerManager {
     const connection = this._dhcServiceFactory.create(serverUrl, tagId);
 
     // Initialize client + prompt for login if necessary
-    if (!(await connection.getClient())) {
+    const isClientConnected = await connection.getClient();
+
+    // Cleanup placeholder connection if one exists
+    if (placeholderUrl) {
+      this.removeWorkerPlaceholderConnection(placeholderUrl);
+    }
+
+    if (!isClientConnected) {
       return null;
     }
 
