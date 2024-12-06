@@ -55,13 +55,28 @@ export async function getPanelConnectionTreeItem(
   connection: ConnectionState,
   getConsoleType: (
     connection: ConnectionState
-  ) => Promise<ConsoleType | undefined>
+  ) => Promise<ConsoleType | undefined>,
+  serverLabel?: string
 ): Promise<vscode.TreeItem> {
+  const descriptionTokens: string[] = [];
+
   const consoleType = await getConsoleType(connection);
 
+  if (consoleType) {
+    descriptionTokens.push(consoleType);
+  }
+
+  if (connection.tagId) {
+    descriptionTokens.push(connection.tagId);
+  }
+
+  const label = serverLabel ?? connection.serverUrl.host;
+  const description =
+    descriptionTokens.length === 0 ? undefined : descriptionTokens.join(' - ');
+
   return {
-    label: new URL(connection.serverUrl.toString()).host,
-    description: consoleType,
+    label,
+    description,
     collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
     iconPath: new vscode.ThemeIcon(
       connection.isConnected ? ICON_ID.connected : ICON_ID.connecting
@@ -243,11 +258,7 @@ export function getServerTreeItem(server: ServerState): vscode.TreeItem {
     isRunning,
   });
 
-  const description = getServerDescription(
-    connectionCount,
-    isManaged,
-    server.label
-  );
+  const description = getServerDescription(connectionCount, isManaged);
 
   const urlStr = server.url.toString();
 
@@ -257,10 +268,13 @@ export function getServerTreeItem(server: ServerState): vscode.TreeItem {
     contextValue === SERVER_TREE_ITEM_CONTEXT.isDHEServerRunningConnected ||
     contextValue === SERVER_TREE_ITEM_CONTEXT.isDHEServerRunningDisconnected;
 
+  const url = new URL(urlStr);
+  const label = server.label ?? url.host;
+
   return {
-    label: new URL(urlStr).host,
+    label,
     description,
-    tooltip: canConnect ? `Click to connect to ${urlStr}` : urlStr,
+    tooltip: canConnect ? `Click to connect to ${label}` : label,
     contextValue,
     iconPath: new vscode.ThemeIcon(
       getServerIconID({ isConnected, isManaged, isRunning })

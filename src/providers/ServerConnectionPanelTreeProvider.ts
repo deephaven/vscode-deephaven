@@ -32,9 +32,15 @@ export class ServerConnectionPanelTreeProvider extends TreeDataProviderBase<Serv
       return getPanelVariableTreeItem(connectionOrVariable);
     }
 
+    const serverLabel = this.serverManager.getServer(
+      connectionOrVariable.serverUrl,
+      false
+    )?.label;
+
     return getPanelConnectionTreeItem(
       connectionOrVariable,
-      getFirstSupportedConsoleType
+      getFirstSupportedConsoleType,
+      serverLabel
     );
   };
 

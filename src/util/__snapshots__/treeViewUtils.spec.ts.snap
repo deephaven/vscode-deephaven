@@ -415,7 +415,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHC, isConnect
     "id": "circle-slash",
   },
   "label": "localhost:10000",
-  "tooltip": "http://localhost:10000/",
+  "tooltip": "localhost:10000",
 }
 `;
 
@@ -442,7 +442,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHC, isConnect
     "id": "circle-large-outline",
   },
   "label": "localhost:10000",
-  "tooltip": "Click to connect to http://localhost:10000/",
+  "tooltip": "Click to connect to localhost:10000",
 }
 `;
 
@@ -456,7 +456,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHC, isConnect
     "id": "sync~spin",
   },
   "label": "localhost:10000",
-  "tooltip": "http://localhost:10000/",
+  "tooltip": "localhost:10000",
 }
 `;
 
@@ -484,7 +484,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHC, isConnect
     "id": "circle-large-outline",
   },
   "label": "localhost:10000",
-  "tooltip": "Click to connect to http://localhost:10000/",
+  "tooltip": "Click to connect to localhost:10000",
 }
 `;
 
@@ -498,7 +498,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHC, isConnect
     "id": "circle-slash",
   },
   "label": "localhost:10000",
-  "tooltip": "http://localhost:10000/",
+  "tooltip": "localhost:10000",
 }
 `;
 
@@ -512,7 +512,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHC, isConnect
     "id": "circle-large-filled",
   },
   "label": "localhost:10000",
-  "tooltip": "http://localhost:10000/",
+  "tooltip": "localhost:10000",
 }
 `;
 
@@ -526,7 +526,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHC, isConnect
     "id": "sync~spin",
   },
   "label": "localhost:10000",
-  "tooltip": "http://localhost:10000/",
+  "tooltip": "localhost:10000",
 }
 `;
 
@@ -540,7 +540,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHC, isConnect
     "id": "circle-large-filled",
   },
   "label": "localhost:10000",
-  "tooltip": "http://localhost:10000/",
+  "tooltip": "localhost:10000",
 }
 `;
 
@@ -554,7 +554,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHE, isConnect
     "id": "circle-slash",
   },
   "label": "localhost:10000",
-  "tooltip": "http://localhost:10000/",
+  "tooltip": "localhost:10000",
 }
 `;
 
@@ -581,7 +581,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHE, isConnect
     "id": "circle-large-outline",
   },
   "label": "localhost:10000",
-  "tooltip": "Click to connect to http://localhost:10000/",
+  "tooltip": "Click to connect to localhost:10000",
 }
 `;
 
@@ -595,7 +595,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHE, isConnect
     "id": "sync~spin",
   },
   "label": "localhost:10000",
-  "tooltip": "http://localhost:10000/",
+  "tooltip": "localhost:10000",
 }
 `;
 
@@ -623,7 +623,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHE, isConnect
     "id": "circle-large-outline",
   },
   "label": "localhost:10000",
-  "tooltip": "Click to connect to http://localhost:10000/",
+  "tooltip": "Click to connect to localhost:10000",
 }
 `;
 
@@ -637,7 +637,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHE, isConnect
     "id": "circle-slash",
   },
   "label": "localhost:10000",
-  "tooltip": "http://localhost:10000/",
+  "tooltip": "localhost:10000",
 }
 `;
 
@@ -664,7 +664,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHE, isConnect
     "id": "circle-large-filled",
   },
   "label": "localhost:10000",
-  "tooltip": "Click to connect to http://localhost:10000/",
+  "tooltip": "Click to connect to localhost:10000",
 }
 `;
 
@@ -678,7 +678,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHE, isConnect
     "id": "sync~spin",
   },
   "label": "localhost:10000",
-  "tooltip": "http://localhost:10000/",
+  "tooltip": "localhost:10000",
 }
 `;
 
@@ -692,7 +692,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHE, isConnect
     "id": "circle-large-filled",
   },
   "label": "localhost:10000",
-  "tooltip": "http://localhost:10000/",
+  "tooltip": "localhost:10000",
 }
 `;
 

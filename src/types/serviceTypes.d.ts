@@ -167,7 +167,7 @@ export interface IServerManager extends Disposable {
     dhService: ConnectionState
   ) => Promise<void>;
 
-  getServer: (serverUrl: URL) => ServerState | undefined;
+  getServer: (serverUrl: URL, matchPort?: boolean) => ServerState | undefined;
   getServers: (filter?: {
     isRunning?: boolean;
     hasConnections?: boolean;

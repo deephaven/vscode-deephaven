@@ -47,9 +47,16 @@ export class ServerConnectionTreeProvider extends TreeDataProviderBase<ServerCon
 
     const hasUris = this.serverManager.hasConnectionUris(connectionOrUri);
 
+    const serverLabel = this.serverManager.getServer(
+      connectionOrUri.serverUrl,
+      false
+    )?.label;
+
+    const label = serverLabel ?? connectionOrUri.serverUrl.host;
+
     // Connection node
     return {
-      label: new URL(connectionOrUri.serverUrl.toString()).host,
+      label,
       description: descriptionTokens.join(' - '),
       contextValue: CONNECTION_TREE_ITEM_CONTEXT.isConnection,
       collapsibleState: hasUris
