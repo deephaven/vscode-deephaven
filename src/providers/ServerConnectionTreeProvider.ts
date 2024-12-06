@@ -52,10 +52,7 @@ export class ServerConnectionTreeProvider extends TreeDataProviderBase<ServerCon
       false
     )?.label;
 
-    const label =
-      serverLabel == null
-        ? connectionOrUri.serverUrl.host
-        : `${serverLabel}:${connectionOrUri.serverUrl.port}`;
+    const label = serverLabel ?? connectionOrUri.serverUrl.host;
 
     // Connection node
     return {
