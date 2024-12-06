@@ -71,10 +71,12 @@ export async function getPanelConnectionTreeItem(
   }
 
   const label = serverLabel ?? connection.serverUrl.host;
+  const description =
+    descriptionTokens.length === 0 ? undefined : descriptionTokens.join(' - ');
 
   return {
     label,
-    description: descriptionTokens.join(' - '),
+    description,
     collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
     iconPath: new vscode.ThemeIcon(
       connection.isConnected ? ICON_ID.connected : ICON_ID.connecting

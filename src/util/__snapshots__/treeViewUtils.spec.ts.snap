@@ -3,7 +3,7 @@
 exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:false, isInitialized:false 1`] = `
 {
   "collapsibleState": 2,
-  "description": "",
+  "description": undefined,
   "iconPath": {
     "color": undefined,
     "id": "sync~spin",
@@ -27,7 +27,7 @@ exports[`getPanelConnectionTreeItem > should return panel connection tree item: 
 exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:true, isInitialized:false 1`] = `
 {
   "collapsibleState": 2,
-  "description": "",
+  "description": undefined,
   "iconPath": {
     "color": undefined,
     "id": "vm-connect",
