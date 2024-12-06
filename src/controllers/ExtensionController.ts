@@ -78,8 +78,19 @@ import {
   type AuthenticatedClient as DheAuthenticatedClient,
   type UnauthenticatedClient as DheUnauthenticatedClient,
 } from '@deephaven-enterprise/auth-nodejs';
+import type { grpc } from '@improbable-eng/grpc-web';
+import { NodeHttp2gRPCTransport } from '../dh/NodeHttp2gRPCTransport';
 
 const logger = new Logger('ExtensionController');
+
+declare module '@deephaven/jsapi-types' {
+  export namespace dh {
+    export interface ConnectOptions {
+      debug?: boolean;
+      transportFactory?: grpc.TransportFactory;
+    }
+  }
+}
 
 export class ExtensionController implements Disposable {
   constructor(context: vscode.ExtensionContext, configService: IConfigService) {
@@ -333,9 +344,12 @@ export class ExtensionController implements Disposable {
       assertDefined(this._coreJsApiCache, 'coreJsApiCache');
       const dhc = await this._coreJsApiCache.get(url);
 
-      const client = new dhc.CoreClient(
-        url.toString()
-      ) as CoreUnauthenticatedClient;
+      const client = new dhc.CoreClient(url.toString(), {
+        debug: true,
+        // TODO: This should be optional, but types aren't happy yet
+        headers: {},
+        transportFactory: NodeHttp2gRPCTransport.factory,
+      }) as CoreUnauthenticatedClient;
 
       // Attach a dispose method so that client caches can dispose of the client
       return Object.assign(client, {
