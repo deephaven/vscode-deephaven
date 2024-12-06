@@ -849,6 +849,7 @@
     "@deephaven-enterprise/auth-nodejs": "^1.20240723.124-beta",
     "@deephaven-enterprise/query-utils": "^1.20240723.124-beta",
     "@deephaven/jsapi-nodejs": "^0.99.0",
+    "@improbable-eng/grpc-web": "^0.15.0",
     "esbuild": "^0.24.0",
     "nanoid": "^5.0.7"
   },
