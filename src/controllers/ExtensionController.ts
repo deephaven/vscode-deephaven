@@ -475,7 +475,7 @@ export class ExtensionController implements Disposable {
    */
   initializeTempDirectory = (): void => {
     // recreate tmp dir that will be used to dowload JS Apis
-    getTempDir({ recreate: false });
+    getTempDir({ recreate: true });
   };
 
   /**
