@@ -4,6 +4,7 @@ import type {
   IPanelService,
   IServerManager,
   VariableDefintion,
+  WorkerInfo,
   WorkerURL,
 } from '../types';
 import {
@@ -192,8 +193,8 @@ export class PanelController extends ControllerBase {
     const connection = this._serverManager.getConnection(serverUrl);
     assertDefined(connection, 'connection');
 
-    const isWorkerUrl = Boolean(
-      await this._serverManager.getWorkerInfo(serverUrl as WorkerURL)
+    const workerInfo = await this._serverManager.getWorkerInfo(
+      serverUrl as WorkerURL
     );
 
     for (const { id, title } of variables) {
@@ -202,7 +203,7 @@ export class PanelController extends ControllerBase {
       const iframeUrl = await getEmbedWidgetUrlForConnection(
         connection,
         title,
-        isWorkerUrl
+        workerInfo
       );
 
       panel.webview.html = getPanelHtml(iframeUrl, title);
@@ -232,7 +233,7 @@ export class PanelController extends ControllerBase {
 export async function getEmbedWidgetUrlForConnection(
   connection: ConnectionState,
   title: string,
-  isWorkerUrl: boolean
+  workerInfo?: WorkerInfo
 ): Promise<URL> {
   return getEmbedWidgetUrl({
     serverUrl: connection.serverUrl,
@@ -241,7 +242,8 @@ export async function getEmbedWidgetUrlForConnection(
     // For Core+ workers in DHE, we use `postMessage` apis for auth where DH
     // iframe communicates with parent (the extension) to get login credentials
     // from the DHE client. See `getPanelHtml` util for more details.
-    authProvider: isWorkerUrl ? 'parent' : undefined,
+    authProvider: workerInfo == null ? undefined : 'parent',
+    envoyPrefix: workerInfo?.envoyPrefix,
     psk:
       connection instanceof DhcService ? await connection.getPsk() : undefined,
   });
