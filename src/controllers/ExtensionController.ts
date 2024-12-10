@@ -78,8 +78,8 @@ import {
   type AuthenticatedClient as DheAuthenticatedClient,
   type UnauthenticatedClient as DheUnauthenticatedClient,
 } from '@deephaven-enterprise/auth-nodejs';
-import type { grpc } from '@improbable-eng/grpc-web';
 import { NodeHttp2gRPCTransport } from '../dh/NodeHttp2gRPCTransport';
+import type { GrpcTransportFactory } from '../dh/grpc';
 
 const logger = new Logger('ExtensionController');
 
@@ -87,7 +87,7 @@ declare module '@deephaven/jsapi-types' {
   export namespace dh {
     export interface ConnectOptions {
       debug?: boolean;
-      transportFactory?: grpc.TransportFactory;
+      transportFactory?: GrpcTransportFactory;
     }
   }
 }

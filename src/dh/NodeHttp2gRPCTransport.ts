@@ -1,8 +1,12 @@
 import http2 from 'node:http2';
-import { grpc } from '@improbable-eng/grpc-web';
+import type {
+  GrpcTransport,
+  GrpcTransportFactory,
+  GrpcTransportOptions,
+} from './grpc';
 import { assertDefined } from '../util';
 
-export class NodeHttp2gRPCTransport implements grpc.Transport {
+export class NodeHttp2gRPCTransport implements GrpcTransport {
   static _sessionMap: Map<string, http2.ClientHttp2Session> = new Map();
 
   /**
@@ -11,20 +15,26 @@ export class NodeHttp2gRPCTransport implements grpc.Transport {
    * @param options Transport options.
    * @returns Transport instance.
    */
-  static factory: grpc.TransportFactory = options => {
-    const { origin } = new URL(options.url);
+  static readonly factory: GrpcTransportFactory = {
+    create: options => {
+      const { origin } = new URL(options.url);
 
-    if (!NodeHttp2gRPCTransport._sessionMap.has(origin)) {
-      const session = http2.connect(origin);
-      session.on('error', err => {
-        console.error('Session error', err);
-      });
-      NodeHttp2gRPCTransport._sessionMap.set(origin, session);
-    }
+      if (!NodeHttp2gRPCTransport._sessionMap.has(origin)) {
+        const session = http2.connect(origin);
+        session.on('error', err => {
+          console.error('Session error', err);
+        });
+        NodeHttp2gRPCTransport._sessionMap.set(origin, session);
+      }
 
-    const session = NodeHttp2gRPCTransport._sessionMap.get(origin)!;
+      const session = NodeHttp2gRPCTransport._sessionMap.get(origin)!;
 
-    return new NodeHttp2gRPCTransport(options, session);
+      return new NodeHttp2gRPCTransport(options, session);
+    },
+
+    get supportsClientStreaming(): boolean {
+      return false;
+    },
   };
 
   /**
@@ -33,14 +43,14 @@ export class NodeHttp2gRPCTransport implements grpc.Transport {
    * @param session node:http2 session.
    */
   private constructor(
-    options: grpc.TransportOptions,
+    options: GrpcTransportOptions,
     session: http2.ClientHttp2Session
   ) {
     this._options = options;
     this._session = session;
   }
 
-  private readonly _options: grpc.TransportOptions;
+  private readonly _options: GrpcTransportOptions;
   private readonly _session: http2.ClientHttp2Session;
   private _request: http2.ClientHttp2Stream | null = null;
 
@@ -68,10 +78,7 @@ export class NodeHttp2gRPCTransport implements grpc.Transport {
         }
       }
 
-      this._options.onHeaders(
-        new grpc.Metadata(headersRecord),
-        Number(headers[':status'])
-      );
+      this._options.onHeaders(headersRecord, Number(headers[':status']));
     });
 
     req.on('data', (chunk: Buffer) => {
@@ -87,7 +94,7 @@ export class NodeHttp2gRPCTransport implements grpc.Transport {
     return req;
   };
 
-  start(metadata: grpc.Metadata): void {
+  start(metadata: { [key: string]: string | Array<string> }): void {
     console.log('[NodeHttp2Transport] start', metadata.headersMap);
 
     if (this._request != null) {
@@ -95,8 +102,8 @@ export class NodeHttp2gRPCTransport implements grpc.Transport {
     }
 
     const headers: Record<string, string> = {};
-    metadata?.forEach((key, values) => {
-      headers[key] = values.join(', ');
+    Object.entries(metadata).forEach(([key, value]) => {
+      headers[key] = typeof value === 'string' ? value : value.join(', ');
     });
 
     this._request = this._createRequest(headers);
