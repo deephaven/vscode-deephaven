@@ -10,7 +10,9 @@ import type { AuthenticatedClient as DheAuthenticatedClient } from '@deephaven-e
 import { hasStatusCode, loadModules } from '@deephaven/jsapi-nodejs';
 import type {
   ConsoleType,
+  GrpcURL,
   IdeURL,
+  JsapiURL,
   QuerySerial,
   UniqueID,
   WorkerConfig,
@@ -271,15 +273,22 @@ export async function getWorkerInfoFromQuery(
     return;
   }
 
-  const { grpcUrl, ideUrl, processInfoId, workerName } = queryInfo.designated;
+  const { envoyPrefix, grpcUrl, ideUrl, jsApiUrl, processInfoId, workerName } =
+    queryInfo.designated;
+
+  const workerUrl = new URL(jsApiUrl) as WorkerURL;
+  workerUrl.pathname = workerUrl.pathname.replace(/jsapi\/dh-core.js$/, '');
 
   return {
     tagId,
     serial: querySerial,
-    grpcUrl: new URL(grpcUrl) as WorkerURL,
+    envoyPrefix,
+    grpcUrl: new URL(grpcUrl) as GrpcURL,
     ideUrl: new URL(ideUrl) as IdeURL,
+    jsapiUrl: new URL(jsApiUrl) as JsapiURL,
     processInfoId,
     workerName,
+    workerUrl,
   };
 }
 

@@ -13,12 +13,12 @@ import type {
   WorkerInfo,
   IDheService,
   IAsyncCacheService,
-  WorkerURL,
   UniqueID,
   IToastService,
   CoreAuthenticatedClient,
   ISecretService,
   Psk,
+  WorkerURL,
 } from '../types';
 import {
   getInitialServerStates,
@@ -211,7 +211,7 @@ export class ServerManager implements IServerManager {
         // this indicates that the user cancelled the creation before it was ready.
         // In this case, dispose of the worker.
         if (!this._connectionMap.has(placeholderUrl)) {
-          dheService.deleteWorker(workerInfo.grpcUrl);
+          dheService.deleteWorker(workerInfo.workerUrl);
           this._onDidUpdate.fire();
           return null;
         }
@@ -228,11 +228,14 @@ export class ServerManager implements IServerManager {
 
       // Map the worker URL to the server URL to make things easier to dispose
       // later.
-      this._workerURLToServerURLMap.set(new URL(workerInfo.grpcUrl), serverUrl);
+      this._workerURLToServerURLMap.set(
+        new URL(workerInfo.workerUrl),
+        serverUrl
+      );
 
       // Update the server URL to the worker url to be used below with core
       // connection creation.
-      serverUrl = new URL(workerInfo.grpcUrl);
+      serverUrl = new URL(workerInfo.workerUrl);
     }
 
     const connection = this._dhcServiceFactory.create(serverUrl, tagId);

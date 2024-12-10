@@ -8,19 +8,18 @@ import type {
   EventListenerT,
   ConnectionState,
   ServerState,
-  UnsubscribeEventListener,
   VariableChanges,
   VariableDefintion,
   VariableID,
   WorkerInfo,
-  WorkerURL,
   UniqueID,
   UserKeyPairs,
   UserLoginPreferences,
   CoreUnauthenticatedClient,
   Psk,
   CoreAuthenticatedClient,
-} from '../types/commonTypes';
+  WorkerURL,
+} from './commonTypes';
 import type {
   AuthenticatedClient as DheAuthenticatedClient,
   UnauthenticatedClient as DheUnauthenticatedClient,
