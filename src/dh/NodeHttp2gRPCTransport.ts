@@ -10,13 +10,28 @@ export class NodeHttp2gRPCTransport implements GrpcTransport {
   static _sessionMap: Map<string, http2.ClientHttp2Session> = new Map();
 
   /**
+   * Cleanup.
+   */
+  static dispose(): void {
+    for (const session of NodeHttp2gRPCTransport._sessionMap.values()) {
+      session.close();
+    }
+    NodeHttp2gRPCTransport._sessionMap.clear();
+  }
+
+  /**
    * TODO: Cleanup requests similar to https://github.com/deephaven/deephaven-core/blob/c05b35957e466fded4da61154ba106cfc3198bc5/web/client-api/src/main/java/io/deephaven/web/client/api/grpc/MultiplexedWebsocketTransport.java#L129
    * Create a Transport instance.
    * @param options Transport options.
    * @returns Transport instance.
    */
   static readonly factory: GrpcTransportFactory = {
-    create: options => {
+    /**
+     * Create a new transport instance.
+     * @param options - options for creating the transport
+     * @return a transport instance to use for gRPC communication
+     */
+    create: (options): GrpcTransport => {
       const { origin } = new URL(options.url);
 
       if (!NodeHttp2gRPCTransport._sessionMap.has(origin)) {
@@ -125,15 +140,5 @@ export class NodeHttp2gRPCTransport implements GrpcTransport {
     console.log('[NodeHttp2Transport] cancel');
     assertDefined(this._request, '_request');
     this._request.close();
-  }
-
-  /**
-   * Cleanup.
-   */
-  static dispose(): void {
-    for (const session of NodeHttp2gRPCTransport._sessionMap.values()) {
-      session.close();
-    }
-    NodeHttp2gRPCTransport._sessionMap.clear();
   }
 }

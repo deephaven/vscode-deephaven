@@ -66,6 +66,7 @@ import type {
   CoreAuthenticatedClient,
   ICoreClientFactory,
   CoreUnauthenticatedClient,
+  WorkerURL,
 } from '../types';
 import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTreeDragAndDropController';
 import { ConnectionController } from './ConnectionController';
@@ -112,6 +113,8 @@ export class ExtensionController implements Disposable {
     this.initializeCommands();
     this.initializeWebViews();
     this.initializeServerUpdates();
+
+    this._context.subscriptions.push(NodeHttp2gRPCTransport);
 
     logger.info(
       'Congratulations, your extension "vscode-deephaven" is now active!'
@@ -342,14 +345,27 @@ export class ExtensionController implements Disposable {
       url: URL
     ): Promise<CoreUnauthenticatedClient & Disposable> => {
       assertDefined(this._coreJsApiCache, 'coreJsApiCache');
+
+      const workerInfo = await this._serverManager?.getWorkerInfo(
+        url as WorkerURL
+      );
+
       const dhc = await this._coreJsApiCache.get(url);
 
-      const client = new dhc.CoreClient(url.toString(), {
-        debug: true,
-        // TODO: This should be optional, but types aren't happy yet
-        headers: {},
-        transportFactory: NodeHttp2gRPCTransport.factory,
-      }) as CoreUnauthenticatedClient;
+      const clientUrl = workerInfo == null ? url : workerInfo.grpcUrl;
+      const envoyPrefix = workerInfo?.envoyPrefix;
+
+      const headers: { [key: string]: string } =
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        envoyPrefix == null ? {} : { 'envoy-prefix': envoyPrefix };
+
+      const client = new dhc.CoreClient(
+        clientUrl.toString().replace(/\/$/, ''),
+        {
+          headers,
+          transportFactory: NodeHttp2gRPCTransport.factory,
+        }
+      ) as CoreUnauthenticatedClient;
 
       // Attach a dispose method so that client caches can dispose of the client
       return Object.assign(client, {
