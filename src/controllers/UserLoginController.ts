@@ -19,6 +19,7 @@ import {
 import { Logger, promptForPsk, runUserLoginWorkflow } from '../util';
 import type {
   CoreAuthenticatedClient,
+  CoreUnauthenticatedClient,
   IAsyncCacheService,
   ICoreClientFactory,
   IDheClientFactory,
@@ -194,42 +195,53 @@ export class UserLoginController extends ControllerBase {
    * Create a core authenticated client.
    */
   onCreateCoreAuthenticatedClient = async (serverUrl: URL): Promise<void> => {
-    const client = await this.coreClientFactory(serverUrl);
-
-    const authConfig = new Set(
-      (await client.getAuthConfigValues()).map(([, value]) => value)
-    );
-
+    let client: CoreUnauthenticatedClient | null = null;
     let credentials: DhcType.LoginCredentials | null = null;
 
-    if (authConfig.has(AUTH_HANDLER_TYPE_ANONYMOUS)) {
-      const dh = await this.coreJsApiCache.get(serverUrl);
-      credentials = {
-        type: dh.CoreClient.LOGIN_TYPE_ANONYMOUS,
-      };
-    } else if (authConfig.has(AUTH_HANDLER_TYPE_PSK)) {
-      const token =
-        (await this.secretService.getPsk(serverUrl)) ??
-        (await promptForPsk('Enter your Pre-Shared Key'));
+    try {
+      client = await this.coreClientFactory(serverUrl);
 
-      if (token == null) {
-        this.toast.info('Login cancelled.');
-        return;
+      const authConfig = new Set(
+        (await client.getAuthConfigValues()).map(([, value]) => value)
+      );
+
+      if (authConfig.has(AUTH_HANDLER_TYPE_ANONYMOUS)) {
+        const dh = await this.coreJsApiCache.get(serverUrl);
+        credentials = {
+          type: dh.CoreClient.LOGIN_TYPE_ANONYMOUS,
+        };
+      } else if (authConfig.has(AUTH_HANDLER_TYPE_PSK)) {
+        const token =
+          (await this.secretService.getPsk(serverUrl)) ??
+          (await promptForPsk('Enter your Pre-Shared Key'));
+
+        if (token == null) {
+          this.toast.info('Login cancelled.');
+          return;
+        }
+
+        credentials = {
+          type: AUTH_HANDLER_TYPE_PSK,
+          token,
+        };
+
+        this.secretService.storePsk(serverUrl, token);
+      } else if (authConfig.has(AUTH_HANDLER_TYPE_DHE)) {
+        credentials = await this.serverManager.getWorkerCredentials(serverUrl);
+        if (credentials == null) {
+          throw new Error(
+            `Failed to get credentials for worker '${serverUrl}'`
+          );
+        }
+      } else {
+        throw new Error('No supported authentication methods found.');
       }
+    } catch (err) {
+      const msg = 'Failed to connect to Deephaven server.';
+      logger.error(msg, err);
+      this.toast.error(msg);
 
-      credentials = {
-        type: AUTH_HANDLER_TYPE_PSK,
-        token,
-      };
-
-      this.secretService.storePsk(serverUrl, token);
-    } else if (authConfig.has(AUTH_HANDLER_TYPE_DHE)) {
-      credentials = await this.serverManager.getWorkerCredentials(serverUrl);
-      if (credentials == null) {
-        throw new Error(`Failed to get credentials for worker '${serverUrl}'`);
-      }
-    } else {
-      throw new Error('No supported authentication methods found.');
+      return;
     }
 
     try {
@@ -238,13 +250,11 @@ export class UserLoginController extends ControllerBase {
         await loginClient(client, credentials)
       );
     } catch (err) {
-      logger.error(
-        'An error occurred while connecting to Deephaven server:',
-        err
-      );
-      this.coreClientCache.delete(serverUrl);
+      const msg = 'Login failed.';
+      logger.error(msg, err);
+      this.toast.error(msg);
 
-      this.toast.error('Login failed.');
+      this.coreClientCache.delete(serverUrl);
 
       if (credentials.type === AUTH_HANDLER_TYPE_PSK) {
         await this.secretService.deletePsk(serverUrl);
