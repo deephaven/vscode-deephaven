@@ -114,6 +114,8 @@ export class ExtensionController implements Disposable {
     this.initializeWebViews();
     this.initializeServerUpdates();
 
+    this._context.subscriptions.push(NodeHttp2gRPCTransport);
+
     logger.info(
       'Congratulations, your extension "vscode-deephaven" is now active!'
     );
