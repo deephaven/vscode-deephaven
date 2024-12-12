@@ -44,17 +44,19 @@ export class Logger {
   static addOutputChannelHandler = (
     outputChannel: vscode.OutputChannel
   ): void => {
+    const createHandler =
+      (level: LogLevel): LogLevelHandler =>
+      (label, ...args) =>
+        outputChannel.appendLine(
+          `${label} ${level.toUpperCase()}: ${args.map(a => (a instanceof Error ? (a.stack ?? a.message) : a)).join(' ')}`
+        );
+
     Logger.handlers.add({
-      error: (label, ...args) =>
-        outputChannel.appendLine(`${label} ERROR: ${args.join(', ')}`),
-      warn: (label, ...args) =>
-        outputChannel.appendLine(`${label} WARN: ${args.join(', ')}`),
-      info: (label, ...args) =>
-        outputChannel.appendLine(`${label} INFO: ${args.join(', ')}`),
-      debug: (label, ...args) =>
-        outputChannel.appendLine(`${label} DEBUG: ${args.join(', ')}`),
-      debug2: (label, ...args) =>
-        outputChannel.appendLine(`${label} DEBUG2: ${args.join(', ')}`),
+      error: createHandler('error'),
+      warn: createHandler('warn'),
+      info: createHandler('info'),
+      debug: createHandler('debug'),
+      debug2: createHandler('debug2'),
     });
   };
 
