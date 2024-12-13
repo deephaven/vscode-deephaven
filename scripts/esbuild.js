@@ -1,11 +1,11 @@
 /* eslint-disable no-console */
-const esbuild = require('esbuild');
+const esbuild = require('esbuild-wasm');
 
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
 
 /**
- * @type {import('esbuild').Plugin}
+ * @type {import('esbuild-wasm').Plugin}
  */
 const esbuildProblemMatcherPlugin = {
   name: 'esbuild-problem-matcher',
@@ -44,7 +44,7 @@ async function main() {
     sourcesContent: false,
     platform: 'node',
     outfile: 'out/extension.js',
-    external: ['esbuild', 'vscode'],
+    external: ['esbuild-wasm', 'vscode'],
     logLevel: 'silent',
     plugins: [
       /* add to the end of plugins array */
