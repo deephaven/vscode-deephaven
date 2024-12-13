@@ -195,6 +195,11 @@
         "icon": "$(key)"
       },
       {
+        "command": "vscode-deephaven.generateRequirementsTxt",
+        "title": "Generate requirements.txt",
+        "icon": "$(cloud-download)"
+      },
+      {
         "command": "vscode-deephaven.openInBrowser",
         "title": "Deephaven: Open in Browser",
         "icon": "$(globe)"
@@ -697,6 +702,10 @@
           "when:": "false"
         },
         {
+          "command": "vscode-deephaven.generateRequirementsTxt",
+          "when": "false"
+        },
+        {
           "command": "vscode-deephaven.openVariablePanels",
           "when": "false"
         },
@@ -798,6 +807,10 @@
         {
           "command": "vscode-deephaven.generateDHEKeyPair",
           "when": "view == vscode-deephaven.serverTree && (viewItem == isDHEServerRunningConnected || viewItem == isDHEServerRunningDisconnected)"
+        },
+        {
+          "command": "vscode-deephaven.generateRequirementsTxt",
+          "when": "view == vscode-deephaven.serverConnectionTree && viewItem == isConnection"
         },
         {
           "command": "vscode-deephaven.openInBrowser",
