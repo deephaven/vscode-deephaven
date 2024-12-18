@@ -459,7 +459,7 @@ export class ExtensionController implements Disposable {
     /** Generate requirements.txt */
     this.registerCommand(
       GENERATE_REQUIREMENTS_TXT_CMD,
-      this.onRegisterRequirementsTxt
+      this.onGenerateRequirementsTxt
     );
 
     /** Open server in browser */
@@ -647,7 +647,7 @@ export class ExtensionController implements Disposable {
   /**
    * Handle generating requirements.txt command
    */
-  onRegisterRequirementsTxt = async (
+  onGenerateRequirementsTxt = async (
     connectionState: ConnectionState
   ): Promise<void> => {
     if (isInstanceOf(connectionState, DhcService)) {
