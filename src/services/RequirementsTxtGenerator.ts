@@ -41,7 +41,8 @@ export class RequirementsTxtGenerator {
    */
   onLogMessage = (logItem: DhcType.ide.LogItem): void => {
     // onLogMessage will get called on the entire log history when subscribed,
-    // so we ignore messages until tracking has been enabled.
+    // so we ignore messages until tracking has been enabled and after tracking
+    // has been finalized.
     if (this._trackingLogs == null) {
       return;
     }
