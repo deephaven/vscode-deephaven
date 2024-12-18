@@ -1,7 +1,12 @@
 import * as vscode from 'vscode';
 import { isAggregateError } from '@deephaven/jsapi-nodejs';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
-import { formatTimestamp, getCombinedSelectedLinesText, Logger } from '../util';
+import {
+  assertDefined,
+  formatTimestamp,
+  getCombinedSelectedLinesText,
+  Logger,
+} from '../util';
 import { initDhcSession, type ConnectionAndSession } from '../dh/dhc';
 import type {
   ConsoleType,
@@ -26,6 +31,7 @@ import {
 } from '../common';
 import { NoConsoleTypesError, parseServerError } from '../dh/errorUtils';
 import { hasErrorCode } from '../util/typeUtils';
+import { RequirementsTxtGenerator } from './RequirementsTxtGenerator';
 
 const logger = new Logger('DhcService');
 
@@ -297,6 +303,18 @@ export class DhcService implements IDhcService {
     const consoleTypes = await this.getConsoleTypes();
     return consoleTypes.has(consoleType);
   };
+
+  async generateRequirementsTxt(): Promise<void> {
+    if (this.session == null) {
+      await this.initSession();
+    }
+
+    assertDefined(this.session, 'session');
+
+    const requirementsTxtGenerator = new RequirementsTxtGenerator(this.session);
+
+    await requirementsTxtGenerator.run();
+  }
 
   async runEditorCode(
     editor: vscode.TextEditor,

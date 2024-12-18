@@ -1,0 +1,113 @@
+import * as vscode from 'vscode';
+import * as fs from 'node:fs';
+import type { dh as DhcType } from '@deephaven/jsapi-types';
+
+const LOG_TAG = 'VSCODE-REQUIREMENTS-TXT' as const;
+
+const EXTRACT_REQUIREMENT_REGEX = new RegExp(`^\\[${LOG_TAG}](.*)`);
+
+const REQUIREMENTS_QUERY_TXT = `from importlib.metadata import packages_distributions, version
+installed = {pkg for pkgs in packages_distributions().values() for pkg in pkgs}
+req_str ="\\n".join(f"[${LOG_TAG}]{pkg}=={version(pkg)}" for pkg in installed)
+print(req_str)
+`;
+
+/**
+ * Generates a `requirements.txt` file based on packages installed on a DH server.
+ * This works by running a query on a DH session that prints package names and
+ * versions with a leading identifier. Log events are subscribed to filtered by
+ * the identifier, and the package names and versions are extracted and then used
+ * to generate the `requirements.txt` file and save it to the workspace.
+ */
+export class RequirementsTxtGenerator {
+  constructor(session: DhcType.IdeSession) {
+    this._session = session;
+  }
+
+  private readonly _session: DhcType.IdeSession;
+  private readonly _requirements: Map<string, string> = new Map();
+
+  /**
+   * Handle session log messages and extract package names and versions from
+   * any entries containing the leading identifier.
+   * @param logItem The log item to process.
+   */
+  onLogMessage = (logItem: DhcType.ide.LogItem): void => {
+    const [, requirementPair] =
+      EXTRACT_REQUIREMENT_REGEX.exec(logItem.message) ?? [];
+
+    if (requirementPair == null) {
+      return;
+    }
+
+    const [packageName, version] = requirementPair.split('==');
+
+    this._requirements.set(packageName, version);
+  };
+
+  /**
+   * Run the requirements generation process.
+   */
+  run = async (): Promise<void> => {
+    const unsubscribe = this._session.onLogMessage(this.onLogMessage);
+
+    // Clear any log entries that were already in the server logs when subscribed
+    // to the session
+    this._requirements.clear();
+
+    await this._session.runCode(REQUIREMENTS_QUERY_TXT);
+
+    // TODO: This is unsubscribing too early. Need a way to wait until the logs
+    // are available
+    unsubscribe();
+
+    await this.save();
+  };
+
+  /**
+   * Save the generated requirements to a file. Prompts the user with default
+   * save location and file name.
+   */
+  save = async (): Promise<void> => {
+    const activeUri = vscode.window.activeTextEditor?.document.uri;
+
+    // For multi-root workspaces, attempt to derive the workspace folder based
+    // on active editor
+    let wkspFolder =
+      activeUri == null
+        ? null
+        : vscode.workspace.workspaceFolders?.find(path =>
+            activeUri?.fsPath.startsWith(path.uri.fsPath)
+          );
+
+    // Fallback to first workspace folder
+    if (wkspFolder == null) {
+      wkspFolder = vscode.workspace.workspaceFolders?.[0];
+    }
+
+    const defaultUri =
+      wkspFolder == null
+        ? vscode.Uri.file('requirements.txt')
+        : vscode.Uri.joinPath(wkspFolder.uri, 'requirements.txt');
+
+    const uri = await vscode.window.showSaveDialog({
+      defaultUri,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      filters: { Requirements: ['txt'] },
+    });
+
+    if (uri == null) {
+      return;
+    }
+
+    const sorted = [
+      ...this._requirements
+        .entries()
+        .map(([packageName, version]) => `${packageName}==${version}`),
+    ].sort((a, b) => a.localeCompare(b));
+
+    fs.writeFileSync(uri.fsPath, sorted.join('\n'));
+
+    vscode.window.showTextDocument(uri);
+  };
+}
