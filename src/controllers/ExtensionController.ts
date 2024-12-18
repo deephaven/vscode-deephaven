@@ -651,7 +651,7 @@ export class ExtensionController implements Disposable {
     connectionState: ConnectionState
   ): Promise<void> => {
     if (isInstanceOf(connectionState, DhcService)) {
-      // TODO:
+      await connectionState.generateRequirementsTxt();
     }
   };
 
