@@ -22,6 +22,7 @@ export const DISCONNECT_EDITOR_CMD = cmd('disconnectEditor');
 export const DISCONNECT_FROM_SERVER_CMD = cmd('disconnectFromServer');
 export const DOWNLOAD_LOGS_CMD = cmd('downloadLogs');
 export const GENERATE_DHE_KEY_PAIR_CMD = cmd('generateDHEKeyPair');
+export const GENERATE_REQUIREMENTS_TXT_CMD = cmd('generateRequirementsTxt');
 export const OPEN_IN_BROWSER_CMD = cmd('openInBrowser');
 export const OPEN_VARIABLE_PANELS_CMD = cmd('openVariablePanels');
 export const REFRESH_SERVER_TREE_CMD = cmd('refreshServerTree');

@@ -5,6 +5,7 @@ export * from './DhcService';
 export * from './DheService';
 export * from './PanelService';
 export * from './PollingService';
+export * from './RequirementsTxtGenerator';
 export * from './SecretService';
 export * from './SerializedKeyMap';
 export * from './ServerManager';

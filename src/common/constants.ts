@@ -91,7 +91,8 @@ export const VARIABLE_UNICODE_ICONS = {
 /* eslint-enable @typescript-eslint/naming-convention */
 
 export const CONNECTION_TREE_ITEM_CONTEXT = {
-  isConnection: 'isConnection',
+  isConnectionConnected: 'isConnectionConnected',
+  isConnectionConnecting: 'isConnectionConnecting',
   isUri: 'isUri',
 } as const;
 
