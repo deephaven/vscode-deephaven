@@ -791,17 +791,17 @@
         },
         {
           "command": "vscode-deephaven.createNewTextDoc",
-          "when": "view == vscode-deephaven.serverConnectionTree && viewItem == isConnection",
+          "when": "view == vscode-deephaven.serverConnectionTree && viewItem == isConnectionConnected",
           "group": "inline@1"
         },
         {
           "command": "vscode-deephaven.disconnectEditor",
-          "when": "view == vscode-deephaven.serverConnectionTree && viewItem != isConnection",
+          "when": "view == vscode-deephaven.serverConnectionTree && viewItem == isUri",
           "group": "inline"
         },
         {
           "command": "vscode-deephaven.disconnectFromServer",
-          "when": "(view == vscode-deephaven.serverTree && (viewItem == isServerRunningConnected || viewItem == isDHEServerRunningConnected)) || (view == vscode-deephaven.serverConnectionTree && viewItem == isConnection)",
+          "when": "(view == vscode-deephaven.serverTree && (viewItem == isServerRunningConnected || viewItem == isDHEServerRunningConnected)) || (view == vscode-deephaven.serverConnectionTree && (viewItem == isConnectionConnected || viewItem == isConnectionConnecting))",
           "group": "inline@2"
         },
         {
@@ -810,7 +810,7 @@
         },
         {
           "command": "vscode-deephaven.generateRequirementsTxt",
-          "when": "view == vscode-deephaven.serverConnectionTree && viewItem == isConnection"
+          "when": "view == vscode-deephaven.serverConnectionTree && viewItem == isConnectionConnected"
         },
         {
           "command": "vscode-deephaven.openInBrowser",
