@@ -5,17 +5,19 @@ import type { dh as DhcType } from '@deephaven/jsapi-types';
 const LOG_TAG = 'VSCODE-REQUIREMENTS-TXT' as const;
 
 const EXTRACT_REQUIREMENT_REGEX = new RegExp(`^\\[${LOG_TAG}](.*)`);
+const FINALIZE_LOGS_TAG = `[${LOG_TAG}-END]\n`;
 
 const REQUIREMENTS_QUERY_TXT = `from importlib.metadata import packages_distributions, version
 installed = {pkg for pkgs in packages_distributions().values() for pkg in pkgs}
 req_str ="\\n".join(f"[${LOG_TAG}]{pkg}=={version(pkg)}" for pkg in installed)
 print(req_str)
+print('[${LOG_TAG}-END]')
 `;
 
 /**
  * Generates a `requirements.txt` file based on packages installed on a DH server.
  * This works by running a query on a DH session that prints package names and
- * versions with a leading identifier. Log events are subscribed to filtered by
+ * versions with a leading identifier. Log events are subscribed to, filtered by
  * the identifier, and the package names and versions are extracted and then used
  * to generate the `requirements.txt` file and save it to the workspace.
  */
@@ -26,6 +28,7 @@ export class RequirementsTxtGenerator {
 
   private readonly _session: DhcType.IdeSession;
   private readonly _requirements: Map<string, string> = new Map();
+  private _trackingLogs: PromiseWithResolvers<void> | null = null;
 
   /**
    * Handle session log messages and extract package names and versions from
@@ -33,6 +36,16 @@ export class RequirementsTxtGenerator {
    * @param logItem The log item to process.
    */
   onLogMessage = (logItem: DhcType.ide.LogItem): void => {
+    if (this._trackingLogs == null) {
+      return;
+    }
+
+    // Finalize tracking
+    if (logItem.message === FINALIZE_LOGS_TAG) {
+      this._trackingLogs.resolve();
+      return;
+    }
+
     const [, requirementPair] =
       EXTRACT_REQUIREMENT_REGEX.exec(logItem.message) ?? [];
 
@@ -51,14 +64,12 @@ export class RequirementsTxtGenerator {
   run = async (): Promise<void> => {
     const unsubscribe = this._session.onLogMessage(this.onLogMessage);
 
-    // Clear any log entries that were already in the server logs when subscribed
-    // to the session
-    this._requirements.clear();
+    this._trackingLogs = Promise.withResolvers();
 
     await this._session.runCode(REQUIREMENTS_QUERY_TXT);
 
-    // TODO: This is unsubscribing too early. Need a way to wait until the logs
-    // are available
+    await this._trackingLogs.promise;
+
     unsubscribe();
 
     await this.save();
