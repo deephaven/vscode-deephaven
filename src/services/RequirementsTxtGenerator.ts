@@ -3,10 +3,14 @@ import * as fs from 'node:fs';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 
 const LOG_TAG = 'VSCODE-REQUIREMENTS-TXT' as const;
-
 const EXTRACT_REQUIREMENT_REGEX = new RegExp(`^\\[${LOG_TAG}](.*)`);
 const FINALIZE_LOGS_TAG = `[${LOG_TAG}-END]\n`;
 
+/**
+ * Query installed Python package names + versions. Each package is prefixed with
+ * a tag to identify it in the log messages. After all packages have been printed,
+ * a finalizing log message is sent to indicate the end of the list.
+ */
 const REQUIREMENTS_QUERY_TXT = `from importlib.metadata import packages_distributions, version
 installed = {pkg for pkgs in packages_distributions().values() for pkg in pkgs}
 req_str ="\\n".join(f"[${LOG_TAG}]{pkg}=={version(pkg)}" for pkg in installed)
@@ -36,13 +40,16 @@ export class RequirementsTxtGenerator {
    * @param logItem The log item to process.
    */
   onLogMessage = (logItem: DhcType.ide.LogItem): void => {
+    // onLogMessage will get called on the entire log history when subscribed,
+    // so we ignore messages until tracking has been enabled.
     if (this._trackingLogs == null) {
       return;
     }
 
-    // Finalize tracking
+    // Finalize tracking when we see our finalization tag
     if (logItem.message === FINALIZE_LOGS_TAG) {
       this._trackingLogs.resolve();
+      this._trackingLogs = null;
       return;
     }
 
@@ -64,6 +71,8 @@ export class RequirementsTxtGenerator {
   run = async (): Promise<void> => {
     const unsubscribe = this._session.onLogMessage(this.onLogMessage);
 
+    // Start tracking logs. Pre-existing logs passed to `onLogMessage` on subscribe
+    // should have already been ignored by this point.
     this._trackingLogs = Promise.withResolvers();
 
     await this._session.runCode(REQUIREMENTS_QUERY_TXT);

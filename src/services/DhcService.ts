@@ -304,6 +304,10 @@ export class DhcService implements IDhcService {
     return consoleTypes.has(consoleType);
   };
 
+  /**
+   * Generate a requirements.txt file based on the packages used in the current
+   * session.
+   */
   async generateRequirementsTxt(): Promise<void> {
     if (this.session == null) {
       await this.initSession();
