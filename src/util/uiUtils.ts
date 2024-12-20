@@ -362,6 +362,27 @@ export async function getEditorForUri(
 }
 
 /**
+ * Get the workspace folder for the active editor or fallback to the first listed
+ * workspace folder.
+ * @returns The workspace folder or undefined if there are no workspace folders.
+ */
+export function getWorkspaceFolder(): vscode.WorkspaceFolder | undefined {
+  const activeUri = vscode.window.activeTextEditor?.document.uri;
+
+  // For multi-root workspaces, attempt to derive the workspace folder based
+  // on active editor
+  const wkspFolder =
+    activeUri == null
+      ? null
+      : vscode.workspace.workspaceFolders?.find(path =>
+          activeUri?.fsPath.startsWith(path.uri.fsPath)
+        );
+
+  // Fallback to first workspace folder
+  return wkspFolder ?? vscode.workspace.workspaceFolders?.[0];
+}
+
+/**
  * Update given status bar item based on connection status
  * and optional `ConnectionOption`.
  * @param statusBarItem The status bar item to update
@@ -457,21 +478,7 @@ export function promptForOperateAs(
 export async function saveRequirementsTxt(
   dependencies: Map<DependencyName, DependencyVersion>
 ): Promise<void> {
-  const activeUri = vscode.window.activeTextEditor?.document.uri;
-
-  // For multi-root workspaces, attempt to derive the workspace folder based
-  // on active editor
-  let wkspFolder =
-    activeUri == null
-      ? null
-      : vscode.workspace.workspaceFolders?.find(path =>
-          activeUri?.fsPath.startsWith(path.uri.fsPath)
-        );
-
-  // Fallback to first workspace folder
-  if (wkspFolder == null) {
-    wkspFolder = vscode.workspace.workspaceFolders?.[0];
-  }
+  const wkspFolder = getWorkspaceFolder();
 
   const defaultUri =
     wkspFolder == null
