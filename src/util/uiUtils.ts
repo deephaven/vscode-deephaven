@@ -367,19 +367,20 @@ export async function getEditorForUri(
  * @returns The workspace folder or undefined if there are no workspace folders.
  */
 export function getWorkspaceFolder(): vscode.WorkspaceFolder | undefined {
+  const wkspFolders = vscode.workspace.workspaceFolders ?? [];
+
+  if (wkspFolders.length === 0) {
+    return;
+  }
+
   const activeUri = vscode.window.activeTextEditor?.document.uri;
 
-  // For multi-root workspaces, attempt to derive the workspace folder based
-  // on active editor
-  const wkspFolder =
+  const activeWkspFolder =
     activeUri == null
       ? null
-      : vscode.workspace.workspaceFolders?.find(path =>
-          activeUri?.fsPath.startsWith(path.uri.fsPath)
-        );
+      : wkspFolders.find(path => activeUri.fsPath.startsWith(path.uri.fsPath));
 
-  // Fallback to first workspace folder
-  return wkspFolder ?? vscode.workspace.workspaceFolders?.[0];
+  return activeWkspFolder ?? wkspFolders[0];
 }
 
 /**
