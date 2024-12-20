@@ -7,7 +7,12 @@ import type {
   DependencyVersion,
 } from '../types';
 import { hasStatusCode, loadModules } from '@deephaven/jsapi-nodejs';
-import { REQUIREMENTS_QUERY_TXT, REQUIREMENTS_TABLE_NAME } from '../common';
+import {
+  REQUIREMENTS_QUERY_TXT,
+  REQUIREMENTS_TABLE_NAME,
+  REQUIREMENTS_TABLE_NAME_COLUMN_NAME,
+  REQUIREMENTS_TABLE_VERSION_COLUMN_NAME,
+} from '../common';
 
 export const AUTH_HANDLER_TYPE_ANONYMOUS =
   'io.deephaven.auth.AnonymousAuthenticationHandler';
@@ -108,8 +113,10 @@ export async function getPythonDependencies(
   table.setViewport(0, table.size - 1);
   const data = await table.getViewportData();
 
-  const nameColumn = table.findColumn('Name');
-  const versionColumn = table.findColumn('Version');
+  const nameColumn = table.findColumn(REQUIREMENTS_TABLE_NAME_COLUMN_NAME);
+  const versionColumn = table.findColumn(
+    REQUIREMENTS_TABLE_VERSION_COLUMN_NAME
+  );
 
   for (const row of data.rows) {
     const name: DependencyName = row.get(nameColumn);

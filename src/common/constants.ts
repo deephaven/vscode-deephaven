@@ -127,6 +127,8 @@ export const VSCODE_POST_MSG = {
  * requirements.txt file
  */
 export const REQUIREMENTS_TABLE_NAME = '__vscode_requirements';
+export const REQUIREMENTS_TABLE_NAME_COLUMN_NAME = 'Name';
+export const REQUIREMENTS_TABLE_VERSION_COLUMN_NAME = 'Version';
 
 /**
  * Query installed Python package names + versions and store in a DH Table.
@@ -138,6 +140,6 @@ from importlib.metadata import packages_distributions, version
 installed = {pkg for pkgs in packages_distributions().values() for pkg in pkgs}
 
 ${REQUIREMENTS_TABLE_NAME} = new_table([
-    string_col("Name", list(installed)),
-    string_col("Version", [version(pkg) for pkg in installed])
+    string_col("${REQUIREMENTS_TABLE_NAME_COLUMN_NAME}", list(installed)),
+    string_col("${REQUIREMENTS_TABLE_VERSION_COLUMN_NAME}", [version(pkg) for pkg in installed])
 ])` as const;
