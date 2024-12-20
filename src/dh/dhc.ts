@@ -99,7 +99,7 @@ export function getEmbedWidgetUrl({
 
 /**
  * Get a name / version map of python dependencies from a DH session.
- * @param session
+ * @param session The DH session to use.
  * @returns A promise that resolves to a map of python dependencies.
  */
 export async function getPythonDependencies(

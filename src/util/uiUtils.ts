@@ -451,7 +451,7 @@ export function promptForOperateAs(
 
 /**
  * Save a map of dependency name / versions to a `requirements.txt` file.
- * @param dependencies
+ * @param dependencies The map of dependency names / versions to save.
  * @returns Promise that resolves when the file is saved.
  */
 export async function saveRequirementsTxt(
