@@ -83,18 +83,8 @@ import {
   type UnauthenticatedClient as DheUnauthenticatedClient,
 } from '@deephaven-enterprise/auth-nodejs';
 import { NodeHttp2gRPCTransport } from '../dh/NodeHttp2gRPCTransport';
-import type { GrpcTransportFactory } from '../dh/grpc';
 
 const logger = new Logger('ExtensionController');
-
-declare module '@deephaven/jsapi-types' {
-  export namespace dh {
-    export interface ConnectOptions {
-      debug?: boolean;
-      transportFactory?: GrpcTransportFactory;
-    }
-  }
-}
 
 export class ExtensionController implements Disposable {
   constructor(context: vscode.ExtensionContext, configService: IConfigService) {
@@ -355,8 +345,6 @@ export class ExtensionController implements Disposable {
 
       const client = new dhc.CoreClient(url.toString(), {
         debug: true,
-        // TODO: This should be optional, but types aren't happy yet
-        headers: {},
         transportFactory: NodeHttp2gRPCTransport.factory,
       }) as CoreUnauthenticatedClient;
 
