@@ -78,6 +78,7 @@ import {
   type AuthenticatedClient as DheAuthenticatedClient,
   type UnauthenticatedClient as DheUnauthenticatedClient,
 } from '@deephaven-enterprise/auth-nodejs';
+import { NodeHttp2gRPCTransport } from '../dh/NodeHttp2gRPCTransport';
 
 const logger = new Logger('ExtensionController');
 
@@ -333,9 +334,10 @@ export class ExtensionController implements Disposable {
       assertDefined(this._coreJsApiCache, 'coreJsApiCache');
       const dhc = await this._coreJsApiCache.get(url);
 
-      const client = new dhc.CoreClient(
-        url.toString()
-      ) as CoreUnauthenticatedClient;
+      const client = new dhc.CoreClient(url.toString(), {
+        debug: true,
+        transportFactory: NodeHttp2gRPCTransport.factory,
+      }) as CoreUnauthenticatedClient;
 
       // Attach a dispose method so that client caches can dispose of the client
       return Object.assign(client, {
