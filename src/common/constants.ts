@@ -123,6 +123,12 @@ export const VSCODE_POST_MSG = {
 } as const;
 
 /**
+ * Table to store Python dependency names + versions used to generate a
+ * requirements.txt file
+ */
+export const REQUIREMENTS_TABLE_NAME = '__vscode_requirements';
+
+/**
  * Query installed Python package names + versions and store in a DH Table.
  */
 export const REQUIREMENTS_QUERY_TXT = `from deephaven import new_table
@@ -131,9 +137,7 @@ from importlib.metadata import packages_distributions, version
 
 installed = {pkg for pkgs in packages_distributions().values() for pkg in pkgs}
 
-__vscode_requirements = new_table([
+${REQUIREMENTS_TABLE_NAME} = new_table([
     string_col("Name", list(installed)),
     string_col("Version", [version(pkg) for pkg in installed])
 ])` as const;
-
-export const REQUIREMENTS_TABLE_NAME = '__vscode_requirements';
