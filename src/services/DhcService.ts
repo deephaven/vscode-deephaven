@@ -6,8 +6,13 @@ import {
   formatTimestamp,
   getCombinedSelectedLinesText,
   Logger,
+  saveRequirementsTxt,
 } from '../util';
-import { initDhcSession, type ConnectionAndSession } from '../dh/dhc';
+import {
+  getPythonDependencies,
+  initDhcSession,
+  type ConnectionAndSession,
+} from '../dh/dhc';
 import type {
   ConsoleType,
   CoreAuthenticatedClient,
@@ -31,7 +36,6 @@ import {
 } from '../common';
 import { NoConsoleTypesError, parseServerError } from '../dh/errorUtils';
 import { hasErrorCode } from '../util/typeUtils';
-import { RequirementsTxtGenerator } from './RequirementsTxtGenerator';
 
 const logger = new Logger('DhcService');
 
@@ -315,9 +319,9 @@ export class DhcService implements IDhcService {
 
     assertDefined(this.session, 'session');
 
-    const requirementsTxtGenerator = new RequirementsTxtGenerator(this.session);
+    const dependencies = await getPythonDependencies(this.session);
 
-    await requirementsTxtGenerator.run();
+    await saveRequirementsTxt(dependencies);
   }
 
   async runEditorCode(

@@ -121,3 +121,19 @@ export const VSCODE_POST_MSG = {
   loginOptionsResponse: 'vscode-ext.loginOptions',
   sessionDetailsResponse: 'vscode-ext.sessionDetails',
 } as const;
+
+/**
+ * Query installed Python package names + versions and store in a DH Table.
+ */
+export const REQUIREMENTS_QUERY_TXT = `from deephaven import new_table
+from deephaven.column import string_col
+from importlib.metadata import packages_distributions, version
+
+installed = {pkg for pkgs in packages_distributions().values() for pkg in pkgs}
+
+__vscode_requirements = new_table([
+    string_col("Name", list(installed)),
+    string_col("Version", [version(pkg) for pkg in installed])
+])` as const;
+
+export const REQUIREMENTS_TABLE_NAME = '__vscode_requirements';

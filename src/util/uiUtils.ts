@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as fs from 'node:fs';
 import {
   SELECT_CONNECTION_COMMAND,
   STATUS_BAR_CONNECTING_TEXT,
@@ -15,6 +16,8 @@ import type {
   ConnectionState,
   UserLoginPreferences,
   Psk,
+  DependencyName,
+  DependencyVersion,
 } from '../types';
 import { sortByStringProp } from './dataUtils';
 import { assertDefined } from './assertUtil';
@@ -444,4 +447,54 @@ export function promptForOperateAs(
     title,
     value: defaultValue,
   }) as Promise<OperateAsUsername | undefined>;
+}
+
+/**
+ * Save a map of dependency name / versions to a `requirements.txt` file.
+ * @param dependencies
+ * @returns Promise that resolves when the file is saved.
+ */
+export async function saveRequirementsTxt(
+  dependencies: Map<DependencyName, DependencyVersion>
+): Promise<void> {
+  const activeUri = vscode.window.activeTextEditor?.document.uri;
+
+  // For multi-root workspaces, attempt to derive the workspace folder based
+  // on active editor
+  let wkspFolder =
+    activeUri == null
+      ? null
+      : vscode.workspace.workspaceFolders?.find(path =>
+          activeUri?.fsPath.startsWith(path.uri.fsPath)
+        );
+
+  // Fallback to first workspace folder
+  if (wkspFolder == null) {
+    wkspFolder = vscode.workspace.workspaceFolders?.[0];
+  }
+
+  const defaultUri =
+    wkspFolder == null
+      ? vscode.Uri.file('requirements.txt')
+      : vscode.Uri.joinPath(wkspFolder.uri, 'requirements.txt');
+
+  const uri = await vscode.window.showSaveDialog({
+    defaultUri,
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    filters: { Requirements: ['txt'] },
+  });
+
+  if (uri == null) {
+    return;
+  }
+
+  const sorted = [
+    ...dependencies
+      .entries()
+      .map(([packageName, version]) => `${packageName}==${version}`),
+  ].sort((a, b) => a.localeCompare(b));
+
+  fs.writeFileSync(uri.fsPath, sorted.join('\n'));
+
+  vscode.window.showTextDocument(uri);
 }
