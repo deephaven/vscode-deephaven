@@ -1,10 +1,10 @@
 import http2 from 'node:http2';
-import type {
-  GrpcTransport,
-  GrpcTransportFactory,
-  GrpcTransportOptions,
-} from './grpc';
+import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { assertDefined } from '../util';
+
+type GrpcTransport = DhcType.grpc.GrpcTransport;
+type GrpcTransportFactory = DhcType.grpc.GrpcTransportFactory;
+type GrpcTransportOptions = DhcType.grpc.GrpcTransportOptions;
 
 export class NodeHttp2gRPCTransport implements GrpcTransport {
   static _sessionMap: Map<string, http2.ClientHttp2Session> = new Map();
