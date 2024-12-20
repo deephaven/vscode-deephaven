@@ -1,8 +1,18 @@
 import * as vscode from 'vscode';
 import { isAggregateError } from '@deephaven/jsapi-nodejs';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
-import { formatTimestamp, getCombinedSelectedLinesText, Logger } from '../util';
-import { initDhcSession, type ConnectionAndSession } from '../dh/dhc';
+import {
+  assertDefined,
+  formatTimestamp,
+  getCombinedSelectedLinesText,
+  Logger,
+  saveRequirementsTxt,
+} from '../util';
+import {
+  getPythonDependencies,
+  initDhcSession,
+  type ConnectionAndSession,
+} from '../dh/dhc';
 import type {
   ConsoleType,
   CoreAuthenticatedClient,
@@ -297,6 +307,22 @@ export class DhcService implements IDhcService {
     const consoleTypes = await this.getConsoleTypes();
     return consoleTypes.has(consoleType);
   };
+
+  /**
+   * Generate a requirements.txt file based on the packages used in the current
+   * session.
+   */
+  async generateRequirementsTxt(): Promise<void> {
+    if (this.session == null) {
+      await this.initSession();
+    }
+
+    assertDefined(this.session, 'session');
+
+    const dependencies = await getPythonDependencies(this.session);
+
+    await saveRequirementsTxt(dependencies);
+  }
 
   async runEditorCode(
     editor: vscode.TextEditor,

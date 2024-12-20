@@ -3,8 +3,16 @@ import { NoConsoleTypesError } from './errorUtils';
 import type {
   CoreAuthenticatedClient,
   CoreUnauthenticatedClient,
+  DependencyName,
+  DependencyVersion,
 } from '../types';
 import { hasStatusCode, loadModules } from '@deephaven/jsapi-nodejs';
+import {
+  REQUIREMENTS_QUERY_TXT,
+  REQUIREMENTS_TABLE_NAME,
+  REQUIREMENTS_TABLE_NAME_COLUMN_NAME,
+  REQUIREMENTS_TABLE_VERSION_COLUMN_NAME,
+} from '../common';
 
 export const AUTH_HANDLER_TYPE_ANONYMOUS =
   'io.deephaven.auth.AnonymousAuthenticationHandler';
@@ -87,6 +95,38 @@ export function getEmbedWidgetUrl({
   }
 
   return url;
+}
+
+/**
+ * Get a name / version map of python dependencies from a DH session.
+ * @param session The DH session to use.
+ * @returns A promise that resolves to a map of python dependencies.
+ */
+export async function getPythonDependencies(
+  session: DhType.IdeSession
+): Promise<Map<DependencyName, DependencyVersion>> {
+  await session.runCode(REQUIREMENTS_QUERY_TXT);
+
+  const dependencies = new Map<DependencyName, DependencyVersion>();
+
+  const table = await session.getTable(REQUIREMENTS_TABLE_NAME);
+  table.setViewport(0, table.size - 1);
+  const data = await table.getViewportData();
+
+  const nameColumn = table.findColumn(REQUIREMENTS_TABLE_NAME_COLUMN_NAME);
+  const versionColumn = table.findColumn(
+    REQUIREMENTS_TABLE_VERSION_COLUMN_NAME
+  );
+
+  for (const row of data.rows) {
+    const name: DependencyName = row.get(nameColumn);
+    const version: DependencyVersion = row.get(versionColumn);
+    dependencies.set(name, version);
+  }
+
+  await session.runCode(`del ${REQUIREMENTS_TABLE_NAME}`);
+
+  return dependencies;
 }
 
 /**

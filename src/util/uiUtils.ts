@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as fs from 'node:fs';
 import {
   SELECT_CONNECTION_COMMAND,
   STATUS_BAR_CONNECTING_TEXT,
@@ -15,6 +16,8 @@ import type {
   ConnectionState,
   UserLoginPreferences,
   Psk,
+  DependencyName,
+  DependencyVersion,
 } from '../types';
 import { sortByStringProp } from './dataUtils';
 import { assertDefined } from './assertUtil';
@@ -359,6 +362,28 @@ export async function getEditorForUri(
 }
 
 /**
+ * Get the workspace folder for the active editor or fallback to the first listed
+ * workspace folder.
+ * @returns The workspace folder or undefined if there are no workspace folders.
+ */
+export function getWorkspaceFolder(): vscode.WorkspaceFolder | undefined {
+  const wkspFolders = vscode.workspace.workspaceFolders ?? [];
+
+  if (wkspFolders.length === 0) {
+    return;
+  }
+
+  const activeUri = vscode.window.activeTextEditor?.document.uri;
+
+  const activeWkspFolder =
+    activeUri == null
+      ? null
+      : wkspFolders.find(path => activeUri.fsPath.startsWith(path.uri.fsPath));
+
+  return activeWkspFolder ?? wkspFolders[0];
+}
+
+/**
  * Update given status bar item based on connection status
  * and optional `ConnectionOption`.
  * @param statusBarItem The status bar item to update
@@ -444,4 +469,40 @@ export function promptForOperateAs(
     title,
     value: defaultValue,
   }) as Promise<OperateAsUsername | undefined>;
+}
+
+/**
+ * Save a map of dependency name / versions to a `requirements.txt` file.
+ * @param dependencies The map of dependency names / versions to save.
+ * @returns Promise that resolves when the file is saved.
+ */
+export async function saveRequirementsTxt(
+  dependencies: Map<DependencyName, DependencyVersion>
+): Promise<void> {
+  const wkspFolder = getWorkspaceFolder();
+
+  const defaultUri =
+    wkspFolder == null
+      ? vscode.Uri.file('requirements.txt')
+      : vscode.Uri.joinPath(wkspFolder.uri, 'requirements.txt');
+
+  const uri = await vscode.window.showSaveDialog({
+    defaultUri,
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    filters: { Requirements: ['txt'] },
+  });
+
+  if (uri == null) {
+    return;
+  }
+
+  const sorted = [
+    ...dependencies
+      .entries()
+      .map(([packageName, version]) => `${packageName}==${version}`),
+  ].sort((a, b) => a.localeCompare(b));
+
+  fs.writeFileSync(uri.fsPath, sorted.join('\n'));
+
+  vscode.window.showTextDocument(uri);
 }
