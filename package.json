@@ -861,8 +861,7 @@
   "dependencies": {
     "@deephaven-enterprise/auth-nodejs": "^1.20240723.124-beta",
     "@deephaven-enterprise/query-utils": "^1.20240723.124-beta",
-    "@deephaven/jsapi-nodejs": "0.100.0",
-    "esbuild-wasm": "^0.24.0",
+    "@deephaven/jsapi-nodejs": "0.102.0",
     "nanoid": "^5.0.7"
   },
   "devDependencies": {
@@ -879,6 +878,7 @@
     "@wdio/mocha-framework": "^8.39.0",
     "@wdio/spec-reporter": "^8.39.0",
     "ctrf": "^0.0.9",
+    "esbuild-wasm": "^0.24.0",
     "eslint": "^8.57.0",
     "fantasticon": "^3.0.0",
     "github-actions-ctrf": "^0.0.20",

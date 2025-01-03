@@ -53,7 +53,7 @@ export async function getDhe(
     serverPaths: ['irisapi/irisapi.nocache.js'],
     download: true,
     storageDir,
-    sourceModuleType: 'cjs',
+    targetModuleType: 'cjs',
   });
 
   // DHE currently exposes the jsapi via the global `iris` object.
