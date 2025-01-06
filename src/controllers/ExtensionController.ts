@@ -650,9 +650,11 @@ export class ExtensionController implements Disposable {
   onGenerateRequirementsTxt = async (
     connectionState: ConnectionState
   ): Promise<void> => {
-    if (isInstanceOf(connectionState, DhcService)) {
-      await connectionState.generateRequirementsTxt();
+    if (!isInstanceOf(connectionState, DhcService)) {
+      throw new Error('Connection is not a DHC service');
     }
+
+    await connectionState.generateRequirementsTxt();
   };
 
   onOpenInBrowser = async (serverState: ServerState): Promise<void> => {
