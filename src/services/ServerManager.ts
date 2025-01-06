@@ -120,9 +120,9 @@ export class ServerManager implements IServerManager {
     // We want to keep any existing managed servers that aren't overridden by
     // the latest config so we don't lose the PSKs that were generated when
     // the servers were created.
-    const managedServersStates = this._serverMap
-      .values()
-      .filter(v => v.isManaged);
+    const managedServersStates = [...this._serverMap.values()].filter(
+      v => v.isManaged
+    );
 
     const configuredDhcServerState = getInitialServerStates(
       'DHC',
