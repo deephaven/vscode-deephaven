@@ -5,6 +5,7 @@ import {
   CLEAR_SECRET_STORAGE_CMD,
   CREATE_NEW_TEXT_DOC_CMD,
   DOWNLOAD_LOGS_CMD,
+  GENERATE_REQUIREMENTS_TXT_CMD,
   OPEN_IN_BROWSER_CMD,
   REFRESH_SERVER_CONNECTION_TREE_CMD,
   REFRESH_SERVER_TREE_CMD,
@@ -66,6 +67,7 @@ import type {
   CoreAuthenticatedClient,
   ICoreClientFactory,
   CoreUnauthenticatedClient,
+  ConnectionState,
 } from '../types';
 import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTreeDragAndDropController';
 import { ConnectionController } from './ConnectionController';
@@ -454,6 +456,12 @@ export class ExtensionController implements Disposable {
     /** Download logs and open in editor */
     this.registerCommand(DOWNLOAD_LOGS_CMD, this.onDownloadLogs);
 
+    /** Generate requirements.txt */
+    this.registerCommand(
+      GENERATE_REQUIREMENTS_TXT_CMD,
+      this.onGenerateRequirementsTxt
+    );
+
     /** Open server in browser */
     this.registerCommand(OPEN_IN_BROWSER_CMD, this.onOpenInBrowser);
 
@@ -634,6 +642,19 @@ export class ExtensionController implements Disposable {
       this._toaster.info(`Downloaded logs to ${uri.fsPath}`);
       vscode.window.showTextDocument(uri);
     }
+  };
+
+  /**
+   * Handle generating requirements.txt command
+   */
+  onGenerateRequirementsTxt = async (
+    connectionState: ConnectionState
+  ): Promise<void> => {
+    if (!isInstanceOf(connectionState, DhcService)) {
+      throw new Error('Connection is not a DHC service');
+    }
+
+    await connectionState.generateRequirementsTxt();
   };
 
   onOpenInBrowser = async (serverState: ServerState): Promise<void> => {

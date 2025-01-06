@@ -51,16 +51,16 @@ Enterprise servers can be configured via the `"deephaven.enterpriseServers"` set
 ![Enterprise Server Settings](./docs/assets/dhe-settings.gif)
 
 ## Workspace Setup
-It is recommended to configure a virtual python environment within your `VS Code` workspace. See https://code.visualstudio.com/docs/python/python-tutorial#_create-a-virtual-environment for a general overview. To get features like intellisense, you can install `deephaven` pip packages in the `venv`.
+It is recommended to configure a virtual python environment within your `VS Code` workspace. See https://code.visualstudio.com/docs/python/python-tutorial#_create-a-virtual-environment for a general overview. To get features like intellisense for packages that are installed on the Deephaven server, you will need to install the same packages in your local `venv`.
 
-For example here's a minimal `requirements.txt` file that enables intellisense for common Deephaven packages:
-```text
-deephaven-core
-deephaven-plugin-plotly-express
-deephaven-plugin-ui
-```
+A `requirements.txt` file can be generated containing all of the packages installed on the server by:
+1. Connect to a Deephaven server
+1. Right-click on the connection in the CONNECTIONS panel
+1. Click "Generate requirements.txt" action
 
-> Note: Python code executed by the extension always runs on the server, while the local environment drives language features in `VS Code` such as intellisense. Therefore, local pip installs will need to target the same versions installed on the server to ensure intellisense features match the apis running on the server. For Community, it is possible for the server to share the same environment as `VS Code`. For Enterprise, they will always be separate. We plan to implement better support for this in the future.
+   ![Generate requirements.txt](docs/assets/generate-requirements-txt.png)
+
+> Note: Python code executed by the extension always runs on the server, while the local environment drives language features in `VS Code` such as intellisense. For Community, it is possible for the server to share the same environment as `VS Code`. For Enterprise, they will always be separate.
 
 ### Managed Pip Servers (Community only)
 If you want to manage Deephaven servers from within the extension, include `deephaven-server` in the venv pip installation.

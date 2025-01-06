@@ -20,6 +20,7 @@ export class ServerConnectionTreeProvider extends TreeDataProviderBase<ServerCon
     if (connectionOrUri instanceof vscode.Uri) {
       return {
         description: connectionOrUri.path,
+        contextValue: CONNECTION_TREE_ITEM_CONTEXT.isUri,
         command: {
           command: 'vscode.open',
           title: 'Open Uri',
@@ -58,7 +59,9 @@ export class ServerConnectionTreeProvider extends TreeDataProviderBase<ServerCon
     return {
       label,
       description: descriptionTokens.join(' - '),
-      contextValue: CONNECTION_TREE_ITEM_CONTEXT.isConnection,
+      contextValue: connectionOrUri.isConnected
+        ? CONNECTION_TREE_ITEM_CONTEXT.isConnectionConnected
+        : CONNECTION_TREE_ITEM_CONTEXT.isConnectionConnecting,
       collapsibleState: hasUris
         ? vscode.TreeItemCollapsibleState.Expanded
         : undefined,

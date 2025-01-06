@@ -45,6 +45,9 @@ export type CoreUnauthenticatedClient = Brand<
   DhcType.CoreClient
 >;
 
+export type DependencyName = Brand<'DependencyName', string>;
+export type DependencyVersion = Brand<'DependencyVersion', string>;
+
 export type EnterpriseConnectionConfigStored =
   | Brand<'EnterpriseConnectionConfigStored'>
   | { url: string; label?: string; experimentalWorkerConfig?: WorkerConfig };

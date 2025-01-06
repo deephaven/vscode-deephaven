@@ -91,7 +91,8 @@ export const VARIABLE_UNICODE_ICONS = {
 /* eslint-enable @typescript-eslint/naming-convention */
 
 export const CONNECTION_TREE_ITEM_CONTEXT = {
-  isConnection: 'isConnection',
+  isConnectionConnected: 'isConnectionConnected',
+  isConnectionConnecting: 'isConnectionConnecting',
   isUri: 'isUri',
 } as const;
 
@@ -120,3 +121,25 @@ export const VSCODE_POST_MSG = {
   loginOptionsResponse: 'vscode-ext.loginOptions',
   sessionDetailsResponse: 'vscode-ext.sessionDetails',
 } as const;
+
+/**
+ * Table to store Python dependency names + versions used to generate a
+ * requirements.txt file
+ */
+export const REQUIREMENTS_TABLE_NAME = '__vscode_requirements';
+export const REQUIREMENTS_TABLE_NAME_COLUMN_NAME = 'Name';
+export const REQUIREMENTS_TABLE_VERSION_COLUMN_NAME = 'Version';
+
+/**
+ * Query installed Python package names + versions and store in a DH Table.
+ */
+export const REQUIREMENTS_QUERY_TXT = `from deephaven import new_table
+from deephaven.column import string_col
+from importlib.metadata import packages_distributions, version
+
+installed = {pkg for pkgs in packages_distributions().values() for pkg in pkgs}
+
+${REQUIREMENTS_TABLE_NAME} = new_table([
+    string_col("${REQUIREMENTS_TABLE_NAME_COLUMN_NAME}", list(installed)),
+    string_col("${REQUIREMENTS_TABLE_VERSION_COLUMN_NAME}", [version(pkg) for pkg in installed])
+])` as const;
