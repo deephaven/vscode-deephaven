@@ -177,10 +177,19 @@ export class PanelController extends ControllerBase {
       lastPanel = panel;
     }
 
-    // Panels get created in an active state. If the last panel was newly created,
-    // it will already be active and won't call the `onDidChangeViewState`
-    // handler on the initial load. In such cases, remove the
-    // firstTimeActiveSubscription and refresh the panel explicitly.
+    // Panels get refreshed as follows:
+    // 1. Existing panels - don't get updated here. These get refreshed by a
+    //    `subscribeToFieldUpdates` handler in DhcService which issues a
+    //    `REFRESH_VARIABLE_PANELS_CMD` command for variables matching existing
+    //    panels.
+    // 2. Newly created panels that are not the initially active panel (aka. any
+    //    new panel that is not the last panel in the list) - these get refreshed
+    //    the first time the panel becomes active via a one-time
+    //    `onDidChangeViewState` handler.
+    // 3. Newly created panel that is the initially active panel - this one won't
+    //    call the `onDidChangeViewState` handler since it is initialized as
+    //    active. For this case, we dispose the one-time `onDidChangeViewState`
+    //    subscription and refresh the panel explicitly.
     if (lastPanelIsNew && lastCreatedPanelFirstTimeActiveSubscription) {
       lastCreatedPanelFirstTimeActiveSubscription.dispose();
       this._onRefreshPanelsContent(serverUrl, variables.slice(-1));
