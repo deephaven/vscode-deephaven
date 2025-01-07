@@ -135,7 +135,11 @@ export class ConnectionController extends ControllerBase implements Disposable {
 
     const editor = vscode.window.activeTextEditor;
 
-    if (editor == null || !isSupportedLanguageId(editor.document.languageId)) {
+    if (
+      editor == null ||
+      (!isSupportedLanguageId(editor.document.languageId) &&
+        editor.document.languageId !== 'markdown')
+    ) {
       this._connectStatusBarItem.hide();
       return;
     }
@@ -158,7 +162,8 @@ export class ConnectionController extends ControllerBase implements Disposable {
 
   connectEditor = async (
     connectionOrServer: ConnectionState | ServerState,
-    editor: vscode.TextEditor
+    editor: vscode.TextEditor,
+    languageId: string = editor.document.languageId
   ): Promise<void> => {
     updateConnectionStatusBarItem(this._connectStatusBarItem, 'connecting');
 
@@ -167,7 +172,7 @@ export class ConnectionController extends ControllerBase implements Disposable {
     if ('url' in connectionOrServer) {
       const cn = await this._serverManager.connectToServer(
         connectionOrServer.url,
-        getConsoleType(editor.document.languageId)
+        getConsoleType(languageId)
       );
 
       if (cn == null) {
@@ -202,16 +207,20 @@ export class ConnectionController extends ControllerBase implements Disposable {
 
   /**
    * Get or create a connection for the given uri.
-   * @param uri
+   * @param uri Uri to get or create a connection for.
+   * @param languageId Optional language id to use for the connection. Defaults
+   * to the language id of the uri.
    */
   getOrCreateConnection = async (
-    uri: vscode.Uri
+    uri: vscode.Uri,
+    languageId?: string
   ): Promise<ConnectionState | null> => {
     assertDefined(this._outputChannel, 'outputChannel');
     assertDefined(this._serverManager, 'serverManager');
     assertDefined(this._toaster, 'toaster');
 
     const editor = await getEditorForUri(uri);
+    languageId = languageId ?? editor.document.languageId;
 
     // Get existing connection for the editor
     let dhService = await this._serverManager.getEditorConnection(editor);
@@ -222,7 +231,7 @@ export class ConnectionController extends ControllerBase implements Disposable {
 
     const supportingConnections = await getConnectionsForConsoleType(
       this._serverManager.getConnections(),
-      editor.document.languageId as ConsoleType
+      languageId as ConsoleType
     );
 
     const availableServers = this._serverManager.getServers({
@@ -233,7 +242,7 @@ export class ConnectionController extends ControllerBase implements Disposable {
     if (supportingConnections.length === 1 && availableServers.length === 0) {
       // If we only have 1 supporting connection, and no available servers, use
       // the available connection.
-      await this.connectEditor(supportingConnections[0], editor);
+      await this.connectEditor(supportingConnections[0], editor, languageId);
     } else if (
       // If there are no active connections that can support the editor, and we
       // only have 1 available server, just connect to it instead of prompting the
@@ -241,10 +250,10 @@ export class ConnectionController extends ControllerBase implements Disposable {
       supportingConnections.length === 0 &&
       availableServers.length === 1
     ) {
-      await this.connectEditor(availableServers[0], editor);
+      await this.connectEditor(availableServers[0], editor, languageId);
     } else {
       // If there are multiple options to select, prompt the user to select one.
-      const isSelected = await this.onPromptUserToSelectConnection();
+      const isSelected = await this.onPromptUserToSelectConnection(languageId);
 
       // User cancelled the selection or an error occurred
       if (!isSelected) {
@@ -255,7 +264,7 @@ export class ConnectionController extends ControllerBase implements Disposable {
     dhService = await this._serverManager.getEditorConnection(editor);
 
     if (dhService == null) {
-      const logMsg = `No active connection found supporting '${editor.document.languageId}' console type.`;
+      const logMsg = `No active connection found supporting '${languageId}' console type.`;
       logger.debug(logMsg);
       this._outputChannel.appendLine(logMsg);
       this._toaster.error(logMsg);
@@ -341,12 +350,17 @@ export class ConnectionController extends ControllerBase implements Disposable {
    * 2. A list of running servers composed of:
    *   - DHC servers that don't yet have a connection
    *   - All running DHE servers
+   * @param languageId Optional language id to use for the connection. Defaults
+   * to the language id of the active editor.
    */
-  onPromptUserToSelectConnection = async (): Promise<boolean> => {
+  onPromptUserToSelectConnection = async (
+    languageId?: string
+  ): Promise<boolean> => {
     assertDefined(vscode.window.activeTextEditor, 'activeTextEditor');
     assertDefined(this._serverManager, 'serverManager');
 
     const editor = vscode.window.activeTextEditor;
+    languageId = languageId ?? editor.document.languageId;
 
     const updateStatusPromise = this._serverManager.updateStatus();
 
@@ -382,7 +396,7 @@ export class ConnectionController extends ControllerBase implements Disposable {
     const connectionsForConsoleType: ConnectionState[] =
       await getConnectionsForConsoleType(
         this._serverManager.getConnections(),
-        editor.document.languageId as ConsoleType
+        languageId as ConsoleType
       );
 
     const editorActiveConnectionUrl = this._serverManager.getUriConnection(
@@ -396,7 +410,7 @@ export class ConnectionController extends ControllerBase implements Disposable {
         createConnectionQuickPickOptions(
           [...runningDHCServersWithoutConnections, ...runningDHEServers],
           connectionsForConsoleType,
-          editor.document.languageId,
+          languageId,
           editorActiveConnectionUrl
         )
       );
@@ -405,7 +419,7 @@ export class ConnectionController extends ControllerBase implements Disposable {
         return false;
       }
 
-      await this.connectEditor(selectedCnResult, editor);
+      await this.connectEditor(selectedCnResult, editor, languageId);
 
       return true;
     } catch (err) {

@@ -729,18 +729,16 @@ export class ExtensionController implements Disposable {
     assertDefined(uri, 'uri');
 
     const editor = await getEditorForUri(uri);
+    languageId = languageId ?? editor.document.languageId;
+
     const connectionState =
-      await this._connectionController.getOrCreateConnection(uri);
+      await this._connectionController.getOrCreateConnection(uri, languageId);
 
     if (isInstanceOf(connectionState, DhcService)) {
       const ranges: readonly vscode.Range[] | undefined =
         constrainTo === 'selection' ? editor.selections : constrainTo;
 
-      await connectionState?.runCode(
-        editor.document,
-        languageId ?? editor.document.languageId,
-        ranges
-      );
+      await connectionState?.runCode(editor.document, languageId, ranges);
     }
   };
 
