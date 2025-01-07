@@ -45,6 +45,7 @@ export class RunMarkdownCodeBlockCodeLensProvider
           languageId,
           new vscode.Range(start, new vscode.Position(i - 1, 0)),
         ]);
+        start = null;
       } else if (line === '```python' || line === '```groovy') {
         languageId = line.substring(3);
         start = new vscode.Position(i + 1, 0);
