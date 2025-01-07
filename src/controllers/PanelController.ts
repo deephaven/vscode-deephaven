@@ -122,11 +122,17 @@ export class PanelController extends ControllerBase {
     await waitFor(0);
 
     let lastPanel: vscode.WebviewPanel | null = null;
-    let lastFirstTimeActiveSubscription: vscode.Disposable | null = null;
+    let lastPanelIsNew = false;
+    let lastCreatedPanelFirstTimeActiveSubscription: vscode.Disposable | null =
+      null;
 
     for (const variable of variables) {
       const { id, title } = variable;
-      if (!this._panelService.hasPanel(serverUrl, id)) {
+      if (this._panelService.hasPanel(serverUrl, id)) {
+        lastPanelIsNew = false;
+      } else {
+        lastPanelIsNew = true;
+
         const panel = vscode.window.createWebviewPanel(
           'dhPanel', // Identifies the type of the webview. Used internally
           title,
@@ -147,7 +153,8 @@ export class PanelController extends ControllerBase {
             }
           }
         );
-        lastFirstTimeActiveSubscription = onFirstTimeActiveSubscription;
+        lastCreatedPanelFirstTimeActiveSubscription =
+          onFirstTimeActiveSubscription;
 
         const onDidReceiveMessageSubscription =
           panel.webview.onDidReceiveMessage(({ data }) => {
@@ -170,11 +177,14 @@ export class PanelController extends ControllerBase {
       lastPanel = panel;
     }
 
-    // Panels get created in an active state, so the last panel won't necessarily
-    // change from inactive to active. Remove the firstTimeActiveSubscription
-    // and refresh explicitly.
-    lastFirstTimeActiveSubscription?.dispose();
-    this._onRefreshPanelsContent(serverUrl, variables.slice(-1));
+    // Panels get created in an active state. If the last panel was newly created,
+    // it will already be active and won't call the `onDidChangeViewState`
+    // handler on the initial load. In such cases, remove the
+    // firstTimeActiveSubscription and refresh the panel explicitly.
+    if (lastPanelIsNew && lastCreatedPanelFirstTimeActiveSubscription) {
+      lastCreatedPanelFirstTimeActiveSubscription.dispose();
+      this._onRefreshPanelsContent(serverUrl, variables.slice(-1));
+    }
 
     lastPanel?.reveal();
   };
