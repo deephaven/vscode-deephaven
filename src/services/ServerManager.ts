@@ -538,10 +538,11 @@ export class ServerManager implements IServerManager {
     const uri = editor.document.uri;
 
     const isConsoleTypeSupported =
-      isInstanceOf(connectionState, DhcService) &&
-      (await connectionState.supportsConsoleType(
-        editor.document.languageId as ConsoleType
-      ));
+      editor.document.languageId === 'markdown' ||
+      (isInstanceOf(connectionState, DhcService) &&
+        (await connectionState.supportsConsoleType(
+          editor.document.languageId as ConsoleType
+        )));
 
     if (!isConsoleTypeSupported) {
       throw new UnsupportedConsoleTypeError(

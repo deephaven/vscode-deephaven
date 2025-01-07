@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ICON_ID } from '../common';
+import { ICON_ID, RUN_CODE_COMMAND } from '../common';
 import type { Disposable } from '../types';
 
 /**
@@ -35,7 +35,7 @@ export class RunCommandCodeLensProvider
     const codeLenses: vscode.CodeLens[] = [
       new vscode.CodeLens(new vscode.Range(0, 0, 0, 0), {
         title: `$(${ICON_ID.runAll}) Run Deephaven File`,
-        command: 'vscode-deephaven.runCode',
+        command: RUN_CODE_COMMAND,
         arguments: [document.uri],
       }),
     ];
