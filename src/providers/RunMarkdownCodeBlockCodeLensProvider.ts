@@ -3,7 +3,8 @@ import { ICON_ID, RUN_MARKDOWN_CODEBLOCK_CMD } from '../common';
 import type { Disposable } from '../types';
 
 /**
- * Provides inline editor code lenses for running Deephaven code.
+ * Provides inline editor code lenses for running Deephaven codeblocks in
+ * Markdown files.
  */
 export class RunMarkdownCodeBlockCodeLensProvider
   implements vscode.CodeLensProvider<vscode.CodeLens>, Disposable
@@ -37,6 +38,7 @@ export class RunMarkdownCodeBlockCodeLensProvider
     let start: vscode.Position | null = null;
     let languageId = '';
 
+    // Create ranges for each code block in the document
     for (let i = 0; i < lines.length; ++i) {
       const line = lines[i];
 
@@ -55,9 +57,10 @@ export class RunMarkdownCodeBlockCodeLensProvider
     const codeLenses: vscode.CodeLens[] = ranges.map(
       ([languageId, range]) =>
         new vscode.CodeLens(
+          // Put the code lens on the line before the code block
           new vscode.Range(range.start.line - 1, 0, range.start.line - 1, 0),
           {
-            title: `$(${ICON_ID.runAll}) Run Code Block`,
+            title: `$(${ICON_ID.runSelection}) Run Code Block`,
             command: RUN_MARKDOWN_CODEBLOCK_CMD,
             arguments: [document.uri, languageId, range],
           }

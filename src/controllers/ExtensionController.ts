@@ -689,6 +689,12 @@ export class ExtensionController implements Disposable {
     await this._serverManager?.updateStatus();
   };
 
+  /**
+   * Run code block in markdown.
+   * @param uri The uri of the editor
+   * @param languageId The languageId of the code block
+   * @param range The range of the code block
+   */
   onRunMarkdownCodeblock = async (
     uri: vscode.Uri,
     languageId: string,
@@ -699,15 +705,19 @@ export class ExtensionController implements Disposable {
 
   /**
    * Run all code in editor for given uri.
-   * @param uri
-   * @param arg
-   * @param selections
-   * @param languageId
+   * @param uri The uri of the editor
+   * @param _arg Unused 2nd argument
+   * @param constrainTo Optional arg to constrain the code to run.
+   * - If 'selection', run only selected code in the editor.
+   * - If `undefined`, run all code in the editor.
+   * - If an array of vscode.Range, run only the code in the ranges.
+   * @param languageId Optional languageId to run the code as. If none provided,
+   * use the languageId of the editor.
    */
   onRunCode = async (
     uri?: vscode.Uri,
     _arg?: { groupId: number },
-    selections?: boolean | vscode.Range[],
+    constrainTo?: 'selection' | vscode.Range[],
     languageId?: string
   ): Promise<void> => {
     assertDefined(this._connectionController, 'connectionController');
@@ -723,12 +733,8 @@ export class ExtensionController implements Disposable {
       await this._connectionController.getOrCreateConnection(uri);
 
     if (isInstanceOf(connectionState, DhcService)) {
-      const ranges =
-        selections === true
-          ? editor.selections
-          : selections === false
-            ? undefined
-            : selections;
+      const ranges: readonly vscode.Range[] | undefined =
+        constrainTo === 'selection' ? editor.selections : constrainTo;
 
       await connectionState?.runCode(
         editor.document,
@@ -747,7 +753,7 @@ export class ExtensionController implements Disposable {
     uri?: vscode.Uri,
     arg?: { groupId: number }
   ): Promise<void> => {
-    this.onRunCode(uri, arg, true);
+    this.onRunCode(uri, arg, 'selection');
   };
 
   /**
