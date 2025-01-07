@@ -39,25 +39,33 @@ export async function getDhc(
   storageDir: string
 ): Promise<typeof DhType> {
   // Download jsapi `ESM` files from DH Community server.
-  const coreModule = await loadModules<{ default: typeof DhType }>({
+  const coreModule = await loadModules<typeof DhType>({
     serverUrl,
     serverPaths: ['jsapi/dh-core.js', 'jsapi/dh-internal.js'],
-    download: true,
-    storageDir,
-    sourceModuleType: 'esm',
-    targetModuleType: 'cjs',
-    esbuildOptions: {
-      tsconfigRaw: {
-        compilerOptions: {
-          // This needs to be set to avoid adding `use strict` to the output
-          // which hits a protobuf bug. https://github.com/protocolbuffers/protobuf-javascript/issues/8
-          strict: false,
-        },
-      },
+    download: (serverPath, content) => {
+      if (serverPath === 'jsapi/dh-core.js') {
+        return content
+          .replace(
+            `import {dhinternal} from './dh-internal.js';`,
+            `const {dhinternal} = require("./dh-internal.js");`
+          )
+          .replace(`export default dh;`, `module.exports = dh;`);
+      }
+
+      if (serverPath === 'jsapi/dh-internal.js') {
+        return content.replace(
+          `export{__webpack_exports__dhinternal as dhinternal};`,
+          `module.exports={dhinternal:__webpack_exports__dhinternal};`
+        );
+      }
+
+      return content;
     },
+    storageDir,
+    targetModuleType: 'cjs',
   });
 
-  return coreModule.default;
+  return coreModule;
 }
 
 /**
