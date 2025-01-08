@@ -42,11 +42,4 @@ export class RunCommandCodeLensProvider
 
     return codeLenses;
   }
-
-  resolveCodeLens?(
-    codeLens: vscode.CodeLens,
-    _token: vscode.CancellationToken
-  ): vscode.ProviderResult<vscode.CodeLens> {
-    return codeLens;
-  }
 }
