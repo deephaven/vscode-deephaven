@@ -14,7 +14,6 @@ import {
   createConnectionQuickPickOptions,
   createConnectStatusBarItem,
   getConsoleType,
-  getEditorForUri,
   isSupportedLanguageId,
   Logger,
   updateConnectionStatusBarItem,
@@ -212,21 +211,15 @@ export class ConnectionController extends ControllerBase implements Disposable {
   /**
    * Get or create a connection for the given uri.
    * @param uri Uri to get or create a connection for.
-   * @param languageId Optional language id to use for the connection. Defaults
-   * to the language id of the uri.
+   * @param languageId Language id to use for the connection.
    */
   getOrCreateConnection = async (
     uri: vscode.Uri,
-    languageId?: string
+    languageId: string
   ): Promise<ConnectionState | null> => {
     assertDefined(this._outputChannel, 'outputChannel');
     assertDefined(this._serverManager, 'serverManager');
     assertDefined(this._toaster, 'toaster');
-
-    if (languageId == null) {
-      const editor = await getEditorForUri(uri);
-      languageId = editor.document.languageId;
-    }
 
     // Get existing connection for the editor
     let dhService = await this._serverManager.getEditorConnection(uri);
