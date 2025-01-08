@@ -471,13 +471,12 @@ export class ServerManager implements IServerManager {
   };
 
   /**
-   * Get the connection associated with the URI of the given editor.
-   * @param editor
+   * Get the connection associated with the given URI.
+   * @param uri
    */
   getEditorConnection = async (
-    editor: vscode.TextEditor
+    uri: vscode.Uri
   ): Promise<ConnectionState | null> => {
-    const uri = editor.document.uri;
     return this._uriConnectionsMap.get(uri) ?? null;
   };
 
@@ -532,21 +531,18 @@ export class ServerManager implements IServerManager {
   };
 
   setEditorConnection = async (
-    editor: vscode.TextEditor,
+    uri: vscode.Uri,
+    languageId: string,
     connectionState: ConnectionState
   ): Promise<void> => {
-    const uri = editor.document.uri;
-
     const isConsoleTypeSupported =
-      editor.document.languageId === 'markdown' ||
+      languageId === 'markdown' ||
       (isInstanceOf(connectionState, DhcService) &&
-        (await connectionState.supportsConsoleType(
-          editor.document.languageId as ConsoleType
-        )));
+        (await connectionState.supportsConsoleType(languageId as ConsoleType)));
 
     if (!isConsoleTypeSupported) {
       throw new UnsupportedConsoleTypeError(
-        `Connection '${connectionState.serverUrl}' does not support '${editor.document.languageId}'.`
+        `Connection '${connectionState.serverUrl}' does not support '${languageId}'.`
       );
     }
 

@@ -35,7 +35,11 @@ export class ServerConnectionTreeDragAndDropController
     const editor = await getEditorForUri(uri);
 
     try {
-      await this.serverManager.setEditorConnection(editor, target);
+      await this.serverManager.setEditorConnection(
+        editor.document.uri,
+        editor.document.languageId,
+        target
+      );
     } catch {}
   };
 }

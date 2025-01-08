@@ -639,7 +639,11 @@ export class ExtensionController implements Disposable {
 
     const editor = await vscode.window.showTextDocument(doc);
 
-    this._serverManager?.setEditorConnection(editor, dhService);
+    this._serverManager?.setEditorConnection(
+      editor.document.uri,
+      editor.document.languageId,
+      dhService
+    );
   };
 
   /**
@@ -729,7 +733,9 @@ export class ExtensionController implements Disposable {
     assertDefined(uri, 'uri');
 
     const editor = await getEditorForUri(uri);
-    languageId = languageId ?? editor.document.languageId;
+    if (languageId == null) {
+      languageId = editor.document.languageId;
+    }
 
     const connectionState =
       await this._connectionController.getOrCreateConnection(uri, languageId);

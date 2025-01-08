@@ -157,15 +157,14 @@ export interface IServerManager extends Disposable {
   getConnection: (serverUrl: URL) => ConnectionState | undefined;
   getConnections: () => ConnectionState[];
   getConnectionUris: (connection: ConnectionState) => vscode.Uri[];
-  getEditorConnection: (
-    editor: vscode.TextEditor
-  ) => Promise<ConnectionState | null>;
+  getEditorConnection: (uri: vscode.Uri) => Promise<ConnectionState | null>;
   getWorkerCredentials: (
     serverOrWorkerUrl: URL | WorkerURL
   ) => Promise<DhcType.LoginCredentials | null>;
   getWorkerInfo: (workerUrl: WorkerURL) => Promise<WorkerInfo | undefined>;
   setEditorConnection: (
-    editor: vscode.TextEditor,
+    uri: vscode.Uri,
+    languageId: string,
     dhService: ConnectionState
   ) => Promise<void>;
 
