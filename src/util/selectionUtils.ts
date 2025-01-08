@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 
 /**
- * Combine content of all range lines (including multi-cursor selections).
- * Any line that is partially selected will be included in its entirety.
+ * Combine content of all range lines. Any partial lines will be expanded to
+ * include the full line content.
  * @param document
  * @param ranges
  */

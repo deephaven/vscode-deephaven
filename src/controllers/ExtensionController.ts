@@ -714,7 +714,8 @@ export class ExtensionController implements Disposable {
    * @param constrainTo Optional arg to constrain the code to run.
    * - If 'selection', run only selected code in the editor.
    * - If `undefined`, run all code in the editor.
-   * - If an array of vscode.Range, run only the code in the ranges.
+   * - If an array of vscode.Range, run only the code in the ranges (Note that
+   *   partial lines will be expanded to include the full line content).
    * @param languageId Optional languageId to run the code as. If none provided,
    * use the languageId of the editor.
    */
