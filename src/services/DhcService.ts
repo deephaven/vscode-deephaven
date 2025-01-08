@@ -385,9 +385,9 @@ export class DhcService implements IDhcService {
         const { line, value } = parseServerError(error);
 
         if (line != null) {
-          // If selectionOnly is true, the line number in the error will be
-          // relative to the selection (Python line numbers are 1 based. vscode
-          // line numbers are zero based.)
+          // If ranges were provided, the line number in the error will be
+          // relative to the ranges content (Python line numbers are 1 based.
+          // vscode line numbers are zero based.)
           const fileLine = (ranges ? line + ranges[0].start.line : line) - 1;
 
           // There seems to be an error for certain Python versions where line
