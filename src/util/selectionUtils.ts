@@ -24,8 +24,8 @@ export function getCombinedRangeLinesText(
  */
 export function expandRangeToFullLines(document: vscode.TextDocument) {
   /**
-   * Expand a given selection to include the full lines of any lines that are included
-   * in the selection.
+   * Expand a given range to include the full lines of any lines that are
+   * included in the range.
    * @param selection
    */
   return (range: vscode.Range): vscode.Range => {
