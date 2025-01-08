@@ -41,7 +41,7 @@ export function expandRangeToFullLines(document: vscode.TextDocument) {
 /**
  * Sort ranges in document order. Useful for converting `TextEditor.selections`
  * which are ordered based on multi-cursor creation order.
- * @param ranges
+ * @param ranges The ranges to sort.
  */
 export function sortRanges<TRange extends vscode.Range>(
   ranges: readonly TRange[]
