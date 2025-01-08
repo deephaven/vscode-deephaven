@@ -360,7 +360,9 @@ export class ConnectionController extends ControllerBase implements Disposable {
 
     const editor = vscode.window.activeTextEditor;
     const uri = editor.document.uri;
-    languageId = languageId ?? editor.document.languageId;
+    if (languageId == null) {
+      languageId = editor.document.languageId;
+    }
 
     const updateStatusPromise = this._serverManager.updateStatus();
 
