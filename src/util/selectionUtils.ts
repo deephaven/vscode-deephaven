@@ -3,8 +3,8 @@ import * as vscode from 'vscode';
 /**
  * Combine content of all range lines. Any partial lines will be expanded to
  * include the full line content.
- * @param document
- * @param ranges
+ * @param document The document to extract the range lines from.
+ * @param ranges The ranges to extract the lines from.
  */
 export function getCombinedRangeLinesText(
   document: vscode.TextDocument,
