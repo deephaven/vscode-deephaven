@@ -17,10 +17,10 @@ export function getCombinedRangeLinesText(
 }
 
 /**
- * Create a function that can expand range to include the full lines of any
+ * Create a function that can expand a range to include the full lines of any
  * lines that are included in the range.
- * @param document
- * @returns
+ * @param document The document to provide line lengths for a given range.
+ * @returns Function that expands a range to include full lines.
  */
 export function expandRangeToFullLines(document: vscode.TextDocument) {
   /**
