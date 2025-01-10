@@ -60,7 +60,7 @@ export class RunMarkdownCodeBlockCodeLensProvider
           // Put the code lens on the line before the code block
           new vscode.Range(range.start.line - 1, 0, range.start.line - 1, 0),
           {
-            title: `$(${ICON_ID.runSelection}) Run Code Block`,
+            title: `$(${ICON_ID.runSelection}) Run Deephaven Block`,
             command: RUN_MARKDOWN_CODEBLOCK_CMD,
             arguments: [document.uri, languageId, range],
           }
