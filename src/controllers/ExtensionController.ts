@@ -10,6 +10,7 @@ import {
   REFRESH_SERVER_CONNECTION_TREE_CMD,
   REFRESH_SERVER_TREE_CMD,
   RUN_CODE_COMMAND,
+  RUN_MARKDOWN_CODEBLOCK_CMD,
   RUN_SELECTION_COMMAND,
   SEARCH_CONNECTIONS_CMD,
   SEARCH_PANELS_CMD,
@@ -34,6 +35,7 @@ import {
   ServerConnectionTreeProvider,
   ServerConnectionPanelTreeProvider,
   runSelectedLinesHoverProvider,
+  RunMarkdownCodeBlockCodeLensProvider,
 } from '../providers';
 import {
   DheJsApiCache,
@@ -160,11 +162,16 @@ export class ExtensionController implements Disposable {
    */
   initializeCodeLenses = (): void => {
     const codelensProvider = new RunCommandCodeLensProvider();
+    const markdownCodelensProvider = new RunMarkdownCodeBlockCodeLensProvider();
 
     this._context.subscriptions.push(
       codelensProvider,
       vscode.languages.registerCodeLensProvider('groovy', codelensProvider),
-      vscode.languages.registerCodeLensProvider('python', codelensProvider)
+      vscode.languages.registerCodeLensProvider('python', codelensProvider),
+      vscode.languages.registerCodeLensProvider(
+        'markdown',
+        markdownCodelensProvider
+      )
     );
   };
 
@@ -468,6 +475,12 @@ export class ExtensionController implements Disposable {
     /** Run all code in active editor */
     this.registerCommand(RUN_CODE_COMMAND, this.onRunCode);
 
+    /** Run Markdown codeblock */
+    this.registerCommand(
+      RUN_MARKDOWN_CODEBLOCK_CMD,
+      this.onRunMarkdownCodeblock
+    );
+
     /** Run selected code in active editor */
     this.registerCommand(RUN_SELECTION_COMMAND, this.onRunSelectedCode);
 
@@ -626,7 +639,11 @@ export class ExtensionController implements Disposable {
 
     const editor = await vscode.window.showTextDocument(doc);
 
-    this._serverManager?.setEditorConnection(editor, dhService);
+    this._serverManager?.setEditorConnection(
+      editor.document.uri,
+      editor.document.languageId,
+      dhService
+    );
   };
 
   /**
@@ -677,15 +694,36 @@ export class ExtensionController implements Disposable {
   };
 
   /**
+   * Run code block in markdown.
+   * @param uri The uri of the editor
+   * @param languageId The languageId of the code block
+   * @param range The range of the code block
+   */
+  onRunMarkdownCodeblock = async (
+    uri: vscode.Uri,
+    languageId: string,
+    range: vscode.Range
+  ): Promise<void> => {
+    this.onRunCode(uri, undefined, [range], languageId);
+  };
+
+  /**
    * Run all code in editor for given uri.
-   * @param uri
-   * @param arg
-   * @param selectionOnly
+   * @param uri The uri of the editor
+   * @param _arg Unused 2nd argument
+   * @param constrainTo Optional arg to constrain the code to run.
+   * - If 'selection', run only selected code in the editor.
+   * - If `undefined`, run all code in the editor.
+   * - If an array of vscode.Range, run only the code in the ranges (Note that
+   *   partial lines will be expanded to include the full line content).
+   * @param languageId Optional languageId to run the code as. If none provided,
+   * use the languageId of the editor.
    */
   onRunCode = async (
     uri?: vscode.Uri,
     _arg?: { groupId: number },
-    selectionOnly?: boolean
+    constrainTo?: 'selection' | vscode.Range[],
+    languageId?: string
   ): Promise<void> => {
     assertDefined(this._connectionController, 'connectionController');
 
@@ -696,11 +734,18 @@ export class ExtensionController implements Disposable {
     assertDefined(uri, 'uri');
 
     const editor = await getEditorForUri(uri);
+    if (languageId == null) {
+      languageId = editor.document.languageId;
+    }
+
     const connectionState =
-      await this._connectionController.getOrCreateConnection(uri);
+      await this._connectionController.getOrCreateConnection(uri, languageId);
 
     if (isInstanceOf(connectionState, DhcService)) {
-      await connectionState?.runEditorCode(editor, selectionOnly === true);
+      const ranges: readonly vscode.Range[] | undefined =
+        constrainTo === 'selection' ? editor.selections : constrainTo;
+
+      await connectionState?.runCode(editor.document, languageId, ranges);
     }
   };
 
@@ -713,7 +758,7 @@ export class ExtensionController implements Disposable {
     uri?: vscode.Uri,
     arg?: { groupId: number }
   ): Promise<void> => {
-    this.onRunCode(uri, arg, true);
+    this.onRunCode(uri, arg, 'selection');
   };
 
   /**

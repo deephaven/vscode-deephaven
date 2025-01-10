@@ -31,6 +31,7 @@ export const REFRESH_SERVER_CONNECTION_TREE_CMD = cmd(
 );
 export const REFRESH_VARIABLE_PANELS_CMD = cmd('refreshVariablePanels');
 export const RUN_CODE_COMMAND = cmd('runCode');
+export const RUN_MARKDOWN_CODEBLOCK_CMD = cmd('runMarkdownCodeBlock');
 export const RUN_SELECTION_COMMAND = cmd('runSelection');
 export const SEARCH_CONNECTIONS_CMD = cmd('searchConnections');
 export const SEARCH_PANELS_CMD = cmd('searchPanels');

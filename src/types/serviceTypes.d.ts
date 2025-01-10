@@ -20,6 +20,7 @@ import type {
   CoreUnauthenticatedClient,
   Psk,
   CoreAuthenticatedClient,
+  NonEmptyArray,
 } from '../types/commonTypes';
 import type {
   AuthenticatedClient as DheAuthenticatedClient,
@@ -55,9 +56,10 @@ export interface IDhcService extends Disposable, ConnectionState {
   getConsoleTypes: () => Promise<Set<ConsoleType>>;
   supportsConsoleType: (consoleType: ConsoleType) => Promise<boolean>;
 
-  runEditorCode: (
-    editor: vscode.TextEditor,
-    selectionOnly?: boolean
+  runCode: (
+    document: vscode.TextDocument,
+    languageId: string,
+    ranges?: readonly vscode.Range[]
   ) => Promise<void>;
 }
 
@@ -155,15 +157,14 @@ export interface IServerManager extends Disposable {
   getConnection: (serverUrl: URL) => ConnectionState | undefined;
   getConnections: () => ConnectionState[];
   getConnectionUris: (connection: ConnectionState) => vscode.Uri[];
-  getEditorConnection: (
-    editor: vscode.TextEditor
-  ) => Promise<ConnectionState | null>;
+  getEditorConnection: (uri: vscode.Uri) => Promise<ConnectionState | null>;
   getWorkerCredentials: (
     serverOrWorkerUrl: URL | WorkerURL
   ) => Promise<DhcType.LoginCredentials | null>;
   getWorkerInfo: (workerUrl: WorkerURL) => Promise<WorkerInfo | undefined>;
   setEditorConnection: (
-    editor: vscode.TextEditor,
+    uri: vscode.Uri,
+    languageId: string,
     dhService: ConnectionState
   ) => Promise<void>;
 

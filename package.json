@@ -148,6 +148,11 @@
         "icon": "$(run-all)"
       },
       {
+        "command": "vscode-deephaven.runMarkdownCodeblock",
+        "title": "Run Deephaven Markdown Codeblock",
+        "icon": "$(run)"
+      },
+      {
         "command": "vscode-deephaven.runSelection",
         "title": "Run Deephaven Selected Lines",
         "icon": "$(run)"
@@ -676,6 +681,10 @@
         {
           "command": "vscode-deephaven.runCode",
           "when": "editorLangId == python || editorLangId == groovy"
+        },
+        {
+          "command": "vscode-deephaven.runMarkdownCodeblock",
+          "when": "false"
         },
         {
           "command": "vscode-deephaven.runSelection",
