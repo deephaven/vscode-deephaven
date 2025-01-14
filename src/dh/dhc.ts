@@ -74,6 +74,7 @@ export async function getDhc(
  * @param title Widget title
  * @param themeKey Theme key
  * @param authProvider Optional auth provider
+ * @param envoyPrefix Optional envoy prefix for Core+ workers
  * @param psk Optional psk
  */
 export function getEmbedWidgetUrl({
@@ -81,21 +82,27 @@ export function getEmbedWidgetUrl({
   title,
   themeKey,
   authProvider,
+  envoyPrefix,
   psk,
 }: {
   serverUrl: URL;
   title: string;
   themeKey: string;
   authProvider?: 'parent';
+  envoyPrefix?: string | null;
   psk?: string | null;
 }): URL {
-  const url = new URL('/iframe/widget', serverUrl);
+  const url = new URL('iframe/widget/', serverUrl);
 
   url.searchParams.set('name', title);
   url.searchParams.set('theme', themeKey);
 
   if (authProvider) {
     url.searchParams.set('authProvider', authProvider);
+  }
+
+  if (envoyPrefix) {
+    url.searchParams.set('envoyPrefix', envoyPrefix);
   }
 
   if (psk) {

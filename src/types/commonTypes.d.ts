@@ -90,17 +90,22 @@ export interface ConnectionState {
   readonly tagId?: UniqueID;
 }
 
-export type WorkerURL = Brand<'GrpcUrl', URL>;
+export type GrpcURL = Brand<'GrpcURL', URL>;
 export type IdeURL = Brand<'IdeUrl', URL>;
+export type JsapiURL = Brand<'JsapiURL', URL>;
 export type QuerySerial = Brand<'QuerySerial', string>;
+export type WorkerURL = Brand<'WorkerURL', URL>;
 
 export interface WorkerInfo {
   tagId: UniqueID;
-  grpcUrl: WorkerURL;
+  envoyPrefix: string | null;
+  grpcUrl: GrpcURL;
   ideUrl: IdeURL;
+  jsapiUrl: JsapiURL;
   processInfoId: string | null;
   serial: QuerySerial;
   workerName: string | null;
+  workerUrl: WorkerURL;
 }
 
 export interface Disposable {
