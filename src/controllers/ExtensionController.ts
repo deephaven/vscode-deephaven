@@ -2,6 +2,13 @@ import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type { EnterpriseDhType as DheType } from '@deephaven-enterprise/jsapi-types';
 import {
+  createClient as createDheClient,
+  getWsUrl,
+  type AuthenticatedClient as DheAuthenticatedClient,
+  type UnauthenticatedClient as DheUnauthenticatedClient,
+} from '@deephaven-enterprise/auth-nodejs';
+import { NodeHttp2gRPCTransport } from '@deephaven/jsapi-nodejs';
+import {
   CLEAR_SECRET_STORAGE_CMD,
   CREATE_NEW_TEXT_DOC_CMD,
   DOWNLOAD_LOGS_CMD,
@@ -76,13 +83,6 @@ import { ConnectionController } from './ConnectionController';
 import { PipServerController } from './PipServerController';
 import { PanelController } from './PanelController';
 import { UserLoginController } from './UserLoginController';
-import {
-  createClient as createDheClient,
-  getWsUrl,
-  type AuthenticatedClient as DheAuthenticatedClient,
-  type UnauthenticatedClient as DheUnauthenticatedClient,
-} from '@deephaven-enterprise/auth-nodejs';
-import { NodeHttp2gRPCTransport } from '../dh/NodeHttp2gRPCTransport';
 
 const logger = new Logger('ExtensionController');
 
