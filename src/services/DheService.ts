@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import type { AuthenticatedClient as DheAuthenticatedClient } from '@deephaven-enterprise/auth-nodejs';
 import type { EnterpriseDhType as DheType } from '@deephaven-enterprise/jsapi-types';
 import {
-  WorkerURL,
   type ConsoleType,
   type IAsyncCacheService,
   type IConfigService,
@@ -13,6 +12,7 @@ import {
   type UniqueID,
   type WorkerConfig,
   type WorkerInfo,
+  type WorkerURL,
 } from '../types';
 import { URLMap } from './URLMap';
 import { Logger } from '../util';
@@ -231,7 +231,7 @@ export class DheService implements IDheService {
       throw new Error('Failed to create worker.');
     }
 
-    this._workerInfoMap.set(workerInfo.grpcUrl, workerInfo);
+    this._workerInfoMap.set(workerInfo.workerUrl, workerInfo);
 
     return workerInfo;
   };
