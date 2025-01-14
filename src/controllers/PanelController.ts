@@ -122,11 +122,17 @@ export class PanelController extends ControllerBase {
     await waitFor(0);
 
     let lastPanel: vscode.WebviewPanel | null = null;
-    let lastFirstTimeActiveSubscription: vscode.Disposable | null = null;
+    let lastPanelIsNew = false;
+    let lastCreatedPanelFirstTimeActiveSubscription: vscode.Disposable | null =
+      null;
 
     for (const variable of variables) {
       const { id, title } = variable;
-      if (!this._panelService.hasPanel(serverUrl, id)) {
+      if (this._panelService.hasPanel(serverUrl, id)) {
+        lastPanelIsNew = false;
+      } else {
+        lastPanelIsNew = true;
+
         const panel = vscode.window.createWebviewPanel(
           'dhPanel', // Identifies the type of the webview. Used internally
           title,
@@ -147,7 +153,8 @@ export class PanelController extends ControllerBase {
             }
           }
         );
-        lastFirstTimeActiveSubscription = onFirstTimeActiveSubscription;
+        lastCreatedPanelFirstTimeActiveSubscription =
+          onFirstTimeActiveSubscription;
 
         const onDidReceiveMessageSubscription =
           panel.webview.onDidReceiveMessage(({ data }) => {
@@ -170,11 +177,23 @@ export class PanelController extends ControllerBase {
       lastPanel = panel;
     }
 
-    // Panels get created in an active state, so the last panel won't necessarily
-    // change from inactive to active. Remove the firstTimeActiveSubscription
-    // and refresh explicitly.
-    lastFirstTimeActiveSubscription?.dispose();
-    this._onRefreshPanelsContent(serverUrl, variables.slice(-1));
+    // Panels get refreshed as follows:
+    // 1. Existing panels - don't get updated here. These get refreshed by a
+    //    `subscribeToFieldUpdates` handler in DhcService which issues a
+    //    `REFRESH_VARIABLE_PANELS_CMD` command for variables matching existing
+    //    panels.
+    // 2. Newly created panels that are not the initially active panel (aka. any
+    //    new panel that is not the last panel in the list) - these get refreshed
+    //    the first time the panel becomes active via a one-time
+    //    `onDidChangeViewState` handler.
+    // 3. Newly created panel that is the initially active panel - this one won't
+    //    call the `onDidChangeViewState` handler since it is initialized as
+    //    active. For this case, we dispose the one-time `onDidChangeViewState`
+    //    subscription and refresh the panel explicitly.
+    if (lastPanelIsNew && lastCreatedPanelFirstTimeActiveSubscription) {
+      lastCreatedPanelFirstTimeActiveSubscription.dispose();
+      this._onRefreshPanelsContent(serverUrl, variables.slice(-1));
+    }
 
     lastPanel?.reveal();
   };
