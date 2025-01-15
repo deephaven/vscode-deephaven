@@ -342,9 +342,11 @@ export class ExtensionController implements Disposable {
       assertDefined(this._coreJsApiCache, 'coreJsApiCache');
       const dhc = await this._coreJsApiCache.get(url);
 
-      const client = new dhc.CoreClient(
-        url.toString()
-      ) as CoreUnauthenticatedClient;
+      const client = new dhc.CoreClient(url.toString(), {
+        // `useWebsockets: true` is needed for 0.37.x servers until we enable
+        // the http2 based gRPC transport DH-18086
+        useWebsockets: true,
+      }) as CoreUnauthenticatedClient;
 
       // Attach a dispose method so that client caches can dispose of the client
       return Object.assign(client, {
