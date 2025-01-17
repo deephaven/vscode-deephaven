@@ -26,13 +26,18 @@ export class Logger {
    * Register log handler that logs to console.
    */
   static addConsoleHandler = (): void => {
+    const createHandler =
+      (level: Exclude<LogLevel, 'debug2'>): LogLevelHandler =>
+      (...args) =>
+        /* eslint-disable no-console */
+        console[level]('[vscode-deephaven]', ...args);
+
     Logger.handlers.add({
-      /* eslint-disable no-console */
-      error: console.error.bind(console),
-      warn: console.warn.bind(console),
-      info: console.info.bind(console),
-      debug: console.debug.bind(console),
-      debug2: console.debug.bind(console),
+      error: createHandler('error'),
+      warn: createHandler('warn'),
+      info: createHandler('info'),
+      debug: createHandler('debug'),
+      debug2: createHandler('debug'),
       /* eslint-enable no-console */
     });
   };
