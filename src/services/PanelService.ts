@@ -58,6 +58,15 @@ export class PanelService implements IPanelService, Disposable {
   };
 
   /**
+   * Get all panels for the given connection url.
+   * @param url The connection url.
+   * @returns Iterable of panels
+   */
+  getPanels = (url: URL): Iterable<vscode.WebviewPanel> => {
+    return this._cnPanelMap.get(url)?.values() ?? [];
+  };
+
+  /**
    * Delete the panel for the given connection url and variable id.
    * @param url
    * @param variableId
