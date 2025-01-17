@@ -37,6 +37,8 @@ Community servers can be configured via the `"deephaven.coreServers"` setting in
 
 ![Community Server Settings](./docs/assets/add-community-server.gif)
 
+#### Self-signed SSL Certificates
+If you are running a Community server with a self-signed SSL certificate, vscode will need to be run in an environment that has the `NODE_EXTRA_CA_CERTS` environment variable set to the path of the cert that was used to sign your cert. Depending on your setup, this could be the server certificate or a CA certificate.
 
 ### Enterprise Servers
 Enterprise servers can be configured via the `"deephaven.enterpriseServers"` setting in `VS Code` user or workspace settings.
