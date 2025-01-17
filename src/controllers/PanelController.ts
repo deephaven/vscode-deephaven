@@ -50,7 +50,7 @@ export class PanelController extends ControllerBase {
 
   private readonly _panelService: IPanelService;
   private readonly _serverManager: IServerManager;
-  private _lastPanel: {
+  private _lastPanelDetails: {
     panel: vscode.WebviewPanel;
     variable: VariableDefintion;
     isNew: boolean;
@@ -134,7 +134,7 @@ export class PanelController extends ControllerBase {
     // where the `editor/title/run` menu gets stuck on a previous selection.
     await waitFor(0);
 
-    this._lastPanel = null;
+    this._lastPanelDetails = null;
 
     // Target ViewColumn is either the first existing panel's viewColumn or a
     // new tab group if none exist.
@@ -159,7 +159,7 @@ export class PanelController extends ControllerBase {
           )
         : this._panelService.getPanelOrThrow(serverUrl, id);
 
-      this._lastPanel = {
+      this._lastPanelDetails = {
         panel,
         variable,
         isNew: isNewPanel,
@@ -185,22 +185,22 @@ export class PanelController extends ControllerBase {
               `active:${webviewPanel.active},visible:${webviewPanel.visible}`
             );
 
-            if (!webviewPanel.visible || this._lastPanel == null) {
+            if (!webviewPanel.visible || this._lastPanelDetails == null) {
               return;
             }
 
             if (
-              this._lastPanel.panel === webviewPanel &&
-              !this._lastPanel.hasChangedToVisible
+              this._lastPanelDetails.panel === webviewPanel &&
+              !this._lastPanelDetails.hasChangedToVisible
             ) {
               logger.debug2(
                 webviewPanel.title,
                 'Last panel has changed to visible'
               );
-              this._lastPanel.hasChangedToVisible = true;
+              this._lastPanelDetails.hasChangedToVisible = true;
             }
 
-            if (!this._lastPanel.hasChangedToVisible) {
+            if (!this._lastPanelDetails.hasChangedToVisible) {
               logger.debug2(webviewPanel.title, 'Waiting for last panel');
               return;
             }
@@ -239,16 +239,21 @@ export class PanelController extends ControllerBase {
       }
     }
 
-    assertDefined(this._lastPanel, '_lastPanel');
+    assertDefined(this._lastPanelDetails, '_lastPanelDetails');
 
-    this._lastPanel.panel.reveal();
+    this._lastPanelDetails.panel.reveal();
 
     // If the last panel already exists, it may not fire a `onDidChangeViewState`
     // event, so eagerly refresh it since we know it will be visible.
-    if (!this._lastPanel.isNew) {
-      logger.debug2('Refreshing last panel:', this._lastPanel.panel.title);
-      this._panelsPendingInitialLoad.delete(this._lastPanel.panel);
-      this._onRefreshPanelsContent(serverUrl, [this._lastPanel.variable]);
+    if (!this._lastPanelDetails.isNew) {
+      logger.debug2(
+        'Refreshing last panel:',
+        this._lastPanelDetails.panel.title
+      );
+      this._panelsPendingInitialLoad.delete(this._lastPanelDetails.panel);
+      this._onRefreshPanelsContent(serverUrl, [
+        this._lastPanelDetails.variable,
+      ]);
     }
   };
 
