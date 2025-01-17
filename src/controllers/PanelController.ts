@@ -168,51 +168,9 @@ export class PanelController extends ControllerBase {
       this._panelsPendingInitialLoad.add(panel);
 
       if (isNewPanel) {
-        /**
-         * Subscribe to visibility changes on new panels so that we can load data
-         * the first time it becomes visible. Initial data will be loaded if
-         * 1. The panel is visible.
-         * 2. The last panel has been revealed. When multiple panels are being
-         *    created, they will start visible and then be hidden as the next
-         *    panel is created. We want to wait until all panels have been created
-         *    to avoid eager loading every panel along the way.
-         * 3. The panel is marked as pending initial load.
-         */
         const onDidChangeViewStateSubscription = panel.onDidChangeViewState(
           ({ webviewPanel }) => {
-            logger.debug2(
-              `[onDidChangeViewState]: ${webviewPanel.title}`,
-              `active:${webviewPanel.active},visible:${webviewPanel.visible}`
-            );
-
-            if (!webviewPanel.visible || this._lastPanelDetails == null) {
-              return;
-            }
-
-            if (
-              this._lastPanelDetails.panel === webviewPanel &&
-              !this._lastPanelDetails.hasChangedToVisible
-            ) {
-              logger.debug2(
-                webviewPanel.title,
-                'Last panel has changed to visible'
-              );
-              this._lastPanelDetails.hasChangedToVisible = true;
-            }
-
-            if (!this._lastPanelDetails.hasChangedToVisible) {
-              logger.debug2(webviewPanel.title, 'Waiting for last panel');
-              return;
-            }
-
-            if (!this._panelsPendingInitialLoad.has(webviewPanel)) {
-              logger.debug2(webviewPanel.title, 'Panel already loaded');
-              return;
-            }
-
-            logger.debug2(webviewPanel.title, 'Loading initial panel content');
-            this._panelsPendingInitialLoad.delete(webviewPanel);
-            this._onRefreshPanelsContent(serverUrl, [variable]);
+            this._onPanelViewStateChange(serverUrl, webviewPanel, variable);
           }
         );
 
@@ -255,6 +213,56 @@ export class PanelController extends ControllerBase {
         this._lastPanelDetails.variable,
       ]);
     }
+  };
+
+  /**
+   * Subscribe to visibility changes on new panels so that we can load data
+   * the first time it becomes visible. Initial data will be loaded if
+   * 1. The panel is visible.
+   * 2. The last opened panel has changed to visible. When multiple panels
+   *    are being created, they will start visible and then be hidden as the
+   *    next panel is created. We want to wait until all panels have been
+   *    created to avoid eager loading every panel along the way.
+   * 3. The panel is marked as pending initial load.
+   * @param serverUrl The server url.
+   * @param panel The panel to subscribe to.
+   * @param variable The variable associated with the panel.
+   */
+  private _onPanelViewStateChange = (
+    serverUrl: URL,
+    panel: vscode.WebviewPanel,
+    variable: VariableDefintion
+  ): void => {
+    logger.debug2(
+      `[_onPanelViewStateChange]: ${panel.title}`,
+      `active:${panel.active},visible:${panel.visible}`
+    );
+
+    if (!panel.visible || this._lastPanelDetails == null) {
+      return;
+    }
+
+    if (
+      this._lastPanelDetails.panel === panel &&
+      !this._lastPanelDetails.hasChangedToVisible
+    ) {
+      logger.debug2(panel.title, 'Last panel has changed to visible');
+      this._lastPanelDetails.hasChangedToVisible = true;
+    }
+
+    if (!this._lastPanelDetails.hasChangedToVisible) {
+      logger.debug2(panel.title, 'Waiting for last panel');
+      return;
+    }
+
+    if (!this._panelsPendingInitialLoad.has(panel)) {
+      logger.debug2(panel.title, 'Panel already loaded');
+      return;
+    }
+
+    logger.debug2(panel.title, 'Loading initial panel content');
+    this._panelsPendingInitialLoad.delete(panel);
+    this._onRefreshPanelsContent(serverUrl, [variable]);
   };
 
   /**
