@@ -204,12 +204,19 @@ export class DhcService implements IDhcService {
           );
 
           if (isNonEmptyArray(panelVariablesToUpdate)) {
-            logger.debug2('[subscribeToFieldUpdates] Updating variables:');
+            logger.debug2(
+              '[subscribeToFieldUpdates] Updating variables',
+              panelVariablesToUpdate.map(v => v.title)
+            );
 
             vscode.commands.executeCommand(
               REFRESH_VARIABLE_PANELS_CMD,
               this.serverUrl,
               panelVariablesToUpdate
+            );
+          } else {
+            logger.debug2(
+              '[subscribeToFieldUpdates] No existing panels to update:'
             );
           }
         });
@@ -436,7 +443,11 @@ export class DhcService implements IDhcService {
     const showVariables = changed.filter(v => !v.title.startsWith('_'));
 
     if (isNonEmptyArray(showVariables)) {
-      logger.debug('[runEditorCode] Showing variables:', showVariables);
+      logger.debug(
+        '[runEditorCode] Showing variables:',
+        showVariables.map(v => v.title).join(', ')
+      );
+
       vscode.commands.executeCommand(
         OPEN_VARIABLE_PANELS_CMD,
         this.serverUrl,

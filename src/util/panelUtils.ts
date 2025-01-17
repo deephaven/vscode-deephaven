@@ -1,5 +1,10 @@
+import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
-import { DEEPHAVEN_POST_MSG, VSCODE_POST_MSG } from '../common';
+import {
+  DEEPHAVEN_POST_MSG,
+  DH_PANEL_VIEW_TYPE,
+  VSCODE_POST_MSG,
+} from '../common';
 import type {
   LoginOptionsResponsePostMessage,
   SessionDetailsResponsePostMessage,
@@ -140,4 +145,25 @@ export function getPanelHtml(iframeUrl: URL, title: string): string {
       <iframe id="content-iframe" src="${iframeUrl}&cachebust=${new Date().getTime()}" title="${title}"></iframe>
   </body>
   </html>`;
+}
+
+/**
+ * Returns whether a given tab contains a dhPanel.
+ * @param tab The tab to check
+ * @returns True if the given tab contains a dhPanel.
+ */
+export function isDhPanelTab(tab?: vscode.Tab): boolean {
+  if (tab == null) {
+    return false;
+  }
+
+  const { input } = tab;
+
+  return (
+    input != null &&
+    typeof input === 'object' &&
+    'viewType' in input &&
+    typeof input.viewType === 'string' &&
+    input.viewType.endsWith(`-${DH_PANEL_VIEW_TYPE}`)
+  );
 }

@@ -13,12 +13,14 @@ import {
   createSessionDetailsResponsePostMessage,
   getDHThemeKey,
   getPanelHtml,
+  isDhPanelTab,
   isNonEmptyArray,
   Logger,
 } from '../util';
 import { DhcService } from '../services';
 import {
   DEEPHAVEN_POST_MSG,
+  DH_PANEL_VIEW_TYPE,
   OPEN_VARIABLE_PANELS_CMD,
   REFRESH_VARIABLE_PANELS_CMD,
 } from '../common';
@@ -41,6 +43,10 @@ export class PanelController extends ControllerBase {
       this._onRefreshPanelsContent
     );
 
+    vscode.window.tabGroups.onDidChangeTabs(
+      this._debouncedRefreshVisiblePanelsPendingInitialLoad
+    );
+
     this.disposables.push(
       vscode.window.onDidChangeActiveColorTheme(
         this._onDidChangeActiveColorTheme
@@ -50,13 +56,70 @@ export class PanelController extends ControllerBase {
 
   private readonly _panelService: IPanelService;
   private readonly _serverManager: IServerManager;
-  private _lastPanelDetails: {
-    panel: vscode.WebviewPanel;
-    variable: VariableDefintion;
-    isNew: boolean;
-    hasChangedToVisible: boolean;
-  } | null = null;
-  private _panelsPendingInitialLoad = new Set<vscode.WebviewPanel>();
+
+  private readonly _lastPanelInViewColumn = new Map<
+    vscode.ViewColumn | undefined,
+    vscode.WebviewPanel
+  >();
+  private readonly _panelsPendingInitialLoad = new Map<
+    vscode.WebviewPanel,
+    VariableDefintion
+  >();
+
+  private _debounceRefreshPanels?: NodeJS.Timeout;
+
+  /**
+   * Load any visible panels that are marked for pending initial load. Calls
+   * to this method are debounced in case this is called multiple times before
+   * the active tab state actually settles. e.g. tab change events may fire
+   * multiple times as tabs are removed, added, etc.
+   */
+  private _debouncedRefreshVisiblePanelsPendingInitialLoad = (): void => {
+    clearTimeout(this._debounceRefreshPanels);
+
+    this._debounceRefreshPanels = setTimeout(() => {
+      const visiblePanels: {
+        url: URL;
+        panel: vscode.WebviewPanel;
+        variable: VariableDefintion;
+      }[] = [];
+
+      // Get details for visible panels that are pending initial load
+      for (const url of this._panelService.getPanelUrls()) {
+        for (const panel of this._panelService.getPanels(url)) {
+          if (panel.visible && this._panelsPendingInitialLoad.has(panel)) {
+            const variable = this._panelsPendingInitialLoad.get(panel)!;
+            visiblePanels.push({ url, panel, variable });
+          }
+        }
+      }
+
+      vscode.window.tabGroups.all.forEach(tabGroup => {
+        if (!isDhPanelTab(tabGroup.activeTab)) {
+          return;
+        }
+
+        // Panel names are not guaranteed to be unique across multiple servers,
+        // so there is an edge case where a panel could get unnecessarily refreshed
+        // if it is the active panel, and a variable with the same name gets
+        // updated on another vscode connection. This shouldn't hurt anything
+        // and seems likely to be rare. There doesn't seem to be a way to know
+        // which vscode panel is associated with a tab, so best we can do is
+        // match the tab label to the panel title.
+        const matchingPanels = visiblePanels.filter(
+          ({ panel }) =>
+            panel.viewColumn === tabGroup.viewColumn &&
+            panel.title === tabGroup.activeTab?.label
+        );
+
+        for (const { url, panel, variable } of matchingPanels) {
+          logger.debug2('Loading initial panel content:', panel.title);
+          this._panelsPendingInitialLoad.delete(panel);
+          this._onRefreshPanelsContent(url, [variable]);
+        }
+      });
+    }, 100);
+  };
 
   /**
    * Handle `postMessage` messages from the panel.
@@ -120,6 +183,12 @@ export class PanelController extends ControllerBase {
     logger.debug('Unknown message type', message);
   }
 
+  /**
+   * Ensure panels for given variables are open and queued for loading initial
+   * content.
+   * @param serverUrl
+   * @param variables
+   */
   private _onOpenPanels = async (
     serverUrl: URL,
     variables: NonEmptyArray<VariableDefintion>
@@ -134,7 +203,7 @@ export class PanelController extends ControllerBase {
     // where the `editor/title/run` menu gets stuck on a previous selection.
     await waitFor(0);
 
-    this._lastPanelDetails = null;
+    this._lastPanelInViewColumn.clear();
 
     // Target ViewColumn is either the first existing panel's viewColumn or a
     // new tab group if none exist.
@@ -149,7 +218,7 @@ export class PanelController extends ControllerBase {
 
       const panel: vscode.WebviewPanel = isNewPanel
         ? vscode.window.createWebviewPanel(
-            'dhPanel', // Identifies the type of the webview. Used internally
+            DH_PANEL_VIEW_TYPE, // Identifies the type of the webview. Used internally
             title,
             { viewColumn: targetViewColumn, preserveFocus: true },
             {
@@ -159,21 +228,10 @@ export class PanelController extends ControllerBase {
           )
         : this._panelService.getPanelOrThrow(serverUrl, id);
 
-      this._lastPanelDetails = {
-        panel,
-        variable,
-        isNew: isNewPanel,
-        hasChangedToVisible: false,
-      };
-      this._panelsPendingInitialLoad.add(panel);
+      this._lastPanelInViewColumn.set(panel.viewColumn, panel);
+      this._panelsPendingInitialLoad.set(panel, variable);
 
       if (isNewPanel) {
-        const onDidChangeViewStateSubscription = panel.onDidChangeViewState(
-          ({ webviewPanel }) => {
-            this._onPanelViewStateChange(serverUrl, webviewPanel, variable);
-          }
-        );
-
         const onDidReceiveMessageSubscription =
           panel.webview.onDidReceiveMessage(({ data }) => {
             const postMessage = panel.webview.postMessage.bind(panel.webview);
@@ -191,78 +249,18 @@ export class PanelController extends ControllerBase {
           this._panelService.deletePanel(serverUrl, id);
           this._panelsPendingInitialLoad.delete(panel);
 
-          onDidChangeViewStateSubscription.dispose();
+          // onDidChangeViewStateSubscription.dispose();
           onDidReceiveMessageSubscription.dispose();
         });
       }
     }
 
-    assertDefined(this._lastPanelDetails, '_lastPanelDetails');
-
-    this._lastPanelDetails.panel.reveal();
-
-    // If the last panel already exists, it may not fire a `onDidChangeViewState`
-    // event, so eagerly refresh it since we know it will be visible.
-    if (!this._lastPanelDetails.isNew) {
-      logger.debug2(
-        'Refreshing last panel:',
-        this._lastPanelDetails.panel.title
-      );
-      this._panelsPendingInitialLoad.delete(this._lastPanelDetails.panel);
-      this._onRefreshPanelsContent(serverUrl, [
-        this._lastPanelDetails.variable,
-      ]);
-    }
-  };
-
-  /**
-   * Subscribe to visibility changes on new panels so that we can load data
-   * the first time it becomes visible. Initial data will be loaded if
-   * 1. The panel is visible.
-   * 2. The last opened panel has changed to visible. When multiple panels
-   *    are being created, they will start visible and then be hidden as the
-   *    next panel is created. We want to wait until all panels have been
-   *    created to avoid eager loading every panel along the way.
-   * 3. The panel is marked as pending initial load.
-   * @param serverUrl The server url.
-   * @param panel The panel to subscribe to.
-   * @param variable The variable associated with the panel.
-   */
-  private _onPanelViewStateChange = (
-    serverUrl: URL,
-    panel: vscode.WebviewPanel,
-    variable: VariableDefintion
-  ): void => {
-    logger.debug2(
-      `[_onPanelViewStateChange]: ${panel.title}`,
-      `active:${panel.active},visible:${panel.visible}`
-    );
-
-    if (!panel.visible || this._lastPanelDetails == null) {
-      return;
+    // Reveal last panel added to each tab group
+    for (const panel of this._lastPanelInViewColumn.values()) {
+      panel.reveal();
     }
 
-    if (
-      this._lastPanelDetails.panel === panel &&
-      !this._lastPanelDetails.hasChangedToVisible
-    ) {
-      logger.debug2(panel.title, 'Last panel has changed to visible');
-      this._lastPanelDetails.hasChangedToVisible = true;
-    }
-
-    if (!this._lastPanelDetails.hasChangedToVisible) {
-      logger.debug2(panel.title, 'Waiting for last panel');
-      return;
-    }
-
-    if (!this._panelsPendingInitialLoad.has(panel)) {
-      logger.debug2(panel.title, 'Panel already loaded');
-      return;
-    }
-
-    logger.debug2(panel.title, 'Loading initial panel content');
-    this._panelsPendingInitialLoad.delete(panel);
-    this._onRefreshPanelsContent(serverUrl, [variable]);
+    this._debouncedRefreshVisiblePanelsPendingInitialLoad();
   };
 
   /**
@@ -287,7 +285,8 @@ export class PanelController extends ControllerBase {
       await this._serverManager.getWorkerInfo(serverUrl as WorkerURL)
     );
 
-    for (const { id, title } of variables) {
+    for (const variable of variables) {
+      const { id, title } = variable;
       const panel = this._panelService.getPanelOrThrow(serverUrl, id);
 
       // For any panels that are not visible at time of refresh, flag them as
@@ -298,7 +297,7 @@ export class PanelController extends ControllerBase {
       // everything in vscode.
       if (!panel.visible) {
         logger.debug2('Panel not visible:', panel.title);
-        this._panelsPendingInitialLoad.add(panel);
+        this._panelsPendingInitialLoad.set(panel, variable);
         continue;
       }
 

@@ -17,6 +17,8 @@ export const DEFAULT_CONSOLE_TYPE = 'python' as const;
 export const DEFAULT_TEMPORARY_QUERY_AUTO_TIMEOUT_MS = 600000 as const;
 export const DEFAULT_TEMPORARY_QUERY_TIMEOUT_MS = 60000 as const;
 
+export const DH_PANEL_VIEW_TYPE = 'dhPanel';
+
 export const INTERACTIVE_CONSOLE_QUERY_TYPE = 'InteractiveConsole';
 export const INTERACTIVE_CONSOLE_TEMPORARY_QUEUE_NAME =
   'InteractiveConsoleTemporaryQueue';
