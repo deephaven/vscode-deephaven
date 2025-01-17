@@ -95,7 +95,6 @@ export function getPanelVariableTreeItem([url, variable]: [
 ]): vscode.TreeItem {
   const iconPath = getVariableIconPath(variable.type);
   const variablesToOpen: NonEmptyArray<VariableDefintion> = [variable];
-  const refreshLastPanel = true;
 
   return {
     label: variable.title,
@@ -103,7 +102,7 @@ export function getPanelVariableTreeItem([url, variable]: [
     command: {
       title: 'Open Panel',
       command: OPEN_VARIABLE_PANELS_CMD,
-      arguments: [url, variablesToOpen, refreshLastPanel],
+      arguments: [url, variablesToOpen],
     },
   };
 }
