@@ -249,7 +249,6 @@ export class PanelController extends ControllerBase {
           this._panelService.deletePanel(serverUrl, id);
           this._panelsPendingInitialLoad.delete(panel);
 
-          // onDidChangeViewStateSubscription.dispose();
           onDidReceiveMessageSubscription.dispose();
         });
       }
