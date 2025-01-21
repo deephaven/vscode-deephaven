@@ -344,7 +344,7 @@ export class ExtensionController implements Disposable {
       const dhc = await this._coreJsApiCache.get(url);
 
       const client = new dhc.CoreClient(url.toString(), {
-        debug: true,
+        debug: false, // Set `debug` to true to see debug logs for gRPC transport
         transportFactory: NodeHttp2gRPCTransport.factory,
       }) as CoreUnauthenticatedClient;
 
