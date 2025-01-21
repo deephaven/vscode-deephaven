@@ -10,11 +10,20 @@ Once installed, there will be a new icon in the `activity bar` (the sidebar cont
 
 ![VS Code Activity Bar](./docs/assets/dh-activity-bar.gif)
 
-The "SERVERS" tree will show the status of any configured servers. To run a script against a running server, simply click the `Run Deephaven File` action at the top of a file supported by the server (`python` or `groovy`).
+The "SERVERS" tree will show the status of any configured servers. 
+
+
+## Running Code
+To run a script against a running server, simply click the `Run Deephaven File` action at the top of a file supported by the server (`python` or `groovy`).
 
 ![Connect to Community Server](./docs/assets/dhc-connect-to-server.gif)
 
 A new connection will show up in the "CONNECTIONS" tree, and the "PANELS" should show any variables exposed on the connection. To disconnect, hover over the connection item and click the trash icon.
+
+### Markdown Code Blocks
+Python and Groovy codeblocks in Markdown files can be run by clicking the "Run Deephaven Block" action directly above the codeblock.
+
+![Markdown Codeblocks](docs/assets/markdown-codeblocks.png)
 
 ## Configuration
 
@@ -28,6 +37,8 @@ Community servers can be configured via the `"deephaven.coreServers"` setting in
 
 ![Community Server Settings](./docs/assets/add-community-server.gif)
 
+#### Self-signed SSL Certificates
+If you are running a Community server with a self-signed SSL certificate, vscode will need to be run in an environment that has the `NODE_EXTRA_CA_CERTS` environment variable set to the path of the cert that was used to sign your cert. Depending on your setup, this could be the server certificate or a CA certificate.
 
 ### Enterprise Servers
 Enterprise servers can be configured via the `"deephaven.enterpriseServers"` setting in `VS Code` user or workspace settings.

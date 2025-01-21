@@ -1,50 +1,52 @@
 import * as vscode from 'vscode';
 
 /**
- * Combine content of all selected lines (including multi-cursor selections).
- * Any line that is partially selected will be included in its entirety.
- * @param editor
+ * Combine content of all range lines. Any partial lines will be expanded to
+ * include the full line content.
+ * @param document The document to extract the range lines from.
+ * @param ranges The ranges to extract the lines from.
  */
-export function getCombinedSelectedLinesText(
-  editor: vscode.TextEditor
+export function getCombinedRangeLinesText(
+  document: vscode.TextDocument,
+  ranges: readonly vscode.Range[]
 ): string {
-  return sortSelections(editor.selections)
-    .map(expandSelectionToFullLines(editor.document))
-    .map(selection => editor.document.getText(selection))
+  return sortRanges(ranges)
+    .map(expandRangeToFullLines(document))
+    .map(range => document.getText(range))
     .join('\n');
 }
 
 /**
- * Create a function that can expand selection to include the full lines of any
- * lines that are included in the selection.
- * @param document
- * @returns
+ * Create a function that can expand a range to include the full lines of any
+ * lines that are included in the range.
+ * @param document The document to provide line lengths for a given range.
+ * @returns Function that expands a range to include full lines.
  */
-export function expandSelectionToFullLines(document: vscode.TextDocument) {
+export function expandRangeToFullLines(document: vscode.TextDocument) {
   /**
-   * Expand a given selection to include the full lines of any lines that are included
-   * in the selection.
+   * Expand a given range to include the full lines of any lines that are
+   * included in the range.
    * @param selection
    */
-  return (selection: vscode.Selection): vscode.Selection => {
-    return new vscode.Selection(
-      selection.start.line,
+  return (range: vscode.Range): vscode.Range => {
+    return new vscode.Range(
+      range.start.line,
       0,
-      selection.end.line,
-      document.lineAt(selection.end.line).text.length
+      range.end.line,
+      document.lineAt(range.end.line).text.length
     );
   };
 }
 
 /**
- * Sort selections in document order. Useful for converting `TextEditor.selections`
+ * Sort ranges in document order. Useful for converting `TextEditor.selections`
  * which are ordered based on multi-cursor creation order.
- * @param selections
+ * @param ranges The ranges to sort.
  */
-export function sortSelections(
-  selections: readonly vscode.Selection[]
-): vscode.Selection[] {
-  return [...selections].sort(
+export function sortRanges<TRange extends vscode.Range>(
+  ranges: readonly TRange[]
+): TRange[] {
+  return [...ranges].sort(
     (s1, s2) =>
       s1.start.line - s2.start.line || s1.start.character - s2.start.character
   );

@@ -4,7 +4,7 @@ import type { dh as DhcType } from '@deephaven/jsapi-types';
 import {
   assertDefined,
   formatTimestamp,
-  getCombinedSelectedLinesText,
+  getCombinedRangeLinesText,
   isNonEmptyArray,
   Logger,
   saveRequirementsTxt,
@@ -336,12 +336,13 @@ export class DhcService implements IDhcService {
     await saveRequirementsTxt(dependencies);
   }
 
-  async runEditorCode(
-    editor: vscode.TextEditor,
-    selectionOnly = false
+  async runCode(
+    document: vscode.TextDocument,
+    languageId: string,
+    ranges?: readonly vscode.Range[]
   ): Promise<void> {
     // Clear previous diagnostics when cmd starts running
-    this.diagnosticsCollection.set(editor.document.uri, []);
+    this.diagnosticsCollection.set(document.uri, []);
 
     if (this.session == null) {
       await this.initSession();
@@ -353,16 +354,14 @@ export class DhcService implements IDhcService {
 
     const [consoleType] = await this.cn.getConsoleTypes();
 
-    if (consoleType !== editor.document.languageId) {
-      this.toaster.error(
-        `This connection does not support '${editor.document.languageId}'.`
-      );
+    if (consoleType !== languageId) {
+      this.toaster.error(`This connection does not support '${languageId}'.`);
       return;
     }
 
-    const text = selectionOnly
-      ? getCombinedSelectedLinesText(editor)
-      : editor.document.getText();
+    const text = ranges
+      ? getCombinedRangeLinesText(document, ranges)
+      : document.getText();
 
     logger.info('Sending text to dh:', text);
 
@@ -394,15 +393,14 @@ export class DhcService implements IDhcService {
       this.outputChannel.appendLine(error);
       this.toaster.error('An error occurred when running a command');
 
-      if (editor.document.languageId === 'python') {
+      if (languageId === 'python') {
         const { line, value } = parseServerError(error);
 
         if (line != null) {
-          // If selectionOnly is true, the line number in the error will be
-          // relative to the selection (Python line numbers are 1 based. vscode
-          // line numbers are zero based.)
-          const fileLine =
-            (selectionOnly ? line + editor.selection.start.line : line) - 1;
+          // If ranges were provided, the line number in the error will be
+          // relative to the ranges content (Python line numbers are 1 based.
+          // vscode line numbers are zero based.)
+          const fileLine = (ranges ? line + ranges[0].start.line : line) - 1;
 
           // There seems to be an error for certain Python versions where line
           // numbers are shown as -1. In such cases, we'll just mark the first
@@ -411,7 +409,7 @@ export class DhcService implements IDhcService {
 
           // Zero length will flag a token instead of a line
           const lineLength =
-            fileLine < 0 ? 0 : editor.document.lineAt(fileLine).text.length;
+            fileLine < 0 ? 0 : document.lineAt(fileLine).text.length;
 
           // Diagnostic representing the line of code that produced the server error
           const diagnostic: vscode.Diagnostic = {
@@ -421,7 +419,7 @@ export class DhcService implements IDhcService {
             source: 'deephaven',
           };
 
-          this.diagnosticsCollection.set(editor.document.uri, [diagnostic]);
+          this.diagnosticsCollection.set(document.uri, [diagnostic]);
         }
       }
 

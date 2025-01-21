@@ -1,6 +1,6 @@
 {
   "name": "vscode-deephaven",
-  "version": "0.1.21",
+  "version": "0.1.23",
   "displayName": "Deephaven VS Code",
   "description": "",
   "publisher": "deephaven",
@@ -146,6 +146,11 @@
         "command": "vscode-deephaven.runCode",
         "title": "Run Deephaven File",
         "icon": "$(run-all)"
+      },
+      {
+        "command": "vscode-deephaven.runMarkdownCodeblock",
+        "title": "Run Deephaven Markdown Codeblock",
+        "icon": "$(run)"
       },
       {
         "command": "vscode-deephaven.runSelection",
@@ -678,6 +683,10 @@
           "when": "editorLangId == python || editorLangId == groovy"
         },
         {
+          "command": "vscode-deephaven.runMarkdownCodeblock",
+          "when": "false"
+        },
+        {
           "command": "vscode-deephaven.runSelection",
           "when": "editorLangId == python || editorLangId == groovy"
         },
@@ -866,7 +875,7 @@
   },
   "devDependencies": {
     "@deephaven-enterprise/jsapi-types": "^1.20240723.124-beta",
-    "@deephaven/jsapi-types": "^1.0.0-dev0.36.1",
+    "@deephaven/jsapi-types": "^1.0.0-dev0.37.3",
     "@types/node": "22.5.4",
     "@types/vscode": "^1.91.0",
     "@types/ws": "^8.5.10",

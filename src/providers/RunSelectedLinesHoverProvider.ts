@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { ICON_ID, RUN_SELECTION_COMMAND } from '../common';
-import { expandSelectionToFullLines } from '../util';
+import { expandRangeToFullLines } from '../util';
 
 /**
  * Provides hover content for running selected lines in Deephaven.
@@ -15,7 +15,7 @@ export const runSelectedLinesHoverProvider: vscode.HoverProvider = {
 
     // Determine if hover is over a selected line
     const isOverSelection = editor.selections.some(selection =>
-      expandSelectionToFullLines(editor.document)(selection).contains(position)
+      expandRangeToFullLines(editor.document)(selection).contains(position)
     );
 
     if (!isOverSelection) {
