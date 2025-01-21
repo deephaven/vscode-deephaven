@@ -78,6 +78,7 @@ import type {
   ICoreClientFactory,
   CoreUnauthenticatedClient,
   ConnectionState,
+  WorkerURL,
 } from '../types';
 import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTreeDragAndDropController';
 import { ConnectionController } from './ConnectionController';
@@ -352,12 +353,28 @@ export class ExtensionController implements Disposable {
       url: URL
     ): Promise<CoreUnauthenticatedClient & Disposable> => {
       assertDefined(this._coreJsApiCache, 'coreJsApiCache');
+
+      const workerInfo = await this._serverManager?.getWorkerInfo(
+        url as WorkerURL
+      );
+
       const dhc = await this._coreJsApiCache.get(url);
 
-      const client = new dhc.CoreClient(url.toString(), {
-        debug: false, // Set `debug` to true to see debug logs for gRPC transport
-        transportFactory: NodeHttp2gRPCTransport.factory,
-      }) as CoreUnauthenticatedClient;
+      const clientUrl = workerInfo == null ? url : workerInfo.grpcUrl;
+      const envoyPrefix = workerInfo?.envoyPrefix;
+
+      const headers: { [key: string]: string } =
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        envoyPrefix == null ? {} : { 'envoy-prefix': envoyPrefix };
+
+      const client = new dhc.CoreClient(
+        clientUrl.toString().replace(/\/$/, ''),
+        {
+          debug: false, // Set `debug` to true to see debug logs for gRPC transport
+          headers,
+          transportFactory: NodeHttp2gRPCTransport.factory,
+        }
+      ) as CoreUnauthenticatedClient;
 
       // Attach a dispose method so that client caches can dispose of the client
       return Object.assign(client, {
@@ -458,7 +475,7 @@ export class ExtensionController implements Disposable {
    */
   initializeTempDirectory = (): void => {
     // recreate tmp dir that will be used to dowload JS Apis
-    getTempDir({ recreate: true });
+    getTempDir({ recreate: false });
   };
 
   /**
