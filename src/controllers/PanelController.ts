@@ -99,13 +99,15 @@ export class PanelController extends ControllerBase {
           return;
         }
 
-        // Panel names are not guaranteed to be unique across multiple servers,
-        // so there is an edge case where a panel could get unnecessarily refreshed
-        // if it is the active panel, and a variable with the same name gets
-        // updated on another vscode connection. This shouldn't hurt anything
-        // and seems likely to be rare. There doesn't seem to be a way to know
-        // which vscode panel is associated with a tab, so best we can do is
-        // match the tab label to the panel title.
+        // There doesn't seem to be a way to know which vscode panel is associated
+        // with a tab, so best we can do is match the tab label to the panel title.
+        // Variable names are not guaranteed to be unique across different servers,
+        // so in theory this could include a matching panel from a different
+        // server that didn't need to be refreshed. In order for this to happen,
+        // the other panel would have to be visible and still pending initial
+        // load when the debounce settles on this event which seems extremely rare
+        // if even possible. Worst case scenario, we accidentally refresh a panel
+        // that doesn't need it which should be fine.
         const matchingPanels = visiblePanels.filter(
           ({ panel }) =>
             panel.viewColumn === tabGroup.viewColumn &&
