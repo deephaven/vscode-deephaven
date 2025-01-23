@@ -120,7 +120,7 @@ export class PanelController extends ControllerBase {
           this._onRefreshPanelsContent(url, [variable]);
         }
       });
-    }, 100);
+    }, 50);
   };
 
   /**
