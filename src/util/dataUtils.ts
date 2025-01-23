@@ -1,6 +1,19 @@
 import type { NonEmptyArray } from '../types';
 
 /**
+ * Type guard to determine if an object has a property.
+ * @param obj The object to check.
+ * @param prop The property to check for.
+ * @returns true if the property exists, false otherwise.
+ */
+export function hasProperty<TProp extends string>(
+  obj: unknown,
+  prop: TProp
+): obj is Record<TProp, unknown> {
+  return obj != null && typeof obj === 'object' && prop in obj;
+}
+
+/**
  * Type guard to check if an array is non-empty.
  * @param array
  * @returns true if the array is non-empty, false otherwise

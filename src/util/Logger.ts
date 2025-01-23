@@ -42,18 +42,49 @@ export class Logger {
   };
 
   /**
+   * Stringify an argument for logging.
+   * @param arg The argument to stringify.
+   * @returns The stringified argument.
+   */
+  static stringifyArg = (arg: unknown): string => {
+    if (arg instanceof Error) {
+      return arg.stack ?? arg.message;
+    }
+
+    if (typeof arg === 'string') {
+      return arg;
+    }
+
+    try {
+      return JSON.stringify(arg);
+    } catch {
+      return String(arg);
+    }
+  };
+
+  /**
+   * Create a log handler that logs to a `vscode.OutputChannel`.
+   * @param outputChannel The output channel to log to.
+   * @returns A log handler that logs to the output channel.
+   */
+  static createOutputChannelHandler = (
+    outputChannel: vscode.OutputChannel
+  ): ((level: LogLevel) => LogLevelHandler) => {
+    return (level: LogLevel): LogLevelHandler =>
+      (label, ...args) =>
+        outputChannel.appendLine(
+          `${label} ${level.toUpperCase()}: ${args.map(Logger.stringifyArg).join(' ')}`
+        );
+  };
+
+  /**
    * Register a log handler that logs to a `vscode.OutputChannel`.
    * @param outputChannel
    */
   static addOutputChannelHandler = (
     outputChannel: vscode.OutputChannel
   ): void => {
-    const createHandler =
-      (level: LogLevel): LogLevelHandler =>
-      (label, ...args) =>
-        outputChannel.appendLine(
-          `${label} ${level.toUpperCase()}: ${args.map(a => (a instanceof Error ? (a.stack ?? a.message) : a)).join(' ')}`
-        );
+    const createHandler = Logger.createOutputChannelHandler(outputChannel);
 
     Logger.handlers.add({
       error: createHandler('error'),

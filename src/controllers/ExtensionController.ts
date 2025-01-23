@@ -34,6 +34,7 @@ import {
   isSupportedLanguageId,
   Logger,
   OutputChannelWithHistory,
+  sanitizeGRPCLogMessageArgs,
   Toaster,
 } from '../util';
 import {
@@ -316,6 +317,12 @@ export class ExtensionController implements Disposable {
 
     Logger.addConsoleHandler();
     Logger.addOutputChannelHandler(this._outputChannelDebug);
+
+    const handler = Logger.createOutputChannelHandler(this._outputChannelDebug);
+    NodeHttp2gRPCTransport.onLogMessage((logLevel, ...args: unknown[]) => {
+      args = sanitizeGRPCLogMessageArgs(args);
+      handler(logLevel)('[NodeHttp2gRPCTransport]', ...args);
+    });
 
     this._toaster = new Toaster();
 

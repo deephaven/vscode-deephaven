@@ -7,6 +7,7 @@ export * from './Logger';
 export * from './OutputChannelWithHistory';
 export * from './panelUtils';
 export * from './promiseUtils';
+export * from './sanitizeUtils';
 export * from './selectionUtils';
 export * from './serverUtils';
 export * from './testUtils';
