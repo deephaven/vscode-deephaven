@@ -5,6 +5,7 @@ import {
   assertDefined,
   formatTimestamp,
   getCombinedRangeLinesText,
+  isNonEmptyArray,
   Logger,
   saveRequirementsTxt,
 } from '../util';
@@ -202,11 +203,22 @@ export class DhcService implements IDhcService {
               )
           );
 
-          vscode.commands.executeCommand(
-            REFRESH_VARIABLE_PANELS_CMD,
-            this.serverUrl,
-            panelVariablesToUpdate
-          );
+          if (isNonEmptyArray(panelVariablesToUpdate)) {
+            logger.debug2(
+              '[subscribeToFieldUpdates] Updating variables',
+              panelVariablesToUpdate.map(v => v.title)
+            );
+
+            vscode.commands.executeCommand(
+              REFRESH_VARIABLE_PANELS_CMD,
+              this.serverUrl,
+              panelVariablesToUpdate
+            );
+          } else {
+            logger.debug2(
+              '[subscribeToFieldUpdates] No existing panels to update:'
+            );
+          }
         });
         this.subscriptions.push(fieldUpdateSubscription);
 
@@ -428,11 +440,18 @@ export class DhcService implements IDhcService {
 
     const showVariables = changed.filter(v => !v.title.startsWith('_'));
 
-    vscode.commands.executeCommand(
-      OPEN_VARIABLE_PANELS_CMD,
-      this.serverUrl,
-      showVariables
-    );
+    if (isNonEmptyArray(showVariables)) {
+      logger.debug(
+        '[runEditorCode] Showing variables:',
+        showVariables.map(v => v.title).join(', ')
+      );
+
+      vscode.commands.executeCommand(
+        OPEN_VARIABLE_PANELS_CMD,
+        this.serverUrl,
+        showVariables
+      );
+    }
   }
 }
 

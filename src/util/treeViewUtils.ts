@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import type {
   ConnectionState,
   ConsoleType,
+  NonEmptyArray,
   ServerGroupState,
   ServerState,
   VariableDefintion,
@@ -93,6 +94,7 @@ export function getPanelVariableTreeItem([url, variable]: [
   VariableDefintion,
 ]): vscode.TreeItem {
   const iconPath = getVariableIconPath(variable.type);
+  const variablesToOpen: NonEmptyArray<VariableDefintion> = [variable];
 
   return {
     label: variable.title,
@@ -100,7 +102,7 @@ export function getPanelVariableTreeItem([url, variable]: [
     command: {
       title: 'Open Panel',
       command: OPEN_VARIABLE_PANELS_CMD,
-      arguments: [url, [variable]],
+      arguments: [url, variablesToOpen],
     },
   };
 }
