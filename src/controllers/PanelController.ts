@@ -161,7 +161,16 @@ export class PanelController extends ControllerBase {
         workerInfo,
       });
 
-      logger.debug('Posting LoginOptions response:', response);
+      logger.debug('Posting LoginOptions response:', {
+        ...response,
+        payload: {
+          ...response.payload,
+          payload: {
+            ...response.payload.payload,
+            token: '********',
+          },
+        },
+      });
 
       postResponseMessage(response);
 
