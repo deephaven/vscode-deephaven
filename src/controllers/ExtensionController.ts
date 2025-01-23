@@ -360,19 +360,24 @@ export class ExtensionController implements Disposable {
       const envoyPrefix = workerInfo?.envoyPrefix;
       const urlStr = String(workerInfo?.grpcUrl ?? url).replace(/\/$/, '');
 
-      const headers =
-        envoyPrefix == null
-          ? undefined
-          : // eslint-disable-next-line @typescript-eslint/naming-convention
-            { 'envoy-prefix': envoyPrefix };
+      const options: DhcType.ConnectOptions = {
+        debug: false, // Set `debug` to true to see debug logs for gRPC transport
+        transportFactory: NodeHttp2gRPCTransport.factory,
+      };
+
+      if (envoyPrefix != null) {
+        options.headers = {
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          'envoy-prefix': envoyPrefix,
+        };
+      }
 
       const dhc = await this._coreJsApiCache.get(url);
 
-      const client = new dhc.CoreClient(urlStr, {
-        debug: false, // Set `debug` to true to see debug logs for gRPC transport
-        headers,
-        transportFactory: NodeHttp2gRPCTransport.factory,
-      }) as CoreUnauthenticatedClient;
+      const client = new dhc.CoreClient(
+        urlStr,
+        options
+      ) as CoreUnauthenticatedClient;
 
       // Attach a dispose method so that client caches can dispose of the client
       return Object.assign(client, {
