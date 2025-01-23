@@ -1,12 +1,18 @@
 import { browser, expect } from '@wdio/globals';
 import {
   closeAllEditors,
+  getDhTabGroups,
   hasConnectionStatusBarItem,
   openEditors,
   PYTHON_AND_GROOVY_SERVER_CONFIG,
   resetConfig,
   setConfigSectionSettings,
 } from '../testUtils';
+
+afterEach(async () => {
+  await resetConfig();
+  await closeAllEditors();
+});
 
 // There are some tests that can be used for reference in:
 // https://github.com/stateful/vscode-marquee/blob/main/test/specs and
@@ -30,11 +36,6 @@ describe('Connection status bar item', () => {
     await openEditors(['test.txt', 'test.groovy', 'test.py']);
   });
 
-  afterEach(async () => {
-    await resetConfig();
-    await closeAllEditors();
-  });
-
   ['test.groovy', 'test.py'].forEach(supportedTitle => {
     it(`should only be visible when a supported file type is active: ${supportedTitle}`, async () => {
       const workbench = await browser.getWorkbench();
@@ -49,5 +50,28 @@ describe('Connection status bar item', () => {
       await workbench.getEditorView().openEditor(supportedTitle);
       expect(await hasConnectionStatusBarItem()).toBeTruthy();
     });
+  });
+});
+
+describe('panels', () => {
+  beforeEach(async () => {
+    await setConfigSectionSettings(
+      'coreServers',
+      PYTHON_AND_GROOVY_SERVER_CONFIG
+    );
+    await openEditors(['simple_ticking3.py']);
+  });
+
+  it.only('should open panels', async () => {
+    const workbench = await browser.getWorkbench();
+
+    await workbench.getEditorView().openEditor('simple_ticking3.py');
+    await workbench.executeCommand('Run Deephaven File');
+
+    // We need this to wait until panels load
+    await workbench.getAllWebviews();
+
+    const tabGroups = await getDhTabGroups();
+    expect(tabGroups).toMatchSnapshot('Initial tab groups');
   });
 });

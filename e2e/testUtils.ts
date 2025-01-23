@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 
 // Note that calls to `browser.executeWorkbench` cannot reference any variables
 // or functions from the outside scope. They only have access to variables
-// passed in as additional parameters.
+// passed in as additional parameters. Return values need to be JSON serializable.
 // See https://www.npmjs.com/package/wdio-vscode-service#accessing-vscode-apis
 
 // CONFIG_ROOT_KEY and ConfigSectionKey are based on `src/common/constants.ts`.
@@ -34,6 +34,57 @@ export async function findConnectionStatusBarItem(): Promise<
     // icon name, display text, tooltip
     'plug  Deephaven: Disconnected'
   );
+}
+
+type SerializableTabGroup = {
+  viewColumn: vscode.ViewColumn;
+  isActive: boolean;
+  activeTab?: string;
+  tabs: string[];
+};
+
+export async function getDhTabGroups(): Promise<
+  Record<vscode.ViewColumn, SerializableTabGroup>
+> {
+  // See note about `executeWorkbench` at top of this file.
+  return browser.executeWorkbench(async (vs: typeof vscode) => {
+    function isDhPanelTab(tab: vscode.Tab): boolean {
+      const { input } = tab;
+
+      return (
+        input != null &&
+        typeof input === 'object' &&
+        'viewType' in input &&
+        typeof input.viewType === 'string' &&
+        input.viewType.endsWith('-dhPanel')
+      );
+    }
+
+    const tabGroups = {} as Record<vscode.ViewColumn, SerializableTabGroup>;
+
+    for (const group of vs.window.tabGroups.all) {
+      const tabs: string[] = [];
+
+      for (const tab of group.tabs) {
+        if (isDhPanelTab(tab)) {
+          tabs.push(tab.label);
+        }
+      }
+
+      if (tabs.length === 0) {
+        continue;
+      }
+
+      tabGroups[group.viewColumn] = {
+        activeTab: group.activeTab?.label,
+        isActive: group.isActive,
+        tabs,
+        viewColumn: group.viewColumn,
+      };
+    }
+
+    return tabGroups;
+  });
 }
 
 /**
