@@ -1,6 +1,21 @@
 // Snapshot v1
 
-exports[`panels > should open panels > Initial tab groups 1`] = `
+exports[`panels > should open panels > Tab groups - after clicking t1 1`] = `
+{
+  "2": {
+    "activeTab": "t1",
+    "isActive": true,
+    "tabs": [
+      "t1",
+      "t2",
+      "t3",
+    ],
+    "viewColumn": 2,
+  },
+}
+`;
+
+exports[`panels > should open panels > Tab groups - initial load 1`] = `
 {
   "2": {
     "activeTab": "t3",

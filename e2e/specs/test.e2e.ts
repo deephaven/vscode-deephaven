@@ -1,4 +1,4 @@
-import { browser, expect } from '@wdio/globals';
+import { $, browser, expect } from '@wdio/globals';
 import {
   closeAllEditors,
   getDhTabGroups,
@@ -71,7 +71,13 @@ describe('panels', () => {
     // We need this to wait until panels load
     await workbench.getAllWebviews();
 
-    const tabGroups = await getDhTabGroups();
-    expect(tabGroups).toMatchSnapshot('Initial tab groups');
+    expect(await getDhTabGroups()).toMatchSnapshot('Tab groups - initial load');
+
+    const tabAriaLabel = await $('.tab-label[aria-label="t1"]');
+    await tabAriaLabel.click();
+
+    expect(await getDhTabGroups()).toMatchSnapshot(
+      'Tab groups - after clicking t1'
+    );
   });
 });
