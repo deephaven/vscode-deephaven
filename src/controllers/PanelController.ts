@@ -19,6 +19,7 @@ import {
 } from '../util';
 import { DhcService } from '../services';
 import {
+  DEBOUNCE_TAB_UPDATE_MS,
   DEEPHAVEN_POST_MSG,
   DH_PANEL_VIEW_TYPE,
   OPEN_VARIABLE_PANELS_CMD,
@@ -72,7 +73,10 @@ export class PanelController extends ControllerBase {
    * Load any visible panels that are marked for pending initial load. Calls
    * to this method are debounced in case this is called multiple times before
    * the active tab state actually settles. e.g. tab change events may fire
-   * multiple times as tabs are removed, added, etc.
+   * multiple times as tabs are removed, added, etc. Also, on slower machines,
+   * there may be some latency between when `onDidChangeTabs` fires and
+   * `panel.visible` props are updated, so wait long enough to ensure they are
+   * current.
    */
   private _debouncedRefreshVisiblePanelsPendingInitialLoad = (): void => {
     clearTimeout(this._debounceRefreshPanels);
@@ -131,7 +135,8 @@ export class PanelController extends ControllerBase {
           this._onRefreshPanelsContent(url, [variable]);
         }
       });
-    }, 100);
+      // See comment on `_debouncedRefreshVisiblePanelsPendingInitialLoad`
+    }, DEBOUNCE_TAB_UPDATE_MS);
   };
 
   /**
