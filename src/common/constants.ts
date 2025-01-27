@@ -9,6 +9,8 @@ export const CONFIG_KEY = {
   enterpriseServers: 'enterpriseServers',
 } as const;
 
+export const CENSORED_TEXT = '********' as const;
+
 export const DEFAULT_CONSOLE_TYPE = 'python' as const;
 // export const DHFS_SCHEME = 'dhfs';
 

@@ -34,6 +34,7 @@ import {
   isSupportedLanguageId,
   Logger,
   OutputChannelWithHistory,
+  sanitizeGRPCLogMessageArgs,
   Toaster,
 } from '../util';
 import {
@@ -106,6 +107,8 @@ export class ExtensionController implements Disposable {
     this.initializeCommands();
     this.initializeWebViews();
     this.initializeServerUpdates();
+
+    this._context.subscriptions.push(NodeHttp2gRPCTransport);
 
     logger.info(
       'Congratulations, your extension "vscode-deephaven" is now active!'
@@ -316,6 +319,14 @@ export class ExtensionController implements Disposable {
 
     Logger.addConsoleHandler();
     Logger.addOutputChannelHandler(this._outputChannelDebug);
+
+    const gRPCOutputChannelHandler = Logger.createOutputChannelHandler(
+      this._outputChannelDebug
+    );
+    NodeHttp2gRPCTransport.onLogMessage((logLevel, ...args: unknown[]) => {
+      args = sanitizeGRPCLogMessageArgs(args);
+      gRPCOutputChannelHandler(logLevel)('[NodeHttp2gRPCTransport]', ...args);
+    });
 
     this._toaster = new Toaster();
 
