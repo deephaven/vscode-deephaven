@@ -19,6 +19,7 @@ import {
 } from '../util';
 import { DhcService } from '../services';
 import {
+  CENSORED_TEXT,
   DEEPHAVEN_POST_MSG,
   DH_PANEL_VIEW_TYPE,
   OPEN_VARIABLE_PANELS_CMD,
@@ -167,7 +168,7 @@ export class PanelController extends ControllerBase {
           ...response.payload,
           payload: {
             ...response.payload.payload,
-            token: '********',
+            token: CENSORED_TEXT,
           },
         },
       });

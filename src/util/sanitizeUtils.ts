@@ -1,3 +1,4 @@
+import { CENSORED_TEXT } from '../common';
 import { hasProperty } from './dataUtils';
 
 /**
@@ -11,10 +12,10 @@ export function sanitizeAuthHeaderValue(authHeaderValue: string): string {
     authHeaderValue.startsWith('io.deephaven.proto.auth.Token') ||
     authHeaderValue.startsWith('Bearer')
   ) {
-    return authHeaderValue.replace(/ \S+$/, ' ********');
+    return authHeaderValue.replace(/ \S+$/, ` ${CENSORED_TEXT}`);
   }
 
-  return '********';
+  return CENSORED_TEXT;
 }
 
 /**
@@ -33,7 +34,7 @@ export function sanitizeAuthHeader(authorization: unknown): string | string[] {
     return authorization.map(sanitizeAuthHeaderValue);
   }
 
-  return sanitizeAuthHeaderValue('');
+  return CENSORED_TEXT;
 }
 
 /**
