@@ -5,7 +5,6 @@ import type {
   IServerManager,
   NonEmptyArray,
   VariableDefintion,
-  WorkerInfo,
   WorkerURL,
 } from '../types';
 import {
@@ -20,7 +19,6 @@ import {
 } from '../util';
 import { DhcService } from '../services';
 import {
-  CENSORED_TEXT,
   DEEPHAVEN_POST_MSG,
   DH_PANEL_VIEW_TYPE,
   OPEN_VARIABLE_PANELS_CMD,
@@ -96,6 +94,14 @@ export class PanelController extends ControllerBase {
         }
       }
 
+      logger.debug2(
+        '[_debouncedRefreshVisiblePanelsPendingInitialLoad]:',
+        visiblePanels.map(({ url, variable }) => ({
+          url,
+          title: variable.title,
+        }))
+      );
+
       vscode.window.tabGroups.all.forEach(tabGroup => {
         if (!isDhPanelTab(tabGroup.activeTab)) {
           return;
@@ -163,16 +169,7 @@ export class PanelController extends ControllerBase {
         workerInfo,
       });
 
-      logger.debug('Posting LoginOptions response:', {
-        ...response,
-        payload: {
-          ...response.payload,
-          payload: {
-            ...response.payload.payload,
-            token: CENSORED_TEXT,
-          },
-        },
-      });
+      logger.debug('Posting LoginOptions response:', response);
 
       postResponseMessage(response);
 
@@ -293,8 +290,8 @@ export class PanelController extends ControllerBase {
     const connection = this._serverManager.getConnection(serverUrl);
     assertDefined(connection, 'connection');
 
-    const workerInfo = await this._serverManager.getWorkerInfo(
-      serverUrl as WorkerURL
+    const isWorkerUrl = Boolean(
+      await this._serverManager.getWorkerInfo(serverUrl as WorkerURL)
     );
 
     for (const variable of variables) {
@@ -316,7 +313,7 @@ export class PanelController extends ControllerBase {
       const iframeUrl = await getEmbedWidgetUrlForConnection(
         connection,
         title,
-        workerInfo
+        isWorkerUrl
       );
 
       panel.webview.html = getPanelHtml(iframeUrl, title);
@@ -348,7 +345,7 @@ export class PanelController extends ControllerBase {
 export async function getEmbedWidgetUrlForConnection(
   connection: ConnectionState,
   title: string,
-  workerInfo?: WorkerInfo
+  isWorkerUrl: boolean
 ): Promise<URL> {
   return getEmbedWidgetUrl({
     serverUrl: connection.serverUrl,
@@ -357,8 +354,7 @@ export async function getEmbedWidgetUrlForConnection(
     // For Core+ workers in DHE, we use `postMessage` apis for auth where DH
     // iframe communicates with parent (the extension) to get login credentials
     // from the DHE client. See `getPanelHtml` util for more details.
-    authProvider: workerInfo == null ? undefined : 'parent',
-    envoyPrefix: workerInfo?.envoyPrefix,
+    authProvider: isWorkerUrl ? 'parent' : undefined,
     psk:
       connection instanceof DhcService ? await connection.getPsk() : undefined,
   });
