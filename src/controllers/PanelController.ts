@@ -131,7 +131,7 @@ export class PanelController extends ControllerBase {
           this._onRefreshPanelsContent(url, [variable]);
         }
       });
-    }, 50);
+    }, 100);
   };
 
   /**
