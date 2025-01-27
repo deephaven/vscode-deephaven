@@ -78,6 +78,7 @@ import type {
   ICoreClientFactory,
   CoreUnauthenticatedClient,
   ConnectionState,
+  WorkerURL,
 } from '../types';
 import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTreeDragAndDropController';
 import { ConnectionController } from './ConnectionController';
@@ -114,7 +115,8 @@ export class ExtensionController implements Disposable {
       'Congratulations, your extension "vscode-deephaven" is now active!'
     );
 
-    this._outputChannel?.appendLine('Deephaven extension activated');
+    const version = context.extension.packageJSON.version;
+    this._outputChannel?.appendLine(`Deephaven extension ${version} activated`);
   }
 
   readonly _context: vscode.ExtensionContext;
@@ -352,12 +354,31 @@ export class ExtensionController implements Disposable {
       url: URL
     ): Promise<CoreUnauthenticatedClient & Disposable> => {
       assertDefined(this._coreJsApiCache, 'coreJsApiCache');
-      const dhc = await this._coreJsApiCache.get(url);
 
-      const client = new dhc.CoreClient(url.toString(), {
+      const workerInfo = await this._serverManager?.getWorkerInfo(
+        url as WorkerURL
+      );
+      const envoyPrefix = workerInfo?.envoyPrefix;
+      const urlStr = String(workerInfo?.grpcUrl ?? url).replace(/\/$/, '');
+
+      const options: DhcType.ConnectOptions = {
         debug: false, // Set `debug` to true to see debug logs for gRPC transport
         transportFactory: NodeHttp2gRPCTransport.factory,
-      }) as CoreUnauthenticatedClient;
+      };
+
+      if (envoyPrefix != null) {
+        options.headers = {
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          'envoy-prefix': envoyPrefix,
+        };
+      }
+
+      const dhc = await this._coreJsApiCache.get(url);
+
+      const client = new dhc.CoreClient(
+        urlStr,
+        options
+      ) as CoreUnauthenticatedClient;
 
       // Attach a dispose method so that client caches can dispose of the client
       return Object.assign(client, {
