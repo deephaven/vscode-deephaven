@@ -87,20 +87,23 @@ export class PanelController extends ControllerBase {
       // Get details for visible panels that are pending initial load
       for (const url of this._panelService.getPanelUrls()) {
         for (const panel of this._panelService.getPanels(url)) {
-          if (panel.visible && this._panelsPendingInitialLoad.has(panel)) {
+          const isVisible = panel.visible;
+          const isPendingInitialLoad =
+            this._panelsPendingInitialLoad.has(panel);
+
+          logger.debug2('[_debouncedRefreshVisiblePanelsPendingInitialLoad]:', {
+            url,
+            title: panel.title,
+            isVisible,
+            isPendingInitialLoad,
+          });
+
+          if (isVisible && isPendingInitialLoad) {
             const variable = this._panelsPendingInitialLoad.get(panel)!;
             visiblePanels.push({ url, panel, variable });
           }
         }
       }
-
-      logger.debug2(
-        '[_debouncedRefreshVisiblePanelsPendingInitialLoad]:',
-        visiblePanels.map(({ url, variable }) => ({
-          url,
-          title: variable.title,
-        }))
-      );
 
       vscode.window.tabGroups.all.forEach(tabGroup => {
         if (!isDhPanelTab(tabGroup.activeTab)) {
