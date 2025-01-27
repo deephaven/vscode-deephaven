@@ -115,7 +115,8 @@ export class ExtensionController implements Disposable {
       'Congratulations, your extension "vscode-deephaven" is now active!'
     );
 
-    this._outputChannel?.appendLine('Deephaven extension activated');
+    const version = context.extension.packageJSON.version;
+    this._outputChannel?.appendLine(`Deephaven extension ${version} activated`);
   }
 
   readonly _context: vscode.ExtensionContext;
