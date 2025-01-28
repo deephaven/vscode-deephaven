@@ -1,7 +1,7 @@
 # This action orchestrates CI actions that can be run in parallel. This action
 # can be listed by any actions that use `workflow_run` as a trigger that depend
 # on all orchestrated actions being completed (e.g. pr-comment.yml).
-name: 'Tests'
+name: 'CI Tests'
 on:
   push:
     branches:

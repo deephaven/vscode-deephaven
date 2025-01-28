@@ -13,7 +13,7 @@ name: End-to-end PR Comment
 # access to secrets
 on:
   workflow_run:
-    workflows: ['Tests']
+    workflows: ['CI Tests']
     types:
       - completed
 
