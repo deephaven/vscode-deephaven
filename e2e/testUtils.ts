@@ -43,11 +43,17 @@ type SerializableTabGroup = {
   tabs: string[];
 };
 
-export async function getDhTabGroups(): Promise<
-  Record<vscode.ViewColumn, SerializableTabGroup>
-> {
+/** Map of SerializableTabGroups keyed by their respective ViewColumn. */
+type SerializableTabGroupMap = Record<vscode.ViewColumn, SerializableTabGroup>;
+
+export async function getDhTabGroups(): Promise<SerializableTabGroupMap> {
   // See note about `executeWorkbench` at top of this file.
   return browser.executeWorkbench(async (vs: typeof vscode) => {
+    /*
+     * Check if the tab is a Deephaven panel tab. Note that `executeWorkbench`
+     * has no access to functions defined outside of the calback closer, so this
+     * has to be defined here.
+     */
     function isDhPanelTab(tab: vscode.Tab): boolean {
       const { input } = tab;
 
@@ -60,7 +66,7 @@ export async function getDhTabGroups(): Promise<
       );
     }
 
-    const tabGroups = {} as Record<vscode.ViewColumn, SerializableTabGroup>;
+    const tabGroups = {} as SerializableTabGroupMap;
 
     for (const group of vs.window.tabGroups.all) {
       const tabs: string[] = [];
