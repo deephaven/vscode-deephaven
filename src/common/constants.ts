@@ -1,6 +1,15 @@
 import * as path from 'node:path';
 import type { ConsoleType, VariableType } from '../types';
 
+/**
+ * This value is a little bit arbitrary, but it needs to be long enough to
+ * allow panels to update their `visible` property after an `onDidChangeTabs`
+ * event fires. If we find that we have trouble with lazy panels not loading on
+ * initial activation, we may need to increase this value. This seems to work
+ * on a slower VM being used for testing whereas 50ms did not.
+ */
+export const DEBOUNCE_TAB_UPDATE_MS = 100;
+
 export const EXTENSION_ID = 'vscode-deephaven' as const;
 
 export const CONFIG_KEY = {
