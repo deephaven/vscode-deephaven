@@ -3,7 +3,7 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   test: {
-    include: ['src/**/*.spec.ts'],
+    dir: 'src',
     server: {
       deps: {
         // Imports of .js files without extensions fail without this
