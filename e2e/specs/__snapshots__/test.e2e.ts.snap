@@ -1,31 +1,93 @@
 // Snapshot v1
 
-exports[`panels > should open panels > Tab groups - after clicking t1 1`] = `
-{
-  "2": {
-    "activeTab": "t1",
-    "isActive": true,
-    "tabs": [
-      "t1",
-      "t2",
-      "t3",
-    ],
-    "viewColumn": 2,
+exports[`panels > should open panels > 1: Tab groups - initial load 1`] = `
+[
+  {
+    "ariaLabel": "simple_ticking3.py",
+    "isSelected": true,
+    "text": "simple_ticking3.py",
   },
-}
+  {
+    "ariaLabel": "t1, Editor Group 2",
+    "text": "t1",
+  },
+  {
+    "ariaLabel": "t2, Editor Group 2",
+    "text": "t2",
+  },
+  {
+    "ariaLabel": "t3, Editor Group 2",
+    "isSelected": true,
+    "text": "t3",
+  },
+]
 `;
 
-exports[`panels > should open panels > Tab groups - initial load 1`] = `
-{
-  "2": {
-    "activeTab": "t3",
-    "isActive": true,
-    "tabs": [
-      "t1",
-      "t2",
-      "t3",
-    ],
-    "viewColumn": 2,
+exports[`panels > should open panels > 2: Tab groups - after clicking t1 1`] = `
+[
+  {
+    "ariaLabel": "simple_ticking3.py",
+    "isSelected": true,
+    "text": "simple_ticking3.py",
   },
-}
+  {
+    "ariaLabel": "t1, Editor Group 2",
+    "isSelected": true,
+    "text": "t1",
+  },
+  {
+    "ariaLabel": "t2, Editor Group 2",
+    "text": "t2",
+  },
+  {
+    "ariaLabel": "t3, Editor Group 2",
+    "text": "t3",
+  },
+]
+`;
+
+exports[`panels > should open panels > 3: Tab groups - after closing t1 and t2 1`] = `
+[
+  {
+    "ariaLabel": "simple_ticking3.py, Editor Group 1",
+    "isSelected": true,
+    "text": "simple_ticking3.py",
+  },
+  {
+    "ariaLabel": "t3, Editor Group 2",
+    "isSelected": true,
+    "text": "t3",
+  },
+  {
+    "ariaLabel": "t1, Editor Group 2",
+    "text": "t1",
+  },
+  {
+    "ariaLabel": "t2, Editor Group 2",
+    "text": "t2",
+  },
+]
+`;
+
+exports[`panels > should open panels > 4: Tab groups - after dragging t1 to a new tab group 1`] = `
+[
+  {
+    "ariaLabel": "simple_ticking3.py, Editor Group 1",
+    "isSelected": true,
+    "text": "simple_ticking3.py",
+  },
+  {
+    "ariaLabel": "t3, Editor Group 2",
+    "isSelected": true,
+    "text": "t3",
+  },
+  {
+    "ariaLabel": "t1, Editor Group 2",
+    "text": "t1",
+  },
+  {
+    "ariaLabel": "t2, Editor Group 2",
+    "text": "t2",
+  },
+]
 `;

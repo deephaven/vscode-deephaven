@@ -1,7 +1,6 @@
-import { $, browser, expect } from '@wdio/globals';
+import { browser, expect } from '@wdio/globals';
 import {
   closeAllEditors,
-  getDhTabGroups,
   hasConnectionStatusBarItem,
   openEditors,
   PYTHON_AND_GROOVY_SERVER_CONFIG,
@@ -66,18 +65,83 @@ describe('panels', () => {
     const workbench = await browser.getWorkbench();
 
     await workbench.getEditorView().openEditor('simple_ticking3.py');
-    await workbench.executeCommand('Run Deephaven File');
+    await $('.codelens-decoration .codicon-run-all').click();
 
     // We need this to wait until panels load
     await workbench.getAllWebviews();
 
-    expect(await getDhTabGroups()).toMatchSnapshot('Tab groups - initial load');
+    /* Test 1 */
+    expect(await getTabs().map(parseTab)).toMatchSnapshot(
+      '1: Tab groups - initial load'
+    );
 
-    const tabAriaLabel = await $('.tab-label[aria-label="t1"]');
-    await tabAriaLabel.click();
+    /* Test 2 */
+    await getTab('t1', 2).click();
 
-    expect(await getDhTabGroups()).toMatchSnapshot(
-      'Tab groups - after clicking t1'
+    expect(await getTabs().map(parseTab)).toMatchSnapshot(
+      '2: Tab groups - after clicking t1'
+    );
+
+    /* Test 3 */
+    await getTabCloseAction('t1', 2).click();
+    await getTabCloseAction('t2', 2).click();
+
+    await getTab('simple_ticking3.py', 1).click();
+    await $('.codelens-decoration .codicon-run-all').click();
+
+    expect(await getTabs().map(parseTab)).toMatchSnapshot(
+      '3: Tab groups - re-run after closing t1 and t2'
     );
   });
 });
+
+function getTab(
+  title: string,
+  editorGroup: number
+): ReturnType<WebdriverIO.Browser['$']> {
+  const selector =
+    editorGroup > 1 ? `${title}, Editor Group ${editorGroup}` : title;
+  return $(`.tab[aria-label="${selector}"`);
+}
+
+function getTabCloseAction(
+  title: string,
+  editorGroup: number
+): ReturnType<WebdriverIO.Browser['$']> {
+  return getTab(title, editorGroup).$('a.codicon-close');
+}
+
+function getTabs(): ReturnType<WebdriverIO.Browser['$$']> {
+  return $$('.tab');
+}
+
+async function parseTab(tab: WebdriverIO.Element): Promise<{
+  text: string;
+  ariaLabel: string;
+  isSelected?: true;
+}> {
+  const text = await tab.getText();
+  const ariaLabel = await tab.getAttribute('aria-label');
+  const isSelected = (await tab.getAttribute('aria-selected')) === 'true';
+
+  return isSelected ? { text, ariaLabel, isSelected } : { text, ariaLabel };
+}
+
+// async function getTabs(): Promise<
+//   {
+//     text: string;
+//     ariaLabel: string;
+//     isSelected?: true;
+//     ref: WebdriverIO.Element;
+//   }[]
+// > {
+//   return $$('.tab').map(parseTab);
+// }
+
+// function stripRef<T extends { ref: WebdriverIO.Element }>(
+//   obj: T
+// ): Omit<T, 'ref'> {
+//   // eslint-disable-next-line no-unused-vars
+//   const { ref, ...rest } = obj;
+//   return rest;
+// }
