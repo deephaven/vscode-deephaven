@@ -42,6 +42,12 @@ To run using `VS Code` debugger:
    npm run test:e2e
    ```
 
+   or with flags
+
+   ```sh
+   npm run test:e2e -- -s --spec test
+   ```
+
 4. You should see the tests start and `VS Code` stop at the breakpoint.
 
 ## VSCE
