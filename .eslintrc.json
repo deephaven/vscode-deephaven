@@ -19,11 +19,11 @@
   "overrides": [
     {
       "files": ["*.ts"],
-      // Since parserOptions.project is used, can't include files outside of
+      // Since parserOptions.project is used, we can't include files outside of
       // the listed tsconfig files and seems silly to add a tsconfig just for
-      // the one file. It will still be linted by the base config above. It just
-      // won't be included in this overrides section.
-      "excludedFiles": ["vitest.config.ts"],
+      // a few vitest files. These files will still be linted by the base config
+      // above. They just won't be included in this overrides section.
+      "excludedFiles": ["__mocks__/**/*.ts", "vitest.config.ts"],
       "parserOptions": {
         "project": [
           "./tsconfig.json",
