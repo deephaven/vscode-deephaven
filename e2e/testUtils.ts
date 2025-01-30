@@ -53,20 +53,29 @@ export async function hasConnectionStatusBarItem(): Promise<boolean> {
  * Open editors with the given titles. Titles must correspond to files that
  * exist in the root of the workspace.
  * @param editorTitles The titles of the editors to open.
+ * @param options Options for opening the editors.
  */
-export async function openEditors(editorTitles: string[]): Promise<void> {
+export async function openEditors(
+  editorTitles: string[],
+  options: vscode.TextDocumentShowOptions = {}
+): Promise<void> {
   // See note about `executeWorkbench` at top of this file.
   await browser.executeWorkbench(
-    async (vs: typeof vscode, editorTitles: string[]): Promise<void> => {
+    async (
+      vs: typeof vscode,
+      editorTitles: string[],
+      options: vscode.TextDocumentShowOptions
+    ): Promise<void> => {
       const filePathsToOpen = editorTitles.map(
         title => `${vs.workspace.workspaceFolders?.[0]?.uri.path}/${title}`
       );
 
       for (const filePath of filePathsToOpen) {
-        await vs.window.showTextDocument(vs.Uri.file(filePath));
+        await vs.window.showTextDocument(vs.Uri.file(filePath), options);
       }
     },
-    editorTitles
+    editorTitles,
+    options
   );
 }
 

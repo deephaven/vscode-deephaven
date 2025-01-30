@@ -65,6 +65,7 @@ describe('panels', () => {
       PYTHON_AND_GROOVY_SERVER_CONFIG
     );
     await openEditors(['simple_ticking3.py']);
+    await openEditors(['test.py'], { viewColumn: 2 });
   });
 
   it.only('should open panels', async () => {
@@ -82,15 +83,15 @@ describe('panels', () => {
     );
 
     /* Test 2 */
-    await selectTab('t1', 2);
+    await selectTab('t1', 3);
 
     expect(await getTabs().map(parseTabState)).toMatchSnapshot(
       '2: Tab groups - after clicking t1'
     );
 
     /* Test 3 */
-    await closeTab('t1', 2);
-    await closeTab('t2', 2);
+    await closeTab('t1', 3);
+    await closeTab('t2', 3);
 
     await execRunDhFileCodelens();
 
@@ -100,7 +101,7 @@ describe('panels', () => {
 
     /* Test 4 */
     await new Promise(resolve => setTimeout(resolve, 2000));
-    await selectTab('t3', 2);
+    await selectTab('t3', 3);
 
     await executePaletteCmd('View: Move Editor into Group Below');
 
@@ -109,7 +110,7 @@ describe('panels', () => {
     );
 
     /* Test 5 */
-    await closeTab('t1', 2);
+    await closeTab('t1', 3);
 
     await execRunDhFileCodelens();
 

@@ -9,14 +9,19 @@ exports[`panels > should open panels > 1: Tab groups - initial load 1`] = `
   },
   {
     "group": 2,
+    "isSelected": true,
+    "text": "test.py",
+  },
+  {
+    "group": 3,
     "text": "t1",
   },
   {
-    "group": 2,
+    "group": 3,
     "text": "t2",
   },
   {
-    "group": 2,
+    "group": 3,
     "isSelected": true,
     "text": "t3",
   },
@@ -33,14 +38,19 @@ exports[`panels > should open panels > 2: Tab groups - after clicking t1 1`] = `
   {
     "group": 2,
     "isSelected": true,
+    "text": "test.py",
+  },
+  {
+    "group": 3,
+    "isSelected": true,
     "text": "t1",
   },
   {
-    "group": 2,
+    "group": 3,
     "text": "t2",
   },
   {
-    "group": 2,
+    "group": 3,
     "text": "t3",
   },
 ]
@@ -56,14 +66,19 @@ exports[`panels > should open panels > 3: Tab groups - re-run after closing t1 a
   {
     "group": 2,
     "isSelected": true,
+    "text": "test.py",
+  },
+  {
+    "group": 3,
+    "isSelected": true,
     "text": "t3",
   },
   {
-    "group": 2,
+    "group": 3,
     "text": "t1",
   },
   {
-    "group": 2,
+    "group": 3,
     "text": "t2",
   },
 ]
@@ -78,15 +93,20 @@ exports[`panels > should open panels > 4: Tab groups - after dragging t1 to a ne
   },
   {
     "group": 2,
+    "isSelected": true,
+    "text": "test.py",
+  },
+  {
+    "group": 3,
     "text": "t1",
   },
   {
-    "group": 2,
+    "group": 3,
     "isSelected": true,
     "text": "t2",
   },
   {
-    "group": 3,
+    "group": 4,
     "isSelected": true,
     "text": "t3",
   },
@@ -103,15 +123,20 @@ exports[`panels > should open panels > 5: Tab groups - multiple tab groups re-ru
   {
     "group": 2,
     "isSelected": true,
-    "text": "t2",
+    "text": "test.py",
   },
   {
     "group": 3,
     "isSelected": true,
+    "text": "t2",
+  },
+  {
+    "group": 4,
+    "isSelected": true,
     "text": "t3",
   },
   {
-    "group": 3,
+    "group": 4,
     "text": "t1",
   },
 ]
