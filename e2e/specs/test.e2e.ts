@@ -76,24 +76,52 @@ describe('panels', () => {
     );
 
     /* Test 2 */
-    await getTab('t1', 2).click();
+    await selectTab('t1', 2);
 
     expect(await getTabs().map(parseTab)).toMatchSnapshot(
       '2: Tab groups - after clicking t1'
     );
 
     /* Test 3 */
-    await getTabCloseAction('t1', 2).click();
-    await getTabCloseAction('t2', 2).click();
+    await closeTab('t1', 2);
+    await closeTab('t2', 2);
 
-    await getTab('simple_ticking3.py', 1).click();
-    await $('.codelens-decoration .codicon-run-all').click();
+    await selectTab('simple_ticking3.py', 1);
+    await runAllCodeLens();
+
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     expect(await getTabs().map(parseTab)).toMatchSnapshot(
       '3: Tab groups - re-run after closing t1 and t2'
     );
+
+    /* Test 4 */
+    await selectTab('t3', 2);
+
+    await executePaletteCmd('View: Move Editor into Group Below');
+
+    expect(await getTabs().map(parseTab)).toMatchSnapshot(
+      '4: Tab groups - after dragging t1 to a new tab group'
+    );
+
+    /* Test 5 */
+    await closeTab('t1', 2);
+
+    await selectTab('simple_ticking3.py', 1);
+    await runAllCodeLens();
+
+    expect(await getTabs().map(parseTab)).toMatchSnapshot(
+      '5: Tab groups - multiple tab groups re-run after closing t1'
+    );
   });
 });
+
+async function executePaletteCmd(cmdText: string): Promise<void> {
+  await browser.keys(['F1']);
+  await $('.quick-input-box input');
+  await browser.keys(cmdText.split(''));
+  await browser.keys(['Enter']);
+}
 
 function getTab(
   title: string,
@@ -101,14 +129,36 @@ function getTab(
 ): ReturnType<WebdriverIO.Browser['$']> {
   const selector =
     editorGroup > 1 ? `${title}, Editor Group ${editorGroup}` : title;
-  return $(`.tab[aria-label="${selector}"`);
+  return $(`.tab[aria-label^="${selector}"]`);
 }
 
-function getTabCloseAction(
+function closeTab(title: string, editorGroup: number): Promise<void> {
+  return getTab(title, editorGroup).$('a.codicon-close').click();
+}
+
+async function selectTab(
   title: string,
   editorGroup: number
-): ReturnType<WebdriverIO.Browser['$']> {
-  return getTab(title, editorGroup).$('a.codicon-close');
+): Promise<WebdriverIO.Element> {
+  const tab = await getTab(title, editorGroup);
+
+  // VS code seems to listen for mousedown events on tabs, so use this instead
+  // of click
+  await mouseDownUp(tab);
+
+  return tab;
+}
+
+async function mouseDownUp(
+  origin: WebdriverIO.Element | ReturnType<WebdriverIO.Browser['$']>
+): Promise<void> {
+  await browser
+    .action('pointer')
+    .move({ origin })
+    .down({ button: 0 })
+    .pause(10)
+    .up({ button: 0 })
+    .perform();
 }
 
 function getTabs(): ReturnType<WebdriverIO.Browser['$$']> {
@@ -117,31 +167,19 @@ function getTabs(): ReturnType<WebdriverIO.Browser['$$']> {
 
 async function parseTab(tab: WebdriverIO.Element): Promise<{
   text: string;
-  ariaLabel: string;
+  group: number;
   isSelected?: true;
 }> {
   const text = await tab.getText();
   const ariaLabel = await tab.getAttribute('aria-label');
   const isSelected = (await tab.getAttribute('aria-selected')) === 'true';
+  const group = Number(ariaLabel.match(/Editor Group (\d+)/)?.[1] ?? 1);
 
-  return isSelected ? { text, ariaLabel, isSelected } : { text, ariaLabel };
+  return isSelected ? { group, text, isSelected } : { group, text };
 }
 
-// async function getTabs(): Promise<
-//   {
-//     text: string;
-//     ariaLabel: string;
-//     isSelected?: true;
-//     ref: WebdriverIO.Element;
-//   }[]
-// > {
-//   return $$('.tab').map(parseTab);
-// }
-
-// function stripRef<T extends { ref: WebdriverIO.Element }>(
-//   obj: T
-// ): Omit<T, 'ref'> {
-//   // eslint-disable-next-line no-unused-vars
-//   const { ref, ...rest } = obj;
-//   return rest;
-// }
+async function runAllCodeLens(): Promise<void> {
+  const codeLens = $('.codelens-decoration .codicon-run-all');
+  await codeLens.click();
+  // await mouseDownUp(codeLens);
+}
