@@ -28,6 +28,10 @@ To run using `VS Code` debugger:
 1. Set a breakpoint in a test
 2. Either
 
+   Use the `e2e Tests` launch config.
+
+   or
+
    Enable auto attach with flag (`Command palette -> Debug: Toggle Auto Attach -> Only With Flag`).
 
    > Note you may need to open a new terminal for this to take effect.
