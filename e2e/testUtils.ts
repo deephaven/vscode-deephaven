@@ -14,6 +14,12 @@ import * as vscode from 'vscode';
 const CONFIG_ROOT_KEY = 'deephaven' as const;
 type ConfigSectionKey = 'coreServers' | 'enterpriseServers';
 
+interface TabState {
+  text: string;
+  group: number;
+  isSelected?: true;
+}
+
 export const PYTHON_AND_GROOVY_SERVER_CONFIG = [
   'http://localhost:10000',
   {
@@ -34,63 +40,6 @@ export async function findConnectionStatusBarItem(): Promise<
     // icon name, display text, tooltip
     'plug  Deephaven: Disconnected'
   );
-}
-
-type SerializableTabGroup = {
-  viewColumn: vscode.ViewColumn;
-  isActive: boolean;
-  activeTab?: string;
-  tabs: string[];
-};
-
-/** Map of SerializableTabGroups keyed by their respective ViewColumn. */
-type SerializableTabGroupMap = Record<vscode.ViewColumn, SerializableTabGroup>;
-
-export async function getDhTabGroups(): Promise<SerializableTabGroupMap> {
-  // See note about `executeWorkbench` at top of this file.
-  return browser.executeWorkbench(async (vs: typeof vscode) => {
-    /*
-     * Check if the tab is a Deephaven panel tab. Note that `executeWorkbench`
-     * has no access to functions defined outside of the calback closer, so this
-     * has to be defined here.
-     */
-    function isDhPanelTab(tab: vscode.Tab): boolean {
-      const { input } = tab;
-
-      return (
-        input != null &&
-        typeof input === 'object' &&
-        'viewType' in input &&
-        typeof input.viewType === 'string' &&
-        input.viewType.endsWith('-dhPanel')
-      );
-    }
-
-    const tabGroups = {} as SerializableTabGroupMap;
-
-    for (const group of vs.window.tabGroups.all) {
-      const tabs: string[] = [];
-
-      for (const tab of group.tabs) {
-        if (isDhPanelTab(tab)) {
-          tabs.push(tab.label);
-        }
-      }
-
-      if (tabs.length === 0) {
-        continue;
-      }
-
-      tabGroups[group.viewColumn] = {
-        activeTab: group.activeTab?.label,
-        isActive: group.isActive,
-        tabs,
-        viewColumn: group.viewColumn,
-      };
-    }
-
-    return tabGroups;
-  });
 }
 
 /**
@@ -175,4 +124,111 @@ export async function setConfigSectionSettings(
     sectionKey,
     sectionValue
   );
+}
+
+/**
+ * Execute a command from the command palette.
+ * @param cmdText Text to exectue
+ */
+export async function executePaletteCmd(cmdText: string): Promise<void> {
+  await browser.keys(['F1']);
+  await $('.quick-input-box input');
+  await browser.keys(cmdText.split(''));
+  await browser.keys(['Enter']);
+}
+
+/**
+ * Simulate a mouse down followed by a mouse up event on the given element.
+ * @param element Element to click
+ * @param pauseMs Amount of time to pause between down and up events
+ */
+async function mouseDownUp(
+  element: WebdriverIO.Element | ReturnType<WebdriverIO.Browser['$']>,
+  pauseMs = 10
+): Promise<void> {
+  await browser
+    .action('pointer')
+    .move({ origin: element })
+    .down({ button: 0 })
+    .pause(pauseMs)
+    .up({ button: 0 })
+    .perform();
+}
+
+/**
+ * Get the tab with the given title in the given editor group.
+ * @param title
+ * @param editorGroup
+ * @returns The tab with the given title in the given editor group.
+ */
+export function getTab(
+  title: string,
+  editorGroup: number
+): ReturnType<WebdriverIO.Browser['$']> {
+  if (editorGroup === 1) {
+    // The first tab group sometimes has the `Editor Group 1` suffx but
+    // sometimes it doesn't, so use the `^=` selector to match.
+    return $(`.tab[aria-label^="${title}"]`);
+  }
+
+  return $(`.tab[aria-label="${title}, Editor Group ${editorGroup}"]`);
+}
+
+/**
+ * Get all tabs.
+ */
+export function getTabs(): ReturnType<WebdriverIO.Browser['$$']> {
+  return $$('.tab');
+}
+
+/**
+ * Parse tab into a format suitable for snapshot testing.
+ * @param tab Tab to parse
+ * @returns Tab state
+ */
+export async function parseTabState(
+  tab: WebdriverIO.Element
+): Promise<TabState> {
+  const text = await tab.getText();
+  const ariaLabel = await tab.getAttribute('aria-label');
+  const isSelected = (await tab.getAttribute('aria-selected')) === 'true';
+  const group = Number(ariaLabel.match(/Editor Group (\d+)/)?.[1] ?? 1);
+
+  return isSelected ? { group, text, isSelected } : { group, text };
+}
+
+/**
+ * Close the tab with the given title in the given editor group.
+ * @param title Title of the tab to close
+ * @param editorGroup Group containing the tab to close
+ */
+export function closeTab(title: string, editorGroup: number): Promise<void> {
+  return getTab(title, editorGroup).$('a.codicon-close').click();
+}
+
+/**
+ * Execute the "Run Deephaven File" codelens in the current editor.
+ */
+export async function execRunDhFileCodelens(): Promise<void> {
+  const codeLens = $('.codelens-decoration .codicon-run-all');
+  await codeLens.click();
+}
+
+/**
+ * Select the tab with the given title in the given editor group.
+ * @param title Title of the tab to select
+ * @param editorGroup Group containing the tab to select
+ * @returns The tab with the given title in the given editor group.
+ */
+export async function selectTab(
+  title: string,
+  editorGroup: number
+): Promise<WebdriverIO.Element> {
+  const tab = await getTab(title, editorGroup);
+
+  // VS code seems to listen for mousedown events on tabs, so use this instead
+  // of click
+  await mouseDownUp(tab);
+
+  return tab;
 }
