@@ -65,7 +65,7 @@ describe('panels', () => {
     const workbench = await browser.getWorkbench();
 
     await workbench.getEditorView().openEditor('simple_ticking3.py');
-    await $('.codelens-decoration .codicon-run-all').click();
+    await runAllCodeLens();
 
     // We need this to wait until panels load
     await workbench.getAllWebviews();
@@ -89,13 +89,12 @@ describe('panels', () => {
     await selectTab('simple_ticking3.py', 1);
     await runAllCodeLens();
 
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
     expect(await getTabs().map(parseTab)).toMatchSnapshot(
       '3: Tab groups - re-run after closing t1 and t2'
     );
 
     /* Test 4 */
+    await new Promise(resolve => setTimeout(resolve, 2000));
     await selectTab('t3', 2);
 
     await executePaletteCmd('View: Move Editor into Group Below');
