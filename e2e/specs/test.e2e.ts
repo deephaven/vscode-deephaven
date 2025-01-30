@@ -92,7 +92,6 @@ describe('panels', () => {
     await closeTab('t1', 2);
     await closeTab('t2', 2);
 
-    await selectTab('simple_ticking3.py', 1);
     await execRunDhFileCodelens();
 
     expect(await getTabs().map(parseTabState)).toMatchSnapshot(
@@ -112,7 +111,6 @@ describe('panels', () => {
     /* Test 5 */
     await closeTab('t1', 2);
 
-    await selectTab('simple_ticking3.py', 1);
     await execRunDhFileCodelens();
 
     expect(await getTabs().map(parseTabState)).toMatchSnapshot(
