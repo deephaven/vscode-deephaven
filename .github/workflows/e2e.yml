@@ -18,7 +18,7 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - name: Run end-to-end tests
-        run: xvfb-run npm run test:e2e
+        run: xvfb-run npm run test:e2e:ci
       - name: Publish Test Summary Results
         if: ${{ always() }}
         run: |
