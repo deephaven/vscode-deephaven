@@ -139,7 +139,7 @@ export async function setConfigSectionSettings(
  * Execute a command from the command palette.
  * @param cmdText Text to exectue
  */
-export async function executePaletteCmd(cmdText: string): Promise<void> {
+export async function execPaletteCmd(cmdText: string): Promise<void> {
   await browser.keys(['F1']);
   await $('.quick-input-box input');
   await browser.keys(cmdText.split(''));

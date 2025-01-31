@@ -3,7 +3,7 @@ import {
   closeAllEditors,
   closeTab,
   execRunDhFileCodelens,
-  executePaletteCmd,
+  execPaletteCmd,
   getTabs,
   hasConnectionStatusBarItem,
   openEditors,
@@ -94,16 +94,16 @@ describe('panels', () => {
     await closeTab('t2', 3);
 
     await execRunDhFileCodelens();
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     expect(await getTabs().map(parseTabState)).toMatchSnapshot(
       '3: Tab groups - re-run after closing t1 and t2'
     );
 
     /* Test 4 */
-    await new Promise(resolve => setTimeout(resolve, 2000));
     await selectTab('t3', 3);
 
-    await executePaletteCmd('View: Move Editor into Group Below');
+    await execPaletteCmd('View: Move Editor into Group Below');
 
     expect(await getTabs().map(parseTabState)).toMatchSnapshot(
       '4: Tab groups - after dragging t1 to a new tab group'
@@ -113,6 +113,7 @@ describe('panels', () => {
     await closeTab('t1', 3);
 
     await execRunDhFileCodelens();
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     expect(await getTabs().map(parseTabState)).toMatchSnapshot(
       '5: Tab groups - multiple tab groups re-run after closing t1'
