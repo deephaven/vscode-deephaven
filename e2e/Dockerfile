@@ -14,4 +14,4 @@ COPY e2e ./e2e
 COPY src ./src
 COPY scripts ./scripts
 
-RUN npm run test:e2e
+CMD ["npm", "run", "test:e2e"]
