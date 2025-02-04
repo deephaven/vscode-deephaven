@@ -59,8 +59,7 @@ Enterprise servers can be configured via the `"deephaven.enterpriseServers"` set
 ![Enterprise Server Settings](./docs/assets/dhe-settings.gif)
 
 ## SSL Certificates
-Deephaven servers using self-signed certificates or internal CA's will require configuring VS Code to trust the signing
-certificate.
+Deephaven servers using self-signed certificates or internal CA's will require configuring VS Code to trust the signing certificate.
 
 1. Save the signing certificate in PEM format somewhere on the machine running VS Code. Multiple certificates can be concatenated together in the same file if there are multiple certs that need to be configured.
 1. Set the `NODE_EXTRA_CA_CERTS` environment variable to the path of the signing certificate.
