@@ -64,18 +64,18 @@ Deephaven servers using self-signed certificates or internal CA's will require c
 1. Save the signing certificate in PEM format somewhere on the machine running VS Code. Multiple certificates can be concatenated together in the same file if there are multiple certs that need to be configured.
 1. Set the `NODE_EXTRA_CA_CERTS` environment variable to the path of the signing certificate.
    
-   On Mac / Linux
+   On Mac / Linux, you set the env variable or if you'd like for it to persist, you can export it from an appropriate config file for your shell.
    ```sh
-   export NODE_EXTRA_CA_CERTS=/path/to/cert.pm
+   export NODE_EXTRA_CA_CERTS=/path/to/cert.pem
    ```
 
-   Windows
+   On Windows, you can use `set` to set the variable in your current shell, or `setx` to persist it.
 
    ```sh
-   setx NODE_EXTRA_CA_CERTS=C:\Path\To\cert.pm
+   setx NODE_EXTRA_CA_CERTS C:\Path\To\cert.pem
    ```
    > Note that paths in env variables should not be wrapped in quotes on Windows.
-1. Start VS Code in the environment where you set the `NODE_EXTRA_CA_CERTS` variable.
+1. Start VS Code in a shell that has the `NODE_EXTRA_CA_CERTS` variable set.
 
 > Note that VS Code runs in NodeJS which does not consult the trust store of the OS to determine trusted certificates. Instead, it comes pre-installed with a set of trusted root CA's. Any CA's that are not installed with NodeJS will need to be configured as described above.
 
