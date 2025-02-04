@@ -78,9 +78,7 @@ certificate.
    > Note that paths in env variables should not be wrapped in quotes on Windows.
 1. Start VS Code in the environment where you set the `NODE_EXTRA_CA_CERTS` variable.
 
-> Note that VS Code runs in NodeJS which does not consult the trust store of the OS to
-determine trusted certificates. Instead, it comes pre-installed with a set of
-trusted root CA's. Any CA's that are not installed with NodeJS will need to be configured as described above.
+> Note that VS Code runs in NodeJS which does not consult the trust store of the OS to determine trusted certificates. Instead, it comes pre-installed with a set of trusted root CA's. Any CA's that are not installed with NodeJS will need to be configured as described above.
 
 See https://nodejs.org/docs/latest-v22.x/api/cli.html#node_extra_ca_certsfile for more information on `NODE_EXTRA_CA_CERTS`.
 
