@@ -1,6 +1,5 @@
-import type { Options } from '@wdio/types';
 import path from 'node:path';
-export const config: Options.Testrunner = {
+export const config: WebdriverIO.Config = {
   //
   // ====================
   // Runner Configuration

@@ -232,7 +232,7 @@ export async function execRunDhFileCodelens(): Promise<void> {
 export async function selectTab(
   title: string,
   editorGroup: number
-): Promise<WebdriverIO.Element> {
+): Promise<ChainablePromiseElement> {
   const tab = await getTab(title, editorGroup);
 
   // VS code seems to listen for mousedown events on tabs, so use this instead
