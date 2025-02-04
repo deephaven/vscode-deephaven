@@ -1,5 +1,5 @@
 ARG NODE_VERSION=NOTAREALVERSION
-FROM node:$NODE_VERSION-alpine AS node
+FROM --platform=linux/amd64 node:$NODE_VERSION-alpine AS node
 
 RUN node --version
 
