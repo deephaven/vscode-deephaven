@@ -61,6 +61,8 @@ Enterprise servers can be configured via the `"deephaven.enterpriseServers"` set
 ## SSL Certificates
 Deephaven servers using self-signed certificates or internal CA's will require configuring VS Code to trust the signing certificate.
 
+### Option 1 - NODE_EXTRA_CA_CERTS Environment Variable
+
 1. Save the signing certificate in PEM format somewhere on the machine running VS Code. Multiple certificates can be concatenated together in the same file if there are multiple certs that need to be configured.
 1. Set the `NODE_EXTRA_CA_CERTS` environment variable to the path of the signing certificate.
    
@@ -80,6 +82,20 @@ Deephaven servers using self-signed certificates or internal CA's will require c
 > Note that VS Code runs in NodeJS which does not consult the trust store of the OS to determine trusted certificates. Instead, it comes pre-installed with a set of trusted root CA's. Any CA's that are not installed with NodeJS will need to be configured as described above.
 
 See https://nodejs.org/docs/latest-v22.x/api/cli.html#node_extra_ca_certsfile for more information on `NODE_EXTRA_CA_CERTS`.
+
+### Option 2 - (Experimental) Using OS Trust Store
+> Note that this option changes the underlying transport used by all installed VS Code extensions and is still in active development by the VS Code team. It is possible this may cause undesirable side effects with some extensions.
+
+This step assumes your signing certificates are already configured as trusted by your particular OS's trust store. The process for doing this varies based on OS and is outside of the scope of this README.
+
+Configure VS Code to use the OS trust store:
+
+1. Click `f1` and type `> Preferences: Open Settings (UI)`
+1. Search for the `Http: Electron Fetch` setting
+   ![Http: Electron Fetch](docs/assets/electron-fetch.png)
+1. Enable it
+1. Restart VS Code
+
 
 ## Workspace Setup
 It is recommended to configure a virtual python environment within your `VS Code` workspace. See https://code.visualstudio.com/docs/python/python-tutorial#_create-a-virtual-environment for a general overview. To get features like intellisense for packages that are installed on the Deephaven server, you will need to install the same packages in your local `venv`.
