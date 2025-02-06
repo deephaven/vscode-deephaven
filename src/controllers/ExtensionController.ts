@@ -360,9 +360,16 @@ export class ExtensionController implements Disposable {
       );
       const envoyPrefix = workerInfo?.envoyPrefix;
       const urlStr = String(workerInfo?.grpcUrl ?? url).replace(/\/$/, '');
+
+      const isElectronFetchEnabled = this._config.isElectronFetchEnabled();
+
+      logger.debug(
+        `Electron fetch is ${isElectronFetchEnabled ? 'enabled' : 'disabled'}.${isElectronFetchEnabled ? '' : ' Using NodeHttp2gRPCTransport.'}`
+      );
+
       const options: DhcType.ConnectOptions = {
         debug: false, // Set `debug` to true to see debug logs for gRPC transport
-        transportFactory: this._config.isElectronFetchEnabled()
+        transportFactory: isElectronFetchEnabled
           ? undefined
           : NodeHttp2gRPCTransport.factory,
       };
