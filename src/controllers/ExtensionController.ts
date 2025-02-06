@@ -360,10 +360,11 @@ export class ExtensionController implements Disposable {
       );
       const envoyPrefix = workerInfo?.envoyPrefix;
       const urlStr = String(workerInfo?.grpcUrl ?? url).replace(/\/$/, '');
-
       const options: DhcType.ConnectOptions = {
         debug: false, // Set `debug` to true to see debug logs for gRPC transport
-        transportFactory: NodeHttp2gRPCTransport.factory,
+        transportFactory: this._config.isElectronFetchEnabled()
+          ? undefined
+          : NodeHttp2gRPCTransport.factory,
       };
 
       if (envoyPrefix != null) {

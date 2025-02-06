@@ -38,6 +38,9 @@ export async function getDhc(
   serverUrl: URL,
   storageDir: string
 ): Promise<typeof DhType> {
+  // @ts-ignore
+  globalThis.self = globalThis;
+
   // Download jsapi `ESM` files from DH Community server.
   const coreModule = await loadModules<typeof DhType>({
     serverUrl,

@@ -15,6 +15,10 @@ function getConfig(): vscode.WorkspaceConfiguration {
   return vscode.workspace.getConfiguration(CONFIG_KEY.root);
 }
 
+function isElectronFetchEnabled(): boolean {
+  return vscode.workspace.getConfiguration().get('http.electronFetch') === true;
+}
+
 function getCoreServers(): CoreConnectionConfig[] {
   const config = getConfig().get<CoreConnectionConfigStored[]>(
     CONFIG_KEY.coreServers,
@@ -70,4 +74,5 @@ function hasValidURL({ url }: { url: string }): boolean {
 export const ConfigService: IConfigService = {
   getCoreServers,
   getEnterpriseServers,
+  isElectronFetchEnabled,
 };
