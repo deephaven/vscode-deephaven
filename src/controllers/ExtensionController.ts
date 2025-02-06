@@ -368,7 +368,11 @@ export class ExtensionController implements Disposable {
       );
 
       const options: DhcType.ConnectOptions = {
-        debug: false, // Set `debug` to true to see debug logs for gRPC transport
+        // Set `debug` to true to see debug logs for gRPC transport
+        debug: false,
+        // If VS Code `http.electronFetch` setting is enabled, we shouldn't need
+        // the gRPC transport. If it's disabled, we need to use the gRPC transport
+        // so that we can provide a working NodeJS version of http2.
         transportFactory: isElectronFetchEnabled
           ? undefined
           : NodeHttp2gRPCTransport.factory,
