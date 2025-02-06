@@ -38,6 +38,8 @@ export async function getDhc(
   serverUrl: URL,
   storageDir: string
 ): Promise<typeof DhType> {
+  // The JS Api needs this whenever we are using Electron fetch api instead of
+  // the custom gRPC transport.
   // @ts-ignore
   globalThis.self = globalThis;
 
