@@ -37,9 +37,6 @@ Community servers can be configured via the `"deephaven.coreServers"` setting in
 
 ![Community Server Settings](./docs/assets/add-community-server.gif)
 
-#### Self-signed SSL Certificates
-If you are running a Community server with a self-signed SSL certificate, vscode will need to be run in an environment that has the `NODE_EXTRA_CA_CERTS` environment variable set to the path of the cert that was used to sign your cert. Depending on your setup, this could be the server certificate or a CA certificate.
-
 ### Enterprise Servers
 Enterprise servers can be configured via the `"deephaven.enterpriseServers"` setting in `VS Code` user or workspace settings.
 
@@ -60,6 +57,29 @@ Enterprise servers can be configured via the `"deephaven.enterpriseServers"` set
 ```
 
 ![Enterprise Server Settings](./docs/assets/dhe-settings.gif)
+
+## SSL Certificates
+Deephaven servers using self-signed certificates or internal CA's will require configuring VS Code to trust the signing certificate.
+
+1. Save the signing certificate in PEM format somewhere on the machine running VS Code. Multiple certificates can be concatenated together in the same file if there are multiple certs that need to be configured.
+1. Set the `NODE_EXTRA_CA_CERTS` environment variable to the path of the signing certificate.
+   
+   On Mac / Linux, you set the env variable or if you'd like for it to persist, you can export it from an appropriate config file for your shell.
+   ```sh
+   export NODE_EXTRA_CA_CERTS=/path/to/cert.pem
+   ```
+
+   On Windows, you can use `set` to set the variable in your current shell, or `setx` to persist it.
+
+   ```sh
+   setx NODE_EXTRA_CA_CERTS C:\Path\To\cert.pem
+   ```
+   > Note that paths in env variables should not be wrapped in quotes on Windows.
+1. Start VS Code in a shell that has the `NODE_EXTRA_CA_CERTS` variable set.
+
+> Note that VS Code runs in NodeJS which does not consult the trust store of the OS to determine trusted certificates. Instead, it comes pre-installed with a set of trusted root CA's. Any CA's that are not installed with NodeJS will need to be configured as described above.
+
+See https://nodejs.org/docs/latest-v22.x/api/cli.html#node_extra_ca_certsfile for more information on `NODE_EXTRA_CA_CERTS`.
 
 ## Workspace Setup
 It is recommended to configure a virtual python environment within your `VS Code` workspace. See https://code.visualstudio.com/docs/python/python-tutorial#_create-a-virtual-environment for a general overview. To get features like intellisense for packages that are installed on the Deephaven server, you will need to install the same packages in your local `venv`.
