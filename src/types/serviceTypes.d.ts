@@ -37,6 +37,7 @@ export interface IAsyncCacheService<TKey, TValue> extends Disposable {
  * Configuration service interface.
  */
 export interface IConfigService {
+  isElectronFetchEnabled: () => boolean;
   getCoreServers: () => CoreConnectionConfig[];
   getEnterpriseServers: () => EnterpriseConnectionConfig[];
 }
