@@ -496,11 +496,9 @@ export async function saveRequirementsTxt(
     return;
   }
 
-  const sorted = [
-    ...dependencies
-      .entries()
-      .map(([packageName, version]) => `${packageName}==${version}`),
-  ].sort((a, b) => a.localeCompare(b));
+  const sorted = [...dependencies.entries()]
+    .map(([packageName, version]) => `${packageName}==${version}`)
+    .sort((a, b) => a.localeCompare(b));
 
   fs.writeFileSync(uri.fsPath, sorted.join('\n'));
 

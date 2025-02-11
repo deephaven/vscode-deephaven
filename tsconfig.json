@@ -1,9 +1,8 @@
 {
+  "extends": "./node20tsconfig.json",
   "compilerOptions": {
-    "module": "commonjs",
-    "target": "ESNext",
+    "module": "CommonJS",
     "outDir": "dist",
-    "lib": ["ESNext", "DOM"],
     "sourceMap": true,
     "rootDir": "src",
     "strict": true /* enable all strict type-checking options */,

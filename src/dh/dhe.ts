@@ -248,7 +248,7 @@ export async function getWorkerInfoFromQuery(
   const queryInfo = await new Promise<QueryInfo>((resolve, reject) => {
     const removeEventListener = dheClient.addEventListener(
       dhe.Client.EVENT_CONFIG_UPDATED,
-      ({ detail: queryInfo }: CustomEvent<QueryInfo>) => {
+      ({ detail: queryInfo }: DhcType.Event<QueryInfo>) => {
         if (queryInfo.serial !== querySerial) {
           return;
         }
