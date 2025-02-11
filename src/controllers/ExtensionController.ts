@@ -111,12 +111,11 @@ export class ExtensionController implements Disposable {
 
     this._context.subscriptions.push(NodeHttp2gRPCTransport);
 
-    logger.info(
-      'Congratulations, your extension "vscode-deephaven" is now active!'
-    );
-
     const version = context.extension.packageJSON.version;
-    this._outputChannel?.appendLine(`Deephaven extension ${version} activated`);
+    const message = `Deephaven extension ${version} activated`;
+
+    logger.info(message);
+    this._outputChannel?.appendLine(message);
   }
 
   readonly _context: vscode.ExtensionContext;
