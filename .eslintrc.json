@@ -28,6 +28,7 @@
         "project": [
           "./tsconfig.json",
           "./e2e/tsconfig.json",
+          "./e2e-testing/tsconfig.json",
           "./tsconfig.unit.json",
           "./packages/*/tsconfig.json"
         ]

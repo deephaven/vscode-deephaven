@@ -18,6 +18,8 @@
     "node_modules",
     // Exclude tests as they have their own tsconfigs.
     "e2e",
+    "e2e-testing",
     "**/*.spec.ts"
-  ]
+  ],
+  "references": [{ "path": "./e2e-testing" }]
 }
