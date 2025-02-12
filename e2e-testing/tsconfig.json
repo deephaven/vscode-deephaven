@@ -1,0 +1,14 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "target": "ESNext",
+    "composite": true,
+    "rootDir": "src",
+    "outDir": "out",
+    "esModuleInterop": true
+  },
+  // Override ../tsconfig.json `include` and `exclude`
+  "include": ["src"],
+  "exclude": ["node_modules"]
+}
