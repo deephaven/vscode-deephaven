@@ -1,6 +1,5 @@
-import type { Options } from '@wdio/types';
 import path from 'node:path';
-export const config: Options.Testrunner = {
+export const config: WebdriverIO.Config = {
   //
   // ====================
   // Runner Configuration
@@ -128,7 +127,14 @@ export const config: Options.Testrunner = {
   // Services take over a specific job you don't want to take care of. They enhance
   // your test setup with almost no effort. Unlike plugins, they don't add new
   // commands. Instead, they hook themselves up into the test process.
-  services: ['vscode'],
+  services: [
+    [
+      'vscode',
+      {
+        cachePath: path.join(__dirname, '..', '.wdio-vscode-service'),
+      },
+    ],
+  ],
 
   // Framework you want to run your specs with.
   // The following are supported: Mocha, Jasmine, and Cucumber

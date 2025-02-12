@@ -12,6 +12,21 @@
       "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
       "outFiles": ["${workspaceFolder}/out/**/*.js"],
       "preLaunchTask": "${defaultBuildTask}"
+    },
+    {
+      "name": "e2e Tests",
+      "request": "launch",
+      "runtimeArgs": [
+        "run-script",
+        "test:e2e",
+        "--",
+        "-s",
+        "--spec",
+        "${file}"
+      ],
+      "runtimeExecutable": "npm",
+      "skipFiles": ["<node_internals>/**"],
+      "type": "node"
     }
   ]
 }

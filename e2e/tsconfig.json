@@ -5,9 +5,10 @@
     "outDir": "out",
     "types": [
       "node",
+      "@wdio/globals/types",
       // "webdriverio/async",
       "@wdio/mocha-framework",
-      "expect-webdriverio",
+      // "expect-webdriverio",
       "wdio-vscode-service"
     ],
     "target": "ES2020",
