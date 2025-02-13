@@ -12,6 +12,16 @@
       "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
       "outFiles": ["${workspaceFolder}/out/**/*.js"],
       "preLaunchTask": "${defaultBuildTask}"
+    },
+    {
+      "name": "e2e Tests",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/e2e-testing/out/runner.mjs",
+      "args": ["--debug"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "preLaunchTask": "${defaultBuildTask}"
     }
   ]
 }
