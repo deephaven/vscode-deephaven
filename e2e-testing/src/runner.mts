@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { ExTester, ReleaseQuality } from 'vscode-extension-tester';
 import path from 'node:path';
 
@@ -24,9 +25,14 @@ const exTester = new ExTester(
 );
 
 if (isSetup) {
-  // eslint-disable-next-line no-console
-  console.log('Setting up requirements...');
-  await exTester.setupRequirements();
+  console.log('Downloading VS Code...');
+  await exTester.downloadCode();
+
+  console.log('\nDownloading ChromeDriver...');
+  await exTester.downloadChromeDriver();
+
+  console.log('\nInstalling VSIX...');
+  await exTester.installVsix();
 }
 
 const runOptions: Parameters<ExTester['runTests']>[1] = {
@@ -34,4 +40,5 @@ const runOptions: Parameters<ExTester['runTests']>[1] = {
   config: mochaConfig,
 };
 
+console.log('\nRunning tests...');
 await exTester.runTests(testFilesPattern, runOptions);
