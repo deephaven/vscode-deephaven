@@ -14,4 +14,8 @@ COPY . .
 
 RUN ls -la
 
+# TODO: We need this in order to build e2e-testing/out/runner.mjs, but the runner
+# also indirectly calls check:types. Would be nice to not have it happen 2x.
+RUN npm run check:types
+
 CMD ["npm", "run", "test:e2e"]

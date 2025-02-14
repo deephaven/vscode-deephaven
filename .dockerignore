@@ -1,5 +1,5 @@
 # Hidden file / directories
-.*
+**/.*/
 
 # Add back specific hidden files
 !.eslintrc.json
@@ -11,9 +11,9 @@ vitest.config.mts
 *.tsbuildinfo
 *.vsix
 
-dist
+**/dist
+**/node_modules/
+**/out
 docs
-node_modules
-out
 releases
 test-reports
