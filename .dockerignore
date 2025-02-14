@@ -1,0 +1,19 @@
+# Hidden file / directories
+.*
+
+# Add back specific hidden files
+!.eslintrc.json
+!.nvmrc
+!.vscodeignore
+
+vitest.config.mts
+
+*.tsbuildinfo
+*.vsix
+
+dist
+docs
+node_modules
+out
+releases
+test-reports
