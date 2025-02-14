@@ -12,7 +12,10 @@ const e2eTestingPath = path.resolve(__dirname, '..');
 const storagePath = path.join(e2eTestingPath, '.resources');
 const extensionsPath = path.join(e2eTestingPath, '.test-extensions');
 const testFilesPattern = path.join(e2eTestingPath, 'out', '**', '*.spec.js');
-const mochaConfigDebug = path.join(e2eTestingPath, '.mocharc-debug.js');
+const mochaConfig = path.join(
+  e2eTestingPath,
+  isDebug ? '.mocharc-debug.js' : '.mocharc.js'
+);
 
 const exTester = new ExTester(
   storagePath,
@@ -28,12 +31,7 @@ if (isSetup) {
 
 const runOptions: Parameters<ExTester['runTests']>[1] = {
   resources: [],
+  config: mochaConfig,
 };
-
-if (isDebug) {
-  // eslint-disable-next-line no-console
-  console.log('Running in debug mode.');
-  runOptions.config = mochaConfigDebug;
-}
 
 await exTester.runTests(testFilesPattern, runOptions);
