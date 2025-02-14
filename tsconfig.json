@@ -1,5 +1,5 @@
 {
-  "extends": "./node20tsconfig.json",
+  "extends": "./tsconfig.node20.json",
   "compilerOptions": {
     "module": "CommonJS",
     "outDir": "dist",
