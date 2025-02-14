@@ -20,7 +20,5 @@ describe('Panels Tests', () => {
     const runDhFile = await getCodeLens(editor, 'Run Deephaven File');
 
     await runDhFile?.click();
-
-    console.log('test');
   });
 });
