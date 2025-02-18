@@ -47,5 +47,5 @@ RUN npm run check:types
 
 # RUN xdpyinfo -display $DISPLAY > /dev/null || Xvfb $DISPLAY -screen 0 1024x768x16 &
 
-CMD ["tail", "-f", "/dev/null"]
-# CMD ["npm", "run", "test:e2e"]
+# CMD ["tail", "-f", "/dev/null"]
+CMD ["npm", "run", "test:e2e"]
