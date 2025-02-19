@@ -25,6 +25,7 @@ describe('Panels Tests', () => {
     // eslint-disable-next-line no-console
     console.log('Opening resources:', testWsPath, simpleTicking3Path);
     await VSBrowser.instance.openResources(simpleTicking3Path);
+    await new Promise(res => setTimeout(res, 10000));
     // await new Workbench().executeCommand('View: Split Editor Down');
   });
 
