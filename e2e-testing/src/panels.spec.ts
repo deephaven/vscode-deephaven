@@ -1,4 +1,4 @@
-import { EditorView, VSBrowser } from 'vscode-extension-tester';
+import { EditorView, VSBrowser, Workbench } from 'vscode-extension-tester';
 import fs from 'node:fs';
 import path from 'node:path';
 import { getCodeLens, openTextEditor } from './testUtils';
@@ -17,16 +17,15 @@ describe('Panels Tests', () => {
     // eslint-disable-next-line no-console
     console.log(
       'Path exists:',
-      simpleTicking3,
+      simpleTicking3Path,
       fs.existsSync(simpleTicking3Path)
     );
 
     // Open script in 2 different tab groups
     // eslint-disable-next-line no-console
     console.log('Opening resources:', testWsPath, simpleTicking3Path);
-    await VSBrowser.instance.openResources(simpleTicking3Path);
-    await new Promise(res => setTimeout(res, 10000));
-    // await new Workbench().executeCommand('View: Split Editor Down');
+    await VSBrowser.instance.openResources(testWsPath, simpleTicking3Path);
+    await new Workbench().executeCommand('View: Split Editor Down');
   });
 
   after(async () => {
