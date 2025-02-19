@@ -2,7 +2,7 @@ import { EditorView, VSBrowser, Workbench } from 'vscode-extension-tester';
 import path from 'node:path';
 import { getCodeLens, openTextEditor } from './testUtils';
 
-const testWsPath = path.resolve(__dirname, '..', 'test-ws');
+const testWsPath = path.resolve(__dirname, '..', 'test-ws/');
 const simpleTicking3 = 'simple_ticking3.py';
 const simpleTicking3Path = path.resolve(testWsPath, simpleTicking3);
 
