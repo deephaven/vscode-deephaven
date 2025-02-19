@@ -1,4 +1,4 @@
-import { EditorView, VSBrowser } from 'vscode-extension-tester';
+import { VSBrowser } from 'vscode-extension-tester';
 import path from 'node:path';
 import { getCodeLens, openTextEditor } from './testUtils';
 
@@ -11,7 +11,7 @@ describe('Panels Tests', () => {
 
   before(async () => {
     timerMs = performance.now();
-    await new EditorView().closeAllEditors();
+    // await new EditorView().closeAllEditors();
 
     // Open script in 2 different tab groups
     // eslint-disable-next-line no-console
