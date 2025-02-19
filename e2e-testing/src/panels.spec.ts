@@ -1,4 +1,4 @@
-import { EditorView, VSBrowser, Workbench } from 'vscode-extension-tester';
+import { EditorView, VSBrowser } from 'vscode-extension-tester';
 import path from 'node:path';
 import { getCodeLens, openTextEditor } from './testUtils';
 
@@ -17,7 +17,7 @@ describe('Panels Tests', () => {
     // eslint-disable-next-line no-console
     console.log('Opening resources:', testWsPath, simpleTicking3Path);
     await VSBrowser.instance.openResources(testWsPath, simpleTicking3Path);
-    await new Workbench().executeCommand('View: Split Editor Down');
+    // await new Workbench().executeCommand('View: Split Editor Down');
   });
 
   after(async () => {
@@ -28,6 +28,8 @@ describe('Panels Tests', () => {
   });
 
   it('should open panels', async () => {
+    await VSBrowser.instance.takeScreenshot('panels');
+
     const editor = await openTextEditor(simpleTicking3);
     const runDhFile = await getCodeLens(editor, 'Run Deephaven File');
 
