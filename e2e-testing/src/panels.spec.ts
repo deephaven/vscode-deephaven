@@ -24,7 +24,7 @@ describe('Panels Tests', () => {
     // Open script in 2 different tab groups
     // eslint-disable-next-line no-console
     console.log('Opening resources:', testWsPath, simpleTicking3Path);
-    await VSBrowser.instance.openResources(testWsPath, simpleTicking3Path);
+    VSBrowser.instance.openResources(testWsPath, simpleTicking3Path);
     await new Workbench().executeCommand('View: Split Editor Down');
   });
 
