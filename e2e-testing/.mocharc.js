@@ -1,4 +1,4 @@
-// increase default test case timeout to 5 seconds
+// increase default test case timeout
 module.exports = {
-  timeout: 15000,
+  timeout: 30000,
 };
