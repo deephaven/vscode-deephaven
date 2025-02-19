@@ -1,2 +1,4 @@
 {
+  "window.openFilesInNewWindow": "off",
+  "window.openFoldersInNewWindow": "off"
 }
