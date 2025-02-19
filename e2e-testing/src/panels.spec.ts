@@ -1,4 +1,5 @@
 import { EditorView, VSBrowser } from 'vscode-extension-tester';
+import fs from 'node:fs';
 import path from 'node:path';
 import { getCodeLens, openTextEditor } from './testUtils';
 
@@ -12,6 +13,13 @@ describe('Panels Tests', () => {
   before(async () => {
     timerMs = performance.now();
     await new EditorView().closeAllEditors();
+
+    // eslint-disable-next-line no-console
+    console.log(
+      'Path exists:',
+      simpleTicking3,
+      fs.existsSync(simpleTicking3Path)
+    );
 
     // Open script in 2 different tab groups
     // eslint-disable-next-line no-console
