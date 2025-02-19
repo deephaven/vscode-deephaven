@@ -7,7 +7,10 @@ const simpleTicking3 = 'simple_ticking3.py';
 const simpleTicking3Path = path.resolve(testWsPath, simpleTicking3);
 
 describe('Panels Tests', () => {
+  let timerMs = 0;
+
   before(async () => {
+    timerMs = performance.now();
     await new EditorView().closeAllEditors();
 
     // Open script in 2 different tab groups
@@ -15,6 +18,13 @@ describe('Panels Tests', () => {
     console.log('Opening resources:', testWsPath, simpleTicking3Path);
     await VSBrowser.instance.openResources(testWsPath, simpleTicking3Path);
     await new Workbench().executeCommand('View: Split Editor Down');
+  });
+
+  after(async () => {
+    timerMs = performance.now() - timerMs;
+
+    // eslint-disable-next-line no-console
+    console.log(`Panels Tests took ${timerMs}ms`);
   });
 
   it('should open panels', async () => {
