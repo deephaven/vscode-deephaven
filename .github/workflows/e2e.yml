@@ -24,7 +24,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: e2e-screenshots
-          path: .resources/screenshots
+          path: e2e-testing/.resources/screenshots
           retention-days: 1
       - name: Publish Test Summary Results
         if: ${{ always() }}
