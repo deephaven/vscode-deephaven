@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as os from 'os';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type { EnterpriseDhType as DheType } from '@deephaven-enterprise/jsapi-types';
 import {
@@ -98,14 +99,33 @@ export class ExtensionController implements Disposable {
     this._config = configService;
     this._instanceId = uniqueId(8);
     this._version = this._context.extension.packageJSON.version;
-    this._versionInstanceText = `\tversion: ${this._version}\n\tinstanceId: ${this._instanceId}`;
+
+    const envInfo = {
+      /* eslint-disable @typescript-eslint/naming-convention */
+      'VS Code version': vscode.version,
+      'Deephaven Extension version': this._version,
+      'Deephaven Extension instanceId': this._instanceId,
+      /* eslint-enable @typescript-eslint/naming-convention */
+      platform: os.platform(),
+      release: os.release(),
+      arch: os.arch(),
+      version: os.version(),
+      totalmem: os.totalmem(),
+      freemem: os.freemem(),
+      cpus: os.cpus(),
+      uptime: os.uptime(),
+    };
+
+    this._envInfoText = Object.entries(envInfo)
+      .map(([key, value]) => `\t${key}: ${JSON.stringify(value)}`)
+      .join('\n');
   }
 
   private readonly _context: vscode.ExtensionContext;
   private readonly _config: IConfigService;
   private readonly _instanceId: UniqueID;
   private readonly _version: string;
-  private readonly _versionInstanceText: string;
+  private readonly _envInfoText: string;
 
   private _connectionController: ConnectionController | null = null;
   private _coreClientCache: URLMap<
@@ -152,7 +172,7 @@ export class ExtensionController implements Disposable {
   activate = (): void => {
     this.initializeMessaging();
 
-    logger.info(`Activating Deephaven extension\n${this._versionInstanceText}`);
+    logger.info(`Activating Deephaven extension\n${this._envInfoText}`);
 
     this.initializeDiagnostics();
     this.initializeConfig();
@@ -171,16 +191,14 @@ export class ExtensionController implements Disposable {
 
     this._context.subscriptions.push(NodeHttp2gRPCTransport);
 
-    const message = `Activated Deephaven Extension\n${this._versionInstanceText}`;
+    const message = `Activated Deephaven Extension.`;
 
     logger.info(message);
     this._outputChannel?.appendLine(message);
   };
 
   deactivate = (): void => {
-    logger.info(
-      `Deactivating Deephaven extension\n${this._versionInstanceText}`
-    );
+    logger.info(`Deactivating Deephaven extension`);
   };
 
   /**

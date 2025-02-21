@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as fs from 'node:fs';
+import * as path from 'node:path';
 import archiver from 'archiver';
 import type {
   KeyPairCredentials,
@@ -556,7 +557,15 @@ export async function saveLogFiles(
   });
 
   archive.pipe(writeStream);
+
+  // Include the `exthost.log` which contains entries for all extensions
+  archive.file(path.join(path.dirname(logDirectory), 'exthost.log'), {
+    name: 'exthost.log',
+  });
+
+  // Include Deephaven extension logs
   archive.directory(logDirectory, false);
+
   archive.finalize();
 
   return promise;
