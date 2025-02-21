@@ -1,6 +1,22 @@
 import type { NonEmptyArray } from '../types';
 
 /**
+ * Returns a date string formatted for use in a file path.
+ * The format is YYYYMMDDTHHMMSSZ.
+ * @param dateOrIsoString A Date object or an ISO 8601 date string.
+ * @returns A string formatted for use in a file path.
+ */
+export function getFilePathDateToken(
+  dateOrIsoString: Date | string = new Date()
+): string {
+  if (dateOrIsoString instanceof Date) {
+    dateOrIsoString = dateOrIsoString.toISOString();
+  }
+
+  return `${dateOrIsoString.substring(0, 19).replace(/[:-]/g, '')}Z`;
+}
+
+/**
  * Type guard to determine if an object has a property.
  * @param obj The object to check.
  * @param prop The property to check for.

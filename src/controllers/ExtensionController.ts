@@ -32,10 +32,13 @@ import {
   getTempDir,
   isInstanceOf,
   isSupportedLanguageId,
+  LogFileHandler,
   Logger,
   OutputChannelWithHistory,
   sanitizeGRPCLogMessageArgs,
+  saveLogFiles,
   Toaster,
+  uniqueId,
 } from '../util';
 import {
   RunCommandCodeLensProvider,
@@ -79,6 +82,7 @@ import type {
   CoreUnauthenticatedClient,
   ConnectionState,
   WorkerURL,
+  UniqueID,
 } from '../types';
 import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTreeDragAndDropController';
 import { ConnectionController } from './ConnectionController';
@@ -92,34 +96,16 @@ export class ExtensionController implements Disposable {
   constructor(context: vscode.ExtensionContext, configService: IConfigService) {
     this._context = context;
     this._config = configService;
-
-    this.initializeDiagnostics();
-    this.initializeConfig();
-    this.initializeSecrets();
-    this.initializeCodeLenses();
-    this.initializeHoverProviders();
-    this.initializeMessaging();
-    this.initializeServerManager();
-    this.initializeTempDirectory();
-    this.initializeConnectionController();
-    this.initializePanelController();
-    this.initializePipServerController();
-    this.initializeUserLoginController();
-    this.initializeCommands();
-    this.initializeWebViews();
-    this.initializeServerUpdates();
-
-    this._context.subscriptions.push(NodeHttp2gRPCTransport);
-
-    const version = context.extension.packageJSON.version;
-    const message = `Deephaven extension ${version} activated`;
-
-    logger.info(message);
-    this._outputChannel?.appendLine(message);
+    this._instanceId = uniqueId(8);
+    this._version = this._context.extension.packageJSON.version;
+    this._versionInstanceText = `\tversion: ${this._version}\n\tinstanceId: ${this._instanceId}`;
   }
 
-  readonly _context: vscode.ExtensionContext;
-  readonly _config: IConfigService;
+  private readonly _context: vscode.ExtensionContext;
+  private readonly _config: IConfigService;
+  private readonly _instanceId: UniqueID;
+  private readonly _version: string;
+  private readonly _versionInstanceText: string;
 
   private _connectionController: ConnectionController | null = null;
   private _coreClientCache: URLMap<
@@ -132,6 +118,7 @@ export class ExtensionController implements Disposable {
     null;
   private _dheClientFactory: IDheClientFactory | null = null;
   private _dheServiceCache: IAsyncCacheService<URL, IDheService> | null = null;
+  private _logFileHandler: LogFileHandler | null = null;
   private _panelController: PanelController | null = null;
   private _panelService: IPanelService | null = null;
   private _pipServerController: PipServerController | null = null;
@@ -161,6 +148,40 @@ export class ExtensionController implements Disposable {
   private _toaster: IToastService | null = null;
 
   async dispose(): Promise<void> {}
+
+  activate = (): void => {
+    this.initializeMessaging();
+
+    logger.info(`Activating Deephaven extension\n${this._versionInstanceText}`);
+
+    this.initializeDiagnostics();
+    this.initializeConfig();
+    this.initializeSecrets();
+    this.initializeCodeLenses();
+    this.initializeHoverProviders();
+    this.initializeServerManager();
+    this.initializeTempDirectory();
+    this.initializeConnectionController();
+    this.initializePanelController();
+    this.initializePipServerController();
+    this.initializeUserLoginController();
+    this.initializeCommands();
+    this.initializeWebViews();
+    this.initializeServerUpdates();
+
+    this._context.subscriptions.push(NodeHttp2gRPCTransport);
+
+    const message = `Activated Deephaven Extension\n${this._versionInstanceText}`;
+
+    logger.info(message);
+    this._outputChannel?.appendLine(message);
+  };
+
+  deactivate = (): void => {
+    logger.info(
+      `Deactivating Deephaven extension\n${this._versionInstanceText}`
+    );
+  };
 
   /**
    * Initialize code lenses for running Deephaven code.
@@ -321,6 +342,9 @@ export class ExtensionController implements Disposable {
     Logger.addConsoleHandler();
     Logger.addOutputChannelHandler(this._outputChannelDebug);
 
+    this._logFileHandler = new LogFileHandler(this._instanceId, this._context);
+    Logger.handlers.add(this._logFileHandler);
+
     const gRPCOutputChannelHandler = Logger.createOutputChannelHandler(
       this._outputChannelDebug
     );
@@ -332,6 +356,7 @@ export class ExtensionController implements Disposable {
     this._toaster = new Toaster();
 
     this._context.subscriptions.push(
+      this._logFileHandler,
       this._outputChannel,
       this._outputChannelDebug
     );
@@ -695,14 +720,19 @@ export class ExtensionController implements Disposable {
    * Handle download logs command
    */
   onDownloadLogs = async (): Promise<void> => {
+    assertDefined(this._logFileHandler, 'logFileHandler');
     assertDefined(this._outputChannelDebug, 'outputChannelDebug');
     assertDefined(this._toaster, 'toaster');
 
-    const uri = await this._outputChannelDebug.downloadHistoryToFile();
+    const uri = await saveLogFiles(this._logFileHandler.logDirectory);
 
     if (uri != null) {
       this._toaster.info(`Downloaded logs to ${uri.fsPath}`);
-      vscode.window.showTextDocument(uri);
+
+      await vscode.commands.executeCommand(
+        'revealFileInOS',
+        vscode.Uri.parse(uri.fsPath)
+      );
     }
   };
 
