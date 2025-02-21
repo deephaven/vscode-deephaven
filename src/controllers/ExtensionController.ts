@@ -105,6 +105,9 @@ export class ExtensionController implements Disposable {
       'VS Code version': vscode.version,
       'Deephaven Extension version': this._version,
       'Deephaven Extension instanceId': this._instanceId,
+      'Electron version': process.versions.electron,
+      'Chromium version': process.versions.chrome,
+      'Node version': process.versions.node,
       /* eslint-enable @typescript-eslint/naming-convention */
       platform: os.platform(),
       release: os.release(),
