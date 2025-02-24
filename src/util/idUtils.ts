@@ -1,5 +1,9 @@
-import { nanoid } from 'nanoid';
+import { customAlphabet, urlAlphabet } from 'nanoid';
 import type { UniqueID } from '../types';
+
+// The default nanoid alphabet includes `_`. Using custom alphabet without it
+// to make ids group better in `_` delimited strings.
+const nanoidCustom = customAlphabet(urlAlphabet.replace('_', ''), 21);
 
 /**
  * Generate a unique id.
@@ -7,5 +11,5 @@ import type { UniqueID } from '../types';
  * nanoid uses as its default.
  */
 export function uniqueId(size: number = 21): UniqueID {
-  return nanoid(size) as UniqueID;
+  return nanoidCustom(size) as UniqueID;
 }

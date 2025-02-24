@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as os from 'os';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type { EnterpriseDhType as DheType } from '@deephaven-enterprise/jsapi-types';
 import {
@@ -32,10 +33,13 @@ import {
   getTempDir,
   isInstanceOf,
   isSupportedLanguageId,
+  LogFileHandler,
   Logger,
   OutputChannelWithHistory,
   sanitizeGRPCLogMessageArgs,
+  saveLogFiles,
   Toaster,
+  uniqueId,
 } from '../util';
 import {
   RunCommandCodeLensProvider,
@@ -79,6 +83,7 @@ import type {
   CoreUnauthenticatedClient,
   ConnectionState,
   WorkerURL,
+  UniqueID,
 } from '../types';
 import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTreeDragAndDropController';
 import { ConnectionController } from './ConnectionController';
@@ -92,34 +97,38 @@ export class ExtensionController implements Disposable {
   constructor(context: vscode.ExtensionContext, configService: IConfigService) {
     this._context = context;
     this._config = configService;
+    this._instanceId = uniqueId(8);
+    this._version = this._context.extension.packageJSON.version;
 
-    this.initializeDiagnostics();
-    this.initializeConfig();
-    this.initializeSecrets();
-    this.initializeCodeLenses();
-    this.initializeHoverProviders();
-    this.initializeMessaging();
-    this.initializeServerManager();
-    this.initializeTempDirectory();
-    this.initializeConnectionController();
-    this.initializePanelController();
-    this.initializePipServerController();
-    this.initializeUserLoginController();
-    this.initializeCommands();
-    this.initializeWebViews();
-    this.initializeServerUpdates();
+    const envInfo = {
+      /* eslint-disable @typescript-eslint/naming-convention */
+      'VS Code version': vscode.version,
+      'Deephaven Extension version': this._version,
+      'Deephaven Extension instanceId': this._instanceId,
+      'Electron version': process.versions.electron,
+      'Chromium version': process.versions.chrome,
+      'Node version': process.versions.node,
+      /* eslint-enable @typescript-eslint/naming-convention */
+      platform: os.platform(),
+      release: os.release(),
+      arch: os.arch(),
+      version: os.version(),
+      totalmem: os.totalmem(),
+      freemem: os.freemem(),
+      cpus: os.cpus(),
+      uptime: os.uptime(),
+    };
 
-    this._context.subscriptions.push(NodeHttp2gRPCTransport);
-
-    const version = context.extension.packageJSON.version;
-    const message = `Deephaven extension ${version} activated`;
-
-    logger.info(message);
-    this._outputChannel?.appendLine(message);
+    this._envInfoText = Object.entries(envInfo)
+      .map(([key, value]) => `\t${key}: ${JSON.stringify(value)}`)
+      .join('\n');
   }
 
-  readonly _context: vscode.ExtensionContext;
-  readonly _config: IConfigService;
+  private readonly _context: vscode.ExtensionContext;
+  private readonly _config: IConfigService;
+  private readonly _instanceId: UniqueID;
+  private readonly _version: string;
+  private readonly _envInfoText: string;
 
   private _connectionController: ConnectionController | null = null;
   private _coreClientCache: URLMap<
@@ -132,6 +141,7 @@ export class ExtensionController implements Disposable {
     null;
   private _dheClientFactory: IDheClientFactory | null = null;
   private _dheServiceCache: IAsyncCacheService<URL, IDheService> | null = null;
+  private _logFileHandler: LogFileHandler | null = null;
   private _panelController: PanelController | null = null;
   private _panelService: IPanelService | null = null;
   private _pipServerController: PipServerController | null = null;
@@ -161,6 +171,38 @@ export class ExtensionController implements Disposable {
   private _toaster: IToastService | null = null;
 
   async dispose(): Promise<void> {}
+
+  activate = (): void => {
+    this.initializeMessaging();
+
+    logger.info(`Activating Deephaven extension\n${this._envInfoText}`);
+
+    this.initializeDiagnostics();
+    this.initializeConfig();
+    this.initializeSecrets();
+    this.initializeCodeLenses();
+    this.initializeHoverProviders();
+    this.initializeServerManager();
+    this.initializeTempDirectory();
+    this.initializeConnectionController();
+    this.initializePanelController();
+    this.initializePipServerController();
+    this.initializeUserLoginController();
+    this.initializeCommands();
+    this.initializeWebViews();
+    this.initializeServerUpdates();
+
+    this._context.subscriptions.push(NodeHttp2gRPCTransport);
+
+    const message = `Activated Deephaven Extension.`;
+
+    logger.info(message);
+    this._outputChannel?.appendLine(message);
+  };
+
+  deactivate = (): void => {
+    logger.info(`Deactivating Deephaven extension`);
+  };
 
   /**
    * Initialize code lenses for running Deephaven code.
@@ -321,6 +363,9 @@ export class ExtensionController implements Disposable {
     Logger.addConsoleHandler();
     Logger.addOutputChannelHandler(this._outputChannelDebug);
 
+    this._logFileHandler = new LogFileHandler(this._instanceId, this._context);
+    Logger.handlers.add(this._logFileHandler);
+
     const gRPCOutputChannelHandler = Logger.createOutputChannelHandler(
       this._outputChannelDebug
     );
@@ -332,6 +377,7 @@ export class ExtensionController implements Disposable {
     this._toaster = new Toaster();
 
     this._context.subscriptions.push(
+      this._logFileHandler,
       this._outputChannel,
       this._outputChannelDebug
     );
@@ -695,14 +741,19 @@ export class ExtensionController implements Disposable {
    * Handle download logs command
    */
   onDownloadLogs = async (): Promise<void> => {
+    assertDefined(this._logFileHandler, 'logFileHandler');
     assertDefined(this._outputChannelDebug, 'outputChannelDebug');
     assertDefined(this._toaster, 'toaster');
 
-    const uri = await this._outputChannelDebug.downloadHistoryToFile();
+    const uri = await saveLogFiles(this._logFileHandler.logDirectory);
 
     if (uri != null) {
       this._toaster.info(`Downloaded logs to ${uri.fsPath}`);
-      vscode.window.showTextDocument(uri);
+
+      await vscode.commands.executeCommand(
+        'revealFileInOS',
+        vscode.Uri.parse(uri.fsPath)
+      );
     }
   };
 

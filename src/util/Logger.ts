@@ -1,10 +1,73 @@
 import * as vscode from 'vscode';
+import fs from 'node:fs';
+import path from 'node:path';
+import type { Disposable, UniqueID } from '../types';
+import { getFilePathDateToken } from './dataUtils';
 
 export type LogLevel = 'error' | 'warn' | 'info' | 'debug' | 'debug2';
 
 export type LogLevelHandler = (label: string, ...args: unknown[]) => void;
 
 export type LogHandler = Record<LogLevel, LogLevelHandler>;
+
+/**
+ * Log handler that writes logs to a file.
+ */
+export class LogFileHandler implements LogHandler, Disposable {
+  constructor(extensionInstanceId: UniqueID, context: vscode.ExtensionContext) {
+    // VS Code specifies the log directory but doesn't create it
+    fs.mkdirSync(context.logUri.fsPath, { recursive: true });
+
+    this._extensionInstanceId = extensionInstanceId;
+    this.logDirectory = context.logUri.fsPath;
+  }
+
+  private readonly _extensionInstanceId: UniqueID;
+  private _lastLogBucket: string | null = null;
+  private _logWriter: fs.WriteStream | null = null;
+
+  readonly logDirectory: string;
+
+  private _getLogFilePath = (isoDateStr: string): string => {
+    const dateToken = getFilePathDateToken(isoDateStr);
+
+    const logFileName = `deephaven-vscode_${dateToken}_${this._extensionInstanceId}.log`;
+    return path.join(this.logDirectory, logFileName);
+  };
+
+  private _write = (
+    level: LogLevel,
+    label: string,
+    ...args: unknown[]
+  ): void => {
+    const now = new Date().toISOString();
+    const hourBucket = now.substring(0, 13);
+
+    // Initialize log writer or update it if the hour bucket has changed
+    if (this._logWriter == null || this._lastLogBucket !== hourBucket) {
+      this._logWriter?.end();
+      this._lastLogBucket = hourBucket;
+
+      const logFilePath = this._getLogFilePath(now);
+      this._logWriter = fs.createWriteStream(logFilePath);
+    }
+
+    this._logWriter.write(
+      `[${now}] ${label} ${level.toUpperCase()}: ${args.map(Logger.stringifyArg).join(' ')}\n`
+    );
+  };
+
+  error = this._write.bind(this, 'error');
+  warn = this._write.bind(this, 'warn');
+  info = this._write.bind(this, 'info');
+  debug = this._write.bind(this, 'debug');
+  debug2 = this._write.bind(this, 'debug2');
+
+  dispose = async (): Promise<void> => {
+    this._logWriter?.end();
+    this._logWriter = null;
+  };
+}
 
 /**
  * Simple logger delegate that can be used to log messages to a set of handlers.

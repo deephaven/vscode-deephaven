@@ -1,5 +1,13 @@
 import * as vscode from 'vscode';
 import * as fs from 'node:fs';
+import * as path from 'node:path';
+import archiver from 'archiver';
+import type {
+  KeyPairCredentials,
+  OperateAsUsername,
+  PasswordCredentials,
+  Username,
+} from '@deephaven-enterprise/auth-nodejs';
 import {
   SELECT_CONNECTION_COMMAND,
   STATUS_BAR_CONNECTING_TEXT,
@@ -19,14 +27,11 @@ import type {
   DependencyName,
   DependencyVersion,
 } from '../types';
-import { sortByStringProp } from './dataUtils';
+import { getFilePathDateToken, sortByStringProp } from './dataUtils';
 import { assertDefined } from './assertUtil';
-import type {
-  KeyPairCredentials,
-  OperateAsUsername,
-  PasswordCredentials,
-  Username,
-} from '@deephaven-enterprise/auth-nodejs';
+import { Logger } from './Logger';
+
+const logger = new Logger('uiUtils');
 
 export interface ConnectionOption {
   type: ConnectionType;
@@ -472,6 +477,101 @@ export function promptForOperateAs(
 }
 
 /**
+ * Open a save file dialog for a given file name and filters. Defaults to
+ * workspace folder if it can be determined. Otherwise will default to whatever
+ * VS Code determines for the environment.
+ * @param fileName The file name to use as the default.
+ * @param filters A set of file filters that are used by the save file dialog.
+ * Each key is a human-readable name for the filter and the value is an array of
+ * file extensions. For example:
+ * {
+ *   'Images': ['png', 'jpg'],
+ *   'TypeScript': ['ts', 'tsx']
+ * }
+ * @returns The selected file URI or undefined if cancelled.
+ */
+export async function showWorkspaceSaveDialog(
+  fileName: string,
+  filters: vscode.SaveDialogOptions['filters']
+): Promise<vscode.Uri | undefined> {
+  const wkspFolder = getWorkspaceFolder();
+
+  const defaultUri =
+    wkspFolder == null
+      ? vscode.Uri.file(fileName)
+      : vscode.Uri.joinPath(wkspFolder.uri, fileName);
+
+  return vscode.window.showSaveDialog({
+    defaultUri,
+    filters,
+  });
+}
+
+/**
+ * Zip and save logs for Deephaven VS Code extension.
+ * @param logDirectory The directory containing the log files to save.
+ * @returns The URI for the saved .zip file
+ */
+export async function saveLogFiles(
+  logDirectory: string
+): Promise<vscode.Uri | null> {
+  const uri = await showWorkspaceSaveDialog(
+    `deephaven-vscode_${getFilePathDateToken()}.zip`,
+    {
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      'Log Files': ['zip'],
+    }
+  );
+
+  if (uri == null) {
+    return null;
+  }
+
+  logger.debug(`Saving log files from '${logDirectory}' to '${uri.fsPath}'.`);
+
+  const writeStream = fs.createWriteStream(uri.fsPath);
+  const archive = archiver('zip', {
+    zlib: { level: 9 }, // Sets the compression level.
+  });
+
+  const promise = new Promise<vscode.Uri>((resolve, reject) => {
+    writeStream.on('close', function () {
+      logger.debug(archive.pointer() + ' total bytes');
+      logger.debug(
+        'archiver has been finalized and the output file descriptor has closed.'
+      );
+      resolve(uri);
+    });
+
+    archive.on('warning', err => {
+      if (err.code === 'ENOENT') {
+        logger.warn(err);
+      } else {
+        reject(err);
+      }
+    });
+
+    archive.on('error', err => {
+      reject(err);
+    });
+  });
+
+  archive.pipe(writeStream);
+
+  // Include the `exthost.log` which contains entries for all extensions
+  archive.file(path.join(path.dirname(logDirectory), 'exthost.log'), {
+    name: 'exthost.log',
+  });
+
+  // Include Deephaven extension logs
+  archive.directory(logDirectory, false);
+
+  archive.finalize();
+
+  return promise;
+}
+
+/**
  * Save a map of dependency name / versions to a `requirements.txt` file.
  * @param dependencies The map of dependency names / versions to save.
  * @returns Promise that resolves when the file is saved.
@@ -479,17 +579,9 @@ export function promptForOperateAs(
 export async function saveRequirementsTxt(
   dependencies: Map<DependencyName, DependencyVersion>
 ): Promise<void> {
-  const wkspFolder = getWorkspaceFolder();
-
-  const defaultUri =
-    wkspFolder == null
-      ? vscode.Uri.file('requirements.txt')
-      : vscode.Uri.joinPath(wkspFolder.uri, 'requirements.txt');
-
-  const uri = await vscode.window.showSaveDialog({
-    defaultUri,
+  const uri = await showWorkspaceSaveDialog('requirements.txt', {
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    filters: { Requirements: ['txt'] },
+    Requirements: ['txt'],
   });
 
   if (uri == null) {
