@@ -1,3 +1,4 @@
+import * as vscode from 'vscode';
 import {
   deletePublicKeys,
   generateBase64KeyPair,
@@ -12,8 +13,12 @@ import { type dh as DhcType } from '@deephaven/jsapi-types';
 import type { URLMap } from '../services';
 import { ControllerBase } from './ControllerBase';
 import {
+  AUTH_CONFIG_CUSTOM_LOGIN_CLASS_SAML_AUTH,
+  AUTH_CONFIG_SAML_LOGIN_URL,
+  AUTH_CONFIG_SAML_PROVIDER_NAME,
   CREATE_CORE_AUTHENTICATED_CLIENT_CMD,
   CREATE_DHE_AUTHENTICATED_CLIENT_CMD,
+  DH_SAML_AUTH_PROVIDER_TYPE,
   GENERATE_DHE_KEY_PAIR_CMD,
 } from '../common';
 import { Logger, promptForPsk, runUserLoginWorkflow } from '../util';
@@ -272,6 +277,49 @@ export class UserLoginController extends ControllerBase {
     serverUrl: URL,
     operateAsAnotherUser: boolean
   ): Promise<void> => {
+    const dheClient = await this.dheClientFactory(serverUrl);
+
+    const authConfig = new Map(
+      (await dheClient.getAuthConfigValues()).map(([key, value]) => [
+        key,
+        value,
+      ])
+    );
+
+    const isSamlEnabled =
+      authConfig.has(AUTH_CONFIG_CUSTOM_LOGIN_CLASS_SAML_AUTH) &&
+      authConfig.has(AUTH_CONFIG_SAML_PROVIDER_NAME) &&
+      authConfig.has(AUTH_CONFIG_SAML_LOGIN_URL);
+
+    if (isSamlEnabled) {
+      console.log('[TESTING]', authConfig);
+      const samlLoginUrlRaw = authConfig.get(AUTH_CONFIG_SAML_LOGIN_URL)!;
+      const session = await vscode.authentication.getSession(
+        DH_SAML_AUTH_PROVIDER_TYPE,
+        [samlLoginUrlRaw],
+        { createIfNone: true }
+      );
+      console.log('[TESTING] session:', session);
+
+      await dheClient.login({
+        type: 'saml',
+        token: session.id,
+      });
+
+      const userInfo = await dheClient.getUserInfo();
+
+      console.log(userInfo);
+      // const samlSessionKey = makeSAMLSessionKey();
+
+      // const redirectUrl = new URL('https://localhost/iriside/blah/blah');
+      // redirectUrl.searchParams.append('isSamlRedirect', 'true');
+
+      // samlLoginUrl.searchParams.append('key', samlSessionKey);
+      // samlLoginUrl.searchParams.append('redirect', `${redirectUrl}`);
+
+      // console.log('[TESTING] samlLoginUrl:', samlLoginUrl.href);
+    }
+
     const title = 'Login';
 
     const secretKeys = await this.secretService.getServerKeys(serverUrl);
@@ -302,8 +350,6 @@ export class UserLoginController extends ControllerBase {
         [username]: operateAs,
       },
     });
-
-    const dheClient = await this.dheClientFactory(serverUrl);
 
     try {
       const authenticatedClient =

@@ -13,3 +13,11 @@ const nanoidCustom = customAlphabet(urlAlphabet.replace('_', ''), 21);
 export function uniqueId(size: number = 21): UniqueID {
   return nanoidCustom(size) as UniqueID;
 }
+
+export function makeSAMLSessionKey(): string {
+  let key = '';
+  for (let i = 0; i < 96; i += 1) {
+    key += String.fromCharCode(Math.floor(Math.random() * 255));
+  }
+  return btoa(key);
+}

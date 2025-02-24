@@ -48,6 +48,7 @@ import {
   ServerConnectionPanelTreeProvider,
   runSelectedLinesHoverProvider,
   RunMarkdownCodeBlockCodeLensProvider,
+  SamlAuthProvider,
 } from '../providers';
 import {
   DheJsApiCache,
@@ -183,6 +184,7 @@ export class ExtensionController implements Disposable {
     this.initializeCodeLenses();
     this.initializeHoverProviders();
     this.initializeServerManager();
+    this.initializeAuthProviders();
     this.initializeTempDirectory();
     this.initializeConnectionController();
     this.initializePanelController();
@@ -202,6 +204,19 @@ export class ExtensionController implements Disposable {
 
   deactivate = (): void => {
     logger.info(`Deactivating Deephaven extension`);
+  };
+
+  /**
+   * Initialize authentication providers.
+   */
+  initializeAuthProviders = (): void => {
+    assertDefined(this._dheClientCache, 'dheClientCache');
+
+    const samlAuthProvider = new SamlAuthProvider(
+      this._context,
+      this._dheClientCache
+    );
+    this._context.subscriptions.push(samlAuthProvider);
   };
 
   /**

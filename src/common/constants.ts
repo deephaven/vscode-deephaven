@@ -156,3 +156,12 @@ ${REQUIREMENTS_TABLE_NAME} = new_table([
     string_col("${REQUIREMENTS_TABLE_NAME_COLUMN_NAME}", list(installed)),
     string_col("${REQUIREMENTS_TABLE_VERSION_COLUMN_NAME}", [version(pkg) for pkg in installed])
 ])` as const;
+
+export const AUTH_CONFIG_CUSTOM_LOGIN_CLASS_SAML_AUTH =
+  'authentication.client.customlogin.class.SAMLAuth' as const;
+export const AUTH_CONFIG_SAML_PROVIDER_NAME =
+  'authentication.client.samlauth.provider.name' as const;
+export const AUTH_CONFIG_SAML_LOGIN_URL =
+  'authentication.client.samlauth.login.url' as const;
+
+export const DH_SAML_AUTH_PROVIDER_TYPE = 'dhsaml';
