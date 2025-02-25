@@ -1,8 +1,12 @@
 import * as vscode from 'vscode';
-import { makeSAMLSessionKey } from '../util';
+import {
+  type AuthenticatedClient as DheAuthenticatedClient,
+  type UnauthenticatedClient,
+} from '@deephaven-enterprise/auth-nodejs';
+import { assertDefined, makeSAMLSessionKey, uniqueId } from '../util';
 import { DH_SAML_AUTH_PROVIDER_TYPE } from '../common';
-import type { URLMap } from '../services';
-import { type AuthenticatedClient as DheAuthenticatedClient } from '@deephaven-enterprise/auth-nodejs';
+import { URLMap } from '../services';
+import { type Disposable } from '../types';
 
 class UriEventHandler
   extends vscode.EventEmitter<vscode.Uri>
@@ -16,6 +20,16 @@ class UriEventHandler
 export class SamlAuthProvider
   implements vscode.AuthenticationProvider, vscode.Disposable
 {
+  /**
+   * Static map of unauthenticated DHE clients. This is needed because
+   * `vscode.authentication.getSession` doesn't expose a way to pass in data,
+   * so this is an easy way to store the client and retrieve it during the auth
+   * flow.
+   */
+  static dheClientsPendingAuth = new URLMap<
+    UnauthenticatedClient & Disposable
+  >();
+
   constructor(
     context: vscode.ExtensionContext,
     dheClientCache: URLMap<DheAuthenticatedClient>
@@ -31,7 +45,8 @@ export class SamlAuthProvider
         this,
         { supportsMultipleAccounts: false }
       ),
-      vscode.window.registerUriHandler(this._uriEventHandler)
+      vscode.window.registerUriHandler(this._uriEventHandler),
+      SamlAuthProvider.dheClientsPendingAuth
     );
   }
 
@@ -65,11 +80,12 @@ export class SamlAuthProvider
   createSession = async (
     scopes: readonly string[]
   ): Promise<vscode.AuthenticationSession> => {
-    const samlLoginUrlRaw = scopes[0];
+    console.log('[TESTING] createSession', scopes);
+    const [serverUrlRaw, samlLoginUrlRaw] = scopes;
     const samlSessionKey = makeSAMLSessionKey();
 
     const redirectUrl = this.samlRedirectUrl;
-    redirectUrl.searchParams.append('isSamlRedirect', 'true');
+    // redirectUrl.searchParams.append('isSamlRedirect', 'true');
 
     const samlLoginUrl = new URL(samlLoginUrlRaw);
     samlLoginUrl.searchParams.append('key', samlSessionKey);
@@ -82,8 +98,6 @@ export class SamlAuthProvider
         cancellable: true,
       },
       async (_, token) => {
-        console.log('[TESTING] samlLoginUrl:', samlLoginUrlRaw);
-
         await vscode.env.openExternal(
           vscode.Uri.parse(samlLoginUrl.toString())
         );
@@ -91,12 +105,12 @@ export class SamlAuthProvider
         return Promise.race([
           new Promise<true>(resolve => {
             this._uriEventHandler.event(async uri => {
-              console.log('[TESTING] uri:', uri);
+              console.log('[TESTING] uri:', uri.toString());
               resolve(true);
             });
           }),
           new Promise<false>((_, reject) =>
-            setTimeout(() => reject('Cancelled'), 60000)
+            setTimeout(() => reject('Cancelled'), 20000)
           ),
           new Promise<false>((_, reject) =>
             token.onCancellationRequested(() => reject('Cancelled'))
@@ -109,12 +123,34 @@ export class SamlAuthProvider
       throw new Error('Deephaven SAML authentication failed.');
     }
 
+    const serverUrl = new URL(serverUrlRaw);
+
+    const dheClient = SamlAuthProvider.dheClientsPendingAuth.get(serverUrl);
+
+    assertDefined(dheClient, 'DHE client not found in pending auth map');
+
+    try {
+      await dheClient.login({
+        type: 'saml',
+        token: decodeURIComponent(samlSessionKey),
+      });
+    } catch (err) {
+      console.error('Error during SAML login:', err);
+    }
+
+    this._dheClientCache.set(
+      serverUrl,
+      dheClient as unknown as DheAuthenticatedClient
+    );
+
+    const userInfo = await dheClient.getUserInfo();
+
     const session: vscode.AuthenticationSession = {
-      id: samlSessionKey,
-      accessToken: '',
+      id: uniqueId(),
+      accessToken: samlSessionKey,
       account: {
-        id: '',
-        label: 'Deephaven SAML',
+        id: userInfo.username,
+        label: userInfo.username,
       },
       scopes,
     };

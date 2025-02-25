@@ -40,6 +40,7 @@ import {
   AUTH_HANDLER_TYPE_PSK,
   loginClient,
 } from '../dh/dhc';
+import { SamlAuthProvider } from '../providers';
 
 const logger = new Logger('UserLoginController');
 
@@ -292,32 +293,20 @@ export class UserLoginController extends ControllerBase {
       authConfig.has(AUTH_CONFIG_SAML_LOGIN_URL);
 
     if (isSamlEnabled) {
-      console.log('[TESTING]', authConfig);
       const samlLoginUrlRaw = authConfig.get(AUTH_CONFIG_SAML_LOGIN_URL)!;
-      const session = await vscode.authentication.getSession(
-        DH_SAML_AUTH_PROVIDER_TYPE,
-        [samlLoginUrlRaw],
-        { createIfNone: true }
-      );
-      console.log('[TESTING] session:', session);
+      SamlAuthProvider.dheClientsPendingAuth.set(new URL(serverUrl), dheClient);
 
-      await dheClient.login({
-        type: 'saml',
-        token: session.id,
-      });
+      try {
+        await vscode.authentication.getSession(
+          DH_SAML_AUTH_PROVIDER_TYPE,
+          [serverUrl.href, samlLoginUrlRaw],
+          { createIfNone: true }
+        );
+      } catch (err) {
+        this.dheClientCache.delete(serverUrl);
+      }
 
-      const userInfo = await dheClient.getUserInfo();
-
-      console.log(userInfo);
-      // const samlSessionKey = makeSAMLSessionKey();
-
-      // const redirectUrl = new URL('https://localhost/iriside/blah/blah');
-      // redirectUrl.searchParams.append('isSamlRedirect', 'true');
-
-      // samlLoginUrl.searchParams.append('key', samlSessionKey);
-      // samlLoginUrl.searchParams.append('redirect', `${redirectUrl}`);
-
-      // console.log('[TESTING] samlLoginUrl:', samlLoginUrl.href);
+      return;
     }
 
     const title = 'Login';
