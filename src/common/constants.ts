@@ -77,6 +77,7 @@ export const ICON_ID = {
   disconnected: 'plug',
   runAll: 'run-all',
   runSelection: 'run',
+  saml: 'shield',
   server: 'server',
   serverConnected: 'circle-large-filled',
   serverRunning: 'circle-large-outline',
@@ -157,6 +158,8 @@ ${REQUIREMENTS_TABLE_NAME} = new_table([
     string_col("${REQUIREMENTS_TABLE_VERSION_COLUMN_NAME}", [version(pkg) for pkg in installed])
 ])` as const;
 
+export const AUTH_CONFIG_PASSWORDS_ENABLED =
+  'authentication.passwordsEnabled' as const;
 export const AUTH_CONFIG_CUSTOM_LOGIN_CLASS_SAML_AUTH =
   'authentication.client.customlogin.class.SAMLAuth' as const;
 export const AUTH_CONFIG_SAML_PROVIDER_NAME =

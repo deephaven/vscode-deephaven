@@ -1,4 +1,3 @@
-import * as vscode from 'vscode';
 import {
   deletePublicKeys,
   generateBase64KeyPair,
@@ -13,15 +12,19 @@ import { type dh as DhcType } from '@deephaven/jsapi-types';
 import type { URLMap } from '../services';
 import { ControllerBase } from './ControllerBase';
 import {
-  AUTH_CONFIG_CUSTOM_LOGIN_CLASS_SAML_AUTH,
-  AUTH_CONFIG_SAML_LOGIN_URL,
-  AUTH_CONFIG_SAML_PROVIDER_NAME,
   CREATE_CORE_AUTHENTICATED_CLIENT_CMD,
   CREATE_DHE_AUTHENTICATED_CLIENT_CMD,
-  DH_SAML_AUTH_PROVIDER_TYPE,
   GENERATE_DHE_KEY_PAIR_CMD,
 } from '../common';
-import { Logger, promptForPsk, runUserLoginWorkflow } from '../util';
+import {
+  Logger,
+  promptForPsk,
+  promptForAuthFlow,
+  promptForCredentials,
+  isMultiAuthConfig,
+  getAuthFlow,
+  isNoAuthConfig,
+} from '../util';
 import type {
   CoreAuthenticatedClient,
   CoreUnauthenticatedClient,
@@ -31,9 +34,10 @@ import type {
   ISecretService,
   IServerManager,
   IToastService,
+  LoginPromptCredentials,
   ServerState,
 } from '../types';
-import { hasInteractivePermission } from '../dh/dhe';
+import { getDheAuthConfig, hasInteractivePermission } from '../dh/dhe';
 import {
   AUTH_HANDLER_TYPE_ANONYMOUS,
   AUTH_HANDLER_TYPE_DHE,
@@ -143,7 +147,7 @@ export class UserLoginController extends ControllerBase {
     const userLoginPreferences =
       await this.secretService.getUserLoginPreferences(serverUrl);
 
-    const credentials = await runUserLoginWorkflow({
+    const credentials = await promptForCredentials({
       title,
       userLoginPreferences,
     });
@@ -279,77 +283,74 @@ export class UserLoginController extends ControllerBase {
     operateAsAnotherUser: boolean
   ): Promise<void> => {
     const dheClient = await this.dheClientFactory(serverUrl);
+    const authConfig = await getDheAuthConfig(dheClient);
 
-    const authConfig = new Map(
-      (await dheClient.getAuthConfigValues()).map(([key, value]) => [
-        key,
-        value,
-      ])
-    );
-
-    const isSamlEnabled =
-      authConfig.has(AUTH_CONFIG_CUSTOM_LOGIN_CLASS_SAML_AUTH) &&
-      authConfig.has(AUTH_CONFIG_SAML_PROVIDER_NAME) &&
-      authConfig.has(AUTH_CONFIG_SAML_LOGIN_URL);
-
-    if (isSamlEnabled) {
-      const samlLoginUrlRaw = authConfig.get(AUTH_CONFIG_SAML_LOGIN_URL)!;
-      SamlAuthProvider.dheClientsPendingAuth.set(new URL(serverUrl), dheClient);
-
-      try {
-        await vscode.authentication.getSession(
-          DH_SAML_AUTH_PROVIDER_TYPE,
-          [serverUrl.href, samlLoginUrlRaw],
-          { createIfNone: true }
-        );
-      } catch (err) {
-        this.dheClientCache.delete(serverUrl);
-      }
-
+    if (isNoAuthConfig(authConfig)) {
+      this.toast.info('No authentication methods configured.');
       return;
     }
 
-    const title = 'Login';
+    const authFlow = isMultiAuthConfig(authConfig)
+      ? await promptForAuthFlow(authConfig)
+      : getAuthFlow(authConfig);
 
-    const secretKeys = await this.secretService.getServerKeys(serverUrl);
-    const userLoginPreferences =
-      await this.secretService.getUserLoginPreferences(serverUrl);
-
-    const privateKeyUserNames = Object.keys(secretKeys) as Username[];
-
-    const credentials = await runUserLoginWorkflow({
-      title,
-      userLoginPreferences,
-      privateKeyUserNames,
-      showOperatesAs: operateAsAnotherUser,
-    });
-
-    // Cancelled by user
-    if (credentials == null) {
+    if (authFlow == null) {
       this.toast.info('Login cancelled.');
       return;
     }
 
-    const { username, operateAs = username } = credentials;
-
-    await this.secretService.storeUserLoginPreferences(serverUrl, {
-      lastLogin: username,
-      operateAsUser: {
-        ...userLoginPreferences.operateAsUser,
-        [username]: operateAs,
-      },
-    });
+    let authenticatedClient: DheAuthenticatedClient | undefined = undefined;
+    let credentials: LoginPromptCredentials | undefined = undefined;
 
     try {
-      const authenticatedClient =
-        credentials.type === 'password'
-          ? await loginClientWithPassword(dheClient, credentials)
-          : await loginClientWithKeyPair(dheClient, {
-              ...credentials,
-              keyPair: (await this.secretService.getServerKeys(serverUrl))?.[
-                username
-              ],
-            });
+      if (authFlow.type === 'saml') {
+        authenticatedClient = await SamlAuthProvider.runSamlLoginWorkflow(
+          dheClient,
+          serverUrl,
+          authFlow.config
+        );
+      } else {
+        const title = 'Login';
+
+        const secretKeys = await this.secretService.getServerKeys(serverUrl);
+        const userLoginPreferences =
+          await this.secretService.getUserLoginPreferences(serverUrl);
+
+        const privateKeyUserNames = Object.keys(secretKeys) as Username[];
+
+        credentials = await promptForCredentials({
+          title,
+          userLoginPreferences,
+          privateKeyUserNames,
+          showOperatesAs: operateAsAnotherUser,
+        });
+
+        // Cancelled by user
+        if (credentials == null) {
+          this.toast.info('Login cancelled.');
+          return;
+        }
+
+        const { username, operateAs = username } = credentials;
+
+        await this.secretService.storeUserLoginPreferences(serverUrl, {
+          lastLogin: username,
+          operateAsUser: {
+            ...userLoginPreferences.operateAsUser,
+            [username]: operateAs,
+          },
+        });
+
+        authenticatedClient =
+          credentials.type === 'password'
+            ? await loginClientWithPassword(dheClient, credentials)
+            : await loginClientWithKeyPair(dheClient, {
+                ...credentials,
+                keyPair: (await this.secretService.getServerKeys(serverUrl))?.[
+                  username
+                ],
+              });
+      }
 
       if (!(await hasInteractivePermission(authenticatedClient))) {
         throw new Error('User does not have interactive permissions.');
@@ -362,8 +363,11 @@ export class UserLoginController extends ControllerBase {
 
       this.toast.error('Login failed. Please check your credentials.');
 
-      if (credentials.type === 'keyPair') {
-        await this.secretService.deleteUserServerKeys(serverUrl, username);
+      if (credentials?.type === 'keyPair') {
+        await this.secretService.deleteUserServerKeys(
+          serverUrl,
+          credentials.username
+        );
       }
     }
   };

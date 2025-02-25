@@ -58,10 +58,45 @@ export interface EnterpriseConnectionConfig {
   experimentalWorkerConfig?: WorkerConfig;
 }
 
-export type LoginWorkflowType = 'login' | 'generatePrivateKey';
-export type LoginWorkflowResult =
+export interface SamlConfig {
+  loginClass: string;
+  providerName: string;
+  loginUrl: string;
+}
+
+export interface MultiAuthConfig {
+  isPasswordEnabled: true;
+  samlConfig: SamlConfig;
+}
+
+// Mutually exclusive password or SAML auth config
+export type SingleAuthConfig =
+  | { isPasswordEnabled: true; samlConfig: null }
+  | { isPasswordEnabled: false; samlConfig: SamlConfig };
+
+export type NoAuthConfig = {
+  isPasswordEnabled: false;
+  samlConfig: null;
+};
+
+export type AuthConfig = MultiAuthConfig | SingleAuthConfig | NoAuthConfig;
+
+export interface PasswordAuthFlow {
+  type: 'password';
+}
+
+export interface SamlAuthFlow {
+  type: 'saml';
+  config: SamlConfig;
+}
+
+export type AuthFlow = PasswordAuthFlow | SamlAuthFlow;
+
+export type LoginPromptCredentials =
   | PasswordCredentials
   | Omit<KeyPairCredentials, 'keyPair'>;
+
+export type LoginWorkflowType = 'login' | 'generatePrivateKey';
 
 export type Psk = Brand<'Psk', string>;
 

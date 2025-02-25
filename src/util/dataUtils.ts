@@ -1,4 +1,11 @@
-import type { NonEmptyArray } from '../types';
+import type {
+  AuthConfig,
+  AuthFlow,
+  MultiAuthConfig,
+  NoAuthConfig,
+  NonEmptyArray,
+  SingleAuthConfig,
+} from '../types';
 
 /**
  * Returns a date string formatted for use in a file path.
@@ -27,6 +34,48 @@ export function hasProperty<TProp extends string>(
   prop: TProp
 ): obj is Record<TProp, unknown> {
   return obj != null && typeof obj === 'object' && prop in obj;
+}
+
+/**
+ * Get the authentication flow based on the authConfig.
+ * @param authConfig The authConfig to check.
+ * @returns The authentication flow
+ */
+export function getAuthFlow(authConfig: SingleAuthConfig): AuthFlow {
+  if (authConfig.isPasswordEnabled) {
+    return {
+      type: 'password',
+    };
+  }
+
+  return {
+    type: 'saml',
+    config: authConfig.samlConfig,
+  };
+}
+
+/**
+ * Type guard to check if the authConfig is a MultiAuthConfig.
+ * @param authConfig The authConfig to check.
+ * @returns true if the authConfig is a MultiAuthConfig, false otherwise
+ */
+export function isMultiAuthConfig(
+  authConfig: AuthConfig
+): authConfig is MultiAuthConfig {
+  return authConfig.isPasswordEnabled && authConfig.samlConfig != null;
+}
+
+/**
+ * Type guard to check if auth config has no authentication enabled.
+ * @param authConfig The authConfig to check.
+ * @returns true if the authConfig has no authentication enabled, false otherwise
+ */
+export function isNoAuthConfig(
+  authConfig: AuthConfig
+): authConfig is NoAuthConfig {
+  return (
+    authConfig.isPasswordEnabled === false && authConfig.samlConfig == null
+  );
 }
 
 /**

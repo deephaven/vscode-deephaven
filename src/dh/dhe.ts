@@ -2,6 +2,7 @@ import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type {
   EnterpriseDhType as DheType,
   EditableQueryInfo,
+  EnterpriseClient,
   QueryInfo,
   TypeSpecificFields,
 } from '@deephaven-enterprise/jsapi-types';
@@ -9,6 +10,7 @@ import { DraftQuery, QueryScheduler } from '@deephaven-enterprise/query-utils';
 import type { AuthenticatedClient as DheAuthenticatedClient } from '@deephaven-enterprise/auth-nodejs';
 import { hasStatusCode, loadModules } from '@deephaven/jsapi-nodejs';
 import type {
+  AuthConfig,
   ConsoleType,
   GrpcURL,
   IdeURL,
@@ -20,6 +22,10 @@ import type {
   WorkerURL,
 } from '../types';
 import {
+  AUTH_CONFIG_CUSTOM_LOGIN_CLASS_SAML_AUTH,
+  AUTH_CONFIG_PASSWORDS_ENABLED,
+  AUTH_CONFIG_SAML_LOGIN_URL,
+  AUTH_CONFIG_SAML_PROVIDER_NAME,
   DEFAULT_TEMPORARY_QUERY_AUTO_TIMEOUT_MS,
   DEFAULT_TEMPORARY_QUERY_TIMEOUT_MS,
   INTERACTIVE_CONSOLE_QUERY_TYPE,
@@ -226,6 +232,49 @@ export async function deleteQueries(
   querySerials: QuerySerial[]
 ): Promise<void> {
   await dheClient.deleteQueries(querySerials);
+}
+
+/**
+ * Get auth config values from the DHE client.
+ * @param dheClient DHE client to use.
+ * @returns A promise that resolves to the auth config values.
+ */
+export async function getDheAuthConfig(
+  dheClient: EnterpriseClient
+): Promise<AuthConfig> {
+  const authConfigMap = Object.fromEntries(
+    (await dheClient.getAuthConfigValues()).map(([key, value]) => [key, value])
+  );
+
+  // Only consider SAML config if it is complete
+  const isSamlEnabled =
+    authConfigMap[AUTH_CONFIG_CUSTOM_LOGIN_CLASS_SAML_AUTH] &&
+    authConfigMap[AUTH_CONFIG_SAML_PROVIDER_NAME] &&
+    authConfigMap[AUTH_CONFIG_SAML_LOGIN_URL];
+
+  const samlConfig = isSamlEnabled
+    ? {
+        loginClass: authConfigMap[AUTH_CONFIG_CUSTOM_LOGIN_CLASS_SAML_AUTH],
+        providerName: authConfigMap[AUTH_CONFIG_SAML_PROVIDER_NAME],
+        loginUrl: authConfigMap[AUTH_CONFIG_SAML_LOGIN_URL],
+      }
+    : null;
+
+  const authConfig: AuthConfig = {
+    // DH-16352 will be adding support to DH Web for disabling passwords. We
+    // already have a `authentication.passwordsEnabled` config prop on the
+    // server, so using that here. If for some reason DH-16352 takes another
+    // approach, we may need to update this. As-is, all that has to be done
+    // to disable password auth is:
+    // 1. Set `authentication.passwordsEnabled` prop to false on server.
+    // 2. Include `authentication.passwordsEnabled` in the list of values set in
+    // `authentication.client.configuration.list` prop to expose it to
+    // `client.getAuthConfigValues()`.
+    isPasswordEnabled: authConfigMap[AUTH_CONFIG_PASSWORDS_ENABLED] !== 'false',
+    samlConfig,
+  };
+
+  return authConfig;
 }
 
 /**

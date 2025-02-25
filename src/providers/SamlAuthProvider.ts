@@ -6,7 +6,7 @@ import {
 import { assertDefined, makeSAMLSessionKey, uniqueId } from '../util';
 import { DH_SAML_AUTH_PROVIDER_TYPE } from '../common';
 import { URLMap } from '../services';
-import { type Disposable } from '../types';
+import { type Disposable, type SamlConfig } from '../types';
 
 class UriEventHandler
   extends vscode.EventEmitter<vscode.Uri>
@@ -24,11 +24,39 @@ export class SamlAuthProvider
    * Static map of unauthenticated DHE clients. This is needed because
    * `vscode.authentication.getSession` doesn't expose a way to pass in data,
    * so this is an easy way to store the client and retrieve it during the auth
-   * flow.
+   * flow initiated by `runSamlLoginWorkflow`.
    */
-  static dheClientsPendingAuth = new URLMap<
+  private static dheClientsPendingAuth = new URLMap<
     UnauthenticatedClient & Disposable
   >();
+
+  /**
+   * Run the SAML login workflow.
+   * @param dheClient The unauthenticated DHE client.
+   * @param serverUrl The server URL.
+   * @param config The SAML config.
+   * @returns The authenticated DHE client.
+   */
+  static runSamlLoginWorkflow = async (
+    dheClient: UnauthenticatedClient & Disposable,
+    serverUrl: URL,
+    config: SamlConfig
+  ): Promise<DheAuthenticatedClient> => {
+    const samlLoginUrlRaw = config.loginUrl;
+    SamlAuthProvider.dheClientsPendingAuth.set(serverUrl, dheClient);
+
+    try {
+      await vscode.authentication.getSession(
+        DH_SAML_AUTH_PROVIDER_TYPE,
+        [serverUrl.href, samlLoginUrlRaw],
+        { createIfNone: true }
+      );
+    } finally {
+      SamlAuthProvider.dheClientsPendingAuth.delete(serverUrl);
+    }
+
+    return dheClient as unknown as DheAuthenticatedClient;
+  };
 
   constructor(
     context: vscode.ExtensionContext,
@@ -85,7 +113,6 @@ export class SamlAuthProvider
     const samlSessionKey = makeSAMLSessionKey();
 
     const redirectUrl = this.samlRedirectUrl;
-    // redirectUrl.searchParams.append('isSamlRedirect', 'true');
 
     const samlLoginUrl = new URL(samlLoginUrlRaw);
     samlLoginUrl.searchParams.append('key', samlSessionKey);
@@ -136,6 +163,7 @@ export class SamlAuthProvider
       });
     } catch (err) {
       console.error('Error during SAML login:', err);
+      throw err;
     }
 
     this._dheClientCache.set(

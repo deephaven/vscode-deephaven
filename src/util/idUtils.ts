@@ -14,10 +14,14 @@ export function uniqueId(size: number = 21): UniqueID {
   return nanoidCustom(size) as UniqueID;
 }
 
+/*
+ * Create base-64 encoded key from a random string with the length no less than
+ * 96 (required by the DH authentication server).
+ */
 export function makeSAMLSessionKey(): string {
   let key = '';
   for (let i = 0; i < 96; i += 1) {
     key += String.fromCharCode(Math.floor(Math.random() * 255));
   }
-  return btoa(key);
+  return Buffer.from(key, 'binary').toString('base64');
 }

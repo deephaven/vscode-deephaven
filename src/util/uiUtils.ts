@@ -3,7 +3,6 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import archiver from 'archiver';
 import type {
-  KeyPairCredentials,
   OperateAsUsername,
   PasswordCredentials,
   Username,
@@ -26,6 +25,9 @@ import type {
   Psk,
   DependencyName,
   DependencyVersion,
+  AuthFlow,
+  LoginPromptCredentials,
+  MultiAuthConfig,
 } from '../types';
 import { getFilePathDateToken, sortByStringProp } from './dataUtils';
 import { assertDefined } from './assertUtil';
@@ -127,8 +129,38 @@ export async function createConnectionQuickPick(
 }
 
 /**
- * Run user login workflow that prompts user for credentials. Prompts are
- * conditional based on the provided arguments.
+ * Prompt the user for which auth flow to use. If there is only 1 enabled, just
+ * return it.
+ * @param authConfig
+ * @returns The selected auth flow or null if cancelled.
+ */
+export async function promptForAuthFlow(
+  authConfig: MultiAuthConfig
+): Promise<AuthFlow | null> {
+  const result = await vscode.window.showQuickPick(
+    [
+      {
+        iconPath: new vscode.ThemeIcon(ICON_ID.saml),
+        label: authConfig.samlConfig.providerName,
+        value: { type: 'saml', config: authConfig.samlConfig },
+      },
+      {
+        label: 'Basic Login',
+        value: { type: 'password' },
+      },
+    ] as const,
+    { ignoreFocusOut: true, title: 'Login' }
+  );
+
+  if (result == null) {
+    return null;
+  }
+
+  return result?.value;
+}
+
+/**
+ * Prompt user for credentials. Prompts are based on the provided arguments.
  * @param title Title for the prompts
  * @param userLoginPreferences User login preferences to determine default values
  * for user / operate as prompts.
@@ -137,28 +169,24 @@ export async function createConnectionQuickPick(
  * one of these private keys or username/password.
  * @param showOperatesAs Whether to show the operate as prompt.
  */
-export async function runUserLoginWorkflow(args: {
+export async function promptForCredentials(args: {
   title: string;
   userLoginPreferences?: UserLoginPreferences;
   privateKeyUserNames?: undefined | [];
   showOperatesAs?: boolean;
 }): Promise<PasswordCredentials | undefined>;
-export async function runUserLoginWorkflow(args: {
+export async function promptForCredentials(args: {
   title: string;
   userLoginPreferences?: UserLoginPreferences;
   privateKeyUserNames?: Username[];
   showOperatesAs?: boolean;
-}): Promise<
-  PasswordCredentials | Omit<KeyPairCredentials, 'keyPair'> | undefined
->;
-export async function runUserLoginWorkflow(args: {
+}): Promise<LoginPromptCredentials | undefined>;
+export async function promptForCredentials(args: {
   title: string;
   userLoginPreferences?: UserLoginPreferences;
   privateKeyUserNames?: Username[];
   showOperatesAs?: boolean;
-}): Promise<
-  PasswordCredentials | Omit<KeyPairCredentials, 'keyPair'> | undefined
-> {
+}): Promise<LoginPromptCredentials | undefined> {
   const {
     title,
     userLoginPreferences,
