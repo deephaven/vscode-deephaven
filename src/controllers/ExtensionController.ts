@@ -210,12 +210,7 @@ export class ExtensionController implements Disposable {
    * Initialize authentication providers.
    */
   initializeAuthProviders = (): void => {
-    assertDefined(this._dheClientCache, 'dheClientCache');
-
-    const samlAuthProvider = new SamlAuthProvider(
-      this._context,
-      this._dheClientCache
-    );
+    const samlAuthProvider = new SamlAuthProvider(this._context);
     this._context.subscriptions.push(samlAuthProvider);
   };
 

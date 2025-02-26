@@ -51,12 +51,8 @@ export class SamlAuthProvider
     return dheClient as unknown as DheAuthenticatedClient;
   };
 
-  constructor(
-    context: vscode.ExtensionContext,
-    dheClientCache: URLMap<DheAuthenticatedClient>
-  ) {
+  constructor(context: vscode.ExtensionContext) {
     this._context = context;
-    this._dheClientCache = dheClientCache;
 
     this._disposable = vscode.Disposable.from(
       this._onDidChangeSessions,
@@ -78,7 +74,6 @@ export class SamlAuthProvider
     this._onDidChangeSessions.event;
 
   private readonly _context: vscode.ExtensionContext;
-  private readonly _dheClientCache: URLMap<DheAuthenticatedClient>;
   private readonly _disposable: vscode.Disposable;
   private readonly _uriEventHandler = new UriEventHandler();
 
@@ -178,11 +173,6 @@ export class SamlAuthProvider
       logger.error('Error during SAML login:', err);
       throw err;
     }
-
-    this._dheClientCache.set(
-      serverUrl,
-      dheClient as unknown as DheAuthenticatedClient
-    );
 
     const userInfo = await dheClient.getUserInfo();
 
