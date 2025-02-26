@@ -3,10 +3,12 @@ import {
   type AuthenticatedClient as DheAuthenticatedClient,
   type UnauthenticatedClient,
 } from '@deephaven-enterprise/auth-nodejs';
-import { assertDefined, makeSAMLSessionKey, uniqueId } from '../util';
+import { assertDefined, Logger, makeSAMLSessionKey, uniqueId } from '../util';
 import { DH_SAML_AUTH_PROVIDER_TYPE } from '../common';
 import { UriEventHandler, URLMap } from '../services';
 import { type Disposable, type SamlConfig } from '../types';
+
+const logger = new Logger('SamlAuthProvider');
 
 export class SamlAuthProvider
   implements vscode.AuthenticationProvider, vscode.Disposable
@@ -90,19 +92,37 @@ export class SamlAuthProvider
     this._disposable.dispose();
   };
 
+  /**
+   *
+   * @param urls The server URL and SAML login URL
+   * Note: that the `AuthenticationProvider` interface defines this as a string[]
+   * of scopes, but since we don't need scopes, this is a good place to provide
+   * the urls needed for DH SAML login.
+   * @returns
+   */
   getSessions = async (
-    _scopes?: readonly string[]
+    _urls?: readonly [serverUrlRaw: string, samlLoginUrlRaw: string]
   ): Promise<readonly vscode.AuthenticationSession[]> => {
     return [];
   };
 
+  /**
+   * Create a new session for the SAML authentication provider.
+   * @param urls The server URL and SAML login URL
+   * Note: that the `AuthenticationProvider` interface defines this as a string[]
+   * of scopes, but since we don't need scopes, this is a good place to provide
+   * the urls needed for DH SAML login.
+   * @returns The authentication session.
+   */
   createSession = async (
-    scopes: readonly string[]
+    urls: readonly [serverUrlRaw: string, samlLoginUrlRaw: string]
   ): Promise<vscode.AuthenticationSession> => {
-    console.log('[TESTING] createSession', scopes);
-    const [serverUrlRaw, samlLoginUrlRaw] = scopes;
+    const [serverUrlRaw, samlLoginUrlRaw] = urls;
+
+    logger.debug('createSession', { serverUrlRaw, samlLoginUrlRaw });
+
     const samlSessionKey = makeSAMLSessionKey();
-    console.log('[TESTING] samlSessionKey:', samlSessionKey);
+    logger.debug('samlSessionKey:', `${samlSessionKey}`);
 
     const redirectUrl = this.samlRedirectUrl;
 
@@ -124,15 +144,16 @@ export class SamlAuthProvider
         return Promise.race([
           new Promise<true>(resolve => {
             this._uriEventHandler.event(async uri => {
-              console.log('[TESTING] handling uri:', uri.toString());
+              // TODO: Verify that this is a response that was initiated by us.
+              logger.debug('Handling uri:', uri.toString());
               resolve(true);
             });
           }),
           new Promise<false>((_, reject) =>
-            setTimeout(() => reject('Cancelled'), 60000)
+            setTimeout(() => reject('Cancelled by timeout.'), 60000)
           ),
           new Promise<false>((_, reject) =>
-            token.onCancellationRequested(() => reject('Cancelled'))
+            token.onCancellationRequested(() => reject('Cancelled by user.'))
           ),
         ]);
       }
@@ -154,7 +175,7 @@ export class SamlAuthProvider
         token: samlSessionKey,
       });
     } catch (err) {
-      console.error('Error during SAML login:', err);
+      logger.error('Error during SAML login:', err);
       throw err;
     }
 
@@ -172,7 +193,7 @@ export class SamlAuthProvider
         id: userInfo.username,
         label: userInfo.username,
       },
-      scopes,
+      scopes: urls,
     };
 
     return session;

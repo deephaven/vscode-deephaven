@@ -23,5 +23,16 @@ export function makeSAMLSessionKey(): string {
   for (let i = 0; i < 96; i += 1) {
     key += String.fromCharCode(Math.floor(Math.random() * 255));
   }
-  return Buffer.from(key, 'binary').toString('base64');
+
+  return (
+    Buffer.from(key, 'binary')
+      .toString('base64')
+      // VS Code seems to aggressively encode Uris. This causes problems when
+      // opening the DH SAML login uri via `vscode.env.openExternal`. Specifically,
+      // `+` characters are replaced with `%2B` which gets translated to ` ` by
+      // DH instead of `+` which breaks the login flow. It's possible we could
+      // address this on DH server, but seems easier to just replace any `+`
+      // characters.
+      .replace(/[+]/g, 'x')
+  );
 }
