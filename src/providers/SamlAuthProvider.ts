@@ -5,17 +5,8 @@ import {
 } from '@deephaven-enterprise/auth-nodejs';
 import { assertDefined, makeSAMLSessionKey, uniqueId } from '../util';
 import { DH_SAML_AUTH_PROVIDER_TYPE } from '../common';
-import { URLMap } from '../services';
+import { UriEventHandler, URLMap } from '../services';
 import { type Disposable, type SamlConfig } from '../types';
-
-class UriEventHandler
-  extends vscode.EventEmitter<vscode.Uri>
-  implements vscode.UriHandler
-{
-  public handleUri(uri: vscode.Uri): void {
-    this.fire(uri);
-  }
-}
 
 export class SamlAuthProvider
   implements vscode.AuthenticationProvider, vscode.Disposable
@@ -111,6 +102,7 @@ export class SamlAuthProvider
     console.log('[TESTING] createSession', scopes);
     const [serverUrlRaw, samlLoginUrlRaw] = scopes;
     const samlSessionKey = makeSAMLSessionKey();
+    console.log('[TESTING] samlSessionKey:', samlSessionKey);
 
     const redirectUrl = this.samlRedirectUrl;
 
@@ -132,12 +124,12 @@ export class SamlAuthProvider
         return Promise.race([
           new Promise<true>(resolve => {
             this._uriEventHandler.event(async uri => {
-              console.log('[TESTING] uri:', uri.toString());
+              console.log('[TESTING] handling uri:', uri.toString());
               resolve(true);
             });
           }),
           new Promise<false>((_, reject) =>
-            setTimeout(() => reject('Cancelled'), 20000)
+            setTimeout(() => reject('Cancelled'), 60000)
           ),
           new Promise<false>((_, reject) =>
             token.onCancellationRequested(() => reject('Cancelled'))
@@ -159,7 +151,7 @@ export class SamlAuthProvider
     try {
       await dheClient.login({
         type: 'saml',
-        token: decodeURIComponent(samlSessionKey),
+        token: samlSessionKey,
       });
     } catch (err) {
       console.error('Error during SAML login:', err);

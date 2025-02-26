@@ -8,5 +8,6 @@ export * from './PollingService';
 export * from './SecretService';
 export * from './SerializedKeyMap';
 export * from './ServerManager';
+export * from './UriEventHandler';
 export * from './URIMap';
 export * from './URLMap';
