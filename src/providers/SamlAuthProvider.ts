@@ -3,10 +3,14 @@ import {
   type AuthenticatedClient as DheAuthenticatedClient,
   type UnauthenticatedClient,
 } from '@deephaven-enterprise/auth-nodejs';
-import { assertDefined, Logger, makeSAMLSessionKey, uniqueId } from '../util';
-import { DH_SAML_AUTH_PROVIDER_TYPE } from '../common';
+import { Logger, makeSAMLSessionKey, parseSamlScopes, uniqueId } from '../util';
+import {
+  DH_SAML_AUTH_PROVIDER_TYPE,
+  DH_SAML_LOGIN_URL_SCOPE_KEY,
+  DH_SAML_SERVER_URL_SCOPE_KEY,
+} from '../common';
 import { UriEventHandler, URLMap } from '../services';
-import { type Disposable, type SamlConfig } from '../types';
+import { type Disposable, type SamlConfig, type UniqueID } from '../types';
 
 const logger = new Logger('SamlAuthProvider');
 
@@ -14,14 +18,14 @@ export class SamlAuthProvider
   implements vscode.AuthenticationProvider, vscode.Disposable
 {
   /**
-   * Static map of unauthenticated DHE clients. This is needed because
-   * `vscode.authentication.getSession` doesn't expose a way to pass in data,
-   * so this is an easy way to store the client and retrieve it during the auth
-   * flow initiated by `runSamlLoginWorkflow`.
+   * Pending auth state is created before initiating the SAML login flow and
+   * used to verify the redirect response and to finalize the login once redirects
+   * have completed.
    */
-  private static dheClientsPendingAuth = new URLMap<
-    UnauthenticatedClient & Disposable
-  >();
+  private static pendingAuthState = new URLMap<{
+    client: UnauthenticatedClient & Disposable;
+    stateId: UniqueID;
+  }>();
 
   /**
    * Run the SAML login workflow.
@@ -35,17 +39,22 @@ export class SamlAuthProvider
     serverUrl: URL,
     config: SamlConfig
   ): Promise<DheAuthenticatedClient> => {
-    const samlLoginUrlRaw = config.loginUrl;
-    SamlAuthProvider.dheClientsPendingAuth.set(serverUrl, dheClient);
+    SamlAuthProvider.pendingAuthState.set(serverUrl, {
+      client: dheClient,
+      stateId: uniqueId(),
+    });
 
     try {
       await vscode.authentication.getSession(
         DH_SAML_AUTH_PROVIDER_TYPE,
-        [serverUrl.href, samlLoginUrlRaw],
+        [
+          `${DH_SAML_SERVER_URL_SCOPE_KEY}:${serverUrl.href}`,
+          `${DH_SAML_LOGIN_URL_SCOPE_KEY}:${config.loginUrl}`,
+        ],
         { createIfNone: true }
       );
     } finally {
-      SamlAuthProvider.dheClientsPendingAuth.delete(serverUrl);
+      SamlAuthProvider.pendingAuthState.delete(serverUrl);
     }
 
     return dheClient as unknown as DheAuthenticatedClient;
@@ -63,7 +72,7 @@ export class SamlAuthProvider
         { supportsMultipleAccounts: false }
       ),
       vscode.window.registerUriHandler(this._uriEventHandler),
-      SamlAuthProvider.dheClientsPendingAuth
+      SamlAuthProvider.pendingAuthState
     );
   }
 
@@ -77,10 +86,13 @@ export class SamlAuthProvider
   private readonly _disposable: vscode.Disposable;
   private readonly _uriEventHandler = new UriEventHandler();
 
-  get samlRedirectUrl(): URL {
+  createSamlRedirectUrl(stateId: UniqueID): URL {
     const publisher = this._context.extension.packageJSON.publisher;
     const name = this._context.extension.packageJSON.name;
-    return new URL(`${vscode.env.uriScheme}://${publisher}.${name}/`);
+    const url = new URL(
+      `${vscode.env.uriScheme}://${publisher}.${name}/${stateId}`
+    );
+    return url;
   }
 
   dispose = (): void => {
@@ -88,42 +100,54 @@ export class SamlAuthProvider
   };
 
   /**
-   *
-   * @param urls The server URL and SAML login URL
-   * Note: that the `AuthenticationProvider` interface defines this as a string[]
-   * of scopes, but since we don't need scopes, this is a good place to provide
-   * the urls needed for DH SAML login.
-   * @returns
+   * Get a list of sessions.
+   * @param scopes An optional list of scopes. If provided, the sessions returned
+   * these scopes, otherwise all sessions should be returned.
+   * @returns A promise that resolves to an array of authentication sessions.
    */
   getSessions = async (
-    _urls?: readonly [serverUrlRaw: string, samlLoginUrlRaw: string]
+    _scopes?: readonly string[]
   ): Promise<readonly vscode.AuthenticationSession[]> => {
     return [];
   };
 
   /**
-   * Create a new session for the SAML authentication provider.
-   * @param urls The server URL and SAML login URL
-   * Note: that the `AuthenticationProvider` interface defines this as a string[]
-   * of scopes, but since we don't need scopes, this is a good place to provide
-   * the urls needed for DH SAML login.
-   * @returns The authentication session.
+   * Prompts a user to login.
+   *
+   * If login is successful, the onDidChangeSessions event should be fired.
+   *
+   * If login fails, a rejected promise should be returned.
+   *
+   * If the provider has specified that it does not support multiple accounts,
+   * then this should never be called if there is already an existing session
+   * matching these scopes.
+   * @param scopes A list of scopes that the new session should be created with.
+   * @returns A promise that resolves to an authentication session.
    */
   createSession = async (
-    urls: readonly [serverUrlRaw: string, samlLoginUrlRaw: string]
+    scopes: readonly string[]
   ): Promise<vscode.AuthenticationSession> => {
-    const [serverUrlRaw, samlLoginUrlRaw] = urls;
+    const samlScopes = parseSamlScopes(scopes);
+    if (samlScopes == null) {
+      throw new Error(
+        'SAML authentication provider does not support this scope.'
+      );
+    }
 
-    logger.debug('createSession', { serverUrlRaw, samlLoginUrlRaw });
+    logger.debug('createSession', samlScopes);
 
     const samlSessionKey = makeSAMLSessionKey();
     logger.debug('samlSessionKey:', `${samlSessionKey}`);
 
-    const redirectUrl = this.samlRedirectUrl;
+    const serverUrl = new URL(samlScopes.serverUrl);
+    const { stateId } = SamlAuthProvider.pendingAuthState.getOrThrow(serverUrl);
 
-    const samlLoginUrl = new URL(samlLoginUrlRaw);
+    const samlLoginUrl = new URL(samlScopes.samlLoginUrl);
     samlLoginUrl.searchParams.append('key', samlSessionKey);
-    samlLoginUrl.searchParams.append('redirect', `${redirectUrl}`);
+    samlLoginUrl.searchParams.append(
+      'redirect',
+      `${this.createSamlRedirectUrl(stateId)}`
+    );
 
     const authSucceeded = await vscode.window.withProgress<boolean>(
       {
@@ -131,26 +155,51 @@ export class SamlAuthProvider
         title: 'Signing in to Deephaven...',
         cancellable: true,
       },
-      async (_, token) => {
+      async (_, cancellationToken) => {
         await vscode.env.openExternal(
           vscode.Uri.parse(samlLoginUrl.toString())
         );
 
+        const subscriptions: vscode.Disposable[] = [];
+
         return Promise.race([
-          new Promise<true>(resolve => {
-            this._uriEventHandler.event(async uri => {
-              // TODO: Verify that this is a response that was initiated by us.
-              logger.debug('Handling uri:', uri.toString());
-              resolve(true);
-            });
+          new Promise<true>((resolve, reject) => {
+            this._uriEventHandler.event(
+              async uri => {
+                logger.debug('Handling uri:', uri.toString());
+
+                const state = SamlAuthProvider.pendingAuthState.get(serverUrl);
+                if (state == null) {
+                  reject(`No state found for ${uri}.`);
+                  return;
+                }
+
+                const stateId = uri.path.substring(1);
+                if (stateId !== state.stateId) {
+                  reject(`State id mismatch: ${stateId}`);
+                  return;
+                }
+
+                resolve(true);
+              },
+              undefined,
+              subscriptions
+            );
           }),
-          new Promise<false>((_, reject) =>
+          new Promise<never>((_, reject) =>
             setTimeout(() => reject('Cancelled by timeout.'), 60000)
           ),
-          new Promise<false>((_, reject) =>
-            token.onCancellationRequested(() => reject('Cancelled by user.'))
+          new Promise<never>((_, reject) =>
+            cancellationToken.onCancellationRequested(
+              () => reject('Cancelled by user.'),
+              undefined,
+              subscriptions
+            )
           ),
-        ]);
+        ]).finally(() => {
+          subscriptions.forEach(subscription => subscription.dispose());
+          subscriptions.length = 0;
+        });
       }
     );
 
@@ -158,11 +207,8 @@ export class SamlAuthProvider
       throw new Error('Deephaven SAML authentication failed.');
     }
 
-    const serverUrl = new URL(serverUrlRaw);
-
-    const dheClient = SamlAuthProvider.dheClientsPendingAuth.get(serverUrl);
-
-    assertDefined(dheClient, 'DHE client not found in pending auth map');
+    const { client: dheClient } =
+      SamlAuthProvider.pendingAuthState.getOrThrow(serverUrl);
 
     try {
       await dheClient.login({
@@ -183,7 +229,7 @@ export class SamlAuthProvider
         id: userInfo.username,
         label: userInfo.username,
       },
-      scopes: urls,
+      scopes,
     };
 
     return session;

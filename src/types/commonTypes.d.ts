@@ -92,6 +92,11 @@ export interface SamlAuthFlow {
 
 export type AuthFlow = PasswordAuthFlow | SamlAuthFlow;
 
+export interface SamlAuthScopes {
+  serverUrl: string;
+  samlLoginUrl: string;
+}
+
 export type LoginPromptCredentials =
   | PasswordCredentials
   | Omit<KeyPairCredentials, 'keyPair'>;

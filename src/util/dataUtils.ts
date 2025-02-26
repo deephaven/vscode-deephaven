@@ -1,3 +1,7 @@
+import {
+  DH_SAML_LOGIN_URL_SCOPE_KEY,
+  DH_SAML_SERVER_URL_SCOPE_KEY,
+} from '../common';
 import type {
   AuthConfig,
   AuthFlow,
@@ -101,4 +105,33 @@ export function sortByStringProp<TPropName extends string>(
   ): number => {
     return String(a[propName]).localeCompare(String(b[propName]));
   };
+}
+
+/**
+ * Parse SAML scopes from a given list of AuthenticationProvider scope strings.
+ * @param scopes The list of scopes to parse.
+ * @returns An object containing the server URL and SAML login URL if found, or null if not.
+ */
+export function parseSamlScopes(scopes: readonly string[]): {
+  serverUrl: string;
+  samlLoginUrl: string;
+} | null {
+  const serverUrl = scopes.find(scope =>
+    scope.startsWith(`${DH_SAML_SERVER_URL_SCOPE_KEY}:`)
+  );
+
+  const samlLoginUrl = scopes.find(scope =>
+    scope.startsWith(`${DH_SAML_LOGIN_URL_SCOPE_KEY}:`)
+  );
+
+  if (serverUrl && samlLoginUrl) {
+    return {
+      serverUrl: serverUrl.substring(DH_SAML_SERVER_URL_SCOPE_KEY.length + 1),
+      samlLoginUrl: samlLoginUrl.substring(
+        DH_SAML_LOGIN_URL_SCOPE_KEY.length + 1
+      ),
+    };
+  }
+
+  return null;
 }
