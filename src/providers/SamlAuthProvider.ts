@@ -89,10 +89,7 @@ export class SamlAuthProvider
   createSamlRedirectUrl(stateId: UniqueID): URL {
     const publisher = this._context.extension.packageJSON.publisher;
     const name = this._context.extension.packageJSON.name;
-    const url = new URL(
-      `${vscode.env.uriScheme}://${publisher}.${name}/${stateId}`
-    );
-    return url;
+    return new URL(`${vscode.env.uriScheme}://${publisher}.${name}/${stateId}`);
   }
 
   dispose = (): void => {
