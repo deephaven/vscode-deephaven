@@ -24,12 +24,14 @@ const exTester = new ExTester(
   extensionsPath
 );
 
+const vscodeVersion = '1.94.2';
+
 if (isSetup) {
   console.log('Downloading VS Code...');
-  await exTester.downloadCode();
+  await exTester.downloadCode(vscodeVersion);
 
   console.log('\nDownloading ChromeDriver...');
-  await exTester.downloadChromeDriver();
+  await exTester.downloadChromeDriver(vscodeVersion);
 
   console.log('\nInstalling VSIX...');
   await exTester.installVsix();
@@ -38,6 +40,7 @@ if (isSetup) {
 const runOptions: Parameters<ExTester['runTests']>[1] = {
   resources: [],
   config: mochaConfig,
+  vscodeVersion,
 };
 
 console.log('\nRunning tests...');
