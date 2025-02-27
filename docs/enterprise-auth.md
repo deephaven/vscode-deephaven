@@ -15,7 +15,7 @@ The Deephaven VS Code extension supports generating a private / public key pair 
 ### Generating Key Pair
 To generate a key pair:
 * Right click on a running server node in the server list and click "Generate DHE Key Pair".
-* You will be prompted to login with the username / password you would like to associate with key pair with.
+* You will be prompted to login with the username / password you would like to associate the key pair with.
 * On successful login, the generated public key will be uploaded to the server and associated with the username.
 
 ![Generate Enterprise Key Pair](assets/dhe-generate-keypair.gif)
