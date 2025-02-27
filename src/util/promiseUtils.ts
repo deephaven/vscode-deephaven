@@ -24,11 +24,11 @@ export function rejectAfterTimeout(
   reason: string,
   disposables?: vscode.Disposable[]
 ): Promise<never> {
-  let timeoutId: NodeJS.Timeout | null = null;
+  let timeoutId: NodeJS.Timeout;
 
   disposables?.push({
     dispose: () => {
-      clearTimeout(timeoutId!);
+      clearTimeout(timeoutId);
     },
   });
 
