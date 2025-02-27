@@ -24,7 +24,7 @@ const exTester = new ExTester(
   extensionsPath
 );
 
-const vscodeVersion = '1.93.1';
+const vscodeVersion = '1.91.1';
 
 if (isSetup) {
   console.log('Downloading VS Code...');
