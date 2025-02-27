@@ -13,19 +13,16 @@ By default, the extension will accept a basic username / password login to authe
 The Deephaven VS Code extension supports generating a private / public key pair that can be used to authenticate with a Deephaven Enterprise server. A generated private key will be stored locally by the extension, and the corresponding public key will be stored on the Deephaven server associated with a username. 
 
 ### Generating Key Pair
-To generate a key pair, right click on a running server node in the server list and click "Generate DHE Key Pair".
+To generate a key pair:
+* Right click on a running server node in the server list and click "Generate DHE Key Pair".
+* You will be prompted to login with the username / password you would like to associate with key pair with.
+* On successful login, the generated public key will be uploaded to the server and associated with the username.
 
 ![Generate Enterprise Key Pair](assets/dhe-generate-keypair.gif)
 
-You will be prompted to login with the username / password you would like to associate with key pair with. On successful login, the generated public key will be uploaded to the server and associated with the username.
+After creating the key pair, clicking on the server node should prompt for a username. If you enter a username associated with a stored key pair, you will be able to login without a password.
 
-![Key Pair Username](assets/dhe-keypair-username.png)
-
-After creating the key pair, clicking on the server node should prompt for a username.
-
-![Login Username](assets/login-username.png)
-
-If you enter a username associated with a stored key pair, you will be able to login without a password.
+![Enterprise Key Pair Login](assets/dhe-keypair-auth.gif)
 
 ### Deleting a Key Pair
 To delete all Deephaven private keys managed by the extension from your local machine, you can type "Deephaven: Clear Secrets" in the VS Code command palette. Note that this action is irreversible, but it is easy to regenerate a key pair for any server you still want to keep access to.
