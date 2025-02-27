@@ -63,6 +63,8 @@ export class SamlAuthProvider
       SamlAuthProvider.pendingAuthState.delete(serverUrl);
     }
 
+    // If we get here, we know that `vscode.authentication.getSession` succeeded
+    // which means the client should be authenticated.
     return dheClient as unknown as DheAuthenticatedClient;
   };
 
