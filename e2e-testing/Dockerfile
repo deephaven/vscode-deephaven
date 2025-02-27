@@ -16,7 +16,7 @@ RUN apt-get update && \
  RUN wget --no-verbose -O /tmp/chrome.deb \
   https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_128.0.6613.137-1_amd64.deb \ 
   && apt install -y /tmp/chrome.deb \ 
-  && sudo rm /tmp/chrome.deb
+  && rm /tmp/chrome.deb
 # RUN apt-get update && \
 #     apt-get install -y \
 #     libnss3 \
