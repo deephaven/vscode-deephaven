@@ -4,31 +4,37 @@ FROM node:$NODE_VERSION AS node
 WORKDIR /work/
 
 RUN node --version
+RUN dpkg --print-architecture
 
-# RUN apt-get update && \
-#     apt-get install -y \
-#     # Even though Chromium is downloaded dynamically by vscode-extension-tester,
-#     # we explicitly install so that lib dependencies are automatically installed.
-#     chromium \
-#     xvfb
 RUN apt-get update && \
     apt-get install -y \
-    libnss3 \
-    libdbus-1-3 \
-    libatk1.0-0 \
-    libatk-bridge2.0-0 \
-    libgtk-3-0 \
-    libgbm1 \
-    libasound2 \
-    libxcomposite1 \
     xvfb
-    # libXcomposite \
-    # libXdamage \
-    # libXfixes \
-    # libXrandr \
-    # libdrm \
-    # libxkbcommon \
-    # libatspi
+    # Even though Chromium is downloaded dynamically by vscode-extension-tester,
+    # we explicitly install so that lib dependencies are automatically installed.
+    # chromium \
+
+ RUN wget --no-verbose -O /tmp/chrome.deb \
+  https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_128.0.6613.137-1_amd64.deb \ 
+  && apt install -y /tmp/chrome.deb \ 
+  && sudo rm /tmp/chrome.deb
+# RUN apt-get update && \
+#     apt-get install -y \
+#     libnss3 \
+#     libdbus-1-3 \
+#     libatk1.0-0 \
+#     libatk-bridge2.0-0 \
+#     libgtk-3-0 \
+#     libgbm1 \
+#     libasound2 \
+#     libxcomposite1 \
+#     xvfb
+#     # libXcomposite \
+#     # libXdamage \
+#     # libXfixes \
+#     # libXrandr \
+#     # libdrm \
+#     # libxkbcommon \
+#     # libatspi
 
 # Package contents should change less frequently than the source code, so copy
 # and install them in earlier layer
