@@ -5,19 +5,20 @@ WORKDIR /work/
 
 RUN node --version
 
-# dpkg --add-architecture arm64
+# RUN dpkg --add-architecture amd64
 RUN apt-get update && \
     apt-get install -y \
-    xvfb \
-    chromium
+    xvfb
     # Even though Chromium is downloaded dynamically by vscode-extension-tester,
     # we explicitly install so that lib dependencies are automatically installed.
     # chromium \
 
-#  RUN wget --no-verbose -O /tmp/chrome.deb \
-#   https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_128.0.6613.137-1_amd64.deb \ 
-#   && apt install -y /tmp/chrome.deb \ 
-#   && rm /tmp/chrome.deb
+RUN wget --no-verbose -O /tmp/chrome.deb \
+  https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_128.0.6613.137-1_amd64.deb \ 
+  && apt install -y /tmp/chrome.deb \ 
+  && rm /tmp/chrome.deb
+
+RUN google-chrome --version
 # RUN apt-get update && \
 #     apt-get install -y \
 #     libnss3 \
