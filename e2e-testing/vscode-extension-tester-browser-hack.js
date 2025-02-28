@@ -188,7 +188,7 @@ class VSBrowser {
     // PATCH:
     const serviceBuilder = new chrome_1.ServiceBuilder(chromeDriverBinaryPath);
     serviceBuilder.setStdio('inherit');
-    serviceBuilder.enableVerboseLogging();
+    // serviceBuilder.enableVerboseLogging();
     this._driver = await new page_objects_1.Builder()
       .setChromeService(serviceBuilder)
       .forBrowser(page_objects_1.Browser.CHROME)
