@@ -12,8 +12,10 @@ services:
     build:
       context: ../
       dockerfile: ./e2e-testing/Dockerfile
+      shm_size: '2gb'
     depends_on:
       dhc-server:
         condition: service_healthy
+
     volumes:
       - ./.resources:/work/e2e-testing/.resources
