@@ -145,9 +145,10 @@ class VSBrowser {
     const args = [
       // '--whitelisted-ips=""', // PATCH:
       // '--headless', // PATCH:
-      '--no-sandbox',
-      '--remote-debugging-pipe',
       // '--disable-dev-shm-usage',
+      '--no-sandbox',
+      '--disable-gpu',
+      '--remote-debugging-pipe',
       `--user-data-dir=${path.join(this.storagePath, 'settings')}`,
     ];
     if (this.extensionsFolder) {
