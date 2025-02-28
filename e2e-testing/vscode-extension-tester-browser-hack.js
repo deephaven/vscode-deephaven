@@ -143,6 +143,7 @@ class VSBrowser {
       `Writing code settings to ${path.join(userSettings, 'settings.json')}`
     );
     const args = [
+      '--whitelisted-ips=""', // PATCH:
       '--no-sandbox',
       '--disable-dev-shm-usage',
       `--user-data-dir=${path.join(this.storagePath, 'settings')}`,
@@ -181,6 +182,7 @@ class VSBrowser {
     }
     console.log('Launching browser...');
     console.log('Patching ServiceBuilder...');
+    // PATCH:
     const serviceBuilder = new chrome_1.ServiceBuilder(chromeDriverBinaryPath);
     serviceBuilder.setStdio('inherit');
     this._driver = await new page_objects_1.Builder()
