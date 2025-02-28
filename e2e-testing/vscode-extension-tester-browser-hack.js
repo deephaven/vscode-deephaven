@@ -144,8 +144,8 @@ class VSBrowser {
     );
     const args = [
       // '--whitelisted-ips=""', // PATCH:
-      '--headless', // PATCH:
-      '--no-sandbox',
+      // '--headless', // PATCH:
+      // '--no-sandbox',
       '--disable-dev-shm-usage',
       `--user-data-dir=${path.join(this.storagePath, 'settings')}`,
     ];
