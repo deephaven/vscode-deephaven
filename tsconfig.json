@@ -1,5 +1,5 @@
 {
-  "extends": "./node20tsconfig.json",
+  "extends": "./tsconfig.node20.json",
   "compilerOptions": {
     "module": "CommonJS",
     "outDir": "dist",
@@ -18,6 +18,8 @@
     "node_modules",
     // Exclude tests as they have their own tsconfigs.
     "e2e",
+    "e2e-testing",
     "**/*.spec.ts"
-  ]
+  ],
+  "references": [{ "path": "./e2e-testing" }]
 }

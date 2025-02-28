@@ -1,0 +1,1 @@
+table = emptyTable(10)
