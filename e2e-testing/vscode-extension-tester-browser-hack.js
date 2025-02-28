@@ -145,9 +145,9 @@ class VSBrowser {
     const args = [
       // '--whitelisted-ips=""', // PATCH:
       // '--headless', // PATCH:
-      // '--no-sandbox',
+      '--no-sandbox',
       '--remote-debugging-pipe',
-      '--disable-dev-shm-usage',
+      // '--disable-dev-shm-usage',
       `--user-data-dir=${path.join(this.storagePath, 'settings')}`,
     ];
     if (this.extensionsFolder) {
@@ -187,6 +187,7 @@ class VSBrowser {
     // PATCH:
     const serviceBuilder = new chrome_1.ServiceBuilder(chromeDriverBinaryPath);
     serviceBuilder.setStdio('inherit');
+    serviceBuilder.enableVerboseLogging();
     this._driver = await new page_objects_1.Builder()
       .setChromeService(serviceBuilder)
       .forBrowser(page_objects_1.Browser.CHROME)
