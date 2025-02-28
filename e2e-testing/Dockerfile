@@ -59,5 +59,6 @@ RUN npm run check:types
 # RUN xdpyinfo -display $DISPLAY > /dev/null || Xvfb $DISPLAY -screen 0 1024x768x16 &
 
 # CMD ["tail", "-f", "/dev/null"]
-CMD ["xvfb-run", "--auto-servernum", "--server-args='-screen 0 1920x1080x24'", "npm", "run", "test:e2e"]
+CMD ["xvfb-run", "--auto-servernum", "--server-args='-screen 0 1920x1080x24 -ac'", "npm", "run", "test:e2e"]
 # xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' npm run test:e2e
+# xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' npm run test:e2e xterm
