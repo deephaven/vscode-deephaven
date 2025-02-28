@@ -18,7 +18,7 @@ RUN apt-get update && \
 #   && apt install -y /tmp/chrome.deb \ 
 #   && rm /tmp/chrome.deb
 
-RUN google-chrome --version
+# RUN google-chrome --version
 # RUN apt-get update && \
 #     apt-get install -y \
 #     libnss3 \
