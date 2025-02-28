@@ -8,6 +8,7 @@ RUN node --version
 # RUN dpkg --add-architecture amd64
 RUN apt-get update && \
     apt-get install -y \
+    dbus \
     xvfb \
     # Even though Chromium is downloaded dynamically by vscode-extension-tester,
     # we explicitly install so that lib dependencies are automatically installed.
