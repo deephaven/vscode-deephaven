@@ -5,6 +5,7 @@
 !.eslintrc.json
 !.nvmrc
 !.vscodeignore
+!e2e-testing/.mocharc*.js
 
 vitest.config.mts
 
