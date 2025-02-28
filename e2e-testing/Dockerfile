@@ -59,8 +59,8 @@ RUN npm run check:types
 
 # RUN xdpyinfo -display $DISPLAY > /dev/null || Xvfb $DISPLAY -screen 0 1024x768x16 &
 
-RUN chmod +x entrypoint.sh
-ENTRYPOINT ["/entrypoint.sh"]
+RUN chmod +x ./e2e-testing/entrypoint.sh
+ENTRYPOINT ["./e2e-testing/entrypoint.sh"]
 
 # CMD ["tail", "-f", "/dev/null"]
 CMD ["npm", "run", "test:e2e"]
