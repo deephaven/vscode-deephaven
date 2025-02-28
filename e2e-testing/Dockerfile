@@ -47,7 +47,7 @@ RUN npm ci
 COPY . .
 
 # Patching vscode-extension-tester for debugging
-RUN cp ./e2e-testing/vscode-extension-tester-browser-hack.js ./node_modules/vscode-extension-tester/out/browser.js
+# RUN cp ./e2e-testing/vscode-extension-tester-browser-hack.js ./node_modules/vscode-extension-tester/out/browser.js
 
 RUN ls -la
 
