@@ -43,5 +43,5 @@ const runOptions: Parameters<ExTester['runTests']>[1] = {
   vscodeVersion,
 };
 
-console.log('\nRunning tests...');
+console.log('\nRunning tests with options:', JSON.stringify(runOptions));
 await exTester.runTests(testFilesPattern, runOptions);
