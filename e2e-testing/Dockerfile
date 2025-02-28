@@ -4,19 +4,20 @@ FROM node:$NODE_VERSION AS node
 WORKDIR /work/
 
 RUN node --version
-RUN dpkg --print-architecture
 
+# dpkg --add-architecture arm64
 RUN apt-get update && \
     apt-get install -y \
-    xvfb
+    xvfb \
+    chromium
     # Even though Chromium is downloaded dynamically by vscode-extension-tester,
     # we explicitly install so that lib dependencies are automatically installed.
     # chromium \
 
- RUN wget --no-verbose -O /tmp/chrome.deb \
-  https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_128.0.6613.137-1_amd64.deb \ 
-  && apt install -y /tmp/chrome.deb \ 
-  && rm /tmp/chrome.deb
+#  RUN wget --no-verbose -O /tmp/chrome.deb \
+#   https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_128.0.6613.137-1_amd64.deb \ 
+#   && apt install -y /tmp/chrome.deb \ 
+#   && rm /tmp/chrome.deb
 # RUN apt-get update && \
 #     apt-get install -y \
 #     libnss3 \
@@ -43,6 +44,9 @@ RUN npm ci
 
 COPY . .
 
+# Patching vscode-extension-tester for debugging
+RUN cp ./e2e-testing/vscode-extension-tester-browser-hack.js ./node_modules/vscode-extension-tester/out/browser.js
+
 RUN ls -la
 
 # TODO: We need this in order to build e2e-testing/out/runner.mjs, but the runner
@@ -55,3 +59,4 @@ RUN npm run check:types
 
 # CMD ["tail", "-f", "/dev/null"]
 CMD ["xvfb-run", "--auto-servernum", "--server-args='-screen 0 1920x1080x24'", "npm", "run", "test:e2e"]
+# xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' npm run test:e2e
