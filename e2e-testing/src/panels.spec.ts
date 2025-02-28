@@ -63,6 +63,8 @@ describe('Panels Tests', () => {
 
     await runDhFile?.click();
 
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
     await VSBrowser.instance.takeScreenshot('panels2');
   });
 });
