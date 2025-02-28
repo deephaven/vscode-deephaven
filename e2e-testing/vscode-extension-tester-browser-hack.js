@@ -146,6 +146,7 @@ class VSBrowser {
       // '--whitelisted-ips=""', // PATCH:
       // '--headless', // PATCH:
       // '--no-sandbox',
+      '--remote-debugging-pipe',
       '--disable-dev-shm-usage',
       `--user-data-dir=${path.join(this.storagePath, 'settings')}`,
     ];
