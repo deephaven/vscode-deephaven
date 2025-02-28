@@ -63,6 +63,6 @@ describe('Panels Tests', () => {
 
     await runDhFile?.click();
 
-    await VSBrowser.instance.takeScreenshot('panels');
+    await VSBrowser.instance.takeScreenshot('panels2');
   });
 });
