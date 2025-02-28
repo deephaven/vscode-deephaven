@@ -143,7 +143,8 @@ class VSBrowser {
       `Writing code settings to ${path.join(userSettings, 'settings.json')}`
     );
     const args = [
-      '--whitelisted-ips=""', // PATCH:
+      // '--whitelisted-ips=""', // PATCH:
+      '--headless', // PATCH:
       '--no-sandbox',
       '--disable-dev-shm-usage',
       `--user-data-dir=${path.join(this.storagePath, 'settings')}`,
