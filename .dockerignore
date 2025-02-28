@@ -1,0 +1,20 @@
+# Hidden file / directories
+**/.*/
+
+# Add back specific hidden files
+!.eslintrc.json
+!.nvmrc
+!.vscodeignore
+!e2e-testing/.mocharc*.js
+
+vitest.config.mts
+
+*.tsbuildinfo
+*.vsix
+
+**/dist
+**/node_modules/
+**/out
+docs
+releases
+test-reports

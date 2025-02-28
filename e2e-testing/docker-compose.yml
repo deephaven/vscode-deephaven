@@ -1,0 +1,21 @@
+services:
+  dhc-server:
+    container_name: dhc-server
+    image: ghcr.io/deephaven/server:${DHC_VERSION:-edge}
+    pull_policy: always
+    expose:
+      - 10000
+    environment:
+      - START_OPTS=-Xmx4g -DAuthHandlers=io.deephaven.auth.AnonymousAuthenticationHandler -Ddeephaven.console.type=python -Ddeephaven.application.dir=./data/app.d
+
+  e2e:
+    build:
+      context: ../
+      dockerfile: ./e2e-testing/Dockerfile
+      # shm_size: '2gb'
+    depends_on:
+      dhc-server:
+        condition: service_healthy
+
+    volumes:
+      - ./.resources:/work/e2e-testing/.resources

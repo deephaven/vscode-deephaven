@@ -18,21 +18,28 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - name: Run end-to-end tests
-        run: xvfb-run npm run test:e2e
-      - name: Publish Test Summary Results
-        if: ${{ always() }}
-        run: |
-          npm run report:ctrfmerge
-          npm run report:ctrfsummary
-          sed -i 's/<h3>Test Summary<\/h3>/<h3>End-to-end Test Summary<\/h3>/' $GITHUB_STEP_SUMMARY
-          npm run report:prcomment
-      - name: Save PR Number
-        if: ${{ always() }}
-        run: echo ${{ github.event.number }} > pr-comment/PR-number.txt
-      - name: Upload Summary as Artifact
+        run: xvfb-run npm run test:e2e #:docker
+      - name: Upload Screenshots as Artifact
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: pr-comment
-          path: pr-comment/
+          name: e2e-screenshots
+          path: e2e-testing/.resources/screenshots
           retention-days: 1
+      # - name: Publish Test Summary Results
+      #   if: ${{ always() }}
+      #   run: |
+      #     npm run report:ctrfmerge
+      #     npm run report:ctrfsummary
+      #     sed -i 's/<h3>Test Summary<\/h3>/<h3>End-to-end Test Summary<\/h3>/' $GITHUB_STEP_SUMMARY
+      #     npm run report:prcomment
+      # - name: Save PR Number
+      #   if: ${{ always() }}
+      #   run: echo ${{ github.event.number }} > pr-comment/PR-number.txt
+      # - name: Upload Summary as Artifact
+      #   if: ${{ always() }}
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: pr-comment
+      #     path: pr-comment/
+      #     retention-days: 1
