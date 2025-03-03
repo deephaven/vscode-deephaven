@@ -20,6 +20,8 @@ export async function openResources(
   wsPath: string,
   fileName: string
 ): Promise<void> {
+  console.log('Platform:', os.platform());
+
   if (['win32', 'darwin'].includes(os.platform())) {
     await VSBrowser.instance.openResources(wsPath, fileName);
     return;
