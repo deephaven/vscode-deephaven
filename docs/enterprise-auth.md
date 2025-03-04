@@ -28,7 +28,7 @@ After creating the key pair, clicking on the server node should prompt for a use
 To delete all Deephaven private keys managed by the extension from your local machine, you can type "Deephaven: Clear Secrets" in the VS Code command palette. Note that this action is irreversible, but it is easy to regenerate a key pair for any server you still want to keep access to.
 
 ### Single Sign-On
-Deephaven Enterprise servers can be configured for single sign-on (SSO) using a Security Assertion Markup Language (SAML) identity provider. The VS Code extension will automatically detect what kind of authentication is supported by a Deephaven server. If multiple options are available, the extension will prompt you to chose which one to use.
+Deephaven Enterprise servers can be configured for single sign-on (SSO) using a Security Assertion Markup Language (SAML) identity provider. In order to support the necessary login redirects, the `authentication.samlauth.jetty.redirect.list` server prop will need to include `vscode://deephaven.vscode-deephaven/*`. The VS Code extension will automatically detect what kind of authentication is supported by a Deephaven server. If multiple options are available, the extension will prompt you to chose which one to use.
 
 ![Enterprise SAML Auth](assets/dhe-saml-auth.gif)
 
