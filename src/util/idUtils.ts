@@ -34,6 +34,7 @@ export function makeSAMLSessionKey(): string {
       // character for SAML session keys.
       // - If we encode the key before opening, VS Code will sometimes double-encode
       //   it, and sometimes leave it alone
+      //   See https://github.com/microsoft/vscode/issues/242569
       // - If we don't encode the key before opening, VS Code leaves it alone,
       //   but DH server stores it as ' ' instead of `+`
       // It's possible could address this on DH server, but seems easier to just
