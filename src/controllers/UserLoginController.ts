@@ -299,7 +299,7 @@ export class UserLoginController extends ControllerBase {
       return;
     }
 
-    let authenticatedClient: DheAuthenticatedClient | undefined = undefined;
+    let authenticatedClient: DheAuthenticatedClient;
     let credentials: LoginPromptCredentials | undefined = undefined;
 
     try {
