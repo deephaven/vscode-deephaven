@@ -27,12 +27,17 @@ export function makeSAMLSessionKey(): string {
   return (
     Buffer.from(key, 'binary')
       .toString('base64')
-      // VS Code seems to aggressively encode Uris. This causes problems when
-      // opening the DH SAML login uri via `vscode.env.openExternal`. Specifically,
-      // `+` characters are replaced with `%2B` which gets translated to ` ` by
-      // DH instead of `+` which breaks the login flow. It's possible we could
-      // address this on DH server, but seems easier to just replace any `+`
-      // characters.
+      // VS Code seems to inconsistently encode Uris when using `vscode.env.openExternal`.
+      // When opening URLs directly, encoded characters get double-encoded. When
+      // copying the URL to the clipboard, they do not. Non-encoded characters
+      // seem to be left alone in both scenarios. This is problematic for the `+`
+      // character for SAML session keys.
+      // - If we encode the key before opening, VS Code will sometimes double-encode
+      //   it, and sometimes leave it alone
+      // - If we don't encode the key before opening, VS Code leaves it alone,
+      //   but DH server stores it as ' ' instead of `+`
+      // It's possible could address this on DH server, but seems easier to just
+      // replace any `+` characters.
       .replace(/[+]/g, 'x')
   );
 }
