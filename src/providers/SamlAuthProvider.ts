@@ -220,7 +220,7 @@ export class SamlAuthProvider
       },
       async (_, cancellationToken) => {
         await vscode.env.openExternal(
-          vscode.Uri.parse(samlLoginUrl.toString())
+          vscode.Uri.parse(samlLoginUrl.toString(), true)
         );
 
         const disposables: vscode.Disposable[] = [];
