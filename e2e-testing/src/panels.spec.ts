@@ -1,42 +1,105 @@
-import { EditorView, VSBrowser, Workbench } from 'vscode-extension-tester';
+import {
+  By,
+  EditorView,
+  until,
+  VSBrowser,
+  Workbench,
+  type WebDriver,
+} from 'vscode-extension-tester';
 import path from 'node:path';
-import { getCodeLens, openResources, openTextEditor } from './testUtils';
+import {
+  EditorViewExtended,
+  getCodeLens,
+  openFileResources,
+  type EditorGroupData,
+} from './testUtils';
+import { assert } from 'chai';
 
 const testWsPath = path.resolve(__dirname, '..', 'test-ws/');
-const simpleTicking3 = 'simple_ticking3.py';
+const simpleTicking3Name = 'simple_ticking3.py';
+const simpleTicking3Path = path.join(testWsPath, simpleTicking3Name);
+
+const expectedGroupState: Record<string, EditorGroupData[]> = {
+  initial: [
+    {
+      groupIndex: 0,
+      tabs: [
+        {
+          title: 'simple_ticking3.py',
+          isSelected: true,
+          isWebView: false,
+        },
+      ],
+    },
+    {
+      groupIndex: 1,
+      tabs: [
+        {
+          title: 'simple_ticking3.py',
+          isSelected: true,
+          isWebView: false,
+        },
+      ],
+    },
+    {
+      groupIndex: 2,
+      tabs: [
+        {
+          title: 't1',
+          isSelected: false,
+          isWebView: true,
+        },
+        {
+          title: 't2',
+          isSelected: false,
+          isWebView: true,
+        },
+        {
+          title: 't3',
+          isSelected: true,
+          isWebView: true,
+        },
+      ],
+    },
+  ],
+};
 
 describe('Panels Tests', () => {
-  let timerMs = 0;
+  let driver: WebDriver;
 
   before(async () => {
-    timerMs = performance.now();
     await new EditorView().closeAllEditors();
 
-    // Open script in 2 different tab groups
-    // eslint-disable-next-line no-console
-    console.log('Opening resources:', testWsPath, simpleTicking3);
-
-    await openResources(testWsPath, simpleTicking3);
+    await openFileResources(simpleTicking3Path);
 
     await new Workbench().executeCommand('View: Split Editor Down');
 
-    await VSBrowser.instance.takeScreenshot('panels');
-  });
-
-  after(async () => {
-    timerMs = performance.now() - timerMs;
-
-    // eslint-disable-next-line no-console
-    console.log(`Panels Tests took ${timerMs}ms`);
+    driver = VSBrowser.instance.driver;
   });
 
   it('should open panels', async () => {
-    const editor = await openTextEditor(simpleTicking3);
+    const editorView = new EditorViewExtended();
+    const editor = await editorView.openTextEditor(simpleTicking3Name);
     const runDhFile = await getCodeLens(editor, 'Run Deephaven File');
 
     await runDhFile?.click();
 
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    const group2 = await editorView.waitForEditorGroup(2);
+
+    const editorGroupsData = await editorView.getEditorGroupsData();
+    assert.deepEqual(editorGroupsData, expectedGroupState.initial);
+
+    const activeTabTitle = await (await group2.getActiveTab())?.getTitle();
+    assert.strictEqual(activeTabTitle, 't3', 't3 should be active');
+
+    const t3 = await editorView.openWebView('t3', 2);
+    await t3.switchToContentFrame();
+
+    const irisGrid = await driver.wait(
+      until.elementLocated(By.css('.iris-grid'))
+    );
+
+    assert.isDefined(irisGrid, 'Iris grid should be present');
 
     await VSBrowser.instance.takeScreenshot('panels2');
   });

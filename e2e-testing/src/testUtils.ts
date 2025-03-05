@@ -6,51 +6,186 @@ import {
   TitleBar,
   until,
   VSBrowser,
+  WebElement,
+  WebView,
   type CodeLens,
   type Editor,
+  type EditorGroup,
 } from 'vscode-extension-tester';
-import path from 'node:path';
 import os from 'node:os';
+
+export interface TabData {
+  title: string;
+  isSelected: boolean;
+  isWebView: boolean;
+}
+
+export interface EditorGroupData {
+  groupIndex: number;
+  tabs: TabData[];
+}
+
+export type WebViewExtended = WebView & {
+  switchToContentFrame: () => Promise<void>;
+};
+
+export class EditorViewExtended extends EditorView {
+  async getEditorGroupsData(): Promise<EditorGroupData[]> {
+    const groups = [];
+    let groupIndex = 0;
+    for (const group of await this.getEditorGroups()) {
+      const tabs: TabData[] = [];
+
+      for (const tab of await group.getOpenTabs()) {
+        const title = await tab.getTitle();
+        const isSelected = await tab.isSelected();
+        const resourceName = await tab.getAttribute('data-resource-name');
+        const isWebView = resourceName.startsWith('webview-');
+
+        tabs.push({
+          title,
+          isSelected,
+          isWebView,
+        });
+      }
+
+      groups.push({
+        groupIndex: groupIndex++,
+        tabs,
+      });
+    }
+
+    return groups;
+  }
+
+  /**
+   * Open an TextEditor tab with the given title + optional group index. Throws
+   * if a matching Editor is found that isn't an instance of a TextEditor.
+   * @param title title of the tab
+   * @param groupIndex zero based index for the editor group (0 for the left most group)
+   * @returns Promise resolving to TextEditor object
+   */
+  async openTextEditor(
+    title: string,
+    groupIndex?: number
+  ): Promise<TextEditor> {
+    const editor = await this.openEditor(title, groupIndex);
+
+    if (!isTextEditor(editor)) {
+      throw new Error('Editor is not a text editor');
+    }
+
+    return editor;
+  }
+
+  async openWebView(
+    title: string,
+    groupIndex?: number
+  ): Promise<WebViewExtended> {
+    const { driver } = VSBrowser.instance;
+    const editor = await this.openEditor(title, groupIndex);
+
+    if (!(editor instanceof WebView)) {
+      throw new Error('Editor is not a webview');
+    }
+
+    let windowHandle: string | undefined;
+
+    (editor as WebViewExtended).switchToContentFrame =
+      async (): Promise<void> => {
+        // Keep current window handle so we can switch back to it later
+        if (!windowHandle) {
+          windowHandle = await driver.getWindowHandle();
+        }
+
+        // VS Code creates a div.editor-container element for each tab group.
+        // This div contains a div.editor-instance element that represents the
+        // currently selected tab within the group (this is represented by the
+        // `editor` element returned by `openEditor`). In cases where the selected
+        // tab is a webview, there will be a unique `webview-editor-[some-guid]`
+        // id that is used to link the editor instance with all of the webviews
+        // managed by the tab group. This id is set in the first child of the
+        // editor element as well as the `data-parent-flow-to-element-id` attribute
+        // of the related divs that contain the webview iframes. These divs are
+        // in a separate DOM tree than the editor instance, so they have to be
+        // accessed by the id linkage.
+        const webviewLinkId = await editor
+          .findElement(By.css('div'))
+          .getAttribute('id');
+
+        // Find the iframe that contains the webview the open editor + active
+        // tab. It should be the only one with a visible parent.
+        const iframeLocator = By.xpath(
+          `//div[@data-parent-flow-to-element-id='${webviewLinkId}' and contains(@style, 'visibility: visible')]//iframe`
+        );
+
+        const iframe = await driver.wait(until.elementLocated(iframeLocator));
+
+        await switchToFrame(iframe, '#active-frame', '#content-iframe');
+      };
+
+    const { switchBack } = editor;
+    editor.switchBack = async (): Promise<void> => {
+      if (windowHandle) {
+        return driver.switchTo().window(windowHandle);
+      }
+
+      return switchBack.apply(editor);
+    };
+
+    return editor as WebViewExtended;
+  }
+
+  /**
+   * Wait for an editor group to be available
+   * @param groupIndex zero based index for the editor group (0 for the left most group)
+   * @returns Promise resolving to EditorGroup object
+   */
+  async waitForEditorGroup(groupIndex: number): Promise<EditorGroup> {
+    await VSBrowser.instance.driver.wait(
+      async () => (await this.getEditorGroups()).length > groupIndex
+    );
+
+    return this.getEditorGroup(groupIndex);
+  }
+}
 
 export function isTextEditor(editor: Editor): editor is TextEditor {
   return editor instanceof TextEditor;
 }
 
-export async function openResources(
-  wsPath: string,
-  fileName: string
+/**
+ * Open a list of files in VS Code.
+ * @param filePaths Paths of files to open (requires at least one path)
+ */
+export async function openFileResources(
+  ...filePaths: [string, ...string[]]
 ): Promise<void> {
   if (['win32', 'darwin'].includes(os.platform())) {
-    await VSBrowser.instance.openResources(wsPath, fileName);
+    await VSBrowser.instance.openResources(...filePaths);
     return;
   }
 
   // In CI environment, openResources doesn't work on Linux. This workaround does.
   // https://github.com/redhat-developer/vscode-extension-tester/issues/506#issuecomment-1271156702
   const titleBar = new TitleBar();
-  const item = await titleBar.getItem('File');
-  const fileMenu = await item!.select();
-  const openItem = await fileMenu.getItem('Open File...');
-  await openItem!.select();
-  const input = await InputBox.create();
-  await input.setText(path.join(wsPath, fileName));
-  await input.confirm();
-}
-
-export async function openTextEditor(
-  title: string,
-  groupIndex?: number
-): Promise<TextEditor> {
-  const editorView = new EditorView();
-  const editor = await editorView.openEditor(title, groupIndex);
-
-  if (!isTextEditor(editor)) {
-    throw new Error('Editor is not a text editor');
+  for (const filePath of filePaths) {
+    const item = await titleBar.getItem('File');
+    const fileMenu = await item!.select();
+    const openItem = await fileMenu.getItem('Open File...');
+    await openItem!.select();
+    const input = await InputBox.create();
+    await input.setText(filePath);
+    await input.confirm();
   }
-
-  return editor;
 }
 
+/**
+ * Get a code lens based on title, or zero based index
+ * @param editor Editor to get code lens from
+ * @param indexOrTitle Index or title of code lens to get
+ * @returns CodeLens
+ */
 export async function getCodeLens(
   editor: TextEditor,
   indexOrTitle: number | string
@@ -70,4 +205,58 @@ export async function getCodeLens(
   );
 
   return editor.getCodeLens(indexOrTitle);
+}
+
+/**
+ * Switch to a frame based on the identifiers provided. If multiple identifiers
+ * are provided, the function will switch nested frames. Each identifier can be
+ * a numeric index of the frame, a CSS selector, or the actual iframe WebElement.
+ * @param identifiers Identifiers of the nested frames to switch to
+ * @returns A Promise that resolves when switching is complete.
+ */
+export async function switchToFrame(
+  ...identifiers: [
+    number | string | WebElement,
+    ...(number | string | WebElement)[],
+  ]
+): Promise<void> {
+  const { driver } = VSBrowser.instance;
+
+  let iframe: WebElement | undefined;
+
+  // Find the iframe element based on the identifier
+  const findFrame = async (
+    iframeOrIdentifier: string | number | WebElement
+  ): Promise<WebElement | undefined> => {
+    if (iframeOrIdentifier instanceof WebElement) {
+      return iframeOrIdentifier;
+    }
+
+    if (typeof iframeOrIdentifier === 'number') {
+      const iframes = await driver.findElements({
+        tagName: 'iframe',
+      });
+
+      return iframes.at(iframeOrIdentifier);
+    }
+
+    if (typeof iframeOrIdentifier === 'string') {
+      // Using `findElements` since `findElement` throws an error if no elements
+      // are found
+      const [iframe] = await driver.findElements(By.css(iframeOrIdentifier));
+      return iframe;
+    }
+  };
+
+  while (identifiers.length > 0) {
+    const iframeOrIdentifier = identifiers.shift()!;
+
+    iframe = await findFrame(iframeOrIdentifier);
+
+    if (iframe == null) {
+      throw new Error(`Invalid iframe identifier ${iframeOrIdentifier}.`);
+    }
+
+    await driver.switchTo().frame(iframe);
+  }
 }
