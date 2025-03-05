@@ -25,10 +25,6 @@ export interface EditorGroupData {
   tabs: TabData[];
 }
 
-export type WebViewExtended = WebView & {
-  switchToContentFrame: () => Promise<void>;
-};
-
 export class EditorViewExtended extends EditorView {
   async getEditorGroupsData(): Promise<EditorGroupData[]> {
     const groups = [];
@@ -78,10 +74,7 @@ export class EditorViewExtended extends EditorView {
     return editor;
   }
 
-  async openWebView(
-    title: string,
-    groupIndex?: number
-  ): Promise<WebViewExtended> {
+  async openWebView(title: string, groupIndex?: number): Promise<WebView> {
     const { driver } = VSBrowser.instance;
     const editor = await this.openEditor(title, groupIndex);
 
@@ -91,49 +84,50 @@ export class EditorViewExtended extends EditorView {
 
     let windowHandle: string | undefined;
 
-    (editor as WebViewExtended).switchToContentFrame =
-      async (): Promise<void> => {
-        // Keep current window handle so we can switch back to it later
-        if (!windowHandle) {
-          windowHandle = await driver.getWindowHandle();
-        }
-
-        // VS Code creates a div.editor-container element for each tab group.
-        // This div contains a div.editor-instance element that represents the
-        // currently selected tab within the group (this is represented by the
-        // `editor` element returned by `openEditor`). In cases where the selected
-        // tab is a webview, there will be a unique `webview-editor-[some-guid]`
-        // id that is used to link the editor instance with all of the webviews
-        // managed by the tab group. This id is set in the first child of the
-        // editor element as well as the `data-parent-flow-to-element-id` attribute
-        // of the related divs that contain the webview iframes. These divs are
-        // in a separate DOM tree than the editor instance, so they have to be
-        // accessed by the id linkage.
-        const webviewLinkId = await editor
-          .findElement(By.css('div'))
-          .getAttribute('id');
-
-        // Find the iframe that contains the webview the open editor + active
-        // tab. It should be the only one with a visible parent.
-        const iframeLocator = By.xpath(
-          `//div[@data-parent-flow-to-element-id='${webviewLinkId}' and contains(@style, 'visibility: visible')]//iframe`
-        );
-
-        const iframe = await driver.wait(until.elementLocated(iframeLocator));
-
-        await switchToFrame(iframe, '#active-frame', '#content-iframe');
-      };
-
-    const { switchBack } = editor;
-    editor.switchBack = async (): Promise<void> => {
-      if (windowHandle) {
-        return driver.switchTo().window(windowHandle);
+    editor.switchToFrame = async (timeout?: number): Promise<void> => {
+      // Keep current window handle so we can switch back to it later
+      if (!windowHandle) {
+        windowHandle = await driver.getWindowHandle();
       }
 
-      return switchBack.apply(editor);
+      // VS Code creates a div.editor-container element for each tab group.
+      // This div contains a div.editor-instance element that represents the
+      // currently selected tab within the group (this is represented by the
+      // `editor` element returned by `openEditor`). In cases where the selected
+      // tab is a webview, there will be a unique `webview-editor-[some-guid]`
+      // id that is used to link the editor instance with all of the webviews
+      // managed by the tab group. This id is set in the first child of the
+      // editor element as well as the `data-parent-flow-to-element-id` attribute
+      // of the related divs that contain the webview iframes. These divs are
+      // in a separate DOM tree than the editor instance, so they have to be
+      // accessed by the id linkage.
+      const webviewLinkId = await editor
+        .findElement(By.css('div'))
+        .getAttribute('id');
+
+      // Find the iframe that contains the webview the open editor + active
+      // tab. It should be the only one with a visible parent.
+      const iframeLocator = By.xpath(
+        `//div[@data-parent-flow-to-element-id='${webviewLinkId}' and contains(@style, 'visibility: visible')]//iframe`
+      );
+
+      const iframe = await driver.wait(
+        until.elementLocated(iframeLocator),
+        timeout
+      );
+
+      await switchToFrame(iframe, '#active-frame', '#content-iframe');
     };
 
-    return editor as WebViewExtended;
+    editor.switchBack = async (): Promise<void> => {
+      if (!windowHandle) {
+        windowHandle = await driver.getWindowHandle();
+      }
+
+      return driver.switchTo().window(windowHandle);
+    };
+
+    return editor;
   }
 
   /**
