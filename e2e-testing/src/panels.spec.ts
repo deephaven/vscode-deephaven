@@ -93,12 +93,14 @@ describe('Panels Tests', () => {
     assert.strictEqual(activeTabTitle, 't3', 't3 should be active');
 
     const t3 = await editorView.openWebView('t3', 2);
-    await t3.switchToFrame();
+    await t3.switchToContentFrame();
+
+    const irisGridLocator = By.css('.iris-grid');
+    (await t3.findWebElements(irisGridLocator)).length;
 
     const irisGrid = await driver.wait(
       until.elementLocated(By.css('.iris-grid'))
     );
-
     assert.isDefined(irisGrid, 'Iris grid should be present');
 
     await VSBrowser.instance.takeScreenshot('panels2');
