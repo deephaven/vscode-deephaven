@@ -10,6 +10,7 @@ import {
   WebView,
   type CodeLens,
   type EditorGroup,
+  type Locator,
 } from 'vscode-extension-tester';
 import os from 'node:os';
 
@@ -113,6 +114,28 @@ export class EditorViewExtended extends EditorView {
 
     return this.getEditorGroup(groupIndex);
   }
+}
+
+export async function elementExists(locator: Locator): Promise<boolean> {
+  const { driver } = VSBrowser.instance;
+  return (await driver.findElements(locator)).length > 0;
+}
+
+export async function elementExistsEventually(
+  locator: Locator
+): Promise<boolean> {
+  const { driver } = VSBrowser.instance;
+  await driver.wait(until.elementLocated(locator));
+  return true;
+}
+
+export async function elementIsLazyLoaded(locator: Locator): Promise<boolean> {
+  const existsInitially = await elementExists(locator);
+  if (existsInitially) {
+    throw new Error('Element is already present before lazy loading');
+  }
+
+  return elementExistsEventually(locator);
 }
 
 /**
@@ -294,7 +317,7 @@ export async function switchToFrame(
   while (identifiers.length > 0) {
     const iframeOrIdentifier = identifiers.shift()!;
 
-    iframe = await findFrame(iframeOrIdentifier);
+    iframe = await driver.wait(async () => findFrame(iframeOrIdentifier));
 
     if (iframe == null) {
       throw new Error(`Invalid iframe identifier ${iframeOrIdentifier}.`);
