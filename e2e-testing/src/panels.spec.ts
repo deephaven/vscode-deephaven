@@ -3,7 +3,6 @@ import path from 'node:path';
 import {
   elementExists,
   elementIsLazyLoaded,
-  getCodeLens,
   openFileResources,
   type EditorGroupData,
 } from './testUtils';
@@ -72,7 +71,7 @@ describe('Panels Tests', () => {
   it('should open panels', async () => {
     const editorView = new EditorViewExtended();
     const editor = await editorView.openTextEditor(simpleTicking3Name);
-    const runDhFile = await getCodeLens(editor, 'Run Deephaven File');
+    const runDhFile = await editor.getCodeLens('Run Deephaven File');
 
     await runDhFile?.click();
 

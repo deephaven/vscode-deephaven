@@ -1,13 +1,11 @@
 import {
   By,
   InputBox,
-  TextEditor,
   TitleBar,
   until,
   VSBrowser,
   WebElement,
   WebView,
-  type CodeLens,
   type Locator,
 } from 'vscode-extension-tester';
 import os from 'node:os';
@@ -73,33 +71,6 @@ export async function openFileResources(
     await input.setText(filePath);
     await input.confirm();
   }
-}
-
-/**
- * Get a code lens based on title, or zero based index
- * @param editor Editor to get code lens from
- * @param indexOrTitle Index or title of code lens to get
- * @returns CodeLens
- */
-export async function getCodeLens(
-  editor: TextEditor,
-  indexOrTitle: number | string
-): Promise<CodeLens | undefined> {
-  const ariaLabel = await editor.getAttribute('aria-label');
-
-  // The `TextEditor.getCodeLens` method provided by `vscode-extension-tester`
-  // does not seem to wait for the anchor element to be available, so we need
-  // to wait for it ourselves. Including the `aria-label` to narrow down which
-  // editor we are looking at.
-  await VSBrowser.instance.driver.wait(
-    until.elementLocated(
-      By.css(
-        `[aria-label="${ariaLabel}"] .contentWidgets span.codelens-decoration a`
-      )
-    )
-  );
-
-  return editor.getCodeLens(indexOrTitle);
 }
 
 /**
