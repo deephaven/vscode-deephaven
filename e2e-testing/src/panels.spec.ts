@@ -3,6 +3,7 @@ import path from 'node:path';
 import {
   elementExists,
   elementIsLazyLoaded,
+  getCodeLens,
   openFileResources,
   step,
   type EditorGroupData,
@@ -62,7 +63,6 @@ const expectedGroupState: Record<string, EditorGroupData[]> = {
 
 describe('Panels Tests', () => {
   before(async () => {
-    step.count = 0;
     await new EditorView().closeAllEditors();
 
     await openFileResources(simpleTicking3Path);
@@ -74,19 +74,19 @@ describe('Panels Tests', () => {
     const editorView = new EditorViewExtended();
     const editor = await editorView.openTextEditor(simpleTicking3Name);
 
-    await step('Run Deephaven File codelens', async () => {
-      const runDhFile = await editor.getCodeLens('Run Deephaven File');
+    await step(1, 'Run Deephaven File codelens', async () => {
+      const runDhFile = await getCodeLens(editor, 'Run Deephaven File');
       await runDhFile?.click();
     });
 
-    await step('Check initial editor group state', async () => {
+    await step(2, 'Check initial editor group state', async () => {
       await editorView.waitForEditorGroup(2);
       const editorGroupsData = await editorView.getEditorGroupsData();
       assert.deepEqual(editorGroupsData, expectedGroupState.initial);
     });
 
     // Tab 3 should be selected already since it was the last query to be run.
-    await step('Check initial panel load', async () => {
+    await step(3, 'Check initial panel load', async () => {
       const t3 = await editorView.openWebView(2, 't3', true);
       await t3.switchToContentFrame();
       assert.isTrue(
@@ -96,7 +96,7 @@ describe('Panels Tests', () => {
       await t3.switchBack();
     });
 
-    await step('Switch to another tab', async () => {
+    await step(4, 'Switch to another tab', async () => {
       const t1 = await editorView.openWebView(2, 't1');
       await t1.switchToContentFrame();
       assert.isTrue(
@@ -106,7 +106,7 @@ describe('Panels Tests', () => {
       await t1.switchBack();
     });
 
-    await step('Switch back to initial tab', async () => {
+    await step(5, 'Switch back to initial tab', async () => {
       const t3 = await editorView.openWebView(2, 't3');
       await t3.switchToContentFrame();
       assert.isTrue(
