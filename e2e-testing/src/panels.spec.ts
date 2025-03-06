@@ -4,6 +4,7 @@ import {
   elementExists,
   elementIsLazyLoaded,
   openFileResources,
+  step,
   type EditorGroupData,
 } from './testUtils';
 import { assert } from 'chai';
@@ -61,6 +62,7 @@ const expectedGroupState: Record<string, EditorGroupData[]> = {
 
 describe('Panels Tests', () => {
   before(async () => {
+    step.count = 0;
     await new EditorView().closeAllEditors();
 
     await openFileResources(simpleTicking3Path);
@@ -71,40 +73,47 @@ describe('Panels Tests', () => {
   it('should open panels', async () => {
     const editorView = new EditorViewExtended();
     const editor = await editorView.openTextEditor(simpleTicking3Name);
-    const runDhFile = await editor.getCodeLens('Run Deephaven File');
 
-    await runDhFile?.click();
+    await step('Run Deephaven File codelens', async () => {
+      const runDhFile = await editor.getCodeLens('Run Deephaven File');
+      await runDhFile?.click();
+    });
 
-    await editorView.waitForEditorGroup(2);
-
-    const editorGroupsData = await editorView.getEditorGroupsData();
-    assert.deepEqual(editorGroupsData, expectedGroupState.initial);
+    await step('Check initial editor group state', async () => {
+      await editorView.waitForEditorGroup(2);
+      const editorGroupsData = await editorView.getEditorGroupsData();
+      assert.deepEqual(editorGroupsData, expectedGroupState.initial);
+    });
 
     // Tab 3 should be selected already since it was the last query to be run.
-    let t3 = await editorView.openWebView(2, 't3', true);
-    await t3.switchToContentFrame();
-    assert.isTrue(
-      await elementIsLazyLoaded(locators.irisGrid),
-      'Iris grid should be automatically loaded for initially active panel'
-    );
-    await t3.switchBack();
+    await step('Check initial panel load', async () => {
+      const t3 = await editorView.openWebView(2, 't3', true);
+      await t3.switchToContentFrame();
+      assert.isTrue(
+        await elementIsLazyLoaded(locators.irisGrid),
+        'Iris grid should be automatically loaded for initially active panel'
+      );
+      await t3.switchBack();
+    });
 
-    // Switch to tab 1
-    const t1 = await editorView.openWebView(2, 't1');
-    await t1.switchToContentFrame();
-    assert.isTrue(
-      await elementIsLazyLoaded(locators.irisGrid),
-      'Iris grid should be loaded after panel becomes active'
-    );
-    await t1.switchBack();
+    await step('Switch to another tab', async () => {
+      const t1 = await editorView.openWebView(2, 't1');
+      await t1.switchToContentFrame();
+      assert.isTrue(
+        await elementIsLazyLoaded(locators.irisGrid),
+        'Iris grid should be loaded after panel becomes active'
+      );
+      await t1.switchBack();
+    });
 
-    // Switch back to tab 3
-    t3 = await editorView.openWebView(2, 't3');
-    await t3.switchToContentFrame();
-    assert.isTrue(
-      await elementExists(locators.irisGrid),
-      'Iris grid should already exist when switching back to previously loaded panel'
-    );
-    await t3.switchBack();
+    await step('Switch back to initial tab', async () => {
+      const t3 = await editorView.openWebView(2, 't3');
+      await t3.switchToContentFrame();
+      assert.isTrue(
+        await elementExists(locators.irisGrid),
+        'Iris grid should already exist when switching back to previously loaded panel'
+      );
+      await t3.switchBack();
+    });
   });
 });

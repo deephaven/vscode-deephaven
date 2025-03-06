@@ -74,6 +74,22 @@ export async function openFileResources(
 }
 
 /**
+ * Wrapper a labeled step in sequential code.
+ * @param label step label
+ * @param fn code to execute
+ */
+step.count = 0;
+export async function step(
+  label: string,
+  fn: () => Promise<void>
+): Promise<void> {
+  ++step.count;
+  // eslint-disable-next-line no-console
+  console.log(`Step ${step.count}: ${label}`);
+  await fn();
+}
+
+/**
  * Switch to a frame based on the identifiers provided. If multiple identifiers
  * are provided, the function will switch nested frames. Each identifier can be
  * a numeric index of the frame, a CSS selector, or the actual iframe WebElement.
