@@ -3,6 +3,9 @@ import { switchToFrame } from '../testUtils';
 import { locators } from '../locators';
 
 export class WebViewExtended extends WebView {
+  static activeFrameSelector = '#active-frame';
+  static contentFrameSelector = '#content-iframe';
+
   private windowHandle: string | undefined;
 
   /**
@@ -30,7 +33,7 @@ export class WebViewExtended extends WebView {
    */
   async switchToContentFrame(timeout?: number): Promise<void> {
     await this.switchToFrame(timeout);
-    await switchToFrame('#content-iframe');
+    await switchToFrame([WebViewExtended.contentFrameSelector]);
   }
 
   /*
@@ -70,7 +73,7 @@ export class WebViewExtended extends WebView {
       timeout
     );
 
-    await switchToFrame(iframe, '#active-frame');
+    await switchToFrame([iframe, WebViewExtended.activeFrameSelector], timeout);
   }
 
   /**

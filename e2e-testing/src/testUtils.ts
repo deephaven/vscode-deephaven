@@ -125,10 +125,11 @@ export async function step(
  * @returns A Promise that resolves when switching is complete.
  */
 export async function switchToFrame(
-  ...identifiers: [
+  identifiers: [
     number | string | WebElement,
     ...(number | string | WebElement)[],
-  ]
+  ],
+  timeout?: number
 ): Promise<void> {
   const { driver } = VSBrowser.instance;
 
@@ -161,7 +162,10 @@ export async function switchToFrame(
   while (identifiers.length > 0) {
     const iframeOrIdentifier = identifiers.shift()!;
 
-    iframe = await driver.wait(async () => findFrame(iframeOrIdentifier));
+    iframe = await driver.wait(
+      async () => findFrame(iframeOrIdentifier),
+      timeout
+    );
 
     if (iframe == null) {
       throw new Error(`Invalid iframe identifier ${iframeOrIdentifier}.`);

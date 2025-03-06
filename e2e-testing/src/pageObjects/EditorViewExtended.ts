@@ -6,6 +6,7 @@ import {
   type EditorGroup,
 } from 'vscode-extension-tester';
 import {
+  switchToFrame,
   type EditorGroupData,
   type TabData,
   type WebViewData,
@@ -15,7 +16,8 @@ import { locators } from '../locators';
 
 export class EditorViewExtended extends EditorView {
   /**
-   * Get a serializable data representation for all editor groups + their tabs.
+   * Get a serializable data representation for all editor groups, their tabs,
+   * and associated webviews.
    * @returns Promise resolving to an array of EditorGroupData objects
    */
   async getEditorGroupsData(): Promise<EditorGroupData[]> {
@@ -60,15 +62,29 @@ export class EditorViewExtended extends EditorView {
 
           const iframe = await container.findElement(By.xpath('.//iframe'));
 
+          // Grab current context so we can switch back to it
           const windowHandle = await driver.getWindowHandle();
 
           let hasContent = false;
           try {
-            await driver.switchTo().frame(iframe);
-            await driver.switchTo().frame(0);
+            // Attempt to switch to nested content frame to see if content has
+            // been loaded. Nested iframes won't exist if not, and this will fail.
+            // WebView.switchToFrame() only switches to the webview container
+            // that is currently visible. We want to inspect all of them, even
+            // the hidden ones, so we use the `switchToFrame` utility function
+            // instead.
+            await switchToFrame(
+              [
+                iframe,
+                WebViewExtended.activeFrameSelector,
+                WebViewExtended.contentFrameSelector,
+              ],
+              500
+            );
             hasContent = true;
           } catch (err) {
           } finally {
+            // Reset context
             await driver.switchTo().window(windowHandle);
           }
 
