@@ -1,6 +1,5 @@
 import {
   By,
-  EditorView,
   InputBox,
   TextEditor,
   TitleBar,
@@ -9,7 +8,6 @@ import {
   WebElement,
   WebView,
   type CodeLens,
-  type EditorGroup,
   type Locator,
 } from 'vscode-extension-tester';
 import os from 'node:os';
@@ -27,93 +25,6 @@ export interface EditorGroupData {
 
 export interface WebViewExtended extends WebView {
   switchToContentFrame: (timeout?: number) => Promise<void>;
-}
-
-export class EditorViewExtended extends EditorView {
-  /**
-   * Get a serializable data representation for all editor groups + their tabs.
-   * @returns Promise resolving to an array of EditorGroupData objects
-   */
-  async getEditorGroupsData(): Promise<EditorGroupData[]> {
-    const groups = [];
-    let groupIndex = 0;
-    for (const group of await this.getEditorGroups()) {
-      const tabs: TabData[] = [];
-
-      for (const tab of await group.getOpenTabs()) {
-        const title = await tab.getTitle();
-        const isSelected = await tab.isSelected();
-        const resourceName = await tab.getAttribute('data-resource-name');
-        const isWebView = resourceName.startsWith('webview-');
-
-        tabs.push({
-          title,
-          isSelected,
-          isWebView,
-        });
-      }
-
-      groups.push({
-        groupIndex: groupIndex++,
-        tabs,
-      });
-    }
-
-    return groups;
-  }
-
-  /**
-   * Switch to a TextEditor tab with the given title + optional group index. Throws
-   * if a matching Editor is found that isn't an instance of a TextEditor.
-   * @param title title of the tab
-   * @param groupIndex zero based index for the editor group (0 for the left most group)
-   * @returns Promise resolving to TextEditor object
-   */
-  async openTextEditor(
-    title: string,
-    groupIndex?: number
-  ): Promise<TextEditor> {
-    const editor = await this.openEditor(title, groupIndex);
-
-    if (!(editor instanceof TextEditor)) {
-      throw new Error('Editor is not a text editor');
-    }
-
-    return editor;
-  }
-
-  /**
-   * Switch to an WebView tab with the given title + optional group index.
-   * Extend the `WebView` as an `WebViewExtended` object.
-   * @param title title of the tab
-   * @param groupIndex zero based index for the editor group
-   * @returns Promise resolving to `WebViewExtended` object
-   */
-  async openWebView(
-    title: string,
-    groupIndex?: number
-  ): Promise<WebViewExtended> {
-    const editor = await this.openEditor(title, groupIndex);
-
-    if (!(editor instanceof WebView)) {
-      throw new Error('Editor is not a webview');
-    }
-
-    return extendWebView(editor);
-  }
-
-  /**
-   * Wait for an editor group to be available
-   * @param groupIndex zero based index for the editor group
-   * @returns Promise resolving to EditorGroup object
-   */
-  async waitForEditorGroup(groupIndex: number): Promise<EditorGroup> {
-    await VSBrowser.instance.driver.wait(
-      async () => (await this.getEditorGroups()).length > groupIndex
-    );
-
-    return this.getEditorGroup(groupIndex);
-  }
 }
 
 export async function elementExists(locator: Locator): Promise<boolean> {
@@ -136,86 +47,6 @@ export async function elementIsLazyLoaded(locator: Locator): Promise<boolean> {
   }
 
   return elementExistsEventually(locator);
-}
-
-/**
- * Extend a WebView object with additional methods.
- * @param webView WebView object to extend
- * @returns the extended WebView object
- */
-export function extendWebView(webView: WebView): WebViewExtended {
-  const { driver } = VSBrowser.instance;
-
-  let windowHandle: string | undefined;
-
-  const self = webView as WebViewExtended;
-
-  /**
-   * Switch to the content iframe of the webview which is nested inside of the
-   * iframe associated with `WebView.switchToFrame()`.
-   */
-  self.switchToContentFrame = async (timeout?: number): Promise<void> => {
-    await self.switchToFrame(timeout);
-    await switchToFrame('#content-iframe');
-  };
-
-  // There is a `vscode-extension-tester` bug that breaks `switchToFrame` in
-  // cases where there are multiple WebViews in the same tab group.
-  // https://github.com/redhat-developer/vscode-extension-tester/issues/1798
-  // For now, overriding the method with a version that works. If / when the
-  // bug is fixed, we should be able to remove this method + the hacked `switchBack`
-  // method.
-  self.switchToFrame = async (timeout?: number): Promise<void> => {
-    // Keep current window handle so we can switch back to it later
-    if (!windowHandle) {
-      windowHandle = await driver.getWindowHandle();
-    }
-
-    // VS Code creates a div.editor-container element for each tab group.
-    // This div contains a div.editor-instance element that represents the
-    // currently selected tab within the group (this is represented by the
-    // `editor` element returned by `openEditor`). In cases where the selected
-    // tab is a webview, there will be a unique `webview-editor-[some-guid]`
-    // id that is used to link the editor instance with all of the webviews
-    // managed by the tab group. This id is set in the first child of the
-    // editor element as well as the `data-parent-flow-to-element-id` attribute
-    // of the related divs that contain the webview iframes. These divs are
-    // in a separate DOM tree than the editor instance, so they have to be
-    // accessed by the id linkage.
-    const webviewLinkId = await self
-      .findElement(By.css('div'))
-      .getAttribute('id');
-
-    // Find the iframe that contains the webview the open editor + active
-    // tab. It should be the only one with a visible parent.
-    const iframeLocator = By.xpath(
-      `//div[@data-parent-flow-to-element-id='${webviewLinkId}' and contains(@style, 'visibility: visible')]//iframe`
-    );
-
-    const iframe = await driver.wait(
-      until.elementLocated(iframeLocator),
-      timeout
-    );
-
-    await switchToFrame(iframe, '#active-frame');
-  };
-
-  /**
-   * This is needed since we are replacing `switchToFrame`. If / when the bug
-   * https://github.com/redhat-developer/vscode-extension-tester/issues/1798 is
-   * fixed, we should be able to remove the hacked `switchToFrame` method as
-   * well as this one.
-   * @returns
-   */
-  self.switchBack = async (): Promise<void> => {
-    if (!windowHandle) {
-      windowHandle = await driver.getWindowHandle();
-    }
-
-    return driver.switchTo().window(windowHandle);
-  };
-
-  return self;
 }
 
 /**
