@@ -85,22 +85,13 @@ export async function getCodeLens(
   editor: TextEditor,
   indexOrTitle: number | string
 ): Promise<CodeLens | undefined> {
-  const ariaLabel = await editor.getAttribute('aria-label');
-
   // The `TextEditor.getCodeLens` method provided by `vscode-extension-tester`
   // does not seem to explicitly wait for the anchor element to be available,
   // which sometimes works, and sometimes does not. To be safe, we need wait for
-  // it ourselves. Including the `aria-label` to narrow down which editor we are
-  // looking at.
-  await VSBrowser.instance.driver.wait(
-    until.elementLocated(
-      By.css(
-        `[aria-label="${ariaLabel}"] .contentWidgets span.codelens-decoration a`
-      )
-    )
+  // it ourselves.
+  return VSBrowser.instance.driver.wait(async () =>
+    editor.getCodeLens(indexOrTitle)
   );
-
-  return editor.getCodeLens(indexOrTitle);
 }
 
 /**
