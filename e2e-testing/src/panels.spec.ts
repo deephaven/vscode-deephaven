@@ -1,8 +1,10 @@
-import { EditorView, Workbench } from 'vscode-extension-tester';
+import { EditorView, WebView, Workbench } from 'vscode-extension-tester';
 import path from 'node:path';
 import {
   EditorViewExtended,
+  elementExists,
   elementIsLazyLoaded,
+  extendWebView,
   getCodeLens,
   openFileResources,
   type EditorGroupData,
@@ -80,7 +82,11 @@ describe('Panels Tests', () => {
     const editorGroupsData = await editorView.getEditorGroupsData();
     assert.deepEqual(editorGroupsData, expectedGroupState.initial);
 
-    const t3 = await editorView.openWebView('t3', 2);
+    // Tab 3 should be selected already since it was the last query to be run.
+    // Get the WebView without selecting the tab since we expect it to already
+    // be selected
+    const group2 = await editorView.getEditorGroup(2);
+    let t3 = extendWebView(await new WebView(group2).wait());
     await t3.switchToContentFrame();
     assert.isTrue(
       await elementIsLazyLoaded(locators.irisGrid),
@@ -88,6 +94,7 @@ describe('Panels Tests', () => {
     );
     await t3.switchBack();
 
+    // Switch to tab 1
     const t1 = await editorView.openWebView('t1', 2);
     await t1.switchToContentFrame();
     assert.isTrue(
@@ -95,5 +102,14 @@ describe('Panels Tests', () => {
       'Iris grid should be lazy loaded after panel becomes active'
     );
     await t1.switchBack();
+
+    // Switch back to tab 3
+    t3 = await editorView.openWebView('t3', 2);
+    await t3.switchToContentFrame();
+    assert.isTrue(
+      await elementExists(locators.irisGrid),
+      'Iris grid should already exist when switching back to previously loaded panel'
+    );
+    await t3.switchBack();
   });
 });

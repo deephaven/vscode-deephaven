@@ -141,11 +141,9 @@ export async function elementIsLazyLoaded(locator: Locator): Promise<boolean> {
 /**
  * Extend a WebView object with additional methods.
  * @param webView WebView object to extend
- * @returns Promise resolving to the extended WebView object
+ * @returns the extended WebView object
  */
-export async function extendWebView(
-  webView: WebView
-): Promise<WebViewExtended> {
+export function extendWebView(webView: WebView): WebViewExtended {
   const { driver } = VSBrowser.instance;
 
   let windowHandle: string | undefined;
