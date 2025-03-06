@@ -75,7 +75,6 @@ describe('Panels Tests', () => {
     const editor = await editorView.openTextEditor(simpleTicking3Name);
 
     await step(1, 'Run Deephaven File codelens', async () => {
-      console.log('codelenses:', (await editor.getCodeLenses()).length);
       const runDhFile = await getCodeLens(editor, 'Run Deephaven File');
       await runDhFile?.click();
     });
