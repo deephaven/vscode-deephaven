@@ -77,6 +77,7 @@ export const ICON_ID = {
   disconnected: 'plug',
   runAll: 'run-all',
   runSelection: 'run',
+  saml: 'shield',
   server: 'server',
   serverConnected: 'circle-large-filled',
   serverRunning: 'circle-large-outline',
@@ -156,3 +157,16 @@ ${REQUIREMENTS_TABLE_NAME} = new_table([
     string_col("${REQUIREMENTS_TABLE_NAME_COLUMN_NAME}", list(installed)),
     string_col("${REQUIREMENTS_TABLE_VERSION_COLUMN_NAME}", [version(pkg) for pkg in installed])
 ])` as const;
+
+export const AUTH_CONFIG_PASSWORDS_ENABLED =
+  'authentication.passwordsEnabled' as const;
+export const AUTH_CONFIG_CUSTOM_LOGIN_CLASS_SAML_AUTH =
+  'authentication.client.customlogin.class.SAMLAuth' as const;
+export const AUTH_CONFIG_SAML_PROVIDER_NAME =
+  'authentication.client.samlauth.provider.name' as const;
+export const AUTH_CONFIG_SAML_LOGIN_URL =
+  'authentication.client.samlauth.login.url' as const;
+
+export const DH_SAML_AUTH_PROVIDER_TYPE = 'dhsaml' as const;
+export const DH_SAML_SERVER_URL_SCOPE_KEY = 'deephaven.samlServerUrl' as const;
+export const DH_SAML_LOGIN_URL_SCOPE_KEY = 'deephaven.samlLoginUrl' as const;

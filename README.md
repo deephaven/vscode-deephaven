@@ -58,6 +58,8 @@ Enterprise servers can be configured via the `"deephaven.enterpriseServers"` set
 
 ![Enterprise Server Settings](./docs/assets/dhe-settings.gif)
 
+For information on how to authenticate with enterprise servers, see [Enterprise Authentication](docs/enterprise-auth.md).
+
 ## SSL Certificates
 Deephaven servers using self-signed certificates or internal CA's will require configuring VS Code to trust the signing certificate.
 

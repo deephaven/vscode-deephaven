@@ -1,5 +1,5 @@
 import { beforeEach, describe, it, expect, vi, afterAll } from 'vitest';
-import { waitFor, withResolvers } from './promiseUtils';
+import { rejectAfterTimeout, waitFor, withResolvers } from './promiseUtils';
 
 // See __mocks__/vscode.ts for the mock implementation
 vi.mock('vscode');
@@ -15,6 +15,35 @@ afterAll(() => {
 
 const resolved = vi.fn().mockName('resolved');
 const rejected = vi.fn().mockName('rejected');
+
+describe('rejectAfterTimeout', () => {
+  it('should return a Promise that rejects after a given timeout', async () => {
+    const promise = rejectAfterTimeout(100, 'Cancelled by timeout.');
+
+    promise.catch(rejected);
+
+    await vi.advanceTimersByTimeAsync(99);
+    expect(rejected).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(rejected).toHaveBeenCalledWith('Cancelled by timeout.');
+  });
+
+  it('should clear the timeout when the subscriptions are disposed', async () => {
+    const disposables: { dispose: () => void }[] = [];
+    const promise = rejectAfterTimeout(
+      100,
+      'Cancelled by timeout.',
+      disposables
+    );
+
+    promise.catch(rejected);
+
+    disposables[0].dispose();
+    await vi.advanceTimersByTimeAsync(100);
+    expect(rejected).not.toHaveBeenCalled();
+  });
+});
 
 describe('waitFor', () => {
   it('should return a Promise that resolves after a given timeout', async () => {

@@ -1,4 +1,15 @@
-import type { NonEmptyArray } from '../types';
+import {
+  DH_SAML_LOGIN_URL_SCOPE_KEY,
+  DH_SAML_SERVER_URL_SCOPE_KEY,
+} from '../common';
+import type {
+  AuthConfig,
+  AuthFlow,
+  MultiAuthConfig,
+  NoAuthConfig,
+  NonEmptyArray,
+  SingleAuthConfig,
+} from '../types';
 
 /**
  * Returns a date string formatted for use in a file path.
@@ -30,6 +41,48 @@ export function hasProperty<TProp extends string>(
 }
 
 /**
+ * Get the authentication flow based on the authConfig.
+ * @param authConfig The authConfig to check.
+ * @returns The authentication flow
+ */
+export function getAuthFlow(authConfig: SingleAuthConfig): AuthFlow {
+  if (authConfig.isPasswordEnabled) {
+    return {
+      type: 'password',
+    };
+  }
+
+  return {
+    type: 'saml',
+    config: authConfig.samlConfig,
+  };
+}
+
+/**
+ * Type guard to check if the authConfig is a MultiAuthConfig.
+ * @param authConfig The authConfig to check.
+ * @returns true if the authConfig is a MultiAuthConfig, false otherwise
+ */
+export function isMultiAuthConfig(
+  authConfig: AuthConfig
+): authConfig is MultiAuthConfig {
+  return authConfig.isPasswordEnabled && authConfig.samlConfig != null;
+}
+
+/**
+ * Type guard to check if auth config has no authentication enabled.
+ * @param authConfig The authConfig to check.
+ * @returns true if the authConfig has no authentication enabled, false otherwise
+ */
+export function isNoAuthConfig(
+  authConfig: AuthConfig
+): authConfig is NoAuthConfig {
+  return (
+    authConfig.isPasswordEnabled === false && authConfig.samlConfig == null
+  );
+}
+
+/**
  * Type guard to check if an array is non-empty.
  * @param array
  * @returns true if the array is non-empty, false otherwise
@@ -52,4 +105,33 @@ export function sortByStringProp<TPropName extends string>(
   ): number => {
     return String(a[propName]).localeCompare(String(b[propName]));
   };
+}
+
+/**
+ * Parse SAML scopes from a given list of AuthenticationProvider scope strings.
+ * @param scopes The list of scopes to parse.
+ * @returns An object containing the server URL and SAML login URL if found, or null if not.
+ */
+export function parseSamlScopes(scopes: readonly string[]): {
+  serverUrl: string;
+  samlLoginUrl: string;
+} | null {
+  const serverUrl = scopes.find(scope =>
+    scope.startsWith(`${DH_SAML_SERVER_URL_SCOPE_KEY}:`)
+  );
+
+  const samlLoginUrl = scopes.find(scope =>
+    scope.startsWith(`${DH_SAML_LOGIN_URL_SCOPE_KEY}:`)
+  );
+
+  if (serverUrl && samlLoginUrl) {
+    return {
+      serverUrl: serverUrl.substring(DH_SAML_SERVER_URL_SCOPE_KEY.length + 1),
+      samlLoginUrl: samlLoginUrl.substring(
+        DH_SAML_LOGIN_URL_SCOPE_KEY.length + 1
+      ),
+    };
+  }
+
+  return null;
 }
