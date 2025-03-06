@@ -1,11 +1,17 @@
 import {
+  By,
   EditorView,
   TextEditor,
   VSBrowser,
   type EditorGroup,
 } from 'vscode-extension-tester';
-import { type EditorGroupData, type TabData } from '../testUtils';
+import {
+  type EditorGroupData,
+  type TabData,
+  type WebViewData,
+} from '../testUtils';
 import { WebViewExtended } from './WebViewExtended';
+import { locators } from '../locators';
 
 export class EditorViewExtended extends EditorView {
   /**
@@ -13,16 +19,21 @@ export class EditorViewExtended extends EditorView {
    * @returns Promise resolving to an array of EditorGroupData objects
    */
   async getEditorGroupsData(): Promise<EditorGroupData[]> {
-    const groups = [];
+    const groupDataList: EditorGroupData[] = [];
     let groupIndex = 0;
     for (const group of await this.getEditorGroups()) {
       const tabs: TabData[] = [];
 
+      let hasWebView = false;
       for (const tab of await group.getOpenTabs()) {
         const title = await tab.getTitle();
         const isSelected = await tab.isSelected();
         const resourceName = await tab.getAttribute('data-resource-name');
         const isWebView = resourceName.startsWith('webview-');
+
+        if (isWebView) {
+          hasWebView = true;
+        }
 
         tabs.push({
           title,
@@ -31,13 +42,57 @@ export class EditorViewExtended extends EditorView {
         });
       }
 
-      groups.push({
+      let webViews: WebViewData[] | undefined;
+
+      if (hasWebView) {
+        const driver = this.getDriver();
+        webViews = [];
+
+        const webView = await new WebViewExtended(group).wait();
+        const parentFlowToElementId = await webView.getParentFlowToElementId();
+        const iframeContainers = await driver.findElements(
+          locators.webView(parentFlowToElementId, 'container')
+        );
+
+        for (const container of iframeContainers) {
+          const style = await container.getAttribute('style');
+          const isVisible = style.includes('visibility: visible');
+
+          const iframe = await container.findElement(By.xpath('.//iframe'));
+
+          const windowHandle = await driver.getWindowHandle();
+
+          let hasContent = false;
+          try {
+            await driver.switchTo().frame(iframe);
+            await driver.switchTo().frame(0);
+            hasContent = true;
+          } catch (err) {
+          } finally {
+            await driver.switchTo().window(windowHandle);
+          }
+
+          const webViewData: WebViewData = { isVisible };
+          if (hasContent) {
+            webViewData.hasContent = true;
+          }
+          webViews.push(webViewData);
+        }
+      }
+
+      const groupData: EditorGroupData = {
         groupIndex: groupIndex++,
         tabs,
-      });
+      };
+
+      if (webViews) {
+        groupData.webViews = webViews;
+      }
+
+      groupDataList.push(groupData);
     }
 
-    return groups;
+    return groupDataList;
   }
 
   /**

@@ -18,9 +18,15 @@ export interface TabData {
   isWebView: boolean;
 }
 
+export interface WebViewData {
+  isVisible: boolean;
+  hasContent?: true;
+}
+
 export interface EditorGroupData {
   groupIndex: number;
   tabs: TabData[];
+  webViews?: WebViewData[];
 }
 
 export interface WebViewExtended extends WebView {
@@ -84,12 +90,12 @@ export async function openFileResources(
 export async function getCodeLens(
   editor: TextEditor,
   indexOrTitle: number | string
-): Promise<CodeLens | undefined> {
+): Promise<CodeLens> {
   // The `TextEditor.getCodeLens` method provided by `vscode-extension-tester`
-  // does not seem to explicitly wait for the anchor element to be available,
-  // which sometimes works, and sometimes does not. To be safe, we need wait for
-  // it ourselves.
-  return VSBrowser.instance.driver.wait(async () =>
+  // does not seem to explicitly wait for the element to be available, which
+  // sometimes works, and sometimes does not. To be safe, we need wait for it
+  // ourselves.
+  return VSBrowser.instance.driver.wait<CodeLens>(async () =>
     editor.getCodeLens(indexOrTitle)
   );
 }
@@ -103,11 +109,12 @@ export async function getCodeLens(
 export async function step(
   n: number,
   label: string,
-  fn: () => Promise<void>
+  fn: (stepLabel: string) => Promise<void>
 ): Promise<void> {
+  const stepLabel = `Step ${n}: ${label}`;
   // eslint-disable-next-line no-console
-  console.log(`Step ${n}: ${label}`);
-  await fn();
+  console.log(stepLabel);
+  await fn(stepLabel);
 }
 
 /**

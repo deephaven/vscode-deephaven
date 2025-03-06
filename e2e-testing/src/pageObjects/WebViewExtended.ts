@@ -1,8 +1,27 @@
 import { By, until, WebView } from 'vscode-extension-tester';
 import { switchToFrame } from '../testUtils';
+import { locators } from '../locators';
 
 export class WebViewExtended extends WebView {
   private windowHandle: string | undefined;
+
+  /**
+   * The aria-flowto attribute is used to associate a webview editor instance
+   * with the container div containing the active webview iframe.
+   * @returns Promise resolving to the id
+   */
+  async getAriaFlowtoId(): Promise<string> {
+    return this.findElement(By.css('div')).getAttribute('aria-flowto');
+  }
+
+  /**
+   * Get the id used to associate a webview editor instance with container divs
+   * that contain the webview iframes.
+   * @returns Promise resolving to the id
+   */
+  async getParentFlowToElementId(): Promise<string> {
+    return this.findElement(By.css('div')).getAttribute('id');
+  }
 
   /**
    * Switch to the content iframe of the webview which is nested inside of the
@@ -40,18 +59,14 @@ export class WebViewExtended extends WebView {
     // of the related divs that contain the webview iframes. These divs are
     // in a separate DOM tree than the editor instance, so they have to be
     // accessed by the id linkage.
-    const webviewLinkId = await this.findElement(By.css('div')).getAttribute(
-      'id'
-    );
+    const parentFlowToElementId = await this.getParentFlowToElementId();
 
     // Find the iframe that contains the webview the open editor + active
     // tab. It should be the only one with a visible parent.
-    const iframeLocator = By.xpath(
-      `//div[@data-parent-flow-to-element-id='${webviewLinkId}' and contains(@style, 'visibility: visible')]//iframe`
-    );
-
     const iframe = await this.getDriver().wait(
-      until.elementLocated(iframeLocator),
+      until.elementLocated(
+        locators.webView(parentFlowToElementId, 'iframe', 'visible')
+      ),
       timeout
     );
 
