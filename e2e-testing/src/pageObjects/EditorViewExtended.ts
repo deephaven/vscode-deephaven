@@ -55,7 +55,7 @@ export class EditorViewExtended extends EditorView {
         const webView = await new WebViewExtended(group).wait();
         const parentFlowToElementId = await webView.getParentFlowToElementId();
         const iframeContainers = await driver.findElements(
-          locators.webView(parentFlowToElementId, 'container')
+          locators.webViewContainer(parentFlowToElementId)
         );
 
         for (const container of iframeContainers) {

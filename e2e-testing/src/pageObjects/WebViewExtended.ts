@@ -69,7 +69,7 @@ export class WebViewExtended extends WebView {
     const iframeAccessor = async (): Promise<WebElement> =>
       this.getDriver().wait(
         until.elementLocated(
-          locators.webView(parentFlowToElementId, 'iframe', 'visible')
+          locators.webViewActiveIframe(parentFlowToElementId)
         ),
         timeout
       );
