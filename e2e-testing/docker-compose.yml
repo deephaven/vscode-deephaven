@@ -6,4 +6,4 @@ services:
     ports:
       - 10000:10000
     environment:
-      - START_OPTS=-Xmx4g -DAuthHandlers=io.deephaven.auth.AnonymousAuthenticationHandler -Ddeephaven.console.type=python -Ddeephaven.application.dir=./data/app.d
+      - START_OPTS=-Xmx4g -DAuthHandlers=io.deephaven.auth.AnonymousAuthenticationHandler -Ddeephaven.console.type=python
