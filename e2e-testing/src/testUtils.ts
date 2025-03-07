@@ -29,6 +29,13 @@ export interface EditorGroupData {
   webViews?: WebViewData[];
 }
 
+/**
+ * Selector for an iframe. Can be a numeric index in the frames collection of
+ * current context, a CSS selector string, or a function that returns a Promise
+ * resolving to a WebElement.
+ */
+export type FrameSelector = number | string | (() => Promise<WebElement>);
+
 export interface WebViewExtended extends WebView {
   switchToContentFrame: (timeout?: number) => Promise<void>;
 }
@@ -125,10 +132,7 @@ export async function step(
  * @returns A Promise that resolves when switching is complete.
  */
 export async function switchToFrame(
-  identifiers: [
-    number | string | (() => Promise<WebElement>) | WebElement,
-    ...(number | string | (() => Promise<WebElement>) | WebElement)[],
-  ],
+  identifiers: [FrameSelector, ...FrameSelector[]],
   timeout?: number
 ): Promise<void> {
   const { driver } = VSBrowser.instance;
@@ -137,16 +141,8 @@ export async function switchToFrame(
 
   // Find the iframe element based on the identifier
   const findFrame = async (
-    iframeOrIdentifier:
-      | string
-      | number
-      | (() => Promise<WebElement>)
-      | WebElement
+    iframeOrIdentifier: FrameSelector
   ): Promise<WebElement | undefined> => {
-    if (iframeOrIdentifier instanceof WebElement) {
-      return iframeOrIdentifier;
-    }
-
     if (typeof iframeOrIdentifier === 'number') {
       const iframes = await driver.findElements({
         tagName: 'iframe',
@@ -168,14 +164,10 @@ export async function switchToFrame(
   while (identifiers.length > 0) {
     const iframeOrIdentifier = identifiers.shift()!;
 
-    iframe = await driver.wait(
+    iframe = await driver.wait<WebElement>(
       async () => findFrame(iframeOrIdentifier),
       timeout
     );
-
-    if (iframe == null) {
-      throw new Error(`Invalid iframe identifier ${iframeOrIdentifier}.`);
-    }
 
     try {
       await driver.switchTo().frame(iframe);

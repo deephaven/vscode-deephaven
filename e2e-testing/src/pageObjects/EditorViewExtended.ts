@@ -4,6 +4,7 @@ import {
   TextEditor,
   VSBrowser,
   type EditorGroup,
+  type WebElement,
 } from 'vscode-extension-tester';
 import {
   switchToFrame,
@@ -63,7 +64,8 @@ export class EditorViewExtended extends EditorView {
           // Grab current context so we can switch back to it
           const windowHandle = await driver.getWindowHandle();
 
-          const iframe = container.findElement(By.xpath('.//iframe'));
+          const iframeAccessor = async (): Promise<WebElement> =>
+            container.findElement(By.xpath('.//iframe'));
 
           let hasContent = false;
           try {
@@ -75,7 +77,7 @@ export class EditorViewExtended extends EditorView {
             // instead.
             await switchToFrame(
               [
-                iframe,
+                iframeAccessor,
                 WebViewExtended.activeFrameSelector,
                 WebViewExtended.contentFrameSelector,
               ],
@@ -87,10 +89,6 @@ export class EditorViewExtended extends EditorView {
             );
             hasContent = true;
           } catch (err) {
-            if (!String(err).startsWith('TimeoutError:')) {
-              // eslint-disable-next-line no-console
-              console.log('Error switching to content frame:', err);
-            }
           } finally {
             // Reset context
             await driver.switchTo().window(windowHandle);
