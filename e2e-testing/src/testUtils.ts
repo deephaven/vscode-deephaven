@@ -40,6 +40,15 @@ export interface WebViewExtended extends WebView {
   switchToContentFrame: (timeout?: number) => Promise<void>;
 }
 
+/**
+ * Iframes can thrash around a bit as panels are loading. These errors represent
+ * cases where it's worth requerying an iframe and attempting to switch again.
+ */
+export const RETRY_SWITCH_IFRAME_ERRORS: ReadonlySet<string> = new Set([
+  'StaleElementReferenceError',
+  'NoSuchFrameError',
+]);
+
 export async function elementExists(locator: Locator): Promise<boolean> {
   const { driver } = VSBrowser.instance;
   return (await driver.findElements(locator)).length > 0;
@@ -60,6 +69,17 @@ export async function elementIsLazyLoaded(locator: Locator): Promise<boolean> {
   }
 
   return elementExistsEventually(locator);
+}
+
+/**
+ * We don't have access to some of the underlying error classes from
+ * vscode-extension-tester, but we can approximate the type of error by grabbing
+ * any text before the first colon.
+ * @param error Error to extract type from
+ * @returns Error type
+ */
+export function extractErrorType(error: unknown): string {
+  return String(error).split(':')[0];
 }
 
 /**
@@ -171,10 +191,29 @@ export async function switchToFrame(
 
     try {
       await driver.switchTo().frame(iframe);
-    } catch (error) {
+    } catch (err) {
+      const errorType = extractErrorType(err);
+
+      if (!RETRY_SWITCH_IFRAME_ERRORS.has(errorType)) {
+        throw err;
+      }
+
       // eslint-disable-next-line no-console
-      console.log(`Failed to switch to frame: ${iframeOrIdentifier}`, error);
-      throw error;
+      console.log(`Retrying after '${errorType}' error`);
+
+      // Try retrieving the iframe and switching again
+      iframe = await driver.wait<WebElement>(
+        async () => findFrame(iframeOrIdentifier),
+        timeout
+      );
+
+      try {
+        await driver.switchTo().frame(iframe);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.log(`Failed to switch to frame: ${iframeOrIdentifier}`, err);
+        throw err;
+      }
     }
   }
 }

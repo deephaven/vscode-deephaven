@@ -7,6 +7,7 @@ import {
   type WebElement,
 } from 'vscode-extension-tester';
 import {
+  extractErrorType,
   switchToFrame,
   type EditorGroupData,
   type TabData,
@@ -89,6 +90,12 @@ export class EditorViewExtended extends EditorView {
             );
             hasContent = true;
           } catch (err) {
+            // We expect TimeoutErrors in standard case where there is no loaded
+            // content. Other errors indicate something unexpected.
+            if (extractErrorType(err) !== 'TimeoutError') {
+              // eslint-disable-next-line no-console
+              console.log('Err:', err);
+            }
           } finally {
             // Reset context
             await driver.switchTo().window(windowHandle);
