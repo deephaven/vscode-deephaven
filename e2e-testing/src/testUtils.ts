@@ -126,8 +126,8 @@ export async function step(
  */
 export async function switchToFrame(
   identifiers: [
-    number | string | WebElement,
-    ...(number | string | WebElement)[],
+    number | string | (() => Promise<WebElement>) | WebElement,
+    ...(number | string | (() => Promise<WebElement>) | WebElement)[],
   ],
   timeout?: number
 ): Promise<void> {
@@ -137,7 +137,11 @@ export async function switchToFrame(
 
   // Find the iframe element based on the identifier
   const findFrame = async (
-    iframeOrIdentifier: string | number | WebElement
+    iframeOrIdentifier:
+      | string
+      | number
+      | (() => Promise<WebElement>)
+      | WebElement
   ): Promise<WebElement | undefined> => {
     if (iframeOrIdentifier instanceof WebElement) {
       return iframeOrIdentifier;
@@ -157,6 +161,8 @@ export async function switchToFrame(
       const [iframe] = await driver.findElements(By.css(iframeOrIdentifier));
       return iframe;
     }
+
+    return iframeOrIdentifier();
   };
 
   while (identifiers.length > 0) {
@@ -171,6 +177,12 @@ export async function switchToFrame(
       throw new Error(`Invalid iframe identifier ${iframeOrIdentifier}.`);
     }
 
-    await driver.switchTo().frame(iframe);
+    try {
+      await driver.switchTo().frame(iframe);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.log(`Failed to switch to frame: ${iframeOrIdentifier}`, error);
+      throw error;
+    }
   }
 }

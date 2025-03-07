@@ -60,10 +60,10 @@ export class EditorViewExtended extends EditorView {
           const style = await container.getAttribute('style');
           const isVisible = style.includes('visibility: visible');
 
-          const iframe = await container.findElement(By.xpath('.//iframe'));
-
           // Grab current context so we can switch back to it
           const windowHandle = await driver.getWindowHandle();
+
+          const iframe = container.findElement(By.xpath('.//iframe'));
 
           let hasContent = false;
           try {
@@ -79,10 +79,18 @@ export class EditorViewExtended extends EditorView {
                 WebViewExtended.activeFrameSelector,
                 WebViewExtended.contentFrameSelector,
               ],
-              500
+              // If tab is visible, we could possibly be loading for the first time,
+              // so wait a little longer. If tab is invisible, the only scenario
+              // where content would be there is if it has already loaded, so we
+              // don't need to wait as long
+              isVisible ? 3000 : 250
             );
             hasContent = true;
           } catch (err) {
+            if (!String(err).startsWith('TimeoutError:')) {
+              // eslint-disable-next-line no-console
+              console.log('Error switching to content frame:', err);
+            }
           } finally {
             // Reset context
             await driver.switchTo().window(windowHandle);
