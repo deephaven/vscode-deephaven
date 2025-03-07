@@ -1,0 +1,220 @@
+import {
+  By,
+  InputBox,
+  TitleBar,
+  until,
+  VSBrowser,
+  WebElement,
+  WebView,
+  type CodeLens,
+  type Locator,
+  type TextEditor,
+} from 'vscode-extension-tester';
+import os from 'node:os';
+
+export interface TabData {
+  title: string;
+  isSelected: boolean;
+  isWebView: boolean;
+}
+
+export interface WebViewData {
+  isVisible: boolean;
+  hasContent?: true;
+}
+
+export interface EditorGroupData {
+  groupIndex: number;
+  tabs: TabData[];
+  webViews?: WebViewData[];
+}
+
+/**
+ * Selector for an iframe. Can be a numeric index in the frames collection of
+ * current context, a CSS selector string, or a function that returns a Promise
+ * resolving to a WebElement.
+ */
+export type FrameSelector = number | string | (() => Promise<WebElement>);
+
+export interface WebViewExtended extends WebView {
+  switchToContentFrame: (timeout?: number) => Promise<void>;
+}
+
+/**
+ * Iframes can thrash around a bit as panels are loading. These errors represent
+ * cases where it's worth requerying an iframe and attempting to switch again.
+ */
+export const RETRY_SWITCH_IFRAME_ERRORS: ReadonlySet<string> = new Set([
+  'StaleElementReferenceError',
+  'NoSuchElementError',
+  'NoSuchFrameError',
+]);
+
+export async function elementExists(locator: Locator): Promise<boolean> {
+  const { driver } = VSBrowser.instance;
+  return (await driver.findElements(locator)).length > 0;
+}
+
+export async function elementExistsEventually(
+  locator: Locator
+): Promise<boolean> {
+  const { driver } = VSBrowser.instance;
+  await driver.wait(until.elementLocated(locator));
+  return true;
+}
+
+export async function elementIsLazyLoaded(locator: Locator): Promise<boolean> {
+  const existsInitially = await elementExists(locator);
+  if (existsInitially) {
+    throw new Error('Element is already present before lazy loading');
+  }
+
+  return elementExistsEventually(locator);
+}
+
+/**
+ * We don't have access to some of the underlying error classes from
+ * vscode-extension-tester, but we can approximate the type of error by grabbing
+ * any text before the first colon.
+ * @param error Error to extract type from
+ * @returns Error type
+ */
+export function extractErrorType(error: unknown): string {
+  return String(error).split(':')[0];
+}
+
+/**
+ * Open a list of files in VS Code.
+ * @param filePaths Paths of files to open (requires at least one path)
+ */
+export async function openFileResources(
+  ...filePaths: [string, ...string[]]
+): Promise<void> {
+  if (['win32', 'darwin'].includes(os.platform())) {
+    await VSBrowser.instance.openResources(...filePaths);
+    return;
+  }
+
+  // In CI environment, openResources doesn't work on Linux. This workaround does.
+  // https://github.com/redhat-developer/vscode-extension-tester/issues/506#issuecomment-1271156702
+  const titleBar = new TitleBar();
+  for (const filePath of filePaths) {
+    const item = await titleBar.getItem('File');
+    const fileMenu = await item!.select();
+    const openItem = await fileMenu.getItem('Open File...');
+    await openItem!.select();
+    const input = await InputBox.create();
+    await input.setText(filePath);
+    await input.confirm();
+  }
+}
+
+/**
+ * Get a code lens based on title, or zero based index
+ * @param editor Editor to get code lens from
+ * @param indexOrTitle Index or title of code lens to get
+ * @returns CodeLens
+ */
+export async function getCodeLens(
+  editor: TextEditor,
+  indexOrTitle: number | string
+): Promise<CodeLens> {
+  // The `TextEditor.getCodeLens` method provided by `vscode-extension-tester`
+  // does not seem to explicitly wait for the element to be available, which
+  // sometimes works, and sometimes does not. To be safe, we need wait for it
+  // ourselves.
+  return VSBrowser.instance.driver.wait<CodeLens>(async () =>
+    editor.getCodeLens(indexOrTitle)
+  );
+}
+
+/**
+ * Wrapper a labeled step in sequential code.
+ * @param n step number
+ * @param label step label
+ * @param fn code to execute
+ */
+export async function step(
+  n: number,
+  label: string,
+  fn: (stepLabel: string) => Promise<void>
+): Promise<void> {
+  const stepLabel = `Step ${n}: ${label}`;
+  // eslint-disable-next-line no-console
+  console.log(stepLabel);
+  await fn(stepLabel);
+}
+
+/**
+ * Switch to a frame based on the identifiers provided. If multiple identifiers
+ * are provided, the function will switch nested frames. Each identifier can be
+ * a numeric index of the frame, a CSS selector, or the actual iframe WebElement.
+ * @param identifiers Identifiers of the nested frames to switch to
+ * @returns A Promise that resolves when switching is complete.
+ */
+export async function switchToFrame(
+  identifiers: [FrameSelector, ...FrameSelector[]],
+  timeout?: number
+): Promise<void> {
+  const { driver } = VSBrowser.instance;
+
+  let iframe: WebElement | undefined;
+
+  // Find the iframe element based on the identifier
+  const findFrame = async (
+    iframeOrIdentifier: FrameSelector
+  ): Promise<WebElement | undefined> => {
+    if (typeof iframeOrIdentifier === 'number') {
+      const iframes = await driver.findElements({
+        tagName: 'iframe',
+      });
+
+      return iframes.at(iframeOrIdentifier);
+    }
+
+    if (typeof iframeOrIdentifier === 'string') {
+      // Using `findElements` since `findElement` throws an error if no elements
+      // are found
+      const [iframe] = await driver.findElements(By.css(iframeOrIdentifier));
+      return iframe;
+    }
+
+    return iframeOrIdentifier();
+  };
+
+  while (identifiers.length > 0) {
+    const iframeOrIdentifier = identifiers.shift()!;
+
+    iframe = await driver.wait<WebElement>(
+      async () => findFrame(iframeOrIdentifier),
+      timeout
+    );
+
+    try {
+      await driver.switchTo().frame(iframe);
+    } catch (err) {
+      const errorType = extractErrorType(err);
+
+      if (!RETRY_SWITCH_IFRAME_ERRORS.has(errorType)) {
+        throw err;
+      }
+
+      // eslint-disable-next-line no-console
+      console.log(`Retrying after '${errorType}' error`);
+
+      // Try retrieving the iframe and switching again
+      iframe = await driver.wait<WebElement>(
+        async () => findFrame(iframeOrIdentifier),
+        timeout
+      );
+
+      try {
+        await driver.switchTo().frame(iframe);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.log(`Failed to switch to frame: ${iframeOrIdentifier}`, err);
+        throw err;
+      }
+    }
+  }
+}
