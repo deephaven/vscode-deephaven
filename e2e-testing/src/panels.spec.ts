@@ -34,6 +34,11 @@ const expectedTabs = {
     isSelected: true,
     isWebView: true,
   },
+  t2Selected: {
+    title: 't2',
+    isSelected: true,
+    isWebView: true,
+  },
   t3Selected: {
     title: 't3',
     isSelected: true,
@@ -196,6 +201,84 @@ describe('Panels Tests', () => {
               webViews: [
                 { isVisible: true, hasContent: true },
                 { isVisible: false },
+                { isVisible: false },
+              ],
+            },
+          ],
+          stepLabel
+        );
+      }
+    );
+
+    await step(8, 'Move tab to new group', async stepLabel => {
+      await editorView.openWebView(2, 't3');
+
+      await new Workbench().executeCommand('View: Move Editor into Next Group');
+
+      const editorGroupsData = await editorView.getEditorGroupsData();
+      assert.deepEqual(
+        editorGroupsData,
+        [
+          {
+            groupIndex: 0,
+            tabs: [expectedTabs.simpleTicking3],
+          },
+          {
+            groupIndex: 1,
+            tabs: [expectedTabs.simpleTicking3],
+          },
+          {
+            groupIndex: 2,
+            tabs: [expectedTabs.t1, expectedTabs.t2Selected],
+            webViews: [
+              { isVisible: false },
+              { isVisible: true, hasContent: true },
+            ],
+          },
+          {
+            groupIndex: 3,
+            tabs: [expectedTabs.t3Selected],
+            webViews: [{ isVisible: true, hasContent: true }],
+          },
+        ],
+        stepLabel
+      );
+    });
+
+    await step(
+      9,
+      'Close tab in first panel grouping should re-open in last panel grouping',
+      async stepLabel => {
+        await editorView.closeEditor('t1', 2);
+
+        const runDhFileCodeLens = await getCodeLens(
+          editor,
+          'Run Deephaven File'
+        );
+        await runDhFileCodeLens.click();
+
+        const editorGroupsData = await editorView.getEditorGroupsData();
+        assert.deepEqual(
+          editorGroupsData,
+          [
+            {
+              groupIndex: 0,
+              tabs: [expectedTabs.simpleTicking3],
+            },
+            {
+              groupIndex: 1,
+              tabs: [expectedTabs.simpleTicking3],
+            },
+            {
+              groupIndex: 2,
+              tabs: [expectedTabs.t2Selected],
+              webViews: [{ isVisible: true, hasContent: true }],
+            },
+            {
+              groupIndex: 3,
+              tabs: [expectedTabs.t3Selected, expectedTabs.t1],
+              webViews: [
+                { isVisible: true, hasContent: true },
                 { isVisible: false },
               ],
             },

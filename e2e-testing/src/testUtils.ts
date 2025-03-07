@@ -46,6 +46,7 @@ export interface WebViewExtended extends WebView {
  */
 export const RETRY_SWITCH_IFRAME_ERRORS: ReadonlySet<string> = new Set([
   'StaleElementReferenceError',
+  'NoSuchElementError',
   'NoSuchFrameError',
 ]);
 
