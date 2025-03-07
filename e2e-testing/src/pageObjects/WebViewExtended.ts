@@ -1,4 +1,4 @@
-import { By, until, WebView } from 'vscode-extension-tester';
+import { By, until, WebView, type WebElement } from 'vscode-extension-tester';
 import { switchToFrame } from '../testUtils';
 import { locators } from '../locators';
 
@@ -66,14 +66,18 @@ export class WebViewExtended extends WebView {
 
     // Find the iframe that contains the webview the open editor + active
     // tab. It should be the only one with a visible parent.
-    const iframe = await this.getDriver().wait(
-      until.elementLocated(
-        locators.webView(parentFlowToElementId, 'iframe', 'visible')
-      ),
+    const iframeAccessor = async (): Promise<WebElement> =>
+      this.getDriver().wait(
+        until.elementLocated(
+          locators.webView(parentFlowToElementId, 'iframe', 'visible')
+        ),
+        timeout
+      );
+
+    await switchToFrame(
+      [iframeAccessor, WebViewExtended.activeFrameSelector],
       timeout
     );
-
-    await switchToFrame([iframe, WebViewExtended.activeFrameSelector], timeout);
   }
 
   /**
