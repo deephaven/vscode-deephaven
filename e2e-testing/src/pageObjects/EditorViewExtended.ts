@@ -56,6 +56,13 @@ export class EditorViewExtended extends EditorView {
 
         const webView = await new WebViewExtended(group).wait();
         const parentFlowToElementId = await webView.getParentFlowToElementId();
+
+        // Each webview consists of a container div containing an iframe. The
+        // container divs all get appended as siblings near the end of the
+        // document body and are associated with an editor instance via
+        // `parentFlowToElementId`. Only one of the containers will be visible
+        // for each editor group, corresponding to the selected tab / active
+        // editor instance within the group.
         const iframeContainers = await driver.findElements(
           locators.webViewContainer(parentFlowToElementId)
         );
