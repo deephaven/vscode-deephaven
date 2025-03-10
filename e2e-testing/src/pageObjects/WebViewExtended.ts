@@ -8,15 +8,6 @@ export class WebViewExtended extends WebView {
   private windowHandle: string | undefined;
 
   /**
-   * The aria-flowto attribute is used to associate a webview editor instance
-   * with the container div containing the active webview iframe.
-   * @returns Promise resolving to the id
-   */
-  async getAriaFlowtoId(): Promise<string> {
-    return this.findElement(By.css('div')).getAttribute('aria-flowto');
-  }
-
-  /**
    * Get the id used to associate a webview editor instance with container divs
    * that contain the webview iframes.
    * @returns Promise resolving to the id
