@@ -8,8 +8,13 @@ import { SERVER_TITLE } from './constants';
 export async function setup(): Promise<void> {
   // Ensure we have a clean slate from any previous test suites
   await new EditorView().closeAllEditors();
-  await disconnectFromServer(SERVER_TITLE);
+
+  try {
+    await disconnectFromServer(SERVER_TITLE);
+  } catch {}
 
   const explorer = await new ActivityBar().getViewControl('Explorer');
-  await explorer?.openView();
+  if (!(await explorer?.isSelected())) {
+    await explorer?.openView();
+  }
 }

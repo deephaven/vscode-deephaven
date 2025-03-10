@@ -120,10 +120,17 @@ export async function runDhFileCodeLens(editor: TextEditor): Promise<void> {
 }
 
 /**
- * Wrapper a labeled step in sequential code.
+ * Call a function as a labeled step in sequential code.
  * @param n step number
  * @param label step label
  * @param fn code to execute
+ * @returns result of code execution
+ * @example <caption>Example Step Usage</caption>
+ * await step(1, 'Open file', async () => {
+ *   await openFileResources('test.py');
+ *   const editor = await new EditorView().openTextEditor('test.py');
+ *   await runDhFileCodeLens(editor);
+ * });
  */
 export async function step<TResult>(
   n: number,
