@@ -1,29 +1,28 @@
 import {
-  EditorView,
   InputBox,
   QuickPickItem,
-  SideBarView,
   StatusBar,
   VSBrowser,
 } from 'vscode-extension-tester';
 import {
+  getSidebarViewItem,
   openFileResources,
   SIMPLE_TICKING3_PY,
   SIMPLE_TICKING_MD,
   step,
+  teardown,
   TEST_GROOVY,
   TEST_TXT,
 } from '../util';
 import { EditorViewExtended } from '../pageObjects';
 import { assert } from 'chai';
+import { SERVER_TITLE, STATUS_BAR_TITLE, VIEW_NAME } from '../util/constants';
 
 describe('Status Bar Tests', () => {
   let editorView: EditorViewExtended;
   let statusBar: StatusBar;
-  let sideBarView: SideBarView;
 
   before(async () => {
-    await new EditorView().closeAllEditors();
     await openFileResources(
       SIMPLE_TICKING_MD.path,
       SIMPLE_TICKING3_PY.path,
@@ -33,7 +32,10 @@ describe('Status Bar Tests', () => {
 
     editorView = new EditorViewExtended();
     statusBar = new StatusBar();
-    sideBarView = new SideBarView();
+  });
+
+  after(async () => {
+    await teardown();
   });
 
   it('should only show Deephaven status bar item for supported file types', async () => {
@@ -66,7 +68,7 @@ describe('Status Bar Tests', () => {
 
     await step(1, 'Click Deephaven status bar item', async () => {
       const statusBarItem = await statusBar.getItem(
-        'plug  Deephaven: Disconnected'
+        STATUS_BAR_TITLE.disconnected
       );
       assert.isDefined(statusBarItem);
       await statusBarItem.click();
@@ -85,20 +87,22 @@ describe('Status Bar Tests', () => {
     });
 
     step(3, 'Verify server node', async stepLabel => {
-      const section = await sideBarView.getContent().getSection('Servers');
-      const localhost1000Item = await section.findItem('localhost:10000');
+      const localhost1000Item = await getSidebarViewItem(
+        VIEW_NAME.servers,
+        SERVER_TITLE
+      );
 
       assert.isDefined(localhost1000Item, stepLabel);
       assert.equal(
         await localhost1000Item.getText(),
-        'localhost:10000(1)',
+        `${SERVER_TITLE}(1)`,
         stepLabel
       );
     });
 
     step(4, 'Verify connection node', async stepLabel => {
-      const section = await sideBarView.getContent().getSection('Connections');
-      const simpleTickingEditor = await section.findItem(
+      const simpleTickingEditor = await getSidebarViewItem(
+        VIEW_NAME.connections,
         SIMPLE_TICKING3_PY.name
       );
 

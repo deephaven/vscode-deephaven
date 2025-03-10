@@ -1,11 +1,13 @@
-import { EditorView, Workbench } from 'vscode-extension-tester';
+import { Workbench } from 'vscode-extension-tester';
 import { assert } from 'chai';
 import { EditorViewExtended } from '../pageObjects';
 import {
   getCodeLens,
   openFileResources,
+  setup,
   SIMPLE_TICKING3_PY,
   step,
+  teardown,
 } from '../util';
 
 const expectedTabs = {
@@ -48,11 +50,13 @@ const expectedTabs = {
 
 describe('Panels Tests', () => {
   before(async () => {
-    await new EditorView().closeAllEditors();
-
+    await setup();
     await openFileResources(SIMPLE_TICKING3_PY.path);
-
     await new Workbench().executeCommand('View: Split Editor Down');
+  });
+
+  after(async () => {
+    await teardown();
   });
 
   it('should open panels', async () => {

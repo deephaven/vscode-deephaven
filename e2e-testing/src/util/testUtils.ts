@@ -1,6 +1,7 @@
 import {
   By,
   InputBox,
+  SideBarView,
   TitleBar,
   until,
   VSBrowser,
@@ -9,8 +10,10 @@ import {
   type CodeLens,
   type Locator,
   type TextEditor,
+  type ViewItem,
 } from 'vscode-extension-tester';
 import os from 'node:os';
+import { RETRY_SWITCH_IFRAME_ERRORS } from './constants';
 
 export interface TabData {
   title: string;
@@ -41,14 +44,18 @@ export interface WebViewExtended extends WebView {
 }
 
 /**
- * Iframes can thrash around a bit as panels are loading. These errors represent
- * cases where it's worth requerying an iframe and attempting to switch again.
+ * Disconnect from Deephaven server by clicking on disconnect action on server
+ * node.
+ * @param title Title of server node to disconnect from
  */
-export const RETRY_SWITCH_IFRAME_ERRORS: ReadonlySet<string> = new Set([
-  'StaleElementReferenceError',
-  'NoSuchElementError',
-  'NoSuchFrameError',
-]);
+export async function disconnectFromServer(title: string): Promise<void> {
+  const serverViewItem = await getSidebarViewItem('Servers', title);
+  await serverViewItem?.select();
+  const disconnectAction = await serverViewItem?.findElement(
+    By.css('[aria-label="Disconnect from Server"]')
+  );
+  await disconnectAction?.click();
+}
 
 export async function elementExists(locator: Locator): Promise<boolean> {
   const { driver } = VSBrowser.instance;
@@ -84,6 +91,40 @@ export function extractErrorType(error: unknown): string {
 }
 
 /**
+ * Get a sidebar view item based on section and title.
+ * @param section Section of sidebar view to get item from
+ * @param title Title of item to get
+ * @returns Sidebar view item
+ */
+export async function getSidebarViewItem(
+  section: string,
+  title: string
+): Promise<ViewItem | undefined> {
+  const sideBarView = new SideBarView();
+  const serverSection = await sideBarView.getContent().getSection(section);
+  return serverSection.findItem(title);
+}
+
+/**
+ * Get a code lens based on title, or zero based index
+ * @param editor Editor to get code lens from
+ * @param indexOrTitle Index or title of code lens to get
+ * @returns CodeLens
+ */
+export async function getCodeLens(
+  editor: TextEditor,
+  indexOrTitle: number | string
+): Promise<CodeLens> {
+  // The `TextEditor.getCodeLens` method provided by `vscode-extension-tester`
+  // does not seem to explicitly wait for the element to be available, which
+  // sometimes works, and sometimes does not. To be safe, we need wait for it
+  // ourselves.
+  return VSBrowser.instance.driver.wait<CodeLens>(async () =>
+    editor.getCodeLens(indexOrTitle)
+  );
+}
+
+/**
  * Open a list of files in VS Code.
  * @param filePaths Paths of files to open (requires at least one path)
  */
@@ -107,25 +148,6 @@ export async function openFileResources(
     await input.setText(filePath);
     await input.confirm();
   }
-}
-
-/**
- * Get a code lens based on title, or zero based index
- * @param editor Editor to get code lens from
- * @param indexOrTitle Index or title of code lens to get
- * @returns CodeLens
- */
-export async function getCodeLens(
-  editor: TextEditor,
-  indexOrTitle: number | string
-): Promise<CodeLens> {
-  // The `TextEditor.getCodeLens` method provided by `vscode-extension-tester`
-  // does not seem to explicitly wait for the element to be available, which
-  // sometimes works, and sometimes does not. To be safe, we need wait for it
-  // ourselves.
-  return VSBrowser.instance.driver.wait<CodeLens>(async () =>
-    editor.getCodeLens(indexOrTitle)
-  );
 }
 
 /**
