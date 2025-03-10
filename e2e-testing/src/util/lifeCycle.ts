@@ -18,7 +18,9 @@ export async function setup(): Promise<void> {
 export async function teardown(): Promise<void> {
   await new EditorView().closeAllEditors();
 
-  await VSBrowser.instance.takeScreenshot('teardown-close-all-editors');
+  await VSBrowser.instance.takeScreenshot(
+    `teardown-close-all-editors-${new Date().valueOf()}`
+  );
 
   try {
     await disconnectFromServer(SERVER_TITLE);
