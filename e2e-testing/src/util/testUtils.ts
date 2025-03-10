@@ -111,6 +111,7 @@ export async function openFileResources(
     await openItem!.select();
     const input = await InputBox.create();
     await input.setText(filePath);
+    await input.click();
     await input.confirm();
 
     await VSBrowser.instance.takeScreenshot(`open-file-${now}-${i++}`);
