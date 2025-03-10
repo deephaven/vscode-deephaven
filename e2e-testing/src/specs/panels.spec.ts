@@ -7,7 +7,6 @@ import {
   setup,
   SIMPLE_TICKING3_PY,
   step,
-  teardown,
 } from '../util';
 
 const expectedTabs = {
@@ -53,10 +52,6 @@ describe('Panels Tests', () => {
     await setup();
     await openFileResources(SIMPLE_TICKING3_PY.path);
     await new Workbench().executeCommand('View: Split Editor Down');
-  });
-
-  after(async () => {
-    await teardown();
   });
 
   it('should open panels', async () => {

@@ -10,7 +10,6 @@ import {
   SIMPLE_TICKING3_PY,
   SIMPLE_TICKING_MD,
   step,
-  teardown,
   TEST_GROOVY,
   TEST_TXT,
 } from '../util';
@@ -32,10 +31,6 @@ describe('Status Bar Tests', () => {
 
     editorView = new EditorViewExtended();
     statusBar = new StatusBar();
-  });
-
-  after(async () => {
-    await teardown();
   });
 
   it('should only show Deephaven status bar item for supported file types', async () => {
