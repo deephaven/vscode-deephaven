@@ -12,6 +12,9 @@ export async function setup(): Promise<void> {
   }
 }
 
+/**
+ * Teardown after running test suite.
+ */
 export async function teardown(): Promise<void> {
   await new EditorView().closeAllEditors();
 
