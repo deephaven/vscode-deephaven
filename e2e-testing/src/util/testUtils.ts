@@ -3,7 +3,6 @@ import {
   InputBox,
   SideBarView,
   TitleBar,
-  until,
   VSBrowser,
   WebElement,
   type CodeLens,
