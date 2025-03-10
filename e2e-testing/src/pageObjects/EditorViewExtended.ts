@@ -110,7 +110,13 @@ export class EditorViewExtended extends EditorView {
             await driver.switchTo().window(windowHandle);
           }
 
-          const webViewData: WebViewData = { isVisible };
+          const webViewData: WebViewData = {};
+
+          // Only set isVisible & hasContent if true to make test comparisons
+          // easier to write / read
+          if (isVisible) {
+            webViewData.isVisible = true;
+          }
           if (hasContent) {
             webViewData.hasContent = true;
           }

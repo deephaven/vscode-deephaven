@@ -81,11 +81,7 @@ describe('Panels Tests', () => {
           {
             groupIndex: 2,
             tabs: [expectedTabs.t1, expectedTabs.t2, expectedTabs.t3Selected],
-            webViews: [
-              { isVisible: false },
-              { isVisible: false },
-              { isVisible: true, hasContent: true },
-            ],
+            webViews: [{}, {}, { isVisible: true, hasContent: true }],
           },
         ],
         stepLabel
@@ -111,8 +107,8 @@ describe('Panels Tests', () => {
             tabs: [expectedTabs.t1Selected, expectedTabs.t2, expectedTabs.t3],
             webViews: [
               { isVisible: true, hasContent: true },
-              { isVisible: false },
-              { isVisible: false, hasContent: true },
+              {},
+              { hasContent: true },
             ],
           },
         ],
@@ -138,8 +134,8 @@ describe('Panels Tests', () => {
             groupIndex: 2,
             tabs: [expectedTabs.t1, expectedTabs.t2, expectedTabs.t3Selected],
             webViews: [
-              { isVisible: false, hasContent: true },
-              { isVisible: false },
+              { hasContent: true },
+              {},
               { isVisible: true, hasContent: true },
             ],
           },
@@ -198,11 +194,7 @@ describe('Panels Tests', () => {
             {
               groupIndex: 2,
               tabs: [expectedTabs.t3Selected, expectedTabs.t1, expectedTabs.t2],
-              webViews: [
-                { isVisible: true, hasContent: true },
-                { isVisible: false },
-                { isVisible: false },
-              ],
+              webViews: [{ isVisible: true, hasContent: true }, {}, {}],
             },
           ],
           stepLabel
@@ -230,10 +222,7 @@ describe('Panels Tests', () => {
           {
             groupIndex: 2,
             tabs: [expectedTabs.t1, expectedTabs.t2Selected],
-            webViews: [
-              { isVisible: false },
-              { isVisible: true, hasContent: true },
-            ],
+            webViews: [{}, { isVisible: true, hasContent: true }],
           },
           {
             groupIndex: 3,
@@ -277,10 +266,7 @@ describe('Panels Tests', () => {
             {
               groupIndex: 3,
               tabs: [expectedTabs.t3Selected, expectedTabs.t1],
-              webViews: [
-                { isVisible: true, hasContent: true },
-                { isVisible: false },
-              ],
+              webViews: [{ isVisible: true, hasContent: true }, {}],
             },
           ],
           stepLabel

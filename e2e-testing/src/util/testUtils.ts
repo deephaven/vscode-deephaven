@@ -19,7 +19,7 @@ export interface TabData {
 }
 
 export interface WebViewData {
-  isVisible: boolean;
+  isVisible?: true;
   hasContent?: true;
 }
 
