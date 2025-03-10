@@ -1,10 +1,10 @@
 import { EditorView, Workbench } from 'vscode-extension-tester';
 import path from 'node:path';
 import { assert } from 'chai';
-import { EditorViewExtended } from './pageObjects';
-import { getCodeLens, openFileResources, step } from './testUtils';
+import { EditorViewExtended } from '../pageObjects';
+import { getCodeLens, openFileResources, step } from '../util';
 
-const testWsPath = path.resolve(__dirname, '..', 'test-ws/');
+const testWsPath = path.resolve(__dirname, '..', '..', 'test-ws/');
 const simpleTicking3Name = 'simple_ticking3.py';
 const simpleTicking3Path = path.join(testWsPath, simpleTicking3Name);
 

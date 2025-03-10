@@ -8,13 +8,13 @@ import {
 } from 'vscode-extension-tester';
 import {
   extractErrorType,
+  locators,
   switchToFrame,
   type EditorGroupData,
   type TabData,
   type WebViewData,
-} from '../testUtils';
+} from '../util';
 import { WebViewExtended } from './WebViewExtended';
-import { locators } from '../locators';
 
 export class EditorViewExtended extends EditorView {
   /**

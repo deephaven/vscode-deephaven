@@ -1,6 +1,5 @@
 import { By, until, WebView, type WebElement } from 'vscode-extension-tester';
-import { switchToFrame } from '../testUtils';
-import { locators } from '../locators';
+import { locators, switchToFrame } from '../util';
 
 export class WebViewExtended extends WebView {
   static activeFrameSelector = '#active-frame';

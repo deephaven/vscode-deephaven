@@ -15,7 +15,8 @@ const extensionsPath = path.join(e2eTestingPath, '.test-extensions');
 const testFilesPattern = path.join(e2eTestingPath, 'out', '**', '*.spec.js');
 const mochaConfig = path.join(
   e2eTestingPath,
-  isDebug ? '.mocharc-debug.js' : '.mocharc.js'
+  'out',
+  isDebug ? 'mocharcDebug.js' : 'mocharc.js'
 );
 
 const exTester = new ExTester(
