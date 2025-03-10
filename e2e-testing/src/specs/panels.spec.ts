@@ -89,7 +89,7 @@ describe('Panels Tests', () => {
     });
 
     await step(3, 'Switch to another tab', async stepLabel => {
-      await editorView.openWebView(2, 't1');
+      await editorView.openWebView('t1', 2);
       const editorGroupsData = await editorView.getEditorGroupsData();
       assert.deepEqual(
         editorGroupsData,
@@ -117,7 +117,7 @@ describe('Panels Tests', () => {
     });
 
     await step(4, 'Switch back to initial tab', async stepLabel => {
-      await editorView.openWebView(2, 't3');
+      await editorView.openWebView('t3', 2);
       const editorGroupsData = await editorView.getEditorGroupsData();
       assert.deepEqual(
         editorGroupsData,
@@ -203,7 +203,7 @@ describe('Panels Tests', () => {
     );
 
     await step(8, 'Move tab to new group', async stepLabel => {
-      await editorView.openWebView(2, 't3');
+      await editorView.openWebView('t3', 2);
 
       await new Workbench().executeCommand('View: Move Editor into Next Group');
 

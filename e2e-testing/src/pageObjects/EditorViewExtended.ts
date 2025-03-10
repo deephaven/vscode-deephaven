@@ -160,35 +160,27 @@ export class EditorViewExtended extends EditorView {
   }
 
   /**
-   * Get the WebView tab for a given tab group and title. If the tab is not
-   * currently active, it will be selected unless `throwIfTitleNotAlreadyActive`
-   * is set to true, in which case it will throw an error.
+   * Switch to a TextEditor tab with the given title + optional group index.
+   * Throws if a matching Editor is found that isn't associated with a WebView.
    * @param groupIndex zero based index for the editor group
    * @param title title of the tab
-   * @param throwIfTitleNotAlreadyActive if true, throw if the tab is not already active
    * @returns Promise resolving to `WebViewExtended` object
    */
   async openWebView(
-    groupIndex: number,
     title: string,
-    throwIfTitleNotAlreadyActive = false
+    groupIndex?: number
   ): Promise<WebViewExtended> {
-    const group = await this.getEditorGroup(groupIndex);
+    const group = await this.getEditorGroup(groupIndex ?? 0);
 
-    const activeTab = await group.getActiveTab();
-    const activeTitle = activeTab && (await activeTab?.getTitle());
-    const isTitleAlreadyActive = activeTitle === title;
+    const tab = await group.getTabByTitle(title);
+    const resourceName = await tab.getAttribute('data-resource-name');
+    const isWebView = resourceName.startsWith('webview-');
 
-    if (throwIfTitleNotAlreadyActive && !isTitleAlreadyActive) {
-      throw new Error(
-        `Expected tab title to be "${title}", but was "${activeTitle}"`
-      );
+    if (!isWebView) {
+      throw new Error('Tab is not associated with a WebView');
     }
 
-    if (!isTitleAlreadyActive) {
-      const tab = await group.getTabByTitle(title);
-      await tab.select();
-    }
+    await tab.select();
 
     return new WebViewExtended(group).wait();
   }
