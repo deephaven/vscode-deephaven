@@ -1,4 +1,4 @@
-import { ActivityBar, EditorView } from 'vscode-extension-tester';
+import { ActivityBar, EditorView, VSBrowser } from 'vscode-extension-tester';
 import { disconnectFromServer } from './testUtils';
 import { SERVER_TITLE } from './constants';
 
@@ -17,6 +17,8 @@ export async function setup(): Promise<void> {
  */
 export async function teardown(): Promise<void> {
   await new EditorView().closeAllEditors();
+
+  await VSBrowser.instance.takeScreenshot('teardown-close-all-editors');
 
   try {
     await disconnectFromServer(SERVER_TITLE);
