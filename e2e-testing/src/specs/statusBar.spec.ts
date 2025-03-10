@@ -7,6 +7,7 @@ import {
 import {
   getSidebarViewItem,
   openFileResources,
+  setup,
   SIMPLE_TICKING3_PY,
   SIMPLE_TICKING_MD,
   step,
@@ -22,6 +23,8 @@ describe('Status Bar Tests', () => {
   let statusBar: StatusBar;
 
   before(async () => {
+    await setup();
+
     await openFileResources(
       SIMPLE_TICKING_MD.path,
       SIMPLE_TICKING3_PY.path,
