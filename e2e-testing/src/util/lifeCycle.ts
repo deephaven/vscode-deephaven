@@ -1,4 +1,4 @@
-import { ActivityBar, EditorView } from 'vscode-extension-tester';
+import { ActivityBar, EditorView, VSBrowser } from 'vscode-extension-tester';
 import { disconnectFromServer } from './testUtils';
 import { SERVER_TITLE } from './constants';
 
@@ -8,6 +8,8 @@ import { SERVER_TITLE } from './constants';
 export async function setup(): Promise<void> {
   // Ensure we have a clean slate from any previous test suites
   await new EditorView().closeAllEditors();
+
+  await VSBrowser.instance.driver.sleep(1000);
 
   try {
     await disconnectFromServer(SERVER_TITLE);
