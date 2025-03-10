@@ -12,10 +12,10 @@ npm run test
 
 ### End-to-end Testing
 
-End-to-end tests are configured to run via `wdio-vscode-service`. This allows
+End-to-end tests are configured to run via `vscode-extension-tester. This allows
 testing workflows and has better abstractions for ui testing than `@vscode/test-electron`.
 
-See [wdio-vscode-service](https://www.npmjs.com/package/wdio-vscode-service) for more details.
+See [vscode-extension-tester](https://github.com/redhat-developer/vscode-extension-tester) for more details.
 
 To run end-to-end tests:
 
@@ -26,23 +26,10 @@ npm run test:e2e
 To run using `VS Code` debugger:
 
 1. Set a breakpoint in a test
-2. Either
+2. Run the `e2e Tests` launch config in VS Code
+3. You should see the tests start and `VS Code` stop at the breakpoint
 
-   Enable auto attach with flag (`Command palette -> Debug: Toggle Auto Attach -> Only With Flag`).
-
-   > Note you may need to open a new terminal for this to take effect.
-
-   or
-
-   Open `Javascript Debug Terminal` (Click the dropdown arrow beside the + button for adding a new terminal)
-
-3. Run the script:
-
-   ```sh
-   npm run test:e2e
-   ```
-
-4. You should see the tests start and `VS Code` stop at the breakpoint.
+The `vscode-extension-tester` library uses `Mocha` to run tests. If you need to tweak debugging settings such as test timeout, you can do so in `e2e-testing/src/mocharcDebug.ts`.
 
 ## VSCE
 [vsce](https://github.com/microsoft/vscode-vsce), short for "Visual Studio Code Extensions", is a command-line tool for packaging, publishing and managing `VS Code` extensions. The Deephaven extension calls `vsce` via npm scripts. Note that `vsce package` and `vsce publish` both call the `vscode:prepublish` script.
