@@ -174,15 +174,16 @@ describe('Panels Tests', () => {
       );
     });
 
-    await step(6, 'Run Deephaven File CodeLens', async () => {
-      const runDhFileCodeLens = await getCodeLens(editor, 'Run Deephaven File');
-      await runDhFileCodeLens.click();
-    });
-
     await step(
-      7,
+      6,
       'Check panel load with 1 pre-existing tab',
       async stepLabel => {
+        const runDhFileCodeLens = await getCodeLens(
+          editor,
+          'Run Deephaven File'
+        );
+        await runDhFileCodeLens.click();
+
         const editorGroupsData = await editorView.getEditorGroupsData();
         assert.deepEqual(
           editorGroupsData,
@@ -206,7 +207,7 @@ describe('Panels Tests', () => {
       }
     );
 
-    await step(8, 'Move tab to new group', async stepLabel => {
+    await step(7, 'Move tab to new group', async stepLabel => {
       await editorView.openWebView('t3', 2);
 
       await new Workbench().executeCommand('View: Move Editor into Next Group');
@@ -239,7 +240,7 @@ describe('Panels Tests', () => {
     });
 
     await step(
-      9,
+      8,
       'Close tab in first panel grouping should re-open in last panel grouping',
       async stepLabel => {
         await editorView.closeEditor('t1', 2);
