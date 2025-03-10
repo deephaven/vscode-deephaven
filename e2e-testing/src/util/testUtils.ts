@@ -52,26 +52,15 @@ export async function disconnectFromServer(title: string): Promise<void> {
   await disconnectAction?.click();
 }
 
+/**
+ * Check if an element exists in the current context. This is needed since the
+ * default Selenium driver `findElement` methods throw if element not found.
+ * @param locator Locator of element to check
+ * @returns True if element exists, false otherwise
+ */
 export async function elementExists(locator: Locator): Promise<boolean> {
   const { driver } = VSBrowser.instance;
   return (await driver.findElements(locator)).length > 0;
-}
-
-export async function elementExistsEventually(
-  locator: Locator
-): Promise<boolean> {
-  const { driver } = VSBrowser.instance;
-  await driver.wait(until.elementLocated(locator));
-  return true;
-}
-
-export async function elementIsLazyLoaded(locator: Locator): Promise<boolean> {
-  const existsInitially = await elementExists(locator);
-  if (existsInitially) {
-    throw new Error('Element is already present before lazy loading');
-  }
-
-  return elementExistsEventually(locator);
 }
 
 /**
