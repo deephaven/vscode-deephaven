@@ -1,12 +1,12 @@
 import { EditorView, Workbench } from 'vscode-extension-tester';
-import path from 'node:path';
 import { assert } from 'chai';
 import { EditorViewExtended } from '../pageObjects';
-import { getCodeLens, openFileResources, step } from '../util';
-
-const testWsPath = path.resolve(__dirname, '..', '..', 'test-ws/');
-const simpleTicking3Name = 'simple_ticking3.py';
-const simpleTicking3Path = path.join(testWsPath, simpleTicking3Name);
+import {
+  getCodeLens,
+  openFileResources,
+  SIMPLE_TICKING3_PY,
+  step,
+} from '../util';
 
 const expectedTabs = {
   simpleTicking3: {
@@ -50,14 +50,14 @@ describe('Panels Tests', () => {
   before(async () => {
     await new EditorView().closeAllEditors();
 
-    await openFileResources(simpleTicking3Path);
+    await openFileResources(SIMPLE_TICKING3_PY.path);
 
     await new Workbench().executeCommand('View: Split Editor Down');
   });
 
   it('should open panels', async () => {
     const editorView = new EditorViewExtended();
-    const editor = await editorView.openTextEditor(simpleTicking3Name);
+    const editor = await editorView.openTextEditor(SIMPLE_TICKING3_PY.name);
 
     await step(1, 'Run Deephaven File CodeLens', async () => {
       const runDhFileCodeLens = await getCodeLens(editor, 'Run Deephaven File');

@@ -134,15 +134,15 @@ export async function getCodeLens(
  * @param label step label
  * @param fn code to execute
  */
-export async function step(
+export async function step<TResult>(
   n: number,
   label: string,
-  fn: (stepLabel: string) => Promise<void>
-): Promise<void> {
+  fn: (stepLabel: string) => Promise<TResult>
+): Promise<TResult> {
   const stepLabel = `Step ${n}: ${label}`;
   // eslint-disable-next-line no-console
   console.log(stepLabel);
-  await fn(stepLabel);
+  return fn(stepLabel);
 }
 
 /**
