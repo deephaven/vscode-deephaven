@@ -151,6 +151,15 @@ export async function openFileResources(
 }
 
 /**
+ * Execute "Run Deephaven File" code lens in the given editor.
+ * @param editor Editor to execute code lens in
+ */
+export async function runDhFileCodeLens(editor: TextEditor): Promise<void> {
+  const runDhFileCodeLens = await getCodeLens(editor, 'Run Deephaven File');
+  await runDhFileCodeLens.click();
+}
+
+/**
  * Wrapper a labeled step in sequential code.
  * @param n step number
  * @param label step label

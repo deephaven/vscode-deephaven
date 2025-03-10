@@ -2,8 +2,8 @@ import { Workbench } from 'vscode-extension-tester';
 import { assert } from 'chai';
 import { EditorViewExtended } from '../pageObjects';
 import {
-  getCodeLens,
   openFileResources,
+  runDhFileCodeLens,
   setup,
   SIMPLE_TICKING3_PY,
   step,
@@ -64,8 +64,7 @@ describe('Panels Tests', () => {
     const editor = await editorView.openTextEditor(SIMPLE_TICKING3_PY.name);
 
     await step(1, 'Run Deephaven File CodeLens', async () => {
-      const runDhFileCodeLens = await getCodeLens(editor, 'Run Deephaven File');
-      await runDhFileCodeLens.click();
+      await runDhFileCodeLens(editor);
       await editorView.waitForEditorGroup(2);
     });
 
@@ -178,13 +177,10 @@ describe('Panels Tests', () => {
       6,
       'Check panel load with 1 pre-existing tab',
       async stepLabel => {
-        const runDhFileCodeLens = await getCodeLens(
-          editor,
-          'Run Deephaven File'
-        );
-        await runDhFileCodeLens.click();
+        await runDhFileCodeLens(editor);
 
         const editorGroupsData = await editorView.getEditorGroupsData();
+
         assert.deepEqual(
           editorGroupsData,
           [
@@ -245,11 +241,7 @@ describe('Panels Tests', () => {
       async stepLabel => {
         await editorView.closeEditor('t1', 2);
 
-        const runDhFileCodeLens = await getCodeLens(
-          editor,
-          'Run Deephaven File'
-        );
-        await runDhFileCodeLens.click();
+        await runDhFileCodeLens(editor);
 
         const editorGroupsData = await editorView.getEditorGroupsData();
         assert.deepEqual(
