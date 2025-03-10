@@ -29,28 +29,28 @@ export class EditorViewExtended extends EditorView {
       const tabs: TabData[] = [];
 
       // An editor group may be associated with 0-n webviews
-      let groupHasWebView = false;
+      let webViewCount = 0;
 
       for (const tab of await group.getOpenTabs()) {
         const title = await tab.getTitle();
         const isSelected = await tab.isSelected();
         const resourceName = await tab.getAttribute('data-resource-name');
-        const tabHasWebView = resourceName.startsWith('webview-');
+        const isWebView = resourceName.startsWith('webview-');
 
-        if (tabHasWebView) {
-          groupHasWebView = true;
+        if (isWebView) {
+          webViewCount += 1;
         }
 
         tabs.push({
           title,
           isSelected,
-          isWebView: tabHasWebView,
+          isWebView,
         });
       }
 
       let webViews: WebViewData[] | undefined;
 
-      if (groupHasWebView) {
+      if (webViewCount > 0) {
         const driver = this.getDriver();
         webViews = [];
 
