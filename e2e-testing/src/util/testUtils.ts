@@ -12,30 +12,7 @@ import {
 } from 'vscode-extension-tester';
 import os from 'node:os';
 import { RETRY_SWITCH_IFRAME_ERRORS } from './constants';
-
-export interface TabData {
-  title: string;
-  isSelected: boolean;
-  isWebView: boolean;
-}
-
-export interface WebViewData {
-  isVisible?: true;
-  hasContent?: true;
-}
-
-export interface EditorGroupData {
-  groupIndex: number;
-  tabs: TabData[];
-  webViews?: WebViewData[];
-}
-
-/**
- * Selector for an iframe. Can be a numeric index in the frames collection of
- * current context, a CSS selector string, or a function that returns a Promise
- * resolving to a WebElement.
- */
-export type FrameSelector = number | string | (() => Promise<WebElement>);
+import type { FrameSelector } from './types';
 
 /**
  * Disconnect from Deephaven server by clicking on disconnect action on server
