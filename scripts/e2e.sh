@@ -14,7 +14,7 @@ until [ "$(curl --silent --fail --request OPTIONS --output /dev/null http://loca
     echo "Waiting for Deephaven server..."
     sleep 2
 done
-echo "Deephvaen server is ready!"
+echo "Deephaven server is ready!"
 
 # Run e2e tests
 echo "Running E2E tests..."
