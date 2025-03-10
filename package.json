@@ -37,7 +37,7 @@
     "package:latest": "vsce package -o releases/vscode-deephaven-latest.vsix",
     "publish:prerelease": "./scripts/publish-prerelease.sh",
     "report:ctrfmerge": "ctrf merge e2e/reports --keep-reports --output-dir test-reports --output ctrf-report.json",
-    "report:ctrfsummary": "github-actions-ctrf test-reports/ctrf-report.json",
+    "report:ctrfsummary": "github-actions-ctrf summary test-reports/ctrf-report.json",
     "report:junit2ctrf": "junit-to-ctrf test-reports/vitest.junit.xml --output test-reports/ctrf-report.json",
     "report:prcomment": "mkdir -p ./pr-comment && cp $GITHUB_STEP_SUMMARY pr-comment/pr-comment.html",
     "test:ci": "npm run compile && npm run test:lint && npm run test:unit",
