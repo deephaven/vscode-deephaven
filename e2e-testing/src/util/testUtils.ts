@@ -6,7 +6,6 @@ import {
   until,
   VSBrowser,
   WebElement,
-  WebView,
   type CodeLens,
   type Locator,
   type TextEditor,
@@ -38,10 +37,6 @@ export interface EditorGroupData {
  * resolving to a WebElement.
  */
 export type FrameSelector = number | string | (() => Promise<WebElement>);
-
-export interface WebViewExtended extends WebView {
-  switchToContentFrame: (timeout?: number) => Promise<void>;
-}
 
 /**
  * Disconnect from Deephaven server by clicking on disconnect action on server
