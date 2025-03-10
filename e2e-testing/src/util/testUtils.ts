@@ -102,6 +102,7 @@ export async function openFileResources(
   // In CI environment, openResources doesn't work on Linux. This workaround does.
   // https://github.com/redhat-developer/vscode-extension-tester/issues/506#issuecomment-1271156702
   const titleBar = new TitleBar();
+  let i = 0;
   for (const filePath of filePaths) {
     const item = await titleBar.getItem('File');
     const fileMenu = await item!.select();
@@ -110,6 +111,8 @@ export async function openFileResources(
     const input = await InputBox.create();
     await input.setText(filePath);
     await input.confirm();
+
+    await VSBrowser.instance.takeScreenshot(`open-file-${i++}`);
   }
 }
 
