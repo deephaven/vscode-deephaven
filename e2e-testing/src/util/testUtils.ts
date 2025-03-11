@@ -2,9 +2,9 @@ import {
   By,
   InputBox,
   SideBarView,
-  TitleBar,
   VSBrowser,
   WebElement,
+  Workbench,
   type CodeLens,
   type Locator,
   type TextEditor,
@@ -96,21 +96,14 @@ export async function openFileResources(
     return;
   }
 
-  // In CI environment, openResources doesn't work on Linux. This workaround does.
-  // https://github.com/redhat-developer/vscode-extension-tester/issues/506#issuecomment-1271156702
-  // Note that this method does not work with the custom title bar introduced in
-  // VS Code 1.98.x, so we have to set "window.titleBarStyle": "native" in
-  // settings.json
-  const titleBar = new TitleBar();
-
   // eslint-disable-next-line no-console
   console.log('Opening filePaths:', filePaths);
 
+  // In CI environment, openResources doesn't work on Linux. Using the quick open
+  // input as a workaround.
   for (const filePath of filePaths) {
-    const item = await titleBar.getItem('File');
-    const fileMenu = await item!.select();
-    const openItem = await fileMenu.getItem('Open File...');
-    await openItem!.select();
+    await new Workbench().executeCommand('workbench.action.quickOpen');
+
     const input = await InputBox.create();
     await input.setText(filePath);
     await input.confirm();
