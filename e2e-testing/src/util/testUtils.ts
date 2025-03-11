@@ -91,7 +91,7 @@ export async function getCodeLens(
 export async function openFileResources(
   ...filePaths: [string, ...string[]]
 ): Promise<void> {
-  if (true || ['win32', 'darwin'].includes(os.platform())) {
+  if (['win32', 'darwin'].includes(os.platform())) {
     await VSBrowser.instance.openResources(...filePaths);
     return;
   }
