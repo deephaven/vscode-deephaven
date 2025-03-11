@@ -101,6 +101,7 @@ export async function openFileResources(
 
   // In CI environment, openResources doesn't work on Linux. Using the quick open
   // input as a workaround.
+  // See https://github.com/redhat-developer/vscode-extension-tester/issues/506#issuecomment-2715696218
   for (const filePath of filePaths) {
     await new Workbench().executeCommand('workbench.action.quickOpen');
 
