@@ -1,6 +1,1 @@
-{
-  // VS Code 1.98 enabled the custom title bar. This breaks the hack used
-  // in `openFileResources` to open files in Linux CI. Setting to `native` until
-  // there is a better solution.
-  "window.titleBarStyle": "native"
-}
+{}

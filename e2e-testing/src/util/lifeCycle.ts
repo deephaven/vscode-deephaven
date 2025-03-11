@@ -1,4 +1,4 @@
-import { ActivityBar, EditorView } from 'vscode-extension-tester';
+import { ActivityBar, EditorView, VSBrowser } from 'vscode-extension-tester';
 import { disconnectFromServer } from './testUtils';
 import { SERVER_TITLE } from './constants';
 
@@ -16,6 +16,8 @@ export async function setup(): Promise<void> {
  * Teardown after running test suite.
  */
 export async function teardown(): Promise<void> {
+  await VSBrowser.instance.takeScreenshot(`teardown-${new Date().valueOf()}`);
+
   await new EditorView().closeAllEditors();
 
   try {

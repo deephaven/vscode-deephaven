@@ -103,6 +103,9 @@ export async function openFileResources(
   // settings.json
   const titleBar = new TitleBar();
 
+  // eslint-disable-next-line no-console
+  console.log('Opening filePaths:', filePaths);
+
   for (const filePath of filePaths) {
     const item = await titleBar.getItem('File');
     const fileMenu = await item!.select();
@@ -197,6 +200,10 @@ export async function switchToFrame(
     } catch (err) {
       const errorType = extractErrorType(err);
 
+      // Iframes can thrash around a bit as panels are loading.
+      // `RETRY_SWITCH_IFRAME_ERRORS` represent cases where it's worth
+      // requerying an iframe and attempting to switch again. If it's not 1 of
+      // these kind of errors, bail.
       if (!RETRY_SWITCH_IFRAME_ERRORS.has(errorType)) {
         throw err;
       }
