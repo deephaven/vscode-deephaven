@@ -114,6 +114,8 @@ export async function openFileResources(
     const input = await InputBox.create();
     await input.setText(filePath);
     await input.confirm();
+
+    await VSBrowser.instance.driver.sleep(1000);
   }
 }
 
