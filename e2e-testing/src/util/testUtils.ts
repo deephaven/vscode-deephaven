@@ -112,10 +112,9 @@ export async function openFileResources(
     const openItem = await fileMenu.getItem('Open File...');
     await openItem!.select();
     const input = await InputBox.create();
+    await input.clear();
     await input.setText(filePath);
     await input.confirm();
-
-    await VSBrowser.instance.driver.sleep(1000);
   }
 }
 
