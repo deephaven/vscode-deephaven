@@ -1,3 +1,4 @@
+#!/bin/bash
 # Start a DH Community server and run e2e tests
 
 # Cleanup on exit

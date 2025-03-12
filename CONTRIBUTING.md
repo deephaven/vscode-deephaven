@@ -29,7 +29,7 @@ To run using `VS Code` debugger:
 2. Run the `e2e Tests` launch config in VS Code
 3. You should see the tests start and `VS Code` stop at the breakpoint
 
-The `vscode-extension-tester` library uses `Mocha` to run tests. If you need to tweak debugging settings such as test timeout, you can do so in `e2e-testing/src/mocharcDebug.ts`.
+The `vscode-extension-tester` library uses `Mocha` to run tests. If you need to tweak debugging settings such as test timeout, you can do so in [`e2e-testing/src/mocharcDebug.ts`](./e2e-testing/src/mocharcDebug.ts).
 
 ## VSCE
 [vsce](https://github.com/microsoft/vscode-vsce), short for "Visual Studio Code Extensions", is a command-line tool for packaging, publishing and managing `VS Code` extensions. The Deephaven extension calls `vsce` via npm scripts. Note that `vsce package` and `vsce publish` both call the `vscode:prepublish` script.
