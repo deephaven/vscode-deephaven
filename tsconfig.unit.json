@@ -1,5 +1,11 @@
 {
   "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // There are conflicting types for `chai` package defined by vitest and the
+    // one installed from `npm` needed for `vscode-extension-tester`. Disabling
+    // lib checks to avoid errors.
+    "skipLibCheck": true
+  },
   "include": ["src/**/*.spec.ts", "src/dh/modules.d.ts"],
   // Override ./tsconfig `exclude` so that *.spec.ts files are included
   "exclude": ["node_modules"]

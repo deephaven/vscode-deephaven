@@ -1,0 +1,9 @@
+services:
+  dhc-server:
+    container_name: dhc-server
+    image: ghcr.io/deephaven/server:${DHC_VERSION:-edge}
+    pull_policy: always
+    ports:
+      - 10000:10000
+    environment:
+      - START_OPTS=-Xmx4g -DAuthHandlers=io.deephaven.auth.AnonymousAuthenticationHandler -Ddeephaven.console.type=python
