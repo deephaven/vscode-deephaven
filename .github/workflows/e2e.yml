@@ -9,10 +9,6 @@ jobs:
       matrix:
         os: [windows-latest]
 
-    defaults:
-      run:
-        shell: ${{ runner.os == 'Windows' && 'C:/Program Files/Git/bin/bash.exe {0}' || 'bash' }}
-
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}-e2e
       cancel-in-progress: true
