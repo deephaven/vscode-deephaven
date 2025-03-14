@@ -24,6 +24,10 @@ jobs:
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
+      - name: Configure npm to use Git Bash on Windows
+        if: runner.os == 'Windows'
+        run: npm config set shell "C:\\Program Files\\Git\\bin\\bash.exe"
+        shell: cmd # Run this command in cmd.exe to set npm config
       - run: npm ci
       - name: Run end-to-end tests (Linux)
         if: runner.os == 'Linux'
