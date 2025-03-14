@@ -11,7 +11,7 @@ jobs:
 
     defaults:
       run:
-        shell: bash
+        shell: ${{ runner.os == 'Windows' && 'C:/Program Files/Git/bin/bash.exe {0}' || 'bash' }}
 
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}-e2e
@@ -25,19 +25,16 @@ jobs:
           node-version-file: '.nvmrc'
           cache: 'npm'
       - name: Install Dependencies
-        run: |
-          if [ "${{ runner.os }}" = "Windows" ]; then
-            "C:/Program Files/Git/bin/bash.exe" -c "npm ci"
-          else
-            npm ci
-          fi
+        run: npm ci
       - name: Run end-to-end tests
-        run: |
-          if [ "${{ runner.os }}" = "Windows" ]; then
-            "C:/Program Files/Git/bin/bash.exe" -c "npm run test:e2e"
-          else
-            npm run test:e2e
-          fi
+        run: npm run test:e2e
+      # - name: Run end-to-end tests
+      #   run: |
+      #     if [ "${{ runner.os }}" = "Windows" ]; then
+      #       npm run test:e2e
+      #     else
+      #       xfvb-run npm run test:e2e
+      #     fi
       - name: Upload Screenshots as Artifact
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
