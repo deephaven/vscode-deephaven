@@ -13,15 +13,37 @@ jobs:
     steps:
       - name: Setup WSL
         uses: Vampire/setup-wsl@v5
+        with:
+          distribution: Ubuntu-24.04
+          set-as-default: true
+          update: true
 
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install nvm in WSL
+        run: |
+          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
+          source ~/.nvm/nvm.sh
+          nvm --version
+
+      - name: Install Node.js based on .nvmrc
+        run: |
+          source ~/.nvm/nvm.sh
+          nvm install
+          nvm use
+          node --version
+          npm --version
+
       - name: Install npm Dependencies
-        run: npm ci
+        run: |
+          source ~/.nvm/nvm.sh
+          npm ci
 
       - name: Run e2e tests
-        run: npm run test:e2e
+        run: |
+          source ~/.nvm/nvm.sh
+          npm run test:e2e
 
   e2e:
     # TODO: re-enable
