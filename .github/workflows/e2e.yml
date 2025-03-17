@@ -21,17 +21,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install nvm in WSL
+      - name: Install Node in WSL using nvm
         run: |
-          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
-          echo "Running /root/.nvm/nvm.sh..."
+          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
           source /root/.nvm/nvm.sh --no-use
-          echo 'Installing node version from .nvmrc...'
           nvm install
           nvm use
-          nvm --version
-          node --version
-          npm --version
+
+          echo "NVM version: $(nvm --version)"
+          echo "Node version: $(node --version)"
+          echo "NPM version: $(npm --version)"
 
       - name: Install npm Dependencies
         run: |
