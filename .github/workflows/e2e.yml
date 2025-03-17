@@ -7,38 +7,20 @@ jobs:
     runs-on: windows-latest
 
     defaults:
-      run:
-        shell: cmd
+    run:
+      shell: wsl-bash {0}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Enable WSL and Install Ubuntu
-        run: |
-          wsl --install -d Ubuntu-20.04
-          Start-Sleep -Seconds 30
-          wsl --set-default Ubuntu-20.04
-          wsl -l -v
-        shell: powershell
+      - name: Install npm Dependencies
+        uses: Vampire/setup-wsl@v5
+        run: npm ci
 
-      - name: Install Node.js in WSL
-        run: |
-          wsl bash -c "sudo apt update && sudo apt install -y curl"
-          wsl bash -c "curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -"
-          wsl bash -c "sudo apt install -y nodejs"
-          wsl bash -c "node --version && npm --version"
-        shell: cmd
-
-      - name: Install npm Dependencies in WSL
-        run: |
-          wsl bash -c "cd /mnt/c/Users/runneradmin/work/$(basename ${{ github.repository }}) && npm ci"
-        shell: cmd
-
-      - name: Run npm Clean Script in WSL
-        run: |
-          wsl bash -c "cd /mnt/c/Users/runneradmin/work/$(basename ${{ github.repository }}) && npm run test:e2e"
-        shell: cmd
+      - name: Run e2e tests
+        uses: Vampire/setup-wsl@v5
+        run: npm run test:e2e
 
   e2e:
     # TODO: re-enable
