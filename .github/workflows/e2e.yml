@@ -13,6 +13,10 @@ jobs:
       group: ${{ github.workflow }}-${{ github.ref }}-e2e
       cancel-in-progress: true
 
+    defaults:
+      run:
+        shell: bash
+
     steps:
       - uses: actions/checkout@v4
       - name: Use Node.js
@@ -23,10 +27,13 @@ jobs:
 
       - name: Install Dependencies
         run: npm ci
-        shell: '"C:\\Program Files\\Git\\bin\\bash.exe" -c "{0}"'
       - name: Run end-to-end tests
-        run: npm run test:e2e
-        shell: '"C:\\Program Files\\Git\\bin\\bash.exe" -c "{0}"'
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            "C:/Program Files/Git/bin/bash.exe" -c "npm run test:e2e"
+          else
+            npm run test:e2e
+          fi
 
       - name: Upload Screenshots as Artifact
         if: ${{ always() }}
