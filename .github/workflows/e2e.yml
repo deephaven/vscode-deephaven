@@ -3,11 +3,73 @@ on:
   workflow_call:
 
 jobs:
+  e2e-win:
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: wsl-bash {0}
+
+    env:
+      COMPOSE_PLATFORM: linux/amd64
+
+    steps:
+      - name: Setup WSL
+        uses: Vampire/setup-wsl@v5
+        with:
+          distribution: Ubuntu-24.04
+          set-as-default: true
+          update: false
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Node in WSL using nvm
+        run: |
+          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
+          source /root/.nvm/nvm.sh --no-use
+          nvm install
+          nvm use
+          # echo "script-shell=/bin/bash" >> .npmrc
+
+          echo "NVM version: $(nvm --version)"
+          echo "Node version: $(node --version)"
+          echo "NPM version: $(npm --version)"
+          # echo ".npmrc: $(cat .npmrc)"
+
+      - name: Install npm Dependencies
+        run: |
+          source /root/.nvm/nvm.sh
+          npm ci
+
+      - name: Run Deephaven Server
+        shell: cmd
+        run: docker compose --project-directory e2e-testing up -d dhc-server
+
+      - name: Run e2e tests
+        run: |
+          source /root/.nvm/nvm.sh
+          npm run test:e2e
+
+      - name: Stop Deephaven Server
+        shell: cmd
+        run: docker compose --project-directory e2e-testing down
+
   e2e:
-    runs-on: ubuntu-latest
+    # TODO: re-enable
+    if: false
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest]
+
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}-e2e
       cancel-in-progress: true
+
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - uses: actions/checkout@v4
@@ -16,9 +78,17 @@ jobs:
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
-      - run: npm ci
+
+      - name: Install Dependencies
+        run: npm ci
       - name: Run end-to-end tests
-        run: xvfb-run npm run test:e2e
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            "C:/Program Files/Git/bin/bash.exe" -c "npm run test:e2e"
+          else
+            npm run test:e2e
+          fi
+
       - name: Upload Screenshots as Artifact
         if: ${{ always() }}
         uses: actions/upload-artifact@v4

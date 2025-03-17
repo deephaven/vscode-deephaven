@@ -1,14 +1,7 @@
 #!/bin/bash
 # Start a DH Community server and run e2e tests
 
-# Cleanup on exit
-cleanup() {
-    echo "Cleaning up..."
-    docker compose --project-directory e2e-testing down
-}
-trap cleanup EXIT
-
-docker compose --project-directory e2e-testing up -d dhc-server
+set -e
 
 # Wait for the DH server to start
 until [ "$(curl --silent --fail --request OPTIONS --output /dev/null http://localhost:10000/jsapi/dh-core.js && echo 'pass' || echo 'fail')" = "pass" ]; do
