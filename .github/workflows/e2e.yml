@@ -23,8 +23,10 @@ jobs:
 
       - name: Install nvm in WSL
         run: |
+          echo "" > ~/.bashrc
           curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
-          source ~/.nvm/nvm.sh
+          cat ~/.bashrc
+          source ~/.bashrc
           echo 'Installing node version from .nvmrc'
           nvm install
           nvm use
@@ -34,12 +36,12 @@ jobs:
 
       - name: Install npm Dependencies
         run: |
-          source ~/.nvm/nvm.sh
+          source ~/.bashrc
           npm ci
 
       - name: Run e2e tests
         run: |
-          source ~/.nvm/nvm.sh
+          source ~/.bashrc
           npm run test:e2e
 
   e2e:
