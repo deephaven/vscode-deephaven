@@ -10,6 +10,9 @@ jobs:
       run:
         shell: wsl-bash {0}
 
+    env:
+      COMPOSE_PLATFORM: linux/amd64
+
     steps:
       - name: Setup WSL
         uses: Vampire/setup-wsl@v5
@@ -40,8 +43,6 @@ jobs:
           npm ci
 
       - name: Run Deephaven Server
-        env:
-          DOCKER_DEFAULT_PLATFORM: linux/amd64
         shell: cmd
         run: docker compose --project-directory e2e-testing up -d dhc-server
 

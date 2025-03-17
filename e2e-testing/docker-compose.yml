@@ -1,7 +1,8 @@
 services:
   dhc-server:
     container_name: dhc-server
-    image: ghcr.io/deephaven/server:${DHC_VERSION:-latest}
+    image: ghcr.io/deephaven/server:${DHC_VERSION:-edge}
+    platform: ${COMPOSE_PLATFORM}
     pull_policy: always
     ports:
       - 10000:10000
