@@ -32,6 +32,11 @@ jobs:
           echo "Node version: $(node --version)"
           echo "NPM version: $(npm --version)"
 
+      - name: Configure npm to use wsl-bash
+        run: |
+          npm config set script-shell "/bin/bash"
+          npm config get script-shell  # Verify
+
       - name: Install npm Dependencies
         run: |
           source /root/.nvm/nvm.sh
