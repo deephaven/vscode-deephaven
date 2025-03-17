@@ -32,10 +32,9 @@ jobs:
           echo "Node version: $(node --version)"
           echo "NPM version: $(npm --version)"
 
-      - name: Configure npm to use wsl-bash
+      - name: Configure npm to use bash shell
         run: |
-          npm config set script-shell "/bin/bash"
-          npm config get script-shell  # Verify
+          echo "script-shell=/bin/bash" >> .npmrc
 
       - name: Install npm Dependencies
         run: |
