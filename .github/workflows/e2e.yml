@@ -27,14 +27,12 @@ jobs:
           source /root/.nvm/nvm.sh --no-use
           nvm install
           nvm use
+          echo "script-shell=/bin/bash" >> .npmrc
 
           echo "NVM version: $(nvm --version)"
           echo "Node version: $(node --version)"
           echo "NPM version: $(npm --version)"
-
-      - name: Configure npm to use bash shell
-        run: |
-          echo "script-shell=/bin/bash" >> .npmrc
+          echo ".npmrc: $(cat .npmrc)"
 
       - name: Install npm Dependencies
         run: |
@@ -44,8 +42,8 @@ jobs:
       - name: Run e2e tests
         run: |
           source /root/.nvm/nvm.sh
-          echo "scripts/:"
-          ls -la scripts/
+          pwd
+          echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
           npm run test:e2e
 
   e2e:
