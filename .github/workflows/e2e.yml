@@ -23,10 +23,10 @@ jobs:
 
       - name: Install Dependencies
         run: npm ci
-        shell: 'C:\\Program Files\\Git\\bin\\bash.exe'
+        shell: bash
       - name: Run end-to-end tests
         run: npm run test:e2e
-        shell: 'C:\\Program Files\\Git\\bin\\bash.exe'
+        shell: bash
 
       - name: Upload Screenshots as Artifact
         if: ${{ always() }}
