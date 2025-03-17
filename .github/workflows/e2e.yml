@@ -11,15 +11,16 @@ jobs:
         shell: wsl-bash {0}
 
     steps:
+      - name: Setup WSL
+        uses: Vampire/setup-wsl@v5
+
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Install npm Dependencies
-        uses: Vampire/setup-wsl@v5
         run: npm ci
 
       - name: Run e2e tests
-        uses: Vampire/setup-wsl@v5
         run: npm run test:e2e
 
   e2e:
