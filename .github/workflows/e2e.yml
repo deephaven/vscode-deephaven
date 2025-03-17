@@ -42,8 +42,9 @@ jobs:
       - name: Run e2e tests
         run: |
           source /root/.nvm/nvm.sh
+          echo "Compare working dirs:"
           pwd
-          echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
+          echo $GITHUB_WORKSPACE
           npm run test:e2e
 
   e2e:
