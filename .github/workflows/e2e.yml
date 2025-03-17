@@ -26,6 +26,7 @@ jobs:
           echo "" > ~/.bashrc
           curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
           cat ~/.bashrc
+          echo 'Sourcing bashrc'
           source ~/.bashrc
           echo 'Installing node version from .nvmrc'
           nvm install
