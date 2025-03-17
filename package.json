@@ -40,7 +40,7 @@
     "report:junit2ctrf": "junit-to-ctrf test-reports/vitest.junit.xml --output test-reports/ctrf-report.json",
     "report:prcomment": "mkdir -p ./pr-comment && cp $GITHUB_STEP_SUMMARY pr-comment/pr-comment.html",
     "test:ci": "npm run compile && npm run test:lint && npm run test:unit",
-    "test:e2e": "npm run build:ts && ./scripts/e2e.sh",
+    "test:e2e": "npm run build:ts && bash ./scripts/e2e.sh",
     "test:lint": "eslint . --ext ts",
     "test:unit": "vitest --reporter=default --reporter=junit --outputFile=./test-reports/vitest.junit.xml",
     "test": "npm run test:unit",
