@@ -42,8 +42,7 @@ jobs:
       - name: Switch Docker to Linux Containers
         shell: cmd
         run: |
-          where docker
-          "C:\Program Files\Docker\Docker\DockerCli.exe" -SwitchLinuxEngine
+          "C:\Windows\System32\docker.exe" -SwitchLinuxEngine
           docker info --format "{{.OSType}}"  # Verify 'linux'
 
       - name: Run Deephaven Server
