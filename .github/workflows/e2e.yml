@@ -40,6 +40,7 @@ jobs:
       - name: Run e2e tests
         run: |
           source /root/.nvm/nvm.sh
+          echo "Working directory: $(pwd)"
           npm run test:e2e
 
   e2e:
