@@ -41,9 +41,7 @@ jobs:
 
       - name: Run Deephaven Server
         shell: cmd
-        run: |
-          source /root/.nvm/nvm.sh
-          docker compose --project-directory e2e-testing up -d dhc-server
+        run: docker compose --project-directory e2e-testing up -d dhc-server
 
       - name: Run e2e tests
         run: |
@@ -52,9 +50,7 @@ jobs:
 
       - name: Stop Deephaven Server
         shell: cmd
-        run: |
-          source /root/.nvm/nvm.sh
-          docker compose --project-directory e2e-testing down
+        run: docker compose --project-directory e2e-testing down
 
   e2e:
     # TODO: re-enable
