@@ -25,13 +25,10 @@ jobs:
         run: |
           curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
           source ~/.nvm/nvm.sh
-          nvm --version
-
-      - name: Install Node.js based on .nvmrc
-        run: |
-          source ~/.nvm/nvm.sh
+          echo 'Installing node version from .nvmrc'
           nvm install
           nvm use
+          nvm --version
           node --version
           npm --version
 
