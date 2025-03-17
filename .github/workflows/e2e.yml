@@ -39,6 +39,12 @@ jobs:
           source /root/.nvm/nvm.sh
           npm ci
 
+      - name: Switch Docker to Linux Containers
+        shell: cmd
+        run: |
+          "C:\Program Files\Docker\Docker\DockerCli.exe" -SwitchLinuxEngine
+          docker info --format "{{.OSType}}"  # Verify 'linux'
+
       - name: Run Deephaven Server
         shell: cmd
         run: docker compose --project-directory e2e-testing up -d dhc-server
