@@ -1,6 +1,8 @@
 #!/bin/bash
 # Start a DH Community server and run e2e tests
 
+set -e
+
 # Cleanup on exit
 cleanup() {
     echo "Cleaning up..."
