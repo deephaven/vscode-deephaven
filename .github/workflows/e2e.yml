@@ -21,17 +21,12 @@ jobs:
           node-version-file: '.nvmrc'
           cache: 'npm'
 
-      - name: Verify shell
-        shell: bash
-        run: |
-          echo "SHELL: $SHELL"
-          npm run clean --verbose
       - name: Install Dependencies
         run: npm ci
-        shell: 'C:/Program Files/Git/bin/bash.exe'
+        shell: '"C:\\Program Files\\Git\\bin\\bash.exe" -c "{0}"'
       - name: Run end-to-end tests
         run: npm run test:e2e
-        shell: 'C:/Program Files/Git/bin/bash.exe'
+        shell: '"C:\\Program Files\\Git\\bin\\bash.exe" -c "{0}"'
 
       - name: Upload Screenshots as Artifact
         if: ${{ always() }}
