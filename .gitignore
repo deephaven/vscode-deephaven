@@ -4,8 +4,6 @@ node_modules
 /*.vsix
 .vscode-test/
 .DS_Store
-.wdio-vscode-service
-e2e/reports/
 e2e-testing/.resources
 e2e-testing/.test-extensions
 test-reports/
