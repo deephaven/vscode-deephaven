@@ -141,3 +141,13 @@ Editors can be dragged from 1 active connection to another.
 The `panels` panel shows exported variables available on an active connection. Clicking a variable will open or refresh the respective output panel.
 
 ![Panels Panel](./docs/assets/panels-panel.png)
+
+## Troubleshooting
+### Logs
+VS Code extensions capture diagnostic and error details, storing them on the computer where VS Code is installed. You can save these logs as a .zip file to a destination of your choice by typing `> Deephaven: Download Logs` in the VS Code command palette.
+
+![Download Logs](docs/assets/download-logs.png)
+
+Additionally, whenever an error occurs, you can access the logs directly by clicking the Download Logs button in the error notification pop-ups.
+
+![Error Toast](docs/assets/toast-connection-error.png)
