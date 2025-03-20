@@ -2,6 +2,8 @@ services:
   dhc-server:
     container_name: dhc-server
     image: ghcr.io/deephaven/server:${DHC_VERSION:-edge}
+    # This env variable can be set in CI when running in Windows to force linux
+    # platform instead of Windows.
     platform: ${COMPOSE_PLATFORM}
     pull_policy: always
     ports:
