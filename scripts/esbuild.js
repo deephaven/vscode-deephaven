@@ -1,8 +1,40 @@
 /* eslint-disable no-console */
 const esbuild = require('esbuild-wasm');
+const fs = require('node:fs');
+const path = require('node:path');
+
+require('dotenv').config({ path: path.resolve(__dirname, '../.env.local') });
 
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
+const { DHC_PACKAGES_PATH } = process.env;
+
+const optionalPlugins = [];
+
+// Alias @deephaven/* packages to custom path
+if (DHC_PACKAGES_PATH != null) {
+  if (!fs.existsSync(DHC_PACKAGES_PATH)) {
+    throw new Error(`DHC packages path ${DHC_PACKAGES_PATH} does not exist.`);
+  }
+
+  console.log('Aliasing @deephaven/* packages to:', DHC_PACKAGES_PATH);
+
+  optionalPlugins.push({
+    name: 'dh-alias-plugin',
+    setup(build) {
+      build.onResolve({ filter: /^@deephaven\/.*/ }, args => {
+        // Resolve all @deephaven/xxx packages to a custom directory
+        const aliasPath = path.resolve(
+          __dirname,
+          DHC_PACKAGES_PATH,
+          args.path.replace('@deephaven/', ''),
+          'src/index.ts'
+        );
+        return { path: aliasPath };
+      });
+    },
+  });
+}
 
 /**
  * @type {import('esbuild-wasm').Plugin}
@@ -47,7 +79,8 @@ async function main() {
     external: ['esbuild-wasm', 'vscode'],
     logLevel: 'silent',
     plugins: [
-      /* add to the end of plugins array */
+      ...optionalPlugins,
+      /* this plugin needs to be the last one */
       esbuildProblemMatcherPlugin,
     ],
   });

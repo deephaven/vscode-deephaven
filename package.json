@@ -887,6 +887,7 @@
     "@typescript-eslint/parser": "^7.16.0",
     "@vscode/vsce": "^2.30.0",
     "ctrf": "^0.0.9",
+    "dotenv": "^16.4.7",
     "esbuild-wasm": "^0.24.0",
     "eslint": "^8.57.0",
     "fantasticon": "^3.0.0",
