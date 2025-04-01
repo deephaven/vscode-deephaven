@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { Disposable } from '../types';
+import type { IDisposable } from '../types';
 import { isDisposable } from '../util';
 
 /**
@@ -12,7 +12,7 @@ import { isDisposable } from '../util';
  * // New reference on every call
  * e.g. deserializeKey = (key: string) => new URL(key)
  */
-export abstract class SerializedKeyMap<TKey, TValue> implements Disposable {
+export abstract class SerializedKeyMap<TKey, TValue> implements IDisposable {
   constructor();
   constructor(entries: readonly (readonly [TKey, TValue])[] | null);
   constructor(entries?: readonly (readonly [TKey, TValue])[] | null) {

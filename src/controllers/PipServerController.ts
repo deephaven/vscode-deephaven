@@ -6,7 +6,12 @@ import {
   Logger,
   parsePort,
 } from '../util';
-import type { Disposable, Port, IServerManager, IToastService } from '../types';
+import type {
+  IDisposable,
+  Port,
+  IServerManager,
+  IToastService,
+} from '../types';
 import {
   PIP_SERVER_STATUS_CHECK_INTERVAL,
   PIP_SERVER_STATUS_CHECK_TIMEOUT,
@@ -19,7 +24,7 @@ import { pollUntilTrue } from '../services';
 
 const logger = new Logger('PipServerController');
 
-export class PipServerController implements Disposable {
+export class PipServerController implements IDisposable {
   constructor(
     context: vscode.ExtensionContext,
     serverManager: IServerManager,

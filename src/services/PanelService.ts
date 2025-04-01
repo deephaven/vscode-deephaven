@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { URLMap } from './URLMap';
 import type {
-  Disposable,
+  IDisposable,
   IPanelService,
   VariableChanges,
   VariableDefintion,
@@ -10,7 +10,7 @@ import type {
   VariablePanelMap,
 } from '../types';
 
-export class PanelService implements IPanelService, Disposable {
+export class PanelService implements IPanelService, IDisposable {
   constructor() {
     this._cnPanelMap = new URLMap<VariablePanelMap>();
     this._cnVariableMap = new URLMap<VariableMap>();

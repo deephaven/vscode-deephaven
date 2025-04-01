@@ -1,13 +1,13 @@
 import * as vscode from 'vscode';
 import { ICON_ID, RUN_MARKDOWN_CODEBLOCK_CMD } from '../common';
-import type { Disposable } from '../types';
+import type { IDisposable } from '../types';
 
 /**
  * Provides inline editor code lenses for running Deephaven codeblocks in
  * Markdown files.
  */
 export class RunMarkdownCodeBlockCodeLensProvider
-  implements vscode.CodeLensProvider<vscode.CodeLens>, Disposable
+  implements vscode.CodeLensProvider<vscode.CodeLens>, IDisposable
 {
   constructor() {
     vscode.workspace.onDidChangeConfiguration(() => {

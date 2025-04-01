@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import type {
   ConsoleType,
-  Disposable,
+  IDisposable,
   IServerManager,
   IToastService,
   ConnectionState,
@@ -31,7 +31,10 @@ import { ControllerBase } from './ControllerBase';
 
 const logger = new Logger('ConnectionController');
 
-export class ConnectionController extends ControllerBase implements Disposable {
+export class ConnectionController
+  extends ControllerBase
+  implements IDisposable
+{
   constructor(
     context: vscode.ExtensionContext,
     serverManager: IServerManager,
