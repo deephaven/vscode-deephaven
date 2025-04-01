@@ -55,7 +55,7 @@ export async function getDhe(
 ): Promise<DheType> {
   polyfillDhe();
 
-  // Download jsapi `CJS` files from DH Community server.
+  // Download jsapi `CJS` files from DHE server.
   await loadModules({
     serverUrl,
     serverPaths: ['irisapi/irisapi.nocache.js'],
