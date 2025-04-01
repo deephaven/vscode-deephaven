@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { isAggregateError } from '@deephaven/jsapi-nodejs';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
+import type { IDisposable } from '../types';
 import {
   assertDefined,
   formatTimestamp,
@@ -106,7 +107,7 @@ export class DhcService implements IDhcService {
 
   public readonly serverUrl: URL;
   public readonly tagId?: UniqueID;
-  private readonly subscriptions: (() => void)[] = [];
+  private readonly disposables: ((() => void) | IDisposable)[] = [];
 
   private readonly coreClientCache: URLMap<CoreAuthenticatedClient>;
   private readonly outputChannel: vscode.OutputChannel;
@@ -121,6 +122,9 @@ export class DhcService implements IDhcService {
 
   private cn: DhcType.IdeConnection | null = null;
   private session: DhcType.IdeSession | null = null;
+
+  private isDisposing = false;
+  private isDisposed = false;
 
   get isInitialized(): boolean {
     return this.initSessionPromise != null;
@@ -137,20 +141,6 @@ export class DhcService implements IDhcService {
       this.clientPromise = null;
     }
   };
-
-  private clearCaches(): void {
-    this.clientPromise = null;
-    this.initSessionPromise = null;
-
-    if (this.cn != null) {
-      this.cn.close();
-      this._onDidDisconnect.fire(this.serverUrl);
-    }
-    this.cn = null;
-    this.session = null;
-
-    this.subscriptions.forEach(dispose => dispose());
-  }
 
   private getToastErrorMessage(
     err: unknown,
@@ -220,13 +210,13 @@ export class DhcService implements IDhcService {
             );
           }
         });
-        this.subscriptions.push(fieldUpdateSubscription);
+        this.disposables.push(fieldUpdateSubscription);
 
         // TODO: Use constant 'disconnect' event name
         const disconnectSubscription = cn.addEventListener('disconnect', () => {
-          this.clearCaches();
+          this.dispose();
         });
-        this.subscriptions.push(disconnectSubscription);
+        this.disposables.push(disconnectSubscription);
 
         const logMessageSubscription = session.onLogMessage(logItem => {
           // TODO: Should this pull log level from config somewhere?
@@ -239,7 +229,7 @@ export class DhcService implements IDhcService {
             );
           }
         });
-        this.subscriptions.push(logMessageSubscription);
+        this.disposables.push(logMessageSubscription);
       } catch (err) {}
     }
 
@@ -258,7 +248,7 @@ export class DhcService implements IDhcService {
     }
 
     if (this.cn == null || this.session == null) {
-      this.clearCaches();
+      this.dispose();
 
       return false;
     } else {
@@ -299,8 +289,38 @@ export class DhcService implements IDhcService {
   }
 
   async dispose(): Promise<void> {
-    this.clearCaches();
-    this._onDidDisconnect.dispose();
+    logger.debug('Dispose', {
+      isDisposing: this.isDisposing,
+      isDisposed: this.isDisposed,
+    });
+
+    if (this.isDisposing || this.isDisposed) {
+      return;
+    }
+
+    this.isDisposing = true;
+
+    this.clientPromise = null;
+    this.initSessionPromise = null;
+    this.session = null;
+
+    if (this.cn != null) {
+      this.cn.close();
+
+      this.cn = null;
+
+      this._onDidDisconnect.fire(this.serverUrl);
+    }
+
+    const disposing = this.disposables.map(disposable =>
+      typeof disposable === 'function' ? disposable() : disposable.dispose()
+    );
+    this.disposables.length = 0;
+
+    await Promise.all(disposing);
+
+    this.isDisposed = true;
+    this.isDisposing = false;
   }
 
   getConsoleTypes = async (): Promise<Set<ConsoleType>> => {
@@ -379,9 +399,9 @@ export class DhcService implements IDhcService {
       // Grpc UNAUTHENTICATED code. This should not generally happen since we
       // clear the caches on connection disconnect
       if (hasErrorCode(err, 16)) {
-        this.clearCaches();
+        this.dispose();
         this.toaster.error(
-          'Session is no longer invalid. Please re-run the command to reconnect.'
+          'Session is no longer valid. Please re-run the command to reconnect.'
         );
         return;
       }

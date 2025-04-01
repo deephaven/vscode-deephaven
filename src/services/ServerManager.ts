@@ -261,6 +261,11 @@ export class ServerManager implements IServerManager {
       return null;
     }
 
+    connection.onDidDisconnect(() => {
+      logger.debug('onDidDisconnect fired for:', serverUrl.href);
+      this.disconnectFromServer(serverUrl);
+    });
+
     this.updateConnectionCount(serverUrl, 1);
 
     this._onDidConnect.fire(serverUrl);
