@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import { isAggregateError } from '@deephaven/jsapi-nodejs';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
-import type { IDisposable } from '../types';
 import {
   assertDefined,
   formatTimestamp,
@@ -38,10 +37,11 @@ import {
 } from '../common';
 import { NoConsoleTypesError, parseServerError } from '../dh/errorUtils';
 import { hasErrorCode } from '../util/typeUtils';
+import { DisposableBase } from './DisposableBase';
 
 const logger = new Logger('DhcService');
 
-export class DhcService implements IDhcService {
+export class DhcService extends DisposableBase {
   /**
    * Creates a factory function that can be used to create DhcService instances.
    * @param coreClientCache Core client cache.
@@ -90,6 +90,8 @@ export class DhcService implements IDhcService {
     toaster: IToastService,
     tagId?: UniqueID
   ) {
+    super();
+
     this.coreClientCache = coreClientCache;
     this.serverUrl = serverUrl;
     this.panelService = panelService;
@@ -100,6 +102,8 @@ export class DhcService implements IDhcService {
     this.tagId = tagId;
 
     this.coreClientCache.onDidChange(this.onDidCoreClientCacheInvalidate);
+
+    this.disposables.add(this._onDidDisconnect);
   }
 
   private readonly _onDidDisconnect = new vscode.EventEmitter<URL>();
@@ -107,7 +111,6 @@ export class DhcService implements IDhcService {
 
   public readonly serverUrl: URL;
   public readonly tagId?: UniqueID;
-  private readonly disposables: ((() => void) | IDisposable)[] = [];
 
   private readonly coreClientCache: URLMap<CoreAuthenticatedClient>;
   private readonly outputChannel: vscode.OutputChannel;
@@ -122,9 +125,6 @@ export class DhcService implements IDhcService {
 
   private cn: DhcType.IdeConnection | null = null;
   private session: DhcType.IdeSession | null = null;
-
-  private isDisposing = false;
-  private isDisposed = false;
 
   get isInitialized(): boolean {
     return this.initSessionPromise != null;
@@ -141,6 +141,23 @@ export class DhcService implements IDhcService {
       this.clientPromise = null;
     }
   };
+
+  /** Called by DisposableBase */
+  protected async onDisposing(): Promise<void> {
+    logger.debug('onDisposing');
+
+    this.clientPromise = null;
+    this.initSessionPromise = null;
+    this.session = null;
+
+    if (this.cn != null) {
+      this.cn.close();
+
+      this.cn = null;
+
+      this._onDidDisconnect.fire(this.serverUrl);
+    }
+  }
 
   private getToastErrorMessage(
     err: unknown,
@@ -210,13 +227,17 @@ export class DhcService implements IDhcService {
             );
           }
         });
-        this.disposables.push(fieldUpdateSubscription);
+        this.disposables.add(fieldUpdateSubscription);
 
         // TODO: Use constant 'disconnect' event name
         const disconnectSubscription = cn.addEventListener('disconnect', () => {
+          // Only handle disconnect once
+          disconnectSubscription();
+          this.disposables.delete(disconnectSubscription);
+
           this.dispose();
         });
-        this.disposables.push(disconnectSubscription);
+        this.disposables.add(disconnectSubscription);
 
         const logMessageSubscription = session.onLogMessage(logItem => {
           // TODO: Should this pull log level from config somewhere?
@@ -229,7 +250,7 @@ export class DhcService implements IDhcService {
             );
           }
         });
-        this.disposables.push(logMessageSubscription);
+        this.disposables.add(logMessageSubscription);
       } catch (err) {}
     }
 
@@ -286,41 +307,6 @@ export class DhcService implements IDhcService {
     }
 
     return client;
-  }
-
-  async dispose(): Promise<void> {
-    logger.debug('Dispose', {
-      isDisposing: this.isDisposing,
-      isDisposed: this.isDisposed,
-    });
-
-    if (this.isDisposing || this.isDisposed) {
-      return;
-    }
-
-    this.isDisposing = true;
-
-    this.clientPromise = null;
-    this.initSessionPromise = null;
-    this.session = null;
-
-    if (this.cn != null) {
-      this.cn.close();
-
-      this.cn = null;
-
-      this._onDidDisconnect.fire(this.serverUrl);
-    }
-
-    const disposing = this.disposables.map(disposable =>
-      typeof disposable === 'function' ? disposable() : disposable.dispose()
-    );
-    this.disposables.length = 0;
-
-    await Promise.all(disposing);
-
-    this.isDisposed = true;
-    this.isDisposing = false;
   }
 
   getConsoleTypes = async (): Promise<Set<ConsoleType>> => {
