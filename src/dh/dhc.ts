@@ -6,7 +6,7 @@ import type {
   DependencyName,
   DependencyVersion,
 } from '../types';
-import { hasStatusCode, loadModules } from '@deephaven/jsapi-nodejs';
+import { hasStatusCode, loadDhModules } from '@deephaven/jsapi-nodejs';
 import {
   REQUIREMENTS_QUERY_TXT,
   REQUIREMENTS_TABLE_NAME,
@@ -44,28 +44,8 @@ export async function getDhc(
   globalThis.self = globalThis;
 
   // Download jsapi `ESM` files from DH Community server.
-  const coreModule = await loadModules<typeof DhType>({
+  const coreModule = await loadDhModules({
     serverUrl,
-    serverPaths: ['jsapi/dh-core.js', 'jsapi/dh-internal.js'],
-    download: (serverPath, content) => {
-      if (serverPath === 'jsapi/dh-core.js') {
-        return content
-          .replace(
-            `import {dhinternal} from './dh-internal.js';`,
-            `const {dhinternal} = require("./dh-internal.js");`
-          )
-          .replace(`export default dh;`, `module.exports = dh;`);
-      }
-
-      if (serverPath === 'jsapi/dh-internal.js') {
-        return content.replace(
-          `export{__webpack_exports__dhinternal as dhinternal};`,
-          `module.exports={dhinternal:__webpack_exports__dhinternal};`
-        );
-      }
-
-      return content;
-    },
     storageDir,
     targetModuleType: 'cjs',
   });

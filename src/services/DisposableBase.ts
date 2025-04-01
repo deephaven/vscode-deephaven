@@ -36,7 +36,7 @@ export abstract class DisposableBase implements IDisposable {
     this._isDisposing = true;
     await this.onDisposing();
 
-    this._logger.debug2('Disposing disposables', this.disposables.size);
+    this._logger.debug2(`Disposing ${this.disposables.size} disposables`);
     const disposing = [...this.disposables].map(disposable =>
       typeof disposable === 'function' ? disposable() : disposable.dispose()
     );
