@@ -42,14 +42,26 @@ export class RunMarkdownCodeBlockCodeLensProvider
     for (let i = 0; i < lines.length; ++i) {
       const line = lines[i];
 
+      // End of Deephaven code block
       if (line === '```' && start) {
         ranges.push([
           languageId,
           new vscode.Range(start, new vscode.Position(i - 1, 0)),
         ]);
         start = null;
-      } else if (line === '```python' || line === '```groovy') {
+        // Start of Deephaven supported code block
+      } else if (
+        line === '```python' ||
+        line === '```py' ||
+        line === '```groovy'
+      ) {
         languageId = line.substring(3);
+        // 'py' is an alias for 'python'. We use 'python' and 'groovy' in other
+        // DH apis, so we normalize here.
+        if (languageId === 'py') {
+          languageId = 'python';
+        }
+
         start = new vscode.Position(i + 1, 0);
       }
     }
