@@ -29,6 +29,7 @@ import {
 } from '../common';
 import {
   assertDefined,
+  deserializeRange,
   getEditorForUri,
   getTempDir,
   isInstanceOf,
@@ -49,6 +50,7 @@ import {
   runSelectedLinesHoverProvider,
   RunMarkdownCodeBlockCodeLensProvider,
   SamlAuthProvider,
+  RunMarkdownCodeBlockHoverProvider,
 } from '../providers';
 import {
   DheJsApiCache,
@@ -85,6 +87,7 @@ import type {
   ConnectionState,
   WorkerURL,
   UniqueID,
+  SerializedRange,
 } from '../types';
 import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTreeDragAndDropController';
 import { ConnectionController } from './ConnectionController';
@@ -357,6 +360,11 @@ export class ExtensionController implements IDisposable {
     vscode.languages.registerHoverProvider(
       'python',
       runSelectedLinesHoverProvider
+    );
+
+    vscode.languages.registerHoverProvider(
+      'markdown',
+      new RunMarkdownCodeBlockHoverProvider()
     );
   };
 
@@ -808,8 +816,11 @@ export class ExtensionController implements IDisposable {
   onRunMarkdownCodeblock = async (
     uri: vscode.Uri,
     languageId: string,
-    range: vscode.Range
+    range: vscode.Range | SerializedRange
   ): Promise<void> => {
+    if (range instanceof Array) {
+      range = deserializeRange(range);
+    }
     this.onRunCode(uri, undefined, [range], languageId);
   };
 

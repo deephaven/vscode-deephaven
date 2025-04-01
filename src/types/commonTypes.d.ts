@@ -225,3 +225,15 @@ export interface SessionDetailsResponsePostMessage {
   };
   targetOrigin: IdeURL;
 }
+
+export interface CodeBlock {
+  languageId: string;
+  range: vscode.Range;
+}
+
+export interface SerializedPoint {
+  line: number;
+  character: number;
+}
+
+export type SerializedRange = [start: SerializedPoint, end: SerializedPoint];

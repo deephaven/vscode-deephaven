@@ -1,5 +1,6 @@
 export * from './assertUtil';
 export * from './dataUtils';
+export * from './documentUtils';
 export * from './idUtils';
 export * from './isInstanceOf';
 export * from './isDisposable';
