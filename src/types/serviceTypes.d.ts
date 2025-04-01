@@ -3,7 +3,7 @@ import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type {
   ConsoleType,
   CoreConnectionConfig,
-  Disposable,
+  IDisposable,
   EnterpriseConnectionConfig,
   EventListenerT,
   ConnectionState,
@@ -26,7 +26,7 @@ import type {
   Username,
 } from '@deephaven-enterprise/auth-nodejs';
 
-export interface IAsyncCacheService<TKey, TValue> extends Disposable {
+export interface IAsyncCacheService<TKey, TValue> extends IDisposable {
   get: (key: TKey) => Promise<TValue>;
   has: (key: TKey) => boolean;
   invalidate: (key: TKey) => void;
@@ -45,7 +45,7 @@ export interface IConfigService {
 /**
  * Service that manages connections + sessions to a DH worker.
  */
-export interface IDhcService extends Disposable, ConnectionState {
+export interface IDhcService extends IDisposable, ConnectionState {
   readonly isInitialized: boolean;
   readonly isConnected: boolean;
   readonly onDidDisconnect: vscode.Event<URL>;
@@ -62,7 +62,7 @@ export interface IDhcService extends Disposable, ConnectionState {
   ) => Promise<void>;
 }
 
-export interface IDheService extends ConnectionState, Disposable {
+export interface IDheService extends ConnectionState, IDisposable {
   getClient(initializeIfNull: false): Promise<DheAuthenticatedClient | null>;
   getClient(
     initializeIfNull: true,
@@ -82,7 +82,7 @@ export interface IFactory<T, TArgs extends unknown[] = []> {
 
 export type ICoreClientFactory = (
   serverUrl: URL
-) => Promise<CoreUnauthenticatedClient & Disposable>;
+) => Promise<CoreUnauthenticatedClient & IDisposable>;
 
 /**
  * Factory for creating IDhService instances.
@@ -93,10 +93,10 @@ export type IDhcServiceFactory = IFactory<
 >;
 export type IDheClientFactory = (
   serverUrl: URL
-) => Promise<DheUnauthenticatedClient & Disposable>;
+) => Promise<DheUnauthenticatedClient & IDisposable>;
 export type IDheServiceFactory = IFactory<IDheService, [serverUrl: URL]>;
 
-export interface IPanelService extends Disposable {
+export interface IPanelService extends IDisposable {
   readonly onDidUpdate: vscode.Event<void>;
 
   clearServerData: (url: URL) => void;
@@ -139,7 +139,7 @@ export interface ISecretService {
 /**
  * Server manager interface.
  */
-export interface IServerManager extends Disposable {
+export interface IServerManager extends IDisposable {
   canStartServer: boolean;
 
   connectToServer: (

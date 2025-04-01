@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
-import type { Disposable, IServerManager } from '../types';
+import type { IDisposable, IServerManager } from '../types';
 
 /**
  * Base class for tree view data providers.
  */
 export abstract class TreeDataProviderBase<T>
-  implements vscode.TreeDataProvider<T>, Disposable
+  implements vscode.TreeDataProvider<T>, IDisposable
 {
   constructor(serverManager: IServerManager) {
     this.serverManager = serverManager;

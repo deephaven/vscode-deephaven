@@ -62,7 +62,7 @@ import {
   CoreJsApiCache,
 } from '../services';
 import type {
-  Disposable,
+  IDisposable,
   IAsyncCacheService,
   IConfigService,
   IDheClientFactory,
@@ -94,7 +94,7 @@ import { UserLoginController } from './UserLoginController';
 
 const logger = new Logger('ExtensionController');
 
-export class ExtensionController implements Disposable {
+export class ExtensionController implements IDisposable {
   constructor(context: vscode.ExtensionContext, configService: IConfigService) {
     this._context = context;
     this._config = configService;
@@ -133,12 +133,12 @@ export class ExtensionController implements Disposable {
 
   private _connectionController: ConnectionController | null = null;
   private _coreClientCache: URLMap<
-    CoreAuthenticatedClient & Disposable
+    CoreAuthenticatedClient & IDisposable
   > | null = null;
   private _coreClientFactory: ICoreClientFactory | null = null;
   private _coreJsApiCache: IAsyncCacheService<URL, typeof DhcType> | null =
     null;
-  private _dheClientCache: URLMap<DheAuthenticatedClient & Disposable> | null =
+  private _dheClientCache: URLMap<DheAuthenticatedClient & IDisposable> | null =
     null;
   private _dheClientFactory: IDheClientFactory | null = null;
   private _dheServiceCache: IAsyncCacheService<URL, IDheService> | null = null;
@@ -407,7 +407,7 @@ export class ExtensionController implements Disposable {
 
     this._coreClientFactory = async (
       url: URL
-    ): Promise<CoreUnauthenticatedClient & Disposable> => {
+    ): Promise<CoreUnauthenticatedClient & IDisposable> => {
       assertDefined(this._coreJsApiCache, 'coreJsApiCache');
 
       const workerInfo = await this._serverManager?.getWorkerInfo(
@@ -457,7 +457,7 @@ export class ExtensionController implements Disposable {
 
     this._dheClientFactory = async (
       url: URL
-    ): Promise<DheUnauthenticatedClient & Disposable> => {
+    ): Promise<DheUnauthenticatedClient & IDisposable> => {
       assertDefined(this._dheJsApiCache, 'dheJsApiCache');
       const dhe = await this._dheJsApiCache.get(url);
 
@@ -471,10 +471,10 @@ export class ExtensionController implements Disposable {
       });
     };
 
-    this._coreClientCache = new URLMap<CoreAuthenticatedClient & Disposable>();
+    this._coreClientCache = new URLMap<CoreAuthenticatedClient & IDisposable>();
     this._context.subscriptions.push(this._coreClientCache);
 
-    this._dheClientCache = new URLMap<DheAuthenticatedClient & Disposable>();
+    this._dheClientCache = new URLMap<DheAuthenticatedClient & IDisposable>();
     this._context.subscriptions.push(this._dheClientCache);
 
     this._panelService = new PanelService();

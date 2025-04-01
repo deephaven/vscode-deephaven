@@ -1,4 +1,4 @@
-import type { Disposable } from '../types';
+import type { IDisposable } from '../types';
 import { withResolvers, type PromiseWithCancel } from '../util';
 
 export type Runner = () => Promise<void>;
@@ -6,7 +6,7 @@ export type Runner = () => Promise<void>;
 /**
  * Service that polls a function at a minimum interval.
  */
-export class PollingService implements Disposable {
+export class PollingService implements IDisposable {
   private _timeout?: NodeJS.Timeout;
 
   private _isRunning = false;

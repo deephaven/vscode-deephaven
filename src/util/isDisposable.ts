@@ -1,4 +1,4 @@
-import type { Disposable } from '../types';
+import type { IDisposable } from '../types';
 
 /**
  * Typeguard to determine if given object has a `disposable` method.
@@ -7,7 +7,7 @@ import type { Disposable } from '../types';
  */
 export function isDisposable(
   maybeDisposable: unknown
-): maybeDisposable is Disposable {
+): maybeDisposable is IDisposable {
   return (
     maybeDisposable != null &&
     typeof maybeDisposable === 'object' &&

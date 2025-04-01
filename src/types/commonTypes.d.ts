@@ -148,7 +148,7 @@ export interface WorkerInfo {
   workerUrl: WorkerURL;
 }
 
-export interface Disposable {
+export interface IDisposable {
   dispose(): Promise<void>;
 }
 

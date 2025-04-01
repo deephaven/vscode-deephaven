@@ -16,7 +16,7 @@ import {
   DH_SAML_SERVER_URL_SCOPE_KEY,
 } from '../common';
 import { UriEventHandler, URLMap } from '../services';
-import { type Disposable, type SamlConfig, type UniqueID } from '../types';
+import { type IDisposable, type SamlConfig, type UniqueID } from '../types';
 
 const logger = new Logger('SamlAuthProvider');
 
@@ -29,7 +29,7 @@ export class SamlAuthProvider
    * have completed.
    */
   private static pendingAuthState = new URLMap<{
-    client: UnauthenticatedClient & Disposable;
+    client: UnauthenticatedClient & IDisposable;
     stateId: UniqueID;
   }>();
 
@@ -41,7 +41,7 @@ export class SamlAuthProvider
    * @returns The authenticated DHE client.
    */
   static runSamlLoginWorkflow = async (
-    dheClient: UnauthenticatedClient & Disposable,
+    dheClient: UnauthenticatedClient & IDisposable,
     serverUrl: URL,
     config: SamlConfig
   ): Promise<DheAuthenticatedClient> => {

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import fs from 'node:fs';
 import path from 'node:path';
-import type { Disposable, UniqueID } from '../types';
+import type { IDisposable, UniqueID } from '../types';
 import { getFilePathDateToken } from './dataUtils';
 
 export type LogLevel = 'error' | 'warn' | 'info' | 'debug' | 'debug2';
@@ -13,7 +13,7 @@ export type LogHandler = Record<LogLevel, LogLevelHandler>;
 /**
  * Log handler that writes logs to a file.
  */
-export class LogFileHandler implements LogHandler, Disposable {
+export class LogFileHandler implements LogHandler, IDisposable {
   constructor(extensionInstanceId: UniqueID, context: vscode.ExtensionContext) {
     // VS Code specifies the log directory but doesn't create it
     fs.mkdirSync(context.logUri.fsPath, { recursive: true });
