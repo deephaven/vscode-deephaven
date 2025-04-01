@@ -37,6 +37,7 @@ import {
   LogFileHandler,
   Logger,
   OutputChannelWithHistory,
+  parseMarkdownCodeblocks,
   sanitizeGRPCLogMessageArgs,
   saveLogFiles,
   Toaster,
@@ -58,6 +59,7 @@ import {
   DheServiceCache,
   DhcService,
   PanelService,
+  ParsedDocumentCache,
   SecretService,
   ServerManager,
   URLMap,
@@ -88,6 +90,7 @@ import type {
   WorkerURL,
   UniqueID,
   SerializedRange,
+  CodeBlock,
 } from '../types';
 import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTreeDragAndDropController';
 import { ConnectionController } from './ConnectionController';
@@ -134,6 +137,7 @@ export class ExtensionController implements IDisposable {
   private readonly _version: string;
   private readonly _envInfoText: string;
 
+  private _codeBlockCache: ParsedDocumentCache<CodeBlock[]> | null = null;
   private _connectionController: ConnectionController | null = null;
   private _coreClientCache: URLMap<
     CoreAuthenticatedClient & IDisposable
@@ -184,6 +188,7 @@ export class ExtensionController implements IDisposable {
     this.initializeDiagnostics();
     this.initializeConfig();
     this.initializeSecrets();
+    this.initializeDocumentCaches();
     this.initializeCodeLenses();
     this.initializeHoverProviders();
     this.initializeServerManager();
@@ -218,11 +223,22 @@ export class ExtensionController implements IDisposable {
   };
 
   /**
+   * Initialize document caches.
+   */
+  initializeDocumentCaches = (): void => {
+    this._codeBlockCache = new ParsedDocumentCache(parseMarkdownCodeblocks);
+  };
+
+  /**
    * Initialize code lenses for running Deephaven code.
    */
   initializeCodeLenses = (): void => {
+    assertDefined(this._codeBlockCache, 'codeBlockCache');
+
     const codelensProvider = new RunCommandCodeLensProvider();
-    const markdownCodelensProvider = new RunMarkdownCodeBlockCodeLensProvider();
+    const markdownCodelensProvider = new RunMarkdownCodeBlockCodeLensProvider(
+      this._codeBlockCache
+    );
 
     this._context.subscriptions.push(
       codelensProvider,
@@ -352,6 +368,8 @@ export class ExtensionController implements IDisposable {
    * Initialize hover providers.
    */
   initializeHoverProviders = (): void => {
+    assertDefined(this._codeBlockCache, 'codeBlockCache');
+
     vscode.languages.registerHoverProvider(
       'groovy',
       runSelectedLinesHoverProvider
@@ -364,7 +382,7 @@ export class ExtensionController implements IDisposable {
 
     vscode.languages.registerHoverProvider(
       'markdown',
-      new RunMarkdownCodeBlockHoverProvider()
+      new RunMarkdownCodeBlockHoverProvider(this._codeBlockCache)
     );
   };
 

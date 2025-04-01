@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { ICON_ID, RUN_MARKDOWN_CODEBLOCK_CMD } from '../common';
-import type { IDisposable } from '../types';
+import type { CodeBlock, IDisposable } from '../types';
+import type { ParsedDocumentCache } from '../services';
 
 /**
  * Provides inline editor code lenses for running Deephaven codeblocks in
@@ -9,7 +10,9 @@ import type { IDisposable } from '../types';
 export class RunMarkdownCodeBlockCodeLensProvider
   implements vscode.CodeLensProvider<vscode.CodeLens>, IDisposable
 {
-  constructor() {
+  constructor(codeBlockCache: ParsedDocumentCache<CodeBlock[]>) {
+    this._codeBlockCache = codeBlockCache;
+
     vscode.workspace.onDidChangeConfiguration(() => {
       this._onDidChangeCodeLenses.fire();
     });
@@ -17,6 +20,8 @@ export class RunMarkdownCodeBlockCodeLensProvider
       this._onDidChangeCodeLenses.fire();
     });
   }
+
+  private readonly _codeBlockCache: ParsedDocumentCache<CodeBlock[]>;
 
   private readonly _onDidChangeCodeLenses: vscode.EventEmitter<void> =
     new vscode.EventEmitter<void>();
@@ -28,46 +33,23 @@ export class RunMarkdownCodeBlockCodeLensProvider
     this._onDidChangeCodeLenses.dispose();
   };
 
+  /**
+   * Provide a hover for the given position and document.
+   *
+   * @param document The document in which the command was invoked.
+   * @param position The position at which the command was invoked.
+   * @param token A cancellation token.
+   * @returns A hover or a thenable that resolves to such. The lack of a result can be
+   * signaled by returning `undefined` or `null`.
+   */
   provideCodeLenses(
     document: vscode.TextDocument,
     _token: vscode.CancellationToken
   ): vscode.ProviderResult<vscode.CodeLens[]> {
-    const lines = document.getText().split('\n');
+    const codeBlocks = this._codeBlockCache.get(document);
 
-    const ranges: [string, vscode.Range][] = [];
-    let start: vscode.Position | null = null;
-    let languageId = '';
-
-    // Create ranges for each code block in the document
-    for (let i = 0; i < lines.length; ++i) {
-      const line = lines[i];
-
-      // End of Deephaven code block
-      if (line === '```' && start) {
-        ranges.push([
-          languageId,
-          new vscode.Range(start, new vscode.Position(i - 1, 0)),
-        ]);
-        start = null;
-        // Start of Deephaven supported code block
-      } else if (
-        line === '```python' ||
-        line === '```py' ||
-        line === '```groovy'
-      ) {
-        languageId = line.substring(3);
-        // 'py' is an alias for 'python'. We use 'python' and 'groovy' in other
-        // DH apis, so we normalize here.
-        if (languageId === 'py') {
-          languageId = 'python';
-        }
-
-        start = new vscode.Position(i + 1, 0);
-      }
-    }
-
-    const codeLenses: vscode.CodeLens[] = ranges.map(
-      ([languageId, range]) =>
+    const codeLenses: vscode.CodeLens[] = codeBlocks.map(
+      ({ languageId, range }) =>
         new vscode.CodeLens(
           // Put the code lens on the line before the code block
           new vscode.Range(range.start.line - 1, 0, range.start.line - 1, 0),
