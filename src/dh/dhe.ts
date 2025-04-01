@@ -55,7 +55,7 @@ export async function getDhe(
 ): Promise<DheType> {
   polyfillDhe();
 
-  // Download jsapi `ESM` files from DH Community server.
+  // Download jsapi `CJS` files from DH Community server.
   await loadModules({
     serverUrl,
     serverPaths: ['irisapi/irisapi.nocache.js'],
@@ -198,7 +198,7 @@ export async function createInteractiveConsoleQuery(
     type,
     owner,
     dbServerName,
-    heapSize: heapSize,
+    heapSize,
     scheduling,
     jvmArgs,
     jvmProfile,

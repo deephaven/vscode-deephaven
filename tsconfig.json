@@ -8,7 +8,6 @@
     "strict": true /* enable all strict type-checking options */,
     "esModuleInterop": true,
     "paths": {
-      "@deephaven/require-jsapi": ["./packages/require-jsapi/src"],
       // workaround for: https://github.com/rollup/rollup/issues/5199#issuecomment-2095374821
       "rollup/parseAst": ["./node_modules/rollup/dist/parseAst"]
     }
