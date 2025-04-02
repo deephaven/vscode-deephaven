@@ -839,13 +839,14 @@ export class ExtensionController implements IDisposable {
     if (range instanceof Array) {
       range = deserializeRange(range);
     }
-    this.onRunCode(uri, undefined, [range], languageId);
+    this.onRunCode(uri, [range], languageId);
   };
 
   /**
-   * Run all code in editor for given uri.
+   * Run all code in editor for given uri. Note that the parameters are
+   * optional since the RUN_CODE_COMMAND can be called from the CMD palette
+   * which doesn't provide parameters.
    * @param uri The uri of the editor
-   * @param _arg Unused 2nd argument
    * @param constrainTo Optional arg to constrain the code to run.
    * - If 'selection', run only selected code in the editor.
    * - If `undefined`, run all code in the editor.
@@ -856,7 +857,6 @@ export class ExtensionController implements IDisposable {
    */
   onRunCode = async (
     uri?: vscode.Uri,
-    _arg?: { groupId: number },
     constrainTo?: 'selection' | vscode.Range[],
     languageId?: string
   ): Promise<void> => {
@@ -885,15 +885,17 @@ export class ExtensionController implements IDisposable {
   };
 
   /**
-   * Run selected code in editor for given uri.
-   * @param uri
-   * @param arg
+   * Run selected code in editor for given uri. Note that the parameters are
+   * optional since the RUN_SELECTION_COMMAND can be called from the CMD
+   * palette which doesn't provide parameters.
+   * @param uri The uri of the editor
+   * @param languageId Optional languageId to run the code as
    */
   onRunSelectedCode = async (
     uri?: vscode.Uri,
-    arg?: { groupId: number }
+    languageId?: string
   ): Promise<void> => {
-    this.onRunCode(uri, arg, 'selection');
+    this.onRunCode(uri, 'selection', languageId);
   };
 
   /**

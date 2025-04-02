@@ -1,7 +1,9 @@
 import * as vscode from 'vscode';
 import { ParsedDocumentCache } from '../services';
-import { serializeRange } from '../util';
-import { ICON_ID, RUN_MARKDOWN_CODEBLOCK_CMD } from '../common';
+import {
+  getRunMarkdownCodeBlockMarkdown,
+  getRunSelectedLinesMarkdown,
+} from '../util';
 import type { CodeBlock } from '../types';
 
 /**
@@ -30,25 +32,24 @@ export class RunMarkdownCodeBlockHoverProvider implements vscode.HoverProvider {
   ): vscode.ProviderResult<vscode.Hover> {
     const codeBlocks = this._codeBlockCache.get(document);
 
-    for (const { languageId, range } of codeBlocks) {
-      if (range.contains(position)) {
-        const argsStr = JSON.stringify([
-          document.uri,
-          languageId,
-          serializeRange(range),
-        ]);
-        const argsEncoded = encodeURIComponent(argsStr);
+    for (const codeBlock of codeBlocks) {
+      const { languageId, range } = codeBlock;
 
-        const hoverContent = new vscode.MarkdownString(
-          `[$(${ICON_ID.runSelection}) Run Deephaven Block](command:${RUN_MARKDOWN_CODEBLOCK_CMD}?${argsEncoded})`,
-          true
+      if (range.contains(position)) {
+        const hoverContents: vscode.MarkdownString[] = [
+          getRunMarkdownCodeBlockMarkdown(document.uri, codeBlock),
+        ];
+
+        const maybeSelectedLinesHover = getRunSelectedLinesMarkdown(
+          position,
+          languageId
         );
 
-        hoverContent.isTrusted = {
-          enabledCommands: [RUN_MARKDOWN_CODEBLOCK_CMD],
-        };
+        if (maybeSelectedLinesHover) {
+          hoverContents.push(maybeSelectedLinesHover);
+        }
 
-        return new vscode.Hover(hoverContent);
+        return new vscode.Hover(hoverContents);
       }
     }
   }
