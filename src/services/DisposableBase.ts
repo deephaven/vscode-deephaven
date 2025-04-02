@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import type { IDisposable } from '../types';
-import { Logger } from '../util';
+import { Logger, withResolvers } from '../util';
 
 /** Base class for disposing of dependencies. */
 export abstract class DisposableBase implements IDisposable {
@@ -13,8 +13,6 @@ export abstract class DisposableBase implements IDisposable {
   >();
   private readonly _logger: Logger;
 
-  private _isDisposed = false;
-  private _isDisposing = false;
   private _disposalPromise: Promise<any> | undefined;
 
   /**
@@ -22,18 +20,15 @@ export abstract class DisposableBase implements IDisposable {
    * @returns Promise that resolves when disposal is complete.
    */
   async dispose(): Promise<void> {
-    if (this._isDisposing) {
-      this._logger.debug2('Already disposing');
+    if (this._disposalPromise != null) {
+      this._logger.debug2('Dispose already called');
       return this._disposalPromise;
     }
 
-    if (this._isDisposed) {
-      this._logger.debug2('Already disposed');
-      return this._disposalPromise;
-    }
+    const { promise, resolve } = withResolvers<void>();
+    this._disposalPromise = promise;
 
     this._logger.debug2('Disposing');
-    this._isDisposing = true;
     await this.onDisposing();
 
     this._logger.debug2(`Disposing ${this.disposables.size} disposables`);
@@ -42,12 +37,10 @@ export abstract class DisposableBase implements IDisposable {
     );
     this.disposables.clear();
 
-    this._disposalPromise = Promise.all(disposing);
+    await Promise.all(disposing);
+    resolve();
 
-    await this._disposalPromise;
-
-    this._isDisposed = true;
-    this._isDisposing = false;
+    return this._disposalPromise;
   }
 
   /** Override this method to call additional disposal logic. */
