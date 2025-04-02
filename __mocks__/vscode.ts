@@ -12,6 +12,16 @@ export class EventEmitter {
   fire = vi.fn().mockName('fire');
 }
 
+export class MarkdownString {
+  constructor(value?: string, supportThemeIcons?: boolean) {
+    this.value = value ?? '';
+    this.supportThemeIcons = supportThemeIcons ?? false;
+  }
+
+  value: string;
+  supportThemeIcons?: boolean;
+}
+
 export class Position {
   constructor(line: number, character: number) {
     this.line = line;
@@ -50,6 +60,48 @@ export class Range {
 
   readonly start: Position;
   readonly end: Position;
+
+  contains(position: Position): boolean {
+    return (
+      (this.start.line < position.line ||
+        (this.start.line === position.line &&
+          this.start.character <= position.character)) &&
+      (this.end.line > position.line ||
+        (this.end.line === position.line &&
+          this.end.character >= position.character))
+    );
+  }
+}
+
+export class Selection {
+  constructor(anchor: Position, active: Position);
+  constructor(
+    anchorLine: number,
+    anchorCharacter: number,
+    activeLine: number,
+    activeCharacter: number
+  );
+  constructor(
+    ...args: [Position, Position] | [number, number, number, number]
+  ) {
+    if (args.length === 2) {
+      this.anchor = args[0];
+      this.active = args[1];
+    } else {
+      this.anchor = new Position(args[0], args[1]);
+      this.active = new Position(args[2], args[3]);
+    }
+
+    const { start, end } = determineStartAndEnd(this.anchor, this.active);
+    this.start = start;
+    this.end = end;
+  }
+
+  readonly start: Position;
+  readonly end: Position;
+
+  anchor: Position;
+  active: Position;
 }
 
 export const ThemeColor = vi
@@ -83,3 +135,24 @@ export const workspace = {
   onDidChangeTextDocument: vi.fn().mockName('onDidChangeTextDocument'),
   onDidCloseTextDocument: vi.fn().mockName('onDidCloseTextDocument'),
 };
+
+/**
+ * Since we are mocking vscode apis, we need a way to determine which anchor /
+ * active Position is the start / end.
+ * @param anchor The anchor position.
+ * @param active The active position.
+ * @returns An object containing the start and end positions.
+ */
+function determineStartAndEnd(
+  anchor: Position,
+  active: Position
+): { start: Position; end: Position } {
+  if (
+    anchor.line < active.line || // Anchor is on an earlier line
+    (anchor.line === active.line && anchor.character <= active.character) // Same line, but anchor is earlier or equal
+  ) {
+    return { start: anchor, end: active };
+  } else {
+    return { start: active, end: anchor };
+  }
+}

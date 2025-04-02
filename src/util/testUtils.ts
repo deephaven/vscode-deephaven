@@ -35,10 +35,28 @@ export function matrix<
   );
 }
 
+function lineAt(this: vscode.TextDocument, line: number): vscode.TextLine;
+function lineAt(
+  this: vscode.TextDocument,
+  position: vscode.Position
+): vscode.TextLine;
+function lineAt(
+  this: vscode.TextDocument,
+  lineOrPosition: number | vscode.Position
+): vscode.TextLine {
+  const lineNumber =
+    typeof lineOrPosition === 'number' ? lineOrPosition : lineOrPosition.line;
+
+  return mockT<vscode.TextLine>({
+    lineNumber,
+    text: this.getText().split('\n')[lineNumber] ?? '',
+  });
+}
+
 /** Mock a `vscode.TextDocument` */
 export function mockDocument(
   fileName: string,
-  version: number,
+  version: number = 1,
   content = ''
 ): vscode.TextDocument {
   return mockT<vscode.TextDocument>({
@@ -46,6 +64,7 @@ export function mockDocument(
     uri: mockUri(`file://mock/path/${fileName}`),
     version,
     getText: () => content,
+    lineAt,
   });
 }
 
