@@ -22,7 +22,7 @@ export class ParsedDocumentCache<TParsed> {
 
   /**
    * Get parsed document. Updates the cache if the given document version differs
-   * from the last version.
+   * from the cached version.
    * @param document The document to parse
    * @returns Parsed document
    */
