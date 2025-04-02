@@ -60,7 +60,7 @@ export class ParsedDocumentCache<TParsed> {
 
     const parsed = this._parsedCache.get(document.uri);
 
-    assertDefined(parsed, 'codeBlparsedocks');
+    assertDefined(parsed, 'parsed');
 
     return parsed;
   }
