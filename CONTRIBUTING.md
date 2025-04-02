@@ -3,7 +3,7 @@
 ## Development
 
 ### Deephaven Packages
-The extension depends on some Deephaven web-client-ui npm packages (`@deephaven/*`). In cases where the dependencies need to be developed as part of extension development, the dependencies can be aliased locally to the location of the web-client-ui source code.
+The extension depends on some Deephaven web-client-ui npm packages (`@deephaven/*`). In cases where the dependencies need to be developed as part of extension development, the dependencies can be aliased locally to the location of the web-client-ui packages source code.
 
 1. Create a `.env.local` file in the root of this project 
 1. Set the `DHC_PACKAGES_PATH` env variable to the path of the web-client-ui/packages directory
