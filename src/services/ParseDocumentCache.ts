@@ -3,7 +3,7 @@ import { URIMap } from './URIMap';
 import { assertDefined } from '../util';
 
 /**
- * Cache for parsed documents. Cached base on document uri + version.
+ * Cache for parsed documents. Cached based on document uri + version.
  */
 export class ParsedDocumentCache<TParsed> {
   constructor(parserFn: (document: vscode.TextDocument) => TParsed) {
