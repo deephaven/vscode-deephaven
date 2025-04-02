@@ -9,6 +9,7 @@ interface MockParsedDocument {
   label: `mock.parsed.${string}`;
 }
 
+// vscode.TextDocument mocks
 const mockDoc = {
   av1: mockDocument('fileA', 1),
   av2: mockDocument('fileA', 2),
@@ -18,6 +19,7 @@ const mockDoc = {
     }) as MockParsedDocument,
 };
 
+// Event handler mocks
 const mockEvent = {
   av1: mockT<vscode.TextDocumentChangeEvent>({
     document: mockDoc.av1,
@@ -27,27 +29,35 @@ const mockEvent = {
   }),
 };
 
-const parseDocument =
+// Mock document parser
+const mockParseDocument =
   vi.fn<(document: vscode.TextDocument) => MockParsedDocument>();
 
+/**
+ * Initialize a ParseDocumentCache. Optionally request a document to initialize
+ * internal caches.
+ */
 function initializeCache(initialCachedDoc?: vscode.TextDocument): {
   cache: ParsedDocumentCache<MockParsedDocument>;
   changeHandler: (e: vscode.TextDocumentChangeEvent) => any;
   closeHandler: (e: vscode.TextDocument) => any;
 } {
-  const cache = new ParsedDocumentCache(parseDocument);
+  const cache = new ParsedDocumentCache(mockParseDocument);
 
   const { changeHandler, closeHandler } = getHandlers();
 
   if (initialCachedDoc != null) {
     const actual = cache.get(initialCachedDoc);
-    expect(parseDocument).toHaveBeenCalledWith(initialCachedDoc);
+    expect(mockParseDocument).toHaveBeenCalledWith(initialCachedDoc);
     expect(actual).toEqual(mockDoc.parseDocument(initialCachedDoc));
   }
 
   return { cache, changeHandler, closeHandler };
 }
 
+/**
+ * Get registered event handlers that are set by ParseDocumentCache constructor.
+ */
 function getHandlers(): {
   changeHandler: (e: vscode.TextDocumentChangeEvent) => any;
   closeHandler: (e: vscode.TextDocument) => any;
@@ -66,7 +76,7 @@ function getHandlers(): {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  parseDocument.mockImplementation(mockDoc.parseDocument);
+  mockParseDocument.mockImplementation(mockDoc.parseDocument);
 });
 
 it('should re-cache if document changed to newer version or explicitly requested', () => {
@@ -75,30 +85,30 @@ it('should re-cache if document changed to newer version or explicitly requested
   // Document changed to newer version
   vi.clearAllMocks();
   changeHandler(mockEvent.av2);
-  expect(parseDocument).toHaveBeenCalledWith(mockDoc.av2);
+  expect(mockParseDocument).toHaveBeenCalledWith(mockDoc.av2);
   expect(cache.get(mockDoc.av2)).toEqual(mockDoc.parseDocument(mockDoc.av2));
 
   // Document changed to older version
   vi.clearAllMocks();
   changeHandler(mockEvent.av1);
-  expect(parseDocument).not.toHaveBeenCalled();
+  expect(mockParseDocument).not.toHaveBeenCalled();
 
   expect(cache.get(mockDoc.av1)).toEqual(mockDoc.parseDocument(mockDoc.av1));
-  expect(parseDocument).toHaveBeenCalledWith(mockDoc.av1);
+  expect(mockParseDocument).toHaveBeenCalledWith(mockDoc.av1);
 });
 
 it('should clear cache on document close', () => {
   const { cache, closeHandler } = initializeCache(mockDoc.av1);
 
-  expect(parseDocument).toHaveBeenCalledWith(mockDoc.av1);
+  expect(mockParseDocument).toHaveBeenCalledWith(mockDoc.av1);
 
   // Request cached version
   vi.clearAllMocks();
   cache.get(mockDoc.av1);
-  expect(parseDocument).not.toHaveBeenCalled();
+  expect(mockParseDocument).not.toHaveBeenCalled();
 
   // Close document and request a again
   closeHandler(mockDoc.av1);
   cache.get(mockDoc.av1);
-  expect(parseDocument).toHaveBeenCalledWith(mockDoc.av1);
+  expect(mockParseDocument).toHaveBeenCalledWith(mockDoc.av1);
 });
