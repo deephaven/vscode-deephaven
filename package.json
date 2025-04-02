@@ -869,7 +869,7 @@
   "dependencies": {
     "@deephaven-enterprise/auth-nodejs": "^1.20240723.124-beta",
     "@deephaven-enterprise/query-utils": "^1.20240723.124-beta",
-    "@deephaven/jsapi-nodejs": "^0.104.0",
+    "@deephaven/jsapi-nodejs": "^0.107.0",
     "archiver": "^7.0.1",
     "chai": "^4.5.0",
     "nanoid": "^5.0.7"
@@ -887,6 +887,7 @@
     "@typescript-eslint/parser": "^7.16.0",
     "@vscode/vsce": "^2.30.0",
     "ctrf": "^0.0.9",
+    "dotenv": "^16.4.7",
     "esbuild-wasm": "^0.24.0",
     "eslint": "^8.57.0",
     "fantasticon": "^3.0.0",

@@ -3,6 +3,7 @@ export * from './ConfigService';
 export * from './consoleTypeUtils';
 export * from './DhcService';
 export * from './DheService';
+export * from './DisposableBase';
 export * from './PanelService';
 export * from './PollingService';
 export * from './SecretService';

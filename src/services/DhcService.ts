@@ -37,10 +37,11 @@ import {
 } from '../common';
 import { NoConsoleTypesError, parseServerError } from '../dh/errorUtils';
 import { hasErrorCode } from '../util/typeUtils';
+import { DisposableBase } from './DisposableBase';
 
 const logger = new Logger('DhcService');
 
-export class DhcService implements IDhcService {
+export class DhcService extends DisposableBase {
   /**
    * Creates a factory function that can be used to create DhcService instances.
    * @param coreClientCache Core client cache.
@@ -89,6 +90,8 @@ export class DhcService implements IDhcService {
     toaster: IToastService,
     tagId?: UniqueID
   ) {
+    super();
+
     this.coreClientCache = coreClientCache;
     this.serverUrl = serverUrl;
     this.panelService = panelService;
@@ -99,6 +102,8 @@ export class DhcService implements IDhcService {
     this.tagId = tagId;
 
     this.coreClientCache.onDidChange(this.onDidCoreClientCacheInvalidate);
+
+    this.disposables.add(this._onDidDisconnect);
   }
 
   private readonly _onDidDisconnect = new vscode.EventEmitter<URL>();
@@ -106,7 +111,6 @@ export class DhcService implements IDhcService {
 
   public readonly serverUrl: URL;
   public readonly tagId?: UniqueID;
-  private readonly subscriptions: (() => void)[] = [];
 
   private readonly coreClientCache: URLMap<CoreAuthenticatedClient>;
   private readonly outputChannel: vscode.OutputChannel;
@@ -138,18 +142,21 @@ export class DhcService implements IDhcService {
     }
   };
 
-  private clearCaches(): void {
+  /** Called by DisposableBase */
+  protected async onDisposing(): Promise<void> {
+    logger.debug('onDisposing');
+
     this.clientPromise = null;
     this.initSessionPromise = null;
+    this.session = null;
 
     if (this.cn != null) {
       this.cn.close();
+
+      this.cn = null;
+
       this._onDidDisconnect.fire(this.serverUrl);
     }
-    this.cn = null;
-    this.session = null;
-
-    this.subscriptions.forEach(dispose => dispose());
   }
 
   private getToastErrorMessage(
@@ -220,13 +227,17 @@ export class DhcService implements IDhcService {
             );
           }
         });
-        this.subscriptions.push(fieldUpdateSubscription);
+        this.disposables.add(fieldUpdateSubscription);
 
         // TODO: Use constant 'disconnect' event name
         const disconnectSubscription = cn.addEventListener('disconnect', () => {
-          this.clearCaches();
+          // Only handle disconnect once
+          disconnectSubscription();
+          this.disposables.delete(disconnectSubscription);
+
+          this.dispose();
         });
-        this.subscriptions.push(disconnectSubscription);
+        this.disposables.add(disconnectSubscription);
 
         const logMessageSubscription = session.onLogMessage(logItem => {
           // TODO: Should this pull log level from config somewhere?
@@ -239,7 +250,7 @@ export class DhcService implements IDhcService {
             );
           }
         });
-        this.subscriptions.push(logMessageSubscription);
+        this.disposables.add(logMessageSubscription);
       } catch (err) {}
     }
 
@@ -258,7 +269,7 @@ export class DhcService implements IDhcService {
     }
 
     if (this.cn == null || this.session == null) {
-      this.clearCaches();
+      this.dispose();
 
       return false;
     } else {
@@ -296,11 +307,6 @@ export class DhcService implements IDhcService {
     }
 
     return client;
-  }
-
-  async dispose(): Promise<void> {
-    this.clearCaches();
-    this._onDidDisconnect.dispose();
   }
 
   getConsoleTypes = async (): Promise<Set<ConsoleType>> => {
@@ -379,9 +385,9 @@ export class DhcService implements IDhcService {
       // Grpc UNAUTHENTICATED code. This should not generally happen since we
       // clear the caches on connection disconnect
       if (hasErrorCode(err, 16)) {
-        this.clearCaches();
+        this.dispose();
         this.toaster.error(
-          'Session is no longer invalid. Please re-run the command to reconnect.'
+          'Session is no longer valid. Please re-run the command to reconnect.'
         );
         return;
       }
