@@ -56,5 +56,6 @@ export function mockT<T>(partial: Partial<T>): T {
 export function mockUri(path: string): vscode.Uri {
   return mockT<vscode.Uri>({
     path,
+    toString: () => path,
   });
 }
