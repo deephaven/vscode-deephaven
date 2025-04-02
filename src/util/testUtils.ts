@@ -38,12 +38,14 @@ export function matrix<
 /** Mock a `vscode.TextDocument` */
 export function mockDocument(
   fileName: string,
-  version: number
+  version: number,
+  content = ''
 ): vscode.TextDocument {
   return mockT<vscode.TextDocument>({
     fileName,
     uri: mockUri(`file://mock/path/${fileName}`),
     version,
+    getText: () => content,
   });
 }
 

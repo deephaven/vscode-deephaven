@@ -1,0 +1,45 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`parseMarkdownCodeblocks > should parse Deephaven code blocks from a Markdown document 1`] = `
+[
+  {
+    "languageId": "python",
+    "range": Range {
+      "end": Position {
+        "character": 35,
+        "line": 3,
+      },
+      "start": Position {
+        "character": 0,
+        "line": 1,
+      },
+    },
+  },
+  {
+    "languageId": "python",
+    "range": Range {
+      "end": Position {
+        "character": 35,
+        "line": 9,
+      },
+      "start": Position {
+        "character": 0,
+        "line": 7,
+      },
+    },
+  },
+  {
+    "languageId": "groovy",
+    "range": Range {
+      "end": Position {
+        "character": 34,
+        "line": 15,
+      },
+      "start": Position {
+        "character": 0,
+        "line": 15,
+      },
+    },
+  },
+]
+`;

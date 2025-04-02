@@ -12,9 +12,44 @@ export class EventEmitter {
   fire = vi.fn().mockName('fire');
 }
 
+export class Position {
+  constructor(line: number, character: number) {
+    this.line = line;
+    this.character = character;
+  }
+
+  readonly line: number;
+  readonly character: number;
+}
+
 export enum QuickPickItemKind {
   Separator = -1,
   Default = 0,
+}
+
+export class Range {
+  constructor(start: Position, end: Position);
+  constructor(
+    startLine: number,
+    startCharacter: number,
+    endLine: number,
+    endCharacter: number
+  );
+  constructor(
+    ...args: [Position, Position] | [number, number, number, number]
+  ) {
+    if (args.length === 2) {
+      this.start = args[0];
+      this.end = args[1];
+    } else {
+      const [startLine, startCharacter, endLine, endCharacter] = args;
+      this.start = new Position(startLine, startCharacter);
+      this.end = new Position(endLine, endCharacter);
+    }
+  }
+
+  readonly start: Position;
+  readonly end: Position;
 }
 
 export const ThemeColor = vi
