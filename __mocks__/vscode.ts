@@ -38,9 +38,13 @@ export enum TreeItemCollapsibleState {
   Expanded = 2,
 }
 
+export const window = {};
+
 export const workspace = {
   getConfiguration: vi
     .fn()
     .mockName('getConfiguration')
     .mockReturnValue(new Map()),
+  onDidChangeTextDocument: vi.fn().mockName('onDidChangeTextDocument'),
+  onDidCloseTextDocument: vi.fn().mockName('onDidCloseTextDocument'),
 };
