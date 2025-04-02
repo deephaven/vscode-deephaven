@@ -25,7 +25,7 @@ export abstract class DisposableBase implements IDisposable {
       return this._disposalPromise;
     }
 
-    const { promise, resolve } = withResolvers<void>();
+    const { promise, resolve } = withResolvers<unknown>();
     this._disposalPromise = promise;
 
     this._logger.debug2('Disposing');
@@ -37,8 +37,7 @@ export abstract class DisposableBase implements IDisposable {
     );
     this.disposables.clear();
 
-    await Promise.all(disposing);
-    resolve();
+    resolve(Promise.all(disposing));
 
     return this._disposalPromise;
   }
