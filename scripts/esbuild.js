@@ -3,7 +3,7 @@ const esbuild = require('esbuild-wasm');
 const fs = require('node:fs');
 const path = require('node:path');
 
-require('dotenv').config({ path: path.resolve(__dirname, '../.env.local') });
+require('dotenv').config({ path: ['.env.local', '.env'] });
 
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');

@@ -8,4 +8,4 @@ e2e-testing/.resources
 e2e-testing/.test-extensions
 test-reports/
 tsconfig.tsbuildinfo
-.env.local
+.env*.local
