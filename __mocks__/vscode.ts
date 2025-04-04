@@ -30,6 +30,45 @@ export class Position {
 
   readonly line: number;
   readonly character: number;
+
+  /**
+   * Check if this position is before `other`.
+   *
+   * @param other A position.
+   * @returns `true` if position is on a smaller line
+   * or on the same line on a smaller character.
+   */
+  isBefore(other: Position): boolean {
+    return (
+      this.line < other.line ||
+      (this.line === other.line && this.character < other.character)
+    );
+  }
+
+  /**
+   * Check if this position is after `other`.
+   *
+   * @param other A position.
+   * @returns `true` if position is on a greater line
+   * or on the same line on a greater character.
+   */
+  isAfter(other: Position): boolean {
+    return (
+      this.line > other.line ||
+      (this.line === other.line && this.character > other.character)
+    );
+  }
+
+  /**
+   * Check if this position is equal to `other`.
+   *
+   * @param other A position.
+   * @returns `true` if the line and character of the given position are equal to
+   * the line and character of this position.
+   */
+  isEqual(other: Position): boolean {
+    return this.line === other.line && this.character === other.character;
+  }
 }
 
 export enum QuickPickItemKind {
@@ -92,7 +131,10 @@ export class Selection {
       this.active = new Position(args[2], args[3]);
     }
 
-    const { start, end } = determineStartAndEnd(this.anchor, this.active);
+    const [start, end] = this.anchor.isBefore(this.active)
+      ? [this.anchor, this.active]
+      : [this.active, this.anchor];
+
     this.start = start;
     this.end = end;
   }
@@ -143,16 +185,16 @@ export const workspace = {
  * @param active The active position.
  * @returns An object containing the start and end positions.
  */
-function determineStartAndEnd(
-  anchor: Position,
-  active: Position
-): { start: Position; end: Position } {
-  if (
-    anchor.line < active.line || // Anchor is on an earlier line
-    (anchor.line === active.line && anchor.character <= active.character) // Same line, but anchor is earlier or equal
-  ) {
-    return { start: anchor, end: active };
-  } else {
-    return { start: active, end: anchor };
-  }
-}
+// function determineStartAndEnd(
+//   anchor: Position,
+//   active: Position
+// ): { start: Position; end: Position } {
+//   if (
+//     anchor.line < active.line || // Anchor is on an earlier line
+//     (anchor.line === active.line && anchor.character <= active.character) // Same line, but anchor is earlier or equal
+//   ) {
+//     return { start: anchor, end: active };
+//   } else {
+//     return { start: active, end: anchor };
+//   }
+// }

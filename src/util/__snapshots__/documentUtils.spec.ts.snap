@@ -41,5 +41,18 @@ exports[`parseMarkdownCodeblocks > should parse Deephaven code blocks from a Mar
       },
     },
   },
+  {
+    "languageId": "groovy",
+    "range": Range {
+      "end": Position {
+        "character": 34,
+        "line": 19,
+      },
+      "start": Position {
+        "character": 0,
+        "line": 19,
+      },
+    },
+  },
 ]
 `;

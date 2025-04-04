@@ -1,8 +1,38 @@
 import * as vscode from 'vscode';
-import type { CodeBlock, SerializedRange } from '../types';
+import type { CodeBlock, SerializedPoint, SerializedRange } from '../types';
 
-const CODE_BLOCK_STARTS = new Set(['```python', '```py', '```groovy']);
+const CODE_BLOCK_STARTS = /^```(py|python|groovy)(\s|$)/;
 const CODE_BLOCK_END = '```';
+
+/**
+ * Determine if given object is a SerializedPoint.
+ * @param maybePoint The object to check
+ * @returns True if point is a SerializedPoint
+ */
+export function isSerializedPoint(maybePoint: {
+  line?: number;
+  character?: number;
+}): maybePoint is SerializedPoint {
+  return (
+    typeof maybePoint.line === 'number' &&
+    typeof maybePoint.character === 'number'
+  );
+}
+
+/**
+ * Determine if given object is a SerializedRange.
+ * @param maybeRange The object to check
+ * @returns True if range is a SerializedRange
+ */
+export function isSerializedRange(
+  maybeRange: unknown
+): maybeRange is SerializedRange {
+  return (
+    Array.isArray(maybeRange) &&
+    maybeRange.length === 2 &&
+    maybeRange.every(isSerializedPoint)
+  );
+}
 
 /**
  * Parse code blocks from a Markdown document that can be run by Deephaven.
@@ -23,8 +53,9 @@ export function parseMarkdownCodeblocks(
     const line = lines[i];
 
     // Start of Deephaven supported code block
-    if (CODE_BLOCK_STARTS.has(line)) {
-      languageId = normalizeLanguageId(line.substring(3));
+    const parsedLanguageId = CODE_BLOCK_STARTS.exec(line)?.[1] ?? '';
+    if (parsedLanguageId !== '') {
+      languageId = normalizeLanguageId(parsedLanguageId);
       startPos = new vscode.Position(i + 1, 0);
     }
     // End of Deephaven code block

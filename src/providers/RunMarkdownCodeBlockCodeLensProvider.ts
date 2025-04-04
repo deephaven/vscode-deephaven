@@ -34,13 +34,12 @@ export class RunMarkdownCodeBlockCodeLensProvider
   };
 
   /**
-   * Provide a hover for the given position and document.
+   * Compute a list of {@link CodeLens lenses} representing Markdown code blocks
+   * that can be run by Deephaven.
    *
    * @param document The document in which the command was invoked.
-   * @param position The position at which the command was invoked.
    * @param token A cancellation token.
-   * @returns A hover or a thenable that resolves to such. The lack of a result can be
-   * signaled by returning `undefined` or `null`.
+   * @returns An array of code lenses
    */
   provideCodeLenses(
     document: vscode.TextDocument,

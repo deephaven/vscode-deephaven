@@ -33,6 +33,7 @@ import {
   getEditorForUri,
   getTempDir,
   isInstanceOf,
+  isSerializedRange,
   isSupportedLanguageId,
   LogFileHandler,
   Logger,
@@ -836,7 +837,7 @@ export class ExtensionController implements IDisposable {
     languageId: string,
     range: vscode.Range | SerializedRange
   ): Promise<void> => {
-    if (range instanceof Array) {
+    if (isSerializedRange(range)) {
       range = deserializeRange(range);
     }
     this.onRunCode(uri, [range], languageId);

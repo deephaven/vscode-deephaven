@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import { describe, it, expect, vi } from 'vitest';
 import {
   deserializeRange,
+  isSerializedPoint,
+  isSerializedRange,
   normalizeLanguageId,
   parseMarkdownCodeblocks,
   serializeRange,
@@ -29,7 +31,45 @@ const markdownDocContent = [
   '```groovy',
   'simple_ticking = timeTable("PT2S")',
   '```',
+  '',
+  '```groovy with extra stuff',
+  'simple_ticking = timeTable("PT2S")',
+  '```',
 ].join('\n');
+
+describe('isSerializedPoint', () => {
+  it('should return true for valid SerializedPoint', () => {
+    const point = { line: 1, character: 2 };
+    expect(isSerializedPoint(point)).toBe(true);
+  });
+
+  it.each([{ line: 1 }, { character: 1 }, {}, { name: 'mock.name' }])(
+    'should return false for invalid SerializedPoint: %s',
+    given => {
+      expect(isSerializedPoint(given)).toBe(false);
+    }
+  );
+});
+
+describe('isSerializedRange', () => {
+  it('should return true for valid SerializedRange', () => {
+    const range = [
+      { line: 1, character: 2 },
+      { line: 3, character: 4 },
+    ];
+    expect(isSerializedRange(range)).toBe(true);
+  });
+
+  it.each([
+    [[{ line: 1, character: 2 }]],
+    [[{ line: 1, character: 2 }, { line: 3 }]],
+    [[{ line: 1, character: 2 }, { character: 3 }]],
+    [[{ line: 1, character: 2 }, { line: 3, character: 4 }, {}]],
+    { start: new vscode.Range(1, 2, 3, 4), end: new vscode.Range(1, 2, 3, 4) },
+  ])('should return false for invalid SerializedRange: %s', maybeRange => {
+    expect(isSerializedRange(maybeRange)).toBe(false);
+  });
+});
 
 describe('parseMarkdownCodeblocks', () => {
   it('should parse Deephaven code blocks from a Markdown document', () => {
