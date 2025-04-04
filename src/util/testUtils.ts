@@ -1,3 +1,4 @@
+import type * as vscode from 'vscode';
 export const bitValues = [0, 1] as const;
 export const boolValues = [true, false] as const;
 
@@ -32,4 +33,50 @@ export function matrix<
   return first.flatMap(value =>
     restMatrix.map(values => [value, ...values] as TReturn)
   );
+}
+
+function lineAt(this: vscode.TextDocument, line: number): vscode.TextLine;
+function lineAt(
+  this: vscode.TextDocument,
+  position: vscode.Position
+): vscode.TextLine;
+function lineAt(
+  this: vscode.TextDocument,
+  lineOrPosition: number | vscode.Position
+): vscode.TextLine {
+  const lineNumber =
+    typeof lineOrPosition === 'number' ? lineOrPosition : lineOrPosition.line;
+
+  return mockT<vscode.TextLine>({
+    lineNumber,
+    text: this.getText().split('\n')[lineNumber] ?? '',
+  });
+}
+
+/** Mock a `vscode.TextDocument` */
+export function mockDocument(
+  fileName: string,
+  version: number = 1,
+  content = ''
+): vscode.TextDocument {
+  return mockT<vscode.TextDocument>({
+    fileName,
+    uri: mockUri(`file://mock/path/${fileName}`),
+    version,
+    getText: () => content,
+    lineAt,
+  });
+}
+
+/** Mock an object providing partial properties */
+export function mockT<T>(partial: Partial<T>): T {
+  return partial as T;
+}
+
+/** Mock a `vscode.Uri` */
+export function mockUri(path: string): vscode.Uri {
+  return mockT<vscode.Uri>({
+    path,
+    toString: () => path,
+  });
 }

@@ -29,13 +29,16 @@ import {
 } from '../common';
 import {
   assertDefined,
+  deserializeRange,
   getEditorForUri,
   getTempDir,
   isInstanceOf,
+  isSerializedRange,
   isSupportedLanguageId,
   LogFileHandler,
   Logger,
   OutputChannelWithHistory,
+  parseMarkdownCodeblocks,
   sanitizeGRPCLogMessageArgs,
   saveLogFiles,
   Toaster,
@@ -49,6 +52,7 @@ import {
   runSelectedLinesHoverProvider,
   RunMarkdownCodeBlockCodeLensProvider,
   SamlAuthProvider,
+  RunMarkdownCodeBlockHoverProvider,
 } from '../providers';
 import {
   DheJsApiCache,
@@ -56,6 +60,7 @@ import {
   DheServiceCache,
   DhcService,
   PanelService,
+  ParsedDocumentCache,
   SecretService,
   ServerManager,
   URLMap,
@@ -85,6 +90,8 @@ import type {
   ConnectionState,
   WorkerURL,
   UniqueID,
+  SerializedRange,
+  CodeBlock,
 } from '../types';
 import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTreeDragAndDropController';
 import { ConnectionController } from './ConnectionController';
@@ -131,6 +138,7 @@ export class ExtensionController implements IDisposable {
   private readonly _version: string;
   private readonly _envInfoText: string;
 
+  private _codeBlockCache: ParsedDocumentCache<CodeBlock[]> | null = null;
   private _connectionController: ConnectionController | null = null;
   private _coreClientCache: URLMap<
     CoreAuthenticatedClient & IDisposable
@@ -181,6 +189,7 @@ export class ExtensionController implements IDisposable {
     this.initializeDiagnostics();
     this.initializeConfig();
     this.initializeSecrets();
+    this.initializeDocumentCaches();
     this.initializeCodeLenses();
     this.initializeHoverProviders();
     this.initializeServerManager();
@@ -215,11 +224,22 @@ export class ExtensionController implements IDisposable {
   };
 
   /**
+   * Initialize document caches.
+   */
+  initializeDocumentCaches = (): void => {
+    this._codeBlockCache = new ParsedDocumentCache(parseMarkdownCodeblocks);
+  };
+
+  /**
    * Initialize code lenses for running Deephaven code.
    */
   initializeCodeLenses = (): void => {
+    assertDefined(this._codeBlockCache, 'codeBlockCache');
+
     const codelensProvider = new RunCommandCodeLensProvider();
-    const markdownCodelensProvider = new RunMarkdownCodeBlockCodeLensProvider();
+    const markdownCodelensProvider = new RunMarkdownCodeBlockCodeLensProvider(
+      this._codeBlockCache
+    );
 
     this._context.subscriptions.push(
       codelensProvider,
@@ -349,6 +369,8 @@ export class ExtensionController implements IDisposable {
    * Initialize hover providers.
    */
   initializeHoverProviders = (): void => {
+    assertDefined(this._codeBlockCache, 'codeBlockCache');
+
     vscode.languages.registerHoverProvider(
       'groovy',
       runSelectedLinesHoverProvider
@@ -357,6 +379,11 @@ export class ExtensionController implements IDisposable {
     vscode.languages.registerHoverProvider(
       'python',
       runSelectedLinesHoverProvider
+    );
+
+    vscode.languages.registerHoverProvider(
+      'markdown',
+      new RunMarkdownCodeBlockHoverProvider(this._codeBlockCache)
     );
   };
 
@@ -808,15 +835,19 @@ export class ExtensionController implements IDisposable {
   onRunMarkdownCodeblock = async (
     uri: vscode.Uri,
     languageId: string,
-    range: vscode.Range
+    range: vscode.Range | SerializedRange
   ): Promise<void> => {
-    this.onRunCode(uri, undefined, [range], languageId);
+    if (isSerializedRange(range)) {
+      range = deserializeRange(range);
+    }
+    this.onRunCode(uri, [range], languageId);
   };
 
   /**
-   * Run all code in editor for given uri.
+   * Run all code in editor for given uri. Note that the parameters are
+   * optional since the RUN_CODE_COMMAND can be called from the CMD palette
+   * which doesn't provide parameters.
    * @param uri The uri of the editor
-   * @param _arg Unused 2nd argument
    * @param constrainTo Optional arg to constrain the code to run.
    * - If 'selection', run only selected code in the editor.
    * - If `undefined`, run all code in the editor.
@@ -827,7 +858,6 @@ export class ExtensionController implements IDisposable {
    */
   onRunCode = async (
     uri?: vscode.Uri,
-    _arg?: { groupId: number },
     constrainTo?: 'selection' | vscode.Range[],
     languageId?: string
   ): Promise<void> => {
@@ -856,15 +886,17 @@ export class ExtensionController implements IDisposable {
   };
 
   /**
-   * Run selected code in editor for given uri.
-   * @param uri
-   * @param arg
+   * Run selected code in editor for given uri. Note that the parameters are
+   * optional since the RUN_SELECTION_COMMAND can be called from the CMD
+   * palette which doesn't provide parameters.
+   * @param uri The uri of the editor
+   * @param languageId Optional languageId to run the code as
    */
   onRunSelectedCode = async (
     uri?: vscode.Uri,
-    arg?: { groupId: number }
+    languageId?: string
   ): Promise<void> => {
-    this.onRunCode(uri, arg, 'selection');
+    this.onRunCode(uri, 'selection', languageId);
   };
 
   /**

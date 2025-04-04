@@ -1,5 +1,6 @@
 export * from './RunCommandCodeLensProvider';
 export * from './RunMarkdownCodeBlockCodeLensProvider';
+export * from './RunMarkdownCodeBlockHoverProvider';
 export * from './RunSelectedLinesHoverProvider';
 export * from './SamlAuthProvider';
 export * from './ServerConnectionTreeProvider';
