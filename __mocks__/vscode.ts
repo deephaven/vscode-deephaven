@@ -177,24 +177,3 @@ export const workspace = {
   onDidChangeTextDocument: vi.fn().mockName('onDidChangeTextDocument'),
   onDidCloseTextDocument: vi.fn().mockName('onDidCloseTextDocument'),
 };
-
-/**
- * Since we are mocking vscode apis, we need a way to determine which anchor /
- * active Position is the start / end.
- * @param anchor The anchor position.
- * @param active The active position.
- * @returns An object containing the start and end positions.
- */
-// function determineStartAndEnd(
-//   anchor: Position,
-//   active: Position
-// ): { start: Position; end: Position } {
-//   if (
-//     anchor.line < active.line || // Anchor is on an earlier line
-//     (anchor.line === active.line && anchor.character <= active.character) // Same line, but anchor is earlier or equal
-//   ) {
-//     return { start: anchor, end: active };
-//   } else {
-//     return { start: active, end: anchor };
-//   }
-// }
