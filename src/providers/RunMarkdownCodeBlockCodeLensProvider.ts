@@ -1,5 +1,9 @@
 import * as vscode from 'vscode';
-import { ICON_ID, RUN_MARKDOWN_CODEBLOCK_CMD } from '../common';
+import {
+  ICON_ID,
+  RUN_MARKDOWN_CODEBLOCK_CMD,
+  type RunMarkdownCodeblockCmdArgs,
+} from '../common';
 import type { CodeBlock, IDisposable } from '../types';
 import type { ParsedDocumentCache } from '../services';
 
@@ -48,16 +52,23 @@ export class RunMarkdownCodeBlockCodeLensProvider
     const codeBlocks = this._codeBlockCache.get(document);
 
     const codeLenses: vscode.CodeLens[] = codeBlocks.map(
-      ({ languageId, range }) =>
-        new vscode.CodeLens(
+      ({ languageId, range }) => {
+        const args: RunMarkdownCodeblockCmdArgs = [
+          document.uri,
+          languageId,
+          range,
+        ];
+
+        return new vscode.CodeLens(
           // Put the code lens on the line before the code block
           new vscode.Range(range.start.line - 1, 0, range.start.line - 1, 0),
           {
             title: `$(${ICON_ID.runSelection}) Run Deephaven Block`,
             command: RUN_MARKDOWN_CODEBLOCK_CMD,
-            arguments: [document.uri, languageId, range],
+            arguments: args,
           }
-        )
+        );
+      }
     );
 
     return codeLenses;
