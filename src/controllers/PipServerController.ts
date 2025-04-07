@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { execFileSync } from 'node:child_process';
+import { execFile, execFileSync } from 'node:child_process';
 import { getPipServerUrl, Logger, parsePort } from '../util';
 import type {
   IDisposable,
@@ -18,6 +18,12 @@ import { isDhcServerRunning } from '../dh/dhc';
 import { pollUntilTrue } from '../services';
 
 const logger = new Logger('PipServerController');
+
+interface PythonExtensionApi {
+  environments: {
+    getActiveEnvironmentPath: () => Promise<{ path: string }>;
+  };
+}
 
 export class PipServerController implements IDisposable {
   constructor(
@@ -83,21 +89,13 @@ export class PipServerController implements IDisposable {
       return false;
     }
 
-    const pythonExtension = vscode.extensions.getExtension('ms-python.python');
-    if (pythonExtension == null) {
+    const pythonInterpreterPath = await this.getPythonInterpreterPath();
+    if (pythonInterpreterPath == null) {
       return false;
     }
 
-    if (!pythonExtension.isActive) {
-      await pythonExtension.activate();
-    }
-
-    const pythonApi = pythonExtension.exports;
-    const interpreter = await pythonApi.environments.getActiveEnvironmentPath();
-    logger.debug('Python interpreter:', interpreter);
-
     try {
-      execFileSync(interpreter.path, ['-c', 'import deephaven_server']);
+      execFileSync(pythonInterpreterPath, ['-c', 'import deephaven_server']);
       return true;
     } catch (err) {
       return false;
@@ -119,6 +117,29 @@ export class PipServerController implements IDisposable {
     }
 
     return null;
+  };
+
+  /**
+   * Get Python interpreter path from the MS Python extension.
+   * @returns The Python interpreter path or `null` if not found.
+   */
+  getPythonInterpreterPath = async (): Promise<string | null> => {
+    const pythonExtension =
+      vscode.extensions.getExtension<PythonExtensionApi>('ms-python.python');
+    if (pythonExtension == null) {
+      logger.debug('Python extension not found');
+      return null;
+    }
+
+    if (!pythonExtension.isActive) {
+      await pythonExtension.activate();
+    }
+
+    const pythonApi = pythonExtension.exports;
+    const interpreter = await pythonApi.environments.getActiveEnvironmentPath();
+    logger.debug('Python interpreter:', interpreter);
+
+    return interpreter?.path ?? null;
   };
 
   /**
