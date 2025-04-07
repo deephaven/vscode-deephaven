@@ -1,4 +1,28 @@
+import type * as vscode from 'vscode';
 import { EXTENSION_ID } from './constants';
+import type { SerializedRange } from '../types';
+
+/** Arguments passed to `RUN_CODE_COMMAND` handler */
+export type RunCodeCmdArgs = [
+  uri?: vscode.Uri,
+  _arg?: { groupId: number },
+  constrainTo?: 'selection' | vscode.Range[],
+  languageId?: string,
+];
+
+/** Arguments passed to `RUN_MARKDOWN_CODEBLOCK_CMD` handler */
+export type RunMarkdownCodeblockCmdArgs = [
+  uri: vscode.Uri,
+  languageId: string,
+  range: vscode.Range | SerializedRange,
+];
+
+/** Arguments passed to `RUN_SELECTION_COMMAND` handler */
+export type RunSelectionCmdArgs = [
+  uri?: vscode.Uri,
+  _arg?: { groupId: number },
+  languageId?: string,
+];
 
 /**
  * Create a command string prefixed with the extension id.

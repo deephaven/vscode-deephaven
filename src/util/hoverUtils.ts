@@ -4,6 +4,8 @@ import {
   ICON_ID,
   RUN_MARKDOWN_CODEBLOCK_CMD,
   RUN_SELECTION_COMMAND,
+  type RunMarkdownCodeblockCmdArgs,
+  type RunSelectionCmdArgs,
 } from '../common';
 import type { CodeBlock } from '../types';
 import { serializeRange } from './documentUtils';
@@ -20,8 +22,13 @@ export function getRunMarkdownCodeBlockMarkdown(
 ): vscode.MarkdownString {
   const { languageId, range } = codeBlock;
 
-  const argsStr = JSON.stringify([uri, languageId, serializeRange(range)]);
-  const argsEncoded = encodeURIComponent(argsStr);
+  const args: RunMarkdownCodeblockCmdArgs = [
+    uri,
+    languageId,
+    serializeRange(range),
+  ];
+
+  const argsEncoded = encodeURIComponent(JSON.stringify(args));
 
   const mdValue = `[$(${ICON_ID.runSelection}) Run Deephaven Block](command:${RUN_MARKDOWN_CODEBLOCK_CMD}?${argsEncoded})`;
 
@@ -60,8 +67,12 @@ export function getRunSelectedLinesMarkdown(
     return;
   }
 
-  const argsStr = JSON.stringify([editor.document.uri, languageId]);
-  const argsEncoded = encodeURIComponent(argsStr);
+  const args: RunSelectionCmdArgs = [
+    editor.document.uri,
+    undefined,
+    languageId,
+  ];
+  const argsEncoded = encodeURIComponent(JSON.stringify(args));
 
   const mdValue = `[$(${ICON_ID.runSelection}) Run Deephaven selected lines](command:${RUN_SELECTION_COMMAND}?${argsEncoded})`;
 

@@ -25,6 +25,9 @@ import {
   START_SERVER_CMD,
   STOP_SERVER_CMD,
   VIEW_ID,
+  type RunCodeCmdArgs,
+  type RunMarkdownCodeblockCmdArgs,
+  type RunSelectionCmdArgs,
   type ViewID,
 } from '../common';
 import {
@@ -832,7 +835,9 @@ export class ExtensionController implements IDisposable {
    * @param languageId The languageId of the code block
    * @param range The range of the code block
    */
-  onRunMarkdownCodeblock = async (
+  onRunMarkdownCodeblock: (
+    ...args: RunMarkdownCodeblockCmdArgs
+  ) => Promise<void> = async (
     uri: vscode.Uri,
     languageId: string,
     range: vscode.Range | SerializedRange
@@ -840,7 +845,7 @@ export class ExtensionController implements IDisposable {
     if (isSerializedRange(range)) {
       range = deserializeRange(range);
     }
-    this.onRunCode(uri, [range], languageId);
+    this.onRunCode(uri, undefined, [range], languageId);
   };
 
   /**
@@ -848,6 +853,8 @@ export class ExtensionController implements IDisposable {
    * optional since the RUN_CODE_COMMAND can be called from the CMD palette
    * which doesn't provide parameters.
    * @param uri The uri of the editor
+   * @param _arg Ignored arg that is passed in from `editor/context` and
+   * `editor/title/run` actions.
    * @param constrainTo Optional arg to constrain the code to run.
    * - If 'selection', run only selected code in the editor.
    * - If `undefined`, run all code in the editor.
@@ -856,8 +863,9 @@ export class ExtensionController implements IDisposable {
    * @param languageId Optional languageId to run the code as. If none provided,
    * use the languageId of the editor.
    */
-  onRunCode = async (
+  onRunCode: (...args: RunCodeCmdArgs) => Promise<void> = async (
     uri?: vscode.Uri,
+    _arg?: { groupId: number },
     constrainTo?: 'selection' | vscode.Range[],
     languageId?: string
   ): Promise<void> => {
@@ -890,13 +898,16 @@ export class ExtensionController implements IDisposable {
    * optional since the RUN_SELECTION_COMMAND can be called from the CMD
    * palette which doesn't provide parameters.
    * @param uri The uri of the editor
+   * @param _arg Ignored arg that is passed in from `editor/context` and
+   * `editor/title/run` actions.
    * @param languageId Optional languageId to run the code as
    */
-  onRunSelectedCode = async (
+  onRunSelectedCode: (...args: RunSelectionCmdArgs) => Promise<void> = async (
     uri?: vscode.Uri,
+    _arg?: { groupId: number },
     languageId?: string
   ): Promise<void> => {
-    this.onRunCode(uri, 'selection', languageId);
+    this.onRunCode(uri, undefined, 'selection', languageId);
   };
 
   /**
