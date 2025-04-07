@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { execFile, execFileSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { getPipServerUrl, Logger, parsePort } from '../util';
 import type {
   IDisposable,
@@ -81,7 +81,7 @@ export class PipServerController implements IDisposable {
   };
 
   /**
-   * Start a terminal and attempt an import of `deephaven_server` to check if
+   * Attempt an import of `deephaven_server` to check if
    * servers can be managed from the extension.
    */
   checkPipInstall = async (): Promise<boolean> => {
