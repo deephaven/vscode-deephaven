@@ -1,11 +1,6 @@
 import * as vscode from 'vscode';
-import * as fs from 'node:fs';
-import {
-  getPipServerUrl,
-  getPipStatusFilePath,
-  Logger,
-  parsePort,
-} from '../util';
+import { execFileSync } from 'node:child_process';
+import { getPipServerUrl, Logger, parsePort } from '../util';
 import type {
   IDisposable,
   Port,
@@ -88,49 +83,25 @@ export class PipServerController implements IDisposable {
       return false;
     }
 
-    if (this._checkPipInstallPromise == null) {
-      const statusFilePath = getPipStatusFilePath();
-
-      try {
-        // Delete any existing status file
-        fs.unlinkSync(statusFilePath);
-      } catch {}
-
-      this._checkPipInstallPromise = new Promise(async resolve => {
-        const terminal = vscode.window.createTerminal({
-          name: `Deephaven check pip server install`,
-          isTransient: true,
-        });
-
-        // Give python extension time to setup .venv if configured
-        await waitFor(PYTHON_ENV_WAIT);
-
-        // Attempt to import deephaven_server to see if it's installed and write
-        // "ready" to status file if successful.
-        terminal.sendText(
-          `python -c 'import deephaven_server;' && echo ready > ${statusFilePath}`
-        );
-        terminal.sendText('exit 0');
-
-        const subscription = vscode.window.onDidCloseTerminal(
-          t => {
-            if (t === terminal) {
-              subscription.dispose();
-
-              // Get result of status check from tmp file
-              const isReady = fs.existsSync(statusFilePath);
-
-              resolve(isReady);
-              this._checkPipInstallPromise = null;
-            }
-          },
-          undefined,
-          this._context.subscriptions
-        );
-      });
+    const pythonExtension = vscode.extensions.getExtension('ms-python.python');
+    if (pythonExtension == null) {
+      return false;
     }
 
-    return this._checkPipInstallPromise;
+    if (!pythonExtension.isActive) {
+      await pythonExtension.activate();
+    }
+
+    const pythonApi = pythonExtension.exports;
+    const interpreter = await pythonApi.environments.getActiveEnvironmentPath();
+    logger.debug('Python interpreter:', interpreter);
+
+    try {
+      execFileSync(interpreter.path, ['-c', 'import deephaven_server']);
+      return true;
+    } catch (err) {
+      return false;
+    }
   };
 
   /**
