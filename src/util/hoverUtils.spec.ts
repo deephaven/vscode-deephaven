@@ -87,7 +87,7 @@ describe('getRunSelectedLinesMarkdown', () => {
     const position = new vscode.Position(1, 0);
     const languageId = 'testLanguage';
 
-    const expectedArgs = [document.uri, 'testLanguage'];
+    const expectedArgs = [document.uri, undefined, 'testLanguage'];
     const expectedCmd = RUN_SELECTION_COMMAND;
     const expectedQuery = encodeURIComponent(JSON.stringify(expectedArgs));
     const expected = `[$(run) Run Deephaven selected lines](command:${expectedCmd}?${expectedQuery})`;
