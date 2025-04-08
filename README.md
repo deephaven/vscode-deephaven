@@ -4,7 +4,7 @@ This is the official Deephaven extension for Visual Studio Code. Use it to run q
 
 ## About Deephaven
 
-Deephaven is a high-performance time-series database, complemented by a full suite of API's and an intuitive user experience. Deephaven integrates with Java / Groovy, Python, R, C#, and C++ applications and libraries, as well as open-source data and ML technologies. It is a complete data system that empowers your team to build analyses, models, algos, reports, and dashboards very quickly. It excels at churning through massive real-time data sets, and performing analysis on historical or alternative data sets.
+Deephaven is a high-performance time-series database, complemented by a full suite of APIs and an intuitive user experience. Deephaven integrates with Java / Groovy, Python, R, C#, and C++ applications and libraries, as well as open-source data and ML technologies. It is a complete data system that empowers your team to build analyses, models, algos, reports, and dashboards very quickly. It excels at churning through massive real-time data sets, and performing analysis on historical or alternative data sets.
 
 ## Installation
 
@@ -121,7 +121,7 @@ Configure VS Code to use the OS trust store:
 
 ## Workspace setup
 
-It is recommended to configure a [Python virtual environment](https://code.visualstudio.com/docs/python/python-tutorial#_create-a-virtual-environment) within your VS Code workspace. To get features like Intellisense for packages that are installed on the Deephaven server, you must to install the same packages in your local virtual environment.
+It is recommended to configure a [Python virtual environment](https://code.visualstudio.com/docs/python/python-tutorial#_create-a-virtual-environment) within your VS Code workspace. To get features like Intellisense for packages that are installed on the Deephaven server, you must install the same packages in your local virtual environment.
 
 A `requirements.txt` file can be generated containing all of the packages installed on the server by:
 
