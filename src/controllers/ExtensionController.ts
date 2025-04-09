@@ -531,16 +531,14 @@ export class ExtensionController implements IDisposable {
     this._interactiveConsoleQueryFactory = async (
       serverUrl: URL,
       tagId: UniqueID,
-      // TODO: Use this to drive the default console type in the UI
-      _consoleType?: ConsoleType
+      consoleType?: ConsoleType
     ): Promise<QuerySerial | null> => {
       assertDefined(this._createQueryViewProvider, 'createQueryViewProvider');
-      assertDefined(this._dheServiceCache, 'dheServiceCache');
-
-      const dheService = await this._dheServiceCache.get(serverUrl);
-      dheService;
-
-      return this._createQueryViewProvider.createQuery(serverUrl, tagId);
+      return this._createQueryViewProvider.createQuery(
+        serverUrl,
+        tagId,
+        consoleType
+      );
     };
 
     this._dheServiceFactory = DheService.factory(
@@ -674,6 +672,7 @@ export class ExtensionController implements IDisposable {
    * Register web views for the extension.
    */
   initializeWebViews = (): void => {
+    assertDefined(this._dheClientCache, 'dheClientCache');
     assertDefined(this._panelService, 'panelService');
     assertDefined(this._serverManager, 'serverManager');
 
@@ -717,7 +716,8 @@ export class ExtensionController implements IDisposable {
 
     // Create Query View
     this._createQueryViewProvider = new CreateQueryViewProvider(
-      this._context.extensionUri
+      this._context.extensionUri,
+      this._dheClientCache
     );
     this._context.subscriptions.push(
       vscode.window.registerWebviewViewProvider(
