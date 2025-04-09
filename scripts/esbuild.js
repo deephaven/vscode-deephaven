@@ -68,16 +68,26 @@ const esbuildProblemMatcherPlugin = {
 
 async function main() {
   const ctx = await esbuild.context({
-    entryPoints: ['src/extension.ts'],
+    entryPoints: [
+      'src/extension.ts',
+      // Webview resources get referenced from the file system by the webview.
+      // Build these separately to allow referencing directly.
+      'src/webViews/createQueryView/main.ts',
+      'src/webViews/createQueryView/styles.css',
+    ],
     bundle: true,
     format: 'cjs',
     minify: production,
     sourcemap: !production,
     sourcesContent: false,
     platform: 'node',
-    outfile: 'out/extension.js',
+    outdir: 'out',
     external: ['esbuild-wasm', 'vscode'],
     logLevel: 'silent',
+    loader: {
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      '.css': 'copy',
+    },
     plugins: [
       ...optionalPlugins,
       /* this plugin needs to be the last one */

@@ -61,6 +61,7 @@ export const PIP_SERVER_SUPPORTED_PLATFORMS = new Set<NodeJS.Platform>([
 export const TMP_DIR_ROOT = path.join(__dirname, 'tmp');
 
 export const VIEW_ID = {
+  createQueryView: `${EXTENSION_ID}.createQueryView`,
   serverTree: `${EXTENSION_ID}.serverTree`,
   serverConnectionTree: `${EXTENSION_ID}.serverConnectionTree`,
   serverConnectionPanelTree: `${EXTENSION_ID}.serverConnectionPanelTree`,

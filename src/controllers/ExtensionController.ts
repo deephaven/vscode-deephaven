@@ -56,6 +56,7 @@ import {
   RunMarkdownCodeBlockCodeLensProvider,
   SamlAuthProvider,
   RunMarkdownCodeBlockHoverProvider,
+  CreateQueryViewProvider,
 } from '../providers';
 import {
   DheJsApiCache,
@@ -176,6 +177,9 @@ export class ExtensionController implements IDisposable {
   private _serverConnectionTreeView: ServerConnectionTreeView | null = null;
   private _serverConnectionPanelTreeView: ServerConnectionPanelTreeView | null =
     null;
+
+  // Web views
+  private _createQueryViewProvider: CreateQueryViewProvider | null = null;
 
   private _pythonDiagnostics: vscode.DiagnosticCollection | null = null;
   private _outputChannel: vscode.OutputChannel | null = null;
@@ -689,6 +693,17 @@ export class ExtensionController implements IDisposable {
           treeDataProvider: this._serverConnectionPanelTreeProvider,
         }
       );
+
+    // Create Query View
+    this._createQueryViewProvider = new CreateQueryViewProvider(
+      this._context.extensionUri
+    );
+    this._context.subscriptions.push(
+      vscode.window.registerWebviewViewProvider(
+        VIEW_ID.createQueryView,
+        this._createQueryViewProvider
+      )
+    );
 
     this._context.subscriptions.push(
       this._serverTreeView,
