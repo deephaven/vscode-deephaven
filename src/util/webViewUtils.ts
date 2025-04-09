@@ -25,7 +25,10 @@ export function getWebViewContentRootUri(
  * @param extensionUri The extension Uri
  * @param webview The WebView to get the HTML for
  * @param viewId The view ID for the WebView
- * @param iframeUrl The URL to load in the iframe
+ * @param iframeUrl Optional URL to load in an iframe. If not provided, no iframe
+ * will be created
+ * @param content Optional content to load in the WebView. If an iframe URL is
+ * provided, this will be ignored
  * @param scriptFileName Filename for the script to apply to the WebView
  * @param stylesFileName Filename for the style sheet to apply to the WebView
  * @returns The HTML for the WebView
@@ -35,13 +38,15 @@ export function getWebViewHtml({
   webView,
   viewId,
   iframeUrl,
+  content,
   scriptFileName,
   stylesFileName,
 }: {
   extensionUri: vscode.Uri;
   webView: vscode.Webview;
   viewId: ViewID;
-  iframeUrl: URL;
+  iframeUrl?: URL;
+  content?: string;
   scriptFileName: `${string}.js`;
   stylesFileName: `${string}.css`;
 }): string {
@@ -57,12 +62,17 @@ export function getWebViewHtml({
     vscode.Uri.joinPath(contentRootUri, stylesFileName)
   );
 
-  const cspContent = [
+  let cspContent = [
     `default-src 'none'`,
     `style-src ${webView.cspSource}`,
     `script-src 'nonce-${nonce}'`,
-    `frame-src ${iframeUrl.origin}`,
   ].join('; ');
+
+  let iframeTag: string | undefined;
+  if (iframeUrl != null) {
+    cspContent += `; frame-src ${iframeUrl.origin}`;
+    iframeTag = `<iframe id="content-iframe" src="${iframeUrl.href}&cachebust=${new Date().getTime()}"></iframe>`;
+  }
 
   return `<!DOCTYPE html>
 			<html lang="en">
@@ -74,7 +84,7 @@ export function getWebViewHtml({
 			</head>
 			<body>
 				<script nonce="${nonce}" src="${scriptUri}"></script>
-				<iframe id="content-iframe" src="${iframeUrl.href}&cachebust=${new Date().getTime()}" title="Create Connection"></iframe>
+				${iframeTag ?? content}
 			</body>
 			</html>`;
 }
