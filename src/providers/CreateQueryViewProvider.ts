@@ -1,24 +1,50 @@
 import * as vscode from 'vscode';
+import { type AuthenticatedClient as DheAuthenticatedClient } from '@deephaven-enterprise/auth-nodejs';
 import { assertDefined, getWebViewHtml, waitFor } from '../util';
 import { VIEW_ID } from '../common';
-import type { QuerySerial, UniqueID } from '../types';
+import type { ConsoleType, IDisposable, QuerySerial, UniqueID } from '../types';
+import type { URLMap } from '../services';
 
 export class CreateQueryViewProvider implements vscode.WebviewViewProvider {
-  constructor(extensionUri: vscode.Uri) {
+  constructor(
+    extensionUri: vscode.Uri,
+    dheClientCache: URLMap<DheAuthenticatedClient & IDisposable>
+  ) {
     this._extensionUri = extensionUri;
+    this._dheClientCache = dheClientCache;
   }
 
   private readonly _extensionUri: vscode.Uri;
+  private readonly _dheClientCache: URLMap<
+    DheAuthenticatedClient & IDisposable
+  >;
   private _view?: vscode.WebviewView;
 
   createQuery = async (
     serverUrl: URL,
-    tagId: UniqueID
+    tagId: UniqueID,
+    // TODO: Use this to drive default console type in UI
+    _consoleType?: ConsoleType
   ): Promise<QuerySerial | null> => {
     this._updateWebviewView(serverUrl, tagId);
 
-    // TODO: create query and get serial using post message apis
-    await waitFor(3000);
+    assertDefined(this._view, '_view');
+
+    const onDidReceiveMessageSubscription =
+      this._view.webview.onDidReceiveMessage(({ data, origin }) => {
+        // Ignore messages from other origins
+        if (origin !== serverUrl.origin) {
+          return;
+        }
+        console.log('[TESTING] Received message from iframe:', data);
+      });
+
+    try {
+      // TODO: create query and get serial using post message apis
+      await waitFor(3000);
+    } finally {
+      onDidReceiveMessageSubscription?.dispose();
+    }
 
     this.hide();
 
