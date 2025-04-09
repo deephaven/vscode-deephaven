@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
-import { getWebViewHtml, uniqueId } from '../util';
+import { assertDefined, getWebViewHtml, waitFor } from '../util';
 import { VIEW_ID } from '../common';
+import type { QuerySerial, UniqueID } from '../types';
 
 export class CreateQueryViewProvider implements vscode.WebviewViewProvider {
   constructor(extensionUri: vscode.Uri) {
@@ -8,21 +9,51 @@ export class CreateQueryViewProvider implements vscode.WebviewViewProvider {
   }
 
   private readonly _extensionUri: vscode.Uri;
+  private _view?: vscode.WebviewView;
 
-  resolveWebviewView(
-    { webview: webView }: vscode.WebviewView,
+  createQuery = async (
+    serverUrl: URL,
+    tagId: UniqueID
+  ): Promise<QuerySerial | null> => {
+    this._updateWebviewView(serverUrl, tagId);
+
+    // TODO: create query and get serial using post message apis
+    await waitFor(3000);
+
+    this.hide();
+
+    return null;
+  };
+
+  hide = (): void => {
+    this._updateWebviewView();
+  };
+
+  resolveWebviewView = (
+    webViewView: vscode.WebviewView,
     _context: vscode.WebviewViewResolveContext,
     _token: vscode.CancellationToken
-  ): Thenable<void> | void {
-    const newWorkerName = `VS Code - ${uniqueId()}`;
+  ): Thenable<void> | void => {
+    this._view = webViewView;
+    this._updateWebviewView();
+  };
 
-    const iframeUrl = new URL(
-      'http://localhost:3000/iriside/iframecontent/createworker'
-    );
-    iframeUrl.searchParams.append(
-      'newWorkerName',
-      encodeURIComponent(newWorkerName)
-    );
+  _updateWebviewView = (serverUrl?: URL, tagId?: UniqueID): void => {
+    assertDefined(this._view, '_view');
+
+    const { webview: webView } = this._view;
+
+    let iframeUrl: URL | undefined;
+
+    if (serverUrl != null) {
+      const newWorkerName = `IC - VS Code${tagId == null ? '' : ` - ${tagId}`}`;
+
+      iframeUrl = new URL('/iriside/iframecontent/createworker', serverUrl);
+      iframeUrl.searchParams.append(
+        'newWorkerName',
+        encodeURIComponent(newWorkerName)
+      );
+    }
 
     webView.options = {
       enableScripts: true,
@@ -33,8 +64,9 @@ export class CreateQueryViewProvider implements vscode.WebviewViewProvider {
       webView,
       viewId: VIEW_ID.createQueryView,
       iframeUrl,
+      content: 'Click a server in the SERVERS view to create a query',
       scriptFileName: 'main.js',
       stylesFileName: 'styles.css',
     });
-  }
+  };
 }

@@ -96,6 +96,9 @@ import type {
   UniqueID,
   SerializedRange,
   CodeBlock,
+  IInteractiveConsoleQueryFactory,
+  QuerySerial,
+  ConsoleType,
 } from '../types';
 import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTreeDragAndDropController';
 import { ConnectionController } from './ConnectionController';
@@ -154,6 +157,8 @@ export class ExtensionController implements IDisposable {
     null;
   private _dheClientFactory: IDheClientFactory | null = null;
   private _dheServiceCache: IAsyncCacheService<URL, IDheService> | null = null;
+  private _interactiveConsoleQueryFactory: IInteractiveConsoleQueryFactory | null =
+    null;
   private _logFileHandler: LogFileHandler | null = null;
   private _panelController: PanelController | null = null;
   private _panelService: IPanelService | null = null;
@@ -523,10 +528,26 @@ export class ExtensionController implements IDisposable {
       this._toaster
     );
 
+    this._interactiveConsoleQueryFactory = async (
+      serverUrl: URL,
+      tagId: UniqueID,
+      // TODO: Use this to drive the default console type in the UI
+      _consoleType?: ConsoleType
+    ): Promise<QuerySerial | null> => {
+      assertDefined(this._createQueryViewProvider, 'createQueryViewProvider');
+      assertDefined(this._dheServiceCache, 'dheServiceCache');
+
+      const dheService = await this._dheServiceCache.get(serverUrl);
+      dheService;
+
+      return this._createQueryViewProvider.createQuery(serverUrl, tagId);
+    };
+
     this._dheServiceFactory = DheService.factory(
       this._config,
       this._dheClientCache,
       this._dheJsApiCache,
+      this._interactiveConsoleQueryFactory,
       this._toaster
     );
 
