@@ -30,7 +30,7 @@
   ],
   "scripts": {
     "build:ts": "npm run clean && tsc --build ./tsconfig.json && tsc -p tsconfig.unit.json --noEmit --module preserve --moduleResolution bundler",
-    "clean": "rm -rf dist out e2e-testing/out tsconfig.tsbuildinfo e2e-testing/tsconfig.tsbuildinfo packages/*/tsconfig.tsbuildinfo",
+    "clean": "rm -rf dist out e2e-testing/out tsconfig.tsbuildinfo e2e-testing/tsconfig.tsbuildinfo",
     "compile": "npm run build:ts && node scripts/esbuild.js",
     "compile:prod": "npm run build:ts && npm run test:lint && node scripts/esbuild.js --production",
     "icon:gen": "node icons/generate.mjs",
@@ -47,7 +47,8 @@
     "vscode:prepublish": "npm run compile:prod",
     "watch:esbuild": "node scripts/esbuild.js --watch",
     "watch:tsc": "tsc --build ./tsconfig.json --watch",
-    "watch": "npm-run-all -p watch:*"
+    "watch": "npm-run-all -p watch:*",
+    "watch:kill": "./scripts/kill-tasks.sh"
   },
   "contributes": {
     "configuration": {
