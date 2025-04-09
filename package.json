@@ -863,6 +863,11 @@
           "id": "vscode-deephaven.serverConnectionPanelTree",
           "name": "Panels",
           "type": "tree"
+        },
+        {
+          "id": "vscode-deephaven.createQueryView",
+          "name": "Create Connection",
+          "type": "webview"
         }
       ]
     }
