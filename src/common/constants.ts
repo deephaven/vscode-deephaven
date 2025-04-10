@@ -63,6 +63,7 @@ export const PIP_SERVER_SUPPORTED_PLATFORMS = new Set<NodeJS.Platform>([
 export const TMP_DIR_ROOT = path.join(__dirname, 'tmp');
 
 export const VIEW_ID = {
+  createQueryView: `${EXTENSION_ID}.createQueryView`,
   serverTree: `${EXTENSION_ID}.serverTree`,
   serverConnectionTree: `${EXTENSION_ID}.serverConnectionTree`,
   serverConnectionPanelTree: `${EXTENSION_ID}.serverConnectionPanelTree`,
@@ -126,16 +127,6 @@ export const SERVER_TREE_ITEM_CONTEXT = {
 
 export type ServerTreeItemContextValue = keyof typeof SERVER_TREE_ITEM_CONTEXT;
 
-export const DEEPHAVEN_POST_MSG = {
-  loginOptionsRequest: 'io.deephaven.message.LoginOptions.request',
-  sessionDetailsRequest: 'io.deephaven.message.SessionDetails.request',
-} as const;
-
-export const VSCODE_POST_MSG = {
-  loginOptionsResponse: 'vscode-ext.loginOptions',
-  sessionDetailsResponse: 'vscode-ext.sessionDetails',
-} as const;
-
 /**
  * Table to store Python dependency names + versions used to generate a
  * requirements.txt file
@@ -170,3 +161,18 @@ export const AUTH_CONFIG_SAML_LOGIN_URL =
 export const DH_SAML_AUTH_PROVIDER_TYPE = 'dhsaml' as const;
 export const DH_SAML_SERVER_URL_SCOPE_KEY = 'deephaven.samlServerUrl' as const;
 export const DH_SAML_LOGIN_URL_SCOPE_KEY = 'deephaven.samlLoginUrl' as const;
+
+export const DHE_MINOR_VERSION = {
+  grizzly: 20240517,
+  grizzlyPlus: 20250219,
+  sanLuis: 20250801,
+} as const;
+
+export const DHE_GRADLE_VERSION_REGEX = /^(\d+)\.(\d+)\.(\d+)([a-z]+)?/;
+
+export interface GradleVersion {
+  major: number;
+  minor: number;
+  patch: number;
+  tag?: string;
+}

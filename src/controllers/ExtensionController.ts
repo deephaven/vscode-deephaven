@@ -56,6 +56,7 @@ import {
   RunMarkdownCodeBlockCodeLensProvider,
   SamlAuthProvider,
   RunMarkdownCodeBlockHoverProvider,
+  CreateQueryViewProvider,
 } from '../providers';
 import {
   DheJsApiCache,
@@ -95,6 +96,9 @@ import type {
   UniqueID,
   SerializedRange,
   CodeBlock,
+  IInteractiveConsoleQueryFactory,
+  QuerySerial,
+  ConsoleType,
 } from '../types';
 import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTreeDragAndDropController';
 import { ConnectionController } from './ConnectionController';
@@ -153,6 +157,8 @@ export class ExtensionController implements IDisposable {
     null;
   private _dheClientFactory: IDheClientFactory | null = null;
   private _dheServiceCache: IAsyncCacheService<URL, IDheService> | null = null;
+  private _interactiveConsoleQueryFactory: IInteractiveConsoleQueryFactory | null =
+    null;
   private _logFileHandler: LogFileHandler | null = null;
   private _panelController: PanelController | null = null;
   private _panelService: IPanelService | null = null;
@@ -176,6 +182,9 @@ export class ExtensionController implements IDisposable {
   private _serverConnectionTreeView: ServerConnectionTreeView | null = null;
   private _serverConnectionPanelTreeView: ServerConnectionPanelTreeView | null =
     null;
+
+  // Web views
+  private _createQueryViewProvider: CreateQueryViewProvider | null = null;
 
   private _pythonDiagnostics: vscode.DiagnosticCollection | null = null;
   private _outputChannel: vscode.OutputChannel | null = null;
@@ -519,10 +528,24 @@ export class ExtensionController implements IDisposable {
       this._toaster
     );
 
+    this._interactiveConsoleQueryFactory = async (
+      serverUrl: URL,
+      tagId: UniqueID,
+      consoleType?: ConsoleType
+    ): Promise<QuerySerial | null> => {
+      assertDefined(this._createQueryViewProvider, 'createQueryViewProvider');
+      return this._createQueryViewProvider.createQuery(
+        serverUrl,
+        tagId,
+        consoleType
+      );
+    };
+
     this._dheServiceFactory = DheService.factory(
       this._config,
       this._dheClientCache,
       this._dheJsApiCache,
+      this._interactiveConsoleQueryFactory,
       this._toaster
     );
 
@@ -649,6 +672,7 @@ export class ExtensionController implements IDisposable {
    * Register web views for the extension.
    */
   initializeWebViews = (): void => {
+    assertDefined(this._dheClientCache, 'dheClientCache');
     assertDefined(this._panelService, 'panelService');
     assertDefined(this._serverManager, 'serverManager');
 
@@ -689,6 +713,18 @@ export class ExtensionController implements IDisposable {
           treeDataProvider: this._serverConnectionPanelTreeProvider,
         }
       );
+
+    // Create Query View
+    this._createQueryViewProvider = new CreateQueryViewProvider(
+      this._context.extensionUri,
+      this._dheClientCache
+    );
+    this._context.subscriptions.push(
+      vscode.window.registerWebviewViewProvider(
+        VIEW_ID.createQueryView,
+        this._createQueryViewProvider
+      )
+    );
 
     this._context.subscriptions.push(
       this._serverTreeView,

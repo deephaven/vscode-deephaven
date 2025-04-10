@@ -5,7 +5,6 @@ import type {
   CoreConnectionConfig,
   IDisposable,
   EnterpriseConnectionConfig,
-  EventListenerT,
   ConnectionState,
   ServerState,
   VariableChanges,
@@ -19,6 +18,7 @@ import type {
   Psk,
   CoreAuthenticatedClient,
   WorkerURL,
+  QuerySerial,
 } from '../types/commonTypes';
 import type {
   AuthenticatedClient as DheAuthenticatedClient,
@@ -95,6 +95,12 @@ export type IDheClientFactory = (
   serverUrl: URL
 ) => Promise<DheUnauthenticatedClient & IDisposable>;
 export type IDheServiceFactory = IFactory<IDheService, [serverUrl: URL]>;
+
+export type IInteractiveConsoleQueryFactory = (
+  serverUrl: URL,
+  tagId: UniqueID,
+  consoleType?: ConsoleType
+) => Promise<QuerySerial | null>;
 
 export interface IPanelService extends IDisposable {
   readonly onDidUpdate: vscode.Event<void>;
