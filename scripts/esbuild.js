@@ -67,14 +67,8 @@ const esbuildProblemMatcherPlugin = {
 };
 
 async function main() {
-  const ctx = await esbuild.context({
-    entryPoints: [
-      'src/extension.ts',
-      // Webview resources get referenced from the file system by the webview.
-      // Build these separately to allow referencing directly.
-      'src/webViews/createQueryView/main.ts',
-      'src/webViews/createQueryView/styles.css',
-    ],
+  const cjsCtxPromise = esbuild.context({
+    entryPoints: ['src/extension.ts'],
     bundle: true,
     format: 'cjs',
     minify: production,
@@ -84,20 +78,48 @@ async function main() {
     outdir: 'out',
     external: ['esbuild-wasm', 'vscode'],
     logLevel: 'silent',
-    loader: {
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      '.css': 'copy',
-    },
     plugins: [
       ...optionalPlugins,
       /* this plugin needs to be the last one */
       esbuildProblemMatcherPlugin,
     ],
   });
+
+  const esmWebViewCtxPromise = esbuild.context({
+    entryPoints: [
+      // Webview resources get referenced from the file system by the webview.
+      // Build these separately to allow referencing directly.
+      'src/webViews/createQueryView/main.ts',
+      'src/webViews/createQueryView/styles.css',
+    ],
+    bundle: true,
+    format: 'esm',
+    minify: production,
+    sourcemap: !production,
+    sourcesContent: false,
+    platform: 'node',
+    outdir: 'out/webViews/createQueryView',
+    external: ['esbuild-wasm', 'vscode'],
+    logLevel: 'silent',
+    loader: {
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      '.css': 'copy',
+    },
+    plugins: [
+      /* this plugin needs to be the last one */
+      esbuildProblemMatcherPlugin,
+    ],
+  });
+
+  const [cjsCtx, esmWebViewCtx] = await Promise.all([
+    cjsCtxPromise,
+    esmWebViewCtxPromise,
+  ]);
+
   if (watch) {
-    await ctx.watch();
+    await Promise.all([cjsCtx.watch(), esmWebViewCtx.watch()]);
   } else {
-    await ctx.rebuild();
+    await Promise.all([cjsCtx.rebuild(), esmWebViewCtx.rebuild()]);
     await ctx.dispose();
   }
 }
