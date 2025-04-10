@@ -16,8 +16,12 @@ import {
   type WorkerURL,
 } from '../types';
 import { URLMap } from './URLMap';
-import { Logger } from '../util';
-import { deleteQueries, getWorkerInfoFromQuery } from '../dh/dhe';
+import { isDheCreateQueryUISupported, Logger } from '../util';
+import {
+  createInteractiveConsoleQuery,
+  deleteQueries,
+  getWorkerInfoFromQuery,
+} from '../dh/dhe';
 import { CREATE_DHE_AUTHENTICATED_CLIENT_CMD } from '../common';
 
 const logger = new Logger('DheService');
@@ -215,11 +219,21 @@ export class DheService implements IDheService {
 
     const dhe = await this._dheJsApiCache.get(this.serverUrl);
 
-    const querySerial = await this._interactiveConsoleQueryFactory(
-      this.serverUrl,
-      tagId,
-      consoleType
-    );
+    const { gradleVersion } = await dheClient.getServerConfigValues();
+    const isUISupported = isDheCreateQueryUISupported(gradleVersion);
+
+    const querySerial = isUISupported
+      ? await this._interactiveConsoleQueryFactory(
+          this.serverUrl,
+          tagId,
+          consoleType
+        )
+      : await createInteractiveConsoleQuery(
+          tagId,
+          dheClient,
+          this.getWorkerConfig(),
+          consoleType
+        );
 
     if (querySerial == null) {
       throw new Error('Failed to create query.');

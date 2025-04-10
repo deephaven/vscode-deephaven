@@ -3,6 +3,7 @@ export * from './dataUtils';
 export * from './documentUtils';
 export * from './extensionApiUtils';
 export * from './hoverUtils';
+export * from './featureUtils';
 export * from './idUtils';
 export * from './isInstanceOf';
 export * from './isDisposable';

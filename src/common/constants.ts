@@ -159,3 +159,18 @@ export const AUTH_CONFIG_SAML_LOGIN_URL =
 export const DH_SAML_AUTH_PROVIDER_TYPE = 'dhsaml' as const;
 export const DH_SAML_SERVER_URL_SCOPE_KEY = 'deephaven.samlServerUrl' as const;
 export const DH_SAML_LOGIN_URL_SCOPE_KEY = 'deephaven.samlLoginUrl' as const;
+
+export const DHE_MINOR_VERSION = {
+  grizzly: 20240517,
+  grizzlyPlus: 20250219,
+  sanLuis: 20250801,
+} as const;
+
+export const DHE_GRADLE_VERSION_REGEX = /^(\d+)\.(\d+)\.(\d+)([a-z]+)?/;
+
+export interface GradleVersion {
+  major: number;
+  minor: number;
+  patch: number;
+  tag?: string;
+}
