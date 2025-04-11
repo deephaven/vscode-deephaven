@@ -1,10 +1,10 @@
 # Deephaven VS Code Extension
 
-This is the official Deephaven extension for Visual Studio Code. Use it to run queries against running Deephaven servers from VS Code directly. The extension supports both Deephaven Community and Enterprise servers.
+This is the official Deephaven extension for Visual Studio Code. Use it to run queries against running Deephaven servers from VS Code directly. The extension supports both Deephaven [Community](https://deephaven.io/core/docs/) and [Enterprise](https://deephaven.io/enterprise/docs/) servers.
 
 ## About Deephaven
 
-Deephaven is a high-performance time-series database, complemented by a full suite of APIs and an intuitive user experience. Deephaven integrates with Java / Groovy, Python, R, C#, and C++ applications and libraries, as well as open-source data and ML technologies. It is a complete data system that empowers your team to build analyses, models, algos, reports, and dashboards very quickly. It excels at churning through massive real-time data sets, and performing analysis on historical or alternative data sets.
+[Deephaven](https://deephaven.io/) is a high-performance time-series database, complemented by a full suite of APIs and an intuitive user experience. Deephaven integrates with Java / Groovy, Python, R, C#, and C++ applications and libraries, as well as open-source data and ML technologies. It is a complete data system that empowers your team to build analyses, models, algos, reports, and dashboards very quickly. It excels at churning through massive real-time data sets, and performing analysis on historical or alternative data sets.
 
 ## Installation
 
@@ -49,7 +49,9 @@ To add more servers or change the configuration of the default server, head to V
 
 ![img](docs/assets/dh-settings.png)
 
-> Note: There are some known VS Code bugs that can cause flakiness with the `run` button. VS Code v90 introduced an optional setting `workbench.editor.alwaysShowEditorActions`. Set this to `true` both improves the experience and prevents the run button from disappearing when running commands or selecting the dropdown. See [here](https://github.com/deephaven/vscode-deephaven/issues/1) for more details.
+You can set configuration parameters in workspaces as well by navigating to the `Workspace` tab in the settings UI.
+
+> Note: There are some known VS Code bugs that can cause flakiness with the `run` button. VS Code v90 introduced an optional setting `workbench.editor.alwaysShowEditorActions`. Setting this to `true` both improves the experience and prevents the run button from disappearing when running commands or selecting the dropdown. See [here](https://github.com/deephaven/vscode-deephaven/issues/1) for more details.
 
 ### Community Servers
 
@@ -151,7 +153,7 @@ There are three panels in the Deephaven extension. They appear on the left side 
 
 ### Servers
 
-The `Servers` panel shows the status of all configured servers.
+The `SERVERS` panel shows the status of all configured servers.
 
 If the `deephaven-server` pip package is available your local workspace, the panel will also show a "Managed" servers node (note that managed servers are Community servers that target the current `VS Code` workspace).
 
@@ -167,7 +169,7 @@ Editors can be dragged from 1 active connection to another.
 
 ### Panels
 
-The `Panels` panel shows exported variables available on an active connection. Clicking a variable will open or refresh the respective output panel.
+The `PANELS` panel shows exported variables available on an active connection. Clicking a variable will open or refresh the respective output panel.
 
 ![Panels Panel](./docs/assets/panels-panel.png)
 
