@@ -25,11 +25,11 @@ By default, the extension is only configured to connect to a single Community se
 
 ## Usage
 
-You can run Deephaven code in two ways.
+This section deals with the different ways you can run code against a running Deephaven server.
 
-### Run code against a Deephaven server
+### From source code
 
-You can execute files as queries against a running Deephaven server with this extension. To do so, your file needs to match the language of the server you are connecting to (Python or Groovy). Atop the file, click the `Run Deephaven File` action.
+You can execute entire files or selected code in files as queries against a running Deephaven server with this extension. To do so, your file needs to match the language of the server you are connecting to (Python or Groovy). You can use the command palette, context menu, editor toolbar actions, or click the `Run Deephaven File` button atop the editor.
 
 ![Run Deephaven file](./docs/assets/dhc-connect-to-server.gif)
 
