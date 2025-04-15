@@ -22,7 +22,6 @@ import { DhcService } from '../services';
 import {
   CENSORED_TEXT,
   DEBOUNCE_TAB_UPDATE_MS,
-  DEEPHAVEN_POST_MSG,
   DH_PANEL_VIEW_TYPE,
   OPEN_VARIABLE_PANELS_CMD,
   REFRESH_VARIABLE_PANELS_CMD,
@@ -30,6 +29,7 @@ import {
 import { waitFor } from '../util/promiseUtils';
 import { getEmbedWidgetUrl } from '../dh/dhc';
 import { ControllerBase } from './ControllerBase';
+import { DEEPHAVEN_POST_MSG } from '../crossModule';
 
 const logger = new Logger('PanelController');
 
