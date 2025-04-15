@@ -1,4 +1,3 @@
-export * from './assertUtil';
 export * from './dataUtils';
 export * from './documentUtils';
 export * from './extensionApiUtils';

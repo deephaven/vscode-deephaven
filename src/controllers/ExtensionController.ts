@@ -31,7 +31,6 @@ import {
   type ViewID,
 } from '../common';
 import {
-  assertDefined,
   deserializeRange,
   getEditorForUri,
   getTempDir,
@@ -105,6 +104,7 @@ import { ConnectionController } from './ConnectionController';
 import { PipServerController } from './PipServerController';
 import { PanelController } from './PanelController';
 import { UserLoginController } from './UserLoginController';
+import { assertDefined } from '../crossModule';
 
 const logger = new Logger('ExtensionController');
 
