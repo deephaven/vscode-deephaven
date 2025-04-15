@@ -167,10 +167,3 @@ export const DHE_MINOR_VERSION = {
 } as const;
 
 export const DHE_GRADLE_VERSION_REGEX = /^(\d+)\.(\d+)\.(\d+)([a-z]+)?/;
-
-export interface GradleVersion {
-  major: number;
-  minor: number;
-  patch: number;
-  tag?: string;
-}
