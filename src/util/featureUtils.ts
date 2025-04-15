@@ -1,8 +1,5 @@
-import {
-  DHE_GRADLE_VERSION_REGEX,
-  DHE_MINOR_VERSION,
-  type GradleVersion,
-} from '../common';
+import { DHE_GRADLE_VERSION_REGEX, DHE_MINOR_VERSION } from '../common';
+import type { GradleVersion } from '../types';
 
 /**
  * Parse a given gradle version string into a GradleVersion object.
