@@ -13,6 +13,7 @@ import {
   STATUS_BAR_DISCONNECTED_TEXT,
   ICON_ID,
 } from '../common';
+import { assertDefined } from '../crossModule';
 import type {
   ConnectionType,
   ConsoleType,
@@ -30,7 +31,6 @@ import type {
   MultiAuthConfig,
 } from '../types';
 import { getFilePathDateToken, sortByStringProp } from './dataUtils';
-import { assertDefined } from './assertUtil';
 import { Logger } from './Logger';
 
 const logger = new Logger('uiUtils');

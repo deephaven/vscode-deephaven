@@ -9,7 +9,6 @@ import type {
   WorkerURL,
 } from '../types';
 import {
-  assertDefined,
   createLoginOptionsResponsePostMessage,
   createSessionDetailsResponsePostMessage,
   getDHThemeKey,
@@ -29,7 +28,7 @@ import {
 import { waitFor } from '../util/promiseUtils';
 import { getEmbedWidgetUrl } from '../dh/dhc';
 import { ControllerBase } from './ControllerBase';
-import { DEEPHAVEN_POST_MSG } from '../crossModule';
+import { assertDefined, DEEPHAVEN_POST_MSG } from '../crossModule';
 
 const logger = new Logger('PanelController');
 

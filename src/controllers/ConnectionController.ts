@@ -8,7 +8,6 @@ import type {
   ServerState,
 } from '../types';
 import {
-  assertDefined,
   createConnectionOption,
   createConnectionQuickPick,
   createConnectionQuickPickOptions,
@@ -28,6 +27,7 @@ import {
   UnsupportedConsoleTypeError,
 } from '../common';
 import { ControllerBase } from './ControllerBase';
+import { assertDefined } from '../crossModule';
 
 const logger = new Logger('ConnectionController');
 
