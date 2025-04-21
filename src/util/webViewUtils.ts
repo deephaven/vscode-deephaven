@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { EXTENSION_ID, type ViewID } from '../common';
 import { uniqueId } from './idUtils';
+import { CONTENT_IFRAME_ID } from '../crossModule';
 
 /**
  * Get Uri root containing content for a WebView.
@@ -68,10 +69,13 @@ export function getWebViewHtml({
     `script-src 'nonce-${nonce}'`,
   ].join('; ');
 
+  const contentTag =
+    content == null ? null : `<div id="content">${content}</div>`;
+
   let iframeTag: string | undefined;
   if (iframeUrl != null) {
     cspContent += `; frame-src ${iframeUrl.origin}`;
-    iframeTag = `<iframe id="content-iframe" src="${iframeUrl.href}&cachebust=${new Date().getTime()}"></iframe>`;
+    iframeTag = `<iframe id="${CONTENT_IFRAME_ID}" src="${iframeUrl.href}&cachebust=${new Date().getTime()}"></iframe>`;
   }
 
   return `<!DOCTYPE html>
@@ -84,7 +88,7 @@ export function getWebViewHtml({
 			</head>
 			<body>
 				<script nonce="${nonce}" src="${scriptUri}"></script>
-				${iframeTag ?? content}
+				${iframeTag ?? contentTag}
 			</body>
 			</html>`;
 }

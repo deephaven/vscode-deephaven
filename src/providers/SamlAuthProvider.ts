@@ -1,9 +1,5 @@
 import * as vscode from 'vscode';
 import {
-  type AuthenticatedClient as DheAuthenticatedClient,
-  type UnauthenticatedClient,
-} from '@deephaven-enterprise/auth-nodejs';
-import {
   Logger,
   makeSAMLSessionKey,
   parseSamlScopes,
@@ -16,7 +12,12 @@ import {
   DH_SAML_SERVER_URL_SCOPE_KEY,
 } from '../common';
 import { UriEventHandler, URLMap } from '../services';
-import { type IDisposable, type SamlConfig, type UniqueID } from '../types';
+import {
+  type DheAuthenticatedClient,
+  type DheUnauthenticatedClient,
+  type SamlConfig,
+  type UniqueID,
+} from '../types';
 
 const logger = new Logger('SamlAuthProvider');
 
@@ -29,7 +30,7 @@ export class SamlAuthProvider
    * have completed.
    */
   private static pendingAuthState = new URLMap<{
-    client: UnauthenticatedClient & IDisposable;
+    client: DheUnauthenticatedClient;
     stateId: UniqueID;
   }>();
 
@@ -41,7 +42,7 @@ export class SamlAuthProvider
    * @returns The authenticated DHE client.
    */
   static runSamlLoginWorkflow = async (
-    dheClient: UnauthenticatedClient & IDisposable,
+    dheClient: DheUnauthenticatedClient,
     serverUrl: URL,
     config: SamlConfig
   ): Promise<DheAuthenticatedClient> => {

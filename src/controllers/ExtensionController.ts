@@ -1,12 +1,13 @@
 import * as vscode from 'vscode';
 import * as os from 'os';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
-import type { EnterpriseDhType as DheType } from '@deephaven-enterprise/jsapi-types';
+import type {
+  ClientListenerEvent,
+  EnterpriseDhType as DheType,
+} from '@deephaven-enterprise/jsapi-types';
 import {
   createClient as createDheClient,
   getWsUrl,
-  type AuthenticatedClient as DheAuthenticatedClient,
-  type UnauthenticatedClient as DheUnauthenticatedClient,
 } from '@deephaven-enterprise/auth-nodejs';
 import { NodeHttp2gRPCTransport } from '@deephaven/jsapi-nodejs';
 import {
@@ -43,8 +44,10 @@ import {
   parseMarkdownCodeblocks,
   sanitizeGRPCLogMessageArgs,
   saveLogFiles,
+  serializeRefreshToken,
   Toaster,
   uniqueId,
+  withResolvers,
 } from '../util';
 import {
   RunCommandCodeLensProvider,
@@ -98,6 +101,9 @@ import type {
   IInteractiveConsoleQueryFactory,
   QuerySerial,
   ConsoleType,
+  SerializableRefreshToken,
+  DheAuthenticatedClient,
+  DheUnauthenticatedClient,
 } from '../types';
 import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTreeDragAndDropController';
 import { ConnectionController } from './ConnectionController';
@@ -153,8 +159,7 @@ export class ExtensionController implements IDisposable {
   private _coreClientFactory: ICoreClientFactory | null = null;
   private _coreJsApiCache: IAsyncCacheService<URL, typeof DhcType> | null =
     null;
-  private _dheClientCache: URLMap<DheAuthenticatedClient & IDisposable> | null =
-    null;
+  private _dheClientCache: URLMap<DheAuthenticatedClient> | null = null;
   private _dheClientFactory: IDheClientFactory | null = null;
   private _dheServiceCache: IAsyncCacheService<URL, IDheService> | null = null;
   private _interactiveConsoleQueryFactory: IInteractiveConsoleQueryFactory | null =
@@ -207,13 +212,13 @@ export class ExtensionController implements IDisposable {
     this.initializeServerManager();
     this.initializeAuthProviders();
     this.initializeTempDirectory();
+    this.initializeWebViews();
+    this.initializeServerUpdates();
     this.initializeConnectionController();
     this.initializePanelController();
     this.initializePipServerController();
     this.initializeUserLoginController();
     this.initializeCommands();
-    this.initializeWebViews();
-    this.initializeServerUpdates();
 
     this._context.subscriptions.push(NodeHttp2gRPCTransport);
 
@@ -298,6 +303,14 @@ export class ExtensionController implements IDisposable {
       this._outputChannel,
       this._toaster
     );
+
+    this._connectionController.onDisconnectingFromServer(url => {
+      if (
+        url.origin === this._createQueryViewProvider?.activeServerUrl?.origin
+      ) {
+        this._createQueryViewProvider?.hide();
+      }
+    });
 
     this._context.subscriptions.push(this._connectionController);
   };
@@ -496,24 +509,65 @@ export class ExtensionController implements IDisposable {
 
     this._dheClientFactory = async (
       url: URL
-    ): Promise<DheUnauthenticatedClient & IDisposable> => {
+    ): Promise<DheUnauthenticatedClient> => {
       assertDefined(this._dheJsApiCache, 'dheJsApiCache');
       const dhe = await this._dheJsApiCache.get(url);
 
-      const client = await createDheClient(dhe, getWsUrl(url));
+      const client: DheUnauthenticatedClient = await createDheClient(
+        dhe,
+        getWsUrl(url)
+      );
 
-      // Attach a dispose method so that client caches can dispose of the client
-      return Object.assign(client, {
+      const wResolvers = withResolvers<SerializableRefreshToken | null>();
+
+      let refreshTokenSerialized: Promise<SerializableRefreshToken | null> =
+        wResolvers.promise;
+
+      let resolve:
+        | ((refreshTokenSerialized: SerializableRefreshToken | null) => void)
+        | null = wResolvers.resolve;
+
+      const refreshTokenSubscription = client.addEventListener(
+        iris.Client.EVENT_REFRESH_TOKEN_UPDATED,
+        async (event: ClientListenerEvent<DhcType.RefreshToken>) => {
+          const serializedToken = serializeRefreshToken(event.detail);
+
+          // Only use the withResolvers promise for the first refresh token.
+          // After that, just replace the entire promise. This should ensure
+          // that a subscriber before login waits for the first token, and
+          // subscribers that come after login get the latest token immediately.
+          if (resolve == null) {
+            refreshTokenSerialized = Promise.resolve(serializedToken);
+          } else {
+            resolve(serializedToken);
+            resolve = null;
+          }
+        }
+      );
+
+      // Augment with additional methods
+      const augmentedClient = Object.assign(client, {
+        refreshTokenSerialized,
         dispose: async () => {
           client.disconnect();
+          refreshTokenSubscription();
         },
       });
+
+      Object.defineProperty(augmentedClient, 'refreshTokenSerialized', {
+        get() {
+          return refreshTokenSerialized;
+        },
+        enumerable: true,
+      });
+
+      return augmentedClient;
     };
 
     this._coreClientCache = new URLMap<CoreAuthenticatedClient & IDisposable>();
     this._context.subscriptions.push(this._coreClientCache);
 
-    this._dheClientCache = new URLMap<DheAuthenticatedClient & IDisposable>();
+    this._dheClientCache = new URLMap<DheAuthenticatedClient>();
     this._context.subscriptions.push(this._dheClientCache);
 
     this._panelService = new PanelService();
@@ -699,6 +753,23 @@ export class ExtensionController implements IDisposable {
       }
     );
 
+    // Create Query View
+    this._createQueryViewProvider = new CreateQueryViewProvider(
+      this._context.extensionUri,
+      this._dheClientCache
+    );
+    this._context.subscriptions.push(
+      vscode.window.registerWebviewViewProvider(
+        VIEW_ID.createQueryView,
+        this._createQueryViewProvider,
+        {
+          webviewOptions: {
+            retainContextWhenHidden: true,
+          },
+        }
+      )
+    );
+
     // Connection Panel tree
     this._serverConnectionPanelTreeProvider =
       new ServerConnectionPanelTreeProvider(
@@ -713,18 +784,6 @@ export class ExtensionController implements IDisposable {
           treeDataProvider: this._serverConnectionPanelTreeProvider,
         }
       );
-
-    // Create Query View
-    this._createQueryViewProvider = new CreateQueryViewProvider(
-      this._context.extensionUri,
-      this._dheClientCache
-    );
-    this._context.subscriptions.push(
-      vscode.window.registerWebviewViewProvider(
-        VIEW_ID.createQueryView,
-        this._createQueryViewProvider
-      )
-    );
 
     this._context.subscriptions.push(
       this._serverTreeView,
