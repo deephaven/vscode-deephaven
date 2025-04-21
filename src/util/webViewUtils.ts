@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { EXTENSION_ID, type ViewID } from '../common';
+import { VIEW_ID_PREFIX, type ViewID } from '../common';
 import { uniqueId } from './idUtils';
 import { CONTENT_IFRAME_ID } from '../crossModule';
 
@@ -17,7 +17,7 @@ export function getWebViewContentRootUri(
     extensionUri,
     'out',
     'webViews',
-    viewId.replace(`${EXTENSION_ID}.`, '')
+    viewId.replace(VIEW_ID_PREFIX, '')
   );
 }
 

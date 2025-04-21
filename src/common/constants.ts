@@ -60,11 +60,13 @@ export const PIP_SERVER_SUPPORTED_PLATFORMS = new Set<NodeJS.Platform>([
 
 export const TMP_DIR_ROOT = path.join(__dirname, 'tmp');
 
+export const VIEW_ID_PREFIX = `${EXTENSION_ID}.view.` as const;
+
 export const VIEW_ID = {
-  createQueryView: `${EXTENSION_ID}.createQueryView`,
-  serverTree: `${EXTENSION_ID}.serverTree`,
-  serverConnectionTree: `${EXTENSION_ID}.serverConnectionTree`,
-  serverConnectionPanelTree: `${EXTENSION_ID}.serverConnectionPanelTree`,
+  createQuery: `${VIEW_ID_PREFIX}createQuery`,
+  serverTree: `${VIEW_ID_PREFIX}serverTree`,
+  serverConnectionTree: `${VIEW_ID_PREFIX}serverConnectionTree`,
+  serverConnectionPanelTree: `${VIEW_ID_PREFIX}serverConnectionPanelTree`,
 } as const;
 
 export type ViewID = (typeof VIEW_ID)[keyof typeof VIEW_ID];

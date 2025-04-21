@@ -109,7 +109,7 @@ export class CreateQueryViewProvider
   };
 
   hide = (): void => {
-    setViewIsVisible(VIEW_ID.createQueryView, false);
+    setViewIsVisible(VIEW_ID.createQuery, false);
     vscode.commands.executeCommand(
       // TODO: magic string
       `workbench.view.extension.vscode-deephaven_viewContainer_list`
@@ -117,7 +117,7 @@ export class CreateQueryViewProvider
   };
 
   show = (): void => {
-    setViewIsVisible(VIEW_ID.createQueryView, true);
+    setViewIsVisible(VIEW_ID.createQuery, true);
     vscode.commands.executeCommand(
       // TODO: magic string
       `workbench.view.extension.vscode-deephaven_viewContainer_detail`
@@ -160,7 +160,7 @@ function updateWebviewView(
   webView.html = getWebViewHtml({
     extensionUri,
     webView,
-    viewId: VIEW_ID.createQueryView,
+    viewId: VIEW_ID.createQuery,
     iframeUrl,
     content: 'Click a server in the SERVERS view to create a query',
     scriptFileName: 'main.js',
