@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { VIEW_ID_PREFIX, type ViewID } from '../common';
+import { VIEW_ID_PREFIX, type ViewContainerID, type ViewID } from '../common';
 import { uniqueId } from './idUtils';
 import { CONTENT_IFRAME_ID } from '../crossModule';
 
@@ -91,4 +91,12 @@ export function getWebViewHtml({
 				${iframeTag ?? contentTag}
 			</body>
 			</html>`;
+}
+
+/**
+ * Show the view container with the given ID.
+ * @param viewContainerId The ID of the view container to show.
+ */
+export function showViewContainer(viewContainerId: ViewContainerID): void {
+  vscode.commands.executeCommand(`workbench.view.extension.${viewContainerId}`);
 }

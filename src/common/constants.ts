@@ -60,6 +60,17 @@ export const PIP_SERVER_SUPPORTED_PLATFORMS = new Set<NodeJS.Platform>([
 
 export const TMP_DIR_ROOT = path.join(__dirname, 'tmp');
 
+export const VIEW_CONTAINER_ID_PREFIX =
+  `${EXTENSION_ID}_viewContainer_` as const;
+
+export const VIEW_CONTAINER_ID = {
+  list: `${VIEW_CONTAINER_ID_PREFIX}list`,
+  detail: `${VIEW_CONTAINER_ID_PREFIX}detail`,
+} as const;
+
+export type ViewContainerID =
+  (typeof VIEW_CONTAINER_ID)[keyof typeof VIEW_CONTAINER_ID];
+
 export const VIEW_ID_PREFIX = `${EXTENSION_ID}.view.` as const;
 
 export const VIEW_ID = {
