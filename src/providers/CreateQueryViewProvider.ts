@@ -138,11 +138,9 @@ function updateWebviewView(
 ): void {
   const { webview: webView } = view;
 
-  let iframeUrl: URL | undefined;
-
   const newWorkerName = `IC - VS Code${tagId == null ? '' : ` - ${tagId}`}`;
 
-  iframeUrl = new URL('/iriside/iframecontent/createworker', serverUrl);
+  const iframeUrl = new URL('/iriside/iframecontent/createworker', serverUrl);
   iframeUrl.searchParams.append(
     'newWorkerName',
     encodeURIComponent(newWorkerName)
@@ -157,7 +155,6 @@ function updateWebviewView(
     webView,
     viewId: VIEW_ID.createQuery,
     iframeUrl,
-    content: 'Click a server in the SERVERS view to create a query',
     scriptFileName: 'main.js',
     stylesFileName: 'styles.css',
   });
