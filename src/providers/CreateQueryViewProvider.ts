@@ -3,9 +3,10 @@ import {
   getWebViewHtml,
   Logger,
   setViewIsVisible,
+  showViewContainer,
   withResolvers,
 } from '../util';
-import { VIEW_ID } from '../common';
+import { VIEW_CONTAINER_ID, VIEW_ID } from '../common';
 import type {
   ConsoleType,
   DheAuthenticatedClient,
@@ -110,18 +111,12 @@ export class CreateQueryViewProvider
 
   hide = (): void => {
     setViewIsVisible(VIEW_ID.createQuery, false);
-    vscode.commands.executeCommand(
-      // TODO: magic string
-      `workbench.view.extension.vscode-deephaven_viewContainer_list`
-    );
+    showViewContainer(VIEW_CONTAINER_ID.list);
   };
 
   show = (): void => {
     setViewIsVisible(VIEW_ID.createQuery, true);
-    vscode.commands.executeCommand(
-      // TODO: magic string
-      `workbench.view.extension.vscode-deephaven_viewContainer_detail`
-    );
+    showViewContainer(VIEW_CONTAINER_ID.detail);
   };
 
   private _resolveView?: (view: vscode.WebviewView) => void;
