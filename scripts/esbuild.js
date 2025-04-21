@@ -89,8 +89,8 @@ async function main() {
     entryPoints: [
       // Webview resources get referenced from the file system by the webview.
       // Build these separately to allow referencing directly.
-      'src/webViews/createQueryView/main.ts',
-      'src/webViews/createQueryView/styles.css',
+      'src/webViews/createQuery/main.ts',
+      'src/webViews/createQuery/styles.css',
     ],
     bundle: true,
     format: 'esm',
@@ -98,7 +98,7 @@ async function main() {
     sourcemap: !production,
     sourcesContent: false,
     platform: 'node',
-    outdir: 'out/webViews/createQueryView',
+    outdir: 'out/webViews/createQuery',
     external: ['esbuild-wasm', 'vscode'],
     logLevel: 'silent',
     loader: {

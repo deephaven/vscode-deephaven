@@ -12,7 +12,7 @@ const FROM_DEEPHAVEN = new Set([
 const vscode = acquireVsCodeApi();
 
 function log(...args: unknown[]): void {
-  console.log('[createQueryView main]:', ...args);
+  console.log('[createQuery main]:', ...args);
 }
 
 window.addEventListener('message', ({ data, origin, source }) => {

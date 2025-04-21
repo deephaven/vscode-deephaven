@@ -30,6 +30,7 @@ import {
 } from '../common';
 import { ControllerBase } from './ControllerBase';
 import { assertDefined } from '../crossModule';
+import type { CreateQueryViewProvider } from '../providers';
 
 const logger = new Logger('ConnectionController');
 
@@ -39,6 +40,7 @@ export class ConnectionController
 {
   constructor(
     context: vscode.ExtensionContext,
+    createQueryViewProvider: CreateQueryViewProvider,
     serverManager: IServerManager,
     outputChannel: vscode.OutputChannel,
     toastService: IToastService
@@ -46,6 +48,7 @@ export class ConnectionController
     super();
 
     this._context = context;
+    this._createQueryViewProvider = createQueryViewProvider;
     this._serverManager = serverManager;
     this._outputChannel = outputChannel;
     this._toaster = toastService;
@@ -78,13 +81,8 @@ export class ConnectionController
     );
   }
 
-  private readonly _onDisconnectingFromServer: vscode.EventEmitter<URL> =
-    new vscode.EventEmitter<URL>();
-
-  readonly onDisconnectingFromServer: vscode.Event<URL> =
-    this._onDisconnectingFromServer.event;
-
   private readonly _context: vscode.ExtensionContext;
+  private readonly _createQueryViewProvider: CreateQueryViewProvider;
   private readonly _serverManager: IServerManager;
   private readonly _outputChannel: vscode.OutputChannel;
   private readonly _toaster: IToastService;
@@ -331,7 +329,9 @@ export class ConnectionController
   ): Promise<void> => {
     const url = getServerUrlFromState(serverOrConnectionState);
 
-    this._onDisconnectingFromServer.fire(url);
+    if (url.origin !== this._createQueryViewProvider.activeServerUrl?.origin) {
+      this._createQueryViewProvider.hide();
+    }
 
     // ConnectionState (connection only disconnect)
     if (isConnectionState(serverOrConnectionState)) {

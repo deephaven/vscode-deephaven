@@ -293,24 +293,18 @@ export class ExtensionController implements IDisposable {
    * Initialize connection controller.
    */
   initializeConnectionController = (): void => {
+    assertDefined(this._createQueryViewProvider, 'createQueryViewProvider');
     assertDefined(this._serverManager, 'serverManager');
     assertDefined(this._outputChannel, 'outputChannel');
     assertDefined(this._toaster, 'toaster');
 
     this._connectionController = new ConnectionController(
       this._context,
+      this._createQueryViewProvider,
       this._serverManager,
       this._outputChannel,
       this._toaster
     );
-
-    this._connectionController.onDisconnectingFromServer(url => {
-      if (
-        url.origin === this._createQueryViewProvider?.activeServerUrl?.origin
-      ) {
-        this._createQueryViewProvider?.hide();
-      }
-    });
 
     this._context.subscriptions.push(this._connectionController);
   };
@@ -760,7 +754,7 @@ export class ExtensionController implements IDisposable {
     );
     this._context.subscriptions.push(
       vscode.window.registerWebviewViewProvider(
-        VIEW_ID.createQueryView,
+        VIEW_ID.createQuery,
         this._createQueryViewProvider,
         {
           webviewOptions: {
