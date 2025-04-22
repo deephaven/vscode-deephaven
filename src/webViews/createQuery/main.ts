@@ -4,7 +4,6 @@ import {
   isCreateQueryMsgFromDh,
   isCreateQueryMsgFromVscode,
 } from '../../crossModule';
-import {} from '../../crossModule/constants';
 
 const vscode = acquireVsCodeApi();
 
@@ -23,11 +22,12 @@ window.addEventListener(
       log('Sending message to vscode:', data);
       vscode.postMessage({ data, origin });
     } else if (isCreateQueryMsgFromVscode(data)) {
-      const msg = { id: data.id, payload: data.payload };
+      const { id, payload, targetOrigin } = data;
+      const msg = { id, payload };
 
       log('Sending message to Deephaven:', JSON.stringify(msg));
       const iframeWindow = getIframeContentWindow();
-      iframeWindow.postMessage(msg, data.targetOrigin);
+      iframeWindow.postMessage(msg, targetOrigin);
     }
   }
 );
