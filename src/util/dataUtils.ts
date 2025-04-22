@@ -9,9 +9,9 @@ import type {
   MultiAuthConfig,
   NoAuthConfig,
   NonEmptyArray,
-  SerializableRefreshToken,
   SingleAuthConfig,
 } from '../types';
+import type { SerializableRefreshToken } from '../crossModule';
 
 /**
  * Returns a date string formatted for use in a file path.
