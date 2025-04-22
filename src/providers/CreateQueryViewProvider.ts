@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import {
+  getDHThemeKey,
   getWebViewHtml,
   Logger,
   setViewIsVisible,
@@ -16,8 +17,8 @@ import type {
 import { DisposableBase, type URLMap } from '../services';
 import {
   assertDefined,
-  DEEPHAVEN_POST_MSG,
-  VSCODE_POST_MSG,
+  CREATE_QUERY_POST_MSG_DH,
+  CREATE_QUERY_POST_MSG_VSCODE,
 } from '../crossModule';
 
 const logger = new Logger('CreateQueryViewProvider');
@@ -76,7 +77,7 @@ export class CreateQueryViewProvider
 
         logger.debug('Received message from webView:', data);
 
-        if (data.message === DEEPHAVEN_POST_MSG.authTokenRequest) {
+        if (data.message === CREATE_QUERY_POST_MSG_DH.authTokenRequest) {
           const dheClient = this._dheClientCache.get(serverUrl);
 
           const refreshTokenSerialized =
@@ -88,14 +89,35 @@ export class CreateQueryViewProvider
 
           const msg = {
             id: data.id,
-            message: VSCODE_POST_MSG.authTokenResponse,
+            message: CREATE_QUERY_POST_MSG_VSCODE.authTokenResponse,
             payload: { bytes, expiry },
             targetOrigin: serverUrl.origin,
           };
 
           logger.debug('Sending msg to webView:', msg);
           view?.webview.postMessage(msg);
-        } else if (data.message === DEEPHAVEN_POST_MSG.workerCreated) {
+        } else if (data.message === CREATE_QUERY_POST_MSG_DH.settingsChanged) {
+          // TODO: Persist settings
+          logger.debug(
+            'Received settings changed message from webView:',
+            data.payload
+          );
+        } else if (data.message === CREATE_QUERY_POST_MSG_DH.settingsRequest) {
+          // TODO: Pull from persisted settings
+          const msg = {
+            id: data.id,
+            message: CREATE_QUERY_POST_MSG_VSCODE.settingsResponse,
+            payload: {
+              settings: {
+                heapSize: 0.5,
+              },
+              showHeader: false,
+            },
+            targetOrigin: serverUrl.origin,
+          };
+
+          view?.webview.postMessage(msg);
+        } else if (data.message === CREATE_QUERY_POST_MSG_DH.workerCreated) {
           resolve(data.payload);
         }
       }
@@ -145,6 +167,7 @@ function updateWebviewView(
     'newWorkerName',
     encodeURIComponent(newWorkerName)
   );
+  iframeUrl.searchParams.append('theme', encodeURIComponent(getDHThemeKey()));
 
   webView.options = {
     enableScripts: true,

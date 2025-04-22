@@ -9,12 +9,7 @@ import type {
   UnauthenticatedClient as DheUnauthenticatedClientBase,
   Username,
 } from '@deephaven-enterprise/auth-nodejs';
-
-// Branded type helpers
-declare const __brand: unique symbol;
-export type Brand<T extends string, TBase = string> = TBase & {
-  readonly [__brand]: T;
-};
+import type { Brand } from '../crossModule';
 
 export type NonEmptyArray<T> = [T, ...T[]];
 
@@ -81,14 +76,6 @@ export interface SamlConfig {
   providerName: string;
   loginUrl: string;
 }
-
-export type SerializableRefreshToken = Brand<
-  'SerializableRefreshToken',
-  {
-    bytes: string;
-    expiry: number;
-  }
->;
 
 export interface MultiAuthConfig {
   isPasswordEnabled: true;

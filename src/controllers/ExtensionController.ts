@@ -101,7 +101,6 @@ import type {
   IInteractiveConsoleQueryFactory,
   QuerySerial,
   ConsoleType,
-  SerializableRefreshToken,
   DheAuthenticatedClient,
   DheUnauthenticatedClient,
 } from '../types';
@@ -110,7 +109,7 @@ import { ConnectionController } from './ConnectionController';
 import { PipServerController } from './PipServerController';
 import { PanelController } from './PanelController';
 import { UserLoginController } from './UserLoginController';
-import { assertDefined } from '../crossModule';
+import { assertDefined, type SerializableRefreshToken } from '../crossModule';
 
 const logger = new Logger('ExtensionController');
 

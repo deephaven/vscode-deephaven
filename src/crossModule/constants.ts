@@ -5,16 +5,3 @@
  */
 
 export const CONTENT_IFRAME_ID = 'content-iframe';
-
-export const DEEPHAVEN_POST_MSG = {
-  authTokenRequest: 'io.deephaven.message.LoginOptions.authTokenRequest',
-  loginOptionsRequest: 'io.deephaven.message.LoginOptions.request',
-  sessionDetailsRequest: 'io.deephaven.message.SessionDetails.request',
-  workerCreated: 'io.deephaven.message.LoginOptions.workerCreated',
-} as const;
-
-export const VSCODE_POST_MSG = {
-  authTokenResponse: 'vscode-ext.authToken',
-  loginOptionsResponse: 'vscode-ext.loginOptions',
-  sessionDetailsResponse: 'vscode-ext.sessionDetails',
-} as const;
