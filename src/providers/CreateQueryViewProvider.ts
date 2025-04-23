@@ -162,12 +162,28 @@ function updateWebviewView(
 
   const newWorkerName = `IC - VS Code${tagId == null ? '' : ` - ${tagId}`}`;
 
+  const styleContent = `:root{--dh-color-bg: red;}`;
+
+  const inlineTheme = {
+    baseThemeKey: getDHThemeKey(),
+    themeKey: 'inline',
+    name: 'Inline Theme',
+    styleContent,
+  };
+
   const iframeUrl = new URL('/iriside/iframecontent/createworker', serverUrl);
   iframeUrl.searchParams.append(
     'newWorkerName',
     encodeURIComponent(newWorkerName)
   );
-  iframeUrl.searchParams.append('theme', encodeURIComponent(getDHThemeKey()));
+  iframeUrl.searchParams.append(
+    'theme',
+    encodeURIComponent(inlineTheme.themeKey)
+  );
+  iframeUrl.searchParams.append(
+    'inlineTheme',
+    encodeURIComponent(JSON.stringify(inlineTheme))
+  );
 
   webView.options = {
     enableScripts: true,
