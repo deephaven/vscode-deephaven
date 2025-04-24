@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import {
-  getDHThemeKey,
   getWebViewHtml,
   Logger,
   setViewIsVisible,
@@ -54,6 +53,11 @@ export class CreateQueryViewProvider
       }
     );
     this._context.subscriptions.push(cmd);
+
+    vscode.window.onDidChangeActiveColorTheme(() => {
+      // Refresh the view when the active color theme changes
+      this.refresh();
+    });
   }
 
   private readonly _context: vscode.ExtensionContext;
@@ -139,6 +143,15 @@ export class CreateQueryViewProvider
       onDidReceiveMessageSubscription?.dispose();
       this.hide();
     }
+  };
+
+  refresh = async (): Promise<void> => {
+    assertDefined(this._activeServerUrl, 'activeServerUrl');
+
+    const view = await this._viewPromise;
+    assertDefined(view, 'view');
+
+    updateWebviewView(this._context.extensionUri, view, this._activeServerUrl);
   };
 
   hide = (): void => {
@@ -259,27 +272,28 @@ function updateWebviewView(
   const { webview: webView } = view;
 
   // TODO: set to VS Code bg color from current theme
-  const styleContent = `:root{--dh-color-bg: red;}`;
+  // const dhColorBg = getThemeColor('panel.background') ?? 'transparent';
+  // const styleContent = `:root{--dh-color-bg:${dhColorBg};}`;
 
-  const inlineTheme = {
-    baseThemeKey: getDHThemeKey(),
-    themeKey: 'inline',
-    name: 'Inline Theme',
-    styleContent,
-  };
+  // const inlineTheme = {
+  //   baseThemeKey: getDHThemeKey(),
+  //   themeKey: 'inline',
+  //   name: 'Inline Theme',
+  //   styleContent,
+  // };
 
   const iframeUrl = new URL('/iriside/iframecontent/createworker', serverUrl);
 
-  // Send VS Code CSS vars as an inline theme, and set the theme key to the
-  // inline theme key.
-  iframeUrl.searchParams.append(
-    'theme',
-    encodeURIComponent(inlineTheme.themeKey)
-  );
-  iframeUrl.searchParams.append(
-    'inlineTheme',
-    encodeURIComponent(JSON.stringify(inlineTheme))
-  );
+  // // Send VS Code CSS vars as an inline theme, and set the theme key to the
+  // // inline theme key.
+  // iframeUrl.searchParams.append(
+  //   'theme',
+  //   encodeURIComponent(inlineTheme.themeKey)
+  // );
+  // iframeUrl.searchParams.append(
+  //   'inlineTheme',
+  //   encodeURIComponent(JSON.stringify(inlineTheme))
+  // );
 
   webView.options = {
     enableScripts: true,

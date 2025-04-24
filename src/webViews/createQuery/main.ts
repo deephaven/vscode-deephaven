@@ -1,25 +1,24 @@
 import {
+  createDhIframe,
   type CreateQueryMsg,
   getIframeContentWindow,
   isCreateQueryMsgFromDh,
   isCreateQueryMsgFromVscode,
+  Logger,
 } from '../../crossModule';
 
-const vscode = acquireVsCodeApi();
+const logger = new Logger('createQuery/main');
 
-function log(...args: unknown[]): void {
-  // eslint-disable-next-line no-console
-  console.log('[createQuery main]:', ...args);
-}
+const vscode = acquireVsCodeApi();
 
 window.addEventListener(
   'message',
   ({ data, origin, source }: MessageEvent<CreateQueryMsg>) => {
-    log('Received message:', JSON.stringify(data), origin, source);
+    logger.info('Received message:', JSON.stringify(data), origin, source);
 
     // From DH -> VS Code
     if (isCreateQueryMsgFromDh(data)) {
-      log('Sending message to vscode:', data);
+      logger.info('Sending message to vscode:', data);
       vscode.postMessage({ data, origin });
       return;
     }
@@ -29,10 +28,12 @@ window.addEventListener(
       const { id, payload, targetOrigin } = data;
       const msg = { id, payload };
 
-      log('Sending message to Deephaven:', JSON.stringify(msg));
+      logger.info('Sending message to Deephaven:', JSON.stringify(msg));
       const iframeWindow = getIframeContentWindow();
       iframeWindow.postMessage(msg, targetOrigin);
       return;
     }
   }
 );
+
+createDhIframe();

@@ -220,13 +220,17 @@ export class ServerManager implements IServerManager {
           return null;
         }
       } catch (err) {
-        logger.error(err);
-        const msg =
-          err instanceof QueryCreationCancelledError
-            ? 'Connection cancelled.'
-            : 'Failed to create worker.';
-        this._outputChannel.appendLine(msg);
-        this._toaster.error(msg);
+        if (err instanceof QueryCreationCancelledError) {
+          logger.info(err);
+          const msg = 'Connection cancelled.';
+          this._outputChannel.appendLine(msg);
+          this._toaster.info(msg);
+        } else {
+          logger.error(err);
+          const msg = 'Failed to create worker.';
+          this._outputChannel.appendLine(msg);
+          this._toaster.error(msg);
+        }
 
         this.updateConnectionCount(serverUrl, -1);
         this._connectionMap.delete(placeholderUrl);
