@@ -33,6 +33,7 @@ function cmd<T extends string>(cmd: T): `${typeof EXTENSION_ID}.${T}` {
 }
 
 export const CLEAR_SECRET_STORAGE_CMD = cmd('clearSecretStorage');
+export const CLOSE_CREATE_QUERY_VIEW_CMD = cmd('view.createQuery.close');
 export const CONNECT_TO_SERVER_CMD = cmd('connectToServer');
 export const CONNECT_TO_SERVER_OPERATE_AS_CMD = cmd('connectToServerOperateAs');
 export const CREATE_CORE_AUTHENTICATED_CLIENT_CMD = cmd(

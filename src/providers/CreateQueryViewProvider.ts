@@ -7,7 +7,12 @@ import {
   showViewContainer,
   withResolvers,
 } from '../util';
-import { VIEW_CONTAINER_ID, VIEW_ID } from '../common';
+import {
+  CLOSE_CREATE_QUERY_VIEW_CMD,
+  QueryCreationCancelledError,
+  VIEW_CONTAINER_ID,
+  VIEW_ID,
+} from '../common';
 import type {
   ConsoleType,
   DheAuthenticatedClient,
@@ -41,12 +46,21 @@ export class CreateQueryViewProvider
     super();
     this._context = context;
     this._dheClientCache = dheClientCache;
+
+    const cmd = vscode.commands.registerCommand(
+      CLOSE_CREATE_QUERY_VIEW_CMD,
+      () => {
+        this.hide();
+      }
+    );
+    this._context.subscriptions.push(cmd);
   }
 
   private readonly _context: vscode.ExtensionContext;
   private readonly _dheClientCache: URLMap<DheAuthenticatedClient>;
   private _viewPromise?: Promise<vscode.WebviewView>;
   private _activeServerUrl?: URL;
+  private _rejectQuerySerial?: (reason?: any) => void;
 
   get activeServerUrl(): URL | undefined {
     return this._activeServerUrl;
@@ -76,8 +90,13 @@ export class CreateQueryViewProvider
     // There are multiple messages that get passed back and forth between DH
     // and the webview as part of creating query workers. This Promise will be
     // resolved once the worker is created and the serial is returned.
-    const { promise: querySerialPromise, resolve: resolveQuerySerial } =
-      withResolvers<QuerySerial | null>();
+    const {
+      promise: querySerialPromise,
+      resolve: resolveQuerySerial,
+      reject: rejectQuerySerial,
+    } = withResolvers<QuerySerial | null>();
+
+    this._rejectQuerySerial = rejectQuerySerial;
 
     const onDidReceiveMessageSubscription = view.webview.onDidReceiveMessage(
       async ({ data, origin }: { data: CreateQueryMsgDh; origin: string }) => {
@@ -107,6 +126,7 @@ export class CreateQueryViewProvider
             break;
 
           case CREATE_QUERY_POST_MSG_DH.workerCreated:
+            this._rejectQuerySerial = undefined;
             resolveQuerySerial(data.payload);
             break;
         }
@@ -124,6 +144,8 @@ export class CreateQueryViewProvider
   hide = (): void => {
     setViewIsVisible(VIEW_ID.createQuery, false);
     showViewContainer(VIEW_CONTAINER_ID.list);
+
+    this._rejectQuerySerial?.(new QueryCreationCancelledError());
   };
 
   show = (): void => {
@@ -248,6 +270,8 @@ function updateWebviewView(
 
   const iframeUrl = new URL('/iriside/iframecontent/createworker', serverUrl);
 
+  // Send VS Code CSS vars as an inline theme, and set the theme key to the
+  // inline theme key.
   iframeUrl.searchParams.append(
     'theme',
     encodeURIComponent(inlineTheme.themeKey)

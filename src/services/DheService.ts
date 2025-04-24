@@ -223,7 +223,7 @@ export class DheService implements IDheService {
 
     const { gradleVersion } = await dheClient.getServerConfigValues();
     logger.debug('Gradle version:', gradleVersion);
-    // HACK: dev only
+    // HACK: dev only TODO: Update gradle version check
     const isUISupported =
       this.serverUrl.origin === 'https://bmingles-f1.int.illumon.com:8123'; // isDheCreateQueryUISupported(gradleVersion);
 
