@@ -19,6 +19,10 @@ import {
   assertDefined,
   CREATE_QUERY_POST_MSG_DH,
   CREATE_QUERY_POST_MSG_VSCODE,
+  type AuthTokenResponseMsg,
+  type ConsoleSettings,
+  type CreateQueryMsgDh,
+  type SettingsResponseMsgVscode,
 } from '../crossModule';
 
 const logger = new Logger('CreateQueryViewProvider');
@@ -28,15 +32,15 @@ export class CreateQueryViewProvider
   implements vscode.WebviewViewProvider
 {
   constructor(
-    extensionUri: vscode.Uri,
+    context: vscode.ExtensionContext,
     dheClientCache: URLMap<DheAuthenticatedClient>
   ) {
     super();
-    this._extensionUri = extensionUri;
+    this._context = context;
     this._dheClientCache = dheClientCache;
   }
 
-  private readonly _extensionUri: vscode.Uri;
+  private readonly _context: vscode.ExtensionContext;
   private readonly _dheClientCache: URLMap<DheAuthenticatedClient>;
   private _viewPromise?: Promise<vscode.WebviewView>;
   private _activeServerUrl?: URL;
@@ -64,12 +68,12 @@ export class CreateQueryViewProvider
     const view = await this._viewPromise;
     assertDefined(view, 'view');
 
-    updateWebviewView(this._extensionUri, view, serverUrl, tagId);
+    updateWebviewView(this._context.extensionUri, view, serverUrl);
 
     const { promise, resolve } = withResolvers<QuerySerial | null>();
 
     const onDidReceiveMessageSubscription = view.webview.onDidReceiveMessage(
-      async ({ data, origin }) => {
+      async ({ data, origin }: { data: CreateQueryMsgDh; origin: string }) => {
         // Ignore messages from other origins
         if (origin !== serverUrl.origin) {
           return;
@@ -85,32 +89,33 @@ export class CreateQueryViewProvider
 
           assertDefined(refreshTokenSerialized, 'refreshToken');
 
-          const { bytes, expiry } = refreshTokenSerialized;
-
-          const msg = {
+          const msg: AuthTokenResponseMsg = {
             id: data.id,
             message: CREATE_QUERY_POST_MSG_VSCODE.authTokenResponse,
-            payload: { bytes, expiry },
+            payload: refreshTokenSerialized,
             targetOrigin: serverUrl.origin,
           };
 
           logger.debug('Sending msg to webView:', msg);
           view?.webview.postMessage(msg);
         } else if (data.message === CREATE_QUERY_POST_MSG_DH.settingsChanged) {
-          // TODO: Persist settings
           logger.debug(
             'Received settings changed message from webView:',
             data.payload
           );
+
+          this._context.globalState.update('createQuerySettings', data.payload);
         } else if (data.message === CREATE_QUERY_POST_MSG_DH.settingsRequest) {
-          // TODO: Pull from persisted settings
-          const msg = {
+          const newWorkerName = `IC - VS Code${tagId == null ? '' : ` - ${tagId}`}`;
+          const settings: Partial<ConsoleSettings> =
+            this._context.globalState.get('createQuerySettings') ?? {};
+
+          const msg: SettingsResponseMsgVscode = {
             id: data.id,
             message: CREATE_QUERY_POST_MSG_VSCODE.settingsResponse,
             payload: {
-              settings: {
-                heapSize: 0.5,
-              },
+              newWorkerName,
+              settings,
               showHeader: false,
             },
             targetOrigin: serverUrl.origin,
@@ -155,12 +160,9 @@ export class CreateQueryViewProvider
 function updateWebviewView(
   extensionUri: vscode.Uri,
   view: vscode.WebviewView,
-  serverUrl: URL,
-  tagId?: UniqueID
+  serverUrl: URL
 ): void {
   const { webview: webView } = view;
-
-  const newWorkerName = `IC - VS Code${tagId == null ? '' : ` - ${tagId}`}`;
 
   const styleContent = `:root{--dh-color-bg: red;}`;
 
@@ -172,10 +174,7 @@ function updateWebviewView(
   };
 
   const iframeUrl = new URL('/iriside/iframecontent/createworker', serverUrl);
-  iframeUrl.searchParams.append(
-    'newWorkerName',
-    encodeURIComponent(newWorkerName)
-  );
+
   iframeUrl.searchParams.append(
     'theme',
     encodeURIComponent(inlineTheme.themeKey)

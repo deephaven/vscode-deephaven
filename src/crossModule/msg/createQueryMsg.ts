@@ -1,4 +1,4 @@
-import type { SerializableRefreshToken } from '../types';
+import type { Brand, SerializableRefreshToken } from '../types';
 import {
   DEEPHAVEN_POST_MSG_PREFIX,
   VSCODE_POST_MSG_PREFIX,
@@ -19,6 +19,22 @@ export const CREATE_QUERY_POST_MSG_VSCODE = {
 } as const;
 
 /**
+ * This is an opaque type representing `ConsoleSettings` defined in DHE web. The
+ * extension doesn't care about the details since it persists it as-is to
+ * remember user worker creation preferences.
+ */
+export type ConsoleSettings = Brand<'ConsoleSettings', Record<string, unknown>>;
+
+/**
+ * Copy of `CreateWorkerIframeSettings` in DHE web.
+ */
+interface CreateWorkerIframeSettings {
+  newWorkerName: string;
+  settings: Partial<ConsoleSettings>;
+  showHeader?: boolean;
+}
+
+/**
  * CreateQuery DH messages
  */
 type AuthTokenRequestMsg = PostMsgData<
@@ -27,7 +43,7 @@ type AuthTokenRequestMsg = PostMsgData<
 >;
 type SettingsChangedMsg = PostMsgData<
   typeof CREATE_QUERY_POST_MSG_DH.settingsChanged,
-  Record<string, unknown>
+  CreateWorkerIframeSettings
 >;
 type SettingsRequestMsg = PostMsgData<
   typeof CREATE_QUERY_POST_MSG_DH.settingsRequest
@@ -35,7 +51,7 @@ type SettingsRequestMsg = PostMsgData<
 type WorkerCreatedMsg = PostMsgData<
   typeof CREATE_QUERY_POST_MSG_DH.workerCreated
 >;
-type CreateQueryMsgDh =
+export type CreateQueryMsgDh =
   | AuthTokenRequestMsg
   | SettingsChangedMsg
   | SettingsRequestMsg
@@ -44,11 +60,15 @@ type CreateQueryMsgDh =
 /**
  * CreateQuery Vscode messages
  */
-type AuthTokenResponseMsg = PostMsgData<
+export type AuthTokenResponseMsg = PostMsgData<
   typeof CREATE_QUERY_POST_MSG_VSCODE.authTokenResponse,
   SerializableRefreshToken
 >;
-type CreateQueryMsgVscode = AuthTokenResponseMsg;
+export type SettingsResponseMsgVscode = PostMsgData<
+  typeof CREATE_QUERY_POST_MSG_VSCODE.settingsResponse,
+  CreateWorkerIframeSettings
+>;
+type CreateQueryMsgVscode = AuthTokenResponseMsg | SettingsResponseMsgVscode;
 
 export type CreateQueryMsg = CreateQueryMsgDh | CreateQueryMsgVscode;
 
