@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { VIEW_ID_PREFIX, type ViewContainerID, type ViewID } from '../common';
 import { uniqueId } from './idUtils';
-import { CONTENT_IFRAME_ID } from '../crossModule';
+import { getDHThemeKey } from './uiUtils';
 
 /**
  * Get Uri root containing content for a WebView.
@@ -58,29 +58,27 @@ export function getWebViewHtml({
     vscode.Uri.joinPath(contentRootUri, stylesFileName)
   );
 
-  let cspContent = [
+  const baseDhThemeKey = getDHThemeKey();
+
+  const cspContent = [
     `default-src 'none'`,
     `style-src ${webView.cspSource}`,
     `script-src 'nonce-${nonce}'`,
+    `frame-src ${iframeUrl.origin}`,
   ].join('; ');
-
-  let iframeTag: string | undefined;
-  if (iframeUrl != null) {
-    cspContent += `; frame-src ${iframeUrl.origin}`;
-    iframeTag = `<iframe id="${CONTENT_IFRAME_ID}" src="${iframeUrl.href}&cachebust=${new Date().getTime()}"></iframe>`;
-  }
 
   return `<!DOCTYPE html>
 			<html lang="en">
 			<head>
 				<meta charset="UTF-8">
 				<meta http-equiv="Content-Security-Policy" content="${cspContent}">
-				<title>Create Connection</title>
+        <meta name="dh-base-theme-key" content="${baseDhThemeKey}">
+        <meta name="dh-iframe-url" content="${iframeUrl.href}">
+				<title>DH WebView</title>
 				<link rel="stylesheet" href="${styleUri}">
 			</head>
 			<body>
 				<script nonce="${nonce}" src="${scriptUri}"></script>
-				${iframeTag}
 			</body>
 			</html>`;
 }
