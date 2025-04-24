@@ -2,7 +2,10 @@ import * as vscode from 'vscode';
 import { randomUUID } from 'node:crypto';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type { AuthenticatedClient as DheAuthenticatedClient } from '@deephaven-enterprise/auth-nodejs';
-import { UnsupportedConsoleTypeError } from '../common';
+import {
+  QueryCreationCancelledError,
+  UnsupportedConsoleTypeError,
+} from '../common';
 import type {
   ConsoleType,
   IConfigService,
@@ -218,7 +221,10 @@ export class ServerManager implements IServerManager {
         }
       } catch (err) {
         logger.error(err);
-        const msg = 'Failed to create worker.';
+        const msg =
+          err instanceof QueryCreationCancelledError
+            ? 'Connection cancelled.'
+            : 'Failed to create worker.';
         this._outputChannel.appendLine(msg);
         this._toaster.error(msg);
 

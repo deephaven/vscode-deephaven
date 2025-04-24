@@ -254,6 +254,11 @@
         "command": "vscode-deephaven.stopServer",
         "title": "Deephaven: Stop Server",
         "icon": "$(debug-stop)"
+      },
+      {
+        "command": "vscode-deephaven.view.createQuery.close",
+        "title": "Close Create Connection View",
+        "icon": "$(close)"
       }
     ],
     "icons": {
@@ -791,6 +796,11 @@
           "command": "vscode-deephaven.searchPanels",
           "group": "navigation",
           "when": "view == vscode-deephaven.view.serverConnectionPanelTree"
+        },
+        {
+          "command": "vscode-deephaven.view.createQuery.close",
+          "group": "navigation",
+          "when": "view == vscode-deephaven.view.createQuery"
         }
       ],
       "view/item/context": [
