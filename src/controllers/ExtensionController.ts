@@ -748,7 +748,7 @@ export class ExtensionController implements IDisposable {
 
     // Create Query View
     this._createQueryViewProvider = new CreateQueryViewProvider(
-      this._context.extensionUri,
+      this._context,
       this._dheClientCache
     );
     this._context.subscriptions.push(

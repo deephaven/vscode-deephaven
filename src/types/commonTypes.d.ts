@@ -9,7 +9,7 @@ import type {
   UnauthenticatedClient as DheUnauthenticatedClientBase,
   Username,
 } from '@deephaven-enterprise/auth-nodejs';
-import type { Brand } from '../crossModule';
+import type { Brand, SerializableRefreshToken } from '../crossModule';
 
 export type NonEmptyArray<T> = [T, ...T[]];
 
@@ -44,11 +44,11 @@ export type CoreUnauthenticatedClient = Brand<
 
 export type DheAuthenticatedClient = DheAuthenticatedClientBase &
   Partial<IDisposable> & {
-    refreshTokenSerialized?: Promise<DhcType.RefreshToken>;
+    refreshTokenSerialized?: Promise<SerializableRefreshToken>;
   };
 export type DheUnauthenticatedClient = DheUnauthenticatedClientBase &
   Partial<IDisposable> & {
-    refreshTokenSerialized?: Promise<DhcType.RefreshToken>;
+    refreshTokenSerialized?: Promise<SerializableRefreshToken>;
   };
 
 export type DependencyName = Brand<'DependencyName', string>;
