@@ -37,18 +37,18 @@ interface CreateWorkerIframeSettings {
 /**
  * CreateQuery DH messages
  */
-type AuthTokenRequestMsg = PostMsgData<
+export type AuthTokenRequestMsg = PostMsgData<
   typeof CREATE_QUERY_POST_MSG_DH.authTokenRequest,
   SerializableRefreshToken
 >;
-type SettingsChangedMsg = PostMsgData<
+export type SettingsChangedMsg = PostMsgData<
   typeof CREATE_QUERY_POST_MSG_DH.settingsChanged,
   CreateWorkerIframeSettings
 >;
-type SettingsRequestMsg = PostMsgData<
+export type SettingsRequestMsg = PostMsgData<
   typeof CREATE_QUERY_POST_MSG_DH.settingsRequest
 >;
-type WorkerCreatedMsg = PostMsgData<
+export type WorkerCreatedMsg = PostMsgData<
   typeof CREATE_QUERY_POST_MSG_DH.workerCreated
 >;
 export type CreateQueryMsgDh =

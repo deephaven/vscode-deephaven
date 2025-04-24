@@ -19,9 +19,12 @@ import {
   assertDefined,
   CREATE_QUERY_POST_MSG_DH,
   CREATE_QUERY_POST_MSG_VSCODE,
+  type AuthTokenRequestMsg,
   type AuthTokenResponseMsg,
   type ConsoleSettings,
   type CreateQueryMsgDh,
+  type SettingsChangedMsg,
+  type SettingsRequestMsg,
   type SettingsResponseMsgVscode,
 } from '../crossModule';
 
@@ -70,7 +73,11 @@ export class CreateQueryViewProvider
 
     updateWebviewView(this._context.extensionUri, view, serverUrl);
 
-    const { promise, resolve } = withResolvers<QuerySerial | null>();
+    // There are multiple messages that get passed back and forth between DH
+    // and the webview as part of creating query workers. This Promise will be
+    // resolved once the worker is created and the serial is returned.
+    const { promise: querySerialPromise, resolve: resolveQuerySerial } =
+      withResolvers<QuerySerial | null>();
 
     const onDidReceiveMessageSubscription = view.webview.onDidReceiveMessage(
       async ({ data, origin }: { data: CreateQueryMsgDh; origin: string }) => {
@@ -81,55 +88,33 @@ export class CreateQueryViewProvider
 
         logger.debug('Received message from webView:', data);
 
-        if (data.message === CREATE_QUERY_POST_MSG_DH.authTokenRequest) {
-          const dheClient = this._dheClientCache.get(serverUrl);
+        switch (data.message) {
+          case CREATE_QUERY_POST_MSG_DH.authTokenRequest:
+            const dheClient = this._dheClientCache.get(serverUrl);
+            assertDefined(
+              dheClient,
+              `DheAuthenticatedClient not found for serverUrl: ${serverUrl}`
+            );
+            await handleAuthTokenRequest(data, dheClient, serverUrl, view);
+            break;
 
-          const refreshTokenSerialized =
-            await dheClient?.refreshTokenSerialized;
+          case CREATE_QUERY_POST_MSG_DH.settingsChanged:
+            handleSettingsChanged(data, this._context);
+            break;
 
-          assertDefined(refreshTokenSerialized, 'refreshToken');
+          case CREATE_QUERY_POST_MSG_DH.settingsRequest:
+            handleSettingsRequest(data, this._context, tagId, serverUrl, view);
+            break;
 
-          const msg: AuthTokenResponseMsg = {
-            id: data.id,
-            message: CREATE_QUERY_POST_MSG_VSCODE.authTokenResponse,
-            payload: refreshTokenSerialized,
-            targetOrigin: serverUrl.origin,
-          };
-
-          logger.debug('Sending msg to webView:', msg);
-          view?.webview.postMessage(msg);
-        } else if (data.message === CREATE_QUERY_POST_MSG_DH.settingsChanged) {
-          logger.debug(
-            'Received settings changed message from webView:',
-            data.payload
-          );
-
-          this._context.globalState.update('createQuerySettings', data.payload);
-        } else if (data.message === CREATE_QUERY_POST_MSG_DH.settingsRequest) {
-          const newWorkerName = `IC - VS Code${tagId == null ? '' : ` - ${tagId}`}`;
-          const settings: Partial<ConsoleSettings> =
-            this._context.globalState.get('createQuerySettings') ?? {};
-
-          const msg: SettingsResponseMsgVscode = {
-            id: data.id,
-            message: CREATE_QUERY_POST_MSG_VSCODE.settingsResponse,
-            payload: {
-              newWorkerName,
-              settings,
-              showHeader: false,
-            },
-            targetOrigin: serverUrl.origin,
-          };
-
-          view?.webview.postMessage(msg);
-        } else if (data.message === CREATE_QUERY_POST_MSG_DH.workerCreated) {
-          resolve(data.payload);
+          case CREATE_QUERY_POST_MSG_DH.workerCreated:
+            resolveQuerySerial(data.payload);
+            break;
         }
       }
     );
 
     try {
-      return await promise;
+      return await querySerialPromise;
     } finally {
       onDidReceiveMessageSubscription?.dispose();
       this.hide();
@@ -157,6 +142,93 @@ export class CreateQueryViewProvider
   };
 }
 
+/**
+ * Handle auth token request from DH iframe.
+ * @param msgData Auth token request message
+ * @param dheClient Authenticated DHE client
+ * @param serverUrl URL of the server
+ * @param view vscode.WebviewView containing the iframe
+ * @returns A promise that resolves when the message is sent to the webview.
+ */
+async function handleAuthTokenRequest(
+  msgData: AuthTokenRequestMsg,
+  dheClient: DheAuthenticatedClient,
+  serverUrl: URL,
+  view: vscode.WebviewView
+): Promise<void> {
+  const refreshTokenSerialized = await dheClient.refreshTokenSerialized;
+
+  assertDefined(refreshTokenSerialized, 'refreshToken');
+
+  const msg: AuthTokenResponseMsg = {
+    id: msgData.id,
+    message: CREATE_QUERY_POST_MSG_VSCODE.authTokenResponse,
+    payload: refreshTokenSerialized,
+    targetOrigin: serverUrl.origin,
+  };
+
+  logger.debug('Sending msg to webView:', msg);
+  view.webview.postMessage(msg);
+}
+
+/**
+ * Handle settings changed message from DH iframe.
+ * @param msgData Settings changed message
+ * @param context vscode.ExtensionContext
+ * @returns void
+ */
+function handleSettingsChanged(
+  msgData: SettingsChangedMsg,
+  context: vscode.ExtensionContext
+): void {
+  logger.debug(
+    'Received settings changed message from webView:',
+    msgData.payload
+  );
+  context.globalState.update('createQuerySettings', msgData.payload);
+}
+
+/**
+ * Handle settings request from DH iframe.
+ * @param msgData Settings request message
+ * @param context vscode.ExtensionContext
+ * @param tagId Unique ID for the tag, used in the worker name
+ * @param serverUrl URL of the server
+ * @param view vscode.WebviewView containing the iframe
+ * @returns void
+ */
+function handleSettingsRequest(
+  msgData: SettingsRequestMsg,
+  context: vscode.ExtensionContext,
+  tagId: UniqueID,
+  serverUrl: URL,
+  view: vscode.WebviewView
+): void {
+  const newWorkerName = `IC - VS Code${tagId == null ? '' : ` - ${tagId}`}`;
+  const settings: Partial<ConsoleSettings> =
+    context.globalState.get('createQuerySettings') ?? {};
+
+  const msg: SettingsResponseMsgVscode = {
+    id: msgData.id,
+    message: CREATE_QUERY_POST_MSG_VSCODE.settingsResponse,
+    payload: {
+      newWorkerName,
+      settings,
+      showHeader: false,
+    },
+    targetOrigin: serverUrl.origin,
+  };
+
+  view.webview.postMessage(msg);
+}
+
+/**
+ * Update webview content
+ * @param extensionUri Extension URI
+ * @param view webview to update
+ * @param serverUrl DH server URL
+ * @returns void
+ */
 function updateWebviewView(
   extensionUri: vscode.Uri,
   view: vscode.WebviewView,
@@ -164,6 +236,7 @@ function updateWebviewView(
 ): void {
   const { webview: webView } = view;
 
+  // TODO: set to VS Code bg color from current theme
   const styleContent = `:root{--dh-color-bg: red;}`;
 
   const inlineTheme = {
