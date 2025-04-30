@@ -271,29 +271,7 @@ function updateWebviewView(
 ): void {
   const { webview: webView } = view;
 
-  // TODO: set to VS Code bg color from current theme
-  // const dhColorBg = getThemeColor('panel.background') ?? 'transparent';
-  // const styleContent = `:root{--dh-color-bg:${dhColorBg};}`;
-
-  // const inlineTheme = {
-  //   baseThemeKey: getDHThemeKey(),
-  //   themeKey: 'inline',
-  //   name: 'Inline Theme',
-  //   styleContent,
-  // };
-
   const iframeUrl = new URL('/iriside/iframecontent/createworker', serverUrl);
-
-  // // Send VS Code CSS vars as an inline theme, and set the theme key to the
-  // // inline theme key.
-  // iframeUrl.searchParams.append(
-  //   'theme',
-  //   encodeURIComponent(inlineTheme.themeKey)
-  // );
-  // iframeUrl.searchParams.append(
-  //   'inlineTheme',
-  //   encodeURIComponent(JSON.stringify(inlineTheme))
-  // );
 
   webView.options = {
     enableScripts: true,
