@@ -3,6 +3,7 @@ html {
   overflow: hidden;
 }
 body {
+  background-color: var(--vscode-sideBar-background);
   height: 100vh;
   overflow: hidden;
   padding: 0;

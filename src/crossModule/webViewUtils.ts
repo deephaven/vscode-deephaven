@@ -1,6 +1,7 @@
 import { assertDefined } from './assertUtil';
 import { CONTENT_IFRAME_ID } from './constants';
 import { Logger } from './Logger';
+import { MSG_DH } from './msg';
 
 const logger = new Logger('webViewUtils');
 
@@ -24,35 +25,41 @@ export function createDhIframe(): void {
   const resolver = getComputedStyle(document.documentElement);
 
   const sidebarBackground =
-    resolver.getPropertyValue('--vscode-sidebar-background') || 'transparent';
-
-  const styleContent = `:root{--dh-color-bg:${sidebarBackground};}`;
-
-  const inlineTheme = {
-    baseThemeKey,
-    themeKey: 'inline',
-    name: 'Inline Theme',
-    styleContent,
-  };
-
-  logger.info('Inline theme:', inlineTheme);
+    resolver.getPropertyValue('--vscode-sideBar-background') || 'transparent';
 
   const iframeUrl = new URL(iframeSrc);
 
-  // Send VS Code CSS vars as an inline theme, and set the theme key to the
-  // inline theme key.
-  iframeUrl.searchParams.append(
-    'theme',
-    encodeURIComponent(inlineTheme.themeKey)
-  );
-  iframeUrl.searchParams.append(
-    'inlineTheme',
-    encodeURIComponent(JSON.stringify(inlineTheme))
-  );
+  iframeUrl.searchParams.append('theme', 'external-theme');
+  iframeUrl.searchParams.append('preloadTransparentTheme', 'true');
 
   const iframeEl = document.createElement('iframe');
   iframeEl.id = CONTENT_IFRAME_ID;
   iframeEl.src = `${iframeUrl.href}&cachebust=${new Date().getTime()}`;
+
+  window.addEventListener('message', ({ data, origin, source }) => {
+    if (origin !== iframeUrl.origin) {
+      return;
+    }
+
+    if (data.message === MSG_DH.externalThemeRequest) {
+      logger.info('Sending theme to iframe');
+
+      source?.postMessage(
+        {
+          id: data.id,
+          payload: {
+            name: 'Iframe Parent Theme',
+            baseThemeKey,
+            cssVars: {
+              // eslint-disable-next-line @typescript-eslint/naming-convention
+              '--dh-color-bg': sidebarBackground,
+            },
+          },
+        },
+        origin as any
+      );
+    }
+  });
 
   document.body.appendChild(iframeEl);
 }
