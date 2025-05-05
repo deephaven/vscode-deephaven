@@ -8,3 +8,11 @@ export interface PostMsgData<TMessage extends string, TPayload = never> {
   payload: TPayload;
   targetOrigin: string;
 }
+
+export const MSG_DH = {
+  externalThemeRequest: `${DEEPHAVEN_POST_MSG_PREFIX}ThemeModel.requestExternalTheme`,
+};
+
+export const MSG_VSCODE = {
+  externalThemeResponse: `${VSCODE_POST_MSG_PREFIX}ExternalTheme.response`,
+};
