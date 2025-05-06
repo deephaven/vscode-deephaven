@@ -21,7 +21,7 @@ export const VSCODE_POST_MSG = {
   requestSetTheme: `${VSCODE_POST_MSG_PREFIX}requestSetTheme`,
 } as const;
 
-export type PostMsgDataVscode<
+export type VscodePostMsgData<
   TMessage extends VscodePostMsgType,
   TPayload = undefined,
 > = {
@@ -30,7 +30,7 @@ export type PostMsgDataVscode<
   targetOrigin: string;
 } & (TPayload extends undefined ? {} : { payload: TPayload });
 
-export type SetThemeRequestMsgVscode = PostMsgDataVscode<
+export type VscodeSetThemeRequestMsg = VscodePostMsgData<
   typeof VSCODE_POST_MSG.requestSetTheme,
   BaseThemeKey
 >;
@@ -38,14 +38,14 @@ export type SetThemeRequestMsgVscode = PostMsgDataVscode<
 /**
  * CreateQuery Vscode messages
  */
-export type AuthTokenResponseMsg = PostMsgDataVscode<
+export type VscodeAuthTokenResponseMsg = VscodePostMsgData<
   typeof VSCODE_POST_MSG.authTokenResponse,
   SerializableRefreshToken
 >;
-export type SettingsResponseMsgVscode = PostMsgDataVscode<
+export type VscodeSettingsResponseMsg = VscodePostMsgData<
   typeof VSCODE_POST_MSG.settingsResponse,
   CreateWorkerIframeSettings
 >;
-export type CreateQueryMsgVscode =
-  | AuthTokenResponseMsg
-  | SettingsResponseMsgVscode;
+export type VscodeCreateQueryMsg =
+  | VscodeAuthTokenResponseMsg
+  | VscodeSettingsResponseMsg;

@@ -4,9 +4,9 @@ import { Logger } from './Logger';
 import {
   DH_POST_MSG,
   VSCODE_POST_MSG,
-  type ExternalThemeRequestMsgDh,
-  type SetThemeRequestMsgDh,
-  type SetThemeRequestMsgVscode,
+  type DhExternalThemeRequestMsg,
+  type DhSetThemeRequestMsg,
+  type VscodeSetThemeRequestMsg,
 } from './msg';
 import type { BaseThemeKey, ExternalThemeData } from './types';
 
@@ -65,7 +65,7 @@ export function createDhIframe(): void {
       data,
       origin,
       source,
-    }: MessageEvent<ExternalThemeRequestMsgDh | SetThemeRequestMsgVscode>) => {
+    }: MessageEvent<DhExternalThemeRequestMsg | VscodeSetThemeRequestMsg>) => {
       if (origin !== webViewWindow.origin && origin !== iframeUrl.origin) {
         return;
       }
@@ -91,7 +91,7 @@ export function createDhIframe(): void {
 
         const { id, payload, targetOrigin } = data;
 
-        const msg: SetThemeRequestMsgDh = {
+        const msg: DhSetThemeRequestMsg = {
           id,
           message: DH_POST_MSG.requestSetTheme,
           payload: getExternalThemeData(payload),

@@ -4,8 +4,8 @@ import {
   isCreateQueryMsgFromDh,
   isCreateQueryMsgFromVscode,
   Logger,
-  type CreateQueryMsgDh,
-  type CreateQueryMsgVscode,
+  type DhCreateQueryMsg,
+  type VscodeCreateQueryMsg,
 } from '../../crossModule';
 
 const logger = new Logger('createQuery/main');
@@ -18,7 +18,7 @@ window.addEventListener(
     data,
     origin,
     source,
-  }: MessageEvent<CreateQueryMsgDh | CreateQueryMsgVscode>) => {
+  }: MessageEvent<DhCreateQueryMsg | VscodeCreateQueryMsg>) => {
     logger.info('Received message:', JSON.stringify(data), origin, source);
 
     // From DH -> VS Code

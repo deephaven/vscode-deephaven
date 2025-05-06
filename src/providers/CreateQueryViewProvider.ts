@@ -19,14 +19,14 @@ import {
   assertDefined,
   DH_POST_MSG,
   VSCODE_POST_MSG,
-  type AuthTokenRequestMsgDh,
-  type AuthTokenResponseMsg,
+  type DhAuthTokenRequestMsg,
+  type VscodeAuthTokenResponseMsg,
   type ConsoleSettings,
-  type CreateQueryMsgDh,
+  type DhCreateQueryMsg,
   type QuerySerial,
-  type SettingsChangedMsgDh,
-  type SettingsRequestMsgDh,
-  type SettingsResponseMsgVscode,
+  type DhSettingsChangedMsg,
+  type DhSettingsRequestMsg,
+  type VscodeSettingsResponseMsg,
 } from '../crossModule';
 
 const logger = new Logger('CreateQueryViewProvider');
@@ -95,7 +95,7 @@ export class CreateQueryViewProvider
     this._rejectQuerySerial = rejectQuerySerial;
 
     const onDidReceiveMessageSubscription = view.webview.onDidReceiveMessage(
-      async ({ data, origin }: { data: CreateQueryMsgDh; origin: string }) => {
+      async ({ data, origin }: { data: DhCreateQueryMsg; origin: string }) => {
         // Ignore messages from other origins
         if (origin !== serverUrl.origin) {
           return;
@@ -181,7 +181,7 @@ export class CreateQueryViewProvider
  * @returns A promise that resolves when the message is sent to the webview.
  */
 async function handleAuthTokenRequest(
-  msgData: AuthTokenRequestMsgDh,
+  msgData: DhAuthTokenRequestMsg,
   dheClient: DheAuthenticatedClient,
   serverUrl: URL,
   view: vscode.WebviewView
@@ -190,7 +190,7 @@ async function handleAuthTokenRequest(
 
   assertDefined(refreshTokenSerialized, 'refreshToken');
 
-  const msg: AuthTokenResponseMsg = {
+  const msg: VscodeAuthTokenResponseMsg = {
     id: msgData.id,
     message: VSCODE_POST_MSG.authTokenResponse,
     payload: refreshTokenSerialized,
@@ -208,7 +208,7 @@ async function handleAuthTokenRequest(
  * @returns void
  */
 function handleSettingsChanged(
-  msgData: SettingsChangedMsgDh,
+  msgData: DhSettingsChangedMsg,
   context: vscode.ExtensionContext
 ): void {
   logger.debug(
@@ -228,7 +228,7 @@ function handleSettingsChanged(
  * @returns void
  */
 function handleSettingsRequest(
-  msgData: SettingsRequestMsgDh,
+  msgData: DhSettingsRequestMsg,
   context: vscode.ExtensionContext,
   tagId: UniqueID,
   serverUrl: URL,
@@ -238,7 +238,7 @@ function handleSettingsRequest(
   const settings: Partial<ConsoleSettings> =
     context.globalState.get('createQuerySettings') ?? {};
 
-  const msg: SettingsResponseMsgVscode = {
+  const msg: VscodeSettingsResponseMsg = {
     id: msgData.id,
     message: VSCODE_POST_MSG.settingsResponse,
     payload: {
