@@ -3,7 +3,9 @@ import type {
   CreateWorkerIframeSettings,
   SerializableRefreshToken,
 } from '../types';
-import { VSCODE_POST_MSG_PREFIX, type PostMsgDataVscode } from './commonMsg';
+
+export const VSCODE_POST_MSG_PREFIX = 'vscode-ext.';
+export type VscodePostMsgType = `${typeof VSCODE_POST_MSG_PREFIX}${string}`;
 
 /**
  * VS Code `postMessage` message types.
@@ -18,6 +20,15 @@ export const VSCODE_POST_MSG = {
   // Theme messages
   requestSetTheme: `${VSCODE_POST_MSG_PREFIX}requestSetTheme`,
 } as const;
+
+export type PostMsgDataVscode<
+  TMessage extends VscodePostMsgType,
+  TPayload = undefined,
+> = {
+  id: string;
+  message: TMessage;
+  targetOrigin: string;
+} & (TPayload extends undefined ? {} : { payload: TPayload });
 
 export type SetThemeRequestMsgVscode = PostMsgDataVscode<
   typeof VSCODE_POST_MSG.requestSetTheme,

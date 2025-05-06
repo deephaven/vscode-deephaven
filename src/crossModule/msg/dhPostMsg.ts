@@ -4,7 +4,9 @@ import type {
   QuerySerial,
   SerializableRefreshToken,
 } from '../types';
-import { DEEPHAVEN_POST_MSG_PREFIX, type PostMsgDataDh } from './commonMsg';
+
+export const DEEPHAVEN_POST_MSG_PREFIX = 'io.deephaven.message.';
+export type DhPostMsgType = `${typeof DEEPHAVEN_POST_MSG_PREFIX}${string}`;
 
 /**
  * Deephaven `postMessage` message types.
@@ -22,6 +24,15 @@ export const DH_POST_MSG = {
   requestExternalTheme: `${DEEPHAVEN_POST_MSG_PREFIX}ThemeModel.requestExternalTheme`,
   requestSetTheme: `${DEEPHAVEN_POST_MSG_PREFIX}ThemeModel.requestSetTheme`,
 } as const;
+
+/** Base postMessage data for DH messages. */
+export type PostMsgDataDh<
+  TMessage extends DhPostMsgType,
+  TPayload = undefined,
+> = {
+  id: string;
+  message: TMessage;
+} & (TPayload extends undefined ? {} : { payload: TPayload });
 
 /**
  * CreateQuery DH messages
