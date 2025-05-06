@@ -3,6 +3,7 @@ import type { Brand, SerializableRefreshToken } from '../types';
 import {
   DEEPHAVEN_POST_MSG_PREFIX,
   VSCODE_POST_MSG_PREFIX,
+  type PostMsgDataDh,
   type PostMsgDataVscode,
 } from './commonMsg';
 
@@ -38,18 +39,18 @@ interface CreateWorkerIframeSettings {
 /**
  * CreateQuery DH messages
  */
-export type AuthTokenRequestMsgDh = PostMsgDataVscode<
+export type AuthTokenRequestMsgDh = PostMsgDataDh<
   typeof CREATE_QUERY_POST_MSG_DH.authTokenRequest,
   SerializableRefreshToken
 >;
-export type SettingsChangedMsgDh = PostMsgDataVscode<
+export type SettingsChangedMsgDh = PostMsgDataDh<
   typeof CREATE_QUERY_POST_MSG_DH.settingsChanged,
   CreateWorkerIframeSettings
 >;
-export type SettingsRequestMsgDh = PostMsgDataVscode<
+export type SettingsRequestMsgDh = PostMsgDataDh<
   typeof CREATE_QUERY_POST_MSG_DH.settingsRequest
 >;
-export type WorkerCreatedMsgDh = PostMsgDataVscode<
+export type WorkerCreatedMsgDh = PostMsgDataDh<
   typeof CREATE_QUERY_POST_MSG_DH.workerCreated,
   QuerySerial
 >;
