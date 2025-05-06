@@ -41,4 +41,4 @@ window.addEventListener(
   }
 );
 
-createDhIframe();
+createDhIframe(vscode);

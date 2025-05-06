@@ -32,7 +32,7 @@ export type DhPostMsgData<
 > = {
   id: string;
   message: TMessage;
-} & (TPayload extends undefined ? {} : { payload: TPayload });
+} & (TPayload extends undefined ? { payload?: never } : { payload: TPayload });
 
 /**
  * CreateQuery DH messages

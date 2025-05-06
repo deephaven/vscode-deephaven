@@ -19,18 +19,36 @@ export const VSCODE_POST_MSG = {
   settingsResponse: `${VSCODE_POST_MSG_PREFIX}settingsResponse`,
   // Theme messages
   requestSetTheme: `${VSCODE_POST_MSG_PREFIX}requestSetTheme`,
+  // VS Code property messages
+  getVscodeProperty: `${VSCODE_POST_MSG_PREFIX}getVscodeProperty`,
+  getVscodePropertyResponse: `${VSCODE_POST_MSG_PREFIX}getVscodePropertyResponse`,
 } as const;
 
+/**
+ * VS Code postMessage data.
+ */
 export type VscodePostMsgData<
   TMessage extends VscodePostMsgType,
   TPayload = undefined,
 > = {
   id: string;
   message: TMessage;
-  targetOrigin: string;
-} & (TPayload extends undefined ? {} : { payload: TPayload });
+} & (TPayload extends undefined ? { payload?: never } : { payload: TPayload });
 
-export type VscodeSetThemeRequestMsg = VscodePostMsgData<
+/**
+ * VS Code postMessage data with target origin.
+ */
+export type VscodePostMsgDataTargetOrigin<
+  TMessage extends VscodePostMsgType,
+  TPayload = undefined,
+> = VscodePostMsgData<TMessage, TPayload> & {
+  targetOrigin: string;
+};
+
+/**
+ * Theme messages
+ */
+export type VscodeSetThemeRequestMsg = VscodePostMsgDataTargetOrigin<
   typeof VSCODE_POST_MSG.requestSetTheme,
   BaseThemeKey
 >;
@@ -38,14 +56,31 @@ export type VscodeSetThemeRequestMsg = VscodePostMsgData<
 /**
  * CreateQuery Vscode messages
  */
-export type VscodeAuthTokenResponseMsg = VscodePostMsgData<
+export type VscodeAuthTokenResponseMsg = VscodePostMsgDataTargetOrigin<
   typeof VSCODE_POST_MSG.authTokenResponse,
   SerializableRefreshToken
 >;
-export type VscodeSettingsResponseMsg = VscodePostMsgData<
+export type VscodeSettingsResponseMsg = VscodePostMsgDataTargetOrigin<
   typeof VSCODE_POST_MSG.settingsResponse,
   CreateWorkerIframeSettings
 >;
 export type VscodeCreateQueryMsg =
   | VscodeAuthTokenResponseMsg
   | VscodeSettingsResponseMsg;
+
+/**
+ * Get VS Code property messages
+ */
+export type VscodePropertyName = 'baseThemeKey';
+
+export type VscodeGetPropertyMsg = VscodePostMsgData<
+  typeof VSCODE_POST_MSG.getVscodeProperty,
+  VscodePropertyName
+>;
+export type VscodeGetPropertyResponseMsg = VscodePostMsgData<
+  typeof VSCODE_POST_MSG.getVscodePropertyResponse,
+  {
+    name: VscodePropertyName;
+    value: unknown;
+  }
+>;
