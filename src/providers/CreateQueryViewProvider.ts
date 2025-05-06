@@ -1,9 +1,11 @@
 import * as vscode from 'vscode';
 import {
+  getDHThemeKey,
   getWebViewHtml,
   Logger,
   setViewIsVisible,
   showViewContainer,
+  uniqueId,
   withResolvers,
 } from '../util';
 import {
@@ -23,12 +25,14 @@ import {
   assertDefined,
   CREATE_QUERY_POST_MSG_DH,
   CREATE_QUERY_POST_MSG_VSCODE,
-  type AuthTokenRequestMsg,
+  THEME_POST_MSG_VSCODE,
+  type AuthTokenRequestMsgDh,
   type AuthTokenResponseMsg,
   type ConsoleSettings,
   type CreateQueryMsgDh,
-  type SettingsChangedMsg,
-  type SettingsRequestMsg,
+  type SetThemeRequestMsgVscode,
+  type SettingsChangedMsgDh,
+  type SettingsRequestMsgDh,
   type SettingsResponseMsgVscode,
 } from '../crossModule';
 
@@ -54,9 +58,21 @@ export class CreateQueryViewProvider
     );
     this._context.subscriptions.push(cmd);
 
-    vscode.window.onDidChangeActiveColorTheme(() => {
+    vscode.window.onDidChangeActiveColorTheme(async () => {
       // Refresh the view when the active color theme changes
-      this.refresh();
+      const view = await this._viewPromise;
+      if (view == null || this._activeServerUrl == null) {
+        return;
+      }
+
+      const msg: SetThemeRequestMsgVscode = {
+        id: uniqueId(),
+        message: THEME_POST_MSG_VSCODE.requestSetTheme,
+        payload: getDHThemeKey(),
+        targetOrigin: this._activeServerUrl.origin,
+      };
+
+      view.webview.postMessage(msg);
     });
   }
 
@@ -186,7 +202,7 @@ export class CreateQueryViewProvider
  * @returns A promise that resolves when the message is sent to the webview.
  */
 async function handleAuthTokenRequest(
-  msgData: AuthTokenRequestMsg,
+  msgData: AuthTokenRequestMsgDh,
   dheClient: DheAuthenticatedClient,
   serverUrl: URL,
   view: vscode.WebviewView
@@ -213,7 +229,7 @@ async function handleAuthTokenRequest(
  * @returns void
  */
 function handleSettingsChanged(
-  msgData: SettingsChangedMsg,
+  msgData: SettingsChangedMsgDh,
   context: vscode.ExtensionContext
 ): void {
   logger.debug(
@@ -233,7 +249,7 @@ function handleSettingsChanged(
  * @returns void
  */
 function handleSettingsRequest(
-  msgData: SettingsRequestMsg,
+  msgData: SettingsRequestMsgDh,
   context: vscode.ExtensionContext,
   tagId: UniqueID,
   serverUrl: URL,

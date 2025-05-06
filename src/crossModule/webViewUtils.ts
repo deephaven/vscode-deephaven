@@ -1,7 +1,14 @@
 import { assertDefined } from './assertUtil';
 import { CONTENT_IFRAME_ID } from './constants';
 import { Logger } from './Logger';
-import { MSG_DH } from './msg';
+import {
+  THEME_POST_MSG_DH,
+  THEME_POST_MSG_VSCODE,
+  type ExternalThemeData,
+  type SetThemeRequestMsgDh,
+  type ThemeMsg,
+} from './msg';
+import type { BaseThemeKey } from './types';
 
 const logger = new Logger('webViewUtils');
 
@@ -13,7 +20,7 @@ const logger = new Logger('webViewUtils');
 export function createDhIframe(): void {
   const baseThemeKey = document.querySelector<HTMLMetaElement>(
     'meta[name="dh-base-theme-key"]'
-  )?.content;
+  )?.content as BaseThemeKey | undefined;
 
   const iframeSrc = document.querySelector<HTMLMetaElement>(
     'meta[name="dh-iframe-url"]'
@@ -23,9 +30,23 @@ export function createDhIframe(): void {
   assertDefined(iframeSrc, 'DH iframe URL not found in meta tag');
 
   const resolver = getComputedStyle(document.documentElement);
+  const getExternalThemeData = (
+    baseThemeKey: BaseThemeKey
+  ): ExternalThemeData => {
+    const sidebarBackground =
+      resolver.getPropertyValue('--vscode-sideBar-background') || 'transparent';
 
-  const sidebarBackground =
-    resolver.getPropertyValue('--vscode-sideBar-background') || 'transparent';
+    const cssVars = {
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      '--dh-color-bg': sidebarBackground,
+    };
+
+    return {
+      name: 'Iframe Parent Theme',
+      baseThemeKey,
+      cssVars,
+    };
+  };
 
   const iframeUrl = new URL(iframeSrc);
 
@@ -36,30 +57,46 @@ export function createDhIframe(): void {
   iframeEl.id = CONTENT_IFRAME_ID;
   iframeEl.src = `${iframeUrl.href}&cachebust=${new Date().getTime()}`;
 
-  window.addEventListener('message', ({ data, origin, source }) => {
-    if (origin !== iframeUrl.origin) {
-      return;
-    }
+  window.addEventListener(
+    'message',
+    ({ data, origin, source }: MessageEvent<ThemeMsg>) => {
+      if (origin !== window.origin && origin !== iframeUrl.origin) {
+        return;
+      }
 
-    if (data.message === MSG_DH.externalThemeRequest) {
-      logger.info('Sending theme to iframe');
+      if (data.message === THEME_POST_MSG_DH.requestExternalTheme) {
+        logger.info('DH requested external theme');
 
-      source?.postMessage(
-        {
-          id: data.id,
-          payload: {
-            name: 'Iframe Parent Theme',
-            baseThemeKey,
-            cssVars: {
-              // eslint-disable-next-line @typescript-eslint/naming-convention
-              '--dh-color-bg': sidebarBackground,
-            },
+        source?.postMessage(
+          {
+            id: data.id,
+            payload: getExternalThemeData(baseThemeKey),
           },
-        },
-        origin as any
-      );
+          origin as any
+        );
+
+        return;
+      }
+
+      if (data.message === THEME_POST_MSG_VSCODE.requestSetTheme) {
+        logger.info('VS Code requested to set theme');
+
+        const { id, payload, targetOrigin } = data;
+
+        const msg: SetThemeRequestMsgDh = {
+          id,
+          message: THEME_POST_MSG_DH.requestSetTheme,
+          payload: getExternalThemeData(payload),
+        };
+
+        logger.info('Sending message to Deephaven:', JSON.stringify(msg));
+        const iframeWindow = getIframeContentWindow();
+        iframeWindow.postMessage(msg, targetOrigin);
+
+        return;
+      }
     }
-  });
+  );
 
   document.body.appendChild(iframeEl);
 }
