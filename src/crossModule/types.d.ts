@@ -21,3 +21,21 @@ export type SerializableRefreshToken = Brand<
     expiry: number;
   }
 >;
+
+export type QuerySerial = Brand<'QuerySerial', string>;
+
+/**
+ * This is an opaque type representing `ConsoleSettings` defined in DHE web. The
+ * extension doesn't care about the details since it persists it as-is to
+ * remember user worker creation preferences.
+ */
+export type ConsoleSettings = Brand<'ConsoleSettings', Record<string, unknown>>;
+
+/**
+ * Copy of `CreateWorkerIframeSettings` in DHE web.
+ */
+export interface CreateWorkerIframeSettings {
+  newWorkerName: string;
+  settings: Partial<ConsoleSettings>;
+  showHeader?: boolean;
+}

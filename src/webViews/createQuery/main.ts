@@ -1,10 +1,11 @@
 import {
   createDhIframe,
-  type CreateQueryMsg,
   getIframeContentWindow,
   isCreateQueryMsgFromDh,
   isCreateQueryMsgFromVscode,
   Logger,
+  type CreateQueryMsgDh,
+  type CreateQueryMsgVscode,
 } from '../../crossModule';
 
 const logger = new Logger('createQuery/main');
@@ -13,7 +14,11 @@ const vscode = acquireVsCodeApi();
 
 window.addEventListener(
   'message',
-  ({ data, origin, source }: MessageEvent<CreateQueryMsg>) => {
+  ({
+    data,
+    origin,
+    source,
+  }: MessageEvent<CreateQueryMsgDh | CreateQueryMsgVscode>) => {
     logger.info('Received message:', JSON.stringify(data), origin, source);
 
     // From DH -> VS Code

@@ -99,7 +99,6 @@ import type {
   SerializedRange,
   CodeBlock,
   IInteractiveConsoleQueryFactory,
-  QuerySerial,
   ConsoleType,
   DheAuthenticatedClient,
   DheUnauthenticatedClient,
@@ -109,7 +108,11 @@ import { ConnectionController } from './ConnectionController';
 import { PipServerController } from './PipServerController';
 import { PanelController } from './PanelController';
 import { UserLoginController } from './UserLoginController';
-import { assertDefined, type SerializableRefreshToken } from '../crossModule';
+import {
+  assertDefined,
+  type QuerySerial,
+  type SerializableRefreshToken,
+} from '../crossModule';
 
 const logger = new Logger('ExtensionController');
 

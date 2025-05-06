@@ -6,7 +6,7 @@ import type {
   SessionDetailsResponsePostMessage,
   WorkerInfo,
 } from '../types';
-import { LOGIN_POST_MSG_DH, LOGIN_POST_MSG_VSCODE } from '../crossModule';
+import { DH_POST_MSG, VSCODE_POST_MSG } from '../crossModule';
 
 /**
  * Create response for login options `postMessage` request from Deephaven iframe.
@@ -25,7 +25,7 @@ export function createLoginOptionsResponsePostMessage({
   workerInfo: WorkerInfo;
 }): LoginOptionsResponsePostMessage {
   return {
-    message: LOGIN_POST_MSG_VSCODE.loginOptionsResponse,
+    message: VSCODE_POST_MSG.loginOptionsResponse,
     payload: {
       id,
       payload: credentials,
@@ -48,7 +48,7 @@ export function createSessionDetailsResponsePostMessage({
   workerInfo: WorkerInfo;
 }): SessionDetailsResponsePostMessage {
   return {
-    message: LOGIN_POST_MSG_VSCODE.sessionDetailsResponse,
+    message: VSCODE_POST_MSG.sessionDetailsResponse,
     payload: {
       id,
       payload: {
@@ -109,26 +109,26 @@ export function getPanelHtml(iframeUrl: URL, title: string): string {
         const vscode = acquireVsCodeApi();
 
         window.addEventListener('message', ({ data }) => {
-          if (data.message === '${LOGIN_POST_MSG_DH.loginOptionsRequest}') {
+          if (data.message === '${DH_POST_MSG.loginOptionsRequest}') {
             console.log('LoginOptions request received from iframe');
             vscode.postMessage({ data });
             return;
           }
 
-          if (data.message === '${LOGIN_POST_MSG_DH.sessionDetailsRequest}') {
+          if (data.message === '${DH_POST_MSG.sessionDetailsRequest}') {
             console.log('SessionDetails request received from iframe');
             vscode.postMessage({ data });
             return;
           }
 
-          if (data.message === '${LOGIN_POST_MSG_VSCODE.loginOptionsResponse}') {
+          if (data.message === '${VSCODE_POST_MSG.loginOptionsResponse}') {
             console.log('Received login message from ext');
             const iframeWindow = document.getElementById('content-iframe').contentWindow;
             iframeWindow.postMessage(data.payload, data.targetOrigin);
             return;
           }
 
-          if (data.message === '${LOGIN_POST_MSG_VSCODE.sessionDetailsResponse}') {
+          if (data.message === '${VSCODE_POST_MSG.sessionDetailsResponse}') {
             console.log('Received session message from ext');
             const iframeWindow = document.getElementById('content-iframe').contentWindow;
             iframeWindow.postMessage(data.payload, data.targetOrigin);

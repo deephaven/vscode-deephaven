@@ -9,7 +9,11 @@ import type {
   UnauthenticatedClient as DheUnauthenticatedClientBase,
   Username,
 } from '@deephaven-enterprise/auth-nodejs';
-import type { Brand, SerializableRefreshToken } from '../crossModule';
+import type {
+  Brand,
+  QuerySerial,
+  SerializableRefreshToken,
+} from '../crossModule';
 
 export type NonEmptyArray<T> = [T, ...T[]];
 
@@ -146,7 +150,6 @@ export interface ConnectionState {
 export type GrpcURL = Brand<'GrpcURL', URL>;
 export type IdeURL = Brand<'IdeUrl', URL>;
 export type JsapiURL = Brand<'JsapiURL', URL>;
-export type QuerySerial = Brand<'QuerySerial', string>;
 export type WorkerURL = Brand<'WorkerURL', URL>;
 
 export interface WorkerInfo {

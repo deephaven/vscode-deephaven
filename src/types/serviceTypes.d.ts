@@ -18,13 +18,13 @@ import type {
   Psk,
   CoreAuthenticatedClient,
   WorkerURL,
-  QuerySerial,
   DheAuthenticatedClient,
 } from '../types/commonTypes';
 import type {
   UnauthenticatedClient as DheUnauthenticatedClient,
   Username,
 } from '@deephaven-enterprise/auth-nodejs';
+import type { QuerySerial } from '../crossModule';
 
 export interface IAsyncCacheService<TKey, TValue> extends IDisposable {
   get: (key: TKey) => Promise<TValue>;
