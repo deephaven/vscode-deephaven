@@ -1,11 +1,10 @@
 import * as vscode from 'vscode';
 import {
-  getDHThemeKey,
   getWebViewHtml,
   Logger,
+  registerWebViewThemeHandlers,
   setViewIsVisible,
   showViewContainer,
-  uniqueId,
   withResolvers,
 } from '../util';
 import {
@@ -25,12 +24,10 @@ import {
   assertDefined,
   CREATE_QUERY_POST_MSG_DH,
   CREATE_QUERY_POST_MSG_VSCODE,
-  THEME_POST_MSG_VSCODE,
   type AuthTokenRequestMsgDh,
   type AuthTokenResponseMsg,
   type ConsoleSettings,
   type CreateQueryMsgDh,
-  type SetThemeRequestMsgVscode,
   type SettingsChangedMsgDh,
   type SettingsRequestMsgDh,
   type SettingsResponseMsgVscode,
@@ -57,23 +54,6 @@ export class CreateQueryViewProvider
       }
     );
     this._context.subscriptions.push(cmd);
-
-    vscode.window.onDidChangeActiveColorTheme(async () => {
-      // Refresh the view when the active color theme changes
-      const view = await this._viewPromise;
-      if (view == null || this._activeServerUrl == null) {
-        return;
-      }
-
-      const msg: SetThemeRequestMsgVscode = {
-        id: uniqueId(),
-        message: THEME_POST_MSG_VSCODE.requestSetTheme,
-        payload: getDHThemeKey(),
-        targetOrigin: this._activeServerUrl.origin,
-      };
-
-      view.webview.postMessage(msg);
-    });
   }
 
   private readonly _context: vscode.ExtensionContext;
@@ -190,6 +170,9 @@ export class CreateQueryViewProvider
     _token: vscode.CancellationToken
   ): Thenable<void> | void => {
     this._resolveView?.(webViewView);
+
+    assertDefined(this._activeServerUrl, 'activeServerUrl');
+    registerWebViewThemeHandlers(webViewView, this._activeServerUrl);
   };
 }
 
