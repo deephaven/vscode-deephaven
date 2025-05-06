@@ -1,4 +1,5 @@
 export * from './commonMsg';
 export * from './createQueryMsg';
+export * from './dhPostMsg';
 export * from './loginMsg';
-export * from './themeMsg';
+export * from './vscodePostMsg';
