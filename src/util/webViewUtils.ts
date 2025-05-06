@@ -2,7 +2,12 @@ import * as vscode from 'vscode';
 import { VIEW_ID_PREFIX, type ViewContainerID, type ViewID } from '../common';
 import { uniqueId } from './idUtils';
 import { getDHThemeKey } from './uiUtils';
-import { VSCODE_POST_MSG, type VscodeSetThemeRequestMsg } from '../crossModule';
+import {
+  VSCODE_POST_MSG,
+  type VscodeGetPropertyMsg,
+  type VscodeGetPropertyResponseMsg,
+  type VscodeSetThemeRequestMsg,
+} from '../crossModule';
 
 /**
  * Get Uri root containing content for a WebView.
@@ -59,8 +64,6 @@ export function getWebViewHtml({
     vscode.Uri.joinPath(contentRootUri, stylesFileName)
   );
 
-  const baseDhThemeKey = getDHThemeKey();
-
   const cspContent = [
     `default-src 'none'`,
     `style-src ${webView.cspSource}`,
@@ -73,7 +76,6 @@ export function getWebViewHtml({
 			<head>
 				<meta charset="UTF-8">
 				<meta http-equiv="Content-Security-Policy" content="${cspContent}">
-        <meta name="dh-base-theme-key" content="${baseDhThemeKey}">
         <meta name="dh-iframe-url" content="${iframeUrl.href}">
 				<title>DH WebView</title>
 				<link rel="stylesheet" href="${styleUri}">
@@ -106,8 +108,36 @@ export function registerWebViewThemeHandlers(
     }
   );
 
+  const messageSubscription = view.webview.onDidReceiveMessage(
+    ({ data, origin }: { data: VscodeGetPropertyMsg; origin: string }) => {
+      if (origin !== serverUrl.origin) {
+        return;
+      }
+
+      const { id, payload } = data;
+
+      // Handle `baseThemeKey` property request from webview
+      if (
+        data.message === VSCODE_POST_MSG.getVscodeProperty &&
+        payload === 'baseThemeKey'
+      ) {
+        const msg: VscodeGetPropertyResponseMsg = {
+          id,
+          message: VSCODE_POST_MSG.getVscodePropertyResponse,
+          payload: {
+            name: payload,
+            value: getDHThemeKey(),
+          },
+        };
+
+        view.webview.postMessage(msg);
+      }
+    }
+  );
+
   view.onDidDispose(() => {
     colorChangeSubscription.dispose();
+    messageSubscription.dispose();
   });
 }
 

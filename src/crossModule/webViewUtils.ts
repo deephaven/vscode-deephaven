@@ -1,3 +1,4 @@
+import type { WebviewApi } from 'vscode-webview';
 import { assertDefined } from './assertUtil';
 import { CONTENT_IFRAME_ID } from './constants';
 import { Logger } from './Logger';
@@ -6,6 +7,9 @@ import {
   VSCODE_POST_MSG,
   type DhExternalThemeRequestMsg,
   type DhSetThemeRequestMsg,
+  type VscodeGetPropertyMsg,
+  type VscodeGetPropertyResponseMsg,
+  type VscodePropertyName,
   type VscodeSetThemeRequestMsg,
 } from './msg';
 import type { BaseThemeKey, ExternalThemeData } from './types';
@@ -16,57 +20,31 @@ const logger = new Logger('webViewUtils');
  * Create and append an iframe to a WebView that loads DH content. Expects meta
  * tags to provide the base theme key and the iframe URL (see `getWebViewHtml`
  * in the CJS `webViewUtils.ts` file).
+ * @param vscode The VS Code Webview API.
  */
-export function createDhIframe(): void {
-  const baseThemeKey = document.querySelector<HTMLMetaElement>(
-    'meta[name="dh-base-theme-key"]'
-  )?.content as BaseThemeKey | undefined;
-
+export function createDhIframe(vscode: WebviewApi<unknown>): void {
   const iframeSrc = document.querySelector<HTMLMetaElement>(
     'meta[name="dh-iframe-url"]'
   )?.content;
 
-  assertDefined(baseThemeKey, 'DH base theme key not found in meta tag');
   assertDefined(iframeSrc, 'DH iframe URL not found in meta tag');
 
-  const resolver = getComputedStyle(document.documentElement);
-  const getExternalThemeData = (
-    baseThemeKey: BaseThemeKey
-  ): ExternalThemeData => {
-    const sidebarBackground =
-      resolver.getPropertyValue('--vscode-sideBar-background') || 'transparent';
-
-    const cssVars = {
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      '--dh-color-bg': sidebarBackground,
-    };
-
-    return {
-      name: 'Iframe Parent Theme',
-      baseThemeKey,
-      cssVars,
-    };
-  };
-
-  const iframeUrl = new URL(iframeSrc);
-
-  iframeUrl.searchParams.append('theme', 'external-theme');
-  iframeUrl.searchParams.append('preloadTransparentTheme', 'true');
+  const dhIframeUrl = new URL(iframeSrc);
+  dhIframeUrl.searchParams.append('theme', 'external-theme');
+  dhIframeUrl.searchParams.append('preloadTransparentTheme', 'true');
 
   const iframeEl = document.createElement('iframe');
   iframeEl.id = CONTENT_IFRAME_ID;
-  iframeEl.src = `${iframeUrl.href}&cachebust=${new Date().getTime()}`;
+  iframeEl.src = `${dhIframeUrl.href}&cachebust=${new Date().getTime()}`;
 
-  const webViewWindow = window;
-
-  webViewWindow.addEventListener(
+  window.addEventListener(
     'message',
-    ({
+    async ({
       data,
       origin,
       source,
     }: MessageEvent<DhExternalThemeRequestMsg | VscodeSetThemeRequestMsg>) => {
-      if (origin !== webViewWindow.origin && origin !== iframeUrl.origin) {
+      if (origin !== window.origin && origin !== dhIframeUrl.origin) {
         return;
       }
 
@@ -74,10 +52,17 @@ export function createDhIframe(): void {
       if (data.message === DH_POST_MSG.requestExternalTheme) {
         logger.info('DH requested external theme');
 
+        const baseThemeKey = await getVscodeProperty(
+          vscode,
+          window,
+          'baseThemeKey',
+          dhIframeUrl.origin
+        );
+
         source?.postMessage(
           {
             id: data.id,
-            payload: getExternalThemeData(baseThemeKey),
+            payload: getExternalThemeData(baseThemeKey as BaseThemeKey),
           },
           origin as any
         );
@@ -124,4 +109,84 @@ export function getIframeContentWindow(): Window {
   assertDefined(maybeIframeEl.contentWindow, 'iframe content window');
 
   return maybeIframeEl.contentWindow;
+}
+
+/**
+ * Request a named property from the VS Code API from a WebView. This uses
+ * `postMessage` apis and requires `vscode` to call the `webview.postMessage`
+ * method with the appropriate response message.
+ * @param vscode The VS Code Webview API.
+ * @param webviewWindow The window of the WebView.
+ * @param propertyName The name of the property to request.
+ * @param dhIframeOrigin The origin of the DH iframe.
+ * @returns A promise that resolves with the value of the property.
+ */
+export async function getVscodeProperty(
+  vscode: WebviewApi<unknown>,
+  webviewWindow: Window,
+  propertyName: VscodePropertyName,
+  dhIframeOrigin: string
+): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    // Listen for `webview.postMessage` calls from VS Code and resolve Promise
+    // if any response match the `propertyName` requested.
+    webviewWindow.addEventListener(
+      'message',
+      function onMessage({
+        data,
+        origin,
+      }: MessageEvent<VscodeGetPropertyResponseMsg>): void {
+        if (origin !== webviewWindow.origin) {
+          return;
+        }
+
+        if (
+          data.message === VSCODE_POST_MSG.getVscodePropertyResponse &&
+          data.payload.name === propertyName
+        ) {
+          webviewWindow.removeEventListener('message', onMessage);
+          resolve(data.payload);
+        }
+      }
+    );
+
+    setTimeout(() => {
+      reject(new Error('Timeout waiting for property response'));
+    }, 3000);
+
+    // Send a request to vscode from the webview
+    const data: VscodeGetPropertyMsg = {
+      id: crypto.randomUUID(),
+      message: VSCODE_POST_MSG.getVscodeProperty,
+      payload: propertyName,
+    };
+
+    vscode.postMessage({ data, origin: dhIframeOrigin });
+  });
+}
+
+/**
+ * Get external theme data to send to DH.
+ * @param baseThemeKey The base theme key to use.
+ * @returns The external theme data.
+ */
+export function getExternalThemeData(
+  baseThemeKey: BaseThemeKey
+): ExternalThemeData {
+  const resolver = getComputedStyle(document.documentElement);
+
+  // Get VS Code's current theme colors
+  const sidebarBackground =
+    resolver.getPropertyValue('--vscode-sideBar-background') || 'transparent';
+
+  const cssVars = {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    '--dh-color-bg': sidebarBackground,
+  };
+
+  return {
+    name: 'Iframe External Theme',
+    baseThemeKey,
+    cssVars,
+  };
 }
