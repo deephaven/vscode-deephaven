@@ -15,7 +15,6 @@ import type {
   GrpcURL,
   IdeURL,
   JsapiURL,
-  QuerySerial,
   UniqueID,
   WorkerConfig,
   WorkerInfo,
@@ -32,6 +31,7 @@ import {
   INTERACTIVE_CONSOLE_TEMPORARY_QUEUE_NAME,
 } from '../common';
 import { withResolvers } from '../util';
+import type { QuerySerial } from '../crossModule';
 
 export type IDraftQuery = EditableQueryInfo & {
   isClientSide: boolean;

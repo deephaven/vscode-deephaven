@@ -13,21 +13,17 @@ import {
   VIEW_CONTAINER_ID,
   VIEW_ID,
 } from '../common';
-import type {
-  ConsoleType,
-  DheAuthenticatedClient,
-  QuerySerial,
-  UniqueID,
-} from '../types';
+import type { ConsoleType, DheAuthenticatedClient, UniqueID } from '../types';
 import { DisposableBase, type URLMap } from '../services';
 import {
   assertDefined,
-  CREATE_QUERY_POST_MSG_DH,
-  CREATE_QUERY_POST_MSG_VSCODE,
+  DH_POST_MSG,
+  VSCODE_POST_MSG,
   type AuthTokenRequestMsgDh,
   type AuthTokenResponseMsg,
   type ConsoleSettings,
   type CreateQueryMsgDh,
+  type QuerySerial,
   type SettingsChangedMsgDh,
   type SettingsRequestMsgDh,
   type SettingsResponseMsgVscode,
@@ -108,7 +104,7 @@ export class CreateQueryViewProvider
         logger.debug('Received message from webView:', data);
 
         switch (data.message) {
-          case CREATE_QUERY_POST_MSG_DH.authTokenRequest:
+          case DH_POST_MSG.authTokenRequest:
             const dheClient = this._dheClientCache.get(serverUrl);
             assertDefined(
               dheClient,
@@ -117,15 +113,15 @@ export class CreateQueryViewProvider
             await handleAuthTokenRequest(data, dheClient, serverUrl, view);
             break;
 
-          case CREATE_QUERY_POST_MSG_DH.settingsChanged:
+          case DH_POST_MSG.settingsChanged:
             handleSettingsChanged(data, this._context);
             break;
 
-          case CREATE_QUERY_POST_MSG_DH.settingsRequest:
+          case DH_POST_MSG.settingsRequest:
             handleSettingsRequest(data, this._context, tagId, serverUrl, view);
             break;
 
-          case CREATE_QUERY_POST_MSG_DH.workerCreated:
+          case DH_POST_MSG.workerCreated:
             this._rejectQuerySerial = undefined;
             resolveQuerySerial(data.payload);
             break;
@@ -196,7 +192,7 @@ async function handleAuthTokenRequest(
 
   const msg: AuthTokenResponseMsg = {
     id: msgData.id,
-    message: CREATE_QUERY_POST_MSG_VSCODE.authTokenResponse,
+    message: VSCODE_POST_MSG.authTokenResponse,
     payload: refreshTokenSerialized,
     targetOrigin: serverUrl.origin,
   };
@@ -244,7 +240,7 @@ function handleSettingsRequest(
 
   const msg: SettingsResponseMsgVscode = {
     id: msgData.id,
-    message: CREATE_QUERY_POST_MSG_VSCODE.settingsResponse,
+    message: VSCODE_POST_MSG.settingsResponse,
     payload: {
       newWorkerName,
       settings,

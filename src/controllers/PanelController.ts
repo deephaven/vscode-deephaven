@@ -28,7 +28,7 @@ import {
 import { waitFor } from '../util/promiseUtils';
 import { getEmbedWidgetUrl } from '../dh/dhc';
 import { ControllerBase } from './ControllerBase';
-import { assertDefined, LOGIN_POST_MSG_DH } from '../crossModule';
+import { assertDefined, DH_POST_MSG } from '../crossModule';
 
 const logger = new Logger('PanelController');
 
@@ -152,7 +152,7 @@ export class PanelController extends ControllerBase {
     }
 
     // Respond to login credentials request from DH iframe
-    if (message === LOGIN_POST_MSG_DH.loginOptionsRequest) {
+    if (message === DH_POST_MSG.loginOptionsRequest) {
       const credentials =
         await this._serverManager.getWorkerCredentials(serverOrWorkerUrl);
 
@@ -184,7 +184,7 @@ export class PanelController extends ControllerBase {
     }
 
     // Respond to session details request from DH iframe
-    if (message === LOGIN_POST_MSG_DH.sessionDetailsRequest) {
+    if (message === DH_POST_MSG.sessionDetailsRequest) {
       const response = createSessionDetailsResponsePostMessage({
         id,
         workerInfo,

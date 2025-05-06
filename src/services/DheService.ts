@@ -9,7 +9,6 @@ import {
   type IDheServiceFactory,
   type IInteractiveConsoleQueryFactory,
   type IToastService,
-  type QuerySerial,
   type UniqueID,
   type WorkerConfig,
   type WorkerInfo,
@@ -23,6 +22,7 @@ import {
   getWorkerInfoFromQuery,
 } from '../dh/dhe';
 import { CREATE_DHE_AUTHENTICATED_CLIENT_CMD } from '../common';
+import type { QuerySerial } from '../crossModule';
 
 const logger = new Logger('DheService');
 
