@@ -2,13 +2,13 @@ import { assertDefined } from './assertUtil';
 import { CONTENT_IFRAME_ID } from './constants';
 import { Logger } from './Logger';
 import {
-  THEME_POST_MSG_DH,
-  THEME_POST_MSG_VSCODE,
-  type ExternalThemeData,
+  DH_POST_MSG,
+  VSCODE_POST_MSG,
+  type ExternalThemeRequestMsgDh,
   type SetThemeRequestMsgDh,
-  type ThemeMsg,
+  type SetThemeRequestMsgVscode,
 } from './msg';
-import type { BaseThemeKey } from './types';
+import type { BaseThemeKey, ExternalThemeData } from './types';
 
 const logger = new Logger('webViewUtils');
 
@@ -57,14 +57,21 @@ export function createDhIframe(): void {
   iframeEl.id = CONTENT_IFRAME_ID;
   iframeEl.src = `${iframeUrl.href}&cachebust=${new Date().getTime()}`;
 
-  window.addEventListener(
+  const webViewWindow = window;
+
+  webViewWindow.addEventListener(
     'message',
-    ({ data, origin, source }: MessageEvent<ThemeMsg>) => {
-      if (origin !== window.origin && origin !== iframeUrl.origin) {
+    ({
+      data,
+      origin,
+      source,
+    }: MessageEvent<ExternalThemeRequestMsgDh | SetThemeRequestMsgVscode>) => {
+      if (origin !== webViewWindow.origin && origin !== iframeUrl.origin) {
         return;
       }
 
-      if (data.message === THEME_POST_MSG_DH.requestExternalTheme) {
+      // DH requested theme from VS Code
+      if (data.message === DH_POST_MSG.requestExternalTheme) {
         logger.info('DH requested external theme');
 
         source?.postMessage(
@@ -78,14 +85,15 @@ export function createDhIframe(): void {
         return;
       }
 
-      if (data.message === THEME_POST_MSG_VSCODE.requestSetTheme) {
+      // VS Code requested to set theme
+      if (data.message === VSCODE_POST_MSG.requestSetTheme) {
         logger.info('VS Code requested to set theme');
 
         const { id, payload, targetOrigin } = data;
 
         const msg: SetThemeRequestMsgDh = {
           id,
-          message: THEME_POST_MSG_DH.requestSetTheme,
+          message: DH_POST_MSG.requestSetTheme,
           payload: getExternalThemeData(payload),
         };
 

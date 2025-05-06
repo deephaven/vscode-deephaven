@@ -8,6 +8,12 @@ export type BaseThemeType = 'dark' | 'light';
 export type BaseThemeKey = `default-${BaseThemeType}`;
 export type ThemeCssColorVariableName = `--dh-color-${string}`;
 
+export interface ExternalThemeData {
+  baseThemeKey?: BaseThemeKey;
+  name: string;
+  cssVars: Record<ThemeCssColorVariableName, string>;
+}
+
 export type SerializableRefreshToken = Brand<
   'SerializableRefreshToken',
   {

@@ -2,10 +2,7 @@ import * as vscode from 'vscode';
 import { VIEW_ID_PREFIX, type ViewContainerID, type ViewID } from '../common';
 import { uniqueId } from './idUtils';
 import { getDHThemeKey } from './uiUtils';
-import {
-  THEME_POST_MSG_VSCODE,
-  type SetThemeRequestMsgVscode,
-} from '../crossModule';
+import { VSCODE_POST_MSG, type SetThemeRequestMsgVscode } from '../crossModule';
 
 /**
  * Get Uri root containing content for a WebView.
@@ -100,7 +97,7 @@ export function registerWebViewThemeHandlers(
     () => {
       const msg: SetThemeRequestMsgVscode = {
         id: uniqueId(),
-        message: THEME_POST_MSG_VSCODE.requestSetTheme,
+        message: VSCODE_POST_MSG.requestSetTheme,
         payload: getDHThemeKey(),
         targetOrigin: serverUrl.origin,
       };
