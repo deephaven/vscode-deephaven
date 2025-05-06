@@ -26,7 +26,7 @@ export const DH_POST_MSG = {
 } as const;
 
 /** Base postMessage data for DH messages. */
-export type PostMsgDataDh<
+export type DhPostMsgData<
   TMessage extends DhPostMsgType,
   TPayload = undefined,
 > = {
@@ -37,34 +37,34 @@ export type PostMsgDataDh<
 /**
  * CreateQuery DH messages
  */
-export type AuthTokenRequestMsgDh = PostMsgDataDh<
+export type DhAuthTokenRequestMsg = DhPostMsgData<
   typeof DH_POST_MSG.authTokenRequest,
   SerializableRefreshToken
 >;
-export type SettingsChangedMsgDh = PostMsgDataDh<
+export type DhSettingsChangedMsg = DhPostMsgData<
   typeof DH_POST_MSG.settingsChanged,
   CreateWorkerIframeSettings
 >;
-export type SettingsRequestMsgDh = PostMsgDataDh<
+export type DhSettingsRequestMsg = DhPostMsgData<
   typeof DH_POST_MSG.settingsRequest
 >;
-export type WorkerCreatedMsgDh = PostMsgDataDh<
+export type DhWorkerCreatedMsg = DhPostMsgData<
   typeof DH_POST_MSG.workerCreated,
   QuerySerial
 >;
-export type CreateQueryMsgDh =
-  | AuthTokenRequestMsgDh
-  | SettingsChangedMsgDh
-  | SettingsRequestMsgDh
-  | WorkerCreatedMsgDh;
+export type DhCreateQueryMsg =
+  | DhAuthTokenRequestMsg
+  | DhSettingsChangedMsg
+  | DhSettingsRequestMsg
+  | DhWorkerCreatedMsg;
 
 /**
  * Theme messages
  */
-export type ExternalThemeRequestMsgDh = PostMsgDataDh<
+export type DhExternalThemeRequestMsg = DhPostMsgData<
   typeof DH_POST_MSG.requestExternalTheme
 >;
-export type SetThemeRequestMsgDh = PostMsgDataDh<
+export type DhSetThemeRequestMsg = DhPostMsgData<
   typeof DH_POST_MSG.requestSetTheme,
   ExternalThemeData
 >;

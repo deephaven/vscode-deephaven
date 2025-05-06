@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { VIEW_ID_PREFIX, type ViewContainerID, type ViewID } from '../common';
 import { uniqueId } from './idUtils';
 import { getDHThemeKey } from './uiUtils';
-import { VSCODE_POST_MSG, type SetThemeRequestMsgVscode } from '../crossModule';
+import { VSCODE_POST_MSG, type VscodeSetThemeRequestMsg } from '../crossModule';
 
 /**
  * Get Uri root containing content for a WebView.
@@ -95,7 +95,7 @@ export function registerWebViewThemeHandlers(
 ): void {
   const colorChangeSubscription = vscode.window.onDidChangeActiveColorTheme(
     () => {
-      const msg: SetThemeRequestMsgVscode = {
+      const msg: VscodeSetThemeRequestMsg = {
         id: uniqueId(),
         message: VSCODE_POST_MSG.requestSetTheme,
         payload: getDHThemeKey(),
