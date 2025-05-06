@@ -4,6 +4,10 @@ export type Brand<T extends string, TBase = string> = TBase & {
   readonly [__brand]: T;
 };
 
+export type BaseThemeType = 'dark' | 'light';
+export type BaseThemeKey = `default-${BaseThemeType}`;
+export type ThemeCssColorVariableName = `--dh-color-${string}`;
+
 export type SerializableRefreshToken = Brand<
   'SerializableRefreshToken',
   {

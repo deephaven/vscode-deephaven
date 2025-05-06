@@ -14,7 +14,7 @@ import {
   ICON_ID,
   type ViewID,
 } from '../common';
-import { assertDefined } from '../crossModule';
+import { assertDefined, type BaseThemeKey } from '../crossModule';
 import type {
   ConnectionType,
   ConsoleType,
@@ -357,7 +357,7 @@ export function formatTimestamp(date: Date): string | null {
 /**
  * Get DH `themeKey` based on current vscode theme.
  */
-export function getDHThemeKey(): string {
+export function getDHThemeKey(): BaseThemeKey {
   switch (vscode.window.activeColorTheme.kind) {
     case vscode.ColorThemeKind.Light:
     case vscode.ColorThemeKind.HighContrastLight:

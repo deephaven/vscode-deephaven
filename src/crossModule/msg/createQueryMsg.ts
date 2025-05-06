@@ -1,8 +1,9 @@
+import type { QuerySerial } from '../../types';
 import type { Brand, SerializableRefreshToken } from '../types';
 import {
   DEEPHAVEN_POST_MSG_PREFIX,
   VSCODE_POST_MSG_PREFIX,
-  type PostMsgData,
+  type PostMsgDataVscode,
 } from './commonMsg';
 
 /** Create query messages */
@@ -37,34 +38,35 @@ interface CreateWorkerIframeSettings {
 /**
  * CreateQuery DH messages
  */
-export type AuthTokenRequestMsg = PostMsgData<
+export type AuthTokenRequestMsgDh = PostMsgDataVscode<
   typeof CREATE_QUERY_POST_MSG_DH.authTokenRequest,
   SerializableRefreshToken
 >;
-export type SettingsChangedMsg = PostMsgData<
+export type SettingsChangedMsgDh = PostMsgDataVscode<
   typeof CREATE_QUERY_POST_MSG_DH.settingsChanged,
   CreateWorkerIframeSettings
 >;
-export type SettingsRequestMsg = PostMsgData<
+export type SettingsRequestMsgDh = PostMsgDataVscode<
   typeof CREATE_QUERY_POST_MSG_DH.settingsRequest
 >;
-export type WorkerCreatedMsg = PostMsgData<
-  typeof CREATE_QUERY_POST_MSG_DH.workerCreated
+export type WorkerCreatedMsgDh = PostMsgDataVscode<
+  typeof CREATE_QUERY_POST_MSG_DH.workerCreated,
+  QuerySerial
 >;
 export type CreateQueryMsgDh =
-  | AuthTokenRequestMsg
-  | SettingsChangedMsg
-  | SettingsRequestMsg
-  | WorkerCreatedMsg;
+  | AuthTokenRequestMsgDh
+  | SettingsChangedMsgDh
+  | SettingsRequestMsgDh
+  | WorkerCreatedMsgDh;
 
 /**
  * CreateQuery Vscode messages
  */
-export type AuthTokenResponseMsg = PostMsgData<
+export type AuthTokenResponseMsg = PostMsgDataVscode<
   typeof CREATE_QUERY_POST_MSG_VSCODE.authTokenResponse,
   SerializableRefreshToken
 >;
-export type SettingsResponseMsgVscode = PostMsgData<
+export type SettingsResponseMsgVscode = PostMsgDataVscode<
   typeof CREATE_QUERY_POST_MSG_VSCODE.settingsResponse,
   CreateWorkerIframeSettings
 >;
