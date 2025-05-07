@@ -6,6 +6,7 @@ import {
   VSCODE_POST_MSG,
   type VscodeGetPropertyMsg,
   type VscodeGetPropertyResponseMsg,
+  type VscodePropertyName,
   type VscodeSetThemeRequestMsg,
 } from '../crossModule';
 
@@ -121,16 +122,7 @@ export function registerWebViewThemeHandlers(
         data.message === VSCODE_POST_MSG.getVscodeProperty &&
         payload === 'baseThemeKey'
       ) {
-        const msg: VscodeGetPropertyResponseMsg = {
-          id,
-          message: VSCODE_POST_MSG.getVscodePropertyResponse,
-          payload: {
-            name: payload,
-            value: getDHThemeKey(),
-          },
-        };
-
-        view.webview.postMessage(msg);
+        view.webview.postMessage(createGetPropertyResponseMsg(id, payload));
       }
     }
   );
@@ -139,6 +131,26 @@ export function registerWebViewThemeHandlers(
     colorChangeSubscription.dispose();
     messageSubscription.dispose();
   });
+}
+
+/**
+ * Create a property response message.
+ * @param id The ID of the message.
+ * @param name The name of the property.
+ * @returns The property response message.
+ */
+export function createGetPropertyResponseMsg<TName extends VscodePropertyName>(
+  id: string,
+  name: TName
+): VscodeGetPropertyResponseMsg {
+  return {
+    id,
+    message: VSCODE_POST_MSG.getVscodePropertyResponse,
+    payload: {
+      name,
+      value: getDHThemeKey(),
+    },
+  };
 }
 
 /**
