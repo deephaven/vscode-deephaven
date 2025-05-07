@@ -73,14 +73,17 @@ export type VscodeCreateQueryMsg =
  */
 export type VscodePropertyName = 'baseThemeKey';
 
-export type VscodeGetPropertyMsg = VscodePostMsgData<
-  typeof VSCODE_POST_MSG.getVscodeProperty,
-  VscodePropertyName
->;
-export type VscodeGetPropertyResponseMsg = VscodePostMsgData<
+export type VscodeGetPropertyMsg<
+  TName extends VscodePropertyName = VscodePropertyName,
+> = VscodePostMsgData<typeof VSCODE_POST_MSG.getVscodeProperty, TName>;
+
+export type VscodeGetPropertyResponseMsg<
+  TName extends VscodePropertyName = VscodePropertyName,
+  TValue = unknown,
+> = VscodePostMsgData<
   typeof VSCODE_POST_MSG.getVscodePropertyResponse,
   {
-    name: VscodePropertyName;
-    value: unknown;
+    name: TName;
+    value: TValue;
   }
 >;
