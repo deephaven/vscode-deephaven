@@ -1,6 +1,6 @@
 import type { WebviewApi } from 'vscode-webview';
 import { assertDefined } from './assertUtil';
-import { CONTENT_IFRAME_ID } from './constants';
+import { CONTENT_IFRAME_ID, GET_PROPERTY_TIMEOUT_MS } from './constants';
 import { Logger } from './Logger';
 import {
   DH_POST_MSG,
@@ -152,10 +152,12 @@ export async function getVscodeProperty(
 
     setTimeout(() => {
       reject(new Error('Timeout waiting for property response'));
-    }, 3000);
+    }, GET_PROPERTY_TIMEOUT_MS);
 
     // Send a request to vscode from the webview
     const data: VscodeGetPropertyMsg = {
+      // using native browser api to avoid `nanoid` having to be bundled in the
+      // webView build
       id: crypto.randomUUID(),
       message: VSCODE_POST_MSG.getVscodeProperty,
       payload: propertyName,

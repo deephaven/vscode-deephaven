@@ -5,3 +5,4 @@
  */
 
 export const CONTENT_IFRAME_ID = 'content-iframe';
+export const GET_PROPERTY_TIMEOUT_MS = 3000;
