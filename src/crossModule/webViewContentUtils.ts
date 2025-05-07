@@ -59,10 +59,12 @@ export function createDhIframe(vscode: WebviewApi<unknown>): void {
           dhIframeUrl.origin
         );
 
+        const externalThemeData = getExternalThemeData(baseThemeKey);
+
         source?.postMessage(
           {
             id: data.id,
-            payload: getExternalThemeData(baseThemeKey as BaseThemeKey),
+            payload: externalThemeData,
           },
           origin as any
         );
@@ -126,7 +128,7 @@ export async function getVscodeProperty(
   webviewWindow: Window,
   propertyName: VscodePropertyName,
   dhIframeOrigin: string
-): Promise<unknown> {
+): Promise<BaseThemeKey> {
   return new Promise((resolve, reject) => {
     // Listen for `webview.postMessage` calls from VS Code and resolve Promise
     // if any response match the `propertyName` requested.
@@ -135,7 +137,9 @@ export async function getVscodeProperty(
       function onMessage({
         data,
         origin,
-      }: MessageEvent<VscodeGetPropertyResponseMsg>): void {
+      }: MessageEvent<
+        VscodeGetPropertyResponseMsg<'baseThemeKey', BaseThemeKey>
+      >): void {
         if (origin !== webviewWindow.origin) {
           return;
         }
@@ -145,7 +149,7 @@ export async function getVscodeProperty(
           data.payload.name === propertyName
         ) {
           webviewWindow.removeEventListener('message', onMessage);
-          resolve(data.payload);
+          resolve(data.payload.value);
         }
       }
     );
