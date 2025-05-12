@@ -8,6 +8,9 @@ import {
 } from '../common';
 import { getDheAuthConfig } from './dhe';
 
+// See __mocks__/vscode.ts for the mock implementation
+vi.mock('vscode');
+
 describe('getDheAuthConfig', () => {
   const given = {
     samlLoginClass: [
