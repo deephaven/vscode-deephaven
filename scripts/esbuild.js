@@ -67,17 +67,23 @@ const esbuildProblemMatcherPlugin = {
 };
 
 async function main() {
-  const cjsCtxPromise = esbuild.context({
-    entryPoints: ['src/extension.ts'],
+  /** @type {import('esbuild-wasm').BuildOptions} */
+  const sharedOptions = {
     bundle: true,
-    format: 'cjs',
     minify: production,
     sourcemap: !production,
     sourcesContent: false,
     platform: 'node',
-    outdir: 'out',
     external: ['esbuild-wasm', 'vscode'],
     logLevel: 'silent',
+  };
+
+  // CommonJS build for extension code.
+  const cjsCtxPromise = esbuild.context({
+    ...sharedOptions,
+    entryPoints: ['src/extension.ts'],
+    format: 'cjs',
+    outdir: 'out',
     plugins: [
       ...optionalPlugins,
       /* this plugin needs to be the last one */
@@ -85,22 +91,16 @@ async function main() {
     ],
   });
 
+  // Extension Webviews can load ESM modules directly from the file system. We
+  // use a dedicated ESM build to isolate the Webview specific content.
   const esmWebViewCtxPromise = esbuild.context({
+    ...sharedOptions,
     entryPoints: [
-      // Webview resources get referenced from the file system by the webview.
-      // Build these separately to allow referencing directly.
       'src/webViews/createQuery/main.ts',
       'src/webViews/createQuery/styles.css',
     ],
-    bundle: true,
     format: 'esm',
-    minify: production,
-    sourcemap: !production,
-    sourcesContent: false,
-    platform: 'node',
     outdir: 'out/webViews/createQuery',
-    external: ['esbuild-wasm', 'vscode'],
-    logLevel: 'silent',
     loader: {
       // eslint-disable-next-line @typescript-eslint/naming-convention
       '.css': 'copy',
