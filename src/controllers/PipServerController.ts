@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { execFileSync } from 'node:child_process';
+import path from 'node:path';
 import {
   getMsPythonExtensionApi,
   getPipServerUrl,
@@ -19,7 +20,6 @@ import {
 } from '../common';
 import { isDhcServerRunning } from '../dh/dhc';
 import { pollUntilTrue } from '../services';
-import path from 'node:path';
 
 const logger = new Logger('PipServerController');
 
