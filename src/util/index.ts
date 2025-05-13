@@ -1,6 +1,7 @@
 export * from './assertUtil';
 export * from './dataUtils';
 export * from './documentUtils';
+export * from './extensionApiUtils';
 export * from './hoverUtils';
 export * from './idUtils';
 export * from './isInstanceOf';

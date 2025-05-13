@@ -1,6 +1,11 @@
 import * as vscode from 'vscode';
 import { execFileSync } from 'node:child_process';
-import { getPipServerUrl, Logger, parsePort } from '../util';
+import {
+  getMsPythonExtensionApi,
+  getPipServerUrl,
+  Logger,
+  parsePort,
+} from '../util';
 import type {
   IDisposable,
   Port,
@@ -17,12 +22,6 @@ import { pollUntilTrue } from '../services';
 import path from 'node:path';
 
 const logger = new Logger('PipServerController');
-
-interface PythonExtensionApi {
-  environments: {
-    getActiveEnvironmentPath: () => Promise<{ path: string }>;
-  };
-}
 
 export class PipServerController implements IDisposable {
   constructor(
@@ -128,8 +127,8 @@ export class PipServerController implements IDisposable {
    * @returns The Python interpreter path or `null` if not found.
    */
   getPythonInterpreterPath = async (): Promise<string | null> => {
-    const pythonExtension =
-      vscode.extensions.getExtension<PythonExtensionApi>('ms-python.python');
+    const pythonExtension = getMsPythonExtensionApi();
+
     if (pythonExtension == null) {
       logger.debug('Python extension not found');
       return null;
