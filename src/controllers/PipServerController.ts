@@ -66,7 +66,6 @@ export class PipServerController implements IDisposable {
   private readonly _serverUrlTerminalMap: Map<Port, vscode.Terminal>;
   private readonly _serverManager: IServerManager;
   private readonly _toaster: IToastService;
-  private _checkPipInstallPromise: Promise<boolean> | null = null;
   private _isPipServerInstalled = false;
   private _reservedPorts: ReadonlySet<Port> = new Set();
 
@@ -86,8 +85,11 @@ export class PipServerController implements IDisposable {
    */
   checkPipInstall = async (): Promise<boolean> => {
     if (!PIP_SERVER_SUPPORTED_PLATFORMS.has(process.platform)) {
+      logger.debug(`Pip server not supported on platform: ${process.platform}`);
       return false;
     }
+
+    logger.debug('Checking pip install');
 
     const pythonInterpreterPath = await this.getPythonInterpreterPath();
     if (pythonInterpreterPath == null) {
