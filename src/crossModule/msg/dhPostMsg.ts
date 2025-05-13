@@ -20,6 +20,7 @@ export const DH_POST_MSG = {
   settingsChanged: `${DEEPHAVEN_POST_MSG_PREFIX}IframeContent.settingsChanged`,
   settingsRequest: `${DEEPHAVEN_POST_MSG_PREFIX}IframeContent.settingsRequest`,
   workerCreated: `${DEEPHAVEN_POST_MSG_PREFIX}IframeContent.workerCreated`,
+  workerCreationCancelled: `${DEEPHAVEN_POST_MSG_PREFIX}IframeContent.workerCreationCancelled`,
   // Theme messages
   requestExternalTheme: `${DEEPHAVEN_POST_MSG_PREFIX}ThemeModel.requestExternalTheme`,
   requestSetTheme: `${DEEPHAVEN_POST_MSG_PREFIX}ThemeModel.requestSetTheme`,
@@ -52,11 +53,15 @@ export type DhWorkerCreatedMsg = DhPostMsgData<
   typeof DH_POST_MSG.workerCreated,
   QuerySerial
 >;
+export type DhWorkerCreationCancelledMsg = DhPostMsgData<
+  typeof DH_POST_MSG.workerCreationCancelled
+>;
 export type DhCreateQueryMsg =
   | DhAuthTokenRequestMsg
   | DhSettingsChangedMsg
   | DhSettingsRequestMsg
-  | DhWorkerCreatedMsg;
+  | DhWorkerCreatedMsg
+  | DhWorkerCreationCancelledMsg;
 
 /**
  * Theme messages
