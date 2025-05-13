@@ -183,8 +183,6 @@ export class ServerManager implements IServerManager {
 
     // Pip managed local server
     if (serverState.isManaged) {
-      this.updateConnectionCount(serverUrl, 1);
-
       this._secretService.storePsk(serverUrl, serverState.psk);
     }
     // DHE server
@@ -197,6 +195,9 @@ export class ServerManager implements IServerManager {
         return null;
       }
 
+      // The `serverUrl` in this block is for the DHE server but gets set to the
+      // newly created worker url before leaving the block, so we need to update
+      // the connection count while we still have the reference.
       this.updateConnectionCount(serverUrl, 1);
       tagId = uniqueId();
 

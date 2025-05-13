@@ -11,11 +11,10 @@ import {
   PIP_SERVER_STATUS_CHECK_INTERVAL,
   PIP_SERVER_STATUS_CHECK_TIMEOUT,
   PIP_SERVER_SUPPORTED_PLATFORMS,
-  PYTHON_ENV_WAIT,
 } from '../common';
-import { waitFor } from '../util';
 import { isDhcServerRunning } from '../dh/dhc';
 import { pollUntilTrue } from '../services';
+import path from 'node:path';
 
 const logger = new Logger('PipServerController');
 
@@ -83,24 +82,27 @@ export class PipServerController implements IDisposable {
    * Attempt an import of `deephaven_server` to check if
    * servers can be managed from the extension.
    */
-  checkPipInstall = async (): Promise<boolean> => {
+  checkPipInstall = async (): Promise<
+    | { isAvailable: true; interpreterPath: string }
+    | { isAvailable: false; interpreterPath?: never }
+  > => {
     if (!PIP_SERVER_SUPPORTED_PLATFORMS.has(process.platform)) {
       logger.debug(`Pip server not supported on platform: ${process.platform}`);
-      return false;
+      return { isAvailable: false };
     }
 
     logger.debug('Checking pip install');
 
     const pythonInterpreterPath = await this.getPythonInterpreterPath();
     if (pythonInterpreterPath == null) {
-      return false;
+      return { isAvailable: false };
     }
 
     try {
       execFileSync(pythonInterpreterPath, ['-c', 'import deephaven_server']);
-      return true;
+      return { isAvailable: true, interpreterPath: pythonInterpreterPath };
     } catch (err) {
-      return false;
+      return { isAvailable: false };
     }
   };
 
@@ -210,11 +212,26 @@ export class PipServerController implements IDisposable {
       return;
     }
 
+    // In case pip env has changed since last server check
+    const { isAvailable, interpreterPath } = await this.checkPipInstall();
+    this._isPipServerInstalled = isAvailable;
+
+    if (!isAvailable) {
+      this._logAndShowError('Pip server environment no longer available.');
+      return;
+    }
+
     const terminal = vscode.window.createTerminal({
       name: `Deephaven (${port})`,
       env: {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
+        /* eslint-disable @typescript-eslint/naming-convention */
+        // This allows us to use the `venv` configured by the Python extension
+        // without having to wait for the extension to activate it.
+        PATH: path.dirname(interpreterPath),
+        // Set the workspace root as PYTHONPATH so we can use Python modules in
+        // the workspace
         PYTHONPATH: './',
+        /* eslint-enable @typescript-eslint/naming-convention */
       },
       isTransient: true,
     });
@@ -222,62 +239,43 @@ export class PipServerController implements IDisposable {
     this._serverUrlTerminalMap.set(port, terminal);
     this.syncManagedServers();
 
-    // Give python extension time to setup .venv if configured
-    await waitFor(PYTHON_ENV_WAIT);
+    const serverUrl = getPipServerUrl(port);
 
-    // If user disposes terminal before server starts, it will be removed from
-    // _serverUrlTerminalMap, so check it to verify it's still there before
-    // proceeding.
-    if (this._serverUrlTerminalMap.has(port)) {
-      // In case pip env has changed since last server check
-      this._isPipServerInstalled = await this.checkPipInstall();
-
-      if (!this._isPipServerInstalled) {
-        this._logAndShowError(
-          'Could not find `deephaven_server` Python module.'
-        );
-
-        this.disposeServers([port]);
-
-        return;
-      }
-
-      const serverUrl = getPipServerUrl(port);
-
-      const serverState = this._serverManager.getServer(serverUrl);
-      if (serverState?.isManaged !== true) {
-        this._logAndShowError(
-          `Unexpected server state for managed server: '${serverUrl}'`
-        );
-        return;
-      }
-
-      const jvmArgs: [`-D${string}`, string][] = [
-        ['-Dauthentication.psk', serverState.psk],
-      ];
-
-      const isMac = process.platform === 'darwin';
-      // Required for M1/M2 macs:
-      // https://deephaven.io/core/docs/getting-started/pip-install/#m2-macs
-      if (isMac) {
-        jvmArgs.push(['-Dprocess.info.system-info.enabled', 'false']);
-      }
-
-      const jvmArgsStr = jvmArgs
-        .map(([key, value]) => `${key}=${value}`)
-        .join(' ');
-
-      terminal.sendText(
-        [
-          'deephaven server',
-          `--jvm-args "${jvmArgsStr}"`,
-          `--port ${port}`,
-          '--no-browser',
-        ].join(' ')
+    const serverState = this._serverManager.getServer(serverUrl);
+    if (serverState?.isManaged !== true) {
+      this._logAndShowError(
+        `Unexpected server state for managed server: '${serverUrl}'`
       );
-
-      await this.pollUntilServerStarts(port);
+      return;
     }
+
+    const jvmArgs: [`-D${string}`, string][] = [
+      ['-Dauthentication.psk', serverState.psk],
+    ];
+
+    const isMac = process.platform === 'darwin';
+    // Required for M1/M2 macs:
+    // https://deephaven.io/core/docs/getting-started/pip-install/#m2-macs
+    if (isMac) {
+      jvmArgs.push(['-Dprocess.info.system-info.enabled', 'false']);
+    }
+
+    const jvmArgsStr = jvmArgs
+      .map(([key, value]) => `${key}=${value}`)
+      .join(' ');
+
+    // const venvPath = path.dirname(interpreterPath);
+    // terminal.sendText(`export PATH=${venvPath}:$PATH`);
+    terminal.sendText(
+      [
+        'deephaven server',
+        `--jvm-args "${jvmArgsStr}"`,
+        `--port ${port}`,
+        '--no-browser',
+      ].join(' ')
+    );
+
+    await this.pollUntilServerStarts(port);
   };
 
   stopServer = async (url: URL): Promise<void> => {
@@ -290,7 +288,7 @@ export class PipServerController implements IDisposable {
 
   syncManagedServers = async (): Promise<void> => {
     if (!this._isPipServerInstalled) {
-      this._isPipServerInstalled = await this.checkPipInstall();
+      this._isPipServerInstalled = (await this.checkPipInstall()).isAvailable;
     }
 
     this._serverManager.canStartServer =
