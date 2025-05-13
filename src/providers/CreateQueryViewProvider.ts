@@ -94,6 +94,8 @@ export class CreateQueryViewProvider
 
     this._rejectQuerySerial = rejectQuerySerial;
 
+    let tagVersion = 0;
+
     const onDidReceiveMessageSubscription = view.webview.onDidReceiveMessage(
       async ({ data, origin }: { data: DhCreateQueryMsg; origin: string }) => {
         // Ignore messages from other origins
@@ -118,12 +120,33 @@ export class CreateQueryViewProvider
             break;
 
           case DH_POST_MSG.settingsRequest:
-            handleSettingsRequest(data, this._context, tagId, serverUrl, view);
+            tagVersion++;
+
+            // In cases where user cancels the worker creation, add a version
+            // suffix to keep the worker name unique while the previous one might
+            // still be getting cleaned up. Could also regenerate the unique ID
+            // completely, but this adds complexity to the VS Code extension in
+            // how the worker info is stored. Seems simpler to version it here.
+            const versionedTagId =
+              tagVersion === 1
+                ? tagId
+                : (`${tagId}_v${tagVersion}` as UniqueID);
+
+            handleSettingsRequest(
+              data,
+              this._context,
+              versionedTagId,
+              serverUrl,
+              view
+            );
             break;
 
           case DH_POST_MSG.workerCreated:
             this._rejectQuerySerial = undefined;
             resolveQuerySerial(data.payload);
+            break;
+
+          case DH_POST_MSG.workerCreationCancelled:
             break;
         }
       }
@@ -244,6 +267,7 @@ function handleSettingsRequest(
     payload: {
       newWorkerName,
       settings,
+      isLegacyWorkerKindSupported: false,
       showHeader: false,
     },
     targetOrigin: serverUrl.origin,

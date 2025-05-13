@@ -37,5 +37,6 @@ export type ConsoleSettings = Brand<'ConsoleSettings', Record<string, unknown>>;
 export interface CreateWorkerIframeSettings {
   newWorkerName: string;
   settings: Partial<ConsoleSettings>;
+  isLegacyWorkerKindSupported: false;
   showHeader?: boolean;
 }

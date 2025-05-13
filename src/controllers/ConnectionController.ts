@@ -329,7 +329,7 @@ export class ConnectionController
   ): Promise<void> => {
     const url = getServerUrlFromState(serverOrConnectionState);
 
-    if (url.origin !== this._createQueryViewProvider.activeServerUrl?.origin) {
+    if (url.origin === this._createQueryViewProvider.activeServerUrl?.origin) {
       this._createQueryViewProvider.hide();
     }
 
