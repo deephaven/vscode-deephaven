@@ -37,6 +37,8 @@ export class PipServerController implements IDisposable {
     this._outputChannel = outputChannel;
     this._toaster = toastService;
 
+    this.reconnectToExistingTerminals();
+
     vscode.window.onDidCloseTerminal(
       terminal => {
         for (const [p, t] of this._serverUrlTerminalMap.entries()) {
@@ -102,6 +104,37 @@ export class PipServerController implements IDisposable {
       return { isAvailable: true, interpreterPath: pythonInterpreterPath };
     } catch (err) {
       return { isAvailable: false };
+    }
+  };
+
+  /**
+   * There's not a a dependable way to close terminals when extension is
+   * deactivated. In cases where the extension is updated, this can result in
+   * orphaned terminals running pip servers. We can identify any existing pip
+   * server terminals and reconnect to them to avoid the orphans.
+   */
+  reconnectToExistingTerminals = async (): Promise<void> => {
+    const PIP_SERVER_TERMINAL_NAME_REGEX = /Deephaven \((\d+)\)/;
+
+    for (const terminal of vscode.window.terminals) {
+      const [, portStr] =
+        PIP_SERVER_TERMINAL_NAME_REGEX.exec(terminal.name) ?? [];
+
+      logger.debug('terminal name:', terminal.name, 'portStr:', portStr);
+
+      if (portStr != null) {
+        logger.debug('Found existing pip server terminal:', terminal.name);
+        const port = parsePort(portStr);
+        this._serverUrlTerminalMap.set(port, terminal);
+      }
+    }
+
+    if (this._serverUrlTerminalMap.size > 0) {
+      await this.syncManagedServers(true);
+
+      for (const port of this._serverUrlTerminalMap.keys()) {
+        await this.pollUntilServerStarts(port);
+      }
     }
   };
 
@@ -288,7 +321,13 @@ export class PipServerController implements IDisposable {
     await this.disposeServers([port]);
   };
 
-  syncManagedServers = async (): Promise<void> => {
+  /**
+   * Sync current managed server state with the server manager.
+   * @param preferExistingPsk If true, use existing PSK if one exists for each
+   * server.
+   * @returns
+   */
+  syncManagedServers = async (preferExistingPsk = false): Promise<void> => {
     if (!this._isPipServerInstalled) {
       this._isPipServerInstalled = (await this.checkPipInstall()).isAvailable;
     }
@@ -303,7 +342,10 @@ export class PipServerController implements IDisposable {
 
     const runningPorts = [...this._serverUrlTerminalMap.keys()];
 
-    this._serverManager.syncManagedServers(runningPorts.map(getPipServerUrl));
+    this._serverManager.syncManagedServers(
+      runningPorts.map(getPipServerUrl),
+      preferExistingPsk
+    );
   };
 
   disposeServers = async (ports: Iterable<Port>): Promise<void> => {

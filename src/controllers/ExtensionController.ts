@@ -322,6 +322,8 @@ export class ExtensionController implements IDisposable {
       this._outputChannel,
       this._toaster
     );
+
+    this._context.subscriptions.push(this._pipServerController);
   };
 
   /**
