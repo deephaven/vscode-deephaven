@@ -55,7 +55,8 @@ export function trimIndentation(text: string): string {
   // If first line has leading whitespace, remove it from all lines to normalize
   // indentation. This is mostly useful for Markdown code blocks that can be
   // indented, but normalizing to the indentation level of the first line in the
-  // range should be safe for other cases as well.
+  // range should be safe for other cases as well since we expand selections to
+  // full lines.
   return text
     .split('\n')
     .map(line => line.replace(new RegExp(`^${leadingWhitespace}`), ''))
