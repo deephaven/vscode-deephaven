@@ -274,7 +274,7 @@ export class PipServerController implements IDisposable {
     });
 
     this._serverUrlTerminalMap.set(port, terminal);
-    this.syncManagedServers();
+    await this.syncManagedServers();
 
     const serverUrl = getPipServerUrl(port);
 
@@ -336,13 +336,13 @@ export class PipServerController implements IDisposable {
       this._isPipServerInstalled && this.getNextAvailablePort() != null;
 
     if (!this._isPipServerInstalled) {
-      this._serverManager.syncManagedServers([]);
+      await this._serverManager.syncManagedServers([]);
       return;
     }
 
     const runningPorts = [...this._serverUrlTerminalMap.keys()];
 
-    this._serverManager.syncManagedServers(
+    await this._serverManager.syncManagedServers(
       runningPorts.map(getPipServerUrl),
       preferExistingPsk
     );
