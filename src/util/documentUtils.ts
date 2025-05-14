@@ -50,16 +50,16 @@ export function parseMarkdownCodeblocks(
 
   // Create ranges for each code block in the document
   for (let i = 0; i < lines.length; ++i) {
-    const line = lines[i];
+    const trimmedLine = lines[i].trim();
 
     // Start of Deephaven supported code block
-    const parsedLanguageId = CODE_BLOCK_STARTS.exec(line)?.[1] ?? '';
+    const parsedLanguageId = CODE_BLOCK_STARTS.exec(trimmedLine)?.[1] ?? '';
     if (parsedLanguageId !== '') {
       languageId = normalizeLanguageId(parsedLanguageId);
       startPos = new vscode.Position(i + 1, 0);
     }
     // End of Deephaven code block
-    else if (line === CODE_BLOCK_END && startPos) {
+    else if (trimmedLine === CODE_BLOCK_END && startPos) {
       codeBlocks.push({
         languageId,
         range: new vscode.Range(
