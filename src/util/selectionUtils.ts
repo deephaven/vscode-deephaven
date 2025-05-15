@@ -13,6 +13,7 @@ export function getCombinedRangeLinesText(
   return sortRanges(ranges)
     .map(expandRangeToFullLines(document))
     .map(range => document.getText(range))
+    .map(trimIndentation)
     .join('\n');
 }
 
@@ -36,6 +37,30 @@ export function expandRangeToFullLines(document: vscode.TextDocument) {
       document.lineAt(range.end.line).text.length
     );
   };
+}
+
+/**
+ * Trim leading indentation for a block of text based on the leading space of
+ * the first line.
+ * @param text The text to trim.
+ * @returns Text with leading indentation removed.
+ */
+export function trimIndentation(text: string): string {
+  const leadingWhitespace = text.match(/^\s*/)?.[0] ?? '';
+
+  if (leadingWhitespace.length === 0) {
+    return text;
+  }
+
+  // If first line has leading whitespace, remove it from all lines to normalize
+  // indentation. This is mostly useful for Markdown code blocks that can be
+  // indented, but normalizing to the indentation level of the first line in the
+  // range should be safe for other cases as well since we expand selections to
+  // full lines.
+  return text
+    .split('\n')
+    .map(line => line.replace(new RegExp(`^${leadingWhitespace}`), ''))
+    .join('\n');
 }
 
 /**
