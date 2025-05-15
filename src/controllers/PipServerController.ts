@@ -263,8 +263,6 @@ export class PipServerController implements IDisposable {
       .map(([key, value]) => `${key}=${value}`)
       .join(' ');
 
-    // const venvPath = path.dirname(interpreterPath);
-    // terminal.sendText(`export PATH=${venvPath}:$PATH`);
     terminal.sendText(
       [
         'deephaven server',
