@@ -220,16 +220,21 @@ export class PipServerController implements IDisposable {
       return;
     }
 
+    const interpreterBinDirPath = path.dirname(interpreterPath);
+    const interpreterEnvPath = path.dirname(interpreterBinDirPath);
+
     const terminal = vscode.window.createTerminal({
       name: `Deephaven (${port})`,
       env: {
         /* eslint-disable @typescript-eslint/naming-convention */
         // This allows us to use the `venv` configured by the Python extension
         // without having to wait for the extension to activate it.
-        PATH: path.dirname(interpreterPath),
+        PATH: `${interpreterBinDirPath}:${process.env.PATH}`,
         // Set the workspace root as PYTHONPATH so we can use Python modules in
-        // the workspace
+        // the workspace.
         PYTHONPATH: './',
+        // Venv activation typically sets this, so mimic that here.
+        VIRTUAL_ENV: interpreterEnvPath,
         /* eslint-enable @typescript-eslint/naming-convention */
       },
       isTransient: true,
