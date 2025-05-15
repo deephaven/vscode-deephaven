@@ -1,7 +1,7 @@
-export * from './assertUtil';
 export * from './dataUtils';
 export * from './documentUtils';
 export * from './hoverUtils';
+export * from './featureUtils';
 export * from './idUtils';
 export * from './isInstanceOf';
 export * from './isDisposable';
@@ -18,3 +18,4 @@ export * from './treeViewUtils';
 export * from './Toaster';
 export * from './uiUtils';
 export * from './urlUtils';
+export * from './webViewUtils';

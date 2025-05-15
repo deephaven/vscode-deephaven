@@ -5,6 +5,7 @@ import type {
   ConsoleType,
   Port,
   ServerConnectionConfig,
+  ConnectionState,
 } from '../types';
 import { PIP_SERVER_STATUS_DIRECTORY, SERVER_LANGUAGE_SET } from '../common';
 import { getTempDir } from './tmpUtils';
@@ -62,6 +63,30 @@ export function getPipStatusFilePath(): string {
   });
   const statusFileName = `status-pip.txt`;
   return path.join(dirPath, statusFileName);
+}
+
+/**
+ * Get the server URL from a ServerState or ConnectionState object.
+ * @param serverOrConnectionState ServerState or ConnectionState object
+ * @returns URL of the server
+ */
+export function getServerUrlFromState(
+  serverOrConnectionState: ServerState | ConnectionState
+): URL {
+  return 'serverUrl' in serverOrConnectionState
+    ? serverOrConnectionState.serverUrl
+    : serverOrConnectionState.url;
+}
+
+/**
+ * Check if the given object is a ConnectionState.
+ * @param maybeConnectionState Object to check
+ * @returns True if the object is a ConnectionState, false otherwise
+ */
+export function isConnectionState(
+  maybeConnectionState: ServerState | ConnectionState
+): maybeConnectionState is ConnectionState {
+  return 'serverUrl' in maybeConnectionState;
 }
 
 /**

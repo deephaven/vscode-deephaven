@@ -5,7 +5,6 @@ import type {
   CoreConnectionConfig,
   IDisposable,
   EnterpriseConnectionConfig,
-  EventListenerT,
   ConnectionState,
   ServerState,
   VariableChanges,
@@ -19,12 +18,13 @@ import type {
   Psk,
   CoreAuthenticatedClient,
   WorkerURL,
+  DheAuthenticatedClient,
 } from '../types/commonTypes';
 import type {
-  AuthenticatedClient as DheAuthenticatedClient,
   UnauthenticatedClient as DheUnauthenticatedClient,
   Username,
 } from '@deephaven-enterprise/auth-nodejs';
+import type { QuerySerial } from '../crossModule';
 
 export interface IAsyncCacheService<TKey, TValue> extends IDisposable {
   get: (key: TKey) => Promise<TValue>;
@@ -93,8 +93,14 @@ export type IDhcServiceFactory = IFactory<
 >;
 export type IDheClientFactory = (
   serverUrl: URL
-) => Promise<DheUnauthenticatedClient & IDisposable>;
+) => Promise<DheUnauthenticatedClient>;
 export type IDheServiceFactory = IFactory<IDheService, [serverUrl: URL]>;
+
+export type IInteractiveConsoleQueryFactory = (
+  serverUrl: URL,
+  tagId: UniqueID,
+  consoleType?: ConsoleType
+) => Promise<QuerySerial | null>;
 
 export interface IPanelService extends IDisposable {
   readonly onDidUpdate: vscode.Event<void>;

@@ -1,18 +1,19 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type {
+  AuthenticatedClient as DheAuthenticatedClientBase,
   Base64KeyPair,
   KeyPairCredentials,
   OperateAsUsername,
   PasswordCredentials,
+  UnauthenticatedClient as DheUnauthenticatedClientBase,
   Username,
 } from '@deephaven-enterprise/auth-nodejs';
-
-// Branded type helpers
-declare const __brand: unique symbol;
-export type Brand<T extends string, TBase = string> = TBase & {
-  readonly [__brand]: T;
-};
+import type {
+  Brand,
+  QuerySerial,
+  SerializableRefreshToken,
+} from '../crossModule';
 
 export type NonEmptyArray<T> = [T, ...T[]];
 
@@ -45,6 +46,15 @@ export type CoreUnauthenticatedClient = Brand<
   DhcType.CoreClient
 >;
 
+export type DheAuthenticatedClient = DheAuthenticatedClientBase &
+  Partial<IDisposable> & {
+    refreshTokenSerialized?: Promise<SerializableRefreshToken>;
+  };
+export type DheUnauthenticatedClient = DheUnauthenticatedClientBase &
+  Partial<IDisposable> & {
+    refreshTokenSerialized?: Promise<SerializableRefreshToken>;
+  };
+
 export type DependencyName = Brand<'DependencyName', string>;
 export type DependencyVersion = Brand<'DependencyVersion', string>;
 
@@ -56,6 +66,13 @@ export interface EnterpriseConnectionConfig {
   url: URL;
   label?: string;
   experimentalWorkerConfig?: WorkerConfig;
+}
+
+export interface GradleVersion {
+  major: number;
+  minor: number;
+  patch: number;
+  tag?: string;
 }
 
 export interface SamlConfig {
@@ -133,7 +150,6 @@ export interface ConnectionState {
 export type GrpcURL = Brand<'GrpcURL', URL>;
 export type IdeURL = Brand<'IdeUrl', URL>;
 export type JsapiURL = Brand<'JsapiURL', URL>;
-export type QuerySerial = Brand<'QuerySerial', string>;
 export type WorkerURL = Brand<'WorkerURL', URL>;
 
 export interface WorkerInfo {

@@ -7,21 +7,22 @@ import {
   type IConfigService,
   type IDheService,
   type IDheServiceFactory,
+  type IInteractiveConsoleQueryFactory,
   type IToastService,
-  type QuerySerial,
   type UniqueID,
   type WorkerConfig,
   type WorkerInfo,
   type WorkerURL,
 } from '../types';
 import { URLMap } from './URLMap';
-import { Logger } from '../util';
+import { isDheCreateQueryUISupported, Logger } from '../util';
 import {
   createInteractiveConsoleQuery,
   deleteQueries,
   getWorkerInfoFromQuery,
 } from '../dh/dhe';
 import { CREATE_DHE_AUTHENTICATED_CLIENT_CMD } from '../common';
+import type { QuerySerial } from '../crossModule';
 
 const logger = new Logger('DheService');
 
@@ -34,6 +35,8 @@ export class DheService implements IDheService {
    * @param configService Configuration service.
    * @param dheClientCache DHE client cache.
    * @param dheJsApiCache DHE JS API cache.
+   * @param interactiveConsoleQueryFactory Factory for creating interactive console
+   * queries.
    * @param toaster Toast service for notifications.
    * @returns A factory function that can be used to create DheService instances.
    */
@@ -41,6 +44,7 @@ export class DheService implements IDheService {
     configService: IConfigService,
     dheClientCache: URLMap<DheAuthenticatedClient>,
     dheJsApiCache: IAsyncCacheService<URL, DheType>,
+    interactiveConsoleQueryFactory: IInteractiveConsoleQueryFactory,
     toaster: IToastService
   ): IDheServiceFactory => {
     return {
@@ -50,6 +54,7 @@ export class DheService implements IDheService {
           configService,
           dheClientCache,
           dheJsApiCache,
+          interactiveConsoleQueryFactory,
           toaster
         ),
     };
@@ -64,6 +69,7 @@ export class DheService implements IDheService {
     configService: IConfigService,
     dheClientCache: URLMap<DheAuthenticatedClient>,
     dheJsApiCache: IAsyncCacheService<URL, DheType>,
+    interactiveConsoleQueryFactory: IInteractiveConsoleQueryFactory,
     toaster: IToastService
   ) {
     this.serverUrl = serverUrl;
@@ -71,6 +77,7 @@ export class DheService implements IDheService {
     this._dheClientCache = dheClientCache;
     this._dheJsApiCache = dheJsApiCache;
     this._querySerialSet = new Set<QuerySerial>();
+    this._interactiveConsoleQueryFactory = interactiveConsoleQueryFactory;
     this._toaster = toaster;
     this._workerInfoMap = new URLMap<WorkerInfo, WorkerURL>();
 
@@ -83,6 +90,7 @@ export class DheService implements IDheService {
   private readonly _dheClientCache: URLMap<DheAuthenticatedClient>;
   private readonly _dheJsApiCache: IAsyncCacheService<URL, DheType>;
   private readonly _querySerialSet: Set<QuerySerial>;
+  private readonly _interactiveConsoleQueryFactory: IInteractiveConsoleQueryFactory;
   private readonly _toaster: IToastService;
   private readonly _workerInfoMap: URLMap<WorkerInfo, WorkerURL>;
 
@@ -213,12 +221,28 @@ export class DheService implements IDheService {
 
     const dhe = await this._dheJsApiCache.get(this.serverUrl);
 
-    const querySerial = await createInteractiveConsoleQuery(
-      tagId,
-      dheClient,
-      this.getWorkerConfig(),
-      consoleType
-    );
+    const { gradleVersion } = await dheClient.getServerConfigValues();
+    logger.debug('Gradle version:', gradleVersion);
+    // HACK: dev only TODO: Update gradle version check
+    const isUISupported =
+      this.serverUrl.origin === 'https://bmingles-f1.int.illumon.com:8123'; // isDheCreateQueryUISupported(gradleVersion);
+
+    const querySerial = isUISupported
+      ? await this._interactiveConsoleQueryFactory(
+          this.serverUrl,
+          tagId,
+          consoleType
+        )
+      : await createInteractiveConsoleQuery(
+          tagId,
+          dheClient,
+          this.getWorkerConfig(),
+          consoleType
+        );
+
+    if (querySerial == null) {
+      throw new Error('Failed to create query.');
+    }
     this._querySerialSet.add(querySerial);
 
     const workerInfo = await getWorkerInfoFromQuery(

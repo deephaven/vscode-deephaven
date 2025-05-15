@@ -12,7 +12,9 @@ import {
   STATUS_BAR_CONNECTING_TEXT,
   STATUS_BAR_DISCONNECTED_TEXT,
   ICON_ID,
+  type ViewID,
 } from '../common';
+import { assertDefined, type BaseThemeKey } from '../crossModule';
 import type {
   ConnectionType,
   ConsoleType,
@@ -30,7 +32,6 @@ import type {
   MultiAuthConfig,
 } from '../types';
 import { getFilePathDateToken, sortByStringProp } from './dataUtils';
-import { assertDefined } from './assertUtil';
 import { Logger } from './Logger';
 
 const logger = new Logger('uiUtils');
@@ -356,7 +357,7 @@ export function formatTimestamp(date: Date): string | null {
 /**
  * Get DH `themeKey` based on current vscode theme.
  */
-export function getDHThemeKey(): string {
+export function getDHThemeKey(): BaseThemeKey {
   switch (vscode.window.activeColorTheme.kind) {
     case vscode.ColorThemeKind.Light:
     case vscode.ColorThemeKind.HighContrastLight:
@@ -392,6 +393,18 @@ export async function getEditorForUri(
   // for the url to active first
   // https://stackoverflow.com/a/64808497/20489
   return vscode.window.showTextDocument(uri, { preview: false, viewColumn });
+}
+
+export function getThemeColor(colorKey: string): string | null {
+  const config = vscode.workspace.getConfiguration('workbench');
+  const colorCustomizations =
+    config.get<Record<string, string>>('colorCustomizations') || {};
+
+  return (
+    colorCustomizations[colorKey] ??
+    vscode.workspace.getConfiguration().get(colorKey) ??
+    null
+  );
 }
 
 /**
@@ -623,4 +636,19 @@ export async function saveRequirementsTxt(
   fs.writeFileSync(uri.fsPath, sorted.join('\n'));
 
   vscode.window.showTextDocument(uri);
+}
+
+/**
+ * Set the `isVisible` state of a given view id. Uses extension context
+ * `${viewId}.isVisible` to store the state. This can then be used in package.json
+ * view configs to conditionally show or hide views based on their visibility.
+ * @param viewId The view ID to set the visibility for.
+ * @param isVisible Whether the view is visible or not.
+ */
+export function setViewIsVisible(viewId: ViewID, isVisible: boolean): void {
+  vscode.commands.executeCommand(
+    'setContext',
+    `${viewId}.isVisible`,
+    isVisible
+  );
 }
