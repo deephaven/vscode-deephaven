@@ -181,12 +181,7 @@ export class ServerManager implements IServerManager {
 
     let placeholderUrl: URL | undefined;
 
-    // Pip managed local server
-    if (serverState.isManaged) {
-      this._secretService.storePsk(serverUrl, serverState.psk);
-    }
-    // DHE server
-    else if (serverState.type === 'DHE') {
+    if (serverState.type === 'DHE') {
       const dheService = await this._dheServiceCache.get(serverUrl);
 
       // Get client. Client will be initialized if it doesn't exist (including
@@ -562,7 +557,16 @@ export class ServerManager implements IServerManager {
     this._onDidRegisterEditor.fire(uri);
   };
 
-  syncManagedServers = (urls: URL[]): void => {
+  /**
+   * Update server states to reflect the given list of managed server URLs.
+   * @param urls The list of URLs to update the server states with.
+   * @param preferExistingPsk If `true`, use existing PSKs for managed servers
+   * if available.
+   */
+  syncManagedServers = async (
+    urls: URL[],
+    preferExistingPsk = false
+  ): Promise<void> => {
     const urlStrSet = new Set(urls.map(String));
 
     // Remove any existing servers that aren't in the new list of urls.
@@ -578,13 +582,25 @@ export class ServerManager implements IServerManager {
       urls.filter(url => !this._serverMap.has(url))
     );
 
-    // Add any new servers that aren't already in the server
+    // Add any new servers that aren't already in the serverMap
     for (const server of toAdd) {
-      this._serverMap.set(server.url, {
+      const existingPsk = preferExistingPsk
+        ? await this._secretService.getPsk(server.url)
+        : null;
+
+      if (existingPsk != null) {
+        logger.debug('Using existing psk for server:', server.url, existingPsk);
+      }
+
+      const serverState: ServerState = {
         ...server,
         isManaged: true,
-        psk: randomUUID() as Psk,
-      });
+        psk: existingPsk ?? (randomUUID() as Psk),
+      };
+
+      this._secretService.storePsk(serverState.url, serverState.psk);
+
+      this._serverMap.set(server.url, serverState);
     }
 
     this._onDidUpdate.fire();
