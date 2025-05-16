@@ -745,6 +745,7 @@ export class ExtensionController implements IDisposable {
     }
 
     this._serverManager?.updateStatus();
+    this._pipServerController?.syncManagedServers();
   };
 
   /**

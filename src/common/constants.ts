@@ -34,8 +34,6 @@ export const INTERACTIVE_CONSOLE_QUERY_TYPE = 'InteractiveConsole';
 export const INTERACTIVE_CONSOLE_TEMPORARY_QUEUE_NAME =
   'InteractiveConsoleTemporaryQueue';
 
-export const PYTHON_ENV_WAIT = 1500 as const;
-
 export const PIP_SERVER_STATUS_CHECK_INTERVAL = 3000;
 export const PIP_SERVER_STATUS_CHECK_TIMEOUT = 30000;
 
