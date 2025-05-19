@@ -32,7 +32,7 @@ const logger = new Logger('webViewUtils');
 
 /**
  * Create and append an iframe to a WebView that loads DH content. Expects meta
- * tags to provide the iframe URL (see `getWebViewHtml` the CJS `webViewUtils.ts`
+ * tags to provide the iframe URL (see `getWebViewHtml` in the `webViewUtils.ts`
  * file).
  * @param vscode The VS Code Webview API.
  */
