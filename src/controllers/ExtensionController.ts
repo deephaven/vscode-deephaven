@@ -547,7 +547,6 @@ export class ExtensionController implements IDisposable {
 
       // Augment with additional methods
       const augmentedClient = Object.assign(client, {
-        refreshTokenSerialized: refreshTokenSerializedPromise,
         dispose: async () => {
           client.disconnect();
           refreshTokenSubscription();
