@@ -9,7 +9,9 @@ import { assertDefined } from './assertUtil';
 import {
   CONTENT_IFRAME_ID,
   DH_IFRAME_URL_META_KEY,
+  EXTERNAL_THEME_QUERY_PARAM,
   GET_PROPERTY_TIMEOUT_MS,
+  PRELOAD_TRANSPARENT_THEME_QUERY_PARAM,
 } from './constants';
 import { Logger } from './Logger';
 import {
@@ -40,8 +42,8 @@ export function createDhIframe(vscode: WebviewApi<unknown>): void {
   assertDefined(iframeSrc, 'DH iframe URL not found in meta tag');
 
   const dhIframeUrl = new URL(iframeSrc);
-  dhIframeUrl.searchParams.append('theme', 'external-theme');
-  dhIframeUrl.searchParams.append('preloadTransparentTheme', 'true');
+  dhIframeUrl.searchParams.append(...EXTERNAL_THEME_QUERY_PARAM);
+  dhIframeUrl.searchParams.append(...PRELOAD_TRANSPARENT_THEME_QUERY_PARAM);
 
   const iframeEl = document.createElement('iframe');
   iframeEl.id = CONTENT_IFRAME_ID;
