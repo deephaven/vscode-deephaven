@@ -516,7 +516,7 @@ export class ExtensionController implements IDisposable {
 
       const wResolvers = withResolvers<SerializableRefreshToken | null>();
 
-      let refreshTokenSerialized: Promise<SerializableRefreshToken | null> =
+      let refreshTokenSerializedPromise: Promise<SerializableRefreshToken | null> =
         wResolvers.promise;
 
       let resolve:
@@ -528,22 +528,26 @@ export class ExtensionController implements IDisposable {
         async (event: ClientListenerEvent<DhcType.RefreshToken>) => {
           const serializedToken = serializeRefreshToken(event.detail);
 
-          // Only use the withResolvers promise for the first refresh token.
-          // After that, just replace the entire promise. This should ensure
-          // that a subscriber before login waits for the first token, and
-          // subscribers that come after login get the latest token immediately.
-          if (resolve == null) {
-            refreshTokenSerialized = Promise.resolve(serializedToken);
-          } else {
+          // The `refreshTokenSerialized` property will return a Promise to the
+          // latest serialized refresh token. We use `withResolvers` for the
+          // first token to ensure if the property is called before login, the
+          // consumer can wait for the first token. For subsequent tokens, we
+          // replace the Promise with an already resolved one so that callers
+          // just get it immediately.
+          if (resolve != null) {
+            // resolve the `refreshTokenSerializedPromise` Promise with the first
+            // token
             resolve(serializedToken);
             resolve = null;
+          } else {
+            refreshTokenSerializedPromise = Promise.resolve(serializedToken);
           }
         }
       );
 
       // Augment with additional methods
       const augmentedClient = Object.assign(client, {
-        refreshTokenSerialized,
+        refreshTokenSerialized: refreshTokenSerializedPromise,
         dispose: async () => {
           client.disconnect();
           refreshTokenSubscription();
@@ -551,8 +555,12 @@ export class ExtensionController implements IDisposable {
       });
 
       Object.defineProperty(augmentedClient, 'refreshTokenSerialized', {
-        get() {
-          return refreshTokenSerialized;
+        /**
+         * Get a Promise for the latest refresh token. If the first token has not
+         * been received yet, the Promise will resolve once it is received.
+         */
+        get(): Promise<SerializableRefreshToken | null> {
+          return refreshTokenSerializedPromise;
         },
         enumerable: true,
       });
