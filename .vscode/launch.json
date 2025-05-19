@@ -11,8 +11,7 @@
       "request": "launch",
       "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
       "outFiles": ["${workspaceFolder}/out/**/*.js"],
-      "preLaunchTask": "${defaultBuildTask}",
-      "postDebugTask": "npm: watch:kill"
+      "preLaunchTask": "${defaultBuildTask}"
     },
     {
       "name": "e2e Tests",

@@ -15,6 +15,15 @@
       }
     },
     {
+      "label": "npm: clean",
+      "type": "npm",
+      "script": "clean",
+      "presentation": {
+        "reveal": "never"
+      },
+      "group": "build"
+    },
+    {
       "label": "npm: watch:esbuild",
       "type": "npm",
       "script": "watch:esbuild",
@@ -37,26 +46,6 @@
       "isBackground": true,
       "presentation": {
         "group": "watch",
-        "reveal": "never"
-      }
-    },
-    {
-      "label": "npm: clean",
-      "type": "npm",
-      "script": "clean",
-      "presentation": {
-        "reveal": "never"
-      },
-      "group": "build"
-    },
-    /*
-     * Kill tasks
-     */
-    {
-      "label": "npm: watch:kill",
-      "type": "npm",
-      "script": "watch:kill",
-      "presentation": {
         "reveal": "never"
       }
     }

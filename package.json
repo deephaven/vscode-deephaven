@@ -47,8 +47,7 @@
     "vscode:prepublish": "npm run compile:prod",
     "watch:esbuild": "node scripts/esbuild.js --watch",
     "watch:tsc": "tsc --build ./tsconfig.json --watch",
-    "watch": "npm-run-all -p watch:*",
-    "watch:kill": "./scripts/kill-tasks.sh"
+    "watch": "npm-run-all -p watch:*"
   },
   "contributes": {
     "configuration": {
