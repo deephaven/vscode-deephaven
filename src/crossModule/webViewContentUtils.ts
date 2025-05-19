@@ -118,7 +118,7 @@ export function createDhIframe(vscode: WebviewApi<unknown>): void {
 export function getIframeContentWindow(): Window {
   const maybeIframeEl = document.getElementById(CONTENT_IFRAME_ID);
 
-  assertDefined(maybeIframeEl, 'iframe element');
+  assertDefined(maybeIframeEl, `Iframe with id ${CONTENT_IFRAME_ID} not found`);
 
   if (!(maybeIframeEl instanceof HTMLIFrameElement)) {
     throw new Error('Element is not an iframe');
