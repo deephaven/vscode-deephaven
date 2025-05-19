@@ -75,13 +75,6 @@ export interface EnterpriseConnectionConfig {
   experimentalWorkerConfig?: WorkerConfig;
 }
 
-export interface GradleVersion {
-  major: number;
-  minor: number;
-  patch: number;
-  tag?: string;
-}
-
 export interface SamlConfig {
   loginClass: string;
   providerName: string;
