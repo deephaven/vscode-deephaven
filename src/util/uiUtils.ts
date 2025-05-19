@@ -395,18 +395,6 @@ export async function getEditorForUri(
   return vscode.window.showTextDocument(uri, { preview: false, viewColumn });
 }
 
-export function getThemeColor(colorKey: string): string | null {
-  const config = vscode.workspace.getConfiguration('workbench');
-  const colorCustomizations =
-    config.get<Record<string, string>>('colorCustomizations') || {};
-
-  return (
-    colorCustomizations[colorKey] ??
-    vscode.workspace.getConfiguration().get(colorKey) ??
-    null
-  );
-}
-
 /**
  * Get the workspace folder for the active editor or fallback to the first listed
  * workspace folder.
