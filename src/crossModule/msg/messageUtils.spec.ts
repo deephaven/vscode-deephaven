@@ -56,17 +56,19 @@ describe('isCreateQueryMsgFromVscode', () => {
 });
 
 describe('isWindowProxy', () => {
-  it('should return true if source is a WindowProxy', () => {
-    const source = {
-      window: {},
-    } as MessageEventSource;
+  const mockWindowProxy = {
+    window: {},
+  } as WindowProxy;
 
-    expect(isWindowProxy(source)).toBe(true);
-  });
+  const mockNotWindowProxy = {} as MessageEventSource;
 
-  it('should return false if source is not a WindowProxy', () => {
-    const source = {} as MessageEventSource;
-
-    expect(isWindowProxy(source)).toBe(false);
-  });
+  it.each([
+    [mockWindowProxy, true],
+    [mockNotWindowProxy, false],
+  ])(
+    'should return true if source is a WindowProxy: %s',
+    (source, expected) => {
+      expect(isWindowProxy(source)).toBe(expected);
+    }
+  );
 });
