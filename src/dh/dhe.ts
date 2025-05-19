@@ -325,6 +325,11 @@ export async function getWorkerInfoFromQuery(
   dheClient: DheAuthenticatedClient,
   querySerial: QuerySerial
 ): Promise<WorkerInfo | undefined> {
+  /**
+   * Determine the state of a given query info.
+   * @returns The query info if it is running or undefined if it is not.
+   * @throws An error if the query is in an error state.
+   */
   function handleQueryInfo(queryInfo: QueryInfo): QueryInfo | undefined {
     switch (queryInfo.designated?.status) {
       case 'Running':
