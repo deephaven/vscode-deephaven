@@ -12,6 +12,7 @@ import {
   EXTERNAL_THEME_QUERY_PARAM,
   GET_PROPERTY_TIMEOUT_MS,
   PRELOAD_TRANSPARENT_THEME_QUERY_PARAM,
+  VSCODE_PROPERTY_NAME,
 } from './constants';
 import { Logger } from './Logger';
 import {
@@ -67,7 +68,7 @@ export function createDhIframe(vscode: WebviewApi<unknown>): void {
         const baseThemeKey = await getVscodeProperty(
           vscode,
           window,
-          'baseThemeKey',
+          VSCODE_PROPERTY_NAME.baseThemeKey,
           dhIframeUrl.origin
         );
 

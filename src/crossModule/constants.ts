@@ -18,3 +18,7 @@ export const PRELOAD_TRANSPARENT_THEME_QUERY_PARAM = [
   'preloadTransparentTheme',
   'true',
 ] as const;
+
+export const VSCODE_PROPERTY_NAME = {
+  baseThemeKey: 'baseThemeKey',
+} as const;
