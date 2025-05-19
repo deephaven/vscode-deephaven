@@ -376,33 +376,6 @@ export async function getWorkerInfoFromQuery(
     }
   }
 
-  // The query will go through multiple config updates before the worker is ready.
-  // This Promise will respond to config update events and resolve when the worker
-  // is ready.
-  // queryInfo = await new Promise<QueryInfo>((resolve, reject) => {
-  //   const removeEventListener = dheClient.addEventListener(
-  //     dhe.Client.EVENT_CONFIG_UPDATED,
-  //     ({ detail: queryInfo }: CustomEvent<QueryInfo>) => {
-  //       if (queryInfo.serial !== querySerial) {
-  //         return;
-  //       }
-
-  //       switch (queryInfo.designated?.status) {
-  //         case 'Running':
-  //           removeEventListener();
-  //           resolve(queryInfo);
-  //           break;
-  //         case 'Error':
-  //         case 'Failed':
-  //           removeEventListener();
-  //           reject(new Error('Query failed to start'));
-  //           deleteQueries(dheClient, [querySerial]);
-  //           break;
-  //       }
-  //     }
-  //   );
-  // });
-
   if (queryInfo.designated == null) {
     return;
   }
