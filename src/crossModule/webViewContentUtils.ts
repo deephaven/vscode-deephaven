@@ -145,6 +145,10 @@ export async function getVscodeProperty(
   propertyName: VscodePropertyName,
   dhIframeOrigin: string
 ): Promise<BaseThemeKey> {
+  // Note that it would be nice to use `Promise.withResolvers` here but current
+  // TypeScript configuration is not aware of this api even though it exists at
+  // runtime. Not worth the config update just to use this, but if we ever
+  // update the config we should consider using it.
   return new Promise((resolve, reject) => {
     // Listen for `webview.postMessage` calls from VS Code and resolve Promise
     // if any response match the `propertyName` requested.
