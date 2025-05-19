@@ -31,6 +31,7 @@ import {
   INTERACTIVE_CONSOLE_QUERY_TYPE,
   INTERACTIVE_CONSOLE_TEMPORARY_QUEUE_NAME,
 } from '../common';
+import { withResolvers } from '../util';
 
 export type IDraftQuery = EditableQueryInfo & {
   isClientSide: boolean;
@@ -291,10 +292,32 @@ export async function getWorkerInfoFromQuery(
   dheClient: DheAuthenticatedClient,
   querySerial: QuerySerial
 ): Promise<WorkerInfo | undefined> {
-  // The query will go through multiple config updates before the worker is ready.
-  // This Promise will respond to config update events and resolve when the worker
-  // is ready.
-  const queryInfo = await new Promise<QueryInfo>((resolve, reject) => {
+  function handleQueryInfo(queryInfo: QueryInfo): QueryInfo | undefined {
+    switch (queryInfo.designated?.status) {
+      case 'Running':
+        return queryInfo;
+
+      case 'Error':
+      case 'Failed':
+        deleteQueries(dheClient, [querySerial]);
+        throw new Error('Query failed to start');
+
+      default:
+        return undefined;
+    }
+  }
+
+  let queryInfo = dheClient
+    .getKnownConfigs()
+    .find(({ serial }) => serial === querySerial);
+
+  if (queryInfo != null) {
+    queryInfo = handleQueryInfo(queryInfo);
+  }
+
+  if (queryInfo == null) {
+    const { promise, resolve, reject } = withResolvers<QueryInfo>();
+
     const removeEventListener = dheClient.addEventListener(
       dhe.Client.EVENT_CONFIG_UPDATED,
       ({ detail: queryInfo }: CustomEvent<QueryInfo>) => {
@@ -302,21 +325,50 @@ export async function getWorkerInfoFromQuery(
           return;
         }
 
-        switch (queryInfo.designated?.status) {
-          case 'Running':
-            removeEventListener();
-            resolve(queryInfo);
-            break;
-          case 'Error':
-          case 'Failed':
-            removeEventListener();
-            reject(new Error('Query failed to start'));
-            deleteQueries(dheClient, [querySerial]);
-            break;
+        try {
+          const result = handleQueryInfo(queryInfo);
+          if (result != null) {
+            resolve(result);
+          }
+        } catch (err) {
+          reject(err);
         }
       }
     );
-  });
+
+    try {
+      queryInfo = await promise;
+    } finally {
+      removeEventListener();
+    }
+  }
+
+  // The query will go through multiple config updates before the worker is ready.
+  // This Promise will respond to config update events and resolve when the worker
+  // is ready.
+  // queryInfo = await new Promise<QueryInfo>((resolve, reject) => {
+  //   const removeEventListener = dheClient.addEventListener(
+  //     dhe.Client.EVENT_CONFIG_UPDATED,
+  //     ({ detail: queryInfo }: CustomEvent<QueryInfo>) => {
+  //       if (queryInfo.serial !== querySerial) {
+  //         return;
+  //       }
+
+  //       switch (queryInfo.designated?.status) {
+  //         case 'Running':
+  //           removeEventListener();
+  //           resolve(queryInfo);
+  //           break;
+  //         case 'Error':
+  //         case 'Failed':
+  //           removeEventListener();
+  //           reject(new Error('Query failed to start'));
+  //           deleteQueries(dheClient, [querySerial]);
+  //           break;
+  //       }
+  //     }
+  //   );
+  // });
 
   if (queryInfo.designated == null) {
     return;

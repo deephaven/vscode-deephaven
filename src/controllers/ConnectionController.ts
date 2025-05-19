@@ -13,6 +13,8 @@ import {
   createConnectionQuickPickOptions,
   createConnectStatusBarItem,
   getConsoleType,
+  getServerUrlFromState,
+  isConnectionState,
   isSupportedLanguageId,
   Logger,
   updateConnectionStatusBarItem,
@@ -75,6 +77,12 @@ export class ConnectionController
       this.onPromptUserToSelectConnection
     );
   }
+
+  private readonly _onDisconnectingFromServer: vscode.EventEmitter<URL> =
+    new vscode.EventEmitter<URL>();
+
+  readonly onDisconnectingFromServer: vscode.Event<URL> =
+    this._onDisconnectingFromServer.event;
 
   private readonly _context: vscode.ExtensionContext;
   private readonly _serverManager: IServerManager;
@@ -321,25 +329,23 @@ export class ConnectionController
   onDisconnectFromServer = async (
     serverOrConnectionState: ServerState | ConnectionState
   ): Promise<void> => {
+    const url = getServerUrlFromState(serverOrConnectionState);
+
+    this._onDisconnectingFromServer.fire(url);
+
     // ConnectionState (connection only disconnect)
-    if ('serverUrl' in serverOrConnectionState) {
-      this._serverManager?.disconnectFromServer(
-        serverOrConnectionState.serverUrl
-      );
+    if (isConnectionState(serverOrConnectionState)) {
+      this._serverManager?.disconnectFromServer(url);
       return;
     }
 
     // DHC ServerState
     if (serverOrConnectionState.type === 'DHC') {
-      await this._serverManager?.disconnectFromServer(
-        serverOrConnectionState.url
-      );
+      await this._serverManager?.disconnectFromServer(url);
     }
     // DHE ServerState
     else {
-      await this._serverManager?.disconnectFromDHEServer(
-        serverOrConnectionState.url
-      );
+      await this._serverManager?.disconnectFromDHEServer(url);
     }
 
     this.updateConnectionStatusBarItem();

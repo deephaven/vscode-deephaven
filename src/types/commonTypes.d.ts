@@ -1,10 +1,12 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type {
+  AuthenticatedClient as DheAuthenticatedClientBase,
   Base64KeyPair,
   KeyPairCredentials,
   OperateAsUsername,
   PasswordCredentials,
+  UnauthenticatedClient as DheUnauthenticatedClientBase,
   Username,
 } from '@deephaven-enterprise/auth-nodejs';
 
@@ -45,6 +47,15 @@ export type CoreUnauthenticatedClient = Brand<
   DhcType.CoreClient
 >;
 
+export type DheAuthenticatedClient = DheAuthenticatedClientBase &
+  Partial<IDisposable> & {
+    refreshTokenSerialized?: Promise<DhcType.RefreshToken>;
+  };
+export type DheUnauthenticatedClient = DheUnauthenticatedClientBase &
+  Partial<IDisposable> & {
+    refreshTokenSerialized?: Promise<DhcType.RefreshToken>;
+  };
+
 export type DependencyName = Brand<'DependencyName', string>;
 export type DependencyVersion = Brand<'DependencyVersion', string>;
 
@@ -58,11 +69,26 @@ export interface EnterpriseConnectionConfig {
   experimentalWorkerConfig?: WorkerConfig;
 }
 
+export interface GradleVersion {
+  major: number;
+  minor: number;
+  patch: number;
+  tag?: string;
+}
+
 export interface SamlConfig {
   loginClass: string;
   providerName: string;
   loginUrl: string;
 }
+
+export type SerializableRefreshToken = Brand<
+  'SerializableRefreshToken',
+  {
+    bytes: string;
+    expiry: number;
+  }
+>;
 
 export interface MultiAuthConfig {
   isPasswordEnabled: true;

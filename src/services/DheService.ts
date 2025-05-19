@@ -35,6 +35,8 @@ export class DheService implements IDheService {
    * @param configService Configuration service.
    * @param dheClientCache DHE client cache.
    * @param dheJsApiCache DHE JS API cache.
+   * @param interactiveConsoleQueryFactory Factory for creating interactive console
+   * queries.
    * @param toaster Toast service for notifications.
    * @returns A factory function that can be used to create DheService instances.
    */
@@ -220,7 +222,10 @@ export class DheService implements IDheService {
     const dhe = await this._dheJsApiCache.get(this.serverUrl);
 
     const { gradleVersion } = await dheClient.getServerConfigValues();
-    const isUISupported = isDheCreateQueryUISupported(gradleVersion);
+    logger.debug('Gradle version:', gradleVersion);
+    // HACK: dev only
+    const isUISupported =
+      this.serverUrl.origin === 'https://bmingles-f1.int.illumon.com:8123'; // isDheCreateQueryUISupported(gradleVersion);
 
     const querySerial = isUISupported
       ? await this._interactiveConsoleQueryFactory(

@@ -841,14 +841,19 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "vscode-deephaven",
+          "id": "vscode-deephaven_viewContainer_list",
           "title": "Deephaven",
           "icon": "images/dh-community-on-dark-128.svg"
+        },
+        {
+          "id": "vscode-deephaven_viewContainer_detail",
+          "title": "Deephaven Detail",
+          "icon": "$(server-process)"
         }
       ]
     },
     "views": {
-      "vscode-deephaven": [
+      "vscode-deephaven_viewContainer_list": [
         {
           "id": "vscode-deephaven.serverTree",
           "name": "Servers",
@@ -863,11 +868,14 @@
           "id": "vscode-deephaven.serverConnectionPanelTree",
           "name": "Panels",
           "type": "tree"
-        },
+        }
+      ],
+      "vscode-deephaven_viewContainer_detail": [
         {
           "id": "vscode-deephaven.createQueryView",
           "name": "Create Connection",
-          "type": "webview"
+          "type": "webview",
+          "when": "vscode-deephaven.createQueryView.isVisible"
         }
       ]
     }

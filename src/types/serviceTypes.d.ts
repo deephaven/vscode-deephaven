@@ -19,9 +19,9 @@ import type {
   CoreAuthenticatedClient,
   WorkerURL,
   QuerySerial,
+  DheAuthenticatedClient,
 } from '../types/commonTypes';
 import type {
-  AuthenticatedClient as DheAuthenticatedClient,
   UnauthenticatedClient as DheUnauthenticatedClient,
   Username,
 } from '@deephaven-enterprise/auth-nodejs';
@@ -93,7 +93,7 @@ export type IDhcServiceFactory = IFactory<
 >;
 export type IDheClientFactory = (
   serverUrl: URL
-) => Promise<DheUnauthenticatedClient & IDisposable>;
+) => Promise<DheUnauthenticatedClient>;
 export type IDheServiceFactory = IFactory<IDheService, [serverUrl: URL]>;
 
 export type IInteractiveConsoleQueryFactory = (

@@ -12,6 +12,7 @@ import {
   STATUS_BAR_CONNECTING_TEXT,
   STATUS_BAR_DISCONNECTED_TEXT,
   ICON_ID,
+  type ViewID,
 } from '../common';
 import { assertDefined } from '../crossModule';
 import type {
@@ -623,4 +624,19 @@ export async function saveRequirementsTxt(
   fs.writeFileSync(uri.fsPath, sorted.join('\n'));
 
   vscode.window.showTextDocument(uri);
+}
+
+/**
+ * Set the `isVisible` state of a given view id. Uses extension context
+ * `${viewId}.isVisible` to store the state. This can then be used in package.json
+ * view configs to conditionally show or hide views based on their visibility.
+ * @param viewId The view ID to set the visibility for.
+ * @param isVisible Whether the view is visible or not.
+ */
+export function setViewIsVisible(viewId: ViewID, isVisible: boolean): void {
+  vscode.commands.executeCommand(
+    'setContext',
+    `${viewId}.isVisible`,
+    isVisible
+  );
 }

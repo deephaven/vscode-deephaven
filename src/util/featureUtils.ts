@@ -37,5 +37,6 @@ export function isDheCreateQueryUISupported(gradleVersion: string): boolean {
 
   const { minor, patch } = parsedVersion;
 
+  // TODO: Update this version once PR is ready to be merged
   return minor === DHE_MINOR_VERSION.sanLuis && patch >= 237;
 }
