@@ -32,3 +32,15 @@ export function isCreateQueryMsgFromVscode(
     msg.message as (typeof VSCODE_POST_MSG)[keyof typeof VSCODE_POST_MSG]
   );
 }
+
+/**
+ * Check if the source of a message event is a WindowProxy. This is needed
+ * since checking `source instanceof Window` doesn't work in the webview context.
+ * @param source The source of the message event.
+ * @returns True if the source is a WindowProxy, false otherwise.
+ */
+export function isWindowProxy(
+  source?: MessageEventSource | null
+): source is WindowProxy {
+  return source != null && 'window' in source;
+}

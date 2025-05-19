@@ -17,6 +17,7 @@ import {
 import { Logger } from './Logger';
 import {
   DH_POST_MSG,
+  isWindowProxy,
   VSCODE_POST_MSG,
   type DhExternalThemeRequestMsg,
   type DhSetThemeRequestMsg,
@@ -210,16 +211,4 @@ export function getExternalThemeData(
     baseThemeKey,
     cssVars,
   };
-}
-
-/**
- * Check if the source of a message event is a WindowProxy. This is needed
- * since checking `source instanceof Window` doesn't work in the webview context.
- * @param source The source of the message event.
- * @returns True if the source is a WindowProxy, false otherwise.
- */
-export function isWindowProxy(
-  source?: MessageEventSource | null
-): source is WindowProxy {
-  return source != null && 'window' in source;
 }
