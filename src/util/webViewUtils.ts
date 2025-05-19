@@ -3,6 +3,7 @@ import { VIEW_ID_PREFIX, type ViewContainerID, type ViewID } from '../common';
 import { uniqueId } from './idUtils';
 import { getDHThemeKey } from './uiUtils';
 import {
+  DH_IFRAME_URL_META_KEY,
   VSCODE_POST_MSG,
   type VscodeGetPropertyMsg,
   type VscodeGetPropertyResponseMsg,
@@ -77,7 +78,7 @@ export function getWebViewHtml({
 			<head>
 				<meta charset="UTF-8">
 				<meta http-equiv="Content-Security-Policy" content="${cspContent}">
-        <meta name="dh-iframe-url" content="${iframeUrl.href}">
+        <meta name="${DH_IFRAME_URL_META_KEY}" content="${iframeUrl.href}">
 				<title>DH WebView</title>
 				<link rel="stylesheet" href="${styleUri}">
 			</head>

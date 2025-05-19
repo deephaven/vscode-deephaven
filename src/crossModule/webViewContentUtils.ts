@@ -6,7 +6,11 @@
 
 import type { WebviewApi } from 'vscode-webview';
 import { assertDefined } from './assertUtil';
-import { CONTENT_IFRAME_ID, GET_PROPERTY_TIMEOUT_MS } from './constants';
+import {
+  CONTENT_IFRAME_ID,
+  DH_IFRAME_URL_META_KEY,
+  GET_PROPERTY_TIMEOUT_MS,
+} from './constants';
 import { Logger } from './Logger';
 import {
   DH_POST_MSG,
@@ -24,13 +28,13 @@ const logger = new Logger('webViewUtils');
 
 /**
  * Create and append an iframe to a WebView that loads DH content. Expects meta
- * tags to provide the base theme key and the iframe URL (see `getWebViewHtml`
- * in the CJS `webViewUtils.ts` file).
+ * tags to provide the iframe URL (see `getWebViewHtml` the CJS `webViewUtils.ts`
+ * file).
  * @param vscode The VS Code Webview API.
  */
 export function createDhIframe(vscode: WebviewApi<unknown>): void {
   const iframeSrc = document.querySelector<HTMLMetaElement>(
-    'meta[name="dh-iframe-url"]'
+    `meta[name="${DH_IFRAME_URL_META_KEY}"]`
   )?.content;
 
   assertDefined(iframeSrc, 'DH iframe URL not found in meta tag');
