@@ -9,6 +9,7 @@ import {
 } from '../util';
 import {
   CLOSE_CREATE_QUERY_VIEW_CMD,
+  CREATE_QUERY_SETTINGS_STORAGE_KEY,
   DHE_CREATE_QUERY_URL_PATH,
   QueryCreationCancelledError,
   VIEW_CONTAINER_ID,
@@ -239,7 +240,13 @@ function handleSettingsChanged(
     'Received settings changed message from webView:',
     msgData.payload
   );
-  context.globalState.update('createQuerySettings', msgData.payload);
+
+  // Store the settings in the global state to use as default for the next
+  // worker creation
+  context.globalState.update(
+    CREATE_QUERY_SETTINGS_STORAGE_KEY,
+    msgData.payload
+  );
 }
 
 /**
@@ -260,9 +267,11 @@ function handleSettingsRequest(
   view: vscode.WebviewView,
   consoleType?: ConsoleType
 ): void {
-  const newWorkerName = `IC - VS Code${tagId == null ? '' : ` - ${tagId}`}`;
+  // Get stored settings from the global state
   const settings: Partial<ConsoleSettings> =
-    context.globalState.get('createQuerySettings') ?? {};
+    context.globalState.get(CREATE_QUERY_SETTINGS_STORAGE_KEY) ?? {};
+
+  const newWorkerName = `IC - VS Code${tagId == null ? '' : ` - ${tagId}`}`;
 
   const msg: VscodeSettingsResponseMsg = {
     id: msgData.id,

@@ -169,6 +169,8 @@ export const AUTH_CONFIG_SAML_PROVIDER_NAME =
 export const AUTH_CONFIG_SAML_LOGIN_URL =
   'authentication.client.samlauth.login.url' as const;
 
+export const CREATE_QUERY_SETTINGS_STORAGE_KEY = 'createQuerySettings' as const;
+
 export const DH_SAML_AUTH_PROVIDER_TYPE = 'dhsaml' as const;
 export const DH_SAML_SERVER_URL_SCOPE_KEY = 'deephaven.samlServerUrl' as const;
 export const DH_SAML_LOGIN_URL_SCOPE_KEY = 'deephaven.samlLoginUrl' as const;
