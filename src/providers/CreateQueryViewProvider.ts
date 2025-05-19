@@ -9,6 +9,7 @@ import {
 } from '../util';
 import {
   CLOSE_CREATE_QUERY_VIEW_CMD,
+  DHE_CREATE_QUERY_URL_PATH,
   QueryCreationCancelledError,
   VIEW_CONTAINER_ID,
   VIEW_ID,
@@ -290,7 +291,7 @@ function updateWebviewView(
 ): void {
   const { webview: webView } = view;
 
-  const iframeUrl = new URL('/iriside/iframecontent/createworker', serverUrl);
+  const iframeUrl = new URL(DHE_CREATE_QUERY_URL_PATH, serverUrl);
 
   webView.options = {
     enableScripts: true,

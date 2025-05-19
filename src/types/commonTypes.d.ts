@@ -55,6 +55,13 @@ export type DheUnauthenticatedClient = DheUnauthenticatedClientBase &
     refreshTokenSerialized?: Promise<SerializableRefreshToken>;
   };
 
+export interface DheServerFeatures {
+  version: number;
+  features: {
+    createQueryIframe: boolean;
+  };
+}
+
 export type DependencyName = Brand<'DependencyName', string>;
 export type DependencyVersion = Brand<'DependencyVersion', string>;
 

@@ -3,6 +3,7 @@ import type { AuthenticatedClient as DheAuthenticatedClient } from '@deephaven-e
 import type { EnterpriseDhType as DheType } from '@deephaven-enterprise/jsapi-types';
 import {
   type ConsoleType,
+  type DheServerFeatures,
   type IAsyncCacheService,
   type IConfigService,
   type IDheService,
@@ -15,13 +16,17 @@ import {
   type WorkerURL,
 } from '../types';
 import { URLMap } from './URLMap';
-import { isDheCreateQueryUISupported, Logger } from '../util';
+import { Logger } from '../util';
 import {
   createInteractiveConsoleQuery,
   deleteQueries,
+  getDheFeatures,
   getWorkerInfoFromQuery,
 } from '../dh/dhe';
-import { CREATE_DHE_AUTHENTICATED_CLIENT_CMD } from '../common';
+import {
+  CREATE_DHE_AUTHENTICATED_CLIENT_CMD,
+  UnsupportedFeatureQueryError,
+} from '../common';
 import type { QuerySerial } from '../crossModule';
 
 const logger = new Logger('DheService');
@@ -76,6 +81,7 @@ export class DheService implements IDheService {
     this._config = configService;
     this._dheClientCache = dheClientCache;
     this._dheJsApiCache = dheJsApiCache;
+    this._dheServerFeaturesCache = new URLMap<DheServerFeatures>();
     this._querySerialSet = new Set<QuerySerial>();
     this._interactiveConsoleQueryFactory = interactiveConsoleQueryFactory;
     this._toaster = toaster;
@@ -89,6 +95,7 @@ export class DheService implements IDheService {
   private readonly _config: IConfigService;
   private readonly _dheClientCache: URLMap<DheAuthenticatedClient>;
   private readonly _dheJsApiCache: IAsyncCacheService<URL, DheType>;
+  private readonly _dheServerFeaturesCache: URLMap<DheServerFeatures>;
   private readonly _querySerialSet: Set<QuerySerial>;
   private readonly _interactiveConsoleQueryFactory: IInteractiveConsoleQueryFactory;
   private readonly _toaster: IToastService;
@@ -120,6 +127,21 @@ export class DheService implements IDheService {
     }
 
     const maybeClient = await this._dheClientCache.get(this.serverUrl);
+
+    if (!this._dheServerFeaturesCache.has(this.serverUrl)) {
+      try {
+        const features = await getDheFeatures(this.serverUrl);
+        this._dheServerFeaturesCache.set(this.serverUrl, features);
+      } catch (err) {
+        if (err instanceof UnsupportedFeatureQueryError) {
+          logger.debug(
+            `DHE server ${err.serverUrl} does not support features query`
+          );
+        } else {
+          logger.error('Failed to get DHE server features', err);
+        }
+      }
+    }
 
     return maybeClient ?? null;
   };
@@ -221,11 +243,9 @@ export class DheService implements IDheService {
 
     const dhe = await this._dheJsApiCache.get(this.serverUrl);
 
-    const { gradleVersion } = await dheClient.getServerConfigValues();
-    logger.debug('Gradle version:', gradleVersion);
-    // HACK: dev only TODO: Update gradle version check
     const isUISupported =
-      this.serverUrl.origin === 'https://bmingles-f1.int.illumon.com:8123'; // isDheCreateQueryUISupported(gradleVersion);
+      this._dheServerFeaturesCache.get(this.serverUrl)?.features
+        .createQueryIframe ?? false;
 
     const querySerial = isUISupported
       ? await this._interactiveConsoleQueryFactory(

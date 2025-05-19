@@ -11,3 +11,13 @@ export class UnsupportedConsoleTypeError extends Error {
     this.name = 'UnsupportedConsoleTypeError';
   }
 }
+
+export class UnsupportedFeatureQueryError extends Error {
+  constructor(message: string, serverUrl: string) {
+    super(message);
+    this.name = 'UnsupportedFeatureQueryError';
+    this.serverUrl = serverUrl;
+  }
+
+  readonly serverUrl: string;
+}

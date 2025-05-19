@@ -12,6 +12,7 @@ import { hasStatusCode, loadModules } from '@deephaven/jsapi-nodejs';
 import type {
   AuthConfig,
   ConsoleType,
+  DheServerFeatures,
   GrpcURL,
   IdeURL,
   JsapiURL,
@@ -27,8 +28,10 @@ import {
   AUTH_CONFIG_SAML_PROVIDER_NAME,
   DEFAULT_TEMPORARY_QUERY_AUTO_TIMEOUT_MS,
   DEFAULT_TEMPORARY_QUERY_TIMEOUT_MS,
+  DHE_FEATURES_URL_PATH,
   INTERACTIVE_CONSOLE_QUERY_TYPE,
   INTERACTIVE_CONSOLE_TEMPORARY_QUEUE_NAME,
+  UnsupportedFeatureQueryError,
 } from '../common';
 import { withResolvers } from '../util';
 import type { QuerySerial } from '../crossModule';
@@ -67,6 +70,36 @@ export async function getDhe(
 
   // DHE currently exposes the jsapi via the global `iris` object.
   return iris;
+}
+
+/**
+ * Get the `features.json` file from the DHE server if it exists. This file
+ * contains information about UI features available on the server.
+ * @param serverUrl
+ * @returns A promise that resolves to the features object
+ * @throws An `UnsupportedFeatureQueryError` error if the feature json is not
+ * found or a general Error if response is not valid JSON.
+ */
+export async function getDheFeatures(
+  serverUrl: URL
+): Promise<DheServerFeatures> {
+  const response = await fetch(new URL(DHE_FEATURES_URL_PATH, serverUrl));
+
+  if (
+    !response.ok ||
+    response.headers.get('content-type') !== 'application/json'
+  ) {
+    throw new UnsupportedFeatureQueryError(
+      'Unsupported feature query',
+      serverUrl.toString()
+    );
+  }
+
+  try {
+    return await response.json();
+  } catch (err) {
+    throw new Error(`Failed to parse DHE features from ${serverUrl}: ${err}`);
+  }
 }
 
 /**

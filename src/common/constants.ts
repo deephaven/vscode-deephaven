@@ -173,10 +173,7 @@ export const DH_SAML_AUTH_PROVIDER_TYPE = 'dhsaml' as const;
 export const DH_SAML_SERVER_URL_SCOPE_KEY = 'deephaven.samlServerUrl' as const;
 export const DH_SAML_LOGIN_URL_SCOPE_KEY = 'deephaven.samlLoginUrl' as const;
 
-export const DHE_MINOR_VERSION = {
-  grizzly: 20240517,
-  grizzlyPlus: 20250219,
-  sanLuis: 20250801,
-} as const;
+export const DHE_CREATE_QUERY_URL_PATH =
+  '/iriside/iframecontent/createworker' as const;
 
-export const DHE_GRADLE_VERSION_REGEX = /^(\d+)\.(\d+)\.(\d+)([a-z]+)?/;
+export const DHE_FEATURES_URL_PATH = '/iriside/features.json' as const;
