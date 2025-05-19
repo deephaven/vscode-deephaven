@@ -66,8 +66,7 @@ export class CreateQueryViewProvider
   createQuery = async (
     serverUrl: URL,
     tagId: UniqueID,
-    // TODO: Use this to drive default console type in UI
-    _consoleType?: ConsoleType
+    consoleType?: ConsoleType
   ): Promise<QuerySerial | null> => {
     this._activeServerUrl = serverUrl;
 
@@ -138,7 +137,8 @@ export class CreateQueryViewProvider
               this._context,
               versionedTagId,
               serverUrl,
-              view
+              view,
+              consoleType
             );
             break;
 
@@ -249,6 +249,7 @@ function handleSettingsChanged(
  * @param tagId Unique ID for the tag, used in the worker name
  * @param serverUrl URL of the server
  * @param view vscode.WebviewView containing the iframe
+ * @param consoleType Console type to create
  * @returns void
  */
 function handleSettingsRequest(
@@ -256,7 +257,8 @@ function handleSettingsRequest(
   context: vscode.ExtensionContext,
   tagId: UniqueID,
   serverUrl: URL,
-  view: vscode.WebviewView
+  view: vscode.WebviewView,
+  consoleType?: ConsoleType
 ): void {
   const newWorkerName = `IC - VS Code${tagId == null ? '' : ` - ${tagId}`}`;
   const settings: Partial<ConsoleSettings> =
@@ -267,7 +269,10 @@ function handleSettingsRequest(
     message: VSCODE_POST_MSG.settingsResponse,
     payload: {
       newWorkerName,
-      settings,
+      settings: {
+        ...settings,
+        language: consoleType,
+      },
       isLegacyWorkerKindSupported: false,
       showHeader: false,
     },
