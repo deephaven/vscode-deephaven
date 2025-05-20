@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { vi, it, expect, beforeEach } from 'vitest';
 import { ParsedDocumentCache } from './ParseDocumentCache';
-import { mockDocument } from '../util';
+import { mockDocument } from '../crossModule/testUtils';
 
 vi.mock('vscode');
 

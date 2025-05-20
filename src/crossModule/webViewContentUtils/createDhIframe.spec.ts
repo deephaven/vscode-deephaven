@@ -53,6 +53,7 @@ function mockGetExternalThemeData(
 
 beforeEach(() => {
   vi.clearAllMocks();
+  document.head.innerHTML = '';
   document.body.innerHTML = '';
   vi.useFakeTimers();
 
