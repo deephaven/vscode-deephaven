@@ -33,6 +33,9 @@ import {
 
 const logger = new Logger('CreateQueryViewProvider');
 
+/**
+ * Provider for Webview containing "Create Query" panel for DHE.
+ */
 export class CreateQueryViewProvider
   extends DisposableBase
   implements vscode.WebviewViewProvider
