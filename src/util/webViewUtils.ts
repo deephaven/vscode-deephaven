@@ -73,19 +73,21 @@ export function getWebViewHtml({
     `frame-src ${iframeUrl.origin}`,
   ].join('; ');
 
-  return `<!DOCTYPE html>
-			<html lang="en">
-			<head>
-				<meta charset="UTF-8">
-				<meta http-equiv="Content-Security-Policy" content="${cspContent}">
-        <meta name="${DH_IFRAME_URL_META_KEY}" content="${iframeUrl.href}">
-				<title>DH WebView</title>
-				<link rel="stylesheet" href="${styleUri}">
-			</head>
-			<body>
-				<script nonce="${nonce}" src="${scriptUri}"></script>
-			</body>
-			</html>`;
+  return [
+    '<!DOCTYPE html>',
+    '<html lang="en">',
+    '<head>',
+    '  <meta charset="UTF-8">',
+    `  <meta http-equiv="Content-Security-Policy" content="${cspContent}">`,
+    `  <meta name="${DH_IFRAME_URL_META_KEY}" content="${iframeUrl.href}">`,
+    '  <title>DH WebView</title>',
+    `  <link rel="stylesheet" href="${styleUri}">`,
+    '</head>',
+    '<body>',
+    `  <script nonce="${nonce}" src="${scriptUri}"></script>`,
+    '</body>',
+    '</html>',
+  ].join('\n');
 }
 
 /**
