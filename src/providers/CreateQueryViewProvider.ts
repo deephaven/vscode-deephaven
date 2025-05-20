@@ -6,6 +6,7 @@ import {
   setViewIsVisible,
   showViewContainer,
   withResolvers,
+  type PromiseWithResolvers,
 } from '../util';
 import {
   CLOSE_CREATE_QUERY_VIEW_CMD,
@@ -59,7 +60,7 @@ export class CreateQueryViewProvider
 
   private readonly _context: vscode.ExtensionContext;
   private readonly _dheClientCache: URLMap<DheAuthenticatedClient>;
-  private _viewPromise?: Promise<vscode.WebviewView>;
+  private _viewPromiseWithResolvers?: PromiseWithResolvers<vscode.WebviewView>;
   private _activeServerUrl?: URL;
   private _rejectQuerySerial?: (reason?: any) => void;
 
@@ -74,15 +75,9 @@ export class CreateQueryViewProvider
   ): Promise<QuerySerial | null> => {
     this._activeServerUrl = serverUrl;
 
-    const { promise: viewPromise, resolve: resolveView } =
-      withResolvers<vscode.WebviewView>();
-
-    this._viewPromise = viewPromise;
-    this._resolveView = resolveView;
-
     this.show();
 
-    const view = await this._viewPromise;
+    const view = await this._viewPromiseWithResolvers?.promise;
     assertDefined(view, 'view');
 
     updateWebviewView(this._context.extensionUri, view, serverUrl);
@@ -168,7 +163,7 @@ export class CreateQueryViewProvider
   refresh = async (): Promise<void> => {
     assertDefined(this._activeServerUrl, 'activeServerUrl');
 
-    const view = await this._viewPromise;
+    const view = await this._viewPromiseWithResolvers?.promise;
     assertDefined(view, 'view');
 
     updateWebviewView(this._context.extensionUri, view, this._activeServerUrl);
@@ -182,18 +177,22 @@ export class CreateQueryViewProvider
   };
 
   show = (): void => {
+    // Setup the view promise and resolvers
+    this._viewPromiseWithResolvers?.reject(
+      'show() called before view resolved'
+    );
+    this._viewPromiseWithResolvers = withResolvers();
+
     setViewIsVisible(VIEW_ID.createQuery, true);
     showViewContainer(VIEW_CONTAINER_ID.detail);
   };
-
-  private _resolveView?: (view: vscode.WebviewView) => void;
 
   resolveWebviewView = (
     webViewView: vscode.WebviewView,
     _context: vscode.WebviewViewResolveContext,
     _token: vscode.CancellationToken
   ): Thenable<void> | void => {
-    this._resolveView?.(webViewView);
+    this._viewPromiseWithResolvers?.resolve(webViewView);
 
     assertDefined(this._activeServerUrl, 'activeServerUrl');
     registerWebViewThemeHandlers(webViewView, this._activeServerUrl);
