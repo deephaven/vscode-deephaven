@@ -120,7 +120,7 @@ async function main() {
     await Promise.all([cjsCtx.watch(), esmWebViewCtx.watch()]);
   } else {
     await Promise.all([cjsCtx.rebuild(), esmWebViewCtx.rebuild()]);
-    await ctx.dispose();
+    await Promise.all([cjsCtx.dispose(), esmWebViewCtx.dispose()]);
   }
 }
 
