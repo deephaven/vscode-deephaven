@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getIframeContentWindow } from './webViewContentUtils';
-import { CONTENT_IFRAME_ID } from './constants';
+import { getIframeContentWindow } from './getIframeContentWindow';
+import { CONTENT_IFRAME_ID } from '../constants';
 
 // @vitest-environment jsdom
 
