@@ -1,3 +1,8 @@
+/**
+ * This module contains test utils and shouldn't be imported in the app code or
+ * have any dependencies on the app code.
+ */
+
 import { expect, vi } from 'vitest';
 import type * as vscode from 'vscode';
 export const bitValues = [0, 1] as const;

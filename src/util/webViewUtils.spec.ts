@@ -7,7 +7,7 @@ import {
   registerWebViewThemeHandlers,
 } from './webViewUtils';
 import { VIEW_ID_PREFIX, type ViewID } from '../common';
-import { mockT } from '../crossModule/testUtils';
+import { mockT } from '../testUtils';
 import { uniqueId } from './idUtils';
 import type { UniqueID } from '../types';
 import {

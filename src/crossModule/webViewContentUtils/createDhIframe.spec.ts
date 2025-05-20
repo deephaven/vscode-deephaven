@@ -12,7 +12,7 @@ import type { BaseThemeKey, ExternalThemeData } from '../types';
 import { getExternalThemeData } from './getExternalThemeData';
 import { getVscodeProperty } from './getVscodeProperty';
 import { getIframeContentWindow } from './getIframeContentWindow';
-import { getLastMessageHandler } from '../testUtils';
+import { getLastMessageHandler } from '../../testUtils';
 
 // @vitest-environment jsdom
 

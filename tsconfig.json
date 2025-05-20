@@ -18,6 +18,7 @@
     // Exclude tests as they have their own tsconfigs.
     "e2e",
     "e2e-testing",
+    "src/testUtils.ts",
     "**/*.spec.ts"
   ],
   "references": [{ "path": "./e2e-testing" }]

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, it, expect, vi } from 'vitest';
 import { getVscodeProperty } from './getVscodeProperty';
 import type { WebviewApi } from 'vscode-webview';
-import { getLastMessageHandler } from '../testUtils';
+import { getLastMessageHandler } from '../../testUtils';
 import type { BaseThemeKey } from '../types';
 import { VSCODE_POST_MSG, type VscodeGetPropertyResponseMsg } from '../msg';
 

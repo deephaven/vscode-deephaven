@@ -4,7 +4,7 @@ import {
   getRunMarkdownCodeBlockMarkdown,
   getRunSelectedLinesMarkdown,
 } from './hoverUtils';
-import { mockDocument, mockT, mockUri } from '../crossModule/testUtils';
+import { mockDocument, mockT, mockUri } from '../testUtils';
 import type { CodeBlock } from '../types';
 import { RUN_MARKDOWN_CODEBLOCK_CMD, RUN_SELECTION_COMMAND } from '../common';
 
