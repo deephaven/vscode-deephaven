@@ -1,8 +1,9 @@
 /**
  * This module contains test utils that should only be consumed by `.spec.ts`
  * files, but since it's not a `.spec.ts` file, it is special cased to exclude
- * from the extension build and include in the unit test build. It shouldn't be
- * imported by the extension code or have any dependencies on the extension code.
+ * from the extension build (tsconfig.json) and include in the unit test build
+ * (tsconfig.unit.json). It shouldn't be imported by the extension code or have
+ * any dependencies on the extension code.
  */
 
 import { expect, vi } from 'vitest';
