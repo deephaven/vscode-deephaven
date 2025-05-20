@@ -12,6 +12,7 @@ import type { BaseThemeKey, ExternalThemeData } from '../types';
 import { getExternalThemeData } from './getExternalThemeData';
 import { getVscodeProperty } from './getVscodeProperty';
 import { getIframeContentWindow } from './getIframeContentWindow';
+import { getLastMessageHandler } from '../testUtils';
 
 // @vitest-environment jsdom
 
@@ -68,20 +69,6 @@ afterEach(() => {
 
 function setIframeUrlMetaTag(): void {
   document.head.innerHTML = `<meta name="${DH_IFRAME_URL_META_KEY}" content="https://mock-iframe.deephaven.io" />`;
-}
-
-/**
- * Return last registered event handler for 'message' event.
- */
-type MessageHandler<TData> = (event: Partial<MessageEvent<TData>>) => unknown;
-function getLastMessageHandler<TData>(): MessageHandler<TData> {
-  const messageCalls = vi
-    .mocked(window.addEventListener<'message'>)
-    .mock.calls.filter(([type]) => type === 'message');
-
-  expect(messageCalls.length).toBeGreaterThan(0);
-
-  return messageCalls.at(-1)![1] as MessageHandler<TData>;
 }
 
 it('should create an iframe with the correct attributes', () => {

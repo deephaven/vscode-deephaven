@@ -8,7 +8,7 @@ import {
   parseMarkdownCodeblocks,
   serializeRange,
 } from './documentUtils';
-import { mockDocument } from './testUtils';
+import { mockDocument } from '../crossModule/testUtils';
 import type { SerializedRange } from '../types';
 
 vi.mock('vscode');
