@@ -12,6 +12,26 @@ import {
 } from '../crossModule';
 
 /**
+ * Create a property response message.
+ * @param id The ID of the message.
+ * @param name The name of the property.
+ * @returns The property response message.
+ */
+export function createGetPropertyResponseMsg<TName extends VscodePropertyName>(
+  id: string,
+  name: TName
+): VscodeGetPropertyResponseMsg {
+  return {
+    id,
+    message: VSCODE_POST_MSG.getVscodePropertyResponse,
+    payload: {
+      name,
+      value: getDHThemeKey(),
+    },
+  };
+}
+
+/**
  * Get Uri root containing content for a WebView.
  * @param extensionUri The extension Uri.
  * @param viewId The view id to get the content for.
@@ -134,26 +154,6 @@ export function registerWebViewThemeHandlers(
     colorChangeSubscription.dispose();
     messageSubscription.dispose();
   });
-}
-
-/**
- * Create a property response message.
- * @param id The ID of the message.
- * @param name The name of the property.
- * @returns The property response message.
- */
-export function createGetPropertyResponseMsg<TName extends VscodePropertyName>(
-  id: string,
-  name: TName
-): VscodeGetPropertyResponseMsg {
-  return {
-    id,
-    message: VSCODE_POST_MSG.getVscodePropertyResponse,
-    payload: {
-      name,
-      value: getDHThemeKey(),
-    },
-  };
 }
 
 /**

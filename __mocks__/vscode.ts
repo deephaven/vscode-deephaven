@@ -167,7 +167,10 @@ export enum TreeItemCollapsibleState {
   Expanded = 2,
 }
 
-export const window = {};
+export const window = {
+  onDidChangeActiveColorTheme: vi.fn().mockName('onDidChangeActiveColorTheme'),
+  onDidReceiveMessage: vi.fn().mockName('onDidReceiveMessage'),
+};
 
 export const workspace = {
   getConfiguration: vi

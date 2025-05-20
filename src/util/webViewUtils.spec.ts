@@ -4,6 +4,7 @@ import {
   createGetPropertyResponseMsg,
   getWebViewContentRootUri,
   getWebViewHtml,
+  registerWebViewThemeHandlers,
 } from './webViewUtils';
 import { VIEW_ID_PREFIX, type ViewID } from '../common';
 import { mockT } from '../crossModule/testUtils';
@@ -12,6 +13,7 @@ import type { UniqueID } from '../types';
 import {
   VSCODE_POST_MSG,
   type BaseThemeKey,
+  type VscodeGetPropertyMsg,
   type VscodePropertyName,
 } from '../crossModule';
 import { getDHThemeKey } from './uiUtils';
@@ -25,6 +27,7 @@ beforeEach(() => {
   vi.mocked(uniqueId).mockReturnValue('mock.uniqueId' as UniqueID);
 });
 
+const mockColorTheme = {} as vscode.ColorTheme;
 const mockExtensionUri = {
   path: 'mock.extensionUri',
   toString: function () {
@@ -35,6 +38,13 @@ const mockViewId = `${VIEW_ID_PREFIX}mockViewId` as ViewID;
 const mockWebView = mockT<vscode.Webview>({
   cspSource: 'mock.cspSource',
   asWebviewUri: vi.fn(),
+  onDidReceiveMessage: vi.fn(),
+  postMessage: vi.fn(),
+});
+const mockServerUrl = new URL('https://mock.deephaven.io');
+const mockWebViewView = mockT<vscode.WebviewView>({
+  webview: mockWebView,
+  onDidDispose: vi.fn(),
 });
 
 describe('createGetPropertyResponseMsg', () => {
@@ -93,5 +103,74 @@ describe('getWebViewHtml', () => {
         stylesFileName: 'styles.css',
       })
     ).toMatchSnapshot();
+  });
+});
+
+describe('registerWebViewThemeHandlers', () => {
+  it('should register an `onDidChangeActiveColorTheme` event handler', () => {
+    registerWebViewThemeHandlers(mockWebViewView, mockServerUrl);
+
+    const handler = vi.mocked(vscode.window.onDidChangeActiveColorTheme).mock
+      .calls[0][0];
+
+    expect(handler).toBeInstanceOf(Function);
+
+    handler(mockColorTheme);
+
+    expect(mockWebView.postMessage).toHaveBeenCalledWith({
+      id: uniqueId(),
+      message: VSCODE_POST_MSG.requestSetTheme,
+      payload: getDHThemeKey(),
+      targetOrigin: mockServerUrl.origin,
+    });
+  });
+
+  it('should register an `onDidReceiveMessage` event handler', () => {
+    registerWebViewThemeHandlers(mockWebViewView, mockServerUrl);
+
+    const handler = vi.mocked(mockWebView.onDidReceiveMessage).mock.calls[0][0];
+
+    expect(handler).toBeInstanceOf(Function);
+
+    const id = 'mock.id';
+    const payload = 'baseThemeKey';
+
+    const message: { data: VscodeGetPropertyMsg; origin: string } = {
+      data: {
+        id,
+        message: VSCODE_POST_MSG.getVscodeProperty,
+        payload,
+      },
+      origin: mockServerUrl.origin,
+    };
+
+    handler(message);
+
+    expect(mockWebView.postMessage).toHaveBeenCalledWith(
+      createGetPropertyResponseMsg(id, payload)
+    );
+  });
+
+  it('should regster an `onDidDispose` event handler that cleans up subscriptions', () => {
+    const colorChangeSubscription = { dispose: vi.fn() };
+    const messageSubscription = { dispose: vi.fn() };
+
+    vi.mocked(vscode.window.onDidChangeActiveColorTheme).mockReturnValue(
+      colorChangeSubscription
+    );
+
+    vi.mocked(mockWebView.onDidReceiveMessage).mockReturnValue(
+      messageSubscription
+    );
+
+    registerWebViewThemeHandlers(mockWebViewView, mockServerUrl);
+
+    const disposeHandler = vi.mocked(mockWebViewView.onDidDispose).mock
+      .calls[0][0];
+    expect(disposeHandler).toBeInstanceOf(Function);
+
+    disposeHandler();
+    expect(colorChangeSubscription.dispose).toHaveBeenCalled();
+    expect(messageSubscription.dispose).toHaveBeenCalled();
   });
 });
