@@ -4,7 +4,7 @@
   "displayName": "Deephaven VS Code",
   "description": "",
   "publisher": "deephaven",
-  "icon": "images/dh-community-on-dark-128.png",
+  "icon": "images/dh-logo-128.png",
   "galleryBanner": {
     "color": "#040427",
     "theme": "dark"
@@ -842,7 +842,7 @@
         {
           "id": "vscode-deephaven",
           "title": "Deephaven",
-          "icon": "images/dh-community-on-dark-128.svg"
+          "icon": "images/dh-logo-28.svg"
         }
       ]
     },
