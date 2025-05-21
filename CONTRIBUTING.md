@@ -106,8 +106,7 @@ npx vsce ls
 Logo .pngs were generated from .svgs using `rsvg-convert`
 
 ```
-rsvg-convert -w 128 -h 128 images/dh-community-on-dark-128.svg -o images/dh-community-on-dark-128.png
-rsvg-convert -w 128 -h 128 images/dh-community-on-light-128.svg -o images/dh-community-on-light-128.png
+rsvg-convert -w 128 -h 128 images/dh-logo-128.svg -o images/dh-logo-128.png
 ```
 
 ## Icon Font Generation
