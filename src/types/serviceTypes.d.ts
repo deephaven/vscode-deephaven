@@ -18,7 +18,8 @@ import type {
   Psk,
   CoreAuthenticatedClient,
   WorkerURL,
-  DheAuthenticatedClient,
+  DheAuthenticatedClientWrapper,
+  DheUnauthenticatedClientWrapper,
 } from '../types/commonTypes';
 import type {
   UnauthenticatedClient as DheUnauthenticatedClient,
@@ -63,11 +64,13 @@ export interface IDhcService extends IDisposable, ConnectionState {
 }
 
 export interface IDheService extends ConnectionState, IDisposable {
-  getClient(initializeIfNull: false): Promise<DheAuthenticatedClient | null>;
+  getClient(
+    initializeIfNull: false
+  ): Promise<DheAuthenticatedClientWrapper | null>;
   getClient(
     initializeIfNull: true,
     operateAsAnotherUser: boolean
-  ): Promise<DheAuthenticatedClient | null>;
+  ): Promise<DheAuthenticatedClientWrapper | null>;
   getWorkerInfo: (workerUrl: WorkerURL) => WorkerInfo | undefined;
   createWorker: (
     tagId: UniqueID,
@@ -93,7 +96,7 @@ export type IDhcServiceFactory = IFactory<
 >;
 export type IDheClientFactory = (
   serverUrl: URL
-) => Promise<DheUnauthenticatedClient>;
+) => Promise<DheUnauthenticatedClientWrapper>;
 export type IDheServiceFactory = IFactory<IDheService, [serverUrl: URL]>;
 
 export type IInteractiveConsoleQueryFactory = (

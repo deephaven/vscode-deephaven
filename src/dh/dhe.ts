@@ -7,12 +7,17 @@ import type {
   TypeSpecificFields,
 } from '@deephaven-enterprise/jsapi-types';
 import { DraftQuery, QueryScheduler } from '@deephaven-enterprise/query-utils';
-import type { AuthenticatedClient as DheAuthenticatedClient } from '@deephaven-enterprise/auth-nodejs';
+import type {
+  AuthenticatedClient as DheAuthenticatedClient,
+  UnauthenticatedClient as DheUnauthenticatedClient,
+} from '@deephaven-enterprise/auth-nodejs';
 import { hasStatusCode, loadModules } from '@deephaven/jsapi-nodejs';
 import type {
   AuthConfig,
   ConsoleType,
+  DheAuthenticatedClientWrapper,
   DheServerFeatures,
+  DheUnauthenticatedClientWrapper,
   GrpcURL,
   IdeURL,
   JsapiURL,
@@ -153,6 +158,32 @@ export async function isDheServerRunning(serverUrl: URL): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/**
+ * Login the client wrapper with the given login function and credentials.
+ * @param unauthenticatedClientWrapper Unauthenticated client wrapper.
+ * @param loginFn Login function to use.
+ * @param credentials Credentials to use.
+ * @returns A promise that resolves to the authenticated client wrapper.
+ */
+export async function loginClientWrapper<TCredentials>(
+  unauthenticatedClientWrapper: DheUnauthenticatedClientWrapper,
+  loginFn: (
+    unauthenticatedClient: DheUnauthenticatedClient,
+    credentials: TCredentials
+  ) => Promise<DheAuthenticatedClient>,
+  credentials: TCredentials
+): Promise<DheAuthenticatedClientWrapper> {
+  const client = await loginFn(
+    unauthenticatedClientWrapper.client,
+    credentials
+  );
+
+  return {
+    ...unauthenticatedClientWrapper,
+    client,
+  };
 }
 
 /**

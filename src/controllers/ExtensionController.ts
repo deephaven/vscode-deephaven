@@ -8,6 +8,7 @@ import type {
 import {
   createClient as createDheClient,
   getWsUrl,
+  type UnauthenticatedClient as DheUnauthenticatedClient,
 } from '@deephaven-enterprise/auth-nodejs';
 import { NodeHttp2gRPCTransport } from '@deephaven/jsapi-nodejs';
 import {
@@ -100,8 +101,8 @@ import type {
   CodeBlock,
   IInteractiveConsoleQueryFactory,
   ConsoleType,
-  DheAuthenticatedClient,
-  DheUnauthenticatedClient,
+  DheAuthenticatedClientWrapper,
+  DheUnauthenticatedClientWrapper,
 } from '../types';
 import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTreeDragAndDropController';
 import { ConnectionController } from './ConnectionController';
@@ -161,7 +162,7 @@ export class ExtensionController implements IDisposable {
   private _coreClientFactory: ICoreClientFactory | null = null;
   private _coreJsApiCache: IAsyncCacheService<URL, typeof DhcType> | null =
     null;
-  private _dheClientCache: URLMap<DheAuthenticatedClient> | null = null;
+  private _dheClientCache: URLMap<DheAuthenticatedClientWrapper> | null = null;
   private _dheClientFactory: IDheClientFactory | null = null;
   private _dheServiceCache: IAsyncCacheService<URL, IDheService> | null = null;
   private _interactiveConsoleQueryFactory: IInteractiveConsoleQueryFactory | null =
@@ -507,7 +508,7 @@ export class ExtensionController implements IDisposable {
 
     this._dheClientFactory = async (
       url: URL
-    ): Promise<DheUnauthenticatedClient> => {
+    ): Promise<DheUnauthenticatedClientWrapper> => {
       assertDefined(this._dheJsApiCache, 'dheJsApiCache');
       const dhe = await this._dheJsApiCache.get(url);
 
@@ -542,32 +543,26 @@ export class ExtensionController implements IDisposable {
         }
       );
 
-      // Augment with additional methods
-      const augmentedClient = Object.assign(client, {
-        dispose: async () => {
-          client.disconnect();
-          refreshTokenSubscription();
-        },
-      });
-
-      Object.defineProperty(augmentedClient, 'refreshTokenSerialized', {
+      return {
+        client,
         /**
          * Get a Promise for the latest refresh token. If the first token has not
          * been received yet, the Promise will resolve once it is received.
          */
-        get(): Promise<SerializableRefreshToken | null> {
+        get refreshTokenSerialized(): Promise<SerializableRefreshToken | null> {
           return refreshTokenSerializedPromise;
         },
-        enumerable: true,
-      });
-
-      return augmentedClient;
+        dispose: async (): Promise<void> => {
+          client.disconnect();
+          refreshTokenSubscription();
+        },
+      };
     };
 
     this._coreClientCache = new URLMap<CoreAuthenticatedClient & IDisposable>();
     this._context.subscriptions.push(this._coreClientCache);
 
-    this._dheClientCache = new URLMap<DheAuthenticatedClient>();
+    this._dheClientCache = new URLMap<DheAuthenticatedClientWrapper>();
     this._context.subscriptions.push(this._dheClientCache);
 
     this._panelService = new PanelService();

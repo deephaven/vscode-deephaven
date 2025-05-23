@@ -16,7 +16,11 @@ import {
   VIEW_CONTAINER_ID,
   VIEW_ID,
 } from '../common';
-import type { ConsoleType, DheAuthenticatedClient, UniqueID } from '../types';
+import type {
+  ConsoleType,
+  DheAuthenticatedClientWrapper,
+  UniqueID,
+} from '../types';
 import { DisposableBase, type URLMap } from '../services';
 import {
   assertDefined,
@@ -43,7 +47,7 @@ export class CreateQueryViewProvider
 {
   constructor(
     context: vscode.ExtensionContext,
-    dheClientCache: URLMap<DheAuthenticatedClient>
+    dheClientCache: URLMap<DheAuthenticatedClientWrapper>
   ) {
     super();
     this._context = context;
@@ -59,7 +63,7 @@ export class CreateQueryViewProvider
   }
 
   private readonly _context: vscode.ExtensionContext;
-  private readonly _dheClientCache: URLMap<DheAuthenticatedClient>;
+  private readonly _dheClientCache: URLMap<DheAuthenticatedClientWrapper>;
   private _viewPromiseWithResolvers?: PromiseWithResolvers<vscode.WebviewView>;
   private _activeServerUrl?: URL;
   private _rejectQuerySerial?: (reason?: any) => void;
@@ -202,18 +206,18 @@ export class CreateQueryViewProvider
 /**
  * Handle auth token request from DH iframe.
  * @param msgData Auth token request message
- * @param dheClient Authenticated DHE client
+ * @param dheClientWrapper Authenticated DHE client wrapper
  * @param serverUrl URL of the server
  * @param view vscode.WebviewView containing the iframe
  * @returns A promise that resolves when the message is sent to the webview.
  */
 async function handleAuthTokenRequest(
   msgData: DhAuthTokenRequestMsg,
-  dheClient: DheAuthenticatedClient,
+  dheClientWrapper: DheAuthenticatedClientWrapper,
   serverUrl: URL,
   view: vscode.WebviewView
 ): Promise<void> {
-  const refreshTokenSerialized = await dheClient.refreshTokenSerialized;
+  const refreshTokenSerialized = await dheClientWrapper.refreshTokenSerialized;
 
   assertDefined(refreshTokenSerialized, 'refreshToken');
 

@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import { randomUUID } from 'node:crypto';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
-import type { AuthenticatedClient as DheAuthenticatedClient } from '@deephaven-enterprise/auth-nodejs';
 import {
   QueryCreationCancelledError,
   UnsupportedConsoleTypeError,
@@ -22,6 +21,7 @@ import type {
   ISecretService,
   Psk,
   WorkerURL,
+  DheAuthenticatedClientWrapper,
 } from '../types';
 import {
   getInitialServerStates,
@@ -43,7 +43,7 @@ export class ServerManager implements IServerManager {
     configService: IConfigService,
     coreClientCache: URLMap<CoreAuthenticatedClient>,
     dhcServiceFactory: IDhcServiceFactory,
-    dheClientCache: URLMap<DheAuthenticatedClient>,
+    dheClientCache: URLMap<DheAuthenticatedClientWrapper>,
     dheServiceCache: IAsyncCacheService<URL, IDheService>,
     outputChannel: vscode.OutputChannel,
     secretService: ISecretService,
@@ -71,7 +71,7 @@ export class ServerManager implements IServerManager {
   private readonly _connectionMap: URLMap<ConnectionState>;
   private readonly _coreClientCache: URLMap<CoreAuthenticatedClient>;
   private readonly _dhcServiceFactory: IDhcServiceFactory;
-  private readonly _dheClientCache: URLMap<DheAuthenticatedClient>;
+  private readonly _dheClientCache: URLMap<DheAuthenticatedClientWrapper>;
   private readonly _dheServiceCache: IAsyncCacheService<URL, IDheService>;
   private readonly _outputChannel: vscode.OutputChannel;
   private readonly _secretService: ISecretService;
@@ -336,7 +336,7 @@ export class ServerManager implements IServerManager {
 
     // Deleting the DHE client needs to happen after worker disposal since an
     // active client is needed to dispose workers.
-    this._dheClientCache.get(dheServerUrl)?.disconnect();
+    this._dheClientCache.get(dheServerUrl)?.client.disconnect();
     this._dheClientCache.delete(dheServerUrl);
 
     const serverState = this._serverMap.get(dheServerUrl);
@@ -522,7 +522,7 @@ export class ServerManager implements IServerManager {
       return null;
     }
 
-    return getWorkerCredentials(dheClient);
+    return getWorkerCredentials(dheClient.client);
   };
 
   /** Get worker info associated with the given server URL. */

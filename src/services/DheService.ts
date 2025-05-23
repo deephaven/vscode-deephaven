@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
-import type { AuthenticatedClient as DheAuthenticatedClient } from '@deephaven-enterprise/auth-nodejs';
 import type { EnterpriseDhType as DheType } from '@deephaven-enterprise/jsapi-types';
 import {
   type ConsoleType,
+  type DheAuthenticatedClientWrapper,
   type DheServerFeatures,
   type IAsyncCacheService,
   type IConfigService,
@@ -47,7 +47,7 @@ export class DheService implements IDheService {
    */
   static factory = (
     configService: IConfigService,
-    dheClientCache: URLMap<DheAuthenticatedClient>,
+    dheClientCache: URLMap<DheAuthenticatedClientWrapper>,
     dheJsApiCache: IAsyncCacheService<URL, DheType>,
     interactiveConsoleQueryFactory: IInteractiveConsoleQueryFactory,
     toaster: IToastService
@@ -72,7 +72,7 @@ export class DheService implements IDheService {
   private constructor(
     serverUrl: URL,
     configService: IConfigService,
-    dheClientCache: URLMap<DheAuthenticatedClient>,
+    dheClientCache: URLMap<DheAuthenticatedClientWrapper>,
     dheJsApiCache: IAsyncCacheService<URL, DheType>,
     interactiveConsoleQueryFactory: IInteractiveConsoleQueryFactory,
     toaster: IToastService
@@ -90,10 +90,11 @@ export class DheService implements IDheService {
     this._dheClientCache.onDidChange(this._onDidDheClientCacheInvalidate);
   }
 
-  private _clientPromise: Promise<DheAuthenticatedClient | null> | null = null;
+  private _clientPromise: Promise<DheAuthenticatedClientWrapper | null> | null =
+    null;
   private _isConnected: boolean = false;
   private readonly _config: IConfigService;
-  private readonly _dheClientCache: URLMap<DheAuthenticatedClient>;
+  private readonly _dheClientCache: URLMap<DheAuthenticatedClientWrapper>;
   private readonly _dheJsApiCache: IAsyncCacheService<URL, DheType>;
   private readonly _dheServerFeaturesCache: URLMap<DheServerFeatures>;
   private readonly _querySerialSet: Set<QuerySerial>;
@@ -117,7 +118,7 @@ export class DheService implements IDheService {
    */
   private _initClient = async (
     operateAsAnotherUser: boolean
-  ): Promise<DheAuthenticatedClient | null> => {
+  ): Promise<DheAuthenticatedClientWrapper | null> => {
     if (!this._dheClientCache.has(this.serverUrl)) {
       await vscode.commands.executeCommand(
         CREATE_DHE_AUTHENTICATED_CLIENT_CMD,
@@ -156,7 +157,7 @@ export class DheService implements IDheService {
     const dheClient = await this.getClient(false);
 
     if (dheClient != null) {
-      await deleteQueries(dheClient, querySerials);
+      await deleteQueries(dheClient.client, querySerials);
     }
   };
 
@@ -196,15 +197,15 @@ export class DheService implements IDheService {
    */
   async getClient(
     initializeIfNull: false
-  ): Promise<DheAuthenticatedClient | null>;
+  ): Promise<DheAuthenticatedClientWrapper | null>;
   async getClient(
     initializeIfNull: true,
     operateAsAnotherUser: boolean
-  ): Promise<DheAuthenticatedClient | null>;
+  ): Promise<DheAuthenticatedClientWrapper | null>;
   async getClient(
     initializeIfNull: boolean,
     operateAsAnotherUser = false
-  ): Promise<DheAuthenticatedClient | null> {
+  ): Promise<DheAuthenticatedClientWrapper | null> {
     if (this._clientPromise == null) {
       if (!initializeIfNull) {
         return null;
@@ -255,7 +256,7 @@ export class DheService implements IDheService {
         )
       : await createInteractiveConsoleQuery(
           tagId,
-          dheClient,
+          dheClient.client,
           this.getWorkerConfig(),
           consoleType
         );
@@ -268,7 +269,7 @@ export class DheService implements IDheService {
     const workerInfo = await getWorkerInfoFromQuery(
       tagId,
       dhe,
-      dheClient,
+      dheClient.client,
       querySerial
     );
     if (workerInfo == null) {

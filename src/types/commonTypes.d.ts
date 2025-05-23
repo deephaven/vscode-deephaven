@@ -46,14 +46,14 @@ export type CoreUnauthenticatedClient = Brand<
   DhcType.CoreClient
 >;
 
-export type DheAuthenticatedClient = DheAuthenticatedClientBase &
-  Partial<IDisposable> & {
-    refreshTokenSerialized?: Promise<SerializableRefreshToken>;
-  };
-export type DheUnauthenticatedClient = DheUnauthenticatedClientBase &
-  Partial<IDisposable> & {
-    refreshTokenSerialized?: Promise<SerializableRefreshToken>;
-  };
+export type DheAuthenticatedClientWrapper = Partial<IDisposable> & {
+  client: DheAuthenticatedClientBase;
+  refreshTokenSerialized: Promise<SerializableRefreshToken | null>;
+};
+export type DheUnauthenticatedClientWrapper = Partial<IDisposable> & {
+  client: DheUnauthenticatedClientBase;
+  refreshTokenSerialized: Promise<SerializableRefreshToken | null>;
+};
 
 export interface DheServerFeatures {
   version: number;
