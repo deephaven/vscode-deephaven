@@ -515,13 +515,8 @@ export class ExtensionController implements IDisposable {
       );
 
       const wResolvers = withResolvers<SerializableRefreshToken | null>();
-
-      let refreshTokenSerializedPromise: Promise<SerializableRefreshToken | null> =
-        wResolvers.promise;
-
-      let resolve:
-        | ((refreshTokenSerialized: SerializableRefreshToken | null) => void)
-        | null = wResolvers.resolve;
+      let { promise: refreshTokenSerializedPromise } = wResolvers;
+      let resolve: (typeof wResolvers)['resolve'] | null = wResolvers.resolve;
 
       const refreshTokenSubscription = client.addEventListener(
         iris.Client.EVENT_REFRESH_TOKEN_UPDATED,
@@ -534,14 +529,14 @@ export class ExtensionController implements IDisposable {
           // consumer can wait for the first token. For subsequent tokens, we
           // replace the Promise with an already resolved one so that callers
           // just get it immediately.
-          if (resolve != null) {
-            // resolve the `refreshTokenSerializedPromise` Promise with the first
-            // token
-            resolve(serializedToken);
-            resolve = null;
-          } else {
-            refreshTokenSerializedPromise = Promise.resolve(serializedToken);
-          }
+          resolve?.(serializedToken);
+
+          // technically we could keep calling resolve since it's a noop, but
+          // nulling it to make it clear this is no longer the mechanism
+          // providing the value.
+          resolve = null;
+
+          refreshTokenSerializedPromise = Promise.resolve(serializedToken);
         }
       );
 
