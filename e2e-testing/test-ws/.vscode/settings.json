@@ -1,5 +1,4 @@
 {
-  // Supress prompts that can interfere with UI tests
   "extensions.ignoreRecommendations": true,
   "git.openRepositoryInParentFolders": "never"
 }

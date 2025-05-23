@@ -18,6 +18,9 @@
     // Exclude tests as they have their own tsconfigs.
     "e2e",
     "e2e-testing",
+    // Exclude `testUtils` which has `vitest` imports to avoid conflicting types
+    // for the `chai` npm package.
+    "src/testUtils.ts",
     "**/*.spec.ts"
   ],
   "references": [{ "path": "./e2e-testing" }]

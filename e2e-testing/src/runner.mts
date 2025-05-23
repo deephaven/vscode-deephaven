@@ -18,6 +18,12 @@ const mochaConfig = path.join(
   'out',
   isDebug ? 'mocharcDebug.js' : 'mocharc.js'
 );
+const settingsPath = path.join(
+  e2eTestingPath,
+  'test-ws',
+  '.vscode',
+  'settings.json'
+);
 
 const exTester = new ExTester(
   storagePath,
@@ -42,6 +48,7 @@ const runOptions: Parameters<ExTester['runTests']>[1] = {
   resources: [],
   config: mochaConfig,
   vscodeVersion,
+  settings: settingsPath,
 };
 
 console.log('\nRunning tests with options:', JSON.stringify(runOptions));

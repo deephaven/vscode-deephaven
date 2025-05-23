@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { bitValues, boolValues, matrix } from './testUtils';
+import { bitValues, boolValues, matrix } from '../testUtils';
 import {
   getPanelConnectionTreeItem,
   getPanelVariableTreeItem,

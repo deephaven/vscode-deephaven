@@ -6,7 +6,12 @@
     // lib checks to avoid errors.
     "skipLibCheck": true
   },
-  "include": ["src/**/*.spec.ts", "src/dh/modules.d.ts"],
+  "include": [
+    "src/**/*.spec.ts",
+    // Include `testUtils.ts` with unit tests build
+    "src/testUtils.ts",
+    "src/dh/modules.d.ts"
+  ],
   // Override ./tsconfig `exclude` so that *.spec.ts files are included
   "exclude": ["node_modules"]
 }

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { parseSamlScopes } from './dataUtils';
+import type { dh as DhType } from '@deephaven/jsapi-types';
+import { parseSamlScopes, serializeRefreshToken } from './dataUtils';
 import {
   DH_SAML_LOGIN_URL_SCOPE_KEY,
   DH_SAML_SERVER_URL_SCOPE_KEY,
@@ -23,4 +24,31 @@ describe('parseSamlScopes', () => {
       samlLoginUrl: 'https://somelogin-url.com',
     });
   });
+});
+
+describe('serializeRefreshToken', () => {
+  const mockRefreshToken: DhType.RefreshToken = {
+    get bytes() {
+      return 'mockBytes';
+    },
+    get expiry() {
+      return 1234567890;
+    },
+  };
+
+  it.each([null, mockRefreshToken])(
+    'should convert a refresh token to a serializable format',
+    refreshToken => {
+      const result = serializeRefreshToken(refreshToken);
+
+      if (refreshToken == null) {
+        expect(result).toBeNull();
+      } else {
+        expect(result).toEqual({
+          bytes: mockRefreshToken.bytes,
+          expiry: mockRefreshToken.expiry,
+        });
+      }
+    }
+  );
 });

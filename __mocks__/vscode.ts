@@ -167,7 +167,10 @@ export enum TreeItemCollapsibleState {
   Expanded = 2,
 }
 
-export const window = {};
+export const window = {
+  onDidChangeActiveColorTheme: vi.fn().mockName('onDidChangeActiveColorTheme'),
+  onDidReceiveMessage: vi.fn().mockName('onDidReceiveMessage'),
+};
 
 export const workspace = {
   getConfiguration: vi
@@ -177,3 +180,26 @@ export const workspace = {
   onDidChangeTextDocument: vi.fn().mockName('onDidChangeTextDocument'),
   onDidCloseTextDocument: vi.fn().mockName('onDidCloseTextDocument'),
 };
+
+export class Uri {
+  static joinPath = vi
+    .fn()
+    .mockName('joinPath')
+    .mockImplementation((...args) => args.join('/'));
+
+  static parse = vi
+    .fn()
+    .mockName('parse')
+    .mockImplementation((value: string, strict?: boolean) => {
+      const [scheme, path] = value.split('://');
+      if (strict && !path) {
+        throw new Error('Invalid URI');
+      }
+
+      return {
+        scheme,
+        path,
+        toString: () => value,
+      };
+    });
+}

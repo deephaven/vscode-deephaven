@@ -1,0 +1,17 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`getWebViewHtml > should return the correct HTML 1`] = `
+"<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src mock.cspSource; script-src 'nonce-mock.uniqueId'; frame-src https://example.com">
+  <meta name="dh-iframe-url" content="https://example.com/">
+  <title>DH WebView</title>
+  <link rel="stylesheet" href="mockwebview://mock.extensionUri/out/webViews/mockViewId/styles.css">
+</head>
+<body>
+  <script nonce="mock.uniqueId" src="mockwebview://mock.extensionUri/out/webViews/mockViewId/script.js"></script>
+</body>
+</html>"
+`;

@@ -60,10 +60,24 @@ export const PIP_SERVER_SUPPORTED_PLATFORMS = new Set<NodeJS.Platform>([
 
 export const TMP_DIR_ROOT = path.join(__dirname, 'tmp');
 
+export const VIEW_CONTAINER_ID_PREFIX =
+  `${EXTENSION_ID}_viewContainer_` as const;
+
+export const VIEW_CONTAINER_ID = {
+  list: `${VIEW_CONTAINER_ID_PREFIX}list`,
+  detail: `${VIEW_CONTAINER_ID_PREFIX}detail`,
+} as const;
+
+export type ViewContainerID =
+  (typeof VIEW_CONTAINER_ID)[keyof typeof VIEW_CONTAINER_ID];
+
+export const VIEW_ID_PREFIX = `${EXTENSION_ID}.view.` as const;
+
 export const VIEW_ID = {
-  serverTree: `${EXTENSION_ID}.serverTree`,
-  serverConnectionTree: `${EXTENSION_ID}.serverConnectionTree`,
-  serverConnectionPanelTree: `${EXTENSION_ID}.serverConnectionPanelTree`,
+  createQuery: `${VIEW_ID_PREFIX}createQuery`,
+  serverTree: `${VIEW_ID_PREFIX}serverTree`,
+  serverConnectionTree: `${VIEW_ID_PREFIX}serverConnectionTree`,
+  serverConnectionPanelTree: `${VIEW_ID_PREFIX}serverConnectionPanelTree`,
 } as const;
 
 export type ViewID = (typeof VIEW_ID)[keyof typeof VIEW_ID];
@@ -124,16 +138,6 @@ export const SERVER_TREE_ITEM_CONTEXT = {
 
 export type ServerTreeItemContextValue = keyof typeof SERVER_TREE_ITEM_CONTEXT;
 
-export const DEEPHAVEN_POST_MSG = {
-  loginOptionsRequest: 'io.deephaven.message.LoginOptions.request',
-  sessionDetailsRequest: 'io.deephaven.message.SessionDetails.request',
-} as const;
-
-export const VSCODE_POST_MSG = {
-  loginOptionsResponse: 'vscode-ext.loginOptions',
-  sessionDetailsResponse: 'vscode-ext.sessionDetails',
-} as const;
-
 /**
  * Table to store Python dependency names + versions used to generate a
  * requirements.txt file
@@ -165,6 +169,13 @@ export const AUTH_CONFIG_SAML_PROVIDER_NAME =
 export const AUTH_CONFIG_SAML_LOGIN_URL =
   'authentication.client.samlauth.login.url' as const;
 
+export const CREATE_QUERY_SETTINGS_STORAGE_KEY = 'createQuerySettings' as const;
+
 export const DH_SAML_AUTH_PROVIDER_TYPE = 'dhsaml' as const;
 export const DH_SAML_SERVER_URL_SCOPE_KEY = 'deephaven.samlServerUrl' as const;
 export const DH_SAML_LOGIN_URL_SCOPE_KEY = 'deephaven.samlLoginUrl' as const;
+
+export const DHE_CREATE_QUERY_URL_PATH =
+  '/iriside/iframecontent/createworker' as const;
+
+export const DHE_FEATURES_URL_PATH = '/iriside/features.json' as const;

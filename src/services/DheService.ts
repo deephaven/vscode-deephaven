@@ -1,14 +1,15 @@
 import * as vscode from 'vscode';
-import type { AuthenticatedClient as DheAuthenticatedClient } from '@deephaven-enterprise/auth-nodejs';
 import type { EnterpriseDhType as DheType } from '@deephaven-enterprise/jsapi-types';
 import {
   type ConsoleType,
+  type DheAuthenticatedClientWrapper,
+  type DheServerFeatures,
   type IAsyncCacheService,
   type IConfigService,
   type IDheService,
   type IDheServiceFactory,
+  type IInteractiveConsoleQueryFactory,
   type IToastService,
-  type QuerySerial,
   type UniqueID,
   type WorkerConfig,
   type WorkerInfo,
@@ -19,9 +20,14 @@ import { Logger } from '../util';
 import {
   createInteractiveConsoleQuery,
   deleteQueries,
+  getDheFeatures,
   getWorkerInfoFromQuery,
 } from '../dh/dhe';
-import { CREATE_DHE_AUTHENTICATED_CLIENT_CMD } from '../common';
+import {
+  CREATE_DHE_AUTHENTICATED_CLIENT_CMD,
+  UnsupportedFeatureQueryError,
+} from '../common';
+import type { QuerySerial } from '../crossModule';
 
 const logger = new Logger('DheService');
 
@@ -34,13 +40,16 @@ export class DheService implements IDheService {
    * @param configService Configuration service.
    * @param dheClientCache DHE client cache.
    * @param dheJsApiCache DHE JS API cache.
+   * @param interactiveConsoleQueryFactory Factory for creating interactive console
+   * queries.
    * @param toaster Toast service for notifications.
    * @returns A factory function that can be used to create DheService instances.
    */
   static factory = (
     configService: IConfigService,
-    dheClientCache: URLMap<DheAuthenticatedClient>,
+    dheClientCache: URLMap<DheAuthenticatedClientWrapper>,
     dheJsApiCache: IAsyncCacheService<URL, DheType>,
+    interactiveConsoleQueryFactory: IInteractiveConsoleQueryFactory,
     toaster: IToastService
   ): IDheServiceFactory => {
     return {
@@ -50,6 +59,7 @@ export class DheService implements IDheService {
           configService,
           dheClientCache,
           dheJsApiCache,
+          interactiveConsoleQueryFactory,
           toaster
         ),
     };
@@ -62,27 +72,33 @@ export class DheService implements IDheService {
   private constructor(
     serverUrl: URL,
     configService: IConfigService,
-    dheClientCache: URLMap<DheAuthenticatedClient>,
+    dheClientCache: URLMap<DheAuthenticatedClientWrapper>,
     dheJsApiCache: IAsyncCacheService<URL, DheType>,
+    interactiveConsoleQueryFactory: IInteractiveConsoleQueryFactory,
     toaster: IToastService
   ) {
     this.serverUrl = serverUrl;
     this._config = configService;
     this._dheClientCache = dheClientCache;
     this._dheJsApiCache = dheJsApiCache;
+    this._dheServerFeaturesCache = new URLMap<DheServerFeatures>();
     this._querySerialSet = new Set<QuerySerial>();
+    this._interactiveConsoleQueryFactory = interactiveConsoleQueryFactory;
     this._toaster = toaster;
     this._workerInfoMap = new URLMap<WorkerInfo, WorkerURL>();
 
     this._dheClientCache.onDidChange(this._onDidDheClientCacheInvalidate);
   }
 
-  private _clientPromise: Promise<DheAuthenticatedClient | null> | null = null;
+  private _clientPromise: Promise<DheAuthenticatedClientWrapper | null> | null =
+    null;
   private _isConnected: boolean = false;
   private readonly _config: IConfigService;
-  private readonly _dheClientCache: URLMap<DheAuthenticatedClient>;
+  private readonly _dheClientCache: URLMap<DheAuthenticatedClientWrapper>;
   private readonly _dheJsApiCache: IAsyncCacheService<URL, DheType>;
+  private readonly _dheServerFeaturesCache: URLMap<DheServerFeatures>;
   private readonly _querySerialSet: Set<QuerySerial>;
+  private readonly _interactiveConsoleQueryFactory: IInteractiveConsoleQueryFactory;
   private readonly _toaster: IToastService;
   private readonly _workerInfoMap: URLMap<WorkerInfo, WorkerURL>;
 
@@ -102,7 +118,7 @@ export class DheService implements IDheService {
    */
   private _initClient = async (
     operateAsAnotherUser: boolean
-  ): Promise<DheAuthenticatedClient | null> => {
+  ): Promise<DheAuthenticatedClientWrapper | null> => {
     if (!this._dheClientCache.has(this.serverUrl)) {
       await vscode.commands.executeCommand(
         CREATE_DHE_AUTHENTICATED_CLIENT_CMD,
@@ -112,6 +128,21 @@ export class DheService implements IDheService {
     }
 
     const maybeClient = await this._dheClientCache.get(this.serverUrl);
+
+    if (!this._dheServerFeaturesCache.has(this.serverUrl)) {
+      try {
+        const features = await getDheFeatures(this.serverUrl);
+        this._dheServerFeaturesCache.set(this.serverUrl, features);
+      } catch (err) {
+        if (err instanceof UnsupportedFeatureQueryError) {
+          logger.debug(
+            `DHE server ${err.serverUrl} does not support features query`
+          );
+        } else {
+          logger.error('Failed to get DHE server features', err);
+        }
+      }
+    }
 
     return maybeClient ?? null;
   };
@@ -126,7 +157,7 @@ export class DheService implements IDheService {
     const dheClient = await this.getClient(false);
 
     if (dheClient != null) {
-      await deleteQueries(dheClient, querySerials);
+      await deleteQueries(dheClient.client, querySerials);
     }
   };
 
@@ -166,15 +197,15 @@ export class DheService implements IDheService {
    */
   async getClient(
     initializeIfNull: false
-  ): Promise<DheAuthenticatedClient | null>;
+  ): Promise<DheAuthenticatedClientWrapper | null>;
   async getClient(
     initializeIfNull: true,
     operateAsAnotherUser: boolean
-  ): Promise<DheAuthenticatedClient | null>;
+  ): Promise<DheAuthenticatedClientWrapper | null>;
   async getClient(
     initializeIfNull: boolean,
     operateAsAnotherUser = false
-  ): Promise<DheAuthenticatedClient | null> {
+  ): Promise<DheAuthenticatedClientWrapper | null> {
     if (this._clientPromise == null) {
       if (!initializeIfNull) {
         return null;
@@ -213,18 +244,32 @@ export class DheService implements IDheService {
 
     const dhe = await this._dheJsApiCache.get(this.serverUrl);
 
-    const querySerial = await createInteractiveConsoleQuery(
-      tagId,
-      dheClient,
-      this.getWorkerConfig(),
-      consoleType
-    );
+    const isUISupported =
+      this._dheServerFeaturesCache.get(this.serverUrl)?.features
+        .createQueryIframe ?? false;
+
+    const querySerial = isUISupported
+      ? await this._interactiveConsoleQueryFactory(
+          this.serverUrl,
+          tagId,
+          consoleType
+        )
+      : await createInteractiveConsoleQuery(
+          tagId,
+          dheClient.client,
+          this.getWorkerConfig(),
+          consoleType
+        );
+
+    if (querySerial == null) {
+      throw new Error('Failed to create query.');
+    }
     this._querySerialSet.add(querySerial);
 
     const workerInfo = await getWorkerInfoFromQuery(
       tagId,
       dhe,
-      dheClient,
+      dheClient.client,
       querySerial
     );
     if (workerInfo == null) {

@@ -1,6 +1,33 @@
+/**
+ * This module contains test utils that should only be consumed by `.spec.ts`
+ * files, but since it's not a `.spec.ts` file, it is special cased to exclude
+ * from the extension build (tsconfig.json) and include in the unit test build
+ * (tsconfig.unit.json). It shouldn't be imported by the extension code or have
+ * any dependencies on the extension code.
+ */
+
+import { expect, vi } from 'vitest';
 import type * as vscode from 'vscode';
 export const bitValues = [0, 1] as const;
 export const boolValues = [true, false] as const;
+
+export type MessageHandler<TData> = (
+  event: Partial<MessageEvent<TData>>
+) => unknown;
+
+/**
+ * Return last registered event handler for 'message' event. Assumes that
+ * `window.addEventListener` has been mocked or spied on.
+ */
+export function getLastMessageHandler<TData>(): MessageHandler<TData> {
+  const messageCalls = vi
+    .mocked(window.addEventListener<'message'>)
+    .mock.calls.filter(([type]) => type === 'message');
+
+  expect(messageCalls.length).toBeGreaterThan(0);
+
+  return messageCalls.at(-1)![1] as MessageHandler<TData>;
+}
 
 /**
  * Generate a 2 dimensional array of all possible combinations of the given value
