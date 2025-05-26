@@ -27,7 +27,7 @@ import {
   CREATE_DHE_AUTHENTICATED_CLIENT_CMD,
   UnsupportedFeatureQueryError,
 } from '../common';
-import type { QuerySerial } from '../crossModule';
+import type { QuerySerial } from '../shared';
 
 const logger = new Logger('DheService');
 

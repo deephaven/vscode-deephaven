@@ -29,7 +29,7 @@ import {
   UnsupportedConsoleTypeError,
 } from '../common';
 import { ControllerBase } from './ControllerBase';
-import { assertDefined } from '../crossModule';
+import { assertDefined } from '../shared';
 import type { CreateQueryViewProvider } from '../providers';
 
 const logger = new Logger('ConnectionController');

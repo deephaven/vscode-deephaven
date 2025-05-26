@@ -6,7 +6,7 @@ import type {
   SessionDetailsResponsePostMessage,
   WorkerInfo,
 } from '../types';
-import { DH_POST_MSG, VSCODE_POST_MSG } from '../crossModule';
+import { DH_POST_MSG, VSCODE_POST_MSG } from '../shared';
 
 /**
  * Create response for login options `postMessage` request from Deephaven iframe.

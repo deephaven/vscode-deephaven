@@ -6,7 +6,7 @@ import {
   getServerTreeItem,
   groupServers,
 } from '../util';
-import { assertNever } from '../crossModule';
+import { assertNever } from '../shared';
 
 function isServerGroupState(node: ServerNode): node is ServerGroupState {
   return typeof node === 'string';

@@ -113,7 +113,7 @@ import {
   assertDefined,
   type QuerySerial,
   type SerializableRefreshToken,
-} from '../crossModule';
+} from '../shared';
 
 const logger = new Logger('ExtensionController');
 

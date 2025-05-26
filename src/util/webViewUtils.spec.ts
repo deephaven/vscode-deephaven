@@ -15,7 +15,7 @@ import {
   type BaseThemeKey,
   type VscodeGetPropertyMsg,
   type VscodePropertyName,
-} from '../crossModule';
+} from '../shared';
 import { getDHThemeKey } from './uiUtils';
 
 vi.mock('vscode');

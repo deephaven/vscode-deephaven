@@ -9,7 +9,7 @@ import {
   type VscodeGetPropertyResponseMsg,
   type VscodePropertyName,
   type VscodeSetThemeRequestMsg,
-} from '../crossModule';
+} from '../shared';
 
 /**
  * Create a property response message.

@@ -28,7 +28,7 @@ import {
 import { waitFor } from '../util/promiseUtils';
 import { getEmbedWidgetUrl } from '../dh/dhc';
 import { ControllerBase } from './ControllerBase';
-import { assertDefined, DH_POST_MSG } from '../crossModule';
+import { assertDefined, DH_POST_MSG } from '../shared';
 
 const logger = new Logger('PanelController');
 

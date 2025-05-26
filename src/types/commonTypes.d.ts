@@ -9,11 +9,7 @@ import type {
   UnauthenticatedClient as DheUnauthenticatedClientBase,
   Username,
 } from '@deephaven-enterprise/auth-nodejs';
-import type {
-  Brand,
-  QuerySerial,
-  SerializableRefreshToken,
-} from '../crossModule';
+import type { Brand, QuerySerial, SerializableRefreshToken } from '../shared';
 
 export type NonEmptyArray<T> = [T, ...T[]];
 

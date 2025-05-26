@@ -14,7 +14,7 @@ import {
   ICON_ID,
   type ViewID,
 } from '../common';
-import { assertDefined, type BaseThemeKey } from '../crossModule';
+import { assertDefined, type BaseThemeKey } from '../shared';
 import type {
   ConnectionType,
   ConsoleType,

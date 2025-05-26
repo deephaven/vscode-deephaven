@@ -37,7 +37,7 @@ import {
 import { NoConsoleTypesError, parseServerError } from '../dh/errorUtils';
 import { hasErrorCode } from '../util/typeUtils';
 import { DisposableBase } from './DisposableBase';
-import { assertDefined } from '../crossModule';
+import { assertDefined } from '../shared';
 
 const logger = new Logger('DhcService');
 

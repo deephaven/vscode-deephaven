@@ -11,7 +11,7 @@ import type {
   NonEmptyArray,
   SingleAuthConfig,
 } from '../types';
-import type { SerializableRefreshToken } from '../crossModule';
+import type { SerializableRefreshToken } from '../shared';
 
 /**
  * Returns a date string formatted for use in a file path.

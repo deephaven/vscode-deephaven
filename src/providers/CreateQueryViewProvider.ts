@@ -34,7 +34,7 @@ import {
   type DhSettingsChangedMsg,
   type DhSettingsRequestMsg,
   type VscodeSettingsResponseMsg,
-} from '../crossModule';
+} from '../shared';
 
 const logger = new Logger('CreateQueryViewProvider');
 

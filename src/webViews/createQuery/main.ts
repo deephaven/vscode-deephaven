@@ -6,7 +6,7 @@ import {
   Logger,
   type DhCreateQueryMsg,
   type VscodeCreateQueryMsg,
-} from '../../crossModule';
+} from '../../shared';
 
 const logger = new Logger('createQuery/main');
 
