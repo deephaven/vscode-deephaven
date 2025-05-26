@@ -21,13 +21,15 @@ import {
   createInteractiveConsoleQuery,
   deleteQueries,
   getDheFeatures,
+  getSerialFromTagId,
   getWorkerInfoFromQuery,
 } from '../dh/dhe';
 import {
   CREATE_DHE_AUTHENTICATED_CLIENT_CMD,
+  QueryCreationCancelledError,
   UnsupportedFeatureQueryError,
 } from '../common';
-import type { QuerySerial } from '../shared';
+import { assertDefined, type QuerySerial } from '../shared';
 
 const logger = new Logger('DheService');
 
@@ -248,18 +250,31 @@ export class DheService implements IDheService {
       this._dheServerFeaturesCache.get(this.serverUrl)?.features
         .createQueryIframe ?? false;
 
-    const querySerial = isUISupported
-      ? await this._interactiveConsoleQueryFactory(
-          this.serverUrl,
-          tagId,
-          consoleType
-        )
-      : await createInteractiveConsoleQuery(
-          tagId,
-          dheClient.client,
-          this.getWorkerConfig(),
-          consoleType
-        );
+    let querySerial: QuerySerial | null = null;
+
+    try {
+      querySerial = isUISupported
+        ? await this._interactiveConsoleQueryFactory(
+            this.serverUrl,
+            tagId,
+            consoleType
+          )
+        : await createInteractiveConsoleQuery(
+            tagId,
+            dheClient.client,
+            this.getWorkerConfig(),
+            consoleType
+          );
+    } catch (err) {
+      if (err instanceof QueryCreationCancelledError) {
+        const querySerial = await this.getQuerySerialFromTag(tagId);
+        if (querySerial != null) {
+          deleteQueries(dheClient.client, [querySerial]);
+        }
+      }
+
+      throw err;
+    }
 
     if (querySerial == null) {
       throw new Error('Failed to create query.');
@@ -295,6 +310,15 @@ export class DheService implements IDheService {
     this._workerInfoMap.delete(workerUrl);
 
     await this._disposeQueries([workerInfo.serial]);
+  };
+
+  getQuerySerialFromTag = async (
+    tagId: UniqueID
+  ): Promise<QuerySerial | null> => {
+    const dheClient = await this.getClient(false);
+    assertDefined(dheClient, 'dheClient');
+
+    return getSerialFromTagId(tagId, dheClient.client);
   };
 
   dispose = async (): Promise<void> => {

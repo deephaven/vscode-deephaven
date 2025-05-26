@@ -215,7 +215,7 @@ export async function createInteractiveConsoleQuery(
     dheClient.getServerConfigValues(),
   ]);
 
-  const name = `IC - VS Code - ${tagId}`;
+  const name = createQueryName(tagId);
   const dbServerName =
     workerConfig?.dbServerName ?? dbServers[0]?.name ?? 'Query 1';
   const heapSize = workerConfig?.heapSize ?? queryConstants.pqDefaultHeap;
@@ -288,6 +288,15 @@ export async function createInteractiveConsoleQuery(
 }
 
 /**
+ * Create a query name based on the tag id.
+ * @param tagId Unique tag id to include in the query name.
+ * @returns The query name.
+ */
+export function createQueryName(tagId: UniqueID): string {
+  return `IC - VS Code - ${tagId}`;
+}
+
+/**
  * Delete queries by serial.
  * @param dheClient DHE client to use.
  * @param querySerials Serials of queries to delete.
@@ -340,6 +349,23 @@ export async function getDheAuthConfig(
   };
 
   return authConfig;
+}
+
+/**
+ * Search existing queries for a query with the given tag id and return its serial.
+ * @param tagId Unique tag id to search for.
+ * @param dheClient DHE client to use for searching queries.
+ * @returns The serial of the query with the given tag id, or null if not found.
+ */
+export function getSerialFromTagId(
+  tagId: UniqueID,
+  dheClient: DheAuthenticatedClient
+): QuerySerial | null {
+  const queryConfig = dheClient
+    .getKnownConfigs()
+    .find(({ name }) => name === createQueryName(tagId));
+
+  return (queryConfig?.serial ?? null) as QuerySerial | null;
 }
 
 /**

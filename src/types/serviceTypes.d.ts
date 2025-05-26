@@ -71,6 +71,7 @@ export interface IDheService extends ConnectionState, IDisposable {
     initializeIfNull: true,
     operateAsAnotherUser: boolean
   ): Promise<DheAuthenticatedClientWrapper | null>;
+  getQuerySerialFromTag(tagId: UniqueID): Promise<QuerySerial | null>;
   getWorkerInfo: (workerUrl: WorkerURL) => WorkerInfo | undefined;
   createWorker: (
     tagId: UniqueID,
