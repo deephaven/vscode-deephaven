@@ -41,7 +41,7 @@ export function createDhIframe(vscode: WebviewApi<unknown>): void {
 
   const iframeEl = document.createElement('iframe');
   iframeEl.id = CONTENT_IFRAME_ID;
-  iframeEl.src = `${dhIframeUrl.href}&cachebust=${new Date().getTime()}`;
+  iframeEl.src = dhIframeUrl.href;
 
   window.addEventListener(
     'message',
