@@ -66,7 +66,7 @@ export class CreateQueryViewProvider
   private readonly _dheClientCache: URLMap<DheAuthenticatedClientWrapper>;
   private _viewPromiseWithResolvers?: PromiseWithResolvers<vscode.WebviewView>;
   private _activeServerUrl?: URL;
-  private _rejectQuerySerial?: (reason?: any) => void;
+  private _querySerialPromiseWithResolvers?: PromiseWithResolvers<QuerySerial | null>;
 
   get activeServerUrl(): URL | undefined {
     return this._activeServerUrl;
@@ -79,7 +79,7 @@ export class CreateQueryViewProvider
   ): Promise<QuerySerial | null> => {
     this._activeServerUrl = serverUrl;
 
-    this.show();
+    await this.show();
 
     const view = await this._viewPromiseWithResolvers?.promise;
     assertDefined(view, 'view');
@@ -89,13 +89,7 @@ export class CreateQueryViewProvider
     // There are multiple messages that get passed back and forth between DH
     // and the webview as part of creating query workers. This Promise will be
     // resolved once the worker is created and the serial is returned.
-    const {
-      promise: querySerialPromise,
-      resolve: resolveQuerySerial,
-      reject: rejectQuerySerial,
-    } = withResolvers<QuerySerial | null>();
-
-    this._rejectQuerySerial = rejectQuerySerial;
+    this._querySerialPromiseWithResolvers = withResolvers<QuerySerial | null>();
 
     let tagVersion = 0;
 
@@ -146,8 +140,8 @@ export class CreateQueryViewProvider
             break;
 
           case DH_POST_MSG.workerCreated:
-            this._rejectQuerySerial = undefined;
-            resolveQuerySerial(data.payload);
+            this._querySerialPromiseWithResolvers?.resolve(data.payload);
+            this._querySerialPromiseWithResolvers = undefined;
             break;
 
           case DH_POST_MSG.workerCreationCancelled:
@@ -157,7 +151,7 @@ export class CreateQueryViewProvider
     );
 
     try {
-      return await querySerialPromise;
+      return await this._querySerialPromiseWithResolvers.promise;
     } finally {
       onDidReceiveMessageSubscription?.dispose();
       this.hide();
@@ -173,14 +167,28 @@ export class CreateQueryViewProvider
     updateWebviewView(this._context.extensionUri, view, this._activeServerUrl);
   };
 
-  hide = (): void => {
+  hide = async (): Promise<void> => {
     setViewIsVisible(VIEW_ID.createQuery, false);
     showViewContainer(VIEW_CONTAINER_ID.list);
 
-    this._rejectQuerySerial?.(new QueryCreationCancelledError());
+    if (this._querySerialPromiseWithResolvers) {
+      const { promise, reject } = this._querySerialPromiseWithResolvers;
+      this._querySerialPromiseWithResolvers = undefined;
+
+      reject(new QueryCreationCancelledError());
+
+      try {
+        await promise;
+      } catch (err) {}
+    }
   };
 
-  show = (): void => {
+  show = async (): Promise<void> => {
+    // If any other query creations have already been started, cancel them
+    if (this._querySerialPromiseWithResolvers) {
+      await this.hide();
+    }
+
     // Setup the view promise and resolvers
     this._viewPromiseWithResolvers?.reject(
       'show() called before view resolved'
