@@ -86,7 +86,7 @@ it('should create an iframe with the correct attributes', () => {
   expect(iframeEl).toHaveProperty('id', CONTENT_IFRAME_ID);
   expect(iframeEl).toHaveProperty(
     'src',
-    `${mockIframeOrigin}/?theme=external-theme&preloadTransparentTheme=true&cachebust=${newDateValue.getTime()}`
+    `${mockIframeOrigin}/?theme=external-theme&preloadTransparentTheme=true`
   );
 });
 
