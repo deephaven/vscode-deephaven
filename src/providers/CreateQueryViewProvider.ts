@@ -177,18 +177,12 @@ export class CreateQueryViewProvider
 
       reject(new QueryCreationCancelledError());
 
-      // We need to return a Promise that resolves once we know anything that is
-      // awaiting the query serial Promise has had a chance to handle the
-      // `QueryCreationCancelledError`. Otherwise, we might attempt to show the
-      // panel again only to have a handler close it on the next tick in response
-      // to the error.
-      try {
-        await promise;
-      } catch {
-        // Ignore the `QueryCreationCancelledError` here, since the caller of
-        // `hide()` is not interested in the error, just that the hiding logic
-        // has completed.
-      }
+      // We need to give a chance for anything awaiting the query serial Promise
+      // to handle the `QueryCreationCancelledError`. Otherwise, we might attempt
+      // to show the panel again only to have a handler close it on the next tick
+      // in response to the error. We catch and ignore the error here, since
+      // callers of `hide()` should only care that the hiding logic has completed.
+      await promise.catch(() => undefined);
     }
   };
 
