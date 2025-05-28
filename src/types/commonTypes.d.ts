@@ -1,18 +1,15 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type {
+  AuthenticatedClient as DheAuthenticatedClientBase,
   Base64KeyPair,
   KeyPairCredentials,
   OperateAsUsername,
   PasswordCredentials,
+  UnauthenticatedClient as DheUnauthenticatedClientBase,
   Username,
 } from '@deephaven-enterprise/auth-nodejs';
-
-// Branded type helpers
-declare const __brand: unique symbol;
-export type Brand<T extends string, TBase = string> = TBase & {
-  readonly [__brand]: T;
-};
+import type { Brand, QuerySerial, SerializableRefreshToken } from '../shared';
 
 export type NonEmptyArray<T> = [T, ...T[]];
 
@@ -44,6 +41,22 @@ export type CoreUnauthenticatedClient = Brand<
   'CoreUnauthenticatedClient',
   DhcType.CoreClient
 >;
+
+export type DheAuthenticatedClientWrapper = Partial<IDisposable> & {
+  client: DheAuthenticatedClientBase;
+  refreshTokenSerialized: Promise<SerializableRefreshToken | null>;
+};
+export type DheUnauthenticatedClientWrapper = Partial<IDisposable> & {
+  client: DheUnauthenticatedClientBase;
+  refreshTokenSerialized: Promise<SerializableRefreshToken | null>;
+};
+
+export interface DheServerFeatures {
+  version: number;
+  features: {
+    createQueryIframe: boolean;
+  };
+}
 
 export type DependencyName = Brand<'DependencyName', string>;
 export type DependencyVersion = Brand<'DependencyVersion', string>;
@@ -133,7 +146,6 @@ export interface ConnectionState {
 export type GrpcURL = Brand<'GrpcURL', URL>;
 export type IdeURL = Brand<'IdeUrl', URL>;
 export type JsapiURL = Brand<'JsapiURL', URL>;
-export type QuerySerial = Brand<'QuerySerial', string>;
 export type WorkerURL = Brand<'WorkerURL', URL>;
 
 export interface WorkerInfo {

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { URIMap } from './URIMap';
-import { assertDefined } from '../util';
+import { assertDefined } from '../shared';
 
 /**
  * Cache for parsed documents. Cached based on document uri + version.

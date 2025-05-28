@@ -1,15 +1,12 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
-import {
-  DEEPHAVEN_POST_MSG,
-  DH_PANEL_VIEW_TYPE,
-  VSCODE_POST_MSG,
-} from '../common';
+import { DH_PANEL_VIEW_TYPE } from '../common';
 import type {
   LoginOptionsResponsePostMessage,
   SessionDetailsResponsePostMessage,
   WorkerInfo,
 } from '../types';
+import { DH_POST_MSG, VSCODE_POST_MSG } from '../shared';
 
 /**
  * Create response for login options `postMessage` request from Deephaven iframe.
@@ -112,13 +109,13 @@ export function getPanelHtml(iframeUrl: URL, title: string): string {
         const vscode = acquireVsCodeApi();
 
         window.addEventListener('message', ({ data }) => {
-          if (data.message === '${DEEPHAVEN_POST_MSG.loginOptionsRequest}') {
+          if (data.message === '${DH_POST_MSG.loginOptionsRequest}') {
             console.log('LoginOptions request received from iframe');
             vscode.postMessage({ data });
             return;
           }
 
-          if (data.message === '${DEEPHAVEN_POST_MSG.sessionDetailsRequest}') {
+          if (data.message === '${DH_POST_MSG.sessionDetailsRequest}') {
             console.log('SessionDetails request received from iframe');
             vscode.postMessage({ data });
             return;

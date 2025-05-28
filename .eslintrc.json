@@ -5,7 +5,7 @@
     "ecmaVersion": 6,
     "sourceType": "module"
   },
-  "plugins": ["@typescript-eslint"],
+  "plugins": ["@typescript-eslint", "import"],
   "rules": {
     "@typescript-eslint/naming-convention": "warn",
     "@typescript-eslint/semi": "warn",
@@ -15,6 +15,12 @@
     "no-throw-literal": "warn",
     "no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
     "semi": "off"
+  },
+  "settings": {
+    "import/resolver": {
+      "typescript": true,
+      "node": true
+    }
   },
   "overrides": [
     {
@@ -40,6 +46,32 @@
         "@typescript-eslint/no-misused-promises": [
           "error",
           { "checksVoidReturn": false }
+        ],
+        "import/no-restricted-paths": [
+          "error",
+          {
+            "zones": [
+              /**
+               * The shared folder is consumed by the extension code (CJS) and
+               * webview code (ESM). We don't want anything outside of `src/shared`
+               * to be imported into the shared folder, as it can bring unwanted
+               * code into the webview context.
+               */
+              {
+                "target": ["src/shared/**/*.ts"],
+                "from": [
+                  "src/common/**/*",
+                  "src/controllers/**/*",
+                  "src/dh/**/*",
+                  "src/providers/**/*",
+                  "src/services/**/*",
+                  "src/types/**/*",
+                  "src/util/**/*",
+                  "src/webViews/**/*"
+                ]
+              }
+            ]
+          }
         ]
       }
     }

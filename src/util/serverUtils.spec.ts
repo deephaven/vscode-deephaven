@@ -2,12 +2,29 @@ import { describe, it, expect, vi } from 'vitest';
 import {
   getInitialServerStates,
   getPipServerUrl,
+  getServerUrlFromState,
+  isConnectionState,
   parsePort,
 } from './serverUtils';
-import type { Port, ServerConnectionConfig } from '../types';
+import type {
+  ConnectionState,
+  Port,
+  ServerConnectionConfig,
+  ServerState,
+} from '../types';
 
 // See __mocks__/vscode.ts for the mock implementation
 vi.mock('vscode');
+
+const mockServerUrl = new URL('http://localhost:10000');
+
+const mockServerState = {
+  url: mockServerUrl,
+} as ServerState;
+
+const mockConnectionState = {
+  serverUrl: mockServerUrl,
+} as ConnectionState;
 
 describe('getInitialServerStates', () => {
   it('should derive server states from config', () => {
@@ -30,6 +47,28 @@ describe('getPipServerUrl', () => {
 
     expect(getPipServerUrl(givenPort)).toEqual(expectedURL);
   });
+});
+
+describe('getServerUrlFromState', () => {
+  it.each([mockServerState, mockConnectionState])(
+    'should return the server URL from a ServerState or ConnectionState',
+    serverOrConnectionState => {
+      const url = getServerUrlFromState(serverOrConnectionState);
+      expect(url).toEqual(mockServerUrl);
+    }
+  );
+});
+
+describe('isConnectionState', () => {
+  it.each([
+    [mockConnectionState, true],
+    [mockServerState, false],
+  ])(
+    'should return true for ConnectionState',
+    (maybeConnectionState, expected) => {
+      expect(isConnectionState(maybeConnectionState)).toBe(expected);
+    }
+  );
 });
 
 describe('parsePort', () => {

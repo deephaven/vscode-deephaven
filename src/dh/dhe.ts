@@ -7,15 +7,20 @@ import type {
   TypeSpecificFields,
 } from '@deephaven-enterprise/jsapi-types';
 import { DraftQuery, QueryScheduler } from '@deephaven-enterprise/query-utils';
-import type { AuthenticatedClient as DheAuthenticatedClient } from '@deephaven-enterprise/auth-nodejs';
+import type {
+  AuthenticatedClient as DheAuthenticatedClient,
+  UnauthenticatedClient as DheUnauthenticatedClient,
+} from '@deephaven-enterprise/auth-nodejs';
 import { hasStatusCode, loadModules } from '@deephaven/jsapi-nodejs';
 import type {
   AuthConfig,
   ConsoleType,
+  DheAuthenticatedClientWrapper,
+  DheServerFeatures,
+  DheUnauthenticatedClientWrapper,
   GrpcURL,
   IdeURL,
   JsapiURL,
-  QuerySerial,
   UniqueID,
   WorkerConfig,
   WorkerInfo,
@@ -28,9 +33,13 @@ import {
   AUTH_CONFIG_SAML_PROVIDER_NAME,
   DEFAULT_TEMPORARY_QUERY_AUTO_TIMEOUT_MS,
   DEFAULT_TEMPORARY_QUERY_TIMEOUT_MS,
+  DHE_FEATURES_URL_PATH,
   INTERACTIVE_CONSOLE_QUERY_TYPE,
   INTERACTIVE_CONSOLE_TEMPORARY_QUEUE_NAME,
+  UnsupportedFeatureQueryError,
 } from '../common';
+import { withResolvers } from '../util';
+import type { QuerySerial } from '../shared';
 
 export type IDraftQuery = EditableQueryInfo & {
   isClientSide: boolean;
@@ -66,6 +75,36 @@ export async function getDhe(
 
   // DHE currently exposes the jsapi via the global `iris` object.
   return iris;
+}
+
+/**
+ * Get the `features.json` file from the DHE server if it exists. This file
+ * contains information about UI features available on the server.
+ * @param serverUrl
+ * @returns A promise that resolves to the features object
+ * @throws An `UnsupportedFeatureQueryError` error if the feature json is not
+ * found or a general Error if response is not valid JSON.
+ */
+export async function getDheFeatures(
+  serverUrl: URL
+): Promise<DheServerFeatures> {
+  const response = await fetch(new URL(DHE_FEATURES_URL_PATH, serverUrl));
+
+  if (
+    !response.ok ||
+    response.headers.get('content-type') !== 'application/json'
+  ) {
+    throw new UnsupportedFeatureQueryError(
+      'Unsupported feature query',
+      serverUrl.toString()
+    );
+  }
+
+  try {
+    return await response.json();
+  } catch (err) {
+    throw new Error(`Failed to parse DHE features from ${serverUrl}: ${err}`);
+  }
 }
 
 /**
@@ -122,6 +161,32 @@ export async function isDheServerRunning(serverUrl: URL): Promise<boolean> {
 }
 
 /**
+ * Login the client wrapper with the given login function and credentials.
+ * @param unauthenticatedClientWrapper Unauthenticated client wrapper.
+ * @param loginFn Login function to use.
+ * @param credentials Credentials to use.
+ * @returns A promise that resolves to the authenticated client wrapper.
+ */
+export async function loginClientWrapper<TCredentials>(
+  unauthenticatedClientWrapper: DheUnauthenticatedClientWrapper,
+  loginFn: (
+    unauthenticatedClient: DheUnauthenticatedClient,
+    credentials: TCredentials
+  ) => Promise<DheAuthenticatedClient>,
+  credentials: TCredentials
+): Promise<DheAuthenticatedClientWrapper> {
+  const client = await loginFn(
+    unauthenticatedClientWrapper.client,
+    credentials
+  );
+
+  return {
+    ...unauthenticatedClientWrapper,
+    client,
+  };
+}
+
+/**
  * Create a query of type `InteractiveConsole`.
  * @param tagId Unique tag id to include in the query name.
  * @param dheClient The DHE client to use to create the query.
@@ -150,7 +215,7 @@ export async function createInteractiveConsoleQuery(
     dheClient.getServerConfigValues(),
   ]);
 
-  const name = `IC - VS Code - ${tagId}`;
+  const name = createQueryName(tagId);
   const dbServerName =
     workerConfig?.dbServerName ?? dbServers[0]?.name ?? 'Query 1';
   const heapSize = workerConfig?.heapSize ?? queryConstants.pqDefaultHeap;
@@ -223,6 +288,15 @@ export async function createInteractiveConsoleQuery(
 }
 
 /**
+ * Create a query name based on the tag id.
+ * @param tagId Unique tag id to include in the query name.
+ * @returns The query name.
+ */
+export function createQueryName(tagId: UniqueID): string {
+  return `IC - VS Code - ${tagId}`;
+}
+
+/**
  * Delete queries by serial.
  * @param dheClient DHE client to use.
  * @param querySerials Serials of queries to delete.
@@ -278,6 +352,23 @@ export async function getDheAuthConfig(
 }
 
 /**
+ * Search existing queries for a query with the given tag id and return its serial.
+ * @param tagId Unique tag id to search for.
+ * @param dheClient DHE client to use for searching queries.
+ * @returns The serial of the query with the given tag id, or null if not found.
+ */
+export function getSerialFromTagId(
+  tagId: UniqueID,
+  dheClient: DheAuthenticatedClient
+): QuerySerial | null {
+  const queryConfig = dheClient
+    .getKnownConfigs()
+    .find(({ name }) => name === createQueryName(tagId));
+
+  return (queryConfig?.serial ?? null) as QuerySerial | null;
+}
+
+/**
  * Get worker info from a query serial.
  * @param tagId Unique tag id to include in the worker info.
  * @param dhe DHE JsApi instance.
@@ -291,10 +382,37 @@ export async function getWorkerInfoFromQuery(
   dheClient: DheAuthenticatedClient,
   querySerial: QuerySerial
 ): Promise<WorkerInfo | undefined> {
-  // The query will go through multiple config updates before the worker is ready.
-  // This Promise will respond to config update events and resolve when the worker
-  // is ready.
-  const queryInfo = await new Promise<QueryInfo>((resolve, reject) => {
+  /**
+   * Determine the state of a given query info.
+   * @returns The query info if it is running or undefined if it is not.
+   * @throws An error if the query is in an error state.
+   */
+  function handleQueryInfo(queryInfo: QueryInfo): QueryInfo | undefined {
+    switch (queryInfo.designated?.status) {
+      case 'Running':
+        return queryInfo;
+
+      case 'Error':
+      case 'Failed':
+        deleteQueries(dheClient, [querySerial]);
+        throw new Error('Query failed to start');
+
+      default:
+        return undefined;
+    }
+  }
+
+  let queryInfo = dheClient
+    .getKnownConfigs()
+    .find(({ serial }) => serial === querySerial);
+
+  if (queryInfo != null) {
+    queryInfo = handleQueryInfo(queryInfo);
+  }
+
+  if (queryInfo == null) {
+    const { promise, resolve, reject } = withResolvers<QueryInfo>();
+
     const removeEventListener = dheClient.addEventListener(
       dhe.Client.EVENT_CONFIG_UPDATED,
       ({ detail: queryInfo }: CustomEvent<QueryInfo>) => {
@@ -302,21 +420,23 @@ export async function getWorkerInfoFromQuery(
           return;
         }
 
-        switch (queryInfo.designated?.status) {
-          case 'Running':
-            removeEventListener();
-            resolve(queryInfo);
-            break;
-          case 'Error':
-          case 'Failed':
-            removeEventListener();
-            reject(new Error('Query failed to start'));
-            deleteQueries(dheClient, [querySerial]);
-            break;
+        try {
+          const result = handleQueryInfo(queryInfo);
+          if (result != null) {
+            resolve(result);
+          }
+        } catch (err) {
+          reject(err);
         }
       }
     );
-  });
+
+    try {
+      queryInfo = await promise;
+    } finally {
+      removeEventListener();
+    }
+  }
 
   if (queryInfo.designated == null) {
     return;

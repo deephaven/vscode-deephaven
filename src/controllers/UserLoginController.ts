@@ -5,7 +5,6 @@ import {
   loginClientWithPassword,
   uploadPublicKey,
   type Base64KeyPair,
-  type AuthenticatedClient as DheAuthenticatedClient,
   type Username,
 } from '@deephaven-enterprise/auth-nodejs';
 import { type dh as DhcType } from '@deephaven/jsapi-types';
@@ -28,6 +27,7 @@ import {
 import type {
   CoreAuthenticatedClient,
   CoreUnauthenticatedClient,
+  DheAuthenticatedClientWrapper,
   IAsyncCacheService,
   ICoreClientFactory,
   IDheClientFactory,
@@ -37,7 +37,11 @@ import type {
   LoginPromptCredentials,
   ServerState,
 } from '../types';
-import { getDheAuthConfig, hasInteractivePermission } from '../dh/dhe';
+import {
+  getDheAuthConfig,
+  hasInteractivePermission,
+  loginClientWrapper,
+} from '../dh/dhe';
 import {
   AUTH_HANDLER_TYPE_ANONYMOUS,
   AUTH_HANDLER_TYPE_DHE,
@@ -56,7 +60,7 @@ export class UserLoginController extends ControllerBase {
     coreClientCache: URLMap<CoreAuthenticatedClient>,
     coreClientFactory: ICoreClientFactory,
     coreJsApiCache: IAsyncCacheService<URL, typeof DhcType>,
-    dheClientCache: URLMap<DheAuthenticatedClient>,
+    dheClientCache: URLMap<DheAuthenticatedClientWrapper>,
     dheClientFactory: IDheClientFactory,
     secretService: ISecretService,
     serverManager: IServerManager,
@@ -92,7 +96,7 @@ export class UserLoginController extends ControllerBase {
   private readonly coreClientCache: URLMap<CoreAuthenticatedClient>;
   private readonly coreClientFactory: ICoreClientFactory;
   private readonly coreJsApiCache: IAsyncCacheService<URL, typeof DhcType>;
-  private readonly dheClientCache: URLMap<DheAuthenticatedClient>;
+  private readonly dheClientCache: URLMap<DheAuthenticatedClientWrapper>;
   private readonly dheClientFactory: IDheClientFactory;
   private readonly secretService: ISecretService;
   private readonly serverManager: IServerManager;
@@ -111,7 +115,7 @@ export class UserLoginController extends ControllerBase {
     keyPair: Base64KeyPair
   ): Promise<void> => {
     const dheClient = await loginClientWithKeyPair(
-      await this.dheClientFactory(serverUrl),
+      (await this.dheClientFactory(serverUrl)).client,
       {
         type: 'keyPair',
         username: userName,
@@ -161,7 +165,7 @@ export class UserLoginController extends ControllerBase {
     const { type, publicKey } = keyPair;
 
     const dheClient = await loginClientWithPassword(
-      await this.dheClientFactory(serverUrl),
+      (await this.dheClientFactory(serverUrl)).client,
       credentials
     );
 
@@ -283,7 +287,7 @@ export class UserLoginController extends ControllerBase {
     operateAsAnotherUser: boolean
   ): Promise<void> => {
     const dheClient = await this.dheClientFactory(serverUrl);
-    const authConfig = await getDheAuthConfig(dheClient);
+    const authConfig = await getDheAuthConfig(dheClient.client);
 
     if (isNoAuthConfig(authConfig)) {
       this.toast.info('No authentication methods configured.');
@@ -299,7 +303,7 @@ export class UserLoginController extends ControllerBase {
       return;
     }
 
-    let authenticatedClient: DheAuthenticatedClient;
+    let authenticatedClient: DheAuthenticatedClientWrapper;
     let credentials: LoginPromptCredentials | undefined = undefined;
 
     try {
@@ -343,8 +347,12 @@ export class UserLoginController extends ControllerBase {
 
         authenticatedClient =
           credentials.type === 'password'
-            ? await loginClientWithPassword(dheClient, credentials)
-            : await loginClientWithKeyPair(dheClient, {
+            ? await loginClientWrapper(
+                dheClient,
+                loginClientWithPassword,
+                credentials
+              )
+            : await loginClientWrapper(dheClient, loginClientWithKeyPair, {
                 ...credentials,
                 keyPair: (await this.secretService.getServerKeys(serverUrl))?.[
                   username
@@ -352,7 +360,7 @@ export class UserLoginController extends ControllerBase {
               });
       }
 
-      if (!(await hasInteractivePermission(authenticatedClient))) {
+      if (!(await hasInteractivePermission(authenticatedClient.client))) {
         throw new Error('User does not have interactive permissions.');
       }
 

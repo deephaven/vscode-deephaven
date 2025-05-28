@@ -30,7 +30,7 @@
   ],
   "scripts": {
     "build:ts": "npm run clean && tsc --build ./tsconfig.json && tsc -p tsconfig.unit.json --noEmit --module preserve --moduleResolution bundler",
-    "clean": "rm -rf dist out e2e-testing/out tsconfig.tsbuildinfo e2e-testing/tsconfig.tsbuildinfo packages/*/tsconfig.tsbuildinfo",
+    "clean": "rm -rf dist out e2e-testing/out tsconfig.tsbuildinfo e2e-testing/tsconfig.tsbuildinfo",
     "compile": "npm run build:ts && node scripts/esbuild.js",
     "compile:prod": "npm run build:ts && npm run test:lint && node scripts/esbuild.js --production",
     "icon:gen": "node icons/generate.mjs",
@@ -253,6 +253,11 @@
         "command": "vscode-deephaven.stopServer",
         "title": "Deephaven: Stop Server",
         "icon": "$(debug-stop)"
+      },
+      {
+        "command": "vscode-deephaven.view.createQuery.close",
+        "title": "Close Create Connection View",
+        "icon": "$(close)"
       }
     ],
     "icons": {
@@ -774,65 +779,70 @@
         {
           "command": "vscode-deephaven.refreshServerTree",
           "group": "navigation",
-          "when": "view == vscode-deephaven.serverTree"
+          "when": "view == vscode-deephaven.view.serverTree"
         },
         {
           "command": "vscode-deephaven.refreshServerConnectionTree",
           "group": "navigation",
-          "when": "view == vscode-deephaven.serverConnectionTree"
+          "when": "view == vscode-deephaven.view.serverConnectionTree"
         },
         {
           "command": "vscode-deephaven.searchConnections",
           "group": "navigation",
-          "when": "view == vscode-deephaven.serverConnectionTree"
+          "when": "view == vscode-deephaven.view.serverConnectionTree"
         },
         {
           "command": "vscode-deephaven.searchPanels",
           "group": "navigation",
-          "when": "view == vscode-deephaven.serverConnectionPanelTree"
+          "when": "view == vscode-deephaven.view.serverConnectionPanelTree"
+        },
+        {
+          "command": "vscode-deephaven.view.createQuery.close",
+          "group": "navigation",
+          "when": "view == vscode-deephaven.view.createQuery"
         }
       ],
       "view/item/context": [
         {
           "command": "vscode-deephaven.connectToServerOperateAs",
-          "when": "view == vscode-deephaven.serverTree && viewItem == isDHEServerRunningDisconnected"
+          "when": "view == vscode-deephaven.view.serverTree && viewItem == isDHEServerRunningDisconnected"
         },
         {
           "command": "vscode-deephaven.createNewTextDoc",
-          "when": "view == vscode-deephaven.serverConnectionTree && viewItem == isConnectionConnected",
+          "when": "view == vscode-deephaven.view.serverConnectionTree && viewItem == isConnectionConnected",
           "group": "inline@1"
         },
         {
           "command": "vscode-deephaven.disconnectEditor",
-          "when": "view == vscode-deephaven.serverConnectionTree && viewItem == isUri",
+          "when": "view == vscode-deephaven.view.serverConnectionTree && viewItem == isUri",
           "group": "inline"
         },
         {
           "command": "vscode-deephaven.disconnectFromServer",
-          "when": "(view == vscode-deephaven.serverTree && (viewItem == isServerRunningConnected || viewItem == isDHEServerRunningConnected)) || (view == vscode-deephaven.serverConnectionTree && (viewItem == isConnectionConnected || viewItem == isConnectionConnecting))",
+          "when": "(view == vscode-deephaven.view.serverTree && (viewItem == isServerRunningConnected || viewItem == isDHEServerRunningConnected)) || (view == vscode-deephaven.view.serverConnectionTree && (viewItem == isConnectionConnected || viewItem == isConnectionConnecting))",
           "group": "inline@2"
         },
         {
           "command": "vscode-deephaven.generateDHEKeyPair",
-          "when": "view == vscode-deephaven.serverTree && (viewItem == isDHEServerRunningConnected || viewItem == isDHEServerRunningDisconnected)"
+          "when": "view == vscode-deephaven.view.serverTree && (viewItem == isDHEServerRunningConnected || viewItem == isDHEServerRunningDisconnected)"
         },
         {
           "command": "vscode-deephaven.generateRequirementsTxt",
-          "when": "view == vscode-deephaven.serverConnectionTree && viewItem == isConnectionConnected"
+          "when": "view == vscode-deephaven.view.serverConnectionTree && viewItem == isConnectionConnected"
         },
         {
           "command": "vscode-deephaven.openInBrowser",
-          "when": "view == vscode-deephaven.serverTree && (viewItem == isManagedServerConnected || viewItem == isManagedServerDisconnected || viewItem == isServerRunningConnected || viewItem == isServerRunningDisconnected || viewItem == isDHEServerRunningConnected || viewItem == isDHEServerRunningDisconnected)",
+          "when": "view == vscode-deephaven.view.serverTree && (viewItem == isManagedServerConnected || viewItem == isManagedServerDisconnected || viewItem == isServerRunningConnected || viewItem == isServerRunningDisconnected || viewItem == isDHEServerRunningConnected || viewItem == isDHEServerRunningDisconnected)",
           "group": "inline"
         },
         {
           "command": "vscode-deephaven.startServer",
-          "when": "view == vscode-deephaven.serverTree && viewItem == canStartServer",
+          "when": "view == vscode-deephaven.view.serverTree && viewItem == canStartServer",
           "group": "inline"
         },
         {
           "command": "vscode-deephaven.stopServer",
-          "when": "view == vscode-deephaven.serverTree && (viewItem == isManagedServerConnected || viewItem == isManagedServerConnecting || viewItem == isManagedServerDisconnected)",
+          "when": "view == vscode-deephaven.view.serverTree && (viewItem == isManagedServerConnected || viewItem == isManagedServerConnecting || viewItem == isManagedServerDisconnected)",
           "group": "inline"
         }
       ]
@@ -840,28 +850,41 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "vscode-deephaven",
+          "id": "vscode-deephaven_viewContainer_list",
           "title": "Deephaven",
           "icon": "images/dh-logo-28.svg"
+        },
+        {
+          "id": "vscode-deephaven_viewContainer_detail",
+          "title": "Deephaven Detail",
+          "icon": "$(server-process)"
         }
       ]
     },
     "views": {
-      "vscode-deephaven": [
+      "vscode-deephaven_viewContainer_list": [
         {
-          "id": "vscode-deephaven.serverTree",
+          "id": "vscode-deephaven.view.serverTree",
           "name": "Servers",
           "type": "tree"
         },
         {
-          "id": "vscode-deephaven.serverConnectionTree",
+          "id": "vscode-deephaven.view.serverConnectionTree",
           "name": "Connections",
           "type": "tree"
         },
         {
-          "id": "vscode-deephaven.serverConnectionPanelTree",
+          "id": "vscode-deephaven.view.serverConnectionPanelTree",
           "name": "Panels",
           "type": "tree"
+        }
+      ],
+      "vscode-deephaven_viewContainer_detail": [
+        {
+          "id": "vscode-deephaven.view.createQuery",
+          "name": "Create Connection",
+          "type": "webview",
+          "when": "vscode-deephaven.view.createQuery.isVisible"
         }
       ]
     }
@@ -882,6 +905,7 @@
     "@types/mocha": "^10.0.10",
     "@types/node": "22.5.4",
     "@types/vscode": "^1.91.0",
+    "@types/vscode-webview": "^1.57.5",
     "@types/ws": "^8.5.10",
     "@typescript-eslint/eslint-plugin": "^7.16.0",
     "@typescript-eslint/parser": "^7.16.0",
@@ -890,9 +914,12 @@
     "dotenv": "^16.4.7",
     "esbuild-wasm": "^0.24.0",
     "eslint": "^8.57.0",
+    "eslint-import-resolver-typescript": "^4.4.1",
+    "eslint-plugin-import": "^2.31.0",
     "fantasticon": "^3.0.0",
     "github-actions-ctrf": "^0.0.20",
     "glob": "^11.0.0",
+    "jsdom": "^26.1.0",
     "junit-to-ctrf": "^0.0.4",
     "mocha-ctrf-json-reporter": "^0.0.7",
     "npm-run-all": "^4.1.5",

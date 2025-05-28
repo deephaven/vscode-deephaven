@@ -8,12 +8,13 @@ import type {
   ServerState,
 } from '../types';
 import {
-  assertDefined,
   createConnectionOption,
   createConnectionQuickPick,
   createConnectionQuickPickOptions,
   createConnectStatusBarItem,
   getConsoleType,
+  getServerUrlFromState,
+  isConnectionState,
   isSupportedLanguageId,
   Logger,
   updateConnectionStatusBarItem,
@@ -28,6 +29,8 @@ import {
   UnsupportedConsoleTypeError,
 } from '../common';
 import { ControllerBase } from './ControllerBase';
+import { assertDefined } from '../shared';
+import type { CreateQueryViewProvider } from '../providers';
 
 const logger = new Logger('ConnectionController');
 
@@ -37,6 +40,7 @@ export class ConnectionController
 {
   constructor(
     context: vscode.ExtensionContext,
+    createQueryViewProvider: CreateQueryViewProvider,
     serverManager: IServerManager,
     outputChannel: vscode.OutputChannel,
     toastService: IToastService
@@ -44,6 +48,7 @@ export class ConnectionController
     super();
 
     this._context = context;
+    this._createQueryViewProvider = createQueryViewProvider;
     this._serverManager = serverManager;
     this._outputChannel = outputChannel;
     this._toaster = toastService;
@@ -77,6 +82,7 @@ export class ConnectionController
   }
 
   private readonly _context: vscode.ExtensionContext;
+  private readonly _createQueryViewProvider: CreateQueryViewProvider;
   private readonly _serverManager: IServerManager;
   private readonly _outputChannel: vscode.OutputChannel;
   private readonly _toaster: IToastService;
@@ -321,25 +327,25 @@ export class ConnectionController
   onDisconnectFromServer = async (
     serverOrConnectionState: ServerState | ConnectionState
   ): Promise<void> => {
+    const url = getServerUrlFromState(serverOrConnectionState);
+
+    if (url.origin === this._createQueryViewProvider.activeServerUrl?.origin) {
+      this._createQueryViewProvider.hide();
+    }
+
     // ConnectionState (connection only disconnect)
-    if ('serverUrl' in serverOrConnectionState) {
-      this._serverManager?.disconnectFromServer(
-        serverOrConnectionState.serverUrl
-      );
+    if (isConnectionState(serverOrConnectionState)) {
+      this._serverManager?.disconnectFromServer(url);
       return;
     }
 
     // DHC ServerState
     if (serverOrConnectionState.type === 'DHC') {
-      await this._serverManager?.disconnectFromServer(
-        serverOrConnectionState.url
-      );
+      await this._serverManager?.disconnectFromServer(url);
     }
     // DHE ServerState
     else {
-      await this._serverManager?.disconnectFromDHEServer(
-        serverOrConnectionState.url
-      );
+      await this._serverManager?.disconnectFromDHEServer(url);
     }
 
     this.updateConnectionStatusBarItem();

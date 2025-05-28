@@ -5,7 +5,6 @@ import type {
   CoreConnectionConfig,
   IDisposable,
   EnterpriseConnectionConfig,
-  EventListenerT,
   ConnectionState,
   ServerState,
   VariableChanges,
@@ -19,12 +18,14 @@ import type {
   Psk,
   CoreAuthenticatedClient,
   WorkerURL,
+  DheAuthenticatedClientWrapper,
+  DheUnauthenticatedClientWrapper,
 } from '../types/commonTypes';
 import type {
-  AuthenticatedClient as DheAuthenticatedClient,
   UnauthenticatedClient as DheUnauthenticatedClient,
   Username,
 } from '@deephaven-enterprise/auth-nodejs';
+import type { QuerySerial } from '../shared';
 
 export interface IAsyncCacheService<TKey, TValue> extends IDisposable {
   get: (key: TKey) => Promise<TValue>;
@@ -63,11 +64,14 @@ export interface IDhcService extends IDisposable, ConnectionState {
 }
 
 export interface IDheService extends ConnectionState, IDisposable {
-  getClient(initializeIfNull: false): Promise<DheAuthenticatedClient | null>;
+  getClient(
+    initializeIfNull: false
+  ): Promise<DheAuthenticatedClientWrapper | null>;
   getClient(
     initializeIfNull: true,
     operateAsAnotherUser: boolean
-  ): Promise<DheAuthenticatedClient | null>;
+  ): Promise<DheAuthenticatedClientWrapper | null>;
+  getQuerySerialFromTag(tagId: UniqueID): Promise<QuerySerial | null>;
   getWorkerInfo: (workerUrl: WorkerURL) => WorkerInfo | undefined;
   createWorker: (
     tagId: UniqueID,
@@ -93,8 +97,14 @@ export type IDhcServiceFactory = IFactory<
 >;
 export type IDheClientFactory = (
   serverUrl: URL
-) => Promise<DheUnauthenticatedClient & IDisposable>;
+) => Promise<DheUnauthenticatedClientWrapper>;
 export type IDheServiceFactory = IFactory<IDheService, [serverUrl: URL]>;
+
+export type IInteractiveConsoleQueryFactory = (
+  serverUrl: URL,
+  tagId: UniqueID,
+  consoleType?: ConsoleType
+) => Promise<QuerySerial | null>;
 
 export interface IPanelService extends IDisposable {
   readonly onDidUpdate: vscode.Event<void>;

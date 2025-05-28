@@ -9,7 +9,6 @@ import type {
   WorkerURL,
 } from '../types';
 import {
-  assertDefined,
   createLoginOptionsResponsePostMessage,
   createSessionDetailsResponsePostMessage,
   getDHThemeKey,
@@ -22,7 +21,6 @@ import { DhcService } from '../services';
 import {
   CENSORED_TEXT,
   DEBOUNCE_TAB_UPDATE_MS,
-  DEEPHAVEN_POST_MSG,
   DH_PANEL_VIEW_TYPE,
   OPEN_VARIABLE_PANELS_CMD,
   REFRESH_VARIABLE_PANELS_CMD,
@@ -30,6 +28,7 @@ import {
 import { waitFor } from '../util/promiseUtils';
 import { getEmbedWidgetUrl } from '../dh/dhc';
 import { ControllerBase } from './ControllerBase';
+import { assertDefined, DH_POST_MSG } from '../shared';
 
 const logger = new Logger('PanelController');
 
@@ -153,7 +152,7 @@ export class PanelController extends ControllerBase {
     }
 
     // Respond to login credentials request from DH iframe
-    if (message === DEEPHAVEN_POST_MSG.loginOptionsRequest) {
+    if (message === DH_POST_MSG.loginOptionsRequest) {
       const credentials =
         await this._serverManager.getWorkerCredentials(serverOrWorkerUrl);
 
@@ -185,7 +184,7 @@ export class PanelController extends ControllerBase {
     }
 
     // Respond to session details request from DH iframe
-    if (message === DEEPHAVEN_POST_MSG.sessionDetailsRequest) {
+    if (message === DH_POST_MSG.sessionDetailsRequest) {
       const response = createSessionDetailsResponsePostMessage({
         id,
         workerInfo,

@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import { isAggregateError } from '@deephaven/jsapi-nodejs';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import {
-  assertDefined,
   formatTimestamp,
   getCombinedRangeLinesText,
   isNonEmptyArray,
@@ -38,6 +37,7 @@ import {
 import { NoConsoleTypesError, parseServerError } from '../dh/errorUtils';
 import { hasErrorCode } from '../util/typeUtils';
 import { DisposableBase } from './DisposableBase';
+import { assertDefined } from '../shared';
 
 const logger = new Logger('DhcService');
 

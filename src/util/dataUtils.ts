@@ -1,3 +1,4 @@
+import type { dh as DhcType } from '@deephaven/jsapi-types';
 import {
   DH_SAML_LOGIN_URL_SCOPE_KEY,
   DH_SAML_SERVER_URL_SCOPE_KEY,
@@ -10,6 +11,7 @@ import type {
   NonEmptyArray,
   SingleAuthConfig,
 } from '../types';
+import type { SerializableRefreshToken } from '../shared';
 
 /**
  * Returns a date string formatted for use in a file path.
@@ -134,4 +136,24 @@ export function parseSamlScopes(scopes: readonly string[]): {
   }
 
   return null;
+}
+
+/**
+ * Serialize a DH RefreshToken.
+ * @param refreshToken The refresh token to serialize.
+ * @returns The serialized refresh token.
+ */
+export function serializeRefreshToken(
+  refreshToken?: DhcType.RefreshToken | null
+): SerializableRefreshToken | null {
+  if (refreshToken == null) {
+    return null;
+  }
+
+  const { bytes, expiry } = refreshToken;
+
+  return {
+    bytes,
+    expiry,
+  } as SerializableRefreshToken;
 }

@@ -1,3 +1,4 @@
+export * from './CreateQueryViewProvider';
 export * from './RunCommandCodeLensProvider';
 export * from './RunMarkdownCodeBlockCodeLensProvider';
 export * from './RunMarkdownCodeBlockHoverProvider';

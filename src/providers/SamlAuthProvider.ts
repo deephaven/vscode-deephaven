@@ -1,9 +1,5 @@
 import * as vscode from 'vscode';
 import {
-  type AuthenticatedClient as DheAuthenticatedClient,
-  type UnauthenticatedClient,
-} from '@deephaven-enterprise/auth-nodejs';
-import {
   Logger,
   makeSAMLSessionKey,
   parseSamlScopes,
@@ -16,7 +12,12 @@ import {
   DH_SAML_SERVER_URL_SCOPE_KEY,
 } from '../common';
 import { UriEventHandler, URLMap } from '../services';
-import { type IDisposable, type SamlConfig, type UniqueID } from '../types';
+import {
+  type DheAuthenticatedClientWrapper,
+  type DheUnauthenticatedClientWrapper,
+  type SamlConfig,
+  type UniqueID,
+} from '../types';
 
 const logger = new Logger('SamlAuthProvider');
 
@@ -29,24 +30,24 @@ export class SamlAuthProvider
    * have completed.
    */
   private static pendingAuthState = new URLMap<{
-    client: UnauthenticatedClient & IDisposable;
+    clientWrapper: DheUnauthenticatedClientWrapper;
     stateId: UniqueID;
   }>();
 
   /**
    * Run the SAML login workflow.
-   * @param dheClient The unauthenticated DHE client.
+   * @param unauthenticatedClientWrapper The unauthenticated DHE client wrapper.
    * @param serverUrl The server URL.
    * @param config The SAML config.
    * @returns The authenticated DHE client.
    */
   static runSamlLoginWorkflow = async (
-    dheClient: UnauthenticatedClient & IDisposable,
+    unauthenticatedClientWrapper: DheUnauthenticatedClientWrapper,
     serverUrl: URL,
     config: SamlConfig
-  ): Promise<DheAuthenticatedClient> => {
+  ): Promise<DheAuthenticatedClientWrapper> => {
     SamlAuthProvider.pendingAuthState.set(serverUrl, {
-      client: dheClient,
+      clientWrapper: unauthenticatedClientWrapper,
       stateId: uniqueId(),
     });
 
@@ -65,7 +66,7 @@ export class SamlAuthProvider
 
     // If we get here, we know that `vscode.authentication.getSession` succeeded
     // which means the client should be authenticated.
-    return dheClient as unknown as DheAuthenticatedClient;
+    return unauthenticatedClientWrapper as unknown as DheAuthenticatedClientWrapper;
   };
 
   /**
@@ -250,11 +251,11 @@ export class SamlAuthProvider
       throw new Error('Deephaven SAML authentication failed.');
     }
 
-    const { client: dheClient } =
+    const { clientWrapper: dheClientWrapper } =
       SamlAuthProvider.pendingAuthState.getOrThrow(serverUrl);
 
     try {
-      await dheClient.login({
+      await dheClientWrapper.client.login({
         type: 'saml',
         token: samlSessionKey,
       });
@@ -263,7 +264,7 @@ export class SamlAuthProvider
       throw err;
     }
 
-    const userInfo = await dheClient.getUserInfo();
+    const userInfo = await dheClientWrapper.client.getUserInfo();
 
     const session: vscode.AuthenticationSession = {
       id: uniqueId(),

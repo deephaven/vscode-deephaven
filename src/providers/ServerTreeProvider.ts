@@ -2,11 +2,11 @@ import * as vscode from 'vscode';
 import { TreeDataProviderBase } from './TreeDataProviderBase';
 import type { ServerGroupState, ServerNode } from '../types/treeViewTypes';
 import {
-  assertNever,
   getServerGroupTreeItem,
   getServerTreeItem,
   groupServers,
 } from '../util';
+import { assertNever } from '../shared';
 
 function isServerGroupState(node: ServerNode): node is ServerGroupState {
   return typeof node === 'string';
