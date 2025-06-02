@@ -5,6 +5,10 @@
   "sidebars": {
     "main": [
       {
+        "label": "Introduction",
+        "path": "introduction.md"
+      },
+      {
         "label": "Installation",
         "path": "installation.md"
       },
