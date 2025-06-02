@@ -3,8 +3,7 @@
 This is the official Deephaven extension for Visual Studio Code. Use it to run queries against running Deephaven servers from VS Code directly. The extension supports both Deephaven [Community](https://deephaven.io/core/docs/) and [Enterprise](https://deephaven.io/enterprise/docs/) servers.
 
 ## Features
-- Connect to Deephaven Community and Enterprise servers
-- Run Deephaven scripts from local workspaces against Deephaven servers
+- Run Deephaven scripts from local workspaces against Deephaven Community and Enterprise servers
 
    ![Run Deephaven file](docs/assets/dhc-connect-to-server.gif)
 
