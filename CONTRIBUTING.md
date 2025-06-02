@@ -95,11 +95,24 @@ npx vsce ls
 1. If new content has been added that is not included in the output, you may need to tweak the `.vscodeignore`, to make sure it is included (this should not be common).
 1. Optionally run `npm run package:latest` if you want to locally install a `.vsix` for testing before publishing.
 
-#### Pre-Release Versions
+#### Publish a New Version
 1. Make sure you are in a clean branch whose HEAD points to the commit to publish.
 1. `npm install` to ensure npm packages up to date
 1. Make sure you are logged in with `vsce` using a personal access token for a user in the https://dev.azure.com/deephaven-oss/ org. `npx vsce login deephaven`
-1. Run `npm run publish:prerelease`
+
+To run a `pre-release` run:
+
+```sh
+npm run publish:prerelease
+```
+
+To run a `release` run:
+
+```sh
+npm run publish
+```
+
+> Note that new features should typically go through a `pre-release` before a release. Otherwise, early adopters won't get released features.
 
 ## PNG Generation
 

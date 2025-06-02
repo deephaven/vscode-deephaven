@@ -1,6 +1,6 @@
 {
   "name": "vscode-deephaven",
-  "version": "0.1.31",
+  "version": "1.1.1",
   "displayName": "Deephaven VS Code",
   "description": "",
   "publisher": "deephaven",
@@ -35,7 +35,8 @@
     "compile:prod": "npm run build:ts && npm run test:lint && node scripts/esbuild.js --production",
     "icon:gen": "node icons/generate.mjs",
     "package:latest": "vsce package -o releases/vscode-deephaven-latest.vsix",
-    "publish:prerelease": "./scripts/publish-prerelease.sh",
+    "publish": "./scripts/publish.sh",
+    "publish:prerelease": "./scripts/publish.sh --pre-release",
     "report:ctrfsummary": "github-actions-ctrf summary test-reports/ctrf-report.json && github-actions-ctrf failed test-reports/ctrf-report.json",
     "report:junit2ctrf": "junit-to-ctrf test-reports/vitest.junit.xml --output test-reports/ctrf-report.json",
     "report:prcomment": "mkdir -p ./pr-comment && cp $GITHUB_STEP_SUMMARY pr-comment/pr-comment.html",
