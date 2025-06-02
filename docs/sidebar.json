@@ -1,0 +1,37 @@
+{
+  "config": {
+    "name": "Deephaven VS Code Extension Docs"
+  },
+  "sidebars": {
+    "main": [
+      {
+        "label": "Installation",
+        "path": "installation.md"
+      },
+      {
+        "label": "Usage",
+        "path": "usage.md"
+      },
+      {
+        "label": "Configuration",
+        "path": "configuration.md"
+      },
+      {
+        "label": "Workspace Setup",
+        "path": "workspace-setup.md"
+      },
+      {
+        "label": "Panels",
+        "path": "panels.md"
+      },
+      {
+        "label": "Troubleshooting",
+        "path": "troubleshooting.md"
+      },
+      {
+        "label": "Enterprise Authentication",
+        "path": "enterprise-auth.md"
+      }
+    ]
+  }
+}
