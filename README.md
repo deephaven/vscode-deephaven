@@ -4,7 +4,7 @@ This is the official Deephaven extension for Visual Studio Code. Use it to run q
 
 ## Features
 ### Run Deephaven Queries
-Run Deephaven queries from local scripts against Deephaven Community and Enterprise servers
+Run Deephaven queries from local scripts against Deephaven Community and Enterprise servers.
 
 ![Run Deephaven file](docs/assets/dhc-connect-to-server.gif)
 
