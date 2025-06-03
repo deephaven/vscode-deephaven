@@ -3,21 +3,25 @@
 This is the official Deephaven extension for Visual Studio Code. Use it to run queries against running Deephaven servers from VS Code directly. The extension supports both Deephaven [Community](https://deephaven.io/core/docs/) and [Enterprise](https://deephaven.io/enterprise/docs/) servers.
 
 ## Features
-- Run Deephaven scripts from local workspaces against Deephaven Community and Enterprise servers
+### Run Deephaven Queries
+Run Deephaven queries from local scripts against Deephaven Community and Enterprise servers
 
-   ![Run Deephaven file](docs/assets/dhc-connect-to-server.gif)
+![Run Deephaven file](docs/assets/dhc-connect-to-server.gif)
 
-- Run Deephaven code blocks from markdown files
+### Run Markdown Codeblocks
+Run Deephaven code blocks from markdown files.
 
-   ![Run Markdown codeblock](docs/assets/markdown-codeblocks.png)
+![Run Markdown codeblock](docs/assets/markdown-codeblocks.png)
 
-- Manage pip installed Deephaven Community servers
+### Manage Deephaven Servers
+Manage pip installed Deephaven Community servers.
 
-   ![Manage pip server](docs/assets/start-pip-server.png)
+![Manage pip server](docs/assets/start-pip-server.png)
 
-- Manage user credentials
+### Manage Credentials
+Manage private / public server keys.
 
-   ![alt text](docs/assets/dhe-generate-keypair.gif)
+![alt text](docs/assets/dhe-generate-keypair.gif)
 
 ## Documentation
 
