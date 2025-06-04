@@ -2,6 +2,27 @@
 
 This is the official Deephaven extension for Visual Studio Code. Use it to run queries against running Deephaven servers from VS Code directly. The extension supports both Deephaven [Community](https://deephaven.io/core/docs/) and [Enterprise](https://deephaven.io/enterprise/docs/) servers.
 
+## About Deephaven
+
+[Deephaven](https://deephaven.io/) is a high-performance time-series database, complemented by a full suite of APIs and an intuitive user experience. Deephaven integrates with Java / Groovy, Python, R, C#, and C++ applications and libraries, as well as open-source data and ML technologies. It is a complete data system that empowers your team to build analyses, models, algos, reports, and dashboards very quickly. It excels at churning through massive real-time data sets, and performing analysis on historical or alternative data sets.
+
+## Installation
+
+Install the Deephaven VS Code extension from one of two places:
+
+- The [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=deephaven.vscode-deephaven)
+- VS Code's built-in extension browser
+
+A search for `Deephaven` in either place will yield the Deephaven VS Code extension as the first result.
+
+![Install Deephaven VS Code Extension](docs/assets/install-pre-release.png)
+
+Once installed, the Deephaven icon will show up in the activity bar on the left side of VS Code:
+
+![VS Code Activity Bar](docs/assets/dh-activity-bar.gif)
+
+By default, the extension is only configured to connect to a single Community server hosted at `http://localhost:10000`. See more about adding, removing, and updating servers in the [Configuration](docs/configuration.md) docs.
+
 ## Features
 ### Run Deephaven Queries
 Run Deephaven queries from local scripts against Deephaven Community and Enterprise servers.
@@ -32,7 +53,3 @@ Manage private / public server keys.
 - [Panels](docs/panels.md)
 - [Troubleshooting](docs/troubleshooting.md)
 - [Contributing](CONTRIBUTING.md)
-
-## About Deephaven
-
-[Deephaven](https://deephaven.io/) is a high-performance time-series database, complemented by a full suite of APIs and an intuitive user experience. Deephaven integrates with Java / Groovy, Python, R, C#, and C++ applications and libraries, as well as open-source data and ML technologies. It is a complete data system that empowers your team to build analyses, models, algos, reports, and dashboards very quickly. It excels at churning through massive real-time data sets, and performing analysis on historical or alternative data sets.
