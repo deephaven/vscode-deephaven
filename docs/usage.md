@@ -8,7 +8,7 @@ You can execute entire files or selected code in files as queries against a runn
 
 ![Run Deephaven file](assets/dhc-connect-to-server.gif)
 
-A new connection will appear in the [`CONNECTIONS` panel](#connections) on the left hand side of VS Code when you execute the code. Additionally, the [`PANELS` tree](#panels) below will show any variables exposed in the connection. To disconnect, hover over the connection item and click the trash icon.
+A new connection will appear in the [`CONNECTIONS` panel](#connections) on the left-hand side of VS Code when you execute the code. Additionally, the [`PANELS` tree](#panels) below will show any variables exposed in the connection. To disconnect, hover over the connection item and click the trash icon.
 
 ## Markdown Code Blocks
 

@@ -6,7 +6,7 @@ To add more servers or change the configuration of the default server, head to V
 
 ![img](assets/dh-settings.png)
 
-You can set configuration parameters in workspaces as well by navigating to the `Workspace` tab in the settings UI.
+You can also set configuration parameters in workspaces by navigating to the `Workspace` tab in the settings UI.
 
 > Note: There are some known VS Code bugs that can cause flakiness with the `run` button. VS Code v90 introduced an optional setting `workbench.editor.alwaysShowEditorActions`. Setting this to `true` both improves the experience and prevents the run button from disappearing when running commands or selecting the dropdown. See [here](https://github.com/deephaven/vscode-deephaven/issues/1) for more details.
 
@@ -49,7 +49,7 @@ Deephaven servers using self-signed certificates or internal CA's will require c
 1. Save the signing certificate in PEM format somewhere on the machine running VS Code. Multiple certificates can be concatenated together in the same file if there are multiple certs that need to be configured.
 1. Set the `NODE_EXTRA_CA_CERTS` environment variable to the path of the signing certificate.
    
-   On Mac / Linux, you set the env variable or if you'd like for it to persist, you can export it from an appropriate config file for your shell.
+   On Mac / Linux, set the env variable, or if you'd like for it to persist, export it from an appropriate config file for your shell.
    ```sh
    export NODE_EXTRA_CA_CERTS=/path/to/cert.pem
    ```

@@ -6,7 +6,7 @@ There are three panels in the Deephaven extension. They appear on the left side 
 
 The `SERVERS` panel shows the status of all configured servers.
 
-If the `deephaven-server` pip package is available your local workspace, the panel will also show a "Managed" servers node (note that managed servers are Community servers that target the current `VS Code` workspace).
+If the `deephaven-server` pip package is available in your local workspace, the panel will also show a "Managed" servers node (note that managed servers are Community servers that target the current `VS Code` workspace).
 
 ![Servers Panel](assets/servers-panel.png)
 
@@ -16,7 +16,7 @@ The `CONNECTIONS` panel shows all active connections + editors currently associa
 
 ![Connections Panel](assets/connections-panel.png)
 
-Editors can be dragged from 1 active connection to another.
+Editors can be dragged from one active connection to another.
 
 ## Panels
 
