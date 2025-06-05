@@ -25,24 +25,24 @@ By default, the extension is only configured to connect to a single Community se
 
 ## Features
 ### Run Deephaven Queries
-Run Deephaven queries from local scripts against Deephaven Community and Enterprise servers.
+Run Deephaven queries from local scripts against Deephaven Community and Enterprise servers:
 
 ![Run Deephaven file](docs/assets/dhc-connect-to-server.gif)
 
 ### Run Markdown Codeblocks
-Run Deephaven code blocks from markdown files.
+Run Deephaven code blocks from markdown files:
 
 ![Run Markdown codeblock](docs/assets/markdown-codeblocks.png)
 
 ### Manage Deephaven Servers
-Manage pip installed Deephaven Community servers.
+Manage pip installed Deephaven Community servers:
 
 ![Manage pip server](docs/assets/start-pip-server.png)
 
 ### Manage Credentials
-Manage private / public server keys.
+Manage private / public server keys:
 
-![alt text](docs/assets/dhe-generate-keypair.gif)
+![Manage keys](docs/assets/dhe-generate-keypair.gif)
 
 ## Documentation
 
