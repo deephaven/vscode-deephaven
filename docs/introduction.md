@@ -22,3 +22,14 @@ Manage pip installed Deephaven Community servers:
 Manage private / public server keys:
 
 ![Manage keys](assets/dhe-generate-keypair.gif)
+
+Please see the following how-to guides for detailed documentation:
+
+- [Installation](installation.md)
+- [Usage](usage.md)
+- [Configuration](configuration.md)
+- [Workspace Setup](workspace-setup.md)
+- [Panels](panels.md)
+- [Troubleshooting](troubleshooting.md)
+- [Enterprise Authentication](enterprise-auth.md)
+- [Contributing](CONTRIBUTING.md)
