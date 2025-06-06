@@ -4,7 +4,7 @@
 # extension.
 #
 # 1. Find the latest version tag for the release / pre-release version. This is
-#    determined by whther the optional `--pre-release` flag is passed to the script.
+#    determined by whether the optional `--pre-release` flag is passed to the script.
 #    Pre-release versions are tagged as `v1.1.X-pre` and release versions are 
 #    tagged as `v1.0.X-release`.
 # 2. Increment the patch version and use it to create a tag name
