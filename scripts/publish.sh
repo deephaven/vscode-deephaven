@@ -24,8 +24,10 @@ set -e
 
 # Get pattern for git version tags
 if [[ "$1" == "--pre-release" ]]; then
+  label="pre-release"
   tagsuffix="-pre"
 else
+  label="release"
   tagsuffix="-release"
 fi
 
@@ -40,6 +42,17 @@ fi
 # Calculate the next version
 next=$(npx semver $current -i patch)
 tag="v$next$tagsuffix"
+
+# Prompt user to confirm the publish
+echo "Publishing $label version: $tag"
+read -p "Continue? (y/n)" -n 1 -r
+echo # move to a new line
+if [[ ! $REPLY =~ ^[Yy]$ ]]
+then
+    echo "Aborted."
+    [[ "$0" = "$BASH_SOURCE" ]] && exit 1 || return 1 # handle exits from shell or function but don't exit interactive shell
+fi
+echo "Publishing..."
 
 # Create a new branch
 git checkout -b $tag
