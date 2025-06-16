@@ -49,19 +49,10 @@ Example configurations:
 
 ```jsonc
 "deephaven.enterpriseServers": [
-  // Basic: Just the server URL as a string
-  "https://my-server-a.acme.org:8123/",
-
-  // With a label (recommended for clarity, no legacy config)
-  {
-    "url": "https://my-server-b.acme.org:8123/",
-    "label": "Server B"
-  },
-
-  // Legacy: Only needed if your server does not support the query creation UI
   {
     "url": "https://my-server-legacy.acme.org:8123/",
     "label": "Legacy Server",
+    // Legacy: Only needed if your server does not support the query creation UI
     "experimentalWorkerConfig": {
       "heapSize": 0.5
     }
