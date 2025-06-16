@@ -52,4 +52,5 @@ Manage private / public server keys. See the [Private / Public Key Pair Login do
 - [Workspace Setup](docs/workspace-setup.md)
 - [Panels](docs/panels.md)
 - [Troubleshooting](docs/troubleshooting.md)
+- [Data Storage](docs/data-storage.md)
 - [Contributing](CONTRIBUTING.md)

@@ -32,4 +32,5 @@ Please see the following how-to guides for detailed documentation:
 - [Panels](panels.md)
 - [Troubleshooting](troubleshooting.md)
 - [Enterprise Authentication](enterprise-auth.md)
+- [Data Storage](data-storage.md)
 - [Contributing](CONTRIBUTING.md)
