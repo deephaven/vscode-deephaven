@@ -39,11 +39,11 @@ An optional label can be included:
 ]
 ```
 
-When connecting to an enterprise server, you will be presented with a panel to configure your query using the standard query creation UI.
+When connecting to an Enterprise server, you will be presented with a panel to configure your query using the standard query creation UI.
 
 ![Query Creation UI](assets/create-query-ui.png)
 
-For legacy servers that do not support the query creation UI, you can use the `experimentalWorkerConfig` property to specify query (worker) settings directly in your configuration.
+For Legacy servers that do not support the query creation UI, you can use the `experimentalWorkerConfig` property to specify query (worker) settings directly in your configuration.
 
 Example configurations:
 
