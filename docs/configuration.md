@@ -20,15 +20,39 @@ Community servers can be configured via the `"deephaven.coreServers"` setting in
 
 Enterprise servers can be configured via the `"deephaven.enterpriseServers"` setting in `VS Code` user or workspace settings.
 
+Basic example:
+
 ```jsonc
 "deephaven.enterpriseServers": [
-  // Simplest config is to provide the server URL
-  "https://my-server-a.acme.org:8123/",
-  // Advanced config
+  "https://my-server-a.acme.org:8123/"
+]
+```
+
+An optional label can be included:
+
+```jsonc
+"deephaven.enterpriseServers": [
   {
     "url": "https://my-server-b.acme.org:8123/",
-    "label": "Server B",
-    // Configure PQ workers created by the extension
+    "label": "Server B"
+  }
+]
+```
+
+When connecting to an Enterprise server, you will be presented with a panel to configure your query using the standard query creation UI.
+
+![Query Creation UI](assets/create-query-ui.png)
+
+For Legacy servers that do not support the query creation UI, you can use the `experimentalWorkerConfig` property to specify query (worker) settings directly in your configuration.
+
+Example configurations:
+
+```jsonc
+"deephaven.enterpriseServers": [
+  {
+    "url": "https://my-server-legacy.acme.org:8123/",
+    "label": "Legacy Server",
+    // Legacy: Only needed if your server does not support the query creation UI
     "experimentalWorkerConfig": {
       "heapSize": 0.5
     }
