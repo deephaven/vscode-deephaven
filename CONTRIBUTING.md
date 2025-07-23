@@ -68,7 +68,7 @@ Publishing a `VS Code` extension requires:
 
 - Azure AD organization - https://dev.azure.com/deephaven-oss/
 - Marketplace publisher - https://marketplace.visualstudio.com/publishers/deephaven
-- Personal access token - associated with a user in the Azure AD organization
+- Personal access token - associated with a user in the Azure AD organization. Will need to have Marketplace publishing permissions.
   > NOTE: This can be set in `VSCE_PAT` env variable
 
 ### Versioning Strategy
@@ -98,7 +98,7 @@ npx vsce ls
 #### Publish a New Version
 1. Make sure you are in a clean branch whose HEAD points to the commit to publish.
 1. `npm install` to ensure npm packages up to date
-1. Make sure you are logged in with `vsce` using a personal access token for a user in the https://dev.azure.com/deephaven-oss/ org. `npx vsce login deephaven`
+1. Make sure you are logged in with `vsce` using a personal access token for a user in the https://dev.azure.com/deephaven-oss/ org. `npx vsce login deephaven`.
 
 To run a `pre-release` run:
 
@@ -113,6 +113,8 @@ npm run publish
 ```
 
 > Note that new features should typically go through a `pre-release` before a release. Otherwise, early adopters won't get released features.
+
+> Note if the publish fails due to an expired token, you can just re-run the appropriate `npx vsce publish` cmd found at the end of the `scripts/publish.sh` file.
 
 ## PNG Generation
 
