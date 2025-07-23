@@ -893,7 +893,7 @@
   "dependencies": {
     "@deephaven-enterprise/auth-nodejs": "^1.20240723.124-beta",
     "@deephaven-enterprise/query-utils": "^1.20240723.124-beta",
-    "@deephaven/jsapi-nodejs": "^0.107.0",
+    "@deephaven/jsapi-nodejs": "^1.3.0",
     "archiver": "^7.0.1",
     "chai": "^4.5.0",
     "nanoid": "^5.0.7"
