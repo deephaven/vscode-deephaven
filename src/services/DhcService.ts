@@ -4,9 +4,11 @@ import type { dh as DhcType } from '@deephaven/jsapi-types';
 import {
   formatTimestamp,
   getCombinedRangeLinesText,
+  getPythonModuleMap,
   getSetExecutionContextScript,
   isNonEmptyArray,
   Logger,
+  registerLocalExecPluginMessageListener,
   saveRequirementsTxt,
 } from '../util';
 import {
@@ -132,6 +134,7 @@ export class DhcService extends DisposableBase implements IDhcService {
 
   private cn: DhcType.IdeConnection | null = null;
   private localExecPlugin: DhcType.Widget | null = null;
+  private pythonModuleMap: Map<string, vscode.Uri> | null = null;
   private session: DhcType.IdeSession | null = null;
 
   get isInitialized(): boolean {
@@ -278,6 +281,15 @@ export class DhcService extends DisposableBase implements IDhcService {
       this.cn = cn;
       this.localExecPlugin = localExecPlugin;
       this.session = session;
+
+      if (this.localExecPlugin != null) {
+        registerLocalExecPluginMessageListener(
+          this.localExecPlugin,
+          moduleFullame =>
+            this.pythonModuleMap?.get(moduleFullame) ??
+            this.pythonModuleMap?.get(`${moduleFullame}.__init__`)
+        );
+      }
     } catch (err) {
       logger.error(err);
       const toastMessage = this.getToastErrorMessage(
@@ -400,7 +412,11 @@ export class DhcService extends DisposableBase implements IDhcService {
       this.isRunningCode = true;
 
       if (this.localExecPlugin != null) {
-        const setExecutionContextScript = await getSetExecutionContextScript();
+        this.pythonModuleMap = await getPythonModuleMap();
+
+        const setExecutionContextScript = await getSetExecutionContextScript(
+          this.pythonModuleMap.keys()
+        );
 
         await this.session.runCode(setExecutionContextScript);
       }

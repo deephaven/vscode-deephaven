@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
+import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { Logger } from '../shared';
+import type { JsonRpcRequest, JsonRpcSuccess } from '../types';
 
 const logger = new Logger('dhLocalExecutionUtils');
 
@@ -15,12 +17,16 @@ export const DH_LOCAL_EXECUTION_PLUGIN_INIT_SCRIPT = [
   `    ${DH_LOCAL_EXECUTION_PLUGIN_VARIABLE} = DeephavenLocalExecPluginObject()`,
 ].join('\n');
 
+// Alias for `dh.Widget.EVENT_MESSAGE` to avoid having to pass in a `dh` instance
+// to util functions that only need the event name.
+export const DH_LOCAL_EXECUTION_EVENT_MESSAGE = 'message' as const;
+
 /**
- * Get a Set of module fullnames for .py files in the current workspace folder.
+ * Get a Set of module fullnames for .py files in the active workspace folder.
  * @returns A set of module fullnames.
  */
-export async function getPythonModuleFullnames(): Promise<Set<string>> {
-  const moduleFullnames = new Set<string>();
+export async function getPythonModuleMap(): Promise<Map<string, vscode.Uri>> {
+  const moduleFullnames = new Map<string, vscode.Uri>();
 
   const activeEditor = vscode.window.activeTextEditor;
   if (!activeEditor) {
@@ -46,28 +52,24 @@ export async function getPythonModuleFullnames(): Promise<Set<string>> {
 
   for (const uri of uris) {
     const relativePath = vscode.workspace.asRelativePath(uri, false);
-    moduleFullnames.add(relativePath.replaceAll('/', '.').replace(/\.py$/, ''));
+    moduleFullnames.set(
+      relativePath.replaceAll('/', '.').replace(/\.py$/, ''),
+      uri
+    );
   }
 
   return moduleFullnames;
 }
 
 /**
- * Get a string defining a Python set containing the module fullnames for .py
- * files in the current workspace folder. e.g. '{"module1.aaa","module1.bbb","module2"}'
- * @returns A string defining a Python set.
- */
-export async function getPythonModuleFullnamesString(): Promise<string> {
-  const moduleFullnames = await getPythonModuleFullnames();
-  return `{${[...moduleFullnames].map(modulePath => `"${modulePath}"`).join(',')}}`;
-}
-
-/**
  * Get a script to set the execution context on the local execution plugin.
+ * @param moduleFullnames An iterable of module fullnames of python files.
  * @returns A Python script string.
  */
-export async function getSetExecutionContextScript(): Promise<string> {
-  const moduleFullnamesString = await getPythonModuleFullnamesString();
+export async function getSetExecutionContextScript(
+  moduleFullnames: Iterable<string>
+): Promise<string> {
+  const moduleFullnamesString = `{${[...moduleFullnames].map(modulePath => `"${modulePath}"`).join(',')}}`;
   return `${DH_LOCAL_EXECUTION_PLUGIN_VARIABLE}.set_execution_context(${moduleFullnamesString})`;
 }
 
@@ -92,4 +94,47 @@ export async function isLocalExecutionPluginInstalled(
     logger.error('Error checking for local execution plugin', err);
     return false;
   }
+}
+
+/**
+ * Register a message listener on the local execution plugin to handle requests.
+ * @param localExecPlugin the local execution plugin widget
+ * @param getModuleFilePath a function that returns the file path for a given module fullname
+ * @returns a function to unregister the listener
+ */
+export function registerLocalExecPluginMessageListener(
+  localExecPlugin: DhcType.Widget,
+  getModuleFilePath: (moduleFullname: string) => vscode.Uri | undefined
+): () => void {
+  return localExecPlugin.addEventListener<DhcType.Widget>(
+    DH_LOCAL_EXECUTION_EVENT_MESSAGE,
+    async ({ detail }) => {
+      try {
+        const message: JsonRpcRequest = JSON.parse(detail.getDataAsString());
+        logger.log('Received message from server:', message);
+
+        const filepath = getModuleFilePath(message.params.module_name);
+
+        let source: string | undefined;
+        if (filepath != null) {
+          const textDoc = await vscode.workspace.openTextDocument(filepath);
+          source = textDoc.getText();
+        }
+
+        const response: JsonRpcSuccess = {
+          jsonrpc: '2.0',
+          id: message.id,
+          result: {
+            filepath: filepath?.fsPath ?? '<string>',
+            source: filepath == null ? undefined : source,
+          },
+        };
+
+        logger.log('Sending response to server:', response);
+        localExecPlugin.sendMessage(JSON.stringify(response));
+      } catch (err) {
+        logger.error('Error parsing message from server:', err);
+      }
+    }
+  );
 }
