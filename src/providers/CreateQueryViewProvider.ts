@@ -5,6 +5,7 @@ import {
   registerWebViewThemeHandlers,
   setViewIsVisible,
   showViewContainer,
+  type URLMap,
   withResolvers,
   type PromiseWithResolvers,
 } from '../util';
@@ -21,7 +22,7 @@ import type {
   DheAuthenticatedClientWrapper,
   UniqueID,
 } from '../types';
-import { DisposableBase, type URLMap } from '../services';
+import { DisposableBase } from '../services';
 import {
   assertDefined,
   DH_POST_MSG,

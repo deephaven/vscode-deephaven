@@ -10,6 +10,7 @@ import {
   Logger,
   registerLocalExecPluginMessageListener,
   saveRequirementsTxt,
+  type URLMap,
 } from '../util';
 import {
   getPythonDependencies,
@@ -30,7 +31,6 @@ import type {
   VariableDefintion,
   VariableID,
 } from '../types';
-import type { URLMap } from './URLMap';
 import {
   CREATE_CORE_AUTHENTICATED_CLIENT_CMD,
   OPEN_VARIABLE_PANELS_CMD,

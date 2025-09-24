@@ -15,8 +15,7 @@ import {
   type WorkerInfo,
   type WorkerURL,
 } from '../types';
-import { URLMap } from './URLMap';
-import { Logger } from '../util';
+import { Logger, URLMap } from '../util';
 import {
   createInteractiveConsoleQuery,
   deleteQueries,

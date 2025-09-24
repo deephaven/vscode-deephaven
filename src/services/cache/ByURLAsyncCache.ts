@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import type { IAsyncCacheService } from '../../types';
-import { URLMap } from '../URLMap';
+import { URLMap } from '../../util';
 
 /**
  * Cache service that stores values by URL.

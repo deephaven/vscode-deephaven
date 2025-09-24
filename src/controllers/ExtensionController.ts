@@ -48,6 +48,7 @@ import {
   serializeRefreshToken,
   Toaster,
   uniqueId,
+  URLMap,
   withResolvers,
 } from '../util';
 import {
@@ -70,7 +71,6 @@ import {
   ParsedDocumentCache,
   SecretService,
   ServerManager,
-  URLMap,
   CoreJsApiCache,
 } from '../services';
 import type {

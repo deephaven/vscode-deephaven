@@ -7,6 +7,7 @@ export * from './idUtils';
 export * from './isInstanceOf';
 export * from './isDisposable';
 export * from './Logger';
+export * from './maps';
 export * from './OutputChannelWithHistory';
 export * from './panelUtils';
 export * from './promiseUtils';
