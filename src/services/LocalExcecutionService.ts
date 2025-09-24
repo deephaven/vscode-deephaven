@@ -47,8 +47,6 @@ export class LocalExecutionService
     'build',
     'dist',
     '*.egg-info',
-    // TESTING
-    'pandas',
   ]);
 
   private _onDidChangeFileDecorations = new vscode.EventEmitter<
