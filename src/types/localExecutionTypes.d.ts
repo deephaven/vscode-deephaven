@@ -1,3 +1,7 @@
+import type { Brand } from '../shared';
+
+export type ModuleFullname = Brand<'ModuleFullname', string>;
+
 interface JsonRpcRequestBase {
   jsonrpc: '2.0';
   id: string;
@@ -5,7 +9,7 @@ interface JsonRpcRequestBase {
 
 export interface JsonRpcFetchModuleRequest extends JsonRpcRequestBase {
   method: 'fetch_module';
-  params: { module_name: string };
+  params: { module_name: ModuleFullname };
 }
 
 export type JsonRpcRequest = JsonRpcFetchModuleRequest;

@@ -72,6 +72,7 @@ import {
   SecretService,
   ServerManager,
   CoreJsApiCache,
+  LocalExecutionService,
 } from '../services';
 import type {
   IDisposable,
@@ -174,6 +175,7 @@ export class ExtensionController implements IDisposable {
   private _dhcServiceFactory: IDhcServiceFactory | null = null;
   private _dheJsApiCache: IAsyncCacheService<URL, DheType> | null = null;
   private _dheServiceFactory: IDheServiceFactory | null = null;
+  private _localExecutionService: LocalExecutionService | null = null;
   private _secretService: ISecretService | null = null;
   private _serverManager: IServerManager | null = null;
   private _userLoginController: UserLoginController | null = null;
@@ -212,6 +214,7 @@ export class ExtensionController implements IDisposable {
     this.initializeDocumentCaches();
     this.initializeCodeLenses();
     this.initializeHoverProviders();
+    this.initializeLocalExecution();
     this.initializeServerManager();
     this.initializeAuthProviders();
     this.initializeTempDirectory();
@@ -310,6 +313,14 @@ export class ExtensionController implements IDisposable {
     );
 
     this._context.subscriptions.push(this._connectionController);
+  };
+
+  /**
+   * Initialize services needed for local execution.
+   */
+  initializeLocalExecution = (): void => {
+    this._localExecutionService = new LocalExecutionService();
+    this._context.subscriptions.push(this._localExecutionService);
   };
 
   /**
@@ -445,6 +456,7 @@ export class ExtensionController implements IDisposable {
   };
 
   initializeServerManager = (): void => {
+    assertDefined(this._localExecutionService, 'localExecutionService');
     assertDefined(this._pythonDiagnostics, 'pythonDiagnostics');
     assertDefined(this._outputChannel, 'outputChannel');
     assertDefined(this._secretService, 'secretService');
@@ -570,9 +582,10 @@ export class ExtensionController implements IDisposable {
 
     this._dhcServiceFactory = DhcService.factory(
       this._coreClientCache,
-      this._panelService,
       this._pythonDiagnostics,
+      this._localExecutionService,
       this._outputChannel,
+      this._panelService,
       this._secretService,
       this._toaster
     );

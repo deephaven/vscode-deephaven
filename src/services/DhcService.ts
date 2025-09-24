@@ -4,11 +4,9 @@ import type { dh as DhcType } from '@deephaven/jsapi-types';
 import {
   formatTimestamp,
   getCombinedRangeLinesText,
-  getPythonModuleMap,
   getSetExecutionContextScript,
   isNonEmptyArray,
   Logger,
-  registerLocalExecPluginMessageListener,
   saveRequirementsTxt,
   type URLMap,
 } from '../util';
@@ -41,6 +39,7 @@ import { NoConsoleTypesError, parseServerError } from '../dh/errorUtils';
 import { hasErrorCode } from '../util/typeUtils';
 import { DisposableBase } from './DisposableBase';
 import { assertDefined } from '../shared';
+import type { LocalExecutionService } from './LocalExcecutionService';
 
 const logger = new Logger('DhcService');
 
@@ -48,18 +47,20 @@ export class DhcService extends DisposableBase implements IDhcService {
   /**
    * Creates a factory function that can be used to create DhcService instances.
    * @param coreClientCache Core client cache.
-   * @param panelService Panel service.
    * @param diagnosticsCollection Diagnostics collection.
+   * @param localExecutionService Local execution service.
    * @param outputChannel Output channel.
+   * @param panelService Panel service.
    * @param secretService Secret service.
    * @param toaster Toast service for notifications.
    * @returns A factory function that can be used to create DhcService instances.
    */
   static factory = (
     coreClientCache: URLMap<CoreAuthenticatedClient>,
-    panelService: IPanelService,
     diagnosticsCollection: vscode.DiagnosticCollection,
+    localExecutionService: LocalExecutionService,
     outputChannel: vscode.OutputChannel,
+    panelService: IPanelService,
     secretService: ISecretService,
     toaster: IToastService
   ): IDhcServiceFactory => {
@@ -68,9 +69,10 @@ export class DhcService extends DisposableBase implements IDhcService {
         return new DhcService(
           serverUrl,
           coreClientCache,
-          panelService,
           diagnosticsCollection,
+          localExecutionService,
           outputChannel,
+          panelService,
           secretService,
           toaster,
           tagId
@@ -86,9 +88,10 @@ export class DhcService extends DisposableBase implements IDhcService {
   private constructor(
     serverUrl: URL,
     coreClientCache: URLMap<CoreAuthenticatedClient>,
-    panelService: IPanelService,
     diagnosticsCollection: vscode.DiagnosticCollection,
+    localExecutionService: LocalExecutionService,
     outputChannel: vscode.OutputChannel,
+    panelService: IPanelService,
     secretService: ISecretService,
     toaster: IToastService,
     tagId?: UniqueID
@@ -96,11 +99,12 @@ export class DhcService extends DisposableBase implements IDhcService {
     super();
 
     this.coreClientCache = coreClientCache;
-    this.serverUrl = serverUrl;
-    this.panelService = panelService;
     this.diagnosticsCollection = diagnosticsCollection;
+    this.localExecutionService = localExecutionService;
     this.outputChannel = outputChannel;
+    this.panelService = panelService;
     this.secretService = secretService;
+    this.serverUrl = serverUrl;
     this.toaster = toaster;
     this.tagId = tagId;
 
@@ -122,6 +126,7 @@ export class DhcService extends DisposableBase implements IDhcService {
   public readonly tagId?: UniqueID;
 
   private readonly coreClientCache: URLMap<CoreAuthenticatedClient>;
+  private readonly localExecutionService: LocalExecutionService;
   private readonly outputChannel: vscode.OutputChannel;
   private readonly secretService: ISecretService;
   private readonly toaster: IToastService;
@@ -134,7 +139,6 @@ export class DhcService extends DisposableBase implements IDhcService {
 
   private cn: DhcType.IdeConnection | null = null;
   private localExecPlugin: DhcType.Widget | null = null;
-  private pythonModuleMap: Map<string, vscode.Uri> | null = null;
   private session: DhcType.IdeSession | null = null;
 
   get isInitialized(): boolean {
@@ -283,11 +287,8 @@ export class DhcService extends DisposableBase implements IDhcService {
       this.session = session;
 
       if (this.localExecPlugin != null) {
-        registerLocalExecPluginMessageListener(
-          this.localExecPlugin,
-          moduleFullame =>
-            this.pythonModuleMap?.get(moduleFullame) ??
-            this.pythonModuleMap?.get(`${moduleFullame}.__init__`)
+        this.localExecutionService.registerLocalExecPluginMessageListener(
+          this.localExecPlugin
         );
       }
     } catch (err) {
@@ -412,10 +413,8 @@ export class DhcService extends DisposableBase implements IDhcService {
       this.isRunningCode = true;
 
       if (this.localExecPlugin != null) {
-        this.pythonModuleMap = await getPythonModuleMap();
-
         const setExecutionContextScript = await getSetExecutionContextScript(
-          this.pythonModuleMap.keys()
+          this.localExecutionService.getTopLevelPythonModuleNames()
         );
 
         await this.session.runCode(setExecutionContextScript);

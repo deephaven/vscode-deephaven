@@ -4,6 +4,7 @@ export * from './consoleTypeUtils';
 export * from './DhcService';
 export * from './DheService';
 export * from './DisposableBase';
+export * from './LocalExcecutionService';
 export * from './PanelService';
 export * from './ParseDocumentCache';
 export * from './PollingService';
