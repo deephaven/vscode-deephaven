@@ -4,6 +4,7 @@ import { URIMap } from './maps';
 import { Logger } from '../shared';
 import type {
   JsonRpcRequest,
+  JsonRpcSetConnectionIdRequest,
   JsonRpcSuccess,
   ModuleFullname,
   UniqueID,
@@ -98,6 +99,42 @@ export async function createPythonModuleMeta(
   }
 
   return meta;
+}
+
+/**
+ * If local execution plugin is installed, get an instance of it and set the
+ * connection ID.
+ * @param cnId connection ID to set on the message stream / connection
+ * @param session session to get the plugin from
+ * @param workerUrl URL of the Core / Core+ worker
+ * @returns a Promise that resolves to the local execution plugin widget, or
+ * null if plugin is not installed
+ */
+export async function getLocalExecutionPlugin(
+  cnId: UniqueID,
+  session: DhcType.IdeSession,
+  workerUrl: URL
+): Promise<DhcType.Widget | null> {
+  if (!(await isLocalExecutionPluginInstalled(workerUrl))) {
+    return null;
+  }
+
+  // Initialize the local execution plugin if it is not already initialized.
+  await session.runCode(DH_LOCAL_EXECUTION_PLUGIN_INIT_SCRIPT);
+
+  const localExecPlugin: DhcType.Widget = await session.getObject({
+    name: DH_LOCAL_EXECUTION_PLUGIN_VARIABLE,
+    type: DH_LOCAL_EXECUTION_PLUGIN_CLASS,
+  });
+
+  const msg: JsonRpcSetConnectionIdRequest = {
+    jsonrpc: '2.0',
+    id: cnId,
+    method: 'set_connection_id',
+  };
+  localExecPlugin.sendMessage(JSON.stringify(msg));
+
+  return localExecPlugin;
 }
 
 /**

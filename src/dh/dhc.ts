@@ -5,7 +5,6 @@ import type {
   CoreUnauthenticatedClient,
   DependencyName,
   DependencyVersion,
-  JsonRpcSetConnectionIdRequest,
   UniqueID,
 } from '../types';
 import { hasStatusCode, loadDhModules } from '@deephaven/jsapi-nodejs';
@@ -15,13 +14,7 @@ import {
   REQUIREMENTS_TABLE_NAME_COLUMN_NAME,
   REQUIREMENTS_TABLE_VERSION_COLUMN_NAME,
 } from '../common';
-import {
-  DH_LOCAL_EXECUTION_PLUGIN_CLASS,
-  DH_LOCAL_EXECUTION_PLUGIN_INIT_SCRIPT,
-  DH_LOCAL_EXECUTION_PLUGIN_VARIABLE,
-  isLocalExecutionPluginInstalled,
-  uniqueId,
-} from '../util';
+import { getLocalExecutionPlugin, uniqueId } from '../util';
 
 export const AUTH_HANDLER_TYPE_ANONYMOUS =
   'io.deephaven.auth.AnonymousAuthenticationHandler';
@@ -160,27 +153,12 @@ export async function initDhcSession(
   const session = await cn.startSession(type);
 
   const workerUrl = new URL(await client.getServerUrl());
-  const isLocalExecutionEnabled =
-    await isLocalExecutionPluginInstalled(workerUrl);
 
-  let localExecPlugin: DhType.Widget | null = null;
-
-  // Initialize the local execution plugin if it is not already initialized.
-  if (isLocalExecutionEnabled) {
-    await session.runCode(DH_LOCAL_EXECUTION_PLUGIN_INIT_SCRIPT);
-
-    localExecPlugin = await session.getObject({
-      name: DH_LOCAL_EXECUTION_PLUGIN_VARIABLE,
-      type: DH_LOCAL_EXECUTION_PLUGIN_CLASS,
-    });
-
-    const msg: JsonRpcSetConnectionIdRequest = {
-      jsonrpc: '2.0',
-      id: cnId,
-      method: 'set_connection_id',
-    };
-    localExecPlugin?.sendMessage(JSON.stringify(msg));
-  }
+  const localExecPlugin = await getLocalExecutionPlugin(
+    cnId,
+    session,
+    workerUrl
+  );
 
   return { cn, cnId, localExecPlugin, session };
 }
