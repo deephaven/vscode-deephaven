@@ -4,11 +4,13 @@ import { URIMap } from './maps';
 import { Logger } from '../shared';
 import type {
   JsonRpcRequest,
+  JsonRpcResponse,
   JsonRpcSetConnectionIdRequest,
   JsonRpcSuccess,
   ModuleFullname,
   UniqueID,
 } from '../types';
+import { withResolvers } from './promiseUtils';
 
 const logger = new Logger('dhLocalExecutionUtils');
 
@@ -33,7 +35,7 @@ export const DH_LOCAL_EXECUTION_PLUGIN_INIT_SCRIPT = [
 
 // Alias for `dh.Widget.EVENT_MESSAGE` to avoid having to pass in a `dh` instance
 // to util functions that only need the event name.
-export const DH_LOCAL_EXECUTION_EVENT_MESSAGE = 'message' as const;
+export const DH_WIDGET_EVENT_MESSAGE = 'message' as const;
 
 /**
  * Create metadata about python modules in the workspace, ignoring files in the
@@ -132,7 +134,8 @@ export async function getLocalExecutionPlugin(
     id: cnId,
     method: 'set_connection_id',
   };
-  localExecPlugin.sendMessage(JSON.stringify(msg));
+
+  await sendWidgetMessageAsync(localExecPlugin, msg);
 
   return localExecPlugin;
 }
@@ -185,10 +188,14 @@ export function registerLocalExecPluginMessageListener(
   getModuleFilePath: (moduleFullname: ModuleFullname) => vscode.Uri | undefined
 ): () => void {
   return localExecPlugin.addEventListener<DhcType.Widget>(
-    DH_LOCAL_EXECUTION_EVENT_MESSAGE,
+    DH_WIDGET_EVENT_MESSAGE,
     async ({ detail }) => {
       try {
         const message: JsonRpcRequest = JSON.parse(detail.getDataAsString());
+        if (message.method !== 'fetch_module') {
+          return;
+        }
+
         logger.log('Received message from server:', message);
 
         const filepath = getModuleFilePath(message.params.module_name);
@@ -215,4 +222,40 @@ export function registerLocalExecPluginMessageListener(
       }
     }
   );
+}
+
+/**
+ * Send a message to a widget plugin and return a Promise that will be resolved
+ * when a response is received matching the id.
+ * @param widget the widget to send the message to
+ * @param request the request to send
+ * @returns Promise that resolves to the response
+ */
+export function sendWidgetMessageAsync<
+  TRequest extends JsonRpcRequest,
+  TResponse extends JsonRpcResponse,
+>(widget: DhcType.Widget, request: TRequest): Promise<TResponse> {
+  const { promise, resolve } = withResolvers<TResponse>();
+
+  const removeEventListener = widget.addEventListener<DhcType.Widget>(
+    DH_WIDGET_EVENT_MESSAGE,
+    async ({ detail }) => {
+      try {
+        const message: JsonRpcResponse | JsonRpcRequest = JSON.parse(
+          detail.getDataAsString()
+        );
+
+        if ('id' in message && message.id === request.id) {
+          resolve(message as TResponse);
+          removeEventListener();
+        }
+      } catch (err) {
+        logger.error('Error parsing message from server:', err);
+      }
+    }
+  );
+
+  widget.sendMessage(JSON.stringify(request));
+
+  return promise;
 }

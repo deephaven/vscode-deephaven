@@ -17,7 +17,9 @@ export interface JsonRpcSetConnectionIdRequest extends JsonRpcRequestBase {
   method: 'set_connection_id';
 }
 
-export type JsonRpcRequest = JsonRpcFetchModuleRequest;
+export type JsonRpcRequest =
+  | JsonRpcFetchModuleRequest
+  | JsonRpcSetConnectionIdRequest;
 
 export interface JsonRpcSuccess {
   jsonrpc: '2.0';
