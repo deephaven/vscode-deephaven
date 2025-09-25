@@ -34,6 +34,15 @@ export const DH_LOCAL_EXECUTION_PLUGIN_INIT_SCRIPT = [
 // to util functions that only need the event name.
 export const DH_LOCAL_EXECUTION_EVENT_MESSAGE = 'message' as const;
 
+/**
+ * Create metadata about python modules in the workspace, ignoring files in the
+ * given top level folders.
+ * Note that this data will determine which URIs the server can access, so it's
+ * important it doesn't include modules outside of what user has opted in to
+ * share.
+ * @param ignoreTopLevelFolders
+ * @returns metadata about python modules in the workspace
+ */
 export async function createPythonModuleMeta(
   ignoreTopLevelFolders: Set<string>
 ): Promise<PythonModuleMeta> {

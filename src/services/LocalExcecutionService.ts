@@ -141,6 +141,7 @@ export class LocalExecutionService
   /**
    * Determine if given Uri should be decorated as a Deephaven source.
    * @param uri The Uri to check.
+   * @param topLevelOnly If true, only decorate if the Uri is a top-level module.
    * @returns True if the Uri should be decorated.
    */
   isDecoratedUri(uri: vscode.Uri, topLevelOnly: boolean): boolean {
@@ -164,7 +165,9 @@ export class LocalExecutionService
     return moduleNamesSet.has(topLevelModuleName);
   }
 
-  /** Register a local execution plugin. */
+  /**
+   * Register a local execution plugin.
+   */
   async registerLocalExecPlugin(
     localExecPlugin: DhcType.Widget
   ): Promise<void> {
@@ -176,16 +179,11 @@ export class LocalExecutionService
     );
   }
 
-  /** Rebuild Python module maps */
-  async updatePythonModuleMeta(): Promise<void> {
-    this._moduleMeta = await createPythonModuleMeta(
-      this._ignoreTopLevelModuleNames
-    );
-    logger.log('Updated python module meta:', this._moduleMeta);
-
-    this._onDidChangeFileDecorations.fire(undefined);
-  }
-
+  /**
+   * Set the server execution context for the plugin using the given session.
+   * @param connectionId The unique ID of the connection.
+   * @param session The IdeSession to use to run the code.
+   */
   async setServerExecutionContext(
     connectionId: UniqueID,
     session: DhcType.IdeSession
@@ -198,6 +196,12 @@ export class LocalExecutionService
     await session.runCode(setExecutionContextScript);
   }
 
+  /**
+   * Provide decorations for a given uri if it is included in local execution.
+   * @param uri The uri to provide decoration for.
+   * @param _token
+   * @returns A FileDecoration if the uri is decorated, otherwise undefined.
+   */
   provideFileDecoration(
     uri: vscode.Uri,
     _token: vscode.CancellationToken
@@ -217,5 +221,17 @@ export class LocalExecutionService
       'Deephaven source',
       new vscode.ThemeColor('charts.green')
     );
+  }
+
+  /**
+   * Rebuild Python module maps
+   */
+  async updatePythonModuleMeta(): Promise<void> {
+    this._moduleMeta = await createPythonModuleMeta(
+      this._ignoreTopLevelModuleNames
+    );
+    logger.log('Updated python module meta:', this._moduleMeta);
+
+    this._onDidChangeFileDecorations.fire(undefined);
   }
 }
