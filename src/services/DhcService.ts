@@ -298,6 +298,19 @@ export class DhcService extends DisposableBase implements IDhcService {
           cnId,
           session
         );
+
+        this.disposables.add(
+          // If module meta is updated, update module names in the server plugin
+          this.localExecutionService.onDidUpdateModuleMeta(async () => {
+            await this.localExecutionService.setServerExecutionContext(
+              // runCode will call `setServerExecutionContext` again with an
+              // actual connection ID before running code, so passing null here
+              // should be fine.
+              null,
+              session
+            );
+          })
+        );
       }
     } catch (err) {
       logger.error(err);
