@@ -148,11 +148,12 @@ export async function getLocalExecutionPlugin(
  * @returns A Python script string.
  */
 export function getSetExecutionContextScript(
-  connectionId: UniqueID,
+  connectionId: UniqueID | null,
   moduleFullnames: Iterable<string>
 ): string {
-  const moduleFullnamesString = `{${[...moduleFullnames].map(modulePath => `"${modulePath}"`).join(',')}}`;
-  return `${DH_LOCAL_EXECUTION_PLUGIN_VARIABLE}.set_execution_context('${connectionId}', ${moduleFullnamesString})`;
+  const connectionIdStr = connectionId == null ? 'None' : `'${connectionId}'`;
+  const moduleFullnamesStr = `{${[...moduleFullnames].map(modulePath => `"${modulePath}"`).join(',')}}`;
+  return `${DH_LOCAL_EXECUTION_PLUGIN_VARIABLE}.set_execution_context(${connectionIdStr}, ${moduleFullnamesStr})`;
 }
 
 /**

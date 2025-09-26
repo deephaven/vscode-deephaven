@@ -197,7 +197,7 @@ export class LocalExecutionService
    * @param session The IdeSession to use to run the code.
    */
   async setServerExecutionContext(
-    connectionId: UniqueID,
+    connectionId: UniqueID | null,
     session: DhcType.IdeSession
   ): Promise<void> {
     const setExecutionContextScript = getSetExecutionContextScript(

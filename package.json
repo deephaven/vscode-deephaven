@@ -228,6 +228,11 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "vscode-deephaven.refreshPythonModuleTree",
+        "title": "Refresh Python Module Tree",
+        "icon": "$(refresh)"
+      },
+      {
         "command": "vscode-deephaven.createCoreAuthenticatedClient",
         "title": "Create Core Authenticated Client"
       },
@@ -259,6 +264,16 @@
         "command": "vscode-deephaven.view.createQuery.close",
         "title": "Close Create Connection View",
         "icon": "$(close)"
+      },
+      {
+        "command": "vscode-deephaven.addRemotePythonModule",
+        "title": "Include Remote Python Module",
+        "icon": "$(add)"
+      },
+      {
+        "command": "vscode-deephaven.removeRemotePythonModule",
+        "title": "Exclude Remote Python Module",
+        "icon": "$(remove)"
       }
     ],
     "icons": {
@@ -732,6 +747,10 @@
           "when": "false"
         },
         {
+          "command": "vscode-deephaven.refreshPythonModuleTree",
+          "when": "false"
+        },
+        {
           "command": "vscode-deephaven.refreshVariablePanels",
           "when": "false"
         },
@@ -749,6 +768,14 @@
         },
         {
           "command": "vscode-deephaven.createDHEAuthenticatedClient",
+          "when": "false"
+        },
+        {
+          "command": "vscode-deephaven.addRemotePythonModule",
+          "when": "false"
+        },
+        {
+          "command": "vscode-deephaven.removeRemotePythonModule",
           "when": "false"
         }
       ],
@@ -786,6 +813,21 @@
           "command": "vscode-deephaven.refreshServerConnectionTree",
           "group": "navigation",
           "when": "view == vscode-deephaven.view.serverConnectionTree"
+        },
+        {
+          "command": "vscode-deephaven.refreshPythonModuleTree",
+          "group": "navigation",
+          "when": "view == vscode-deephaven.view.pythonModuleTree"
+        },
+        {
+          "command": "vscode-deephaven.openVariablePanels",
+          "group": "navigation",
+          "when": "view == vscode-deephaven.view.serverConnectionTree || view == vscode-deephaven.view.serverTree"
+        },
+        {
+          "command": "vscode-deephaven.refreshVariablePanels",
+          "group": "navigation",
+          "when": "view == vscode-deephaven.view.serverConnectionPanelTree"
         },
         {
           "command": "vscode-deephaven.searchConnections",
@@ -845,6 +887,16 @@
           "command": "vscode-deephaven.stopServer",
           "when": "view == vscode-deephaven.view.serverTree && (viewItem == isManagedServerConnected || viewItem == isManagedServerConnecting || viewItem == isManagedServerDisconnected)",
           "group": "inline"
+        },
+        {
+          "command": "vscode-deephaven.addRemotePythonModule",
+          "when": "view == vscode-deephaven.view.pythonModuleTree && viewItem == topLevelPythonModule.excluded",
+          "group": "inline"
+        },
+        {
+          "command": "vscode-deephaven.removeRemotePythonModule",
+          "when": "view == vscode-deephaven.view.pythonModuleTree && viewItem == topLevelPythonModule.included",
+          "group": "inline"
         }
       ]
     },
@@ -877,6 +929,11 @@
         {
           "id": "vscode-deephaven.view.serverConnectionPanelTree",
           "name": "Panels",
+          "type": "tree"
+        },
+        {
+          "id": "vscode-deephaven.view.pythonModuleTree",
+          "name": "Python Modules",
           "type": "tree"
         }
       ],

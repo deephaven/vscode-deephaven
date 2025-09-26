@@ -4,6 +4,7 @@ import type {
   ServerState,
   VariableDefintion,
 } from './commonTypes';
+import type { ModuleFullname } from './localExecutionTypes';
 
 export type ServerGroupState = 'Managed' | 'Running' | 'Stopped';
 export type ServerNode = ServerGroupState | ServerState;
@@ -18,3 +19,11 @@ export type ServerConnectionPanelNode =
   | [URL, VariableDefintion];
 export interface ServerConnectionPanelTreeView
   extends vscode.TreeView<ServerConnectionPanelNode> {}
+
+export type PythonModuleTreeNode = {
+  uri: vscode.Uri;
+  include?: boolean;
+  topLevelModuleName?: ModuleFullname;
+};
+export interface PythonModuleTreeView
+  extends vscode.TreeView<PythonModuleTreeNode> {}

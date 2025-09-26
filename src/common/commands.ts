@@ -50,6 +50,7 @@ export const GENERATE_DHE_KEY_PAIR_CMD = cmd('generateDHEKeyPair');
 export const GENERATE_REQUIREMENTS_TXT_CMD = cmd('generateRequirementsTxt');
 export const OPEN_IN_BROWSER_CMD = cmd('openInBrowser');
 export const OPEN_VARIABLE_PANELS_CMD = cmd('openVariablePanels');
+export const REFRESH_PYTHON_MODULE_TREE_CMD = cmd('refreshPythonModuleTree');
 export const REFRESH_SERVER_TREE_CMD = cmd('refreshServerTree');
 export const REFRESH_SERVER_CONNECTION_TREE_CMD = cmd(
   'refreshServerConnectionTree'
@@ -63,3 +64,5 @@ export const SEARCH_PANELS_CMD = cmd('searchPanels');
 export const SELECT_CONNECTION_COMMAND = cmd('selectConnection');
 export const START_SERVER_CMD = cmd('startServer');
 export const STOP_SERVER_CMD = cmd('stopServer');
+export const ADD_REMOTE_PYTHON_MODULE_CMD = cmd('addRemotePythonModule');
+export const REMOVE_REMOTE_PYTHON_MODULE_CMD = cmd('removeRemotePythonModule');

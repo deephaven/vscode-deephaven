@@ -12,13 +12,16 @@ import {
 } from '@deephaven-enterprise/auth-nodejs';
 import { NodeHttp2gRPCTransport } from '@deephaven/jsapi-nodejs';
 import {
+  ADD_REMOTE_PYTHON_MODULE_CMD,
   CLEAR_SECRET_STORAGE_CMD,
   CREATE_NEW_TEXT_DOC_CMD,
   DOWNLOAD_LOGS_CMD,
   GENERATE_REQUIREMENTS_TXT_CMD,
   OPEN_IN_BROWSER_CMD,
+  REFRESH_PYTHON_MODULE_TREE_CMD,
   REFRESH_SERVER_CONNECTION_TREE_CMD,
   REFRESH_SERVER_TREE_CMD,
+  REMOVE_REMOTE_PYTHON_MODULE_CMD,
   RUN_CODE_COMMAND,
   RUN_MARKDOWN_CODEBLOCK_CMD,
   RUN_SELECTION_COMMAND,
@@ -104,6 +107,8 @@ import type {
   ConsoleType,
   DheAuthenticatedClientWrapper,
   DheUnauthenticatedClientWrapper,
+  PythonModuleTreeView,
+  PythonModuleTreeNode,
 } from '../types';
 import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTreeDragAndDropController';
 import { ConnectionController } from './ConnectionController';
@@ -115,6 +120,7 @@ import {
   type QuerySerial,
   type SerializableRefreshToken,
 } from '../shared';
+import { PythonModuleTreeProvider } from '../providers/PythonModuleTreeProvider';
 
 const logger = new Logger('ExtensionController');
 
@@ -186,12 +192,14 @@ export class ExtensionController implements IDisposable {
     null;
   private _serverConnectionPanelTreeProvider: ServerConnectionPanelTreeProvider | null =
     null;
+  private _pythonModuleTreeProvider: PythonModuleTreeProvider | null = null;
 
   // Tree views
   private _serverTreeView: ServerTreeView | null = null;
   private _serverConnectionTreeView: ServerConnectionTreeView | null = null;
   private _serverConnectionPanelTreeView: ServerConnectionPanelTreeView | null =
     null;
+  private _pythonModuleTreeView: PythonModuleTreeView | null = null;
 
   // Web views
   private _createQueryViewProvider: CreateQueryViewProvider | null = null;
@@ -709,6 +717,20 @@ export class ExtensionController implements IDisposable {
       this.onRefreshServerStatus
     );
 
+    /** Python module tree */
+    this.registerCommand(
+      REFRESH_PYTHON_MODULE_TREE_CMD,
+      this.onRefreshPythonModuleTree
+    );
+    this.registerCommand(
+      ADD_REMOTE_PYTHON_MODULE_CMD,
+      this.onAddRemotePythonModule
+    );
+    this.registerCommand(
+      REMOVE_REMOTE_PYTHON_MODULE_CMD,
+      this.onRemoveRemotePythonModule
+    );
+
     /** Search connections */
     this.registerCommand(
       SEARCH_CONNECTIONS_CMD,
@@ -735,6 +757,7 @@ export class ExtensionController implements IDisposable {
    */
   initializeWebViews = (): void => {
     assertDefined(this._dheClientCache, 'dheClientCache');
+    assertDefined(this._localExecutionService, 'localExecutionService');
     assertDefined(this._panelService, 'panelService');
     assertDefined(this._serverManager, 'serverManager');
 
@@ -793,13 +816,28 @@ export class ExtensionController implements IDisposable {
         }
       );
 
+    // Python module tree
+    this._pythonModuleTreeProvider = new PythonModuleTreeProvider(
+      this._localExecutionService
+    );
+    this._pythonModuleTreeView =
+      vscode.window.createTreeView<PythonModuleTreeNode>(
+        VIEW_ID.pythonModuleTree,
+        {
+          showCollapseAll: true,
+          treeDataProvider: this._pythonModuleTreeProvider,
+        }
+      );
+
     this._context.subscriptions.push(
       this._serverTreeView,
       this._serverConnectionTreeView,
       this._serverConnectionPanelTreeView,
+      this._pythonModuleTreeView,
       this._serverTreeProvider,
       this._serverConnectionTreeProvider,
-      this._serverConnectionPanelTreeProvider
+      this._serverConnectionPanelTreeProvider,
+      this._pythonModuleTreeProvider
     );
   };
 
@@ -849,6 +887,34 @@ export class ExtensionController implements IDisposable {
 
     this._serverManager?.updateStatus();
     this._pipServerController?.syncManagedServers();
+  };
+
+  onAddRemotePythonModule = async (
+    node: PythonModuleTreeNode
+  ): Promise<void> => {
+    assertDefined(this._localExecutionService, 'localExecutionService');
+    if (node.topLevelModuleName == null) {
+      return;
+    }
+
+    this._localExecutionService.includeTopLevelModuleNames.add(
+      node.topLevelModuleName
+    );
+    this._localExecutionService.updatePythonModuleMeta();
+  };
+
+  onRemoveRemotePythonModule = async (
+    node: PythonModuleTreeNode
+  ): Promise<void> => {
+    assertDefined(this._localExecutionService, 'localExecutionService');
+    if (node.topLevelModuleName == null) {
+      return;
+    }
+
+    this._localExecutionService.includeTopLevelModuleNames.delete(
+      node.topLevelModuleName
+    );
+    this._localExecutionService.updatePythonModuleMeta();
   };
 
   /**
@@ -926,6 +992,11 @@ export class ExtensionController implements IDisposable {
       'vscode.open',
       vscode.Uri.parse(serverUrl.toString())
     );
+  };
+
+  onRefreshPythonModuleTree = async (): Promise<void> => {
+    await this._localExecutionService?.updatePythonModuleMeta();
+    this._pythonModuleTreeProvider?.refresh();
   };
 
   onRefreshServerStatus = async (): Promise<void> => {
