@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { TreeDataProviderBase } from './TreeDataProviderBase';
+import { ServerTreeProviderBase } from './ServerTreeProviderBase';
 import { CONNECTION_TREE_ITEM_CONTEXT, ICON_ID } from '../common';
 import type {
   IDhcService,
@@ -12,7 +12,7 @@ import { DhcService } from '../services';
 /**
  * Provider for the server connection tree view.
  */
-export class ServerConnectionTreeProvider extends TreeDataProviderBase<ServerConnectionNode> {
+export class ServerConnectionTreeProvider extends ServerTreeProviderBase<ServerConnectionNode> {
   getTreeItem = async (
     connectionOrUri: ServerConnectionNode
   ): Promise<vscode.TreeItem> => {

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { TreeDataProviderBase } from './TreeDataProviderBase';
+import { ServerTreeProviderBase } from './ServerTreeProviderBase';
 import type { ServerGroupState, ServerNode } from '../types/treeViewTypes';
 import {
   getServerGroupTreeItem,
@@ -15,7 +15,7 @@ function isServerGroupState(node: ServerNode): node is ServerGroupState {
 /**
  * Provider for the server tree view.
  */
-export class ServerTreeProvider extends TreeDataProviderBase<ServerNode> {
+export class ServerTreeProvider extends ServerTreeProviderBase<ServerNode> {
   getTreeItem = (element: ServerNode): vscode.TreeItem => {
     if (isServerGroupState(element)) {
       return getServerGroupTreeItem(element, this.serverManager.canStartServer);

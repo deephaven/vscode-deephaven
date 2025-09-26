@@ -5,7 +5,7 @@ import type {
   ConnectionState,
   ServerConnectionPanelNode,
 } from '../types';
-import { TreeDataProviderBase } from './TreeDataProviderBase';
+import { ServerTreeProviderBase } from './ServerTreeProviderBase';
 import {
   getPanelConnectionTreeItem,
   getPanelVariableTreeItem,
@@ -13,7 +13,7 @@ import {
 } from '../util';
 import { getFirstSupportedConsoleType } from '../services';
 
-export class ServerConnectionPanelTreeProvider extends TreeDataProviderBase<ServerConnectionPanelNode> {
+export class ServerConnectionPanelTreeProvider extends ServerTreeProviderBase<ServerConnectionPanelNode> {
   constructor(serverManager: IServerManager, panelService: IPanelService) {
     super(serverManager);
     this._panelService = panelService;
