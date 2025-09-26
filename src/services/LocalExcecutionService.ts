@@ -45,23 +45,20 @@ export class LocalExecutionService
   readonly includeTopLevelModuleNames = new Set<ModuleFullname>();
 
   // TODO: Make this configurable
-  // private _ignoreTopLevelModuleNames = new Set<string>([
-  //   '.venv',
-  //   'venv',
-  //   'env',
-  //   '.env',
-  //   '__pycache__',
-  //   '.git',
-  //   '.mypy_cache',
-  //   '.pytest_cache',
-  //   '.tox',
-  //   'build',
-  //   'dist',
-  //   '*.egg-info',
-  //   // TESTING
-  //   'broken',
-  //   'pandas',
-  // ]);
+  private _ignoreTopLevelModuleFolderNames = new Set<string>([
+    '.venv',
+    'venv',
+    'env',
+    '.env',
+    '__pycache__',
+    '.git',
+    '.mypy_cache',
+    '.pytest_cache',
+    '.tox',
+    'build',
+    'dist',
+    '*.egg-info',
+  ]);
 
   private _onDidChangeFileDecorations = new vscode.EventEmitter<
     vscode.Uri | vscode.Uri[] | undefined
@@ -240,7 +237,8 @@ export class LocalExecutionService
    */
   async updatePythonModuleMeta(): Promise<void> {
     this._moduleMeta = await createPythonModuleMeta(
-      this.includeTopLevelModuleNames
+      this.includeTopLevelModuleNames,
+      this._ignoreTopLevelModuleFolderNames
     );
     logger.log('Updated python module meta:', this._moduleMeta);
 

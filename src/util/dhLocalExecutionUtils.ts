@@ -47,17 +47,22 @@ export const DH_WIDGET_EVENT_MESSAGE = 'message' as const;
  * important it doesn't include modules outside of what user has opted in to
  * share.
  * @param includeTopLevelModules
+ * @param ignoreTopLevelModuleFolderNames
  * @returns metadata about python modules in the workspace
  */
 export async function createPythonModuleMeta(
-  includeTopLevelModules: Set<ModuleFullname>
+  includeTopLevelModules: Set<ModuleFullname>,
+  ignoreTopLevelModuleFolderNames: Set<string>
 ): Promise<PythonModuleMeta> {
   const meta: PythonModuleMeta = {
     moduleMap: new URIMap(),
     topLevelModuleNames: new URIMap(),
   };
 
-  const uris = await vscode.workspace.findFiles('**/*.py');
+  const uris = await vscode.workspace.findFiles(
+    '**/*.py',
+    `{${[...ignoreTopLevelModuleFolderNames].join(',')}}/**`
+  );
 
   // Group module names by workspace folder
 
