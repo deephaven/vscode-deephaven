@@ -1,5 +1,6 @@
 import type { Brand } from '../shared';
-import type { UniqueID } from './commonTypes';
+
+export type Include<T> = { value: T; include?: boolean };
 
 export type ModuleFullname = Brand<'ModuleFullname', string>;
 

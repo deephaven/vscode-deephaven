@@ -3,6 +3,7 @@ import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { URIMap } from './maps';
 import { Logger } from '../shared';
 import type {
+  Include,
   JsonRpcRequest,
   JsonRpcResponse,
   JsonRpcSetConnectionIdRequest,
@@ -14,11 +15,13 @@ import { withResolvers } from './promiseUtils';
 
 const logger = new Logger('dhLocalExecutionUtils');
 
-export type PythonModuleWorkspaceMap = URIMap<Map<ModuleFullname, vscode.Uri>>;
+export type PythonModuleWorkspaceMap = URIMap<
+  Map<ModuleFullname, Include<vscode.Uri>>
+>;
 
 export interface PythonModuleMeta {
   moduleMap: PythonModuleWorkspaceMap;
-  topLevelModuleNames: URIMap<Set<ModuleFullname>>;
+  topLevelModuleNames: URIMap<Map<ModuleFullname, Include<ModuleFullname>>>;
 }
 
 export const DH_LOCAL_EXECUTION_PLUGIN_VARIABLE = '__deephaven_vscode' as const;
@@ -38,34 +41,23 @@ export const DH_LOCAL_EXECUTION_PLUGIN_INIT_SCRIPT = [
 export const DH_WIDGET_EVENT_MESSAGE = 'message' as const;
 
 /**
- * Create metadata about python modules in the workspace, ignoring files in the
- * given top level folders.
+ * Create metadata about python modules in the workspace, marking top-level
+ * modules to include.
  * Note that this data will determine which URIs the server can access, so it's
  * important it doesn't include modules outside of what user has opted in to
  * share.
- * @param ignoreTopLevelFolders
+ * @param includeTopLevelModules
  * @returns metadata about python modules in the workspace
  */
 export async function createPythonModuleMeta(
-  ignoreTopLevelFolders: Set<string>
+  includeTopLevelModules: Set<ModuleFullname>
 ): Promise<PythonModuleMeta> {
   const meta: PythonModuleMeta = {
     moduleMap: new URIMap(),
     topLevelModuleNames: new URIMap(),
   };
 
-  const uris = await vscode.workspace.findFiles(
-    '**/*.py',
-    `{${[...ignoreTopLevelFolders].join(',')}}/**`
-  );
-
-  const workspaceFolderUris = vscode.workspace.workspaceFolders?.map(
-    ws => ws.uri
-  );
-
-  if (workspaceFolderUris == null) {
-    return meta;
-  }
+  const uris = await vscode.workspace.findFiles('**/*.py');
 
   // Group module names by workspace folder
 
@@ -81,23 +73,32 @@ export async function createPythonModuleMeta(
       meta.moduleMap.set(workspaceFolder.uri, new Map());
     }
     if (!meta.topLevelModuleNames.has(workspaceFolder.uri)) {
-      meta.topLevelModuleNames.set(workspaceFolder.uri, new Set());
+      meta.topLevelModuleNames.set(workspaceFolder.uri, new Map());
     }
 
-    // Add to modulename -> uri map
-    const workspaceFolderMap = meta.moduleMap.getOrThrow(workspaceFolder.uri);
     const relativePath = vscode.workspace.asRelativePath(uri, false);
     const moduleFullName = relativePath
       .replaceAll('/', '.')
       .replace(/\.py$/, '') as ModuleFullname;
-    workspaceFolderMap.set(moduleFullName, uri);
+    const tokens = moduleFullName.split('.');
+    const topLevelModuleName = (
+      tokens[0] === '' ? `.${tokens[1]}` : tokens[0]
+    ) as ModuleFullname;
+
+    const include = includeTopLevelModules.has(topLevelModuleName);
 
     // Add to top level module names set
     const topLevelModuleNamesSet = meta.topLevelModuleNames.getOrThrow(
       workspaceFolder.uri
     );
-    const topLevelModuleName = moduleFullName.split('.')[0] as ModuleFullname;
-    topLevelModuleNamesSet.add(topLevelModuleName);
+    topLevelModuleNamesSet.set(topLevelModuleName, {
+      value: topLevelModuleName,
+      include,
+    });
+
+    // Add to modulename -> uri map
+    const workspaceFolderMap = meta.moduleMap.getOrThrow(workspaceFolder.uri);
+    workspaceFolderMap.set(moduleFullName, { value: uri, include });
   }
 
   return meta;

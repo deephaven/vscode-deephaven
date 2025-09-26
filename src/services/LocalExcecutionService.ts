@@ -8,7 +8,7 @@ import {
   registerLocalExecPluginMessageListener,
   type PythonModuleMeta,
 } from '../util';
-import type { ModuleFullname, UniqueID } from '../types';
+import type { Include, ModuleFullname, UniqueID } from '../types';
 
 const logger = new Logger('LocalExcecutionService');
 
@@ -42,45 +42,56 @@ export class LocalExecutionService
   private _unregisterLocalExecPlugin: (() => void) | null = null;
   private _moduleMeta: PythonModuleMeta | null = null;
 
+  readonly includeTopLevelModuleNames = new Set<ModuleFullname>();
+
   // TODO: Make this configurable
-  private _ignoreTopLevelModuleNames = new Set<string>([
-    '.venv',
-    'venv',
-    'env',
-    '.env',
-    '__pycache__',
-    '.git',
-    '.mypy_cache',
-    '.pytest_cache',
-    '.tox',
-    'build',
-    'dist',
-    '*.egg-info',
-    // TESTING
-    'broken',
-    'pandas',
-  ]);
+  // private _ignoreTopLevelModuleNames = new Set<string>([
+  //   '.venv',
+  //   'venv',
+  //   'env',
+  //   '.env',
+  //   '__pycache__',
+  //   '.git',
+  //   '.mypy_cache',
+  //   '.pytest_cache',
+  //   '.tox',
+  //   'build',
+  //   'dist',
+  //   '*.egg-info',
+  //   // TESTING
+  //   'broken',
+  //   'pandas',
+  // ]);
 
   private _onDidChangeFileDecorations = new vscode.EventEmitter<
     vscode.Uri | vscode.Uri[] | undefined
   >();
   readonly onDidChangeFileDecorations = this._onDidChangeFileDecorations.event;
 
+  private _onDidUpdateModuleMeta = new vscode.EventEmitter<void>();
+  readonly onDidUpdateModuleMeta = this._onDidUpdateModuleMeta.event;
+
+  getModuleMeta(): PythonModuleMeta | null {
+    return this._moduleMeta;
+  }
+
   /**
    * Get the top level Python module names sourced by local execution excluding
-   * any listed in _ignoreTopLevelModuleNames.
+   * any marked to ignore.
    */
-  getTopLevelPythonModuleNames(): Set<string> {
-    const set = new Set<string>();
+  getTopLevelPythonModuleNames(): Set<ModuleFullname> {
+    const set = new Set<ModuleFullname>();
 
     if (this._moduleMeta == null) {
       return set;
     }
 
     for (const namesSet of this._moduleMeta.topLevelModuleNames.values()) {
-      for (const name of namesSet) {
-        if (!this._ignoreTopLevelModuleNames.has(name)) {
-          set.add(name);
+      for (const { value, include } of namesSet.values()) {
+        if (include) {
+          set.add(value);
+        } else {
+          logger.log('ignoring', value);
         }
       }
     }
@@ -111,11 +122,12 @@ export class LocalExecutionService
         continue;
       }
 
-      uri =
+      const result =
         map.get(moduleFullname) ??
         map.get(`${moduleFullname}.__init__` as ModuleFullname);
 
-      if (uri != null) {
+      if (result?.value != null && result.include) {
+        uri = result.value;
         break;
       }
     }
@@ -124,13 +136,13 @@ export class LocalExecutionService
   }
 
   /**
-   * Get top-level ModuleName set for given workspace folder Uri.
+   * Get top-level ModuleName map for given workspace folder Uri.
    * @param wsUri The workspace folder Uri.
-   * @returns The set of top level module names, or null if not found.
+   * @returns a Map of top level module names, or null if not found.
    */
   getTopLevelModuleNamesSetForWorkspace(
     wsUri: vscode.Uri | null | undefined
-  ): Set<ModuleFullname> | null {
+  ): Map<ModuleFullname, Include<ModuleFullname>> | null {
     if (wsUri == null || this._moduleMeta == null) {
       return null;
     }
@@ -162,7 +174,7 @@ export class LocalExecutionService
 
     const topLevelModuleName = tokens[0] as ModuleFullname;
 
-    return moduleNamesSet.has(topLevelModuleName);
+    return moduleNamesSet.get(topLevelModuleName)?.include === true;
   }
 
   /**
@@ -228,10 +240,11 @@ export class LocalExecutionService
    */
   async updatePythonModuleMeta(): Promise<void> {
     this._moduleMeta = await createPythonModuleMeta(
-      this._ignoreTopLevelModuleNames
+      this.includeTopLevelModuleNames
     );
     logger.log('Updated python module meta:', this._moduleMeta);
 
     this._onDidChangeFileDecorations.fire(undefined);
+    this._onDidUpdateModuleMeta.fire();
   }
 }
