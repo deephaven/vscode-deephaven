@@ -93,39 +93,6 @@ export class PythonModuleTreeProvider extends TreeDataProviderBase<PythonModuleT
     }
 
     return this._childNodeCache.get(node.uri) ?? [];
-
-    // const moduleMeta = this._localExecutionService.getModuleMeta();
-    // if (moduleMeta == null) {
-    //   return null;
-    // }
-
-    // if (node == null) {
-    //   const workspaceFolderUris = vscode.workspace.workspaceFolders?.map(
-    //     ws => ws.uri
-    //   );
-
-    //   if (workspaceFolderUris == null) {
-    //     return null;
-    //   }
-
-    //   return workspaceFolderUris.map(wsUri => ({ uri: wsUri, level: 1 }));
-    // }
-
-    // const workspaceTopLevelModuleNames = moduleMeta.topLevelModuleNames.get(
-    //   node.uri
-    // );
-    // if (workspaceTopLevelModuleNames == null) {
-    //   return null;
-    // }
-
-    // return [...workspaceTopLevelModuleNames.entries()]
-    //   .sort((a, b) => a[0].localeCompare(b[0]))
-    //   .map(([topLevelModuleName, { include }]) => ({
-    //     uri: vscode.Uri.joinPath(node.uri, topLevelModuleName),
-    //     include,
-    //     level: 2,
-    //     topLevelModuleName,
-    //   }));
   }
 
   override refresh(): void {
