@@ -893,13 +893,11 @@ export class ExtensionController implements IDisposable {
     node: PythonModuleTreeNode
   ): Promise<void> => {
     assertDefined(this._localExecutionService, 'localExecutionService');
-    if (node.topLevelModuleName == null) {
+    if (node.moduleName == null) {
       return;
     }
 
-    this._localExecutionService.includeTopLevelModuleNames.add(
-      node.topLevelModuleName
-    );
+    this._localExecutionService.includeTopLevelModuleNames.add(node.moduleName);
     this._localExecutionService.updatePythonModuleMeta();
   };
 
@@ -907,12 +905,12 @@ export class ExtensionController implements IDisposable {
     node: PythonModuleTreeNode
   ): Promise<void> => {
     assertDefined(this._localExecutionService, 'localExecutionService');
-    if (node.topLevelModuleName == null) {
+    if (node.moduleName == null) {
       return;
     }
 
     this._localExecutionService.includeTopLevelModuleNames.delete(
-      node.topLevelModuleName
+      node.moduleName
     );
     this._localExecutionService.updatePythonModuleMeta();
   };

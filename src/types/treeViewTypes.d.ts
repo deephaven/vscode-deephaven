@@ -23,7 +23,7 @@ export interface ServerConnectionPanelTreeView
 export type PythonModuleTreeNode = {
   uri: vscode.Uri;
   include?: boolean;
-  topLevelModuleName?: ModuleFullname;
+  moduleName?: ModuleFullname;
 };
 export interface PythonModuleTreeView
   extends vscode.TreeView<PythonModuleTreeNode> {}

@@ -82,6 +82,10 @@ export async function createPythonModuleMeta(
     }
 
     const relativePath = vscode.workspace.asRelativePath(uri, false);
+    if (!relativePath.includes('/')) {
+      continue;
+    }
+
     const moduleFullName = relativePath
       .replaceAll('/', '.')
       .replace(/\.py$/, '') as ModuleFullname;
