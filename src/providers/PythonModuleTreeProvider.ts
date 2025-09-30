@@ -16,7 +16,7 @@ export class PythonModuleTreeProvider extends TreeDataProviderBase<MarkableWsTre
     node?: MarkableWsTreeNode | undefined
   ): vscode.ProviderResult<MarkableWsTreeNode[]> {
     if (node == null) {
-      return this._pythonWorkspace.getRootFolderNodes();
+      return this._pythonWorkspace.getChildNodes(null);
     }
 
     return this._pythonWorkspace

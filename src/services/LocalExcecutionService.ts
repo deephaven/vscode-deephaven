@@ -67,7 +67,6 @@ export class LocalExecutionService extends DisposableBase {
 
     // Check in the workspace folder order defined in the current workspace
     for (const wsFolder of vscode.workspace.workspaceFolders) {
-      // TODO: Need a URISet
       const uriSet = this._pythonWorkspace.getWsFileUriMap().get(wsFolder.uri);
 
       if (uriSet == null) {

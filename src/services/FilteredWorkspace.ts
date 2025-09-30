@@ -106,17 +106,17 @@ export class FilteredWorkspace
     return this._markedWsFolderPaths;
   }
 
-  getChildNodes(parentUri: vscode.Uri): MarkableWsTreeNode[] {
+  getChildNodes(parentUri: vscode.Uri | null): MarkableWsTreeNode[] {
+    if (parentUri == null) {
+      return [...this._rootFolderNodeMap.values()];
+    }
+
     const childMap = this._childNodeMap.get(parentUri);
     if (childMap == null) {
       return [];
     }
 
     return [...childMap.values()];
-  }
-
-  getRootFolderNodes(): MarkableWsTreeNode[] {
-    return [...this._rootFolderNodeMap.values()];
   }
 
   getWsFileUriMap(): URIMap<URISet> {
