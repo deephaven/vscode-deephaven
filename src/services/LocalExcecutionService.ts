@@ -11,20 +11,15 @@ import type { FilePatternWorkspace } from './FilePatternWorkspace';
 
 const logger = new Logger('LocalExcecutionService');
 
-export class LocalExecutionService
-  extends DisposableBase
-  implements vscode.FileDecorationProvider
-{
+export class LocalExecutionService extends DisposableBase {
   constructor(private readonly _pythonWorkspace: FilePatternWorkspace) {
     super();
 
     this.disposables.add(
       this._pythonWorkspace.onDidUpdate(() => {
         this._onDidUpdateModuleMeta.fire();
-        this._onDidChangeFileDecorations.fire(undefined);
       })
     );
-    this.disposables.add(vscode.window.registerFileDecorationProvider(this));
 
     this.disposables.add(() => {
       this._unregisterLocalExecPlugin?.();
@@ -34,11 +29,6 @@ export class LocalExecutionService
 
   // private _localExecPlugin: DhcType.Widget | null = null;
   private _unregisterLocalExecPlugin: (() => void) | null = null;
-
-  private _onDidChangeFileDecorations = new vscode.EventEmitter<
-    vscode.Uri | vscode.Uri[] | undefined
-  >();
-  readonly onDidChangeFileDecorations = this._onDidChangeFileDecorations.event;
 
   private _onDidUpdateModuleMeta = new vscode.EventEmitter<void>();
   readonly onDidUpdateModuleMeta = this._onDidUpdateModuleMeta.event;
@@ -111,20 +101,6 @@ export class LocalExecutionService
   }
 
   /**
-   * Determine if given Uri should be decorated as a Deephaven source.
-   * @param uri The Uri to check.
-   * @returns True if the Uri should be decorated.
-   */
-  isDecoratedUri(uri: vscode.Uri): boolean {
-    const wsUri = vscode.workspace.getWorkspaceFolder(uri)?.uri;
-    if (wsUri == null) {
-      return false;
-    }
-
-    return this._pythonWorkspace.isIncluded(wsUri, uri);
-  }
-
-  /**
    * Register a local execution plugin.
    */
   async registerLocalExecPlugin(
@@ -153,26 +129,5 @@ export class LocalExecutionService
     );
 
     await session.runCode(setExecutionContextScript);
-  }
-
-  /**
-   * Provide decorations for a given uri if it is included in local execution.
-   * @param uri The uri to provide decoration for.
-   * @param _token
-   * @returns A FileDecoration if the uri is decorated, otherwise undefined.
-   */
-  provideFileDecoration(
-    uri: vscode.Uri,
-    _token: vscode.CancellationToken
-  ): vscode.ProviderResult<vscode.FileDecoration> {
-    if (!this.isDecoratedUri(uri)) {
-      return;
-    }
-
-    return new vscode.FileDecoration(
-      '\u{25AA}',
-      'Deephaven source',
-      new vscode.ThemeColor('charts.green')
-    );
   }
 }

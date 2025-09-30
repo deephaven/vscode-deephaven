@@ -897,19 +897,23 @@ export class ExtensionController implements IDisposable {
     this._pipServerController?.syncManagedServers();
   };
 
-  onAddRemoteFileSource = async (node: IncludableWsTreeNode): Promise<void> => {
+  onAddRemoteFileSource = async (
+    nodeOrUri: IncludableWsTreeNode | vscode.Uri
+  ): Promise<void> => {
     assertDefined(this._pythonWorkspace, 'pythonWorkspace');
 
-    this._pythonWorkspace.addIncludeFolder(node.uri);
+    const uri = nodeOrUri instanceof vscode.Uri ? nodeOrUri : nodeOrUri.uri;
+    this._pythonWorkspace.addIncludeFolder(uri);
     this._pythonWorkspace.update();
   };
 
   onRemoveRemoteFileSource = async (
-    node: IncludableWsTreeNode
+    nodeOrUri: IncludableWsTreeNode | vscode.Uri
   ): Promise<void> => {
     assertDefined(this._pythonWorkspace, 'localExecutionService');
 
-    this._pythonWorkspace.removeIncludeFolder(node.uri);
+    const uri = nodeOrUri instanceof vscode.Uri ? nodeOrUri : nodeOrUri.uri;
+    this._pythonWorkspace.removeIncludeFolder(uri);
     this._pythonWorkspace.update();
   };
 

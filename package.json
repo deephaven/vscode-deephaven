@@ -808,6 +808,11 @@
           "command": "vscode-deephaven.addRemoteFileSource",
           "group": "deephaven",
           "when": "explorerResourceIsFolder"
+        },
+        {
+          "command": "vscode-deephaven.removeRemoteFileSource",
+          "group": "deephaven",
+          "when": "explorerResourceIsFolder"
         }
       ],
       "view/title": [
