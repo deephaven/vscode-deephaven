@@ -902,7 +902,7 @@
         },
         {
           "command": "vscode-deephaven.addRemoteFileSource",
-          "when": "view == vscode-deephaven.view.pythonModuleTree && viewItem == remoteFileSource.unmarked",
+          "when": "view == vscode-deephaven.view.pythonModuleTree && (viewItem == remoteFileSource.unmarked || viewItem == remoteFileSource.mixed)",
           "group": "inline"
         },
         {

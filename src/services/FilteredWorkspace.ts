@@ -1,5 +1,10 @@
 import * as vscode from 'vscode';
-import type { FilePattern, FolderName, MarkableWsTreeNode } from '../types';
+import type {
+  FilePattern,
+  FolderName,
+  MarkableWsTreeNode,
+  MarkStatus,
+} from '../types';
 import { getWorkspaceFileUriMap, URIMap, URISet } from '../util';
 import { DisposableBase } from './DisposableBase';
 
@@ -64,8 +69,10 @@ export class FilteredWorkspace
 
   markFolder(folderUri: vscode.Uri): void {
     for (const node of this.iterateNodeTree(folderUri)) {
-      node.marked = true;
+      node.status = 'marked';
     }
+
+    this._updateParentMarkStatus(folderUri);
 
     this._onDidChangeFileDecorations.fire(undefined);
     this._onDidUpdate.fire();
@@ -74,8 +81,10 @@ export class FilteredWorkspace
   // TODO: Make this smart enough to remove sub rules
   unmarkFolder(folderUri: vscode.Uri): void {
     for (const node of this.iterateNodeTree(folderUri)) {
-      node.marked = false;
+      node.status = 'unmarked';
     }
+
+    this._updateParentMarkStatus(folderUri);
 
     this._onDidChangeFileDecorations.fire(undefined);
     this._onDidUpdate.fire();
@@ -98,7 +107,7 @@ export class FilteredWorkspace
     const set = new URISet();
 
     const queue: MarkableWsTreeNode[] = [...this._rootNodeMap.values()].filter(
-      n => n.marked
+      n => n.status !== 'unmarked'
     );
 
     while (queue.length > 0) {
@@ -109,7 +118,9 @@ export class FilteredWorkspace
         continue;
       }
 
-      const markedChildren = [...childSet.values()].filter(n => n.marked);
+      const markedChildren = [...childSet.values()].filter(
+        n => n.status !== 'unmarked'
+      );
 
       // If all children are marked, and this isn't a workspace root, this is
       // considered a top-level marked folder
@@ -135,13 +146,13 @@ export class FilteredWorkspace
     return this._childNodeMap.has(parentUri);
   }
 
-  isMarked(uri: vscode.Uri): boolean {
+  getMarkStatus(uri: vscode.Uri): MarkStatus {
     const node = this._nodeMap.get(uri);
     if (node == null) {
-      return false;
+      return 'unmarked';
     }
 
-    return node.marked === true;
+    return node.status;
   }
 
   *iterateNodeTree(rootUri: vscode.Uri): Iterable<MarkableWsTreeNode> {
@@ -176,14 +187,17 @@ export class FilteredWorkspace
     uri: vscode.Uri,
     _token: vscode.CancellationToken
   ): vscode.ProviderResult<vscode.FileDecoration> {
-    if (!this.isMarked(uri)) {
+    const markStatus = this.getMarkStatus(uri);
+    if (markStatus === 'unmarked') {
       return;
     }
 
     return new vscode.FileDecoration(
       '\u{25AA}',
       'Deephaven source',
-      new vscode.ThemeColor('charts.green')
+      new vscode.ThemeColor(
+        markStatus === 'marked' ? 'charts.green' : 'charts.orange'
+      )
     );
   }
 
@@ -203,6 +217,29 @@ export class FilteredWorkspace
       }
       const childMap = this._childNodeMap.get(parentUri)!;
       childMap.set(uri, node);
+    }
+  }
+
+  _updateParentMarkStatus(uri: vscode.Uri): void {
+    const parentUri = this._parentUriMap.get(uri);
+
+    if (parentUri != null) {
+      const parentNode = this._nodeMap.getOrThrow(parentUri);
+      const childMap = this._childNodeMap.getOrThrow(parentUri);
+
+      const marked = [...childMap.values()].reduce(
+        (acc, n) => acc + (n.status === 'unmarked' ? 0 : 1),
+        0
+      );
+
+      parentNode.status =
+        marked === 0
+          ? 'unmarked'
+          : marked === childMap.size
+            ? 'marked'
+            : 'mixed';
+
+      this._updateParentMarkStatus(parentUri);
     }
   }
 
@@ -232,7 +269,7 @@ export class FilteredWorkspace
       this._updateNodeMaps(null, wsUri, {
         uri: wsUri,
         name: ws.name,
-        marked: this.isMarked(wsUri),
+        status: 'unmarked',
       });
 
       for (const fileUri of fileUris.keys()) {
@@ -254,7 +291,7 @@ export class FilteredWorkspace
           this._updateNodeMaps(parentUri, uri, {
             uri,
             isFile: uri.fsPath === fileUri.fsPath,
-            marked: this.isMarked(uri),
+            status: 'unmarked',
             name: token,
           });
 

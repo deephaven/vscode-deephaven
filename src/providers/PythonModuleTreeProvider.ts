@@ -33,9 +33,7 @@ export class PythonModuleTreeProvider extends TreeDataProviderBase<MarkableWsTre
       collapsibleState: node.isFile
         ? vscode.TreeItemCollapsibleState.None
         : vscode.TreeItemCollapsibleState.Collapsed,
-      contextValue: node.isFile
-        ? undefined
-        : `remoteFileSource.${node.marked ? 'marked' : 'unmarked'}`,
+      contextValue: node.isFile ? undefined : `remoteFileSource.${node.status}`,
       command: node.isFile
         ? {
             command: 'vscode.open',

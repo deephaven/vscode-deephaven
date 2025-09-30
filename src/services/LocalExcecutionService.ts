@@ -82,7 +82,10 @@ export class LocalExecutionService extends DisposableBase {
           `${relativePath}${ext}`
         );
 
-        if (uriSet.has(fileUri) && this._pythonWorkspace.isMarked(fileUri)) {
+        if (
+          uriSet.has(fileUri) &&
+          this._pythonWorkspace.getMarkStatus(fileUri) === 'marked'
+        ) {
           logger.log(
             'Found moduleFullName fs path:',
             moduleFullname,
