@@ -71,7 +71,7 @@ import {
   DheJsApiCache,
   DheService,
   DheServiceCache,
-  FilePatternWorkspace,
+  FilteredWorkspace,
   LocalExecutionService,
   PanelService,
   ParsedDocumentCache,
@@ -110,7 +110,7 @@ import type {
   DheAuthenticatedClientWrapper,
   DheUnauthenticatedClientWrapper,
   PythonModuleTreeView,
-  IncludableWsTreeNode,
+  MarkableWsTreeNode,
 } from '../types';
 import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTreeDragAndDropController';
 import { ConnectionController } from './ConnectionController';
@@ -184,7 +184,7 @@ export class ExtensionController implements IDisposable {
   private _dheJsApiCache: IAsyncCacheService<URL, DheType> | null = null;
   private _dheServiceFactory: IDheServiceFactory | null = null;
   private _localExecutionService: LocalExecutionService | null = null;
-  private _pythonWorkspace: FilePatternWorkspace | null = null;
+  private _pythonWorkspace: FilteredWorkspace | null = null;
   private _secretService: ISecretService | null = null;
   private _serverManager: IServerManager | null = null;
   private _userLoginController: UserLoginController | null = null;
@@ -330,7 +330,7 @@ export class ExtensionController implements IDisposable {
    * Initialize services needed for local execution.
    */
   initializeLocalExecution = (): void => {
-    this._pythonWorkspace = new FilePatternWorkspace(PYTHON_FILE_PATTERN);
+    this._pythonWorkspace = new FilteredWorkspace(PYTHON_FILE_PATTERN);
     this._context.subscriptions.push(this._pythonWorkspace);
 
     this._localExecutionService = new LocalExecutionService(
@@ -829,7 +829,7 @@ export class ExtensionController implements IDisposable {
       this._pythonWorkspace
     );
     this._pythonModuleTreeView =
-      vscode.window.createTreeView<IncludableWsTreeNode>(
+      vscode.window.createTreeView<MarkableWsTreeNode>(
         VIEW_ID.pythonModuleTree,
         {
           showCollapseAll: true,
@@ -898,22 +898,22 @@ export class ExtensionController implements IDisposable {
   };
 
   onAddRemoteFileSource = async (
-    nodeOrUri: IncludableWsTreeNode | vscode.Uri
+    nodeOrUri: MarkableWsTreeNode | vscode.Uri
   ): Promise<void> => {
     assertDefined(this._pythonWorkspace, 'pythonWorkspace');
 
     const uri = nodeOrUri instanceof vscode.Uri ? nodeOrUri : nodeOrUri.uri;
-    this._pythonWorkspace.addIncludeFolder(uri);
+    this._pythonWorkspace.markFolder(uri);
     this._pythonWorkspace.update();
   };
 
   onRemoveRemoteFileSource = async (
-    nodeOrUri: IncludableWsTreeNode | vscode.Uri
+    nodeOrUri: MarkableWsTreeNode | vscode.Uri
   ): Promise<void> => {
     assertDefined(this._pythonWorkspace, 'localExecutionService');
 
     const uri = nodeOrUri instanceof vscode.Uri ? nodeOrUri : nodeOrUri.uri;
-    this._pythonWorkspace.removeIncludeFolder(uri);
+    this._pythonWorkspace.unmarkFolder(uri);
     this._pythonWorkspace.update();
   };
 

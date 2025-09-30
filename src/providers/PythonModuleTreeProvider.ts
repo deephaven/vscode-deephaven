@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 import { TreeDataProviderBase } from './TreeDataProviderBase';
-import type { IncludableWsTreeNode } from '../types';
-import type { FilePatternWorkspace } from '../services';
+import type { MarkableWsTreeNode } from '../types';
+import type { FilteredWorkspace } from '../services';
 
-export class PythonModuleTreeProvider extends TreeDataProviderBase<IncludableWsTreeNode> {
-  constructor(private readonly _pythonWorkspace: FilePatternWorkspace) {
+export class PythonModuleTreeProvider extends TreeDataProviderBase<MarkableWsTreeNode> {
+  constructor(private readonly _pythonWorkspace: FilteredWorkspace) {
     super();
 
     this.disposables.add(
@@ -13,8 +13,8 @@ export class PythonModuleTreeProvider extends TreeDataProviderBase<IncludableWsT
   }
 
   getChildren(
-    node?: IncludableWsTreeNode | undefined
-  ): vscode.ProviderResult<IncludableWsTreeNode[]> {
+    node?: MarkableWsTreeNode | undefined
+  ): vscode.ProviderResult<MarkableWsTreeNode[]> {
     if (node == null) {
       return this._pythonWorkspace.getRootFolderNodes();
     }
@@ -25,7 +25,7 @@ export class PythonModuleTreeProvider extends TreeDataProviderBase<IncludableWsT
   }
 
   getTreeItem(
-    node: IncludableWsTreeNode
+    node: MarkableWsTreeNode
   ): vscode.TreeItem | Thenable<vscode.TreeItem> {
     return {
       label: node.name,
@@ -35,7 +35,7 @@ export class PythonModuleTreeProvider extends TreeDataProviderBase<IncludableWsT
         : vscode.TreeItemCollapsibleState.Collapsed,
       contextValue: node.isFile
         ? undefined
-        : `remoteFileSource.${node.include ? 'included' : 'excluded'}`,
+        : `remoteFileSource.${node.marked ? 'included' : 'excluded'}`,
       command: node.isFile
         ? {
             command: 'vscode.open',

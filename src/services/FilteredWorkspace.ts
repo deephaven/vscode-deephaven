@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import type {
   FilePattern,
   FolderName,
-  IncludableWsTreeNode,
+  MarkableWsTreeNode,
   RelativeWsUriString,
 } from '../types';
 import {
@@ -32,9 +32,10 @@ const PYTHON_IGNORE_TOP_LEVEL_FOLDER_NAMES: Set<FolderName> =
   ] as Array<FolderName>);
 
 /**
- * Represents a workspace consisting of files matching a given pattern.
+ * Represents a filtered view of a VS Code workspace. Also supports "marking"
+ * folders that can be used for an additional filter layer.
  */
-export class FilePatternWorkspace
+export class FilteredWorkspace
   extends DisposableBase
   implements vscode.FileDecorationProvider
 {
@@ -48,7 +49,7 @@ export class FilePatternWorkspace
     this.disposables.add(watcher.onDidDelete(() => this.update()));
     this.disposables.add(watcher);
 
-    // TODO: Load include folders from storage
+    // TODO: Load marked folders from storage
 
     this.update();
   }
@@ -64,48 +65,48 @@ export class FilePatternWorkspace
   // TODO: Make this configurable
   private readonly _ignoreTopLevelFolderNames =
     PYTHON_IGNORE_TOP_LEVEL_FOLDER_NAMES;
-  private readonly _includeWsFolderPaths: URIMap<Set<RelativeWsUriString>> =
+  private readonly _markedWsFolderPaths: URIMap<Set<RelativeWsUriString>> =
     new URIMap();
 
-  private readonly _childNodeMap: URIMap<URIMap<IncludableWsTreeNode>> =
+  private readonly _childNodeMap: URIMap<URIMap<MarkableWsTreeNode>> =
     new URIMap();
-  private readonly _rootFolderNodeMap = new URIMap<IncludableWsTreeNode>();
+  private readonly _rootFolderNodeMap = new URIMap<MarkableWsTreeNode>();
   private _wsFileUriMap = new URIMap<URISet>();
 
-  addIncludeFolder(folderUri: vscode.Uri): void {
+  markFolder(folderUri: vscode.Uri): void {
     const wsUri = vscode.workspace.getWorkspaceFolder(folderUri)?.uri;
     if (wsUri == null) {
       return;
     }
 
-    if (!this._includeWsFolderPaths.has(wsUri)) {
-      this._includeWsFolderPaths.set(wsUri, new Set<RelativeWsUriString>());
+    if (!this._markedWsFolderPaths.has(wsUri)) {
+      this._markedWsFolderPaths.set(wsUri, new Set<RelativeWsUriString>());
     }
 
-    const includeSet = this._includeWsFolderPaths.get(wsUri)!;
-    includeSet.add(relativeWsUriString(folderUri));
+    const markedSet = this._markedWsFolderPaths.get(wsUri)!;
+    markedSet.add(relativeWsUriString(folderUri));
   }
 
   // TODO: Make this smart enough to remove sub rules
-  removeIncludeFolder(folderUri: vscode.Uri): void {
+  unmarkFolder(folderUri: vscode.Uri): void {
     const wsUri = vscode.workspace.getWorkspaceFolder(folderUri)?.uri;
     if (wsUri == null) {
       return;
     }
 
-    const includeSet = this._includeWsFolderPaths.get(wsUri);
-    if (includeSet == null) {
+    const markedSet = this._markedWsFolderPaths.get(wsUri);
+    if (markedSet == null) {
       return;
     }
 
-    includeSet.delete(relativeWsUriString(folderUri));
+    markedSet.delete(relativeWsUriString(folderUri));
   }
 
-  getIncludeWsFolderPaths(): URIMap<Set<RelativeWsUriString>> {
-    return this._includeWsFolderPaths;
+  getMarkedWsFolderPaths(): URIMap<Set<RelativeWsUriString>> {
+    return this._markedWsFolderPaths;
   }
 
-  getChildNodes(parentUri: vscode.Uri): IncludableWsTreeNode[] {
+  getChildNodes(parentUri: vscode.Uri): MarkableWsTreeNode[] {
     const childMap = this._childNodeMap.get(parentUri);
     if (childMap == null) {
       return [];
@@ -114,7 +115,7 @@ export class FilePatternWorkspace
     return [...childMap.values()];
   }
 
-  getRootFolderNodes(): IncludableWsTreeNode[] {
+  getRootFolderNodes(): MarkableWsTreeNode[] {
     return [...this._rootFolderNodeMap.values()];
   }
 
@@ -136,20 +137,20 @@ export class FilePatternWorkspace
       return false;
     }
 
-    return this.isIncluded(wsUri, uri);
+    return this.isMarked(wsUri, uri);
   }
 
-  isIncluded(wsUri: vscode.Uri, fileUri: vscode.Uri): boolean {
-    const includeSet = this._includeWsFolderPaths.get(wsUri);
-    if (includeSet == null) {
+  isMarked(wsUri: vscode.Uri, fileUri: vscode.Uri): boolean {
+    const markedSet = this._markedWsFolderPaths.get(wsUri);
+    if (markedSet == null) {
       return false;
     }
 
     const fileUriStr = relativeWsUriString(fileUri);
-    for (const includeFolderStr of includeSet) {
+    for (const markedFolderStr of markedSet) {
       if (
-        fileUriStr === includeFolderStr ||
-        fileUriStr.startsWith(includeFolderStr)
+        fileUriStr === markedFolderStr ||
+        fileUriStr.startsWith(markedFolderStr)
       ) {
         return true;
       }
@@ -159,7 +160,7 @@ export class FilePatternWorkspace
   }
 
   /**
-   * Provide decorations for a given uri if it is included in local execution.
+   * Provide decorations for a given uri if it is included in a marked folder.
    * @param uri The uri to provide decoration for.
    * @param _token
    * @returns A FileDecoration if the uri is decorated, otherwise undefined.
@@ -201,7 +202,7 @@ export class FilePatternWorkspace
       this._rootFolderNodeMap.set(wsUri, { uri: wsUri, name: ws.name });
 
       for (const fileUri of fileUris.keys()) {
-        const include = this.isIncluded(wsUri, fileUri);
+        const marked = this.isMarked(wsUri, fileUri);
 
         const tokens = vscode.workspace
           .asRelativePath(fileUri, false)
@@ -225,7 +226,7 @@ export class FilePatternWorkspace
             childMap.set(uri, {
               uri,
               isFile: uri.fsPath === fileUri.fsPath,
-              include,
+              marked: marked,
               name: token,
             });
           }

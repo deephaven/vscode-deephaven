@@ -7,12 +7,12 @@ import {
   registerLocalExecPluginMessageListener,
 } from '../util';
 import type { ModuleFullname, RelativeWsUriString, UniqueID } from '../types';
-import type { FilePatternWorkspace } from './FilePatternWorkspace';
+import type { FilteredWorkspace } from './FilteredWorkspace';
 
 const logger = new Logger('LocalExcecutionService');
 
 export class LocalExecutionService extends DisposableBase {
-  constructor(private readonly _pythonWorkspace: FilePatternWorkspace) {
+  constructor(private readonly _pythonWorkspace: FilteredWorkspace) {
     super();
 
     this.disposables.add(
@@ -41,7 +41,7 @@ export class LocalExecutionService extends DisposableBase {
     const set = new Set<ModuleFullname>();
 
     for (const includeSet of this._pythonWorkspace
-      .getIncludeWsFolderPaths()
+      .getMarkedWsFolderPaths()
       .values()) {
       for (const folderPathStr of includeSet) {
         set.add(folderPathStr.replaceAll('/', '.') as ModuleFullname);
@@ -87,7 +87,7 @@ export class LocalExecutionService extends DisposableBase {
 
         if (
           uriSet.has(fileUri) &&
-          this._pythonWorkspace.isIncluded(wsFolder.uri, fileUri)
+          this._pythonWorkspace.isMarked(wsFolder.uri, fileUri)
         ) {
           logger.log(
             'Found moduleFullName fs path:',
