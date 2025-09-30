@@ -87,7 +87,7 @@ export class LocalExecutionService extends DisposableBase {
 
         if (
           uriSet.has(fileUri) &&
-          this._pythonWorkspace.isMarked(wsFolder.uri, fileUri)
+          this._pythonWorkspace.isMarked(fileUri, wsFolder.uri)
         ) {
           logger.log(
             'Found moduleFullName fs path:',

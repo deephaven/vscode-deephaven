@@ -126,27 +126,21 @@ export class FilteredWorkspace
   hasChildNodes(parentUri: vscode.Uri): boolean {
     return this._childNodeMap.has(parentUri);
   }
-  /**
-   * Determine if given Uri should be decorated as a Deephaven source.
-   * @param uri The Uri to check.
-   * @returns True if the Uri should be decorated.
-   */
-  isDecoratedUri(uri: vscode.Uri): boolean {
-    const wsUri = vscode.workspace.getWorkspaceFolder(uri)?.uri;
+
+  isMarked(uri: vscode.Uri, wsUri?: vscode.Uri): boolean {
     if (wsUri == null) {
-      return false;
+      wsUri = vscode.workspace.getWorkspaceFolder(uri)?.uri;
+      if (wsUri == null) {
+        return false;
+      }
     }
 
-    return this.isMarked(wsUri, uri);
-  }
-
-  isMarked(wsUri: vscode.Uri, fileUri: vscode.Uri): boolean {
     const markedSet = this._markedWsFolderPaths.get(wsUri);
     if (markedSet == null) {
       return false;
     }
 
-    const fileUriStr = relativeWsUriString(fileUri);
+    const fileUriStr = relativeWsUriString(uri);
     for (const markedFolderStr of markedSet) {
       if (
         fileUriStr === markedFolderStr ||
@@ -169,7 +163,7 @@ export class FilteredWorkspace
     uri: vscode.Uri,
     _token: vscode.CancellationToken
   ): vscode.ProviderResult<vscode.FileDecoration> {
-    if (!this.isDecoratedUri(uri)) {
+    if (!this.isMarked(uri)) {
       return;
     }
 
@@ -202,7 +196,7 @@ export class FilteredWorkspace
       this._rootFolderNodeMap.set(wsUri, { uri: wsUri, name: ws.name });
 
       for (const fileUri of fileUris.keys()) {
-        const marked = this.isMarked(wsUri, fileUri);
+        const marked = this.isMarked(fileUri, wsUri);
 
         const tokens = vscode.workspace
           .asRelativePath(fileUri, false)
@@ -226,7 +220,7 @@ export class FilteredWorkspace
             childMap.set(uri, {
               uri,
               isFile: uri.fsPath === fileUri.fsPath,
-              marked: marked,
+              marked,
               name: token,
             });
           }
