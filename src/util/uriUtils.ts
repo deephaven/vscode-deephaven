@@ -44,6 +44,10 @@ export function getServerUrlAndPath(uri: vscode.Uri): {
  * @returns The relative path.
  */
 export function relativeWsUriString(uri: vscode.Uri): RelativeWsUriString {
+  if (uri.fsPath === vscode.workspace.getWorkspaceFolder(uri)?.uri.fsPath) {
+    return '' as RelativeWsUriString;
+  }
+
   return vscode.workspace.asRelativePath(uri, false) as RelativeWsUriString;
 }
 

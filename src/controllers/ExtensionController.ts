@@ -904,7 +904,6 @@ export class ExtensionController implements IDisposable {
 
     const uri = nodeOrUri instanceof vscode.Uri ? nodeOrUri : nodeOrUri.uri;
     this._pythonWorkspace.markFolder(uri);
-    this._pythonWorkspace.update();
   };
 
   onRemoveRemoteFileSource = async (
@@ -914,7 +913,6 @@ export class ExtensionController implements IDisposable {
 
     const uri = nodeOrUri instanceof vscode.Uri ? nodeOrUri : nodeOrUri.uri;
     this._pythonWorkspace.unmarkFolder(uri);
-    this._pythonWorkspace.update();
   };
 
   /**
@@ -995,7 +993,6 @@ export class ExtensionController implements IDisposable {
   };
 
   onRefreshPythonModuleTree = async (): Promise<void> => {
-    await this._pythonWorkspace?.update();
     this._pythonModuleTreeProvider?.refresh();
   };
 

@@ -5,6 +5,7 @@ import { Logger } from '../shared';
 import {
   getSetExecutionContextScript,
   registerLocalExecPluginMessageListener,
+  relativeWsUriString,
 } from '../util';
 import type { ModuleFullname, RelativeWsUriString, UniqueID } from '../types';
 import type { FilteredWorkspace } from './FilteredWorkspace';
@@ -40,13 +41,10 @@ export class LocalExecutionService extends DisposableBase {
   getTopLevelPythonModuleNames(): Set<ModuleFullname> {
     const set = new Set<ModuleFullname>();
 
-    for (const includeSet of this._pythonWorkspace
-      .getMarkedWsFolderPaths()
-      .values()) {
-      for (const folderPathStr of includeSet) {
-        set.add(folderPathStr.replaceAll('/', '.') as ModuleFullname);
-      }
-    }
+    this._pythonWorkspace.getTopLevelMarkedFolderUris().forEach(uri => {
+      const folderPathStr = relativeWsUriString(uri);
+      set.add(folderPathStr.replaceAll('/', '.') as ModuleFullname);
+    });
 
     return set;
   }
@@ -84,10 +82,7 @@ export class LocalExecutionService extends DisposableBase {
           `${relativePath}${ext}`
         );
 
-        if (
-          uriSet.has(fileUri) &&
-          this._pythonWorkspace.isMarked(fileUri, wsFolder.uri)
-        ) {
+        if (uriSet.has(fileUri) && this._pythonWorkspace.isMarked(fileUri)) {
           logger.log(
             'Found moduleFullName fs path:',
             moduleFullname,
