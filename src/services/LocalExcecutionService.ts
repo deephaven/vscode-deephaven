@@ -3,12 +3,11 @@ import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { DisposableBase } from './DisposableBase';
 import { Logger } from '../shared';
 import {
-  createPythonModuleMeta,
   getSetExecutionContextScript,
   registerLocalExecPluginMessageListener,
-  type PythonModuleMeta,
 } from '../util';
-import type { Include, ModuleFullname, UniqueID } from '../types';
+import type { ModuleFullname, RelativeWsUriString, UniqueID } from '../types';
+import type { FilePatternWorkspace } from './FilePatternWorkspace';
 
 const logger = new Logger('LocalExcecutionService');
 
@@ -16,49 +15,25 @@ export class LocalExecutionService
   extends DisposableBase
   implements vscode.FileDecorationProvider
 {
-  constructor() {
+  constructor(private readonly _pythonWorkspace: FilePatternWorkspace) {
     super();
 
-    const watcher = vscode.workspace.createFileSystemWatcher('**/*.py');
     this.disposables.add(
-      watcher.onDidCreate(() => this.updatePythonModuleMeta())
+      this._pythonWorkspace.onDidUpdate(() => {
+        this._onDidUpdateModuleMeta.fire();
+        this._onDidChangeFileDecorations.fire(undefined);
+      })
     );
-    this.disposables.add(
-      watcher.onDidDelete(() => this.updatePythonModuleMeta())
-    );
-    this.disposables.add(watcher);
-
     this.disposables.add(vscode.window.registerFileDecorationProvider(this));
 
     this.disposables.add(() => {
       this._unregisterLocalExecPlugin?.();
       this._unregisterLocalExecPlugin = null;
     });
-
-    this.updatePythonModuleMeta();
   }
 
   // private _localExecPlugin: DhcType.Widget | null = null;
   private _unregisterLocalExecPlugin: (() => void) | null = null;
-  private _moduleMeta: PythonModuleMeta | null = null;
-
-  readonly includeTopLevelModuleNames = new Set<ModuleFullname>();
-
-  // TODO: Make this configurable
-  private _ignoreTopLevelModuleFolderNames = new Set<string>([
-    '.venv',
-    'venv',
-    'env',
-    '.env',
-    '__pycache__',
-    '.git',
-    '.mypy_cache',
-    '.pytest_cache',
-    '.tox',
-    'build',
-    'dist',
-    '*.egg-info',
-  ]);
 
   private _onDidChangeFileDecorations = new vscode.EventEmitter<
     vscode.Uri | vscode.Uri[] | undefined
@@ -68,10 +43,6 @@ export class LocalExecutionService
   private _onDidUpdateModuleMeta = new vscode.EventEmitter<void>();
   readonly onDidUpdateModuleMeta = this._onDidUpdateModuleMeta.event;
 
-  getModuleMeta(): PythonModuleMeta | null {
-    return this._moduleMeta;
-  }
-
   /**
    * Get the top level Python module names sourced by local execution excluding
    * any marked to ignore.
@@ -79,17 +50,11 @@ export class LocalExecutionService
   getTopLevelPythonModuleNames(): Set<ModuleFullname> {
     const set = new Set<ModuleFullname>();
 
-    if (this._moduleMeta == null) {
-      return set;
-    }
-
-    for (const namesSet of this._moduleMeta.topLevelModuleNames.values()) {
-      for (const { value, include } of namesSet.values()) {
-        if (include) {
-          set.add(value);
-        } else {
-          logger.log('ignoring', value);
-        }
+    for (const includeSet of this._pythonWorkspace
+      .getIncludeWsFolderPaths()
+      .values()) {
+      for (const folderPathStr of includeSet) {
+        set.add(folderPathStr.replaceAll('/', '.') as ModuleFullname);
       }
     }
 
@@ -106,72 +71,57 @@ export class LocalExecutionService
   getUriForModuleFullname(
     moduleFullname: ModuleFullname
   ): vscode.Uri | undefined {
-    if (this._moduleMeta == null || vscode.workspace.workspaceFolders == null) {
+    if (vscode.workspace.workspaceFolders == null) {
       return;
     }
 
-    let uri: vscode.Uri | undefined;
-
     // Check in the workspace folder order defined in the current workspace
     for (const wsFolder of vscode.workspace.workspaceFolders) {
-      const map = this._moduleMeta.moduleMap.get(wsFolder.uri);
-      if (map == null) {
+      // TODO: Need a URISet
+      const uriSet = this._pythonWorkspace.getWsFileUriMap().get(wsFolder.uri);
+
+      if (uriSet == null) {
         continue;
       }
 
-      const result =
-        map.get(moduleFullname) ??
-        map.get(`${moduleFullname}.__init__` as ModuleFullname);
+      const relativePath = moduleFullname.replaceAll(
+        '.',
+        '/'
+      ) as RelativeWsUriString;
 
-      if (result?.value != null && result.include) {
-        uri = result.value;
-        break;
+      for (const ext of ['.py', '/__init__.py']) {
+        const fileUri = vscode.Uri.joinPath(
+          wsFolder.uri,
+          `${relativePath}${ext}`
+        );
+
+        if (
+          uriSet.has(fileUri) &&
+          this._pythonWorkspace.isIncluded(wsFolder.uri, fileUri)
+        ) {
+          logger.log(
+            'Found moduleFullName fs path:',
+            moduleFullname,
+            fileUri.fsPath
+          );
+          return fileUri;
+        }
       }
     }
-
-    return uri;
-  }
-
-  /**
-   * Get top-level ModuleName map for given workspace folder Uri.
-   * @param wsUri The workspace folder Uri.
-   * @returns a Map of top level module names, or null if not found.
-   */
-  getTopLevelModuleNamesSetForWorkspace(
-    wsUri: vscode.Uri | null | undefined
-  ): Map<ModuleFullname, Include<ModuleFullname>> | null {
-    if (wsUri == null || this._moduleMeta == null) {
-      return null;
-    }
-
-    return this._moduleMeta.topLevelModuleNames.get(wsUri) ?? null;
   }
 
   /**
    * Determine if given Uri should be decorated as a Deephaven source.
    * @param uri The Uri to check.
-   * @param topLevelOnly If true, only decorate if the Uri is a top-level module.
    * @returns True if the Uri should be decorated.
    */
-  isDecoratedUri(uri: vscode.Uri, topLevelOnly: boolean): boolean {
-    const moduleNamesSet = this.getTopLevelModuleNamesSetForWorkspace(
-      vscode.workspace.getWorkspaceFolder(uri)?.uri
-    );
-
-    if (moduleNamesSet == null) {
+  isDecoratedUri(uri: vscode.Uri): boolean {
+    const wsUri = vscode.workspace.getWorkspaceFolder(uri)?.uri;
+    if (wsUri == null) {
       return false;
     }
 
-    const relativePath = vscode.workspace.asRelativePath(uri, false);
-    const tokens = relativePath.split('/');
-
-    if (topLevelOnly && tokens.length > 1) {
-      return false;
-    }
-
-    const topLevelModuleName = tokens[0] as ModuleFullname;
-
-    return moduleNamesSet.get(topLevelModuleName)?.include === true;
+    return this._pythonWorkspace.isIncluded(wsUri, uri);
   }
 
   /**
@@ -215,13 +165,7 @@ export class LocalExecutionService
     uri: vscode.Uri,
     _token: vscode.CancellationToken
   ): vscode.ProviderResult<vscode.FileDecoration> {
-    // TODO: As-is, child folders any top-level modules identified for decoration
-    // will also include their children. If this proves to be too much clutter,
-    // we could set this to `true` to only decorate top-level folders. Also could
-    // make this a user setting.
-    const topLevelOnly = false;
-
-    if (!this.isDecoratedUri(uri, topLevelOnly)) {
+    if (!this.isDecoratedUri(uri)) {
       return;
     }
 
@@ -230,19 +174,5 @@ export class LocalExecutionService
       'Deephaven source',
       new vscode.ThemeColor('charts.green')
     );
-  }
-
-  /**
-   * Rebuild Python module maps
-   */
-  async updatePythonModuleMeta(): Promise<void> {
-    this._moduleMeta = await createPythonModuleMeta(
-      this.includeTopLevelModuleNames,
-      this._ignoreTopLevelModuleFolderNames
-    );
-    logger.log('Updated python module meta:', this._moduleMeta);
-
-    this._onDidChangeFileDecorations.fire(undefined);
-    this._onDidUpdateModuleMeta.fire();
   }
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { urlToDirectoryName } from './urlUtils';
+import { urlToDirectoryName } from './uriUtils';
 
 describe('urlUtils', () => {
   it.each([

@@ -20,10 +20,11 @@ export type ServerConnectionPanelNode =
 export interface ServerConnectionPanelTreeView
   extends vscode.TreeView<ServerConnectionPanelNode> {}
 
-export type PythonModuleTreeNode = {
+export type IncludableWsTreeNode = {
   uri: vscode.Uri;
+  isFile?: boolean;
   include?: boolean;
-  moduleName?: ModuleFullname;
+  name: string;
 };
 export interface PythonModuleTreeView
-  extends vscode.TreeView<PythonModuleTreeNode> {}
+  extends vscode.TreeView<IncludableWsTreeNode> {}

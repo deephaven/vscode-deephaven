@@ -3,6 +3,8 @@ import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { URIMap } from './maps';
 import { Logger } from '../shared';
 import type {
+  FilePattern,
+  FolderName,
   Include,
   JsonRpcRequest,
   JsonRpcResponse,
@@ -12,6 +14,7 @@ import type {
   UniqueID,
 } from '../types';
 import { withResolvers } from './promiseUtils';
+import { URISet } from './sets';
 
 const logger = new Logger('dhLocalExecutionUtils');
 
@@ -50,68 +53,68 @@ export const DH_WIDGET_EVENT_MESSAGE = 'message' as const;
  * @param ignoreTopLevelModuleFolderNames
  * @returns metadata about python modules in the workspace
  */
-export async function createPythonModuleMeta(
-  includeTopLevelModules: Set<ModuleFullname>,
-  ignoreTopLevelModuleFolderNames: Set<string>
-): Promise<PythonModuleMeta> {
-  const meta: PythonModuleMeta = {
-    moduleMap: new URIMap(),
-    topLevelModuleNames: new URIMap(),
-  };
+// export async function createPythonModuleMeta(
+//   includeTopLevelModules: Set<UriString>,
+//   ignoreTopLevelModuleFolderNames: Set<string>
+// ): Promise<PythonModuleMeta> {
+//   const meta: PythonModuleMeta = {
+//     moduleMap: new URIMap(),
+//     topLevelModuleNames: new URIMap(),
+//   };
 
-  const uris = await vscode.workspace.findFiles(
-    '**/*.py',
-    `{${[...ignoreTopLevelModuleFolderNames].join(',')}}/**`
-  );
+//   const uris = await vscode.workspace.findFiles(
+//     '**/*.py',
+//     `{${[...ignoreTopLevelModuleFolderNames].join(',')}}/**`
+//   );
 
-  // Group module names by workspace folder
+//   // Group module names by workspace folder
 
-  for (const uri of uris) {
-    const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
-    if (workspaceFolder == null) {
-      logger.log('No workspace folder for uri:', uri);
-      continue;
-    }
+//   for (const uri of uris) {
+//     const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
+//     if (workspaceFolder == null) {
+//       logger.log('No workspace folder for uri:', uri);
+//       continue;
+//     }
 
-    // Ensure collections exist for this workspace folder
-    if (!meta.moduleMap.has(workspaceFolder.uri)) {
-      meta.moduleMap.set(workspaceFolder.uri, new Map());
-    }
-    if (!meta.topLevelModuleNames.has(workspaceFolder.uri)) {
-      meta.topLevelModuleNames.set(workspaceFolder.uri, new Map());
-    }
+//     // Ensure collections exist for this workspace folder
+//     if (!meta.moduleMap.has(workspaceFolder.uri)) {
+//       meta.moduleMap.set(workspaceFolder.uri, new Map());
+//     }
+//     if (!meta.topLevelModuleNames.has(workspaceFolder.uri)) {
+//       meta.topLevelModuleNames.set(workspaceFolder.uri, new Map());
+//     }
 
-    const relativePath = vscode.workspace.asRelativePath(uri, false);
-    if (!relativePath.includes('/')) {
-      continue;
-    }
+//     const relativePath = vscode.workspace.asRelativePath(uri, false);
+//     if (!relativePath.includes('/')) {
+//       continue;
+//     }
 
-    const moduleFullName = relativePath
-      .replaceAll('/', '.')
-      .replace(/\.py$/, '') as ModuleFullname;
-    const tokens = moduleFullName.split('.');
-    const topLevelModuleName = (
-      tokens[0] === '' ? `.${tokens[1]}` : tokens[0]
-    ) as ModuleFullname;
+//     const moduleFullName = relativePath
+//       .replaceAll('/', '.')
+//       .replace(/\.py$/, '') as ModuleFullname;
+//     const tokens = moduleFullName.split('.');
+//     const topLevelModuleName = (
+//       tokens[0] === '' ? `.${tokens[1]}` : tokens[0]
+//     ) as ModuleFullname;
 
-    const include = includeTopLevelModules.has(topLevelModuleName);
+//     const include = includeTopLevelModules.has(topLevelModuleName);
 
-    // Add to top level module names set
-    const topLevelModuleNamesSet = meta.topLevelModuleNames.getOrThrow(
-      workspaceFolder.uri
-    );
-    topLevelModuleNamesSet.set(topLevelModuleName, {
-      value: topLevelModuleName,
-      include,
-    });
+//     // Add to top level module names set
+//     const topLevelModuleNamesSet = meta.topLevelModuleNames.getOrThrow(
+//       workspaceFolder.uri
+//     );
+//     topLevelModuleNamesSet.set(topLevelModuleName, {
+//       value: topLevelModuleName,
+//       include,
+//     });
 
-    // Add to modulename -> uri map
-    const workspaceFolderMap = meta.moduleMap.getOrThrow(workspaceFolder.uri);
-    workspaceFolderMap.set(moduleFullName, { value: uri, include });
-  }
+//     // Add to modulename -> uri map
+//     const workspaceFolderMap = meta.moduleMap.getOrThrow(workspaceFolder.uri);
+//     workspaceFolderMap.set(moduleFullName, { value: uri, include });
+//   }
 
-  return meta;
-}
+//   return meta;
+// }
 
 /**
  * If local execution plugin is installed, get an instance of it and set the
@@ -148,6 +151,30 @@ export async function getLocalExecutionPlugin(
   await sendWidgetMessageAsync(localExecPlugin, msg);
 
   return localExecPlugin;
+}
+
+export async function getWorkspaceFileUriMap(
+  filePattern: FilePattern,
+  ignoreTopLevelFolderNames: Set<FolderName>
+): Promise<URIMap<URISet>> {
+  const map: URIMap<URISet> = new URIMap();
+
+  for (const ws of vscode.workspace.workspaceFolders ?? []) {
+    const fileUriSet = new URISet();
+
+    const fileUris = await vscode.workspace.findFiles(
+      new vscode.RelativePattern(ws, filePattern),
+      `{${[...ignoreTopLevelFolderNames].join(',')}}/**`
+    );
+
+    for (const fileUri of fileUris) {
+      fileUriSet.add(fileUri);
+    }
+
+    map.set(ws.uri, fileUriSet);
+  }
+
+  return map;
 }
 
 /**

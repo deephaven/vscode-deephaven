@@ -2,7 +2,10 @@ import type { Brand } from '../shared';
 
 export type Include<T> = { value: T; include?: boolean };
 
+export type FilePattern = `**/*.${string}`;
+export type FolderName = Brand<'FolderName', string>;
 export type ModuleFullname = Brand<'ModuleFullname', string>;
+export type RelativeWsUriString = Brand<'RelativeWsUriString', string>;
 
 interface JsonRpcRequestBase {
   jsonrpc: '2.0';

@@ -266,13 +266,13 @@
         "icon": "$(close)"
       },
       {
-        "command": "vscode-deephaven.addRemotePythonModule",
-        "title": "Include Remote Python Module",
+        "command": "vscode-deephaven.addRemoteFileSource",
+        "title": "Add to Remote File Sources",
         "icon": "$(add)"
       },
       {
-        "command": "vscode-deephaven.removeRemotePythonModule",
-        "title": "Exclude Remote Python Module",
+        "command": "vscode-deephaven.removeRemoteFileSource",
+        "title": "Remove from Remote File Sources",
         "icon": "$(remove)"
       }
     ],
@@ -771,11 +771,11 @@
           "when": "false"
         },
         {
-          "command": "vscode-deephaven.addRemotePythonModule",
+          "command": "vscode-deephaven.addRemoteFileSource",
           "when": "false"
         },
         {
-          "command": "vscode-deephaven.removeRemotePythonModule",
+          "command": "vscode-deephaven.removeRemoteFileSource",
           "when": "false"
         }
       ],
@@ -801,6 +801,13 @@
           "command": "vscode-deephaven.runSelection",
           "group": "navigation",
           "when": "editorLangId == python || editorLangId == groovy"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "vscode-deephaven.addRemoteFileSource",
+          "group": "deephaven",
+          "when": "explorerResourceIsFolder"
         }
       ],
       "view/title": [
@@ -889,13 +896,13 @@
           "group": "inline"
         },
         {
-          "command": "vscode-deephaven.addRemotePythonModule",
-          "when": "view == vscode-deephaven.view.pythonModuleTree && viewItem == topLevelPythonModule.excluded",
+          "command": "vscode-deephaven.addRemoteFileSource",
+          "when": "view == vscode-deephaven.view.pythonModuleTree && viewItem == remoteFileSource.excluded",
           "group": "inline"
         },
         {
-          "command": "vscode-deephaven.removeRemotePythonModule",
-          "when": "view == vscode-deephaven.view.pythonModuleTree && viewItem == topLevelPythonModule.included",
+          "command": "vscode-deephaven.removeRemoteFileSource",
+          "when": "view == vscode-deephaven.view.pythonModuleTree && viewItem == remoteFileSource.included",
           "group": "inline"
         }
       ]

@@ -12,7 +12,7 @@ import {
 } from '@deephaven-enterprise/auth-nodejs';
 import { NodeHttp2gRPCTransport } from '@deephaven/jsapi-nodejs';
 import {
-  ADD_REMOTE_PYTHON_MODULE_CMD,
+  ADD_REMOTE_FILE_SOURCE_CMD,
   CLEAR_SECRET_STORAGE_CMD,
   CREATE_NEW_TEXT_DOC_CMD,
   DOWNLOAD_LOGS_CMD,
@@ -21,7 +21,7 @@ import {
   REFRESH_PYTHON_MODULE_TREE_CMD,
   REFRESH_SERVER_CONNECTION_TREE_CMD,
   REFRESH_SERVER_TREE_CMD,
-  REMOVE_REMOTE_PYTHON_MODULE_CMD,
+  REMOVE_REMOTE_FILE_SOURCE_CMD,
   RUN_CODE_COMMAND,
   RUN_MARKDOWN_CODEBLOCK_CMD,
   RUN_SELECTION_COMMAND,
@@ -66,16 +66,18 @@ import {
   CreateQueryViewProvider,
 } from '../providers';
 import {
+  CoreJsApiCache,
+  DhcService,
   DheJsApiCache,
   DheService,
   DheServiceCache,
-  DhcService,
+  FilePatternWorkspace,
+  LocalExecutionService,
   PanelService,
   ParsedDocumentCache,
+  PYTHON_FILE_PATTERN,
   SecretService,
   ServerManager,
-  CoreJsApiCache,
-  LocalExecutionService,
 } from '../services';
 import type {
   IDisposable,
@@ -108,7 +110,7 @@ import type {
   DheAuthenticatedClientWrapper,
   DheUnauthenticatedClientWrapper,
   PythonModuleTreeView,
-  PythonModuleTreeNode,
+  IncludableWsTreeNode,
 } from '../types';
 import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTreeDragAndDropController';
 import { ConnectionController } from './ConnectionController';
@@ -182,6 +184,7 @@ export class ExtensionController implements IDisposable {
   private _dheJsApiCache: IAsyncCacheService<URL, DheType> | null = null;
   private _dheServiceFactory: IDheServiceFactory | null = null;
   private _localExecutionService: LocalExecutionService | null = null;
+  private _pythonWorkspace: FilePatternWorkspace | null = null;
   private _secretService: ISecretService | null = null;
   private _serverManager: IServerManager | null = null;
   private _userLoginController: UserLoginController | null = null;
@@ -327,7 +330,12 @@ export class ExtensionController implements IDisposable {
    * Initialize services needed for local execution.
    */
   initializeLocalExecution = (): void => {
-    this._localExecutionService = new LocalExecutionService();
+    this._pythonWorkspace = new FilePatternWorkspace(PYTHON_FILE_PATTERN);
+    this._context.subscriptions.push(this._pythonWorkspace);
+
+    this._localExecutionService = new LocalExecutionService(
+      this._pythonWorkspace
+    );
     this._context.subscriptions.push(this._localExecutionService);
   };
 
@@ -723,12 +731,12 @@ export class ExtensionController implements IDisposable {
       this.onRefreshPythonModuleTree
     );
     this.registerCommand(
-      ADD_REMOTE_PYTHON_MODULE_CMD,
-      this.onAddRemotePythonModule
+      ADD_REMOTE_FILE_SOURCE_CMD,
+      this.onAddRemoteFileSource
     );
     this.registerCommand(
-      REMOVE_REMOTE_PYTHON_MODULE_CMD,
-      this.onRemoveRemotePythonModule
+      REMOVE_REMOTE_FILE_SOURCE_CMD,
+      this.onRemoveRemoteFileSource
     );
 
     /** Search connections */
@@ -757,7 +765,7 @@ export class ExtensionController implements IDisposable {
    */
   initializeWebViews = (): void => {
     assertDefined(this._dheClientCache, 'dheClientCache');
-    assertDefined(this._localExecutionService, 'localExecutionService');
+    assertDefined(this._pythonWorkspace, 'pythonWorkspace');
     assertDefined(this._panelService, 'panelService');
     assertDefined(this._serverManager, 'serverManager');
 
@@ -818,10 +826,10 @@ export class ExtensionController implements IDisposable {
 
     // Python module tree
     this._pythonModuleTreeProvider = new PythonModuleTreeProvider(
-      this._localExecutionService
+      this._pythonWorkspace
     );
     this._pythonModuleTreeView =
-      vscode.window.createTreeView<PythonModuleTreeNode>(
+      vscode.window.createTreeView<IncludableWsTreeNode>(
         VIEW_ID.pythonModuleTree,
         {
           showCollapseAll: true,
@@ -889,30 +897,20 @@ export class ExtensionController implements IDisposable {
     this._pipServerController?.syncManagedServers();
   };
 
-  onAddRemotePythonModule = async (
-    node: PythonModuleTreeNode
-  ): Promise<void> => {
-    assertDefined(this._localExecutionService, 'localExecutionService');
-    if (node.moduleName == null) {
-      return;
-    }
+  onAddRemoteFileSource = async (node: IncludableWsTreeNode): Promise<void> => {
+    assertDefined(this._pythonWorkspace, 'pythonWorkspace');
 
-    this._localExecutionService.includeTopLevelModuleNames.add(node.moduleName);
-    this._localExecutionService.updatePythonModuleMeta();
+    this._pythonWorkspace.addIncludeFolder(node.uri);
+    this._pythonWorkspace.update();
   };
 
-  onRemoveRemotePythonModule = async (
-    node: PythonModuleTreeNode
+  onRemoveRemoteFileSource = async (
+    node: IncludableWsTreeNode
   ): Promise<void> => {
-    assertDefined(this._localExecutionService, 'localExecutionService');
-    if (node.moduleName == null) {
-      return;
-    }
+    assertDefined(this._pythonWorkspace, 'localExecutionService');
 
-    this._localExecutionService.includeTopLevelModuleNames.delete(
-      node.moduleName
-    );
-    this._localExecutionService.updatePythonModuleMeta();
+    this._pythonWorkspace.removeIncludeFolder(node.uri);
+    this._pythonWorkspace.update();
   };
 
   /**
@@ -993,7 +991,7 @@ export class ExtensionController implements IDisposable {
   };
 
   onRefreshPythonModuleTree = async (): Promise<void> => {
-    await this._localExecutionService?.updatePythonModuleMeta();
+    await this._pythonWorkspace?.update();
     this._pythonModuleTreeProvider?.refresh();
   };
 
