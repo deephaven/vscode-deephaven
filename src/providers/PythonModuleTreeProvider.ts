@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { TreeDataProviderBase } from './TreeDataProviderBase';
 import type { MarkableWsTreeNode } from '../types';
 import type { FilteredWorkspace } from '../services';
+import { getMarkableWsTreeCheckBoxState } from '../util';
 
 export class PythonModuleTreeProvider extends TreeDataProviderBase<MarkableWsTreeNode> {
   constructor(private readonly _pythonWorkspace: FilteredWorkspace) {
@@ -29,6 +30,9 @@ export class PythonModuleTreeProvider extends TreeDataProviderBase<MarkableWsTre
   ): vscode.TreeItem | Thenable<vscode.TreeItem> {
     return {
       label: node.name,
+      checkboxState: node.isFile
+        ? undefined
+        : getMarkableWsTreeCheckBoxState(node.status),
       resourceUri: node.uri,
       collapsibleState: node.isFile
         ? vscode.TreeItemCollapsibleState.None

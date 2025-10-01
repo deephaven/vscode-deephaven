@@ -842,6 +842,22 @@ export class ExtensionController implements IDisposable {
           treeDataProvider: this._pythonModuleTreeProvider,
         }
       );
+    this._pythonModuleTreeView.onDidChangeCheckboxState(({ items }) => {
+      // Note that this assumes the first item is the one that was clicked.
+      // This is not documented either way, but seems to be the behavior. If we
+      // ever find this is not the case, we'll need to identify the item in the
+      // list that is highest in the tree instead.
+      const [node, state] = items[0];
+      if (node.isFile) {
+        return;
+      }
+
+      if (state === vscode.TreeItemCheckboxState.Checked) {
+        this._pythonWorkspace?.markFolder(node.uri);
+      } else {
+        this._pythonWorkspace?.unmarkFolder(node.uri);
+      }
+    });
 
     this._context.subscriptions.push(
       this._serverTreeView,

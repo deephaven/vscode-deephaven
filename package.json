@@ -267,17 +267,17 @@
       },
       {
         "command": "vscode-deephaven.addRemoteFileSource",
-        "title": "Add to Remote File Sources",
+        "title": "Add to Deephaven remote file sources",
         "icon": "$(add)"
       },
       {
         "command": "vscode-deephaven.removeRemoteFileSource",
-        "title": "Remove from Remote File Sources",
+        "title": "Remove from Deephaven remote file sources",
         "icon": "$(remove)"
       },
       {
         "command": "vscode-deephaven.addRestRemoteFileSource",
-        "title": "Add to Remote File Sources",
+        "title": "Add to Deephaven remote file sources",
         "icon": "$(add)"
       }
     ],
@@ -903,21 +903,6 @@
         {
           "command": "vscode-deephaven.stopServer",
           "when": "view == vscode-deephaven.view.serverTree && (viewItem == isManagedServerConnected || viewItem == isManagedServerConnecting || viewItem == isManagedServerDisconnected)",
-          "group": "inline"
-        },
-        {
-          "command": "vscode-deephaven.addRemoteFileSource",
-          "when": "view == vscode-deephaven.view.pythonModuleTree && viewItem == remoteFileSource.unmarked",
-          "group": "inline"
-        },
-        {
-          "command": "vscode-deephaven.addRestRemoteFileSource",
-          "when": "view == vscode-deephaven.view.pythonModuleTree && viewItem == remoteFileSource.mixed",
-          "group": "inline"
-        },
-        {
-          "command": "vscode-deephaven.removeRemoteFileSource",
-          "when": "view == vscode-deephaven.view.pythonModuleTree && viewItem == remoteFileSource.marked",
           "group": "inline"
         }
       ]

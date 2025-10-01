@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import type {
   ConnectionState,
   ConsoleType,
+  MarkStatus,
   NonEmptyArray,
   ServerGroupState,
   ServerState,
@@ -14,6 +15,27 @@ import {
   SERVER_TREE_ITEM_CONTEXT,
   type ServerTreeItemContextValue,
 } from '../common';
+
+/**
+ * Get checkbox state for a markable workspace tree node.
+ * @param markStatus
+ * @returns checkbox state for the tree item
+ */
+export function getMarkableWsTreeCheckBoxState(
+  markStatus: MarkStatus
+): vscode.TreeItem['checkboxState'] {
+  if (markStatus === 'marked') {
+    return {
+      state: vscode.TreeItemCheckboxState.Checked,
+      tooltip: 'Remove from Deephaven remote file sources',
+    };
+  }
+
+  return {
+    state: vscode.TreeItemCheckboxState.Unchecked,
+    tooltip: 'Add to Deephaven remote file sources',
+  };
+}
 
 /**
  * Get a tree item vscode.ThemeIcon for a variable type.
