@@ -16,6 +16,7 @@ import {
   ADD_REST_REMOTE_FILE_SOURCE_CMD,
   CLEAR_SECRET_STORAGE_CMD,
   CREATE_NEW_TEXT_DOC_CMD,
+  DELETE_VARIABLE_CMD,
   DOWNLOAD_LOGS_CMD,
   GENERATE_REQUIREMENTS_TXT_CMD,
   OPEN_IN_BROWSER_CMD,
@@ -112,6 +113,7 @@ import type {
   DheUnauthenticatedClientWrapper,
   PythonModuleTreeView,
   MarkableWsTreeNode,
+  VariableDefintion,
 } from '../types';
 import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTreeDragAndDropController';
 import { ConnectionController } from './ConnectionController';
@@ -759,6 +761,8 @@ export class ExtensionController implements IDisposable {
       VIEW_ID.serverConnectionPanelTree
     );
 
+    this.registerCommand(DELETE_VARIABLE_CMD, this.onDeleteVariable);
+
     /** Start a server */
     this.registerCommand(START_SERVER_CMD, this.onStartServer);
 
@@ -917,6 +921,18 @@ export class ExtensionController implements IDisposable {
 
     this._serverManager?.updateStatus();
     this._pipServerController?.syncManagedServers();
+  };
+
+  onDeleteVariable = async ([url, variable]: [
+    URL,
+    VariableDefintion,
+  ]): Promise<void> => {
+    const connectionState = this._serverManager?.getConnection(url);
+    if (!isInstanceOf(connectionState, DhcService)) {
+      return;
+    }
+
+    connectionState.deleteVariable(variable);
   };
 
   onAddRemoteFileSource = async (

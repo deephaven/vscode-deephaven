@@ -396,6 +396,14 @@ export class DhcService extends DisposableBase implements IDhcService {
     await saveRequirementsTxt(dependencies);
   }
 
+  async deleteVariable(variableDefinition: VariableDefintion): Promise<void> {
+    if (this.session == null) {
+      return;
+    }
+
+    await this.session.runCode(`del ${variableDefinition.name}`);
+  }
+
   async runCode(
     document: vscode.TextDocument,
     languageId: string,

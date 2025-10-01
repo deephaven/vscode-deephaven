@@ -280,6 +280,11 @@
         "command": "vscode-deephaven.addRestRemoteFileSource",
         "title": "Add to Deephaven remote file sources",
         "icon": "$(add)"
+      },
+      {
+        "command": "vscode-deephaven.deleteVariable",
+        "title": "Delete Deephaven Variable",
+        "icon": "$(trash)"
       }
     ],
     "icons": {
@@ -787,6 +792,10 @@
         {
           "command": "vscode-deephaven.addRestRemoteFileSource",
           "when": "false"
+        },
+        {
+          "command": "vscode-deephaven.deleteVariable",
+          "when": "false"
         }
       ],
       "editor/context": [
@@ -904,6 +913,11 @@
           "command": "vscode-deephaven.stopServer",
           "when": "view == vscode-deephaven.view.serverTree && (viewItem == isManagedServerConnected || viewItem == isManagedServerConnecting || viewItem == isManagedServerDisconnected)",
           "group": "inline"
+        },
+        {
+          "command": "vscode-deephaven.deleteVariable",
+          "when": "view == vscode-deephaven.view.serverConnectionPanelTree && viewItem == canDeleteDeephavenVariable",
+          "group": "inline@2"
         }
       ]
     },

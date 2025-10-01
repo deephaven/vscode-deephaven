@@ -43,6 +43,7 @@ export const CREATE_DHE_AUTHENTICATED_CLIENT_CMD = cmd(
   'createDHEAuthenticatedClient'
 );
 export const CREATE_NEW_TEXT_DOC_CMD = cmd('createNewTextDoc');
+export const DELETE_VARIABLE_CMD = cmd('deleteVariable');
 export const DISCONNECT_EDITOR_CMD = cmd('disconnectEditor');
 export const DISCONNECT_FROM_SERVER_CMD = cmd('disconnectFromServer');
 export const DOWNLOAD_LOGS_CMD = cmd('downloadLogs');

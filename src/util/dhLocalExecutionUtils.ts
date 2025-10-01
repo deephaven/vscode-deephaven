@@ -15,6 +15,10 @@ import type {
 } from '../types';
 import { withResolvers } from './promiseUtils';
 import { URISet } from './sets';
+import {
+  DH_LOCAL_EXECUTION_PLUGIN_CLASS,
+  DH_LOCAL_EXECUTION_PLUGIN_VARIABLE,
+} from '../common';
 
 const logger = new Logger('dhLocalExecutionUtils');
 
@@ -27,10 +31,6 @@ export interface PythonModuleMeta {
   topLevelModuleNames: URIMap<Map<ModuleFullname, Include<ModuleFullname>>>;
 }
 
-export const DH_LOCAL_EXECUTION_PLUGIN_VARIABLE = '__deephaven_vscode' as const;
-export const DH_LOCAL_EXECUTION_PLUGIN_CLASS =
-  'DeephavenLocalExecPlugin' as const;
-
 export const DH_LOCAL_EXECUTION_PLUGIN_INIT_SCRIPT = [
   'try:',
   `    ${DH_LOCAL_EXECUTION_PLUGIN_VARIABLE}`,
@@ -42,79 +42,6 @@ export const DH_LOCAL_EXECUTION_PLUGIN_INIT_SCRIPT = [
 // Alias for `dh.Widget.EVENT_MESSAGE` to avoid having to pass in a `dh` instance
 // to util functions that only need the event name.
 export const DH_WIDGET_EVENT_MESSAGE = 'message' as const;
-
-/**
- * Create metadata about python modules in the workspace, marking top-level
- * modules to include.
- * Note that this data will determine which URIs the server can access, so it's
- * important it doesn't include modules outside of what user has opted in to
- * share.
- * @param includeTopLevelModules
- * @param ignoreTopLevelModuleFolderNames
- * @returns metadata about python modules in the workspace
- */
-// export async function createPythonModuleMeta(
-//   includeTopLevelModules: Set<UriString>,
-//   ignoreTopLevelModuleFolderNames: Set<string>
-// ): Promise<PythonModuleMeta> {
-//   const meta: PythonModuleMeta = {
-//     moduleMap: new URIMap(),
-//     topLevelModuleNames: new URIMap(),
-//   };
-
-//   const uris = await vscode.workspace.findFiles(
-//     '**/*.py',
-//     `{${[...ignoreTopLevelModuleFolderNames].join(',')}}/**`
-//   );
-
-//   // Group module names by workspace folder
-
-//   for (const uri of uris) {
-//     const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
-//     if (workspaceFolder == null) {
-//       logger.log('No workspace folder for uri:', uri);
-//       continue;
-//     }
-
-//     // Ensure collections exist for this workspace folder
-//     if (!meta.moduleMap.has(workspaceFolder.uri)) {
-//       meta.moduleMap.set(workspaceFolder.uri, new Map());
-//     }
-//     if (!meta.topLevelModuleNames.has(workspaceFolder.uri)) {
-//       meta.topLevelModuleNames.set(workspaceFolder.uri, new Map());
-//     }
-
-//     const relativePath = vscode.workspace.asRelativePath(uri, false);
-//     if (!relativePath.includes('/')) {
-//       continue;
-//     }
-
-//     const moduleFullName = relativePath
-//       .replaceAll('/', '.')
-//       .replace(/\.py$/, '') as ModuleFullname;
-//     const tokens = moduleFullName.split('.');
-//     const topLevelModuleName = (
-//       tokens[0] === '' ? `.${tokens[1]}` : tokens[0]
-//     ) as ModuleFullname;
-
-//     const include = includeTopLevelModules.has(topLevelModuleName);
-
-//     // Add to top level module names set
-//     const topLevelModuleNamesSet = meta.topLevelModuleNames.getOrThrow(
-//       workspaceFolder.uri
-//     );
-//     topLevelModuleNamesSet.set(topLevelModuleName, {
-//       value: topLevelModuleName,
-//       include,
-//     });
-
-//     // Add to modulename -> uri map
-//     const workspaceFolderMap = meta.moduleMap.getOrThrow(workspaceFolder.uri);
-//     workspaceFolderMap.set(moduleFullName, { value: uri, include });
-//   }
-
-//   return meta;
-// }
 
 /**
  * If local execution plugin is installed, get an instance of it and set the
