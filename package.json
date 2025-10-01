@@ -274,6 +274,11 @@
         "command": "vscode-deephaven.removeRemoteFileSource",
         "title": "Remove from Remote File Sources",
         "icon": "$(remove)"
+      },
+      {
+        "command": "vscode-deephaven.addRestRemoteFileSource",
+        "title": "Add to Remote File Sources",
+        "icon": "$(add)"
       }
     ],
     "icons": {
@@ -902,7 +907,12 @@
         },
         {
           "command": "vscode-deephaven.addRemoteFileSource",
-          "when": "view == vscode-deephaven.view.pythonModuleTree && (viewItem == remoteFileSource.unmarked || viewItem == remoteFileSource.mixed)",
+          "when": "view == vscode-deephaven.view.pythonModuleTree && viewItem == remoteFileSource.unmarked",
+          "group": "inline"
+        },
+        {
+          "command": "vscode-deephaven.addRestRemoteFileSource",
+          "when": "view == vscode-deephaven.view.pythonModuleTree && viewItem == remoteFileSource.mixed",
           "group": "inline"
         },
         {
