@@ -468,37 +468,46 @@ export class DhcService extends DisposableBase implements IDhcService {
 
     if (error) {
       logger.error(error);
+      // Note we shouldn't have to log the error to the output channel since code
+      // execution errors should already get captured via the server output.
       this.outputChannel.show(true);
-      this.outputChannel.appendLine(error);
       this.toaster.error('An error occurred when running a command');
 
       if (languageId === 'python') {
-        const { line, value } = parseServerError(error);
+        const errors = parseServerError(error);
 
-        if (line != null) {
-          // If ranges were provided, the line number in the error will be
-          // relative to the ranges content (Python line numbers are 1 based.
-          // vscode line numbers are zero based.)
-          const fileLine = (ranges ? line + ranges[0].start.line : line) - 1;
+        for (const { type, file, line, value } of errors) {
+          if (line != null) {
+            // If ranges were provided, the line number in the error will be
+            // relative to the ranges content (Python line numbers are 1 based.
+            // vscode line numbers are zero based.)
+            const fileLine = (ranges ? line + ranges[0].start.line : line) - 1;
 
-          // There seems to be an error for certain Python versions where line
-          // numbers are shown as -1. In such cases, we'll just mark the first
-          // token on the first line to at least flag the file as having an error.
-          const startLine = Math.max(0, fileLine);
+            // There seems to be an error for certain Python versions where line
+            // numbers are shown as -1. In such cases, we'll just mark the first
+            // token on the first line to at least flag the file as having an error.
+            const startLine = Math.max(0, fileLine);
 
-          // Zero length will flag a token instead of a line
-          const lineLength =
-            fileLine < 0 ? 0 : document.lineAt(fileLine).text.length;
+            // Zero length will flag a token instead of a line
+            const lineLength =
+              fileLine < 0 ? 0 : document.lineAt(fileLine).text.length;
 
-          // Diagnostic representing the line of code that produced the server error
-          const diagnostic: vscode.Diagnostic = {
-            message: value == null ? error : `${value}\n${error}`,
-            severity: vscode.DiagnosticSeverity.Error,
-            range: new vscode.Range(startLine, 0, startLine, lineLength),
-            source: 'deephaven',
-          };
+            // Diagnostic representing the line of code that produced the server error
+            const diagnostic: vscode.Diagnostic = {
+              code: type,
+              message: value == null ? error : `${value}\n${error}`,
+              severity: vscode.DiagnosticSeverity.Error,
+              range: new vscode.Range(startLine, 0, startLine, lineLength),
+              source: 'deephaven',
+            };
 
-          this.diagnosticsCollection.set(document.uri, [diagnostic]);
+            this.diagnosticsCollection.set(
+              file == null || file === '<string>'
+                ? document.uri
+                : vscode.Uri.parse(file),
+              [diagnostic]
+            );
+          }
         }
       }
 
