@@ -16,8 +16,9 @@ import type {
 import { withResolvers } from './promiseUtils';
 import { URISet } from './sets';
 import {
-  DH_LOCAL_EXECUTION_PLUGIN_CLASS,
-  DH_LOCAL_EXECUTION_PLUGIN_VARIABLE,
+  DH_PYTHON_REMOTE_SOURCE_PLUGIN_CLASS,
+  DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE,
+  DH_PYTHON_REMOTE_SOURCE_PLUGIN_NAME,
 } from '../common';
 
 const logger = new Logger('dhLocalExecutionUtils');
@@ -33,10 +34,10 @@ export interface PythonModuleMeta {
 
 export const DH_LOCAL_EXECUTION_PLUGIN_INIT_SCRIPT = [
   'try:',
-  `    ${DH_LOCAL_EXECUTION_PLUGIN_VARIABLE}`,
+  `    ${DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE}`,
   'except NameError:',
-  '    from deephaven_local_exec_plugin import DeephavenLocalExecPluginObject',
-  `    ${DH_LOCAL_EXECUTION_PLUGIN_VARIABLE} = DeephavenLocalExecPluginObject()`,
+  '    from deephaven.python_remote_file_source import PluginObject as DeephavenRemoteFileSourcePlugin',
+  `    ${DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE} = DeephavenRemoteFileSourcePlugin()`,
 ].join('\n');
 
 // Alias for `dh.Widget.EVENT_MESSAGE` to avoid having to pass in a `dh` instance
@@ -65,8 +66,8 @@ export async function getLocalExecutionPlugin(
   await session.runCode(DH_LOCAL_EXECUTION_PLUGIN_INIT_SCRIPT);
 
   const localExecPlugin: DhcType.Widget = await session.getObject({
-    name: DH_LOCAL_EXECUTION_PLUGIN_VARIABLE,
-    type: DH_LOCAL_EXECUTION_PLUGIN_CLASS,
+    name: DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE,
+    type: DH_PYTHON_REMOTE_SOURCE_PLUGIN_CLASS,
   });
 
   const msg: JsonRpcSetConnectionIdRequest = {
@@ -116,7 +117,7 @@ export function getSetExecutionContextScript(
 ): string {
   const connectionIdStr = connectionId == null ? 'None' : `'${connectionId}'`;
   const moduleFullnamesStr = `{${[...moduleFullnames].map(modulePath => `"${modulePath}"`).join(',')}}`;
-  return `${DH_LOCAL_EXECUTION_PLUGIN_VARIABLE}.set_execution_context(${connectionIdStr}, ${moduleFullnamesStr})`;
+  return `${DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE}.set_execution_context(${connectionIdStr}, ${moduleFullnamesStr})`;
 }
 
 /**
@@ -134,7 +135,7 @@ export async function isLocalExecutionPluginInstalled(
     const manifestJson: { plugins: { name: string }[] } = await response.json();
 
     return manifestJson.plugins.some(
-      plugin => plugin.name === 'deephaven-local-exec-plugin'
+      plugin => plugin.name === DH_PYTHON_REMOTE_SOURCE_PLUGIN_NAME
     );
   } catch (err) {
     logger.error('Error checking for local execution plugin', err);
