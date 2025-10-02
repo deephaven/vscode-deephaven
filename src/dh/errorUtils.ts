@@ -15,9 +15,10 @@ export interface ParsedError {
 }
 
 /**
- * Parse a server error string into a key-value object.
+ * Parse a server error string into an array of key-value object.
  * @param error Error string to parse.
  * @param logger Optional logger for debugging. Defaluts to console.
+ * @returns Array of parsed error objects.
  */
 export function parseServerError(
   error: string,
