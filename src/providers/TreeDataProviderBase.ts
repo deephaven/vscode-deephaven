@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import type { IDisposable } from '../types';
 import { DisposableBase } from '../services';
 
 /**
