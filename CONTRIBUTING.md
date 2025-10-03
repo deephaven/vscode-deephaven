@@ -58,7 +58,7 @@ or
 Build a .vsix locally via `npm run package:latest` (see [VSCE](#vsce) section)
 
 Then install in `VS Code`:
-![Install Deephaven VS Code](./docs/assets/install-vsix.png)
+![Install Deephaven VS Code](./docs/src/assets/install-vsix.png)
 
 ## Publishing
 

@@ -15,11 +15,11 @@ Install the Deephaven VS Code extension from one of two places:
 
 A search for `Deephaven` in either place will yield the Deephaven VS Code extension as the first result.
 
-![Install Deephaven VS Code Extension](docs/assets/install-pre-release.png)
+![Install Deephaven VS Code Extension](docs/src/assets/install-pre-release.png)
 
 Once installed, the Deephaven icon will show up in the activity bar on the left side of VS Code:
 
-![VS Code Activity Bar](docs/assets/dh-activity-bar.gif)
+![VS Code Activity Bar](docs/src/assets/dh-activity-bar.gif)
 
 By default, the extension is only configured to connect to a single Community server hosted at `http://localhost:10000`. See more about adding, removing, and updating servers in the [Configuration](docs/src/configuration.md) docs.
 
@@ -27,22 +27,22 @@ By default, the extension is only configured to connect to a single Community se
 ### Run Deephaven Queries
 Run Deephaven queries from local scripts against Deephaven Community and Enterprise servers. See the [Usage documentation](docs/src/usage.md) for details:
 
-![Run Deephaven file](docs/assets/dhc-connect-to-server.gif)
+![Run Deephaven file](docs/src/assets/dhc-connect-to-server.gif)
 
 ### Run Markdown Codeblocks
 Run Deephaven code blocks from markdown files. See the [Usage documentation](docs/src/usage.md#markdown-code-blocks) for details:
 
-![Run Markdown codeblock](docs/assets/markdown-codeblocks.png)
+![Run Markdown codeblock](docs/src/assets/markdown-codeblocks.png)
 
 ### Manage Deephaven Servers
 Manage pip installed Deephaven Community servers. See the [Managed pip Servers documentation](docs/src/workspace-setup.md#managed-pip-servers-community-only) for details:
 
-![Manage pip server](docs/assets/start-pip-server.png)
+![Manage pip server](docs/src/assets/start-pip-server.png)
 
 ### Manage Credentials
 Manage private / public server keys. See the [Private / Public Key Pair Login documentation](docs/src/enterprise-auth.md#private--public-key-pair-login) for details:
 
-![Manage keys](docs/assets/dhe-generate-keypair.gif)
+![Manage keys](docs/src/assets/dhe-generate-keypair.gif)
 
 ## Documentation
 

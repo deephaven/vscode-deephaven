@@ -10,7 +10,7 @@ The Deephaven VS Code extension supports multiple authentication methods for Ent
 
 By default, the extension will accept a basic username / password login to authenticate with a Deephaven Enterprise server. To initiate a login, click on a running server node in the servers list or run a script to initiate a connection.
 
-![Enterprise Basic Auth](../assets/dhe-basic-auth.gif)
+![Enterprise Basic Auth](./assets/dhe-basic-auth.gif)
 
 ## Private / Public Key Pair Login
 
@@ -24,11 +24,11 @@ To generate a key pair:
 - You will be prompted to login with the username / password you would like to associate the key pair with.
 - On successful login, the generated public key will be uploaded to the server and associated with the username.
 
-![Generate Enterprise Key Pair](../assets/dhe-generate-keypair.gif)
+![Generate Enterprise Key Pair](./assets/dhe-generate-keypair.gif)
 
 After creating the key pair, clicking on the server node should prompt for a username. If you enter a username associated with a stored key pair, you will be able to login without a password.
 
-![Enterprise Key Pair Login](../assets/dhe-keypair-auth.gif)
+![Enterprise Key Pair Login](./assets/dhe-keypair-auth.gif)
 
 ### Deleting a Key Pair
 
@@ -38,6 +38,6 @@ To delete all Deephaven private keys managed by the extension from your local ma
 
 Deephaven Enterprise servers can be configured for single sign-on (SSO) using a Security Assertion Markup Language (SAML) identity provider. In order to support the necessary login redirects, the `authentication.samlauth.jetty.redirect.list` server prop will need to include `vscode://deephaven.vscode-deephaven/*`. The VS Code extension will automatically detect what kind of authentication is supported by a Deephaven server. If multiple options are available, the extension will prompt you to chose which one to use.
 
-![Enterprise SAML Auth](../assets/dhe-saml-auth.gif)
+![Enterprise SAML Auth](./assets/dhe-saml-auth.gif)
 
 If a SAML login flow is initiated, you will be prompted a few times to step through the auth flow and to login to the configured identity provider in the browser. Once complete, the browser should redirect to VS Code with an active connection to the server.
