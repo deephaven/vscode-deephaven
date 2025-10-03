@@ -1031,6 +1031,7 @@ export class ExtensionController implements IDisposable {
   };
 
   onRefreshPythonModuleTree = async (): Promise<void> => {
+    this._pythonWorkspace?.refresh();
     this._pythonModuleTreeProvider?.refresh();
   };
 

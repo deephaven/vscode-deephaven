@@ -40,13 +40,13 @@ export class FilteredWorkspace
     this.disposables.add(vscode.window.registerFileDecorationProvider(this));
 
     const watcher = vscode.workspace.createFileSystemWatcher(filePattern);
-    this.disposables.add(watcher.onDidCreate(() => this._update()));
-    this.disposables.add(watcher.onDidDelete(() => this._update()));
+    this.disposables.add(watcher.onDidCreate(() => this.refresh()));
+    this.disposables.add(watcher.onDidDelete(() => this.refresh()));
     this.disposables.add(watcher);
 
     // TODO: Load marked folders from storage
 
-    this._update();
+    this.refresh();
   }
 
   private _onDidChangeFileDecorations = new vscode.EventEmitter<
@@ -227,23 +227,28 @@ export class FilteredWorkspace
       const parentNode = this._nodeMap.getOrThrow(parentUri);
       const childMap = this._childNodeMap.getOrThrow(parentUri);
 
-      const marked = [...childMap.values()].reduce(
-        (acc, n) => acc + (n.status === 'unmarked' ? 0 : 1),
-        0
-      );
+      const counts = {
+        marked: 0,
+        unmarked: 0,
+        mixed: 0,
+      };
+
+      for (const n of childMap.values()) {
+        counts[n.status]++;
+      }
 
       parentNode.status =
-        marked === 0
-          ? 'unmarked'
-          : marked === childMap.size
-            ? 'marked'
+        counts.marked === childMap.size
+          ? 'marked'
+          : counts.unmarked === childMap.size
+            ? 'unmarked'
             : 'mixed';
 
       this._updateParentMarkStatus(parentUri);
     }
   }
 
-  private async _update(): Promise<void> {
+  async refresh(): Promise<void> {
     // Store a map of just the filtered files in the workspace
     this._wsFileUriMap = await getWorkspaceFileUriMap(
       this.filePattern,
