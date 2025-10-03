@@ -4,7 +4,6 @@ import type { dh as DhcType } from '@deephaven/jsapi-types';
 import {
   formatTimestamp,
   getCombinedRangeLinesText,
-  getSetExecutionContextScript,
   isNonEmptyArray,
   Logger,
   saveRequirementsTxt,
@@ -138,7 +137,6 @@ export class DhcService extends DisposableBase implements IDhcService {
   > | null = null;
 
   private cn: DhcType.IdeConnection | null = null;
-  private localExecPlugin: DhcType.Widget | null = null;
   private session: DhcType.IdeSession | null = null;
 
   get isInitialized(): boolean {
@@ -283,12 +281,12 @@ export class DhcService extends DisposableBase implements IDhcService {
     try {
       const { cn, localExecPlugin, session } = await this.initSessionPromise;
       this.cn = cn;
-      this.localExecPlugin = localExecPlugin;
       this.session = session;
 
-      if (this.localExecPlugin != null) {
-        this.localExecutionService.registerLocalExecPluginMessageListener(
-          this.localExecPlugin
+      if (localExecPlugin != null) {
+        await this.localExecutionService.registerLocalExecPlugin(
+          session,
+          localExecPlugin
         );
       }
     } catch (err) {
@@ -412,13 +410,7 @@ export class DhcService extends DisposableBase implements IDhcService {
 
       this.isRunningCode = true;
 
-      if (this.localExecPlugin != null) {
-        const setExecutionContextScript = await getSetExecutionContextScript(
-          this.localExecutionService.getTopLevelPythonModuleNames()
-        );
-
-        await this.session.runCode(setExecutionContextScript);
-      }
+      await this.localExecutionService.setServerExecutionContext();
 
       result = await this.session.runCode(text);
       this.isRunningCode = false;

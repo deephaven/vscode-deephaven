@@ -167,9 +167,9 @@ export async function createPythonModuleMeta(
  * @param moduleFullnames An iterable of module fullnames of python files.
  * @returns A Python script string.
  */
-export async function getSetExecutionContextScript(
+export function getSetExecutionContextScript(
   moduleFullnames: Iterable<string>
-): Promise<string> {
+): string {
   const moduleFullnamesString = `{${[...moduleFullnames].map(modulePath => `"${modulePath}"`).join(',')}}`;
   return `${DH_LOCAL_EXECUTION_PLUGIN_VARIABLE}.set_execution_context(${moduleFullnamesString})`;
 }

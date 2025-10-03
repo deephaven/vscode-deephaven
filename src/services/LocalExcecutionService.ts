@@ -4,6 +4,7 @@ import { DisposableBase } from './DisposableBase';
 import { Logger } from '../shared';
 import {
   createPythonModuleMeta,
+  getSetExecutionContextScript,
   registerLocalExecPluginMessageListener,
   type PythonModuleMeta,
 } from '../util';
@@ -29,10 +30,23 @@ export class LocalExecutionService
 
     this.disposables.add(vscode.window.registerFileDecorationProvider(this));
 
+    this.disposables.add(() => {
+      this._unregisterLocalExecPlugin?.();
+      this._localExecPlugin?.close();
+
+      this._unregisterLocalExecPlugin = null;
+      this._localExecPlugin = null;
+      this._session = null;
+    });
+
     this.updatePythonModuleMeta();
   }
 
+  private _localExecPlugin: DhcType.Widget | null = null;
+  private _session: DhcType.IdeSession | null = null;
+  private _unregisterLocalExecPlugin: (() => void) | null = null;
   private _moduleMeta: PythonModuleMeta | null = null;
+
   // TODO: Make this configurable
   private _ignoreTopLevelModuleNames = new Set<string>([
     '.venv',
@@ -47,6 +61,9 @@ export class LocalExecutionService
     'build',
     'dist',
     '*.egg-info',
+    // TESTING
+    'broken',
+    'pandas',
   ]);
 
   private _onDidChangeFileDecorations = new vscode.EventEmitter<
@@ -152,15 +169,22 @@ export class LocalExecutionService
     return moduleNamesSet.has(topLevelModuleName);
   }
 
-  registerLocalExecPluginMessageListener(
+  /** Register a local execution plugin. */
+  async registerLocalExecPlugin(
+    session: DhcType.IdeSession,
     localExecPlugin: DhcType.Widget
-  ): void {
-    const unregister = registerLocalExecPluginMessageListener(
+  ): Promise<void> {
+    this._unregisterLocalExecPlugin?.();
+
+    this._localExecPlugin = localExecPlugin;
+    this._session = session;
+
+    this._unregisterLocalExecPlugin = registerLocalExecPluginMessageListener(
       localExecPlugin,
       this.getUriForModuleFullname.bind(this)
     );
 
-    this.disposables.add(unregister);
+    await this.setServerExecutionContext();
   }
 
   /** Rebuild Python module maps */
@@ -171,6 +195,18 @@ export class LocalExecutionService
     logger.log('Updated python module meta:', this._moduleMeta);
 
     this._onDidChangeFileDecorations.fire(undefined);
+  }
+
+  async setServerExecutionContext(): Promise<void> {
+    if (this._session == null) {
+      return;
+    }
+
+    const setExecutionContextScript = getSetExecutionContextScript(
+      this.getTopLevelPythonModuleNames()
+    );
+
+    await this._session.runCode(setExecutionContextScript);
   }
 
   provideFileDecoration(
