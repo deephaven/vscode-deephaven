@@ -4,7 +4,7 @@ By default, the extension is configured to connect to a single Community server 
 
 To add more servers or change the configuration of the default server, head to VS Code settings. This opens a settings UI, where you can search for the extension with `@ext:deephaven.vscode-deephaven`. It shows two items you can configure:
 
-![img](assets/dh-settings.png)
+![img](../assets/dh-settings.png)
 
 You can also set configuration parameters in workspaces by navigating to the `Workspace` tab in the settings UI.
 
@@ -14,7 +14,7 @@ You can also set configuration parameters in workspaces by navigating to the `Wo
 
 Community servers can be configured via the `"deephaven.coreServers"` setting in `VS Code` user or workspace settings.
 
-![Community Server Settings](assets/add-community-server.gif)
+![Community Server Settings](../assets/add-community-server.gif)
 
 ## Enterprise Servers
 
@@ -41,7 +41,7 @@ An optional label can be included:
 
 When connecting to an Enterprise server, you will be presented with a panel to configure your query using the standard query creation UI.
 
-![Query Creation UI](assets/create-query-ui.png)
+![Query Creation UI](../assets/create-query-ui.png)
 
 For Legacy servers that do not support the query creation UI, you can use the `experimentalWorkerConfig` property to specify query (worker) settings directly in your configuration.
 
@@ -60,7 +60,7 @@ Example configurations:
 ]
 ```
 
-![Enterprise Server Settings](assets/dhe-settings.gif)
+![Enterprise Server Settings](../assets/dhe-settings.gif)
 
 For information on how to authenticate with enterprise servers, see [Enterprise Authentication](enterprise-auth.md).
 
@@ -72,7 +72,7 @@ Deephaven servers using self-signed certificates or internal CA's will require c
 
 1. Save the signing certificate in PEM format somewhere on the machine running VS Code. Multiple certificates can be concatenated together in the same file if there are multiple certs that need to be configured.
 1. Set the `NODE_EXTRA_CA_CERTS` environment variable to the path of the signing certificate.
-   
+
    On Mac / Linux, set the env variable, or if you'd like for it to persist, export it from an appropriate config file for your shell.
    ```sh
    export NODE_EXTRA_CA_CERTS=/path/to/cert.pem
@@ -98,6 +98,6 @@ Configure VS Code to use the OS trust store:
 
 1. Click `f1` and type `> Preferences: Open Settings (UI)`
 1. Search for the `Http: Electron Fetch` setting
-   ![Http: Electron Fetch](assets/electron-fetch.png)
+   ![Http: Electron Fetch](../assets/electron-fetch.png)
 1. Enable it
 1. Restart VS Code
