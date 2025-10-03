@@ -13,6 +13,12 @@ import {
   REQUIREMENTS_TABLE_NAME_COLUMN_NAME,
   REQUIREMENTS_TABLE_VERSION_COLUMN_NAME,
 } from '../common';
+import {
+  DH_LOCAL_EXECUTION_PLUGIN_CLASS,
+  DH_LOCAL_EXECUTION_PLUGIN_INIT_SCRIPT,
+  DH_LOCAL_EXECUTION_PLUGIN_VARIABLE,
+  isLocalExecutionPluginInstalled,
+} from '../util';
 
 export const AUTH_HANDLER_TYPE_ANONYMOUS =
   'io.deephaven.auth.AnonymousAuthenticationHandler';
@@ -25,6 +31,7 @@ export const AUTH_HANDLER_TYPE_DHE =
 
 export type ConnectionAndSession<TConnection, TSession> = {
   cn: TConnection;
+  localExecPlugin: DhType.Widget | null;
   session: TSession;
 };
 
@@ -147,7 +154,23 @@ export async function initDhcSession(
 
   const session = await cn.startSession(type);
 
-  return { cn, session };
+  const workerUrl = new URL(await client.getServerUrl());
+  const isLocalExecutionEnabled =
+    await isLocalExecutionPluginInstalled(workerUrl);
+
+  let localExecPlugin: DhType.Widget | null = null;
+
+  // Initialize the local execution plugin if it is not already initialized.
+  if (isLocalExecutionEnabled) {
+    await session.runCode(DH_LOCAL_EXECUTION_PLUGIN_INIT_SCRIPT);
+
+    localExecPlugin = await session.getObject({
+      name: DH_LOCAL_EXECUTION_PLUGIN_VARIABLE,
+      type: DH_LOCAL_EXECUTION_PLUGIN_CLASS,
+    });
+  }
+
+  return { cn, localExecPlugin, session };
 }
 
 /**

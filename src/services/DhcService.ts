@@ -4,6 +4,7 @@ import type { dh as DhcType } from '@deephaven/jsapi-types';
 import {
   formatTimestamp,
   getCombinedRangeLinesText,
+  getSetExecutionContextScript,
   isNonEmptyArray,
   Logger,
   saveRequirementsTxt,
@@ -130,6 +131,7 @@ export class DhcService extends DisposableBase implements IDhcService {
   > | null = null;
 
   private cn: DhcType.IdeConnection | null = null;
+  private localExecPlugin: DhcType.Widget | null = null;
   private session: DhcType.IdeSession | null = null;
 
   get isInitialized(): boolean {
@@ -272,8 +274,9 @@ export class DhcService extends DisposableBase implements IDhcService {
     }
 
     try {
-      const { cn, session } = await this.initSessionPromise;
+      const { cn, localExecPlugin, session } = await this.initSessionPromise;
       this.cn = cn;
+      this.localExecPlugin = localExecPlugin;
       this.session = session;
     } catch (err) {
       logger.error(err);
@@ -395,6 +398,13 @@ export class DhcService extends DisposableBase implements IDhcService {
       const start = performance.now();
 
       this.isRunningCode = true;
+
+      if (this.localExecPlugin != null) {
+        const setExecutionContextScript = await getSetExecutionContextScript();
+
+        await this.session.runCode(setExecutionContextScript);
+      }
+
       result = await this.session.runCode(text);
       this.isRunningCode = false;
 

@@ -1,4 +1,5 @@
 export * from './dataUtils';
+export * from './dhLocalExecutionUtils';
 export * from './documentUtils';
 export * from './extensionApiUtils';
 export * from './hoverUtils';
