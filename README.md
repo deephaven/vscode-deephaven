@@ -21,36 +21,36 @@ Once installed, the Deephaven icon will show up in the activity bar on the left 
 
 ![VS Code Activity Bar](docs/assets/dh-activity-bar.gif)
 
-By default, the extension is only configured to connect to a single Community server hosted at `http://localhost:10000`. See more about adding, removing, and updating servers in the [Configuration](docs/configuration.md) docs.
+By default, the extension is only configured to connect to a single Community server hosted at `http://localhost:10000`. See more about adding, removing, and updating servers in the [Configuration](docs/src/configuration.md) docs.
 
 ## Features
 ### Run Deephaven Queries
-Run Deephaven queries from local scripts against Deephaven Community and Enterprise servers. See the [Usage documentation](docs/usage.md) for details:
+Run Deephaven queries from local scripts against Deephaven Community and Enterprise servers. See the [Usage documentation](docs/src/usage.md) for details:
 
 ![Run Deephaven file](docs/assets/dhc-connect-to-server.gif)
 
 ### Run Markdown Codeblocks
-Run Deephaven code blocks from markdown files. See the [Usage documentation](docs/usage.md#markdown-code-blocks) for details:
+Run Deephaven code blocks from markdown files. See the [Usage documentation](docs/src/usage.md#markdown-code-blocks) for details:
 
 ![Run Markdown codeblock](docs/assets/markdown-codeblocks.png)
 
 ### Manage Deephaven Servers
-Manage pip installed Deephaven Community servers. See the [Managed pip Servers documentation](docs/workspace-setup.md#managed-pip-servers-community-only) for details:
+Manage pip installed Deephaven Community servers. See the [Managed pip Servers documentation](docs/src/workspace-setup.md#managed-pip-servers-community-only) for details:
 
 ![Manage pip server](docs/assets/start-pip-server.png)
 
 ### Manage Credentials
-Manage private / public server keys. See the [Private / Public Key Pair Login documentation](docs/enterprise-auth.md#private--public-key-pair-login) for details:
+Manage private / public server keys. See the [Private / Public Key Pair Login documentation](docs/src/enterprise-auth.md#private--public-key-pair-login) for details:
 
 ![Manage keys](docs/assets/dhe-generate-keypair.gif)
 
 ## Documentation
 
-- [Installation](docs/installation.md)
-- [Usage](docs/usage.md)
-- [Configuration](docs/configuration.md)
-- [Workspace Setup](docs/workspace-setup.md)
-- [Panels](docs/panels.md)
-- [Troubleshooting](docs/troubleshooting.md)
-- [Data Storage](docs/data-storage.md)
+- [Installation](docs/src/installation.md)
+- [Usage](docs/src/usage.md)
+- [Configuration](docs/src/configuration.md)
+- [Workspace Setup](docs/src/workspace-setup.md)
+- [Panels](docs/src/panels.md)
+- [Troubleshooting](docs/src/troubleshooting.md)
+- [Data Storage](docs/src/data-storage.md)
 - [Contributing](CONTRIBUTING.md)
