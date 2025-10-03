@@ -8,7 +8,7 @@ import {
   registerLocalExecPluginMessageListener,
   type PythonModuleMeta,
 } from '../util';
-import type { ModuleFullname } from '../types';
+import type { ModuleFullname, UniqueID } from '../types';
 
 const logger = new Logger('LocalExcecutionService');
 
@@ -32,18 +32,13 @@ export class LocalExecutionService
 
     this.disposables.add(() => {
       this._unregisterLocalExecPlugin?.();
-      this._localExecPlugin?.close();
-
       this._unregisterLocalExecPlugin = null;
-      this._localExecPlugin = null;
-      this._session = null;
     });
 
     this.updatePythonModuleMeta();
   }
 
-  private _localExecPlugin: DhcType.Widget | null = null;
-  private _session: DhcType.IdeSession | null = null;
+  // private _localExecPlugin: DhcType.Widget | null = null;
   private _unregisterLocalExecPlugin: (() => void) | null = null;
   private _moduleMeta: PythonModuleMeta | null = null;
 
@@ -171,20 +166,14 @@ export class LocalExecutionService
 
   /** Register a local execution plugin. */
   async registerLocalExecPlugin(
-    session: DhcType.IdeSession,
     localExecPlugin: DhcType.Widget
   ): Promise<void> {
     this._unregisterLocalExecPlugin?.();
-
-    this._localExecPlugin = localExecPlugin;
-    this._session = session;
 
     this._unregisterLocalExecPlugin = registerLocalExecPluginMessageListener(
       localExecPlugin,
       this.getUriForModuleFullname.bind(this)
     );
-
-    await this.setServerExecutionContext();
   }
 
   /** Rebuild Python module maps */
@@ -197,16 +186,16 @@ export class LocalExecutionService
     this._onDidChangeFileDecorations.fire(undefined);
   }
 
-  async setServerExecutionContext(): Promise<void> {
-    if (this._session == null) {
-      return;
-    }
-
+  async setServerExecutionContext(
+    connectionId: UniqueID,
+    session: DhcType.IdeSession
+  ): Promise<void> {
     const setExecutionContextScript = getSetExecutionContextScript(
+      connectionId,
       this.getTopLevelPythonModuleNames()
     );
 
-    await this._session.runCode(setExecutionContextScript);
+    await session.runCode(setExecutionContextScript);
   }
 
   provideFileDecoration(

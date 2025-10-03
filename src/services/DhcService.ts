@@ -137,6 +137,7 @@ export class DhcService extends DisposableBase implements IDhcService {
   > | null = null;
 
   private cn: DhcType.IdeConnection | null = null;
+  private cnId: UniqueID | null = null;
   private session: DhcType.IdeSession | null = null;
 
   get isInitialized(): boolean {
@@ -279,14 +280,23 @@ export class DhcService extends DisposableBase implements IDhcService {
     }
 
     try {
-      const { cn, localExecPlugin, session } = await this.initSessionPromise;
+      const { cn, cnId, localExecPlugin, session } =
+        await this.initSessionPromise;
       this.cn = cn;
+      this.cnId = cnId;
       this.session = session;
 
       if (localExecPlugin != null) {
+        this.disposables.add(() => {
+          localExecPlugin.close();
+        });
+
         await this.localExecutionService.registerLocalExecPlugin(
-          session,
           localExecPlugin
+        );
+        await this.localExecutionService.setServerExecutionContext(
+          cnId,
+          session
         );
       }
     } catch (err) {
@@ -385,7 +395,7 @@ export class DhcService extends DisposableBase implements IDhcService {
       await this.initSession();
     }
 
-    if (this.cn == null || this.session == null) {
+    if (this.cn == null || this.cnId == null || this.session == null) {
       return;
     }
 
@@ -410,7 +420,10 @@ export class DhcService extends DisposableBase implements IDhcService {
 
       this.isRunningCode = true;
 
-      await this.localExecutionService.setServerExecutionContext();
+      await this.localExecutionService.setServerExecutionContext(
+        this.cnId,
+        this.session
+      );
 
       result = await this.session.runCode(text);
       this.isRunningCode = false;

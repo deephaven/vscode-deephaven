@@ -5,6 +5,8 @@ import type {
   CoreUnauthenticatedClient,
   DependencyName,
   DependencyVersion,
+  JsonRpcSetConnectionIdRequest,
+  UniqueID,
 } from '../types';
 import { hasStatusCode, loadDhModules } from '@deephaven/jsapi-nodejs';
 import {
@@ -18,6 +20,7 @@ import {
   DH_LOCAL_EXECUTION_PLUGIN_INIT_SCRIPT,
   DH_LOCAL_EXECUTION_PLUGIN_VARIABLE,
   isLocalExecutionPluginInstalled,
+  uniqueId,
 } from '../util';
 
 export const AUTH_HANDLER_TYPE_ANONYMOUS =
@@ -31,6 +34,7 @@ export const AUTH_HANDLER_TYPE_DHE =
 
 export type ConnectionAndSession<TConnection, TSession> = {
   cn: TConnection;
+  cnId: UniqueID;
   localExecPlugin: DhType.Widget | null;
   session: TSession;
 };
@@ -145,6 +149,7 @@ export async function initDhcSession(
   client: CoreAuthenticatedClient
 ): Promise<ConnectionAndSession<DhType.IdeConnection, DhType.IdeSession>> {
   const cn = await client.getAsIdeConnection();
+  const cnId = uniqueId();
 
   const [type] = await cn.getConsoleTypes();
 
@@ -168,9 +173,16 @@ export async function initDhcSession(
       name: DH_LOCAL_EXECUTION_PLUGIN_VARIABLE,
       type: DH_LOCAL_EXECUTION_PLUGIN_CLASS,
     });
+
+    const msg: JsonRpcSetConnectionIdRequest = {
+      jsonrpc: '2.0',
+      id: cnId,
+      method: 'set_connection_id',
+    };
+    localExecPlugin?.sendMessage(JSON.stringify(msg));
   }
 
-  return { cn, localExecPlugin, session };
+  return { cn, cnId, localExecPlugin, session };
 }
 
 /**

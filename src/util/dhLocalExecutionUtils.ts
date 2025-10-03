@@ -2,7 +2,12 @@ import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { URIMap } from './maps';
 import { Logger } from '../shared';
-import type { JsonRpcRequest, JsonRpcSuccess, ModuleFullname } from '../types';
+import type {
+  JsonRpcRequest,
+  JsonRpcSuccess,
+  ModuleFullname,
+  UniqueID,
+} from '../types';
 
 const logger = new Logger('dhLocalExecutionUtils');
 
@@ -164,14 +169,16 @@ export async function createPythonModuleMeta(
 
 /**
  * Get a script to set the execution context on the local execution plugin.
+ * @param connectionId The unique ID of the connection.
  * @param moduleFullnames An iterable of module fullnames of python files.
  * @returns A Python script string.
  */
 export function getSetExecutionContextScript(
+  connectionId: UniqueID,
   moduleFullnames: Iterable<string>
 ): string {
   const moduleFullnamesString = `{${[...moduleFullnames].map(modulePath => `"${modulePath}"`).join(',')}}`;
-  return `${DH_LOCAL_EXECUTION_PLUGIN_VARIABLE}.set_execution_context(${moduleFullnamesString})`;
+  return `${DH_LOCAL_EXECUTION_PLUGIN_VARIABLE}.set_execution_context('${connectionId}', ${moduleFullnamesString})`;
 }
 
 /**
