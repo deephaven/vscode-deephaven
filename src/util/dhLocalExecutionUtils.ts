@@ -32,7 +32,7 @@ export interface PythonModuleMeta {
   topLevelModuleNames: URIMap<Map<ModuleFullname, Include<ModuleFullname>>>;
 }
 
-export const DH_LOCAL_EXECUTION_PLUGIN_INIT_SCRIPT = [
+export const DH_PYTHON_REMOTE_SOURCE_PLUGIN_INIT_SCRIPT = [
   'try:',
   `    ${DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE}`,
   'except NameError:',
@@ -63,7 +63,7 @@ export async function getLocalExecutionPlugin(
   }
 
   // Initialize the local execution plugin if it is not already initialized.
-  await session.runCode(DH_LOCAL_EXECUTION_PLUGIN_INIT_SCRIPT);
+  await session.runCode(DH_PYTHON_REMOTE_SOURCE_PLUGIN_INIT_SCRIPT);
 
   const localExecPlugin: DhcType.Widget = await session.getObject({
     name: DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE,
