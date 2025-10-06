@@ -5,7 +5,7 @@ It is recommended to configure a [Python virtual environment](https://code.visua
 A `requirements.txt` file can be generated containing all of the packages installed on the server by:
 
 1. Connect to a Deephaven server
-1. Right-click on the connection in the [`CONNECTIONS` panel](#connections) on the left side of VS Code
+1. Right-click on the connection in the [`CONNECTIONS` panel](./panels.md#connections) on the left side of VS Code
 1. Click `Generate requirements.txt` action
 
    ![Generate requirements.txt](./assets/generate-requirements-txt.png)

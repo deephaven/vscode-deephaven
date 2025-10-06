@@ -13,4 +13,4 @@ Once installed, the Deephaven icon will show up in the activity bar on the left 
 
 ![VS Code Activity Bar](./assets/dh-activity-bar.gif)
 
-By default, the extension is only configured to connect to a single Community server hosted at `http://localhost:10000`. See more about adding, removing, and updating servers in the [Configuration](#configuration) section below.
+By default, the extension is only configured to connect to a single Community server hosted at `http://localhost:10000`. See more about adding, removing, and updating servers in the [Configuration](./configuration.md) section below.
