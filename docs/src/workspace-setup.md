@@ -16,7 +16,7 @@ A `requirements.txt` file can be generated containing all of the packages instal
 
 If you want to manage Deephaven servers from within the extension, include `deephaven-server` in the venv pip installation.
 
-Once installed, clicking the `refresh` button in the [server tree panel](#servers) should reveal a `Managed` servers node.
+Once installed, clicking the `refresh` button in the server tree panel should reveal a `Managed` servers node.
 
 ![Refresh Servers](./assets/refresh-servers.png)
 

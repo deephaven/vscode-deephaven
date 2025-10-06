@@ -12,6 +12,6 @@ A new connection will appear in the [`CONNECTIONS` panel](./panels.md#connection
 
 ## Markdown Code Blocks
 
-The extension also supports running code blocks in markdown files. Like with [running entire files](#run-code-against-a-deephaven-server), the code block must match the language of the server you are connecting to. Atop the code block, click the `Run Deephaven Block` action.
+The extension also supports running code blocks in markdown files. Like with running entire files, the code block must match the language of the server you are connecting to. Atop the code block, click the `Run Deephaven Block` action.
 
 ![Run Deephaven block](./assets/markdown-codeblocks.png)
