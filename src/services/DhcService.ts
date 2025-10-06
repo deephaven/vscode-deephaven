@@ -401,6 +401,7 @@ export class DhcService extends DisposableBase implements IDhcService {
       logger.debug('Command took', performance.now() - start, 'ms');
       error = result.error;
     } catch (err) {
+      this.isRunningCode = false;
       error = String(err);
 
       // Grpc UNAUTHENTICATED code. This should not generally happen since we
