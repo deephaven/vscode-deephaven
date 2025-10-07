@@ -76,7 +76,7 @@ jobs:
         with:
           append: true
           message: |
-            [VS Code Extension](${{ vars.DOCS_PREVIEW_URL }}/vscode/pr-${{ github.event.number }}/docs/)
+            [VS Code Extension](${{ vars.DOCS_PREVIEW_URL }}/vscode-deephaven/pr-${{ github.event.number }}/docs/)
       - name: Update PR comment on fail
         if: ${{ failure() }}
         uses: marocchino/sticky-pull-request-comment@v2
