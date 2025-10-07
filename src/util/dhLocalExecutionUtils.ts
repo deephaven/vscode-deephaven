@@ -58,7 +58,9 @@ export async function getLocalExecutionPlugin(
   session: DhcType.IdeSession,
   workerUrl: URL
 ): Promise<DhcType.Widget | null> {
-  if (!(await isLocalExecutionPluginInstalled(workerUrl))) {
+  if (
+    !(await isPluginInstalled(workerUrl, DH_PYTHON_REMOTE_SOURCE_PLUGIN_NAME))
+  ) {
     return null;
   }
 
@@ -121,12 +123,14 @@ export function getSetExecutionContextScript(
 }
 
 /**
- * Check if the local execution plugin is installed on the given worker.
+ * Check if a plugin is installed on the given worker.
  * @param workerUrl URL of the Core / Core+ worker
- * @returns
+ * @param pluginName Name of the plugin to check for
+ * @returns Promise that resolves to true if the plugin is installed, false otherwise
  */
-export async function isLocalExecutionPluginInstalled(
-  workerUrl: URL
+export async function isPluginInstalled(
+  workerUrl: URL,
+  pluginName: string
 ): Promise<boolean> {
   const pluginsManifestUrl = new URL('/js-plugins/manifest.json', workerUrl);
 
@@ -134,9 +138,7 @@ export async function isLocalExecutionPluginInstalled(
     const response = await fetch(pluginsManifestUrl, { method: 'GET' });
     const manifestJson: { plugins: { name: string }[] } = await response.json();
 
-    return manifestJson.plugins.some(
-      plugin => plugin.name === DH_PYTHON_REMOTE_SOURCE_PLUGIN_NAME
-    );
+    return manifestJson.plugins.some(plugin => plugin.name === pluginName);
   } catch (err) {
     logger.error('Error checking for local execution plugin', err);
     return false;
