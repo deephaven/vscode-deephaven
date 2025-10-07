@@ -66,7 +66,7 @@ jobs:
         uses: deephaven/salmon-sync@v1
         with:
           source: docs/src
-          destination: deephaven/vscode/pr-${{ github.event.number }}
+          destination: deephaven/vscode-deephaven/pr-${{ github.event.number }}
           production: false
           temporary: true
           aws-role: ${{ vars.DOCS_AWS_ROLE }}

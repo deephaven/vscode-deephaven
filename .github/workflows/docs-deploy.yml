@@ -40,7 +40,7 @@ jobs:
         uses: deephaven/salmon-sync@v1
         with:
           source: docs/src
-          destination: deephaven/vscode/${{ steps.version.outputs.version }}
+          destination: deephaven/vscode-deephaven/${{ steps.version.outputs.version }}
           production: true
           temporary: false
           aws-role: ${{ vars.DOCS_AWS_ROLE }}
@@ -52,7 +52,7 @@ jobs:
         uses: deephaven/salmon-sync@v1
         with:
           source: docs/src
-          destination: deephaven/vscode/main
+          destination: deephaven/vscode-deephaven/main
           production: true
           temporary: false
           aws-role: ${{ vars.DOCS_AWS_ROLE }}
