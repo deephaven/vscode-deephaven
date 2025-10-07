@@ -35,7 +35,7 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Sync release docs to the salmon bucket
-        if: endsWith(steps.version.outputs.version, '-pre') == false
+        if: ${{ !endsWith(steps.version.outputs.version, '-pre') }}
         id: sync-docs-release
         uses: deephaven/salmon-sync@v1
         with:
@@ -47,7 +47,7 @@ jobs:
 
       # We want to only have the latest prerelease docs deployed
       - name: Sync prerelease docs to the salmon bucket
-        if: endsWith(steps.version.outputs.version, '-pre')
+        if: ${{ endsWith(steps.version.outputs.version, '-pre') }}
         id: sync-docs-prerelease
         uses: deephaven/salmon-sync@v1
         with:
