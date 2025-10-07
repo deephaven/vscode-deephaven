@@ -6,7 +6,7 @@
     "main": [
       {
         "label": "Introduction",
-        "path": "introduction.md"
+        "path": "README.md"
       },
       {
         "label": "Installation",
