@@ -52,7 +52,7 @@ describe('Panels Tests', () => {
   before(async () => {
     const explorerView = await setup();
     await openFileResources(SIMPLE_TICKING3_PY.path);
-    explorerView?.closeView();
+    await explorerView?.closeView();
     await new Workbench().executeCommand('View: Split Editor Down');
   });
 
