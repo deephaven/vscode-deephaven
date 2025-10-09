@@ -7,7 +7,7 @@ export const locators = {
    * collapsed.
    */
   chatCloseButton: By.css(
-    '.auxiliarybar:not(.empty) a[aria-label="Hide Secondary Side Bar (⌥⌘B)"]'
+    '.auxiliarybar:not(.empty) a[aria-label^="Hide Secondary Side Bar"]'
   ),
 
   irisGrid: By.css('.iris-grid'),
