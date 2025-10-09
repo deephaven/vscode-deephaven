@@ -1,4 +1,4 @@
-# Deephaven VS Code Extension TEST
+# Deephaven VS Code Extension
 
 This is the official Deephaven extension for Visual Studio Code. Use it to run queries against running Deephaven servers from VS Code directly. The extension supports both Deephaven [Community](https://deephaven.io/core/docs/) and [Enterprise](https://deephaven.io/enterprise/docs/) servers.
 
