@@ -3,7 +3,7 @@ name: Docs Deploy
 on:
   push:
     branches: ["main"]
-    tags: ["v*"]
+    tags: ["v*-release"]
   workflow_dispatch:
     inputs:
       version:
@@ -36,24 +36,11 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Sync release docs to the salmon bucket
-        if: ${{ !endsWith(steps.version.outputs.version, '-pre') }}
         id: sync-docs-release
         uses: deephaven/salmon-sync@v1
         with:
           source: docs/src
           destination: deephaven/vscode-deephaven/${{ steps.version.outputs.version }}
-          production: true
-          temporary: false
-          aws-role: ${{ vars.DOCS_AWS_ROLE }}
-
-      # We want to only have the latest prerelease docs deployed
-      - name: Sync prerelease docs to the salmon bucket
-        if: ${{ endsWith(steps.version.outputs.version, '-pre') }}
-        id: sync-docs-prerelease
-        uses: deephaven/salmon-sync@v1
-        with:
-          source: docs/src
-          destination: deephaven/vscode-deephaven/main
           production: true
           temporary: false
           aws-role: ${{ vars.DOCS_AWS_ROLE }}
