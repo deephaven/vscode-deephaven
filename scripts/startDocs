@@ -31,5 +31,5 @@ while getopts "p:h" opt; do
 done
 
 pushd "$(dirname "$0")" > /dev/null # Set pwd to this directory
-docker run --rm --name deephaven-vscode-docs-preview --pull=always -p $PORT:$PORT -e PORT=$PORT --volume ../docs:/salmon/vscode/docs ghcr.io/deephaven/salmon:latest
+docker run --rm --name deephaven-vscode-docs-preview --pull=always -p $PORT:$PORT -e PORT=$PORT --volume $(pwd)/../docs:/salmon/vscode/docs ghcr.io/deephaven/salmon:latest
 popd > /dev/null # Reset pwd
