@@ -39,7 +39,7 @@ jobs:
         id: sync-docs-release
         uses: deephaven/salmon-sync@v1
         with:
-          source: docs/src
+          source: docs
           destination: deephaven/vscode-deephaven/${{ steps.version.outputs.version }}
           production: true
           temporary: false

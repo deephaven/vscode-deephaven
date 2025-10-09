@@ -30,7 +30,7 @@ jobs:
         with:
           filters: |
             docs:
-              - 'docs/src/**'
+              - 'docs/**'
       - name: No changes comment
         if: ${{ !contains(steps.filter.outputs.*, 'true') }}
         uses: marocchino/sticky-pull-request-comment@v2
@@ -66,7 +66,7 @@ jobs:
         id: sync-docs
         uses: deephaven/salmon-sync@v1
         with:
-          source: docs/src
+          source: docs
           destination: deephaven/vscode-deephaven/pr-${{ github.event.number }}
           production: false
           temporary: true
