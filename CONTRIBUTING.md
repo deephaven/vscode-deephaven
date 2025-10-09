@@ -44,6 +44,18 @@ To run using `VS Code` debugger:
 
 The `vscode-extension-tester` library uses `Mocha` to run tests. If you need to tweak debugging settings such as test timeout, you can do so in [`e2e-testing/src/mocharcDebug.ts`](./e2e-testing/src/mocharcDebug.ts).
 
+### Documentation
+
+The `/docs` directory contains the documentation for Deephaven VS Code Extension.
+
+If any changes were made to docs, you **must** format them before committing changes.
+
+```sh
+./scripts/startDocs # Start docs server on port 3001. -p <port> to run on a different port.
+./scripts/formatDocs # Format all docs using dprint.
+./scripts/validateDocs # Validates the docs build and links are valid
+``` 
+
 ## VSCE
 [vsce](https://github.com/microsoft/vscode-vsce), short for "Visual Studio Code Extensions", is a command-line tool for packaging, publishing and managing `VS Code` extensions. The Deephaven extension calls `vsce` via npm scripts. Note that `vsce package` and `vsce publish` both call the `vscode:prepublish` script.
 
@@ -58,7 +70,7 @@ or
 Build a .vsix locally via `npm run package:latest` (see [VSCE](#vsce) section)
 
 Then install in `VS Code`:
-![Install Deephaven VS Code](./docs/src/assets/install-vsix.png)
+![Install Deephaven VS Code](./docs/assets/install-vsix.png)
 
 ## Publishing
 
