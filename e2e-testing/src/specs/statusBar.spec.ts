@@ -24,7 +24,7 @@ describe('Status Bar Tests', () => {
   let statusBar: StatusBar;
 
   before(async () => {
-    await setup();
+    const explorerView = await setup();
 
     await openFileResources(
       SIMPLE_TICKING_MD.path,
@@ -32,6 +32,8 @@ describe('Status Bar Tests', () => {
       TEST_GROOVY.path,
       TEST_TXT.path
     );
+
+    await explorerView?.closeView();
 
     editorView = new EditorViewExtended();
     statusBar = new StatusBar();

@@ -272,6 +272,10 @@ export class ServerManager implements IServerManager {
       this.disconnectFromServer(serverUrl);
     });
 
+    connection.onDidChangeRunningCodeStatus?.(() => {
+      this._onDidUpdate.fire();
+    });
+
     this.updateConnectionCount(serverUrl, 1);
 
     this._onDidConnect.fire(serverUrl);
@@ -295,6 +299,7 @@ export class ServerManager implements IServerManager {
 
     this._connectionMap.set(placeholderUrl, {
       isConnected: false,
+      isRunningCode: false,
       serverUrl: placeholderUrl,
       tagId,
     });

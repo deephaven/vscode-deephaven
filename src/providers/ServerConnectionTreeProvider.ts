@@ -66,7 +66,11 @@ export class ServerConnectionTreeProvider extends TreeDataProviderBase<ServerCon
         ? vscode.TreeItemCollapsibleState.Expanded
         : undefined,
       iconPath: new vscode.ThemeIcon(
-        connectionOrUri.isConnected ? ICON_ID.connected : ICON_ID.connecting
+        connectionOrUri.isRunningCode
+          ? ICON_ID.runningCode
+          : connectionOrUri.isConnected
+            ? ICON_ID.connected
+            : ICON_ID.connecting
       ),
     };
   };

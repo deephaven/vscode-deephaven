@@ -13,6 +13,7 @@ import {
 import os from 'node:os';
 import { RETRY_SWITCH_IFRAME_ERRORS } from './constants';
 import type { FrameSelector } from './types';
+import { assert } from 'chai';
 
 /**
  * Disconnect from Deephaven server by clicking on disconnect action on server
@@ -40,6 +41,33 @@ export async function elementExists(locator: Locator): Promise<boolean> {
 }
 
 /**
+ * The `chai` `assert.deepEqual` is a little lacking in output when arrays don't
+ * match, so this function provides a more detailed error messages.
+ * @param actual array to check
+ * @param expected expected array to match
+ * @param label label to use in error messages
+ */
+export async function expectDeepEqualArray<T>(
+  actual: T[],
+  expected: T[],
+  label: string
+): Promise<void> {
+  if (actual.length !== expected.length) {
+    throw new Error(
+      `${label} Array length mismatch. Actual: ${actual.length}, Expected: ${expected.length}`
+    );
+  }
+
+  for (let i = 0; i < actual.length; i += 1) {
+    assert.deepEqual(
+      actual[i],
+      expected[i],
+      `${label} Array element mismatch at index ${i}. Expected ${JSON.stringify(expected[i])}, but got ${JSON.stringify(actual[i])}`
+    );
+  }
+}
+
+/**
  * We don't have access to some of the underlying error classes from
  * vscode-extension-tester, but we can approximate the type of error by grabbing
  * any text before the first colon.
@@ -48,6 +76,18 @@ export async function elementExists(locator: Locator): Promise<boolean> {
  */
 export function extractErrorType(error: unknown): string {
   return String(error).split(':')[0];
+}
+
+/**
+ * Look for elment based on locator, returning null if not found.
+ * @param locator Locator to look for
+ * @returns Element if found, null otherwise
+ */
+export async function getElementOrNull(
+  locator: Locator
+): Promise<WebElement | null> {
+  const { driver } = VSBrowser.instance;
+  return (await driver.findElements(locator))[0] ?? null;
 }
 
 /**

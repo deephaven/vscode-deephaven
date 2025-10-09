@@ -49,7 +49,10 @@ export interface IConfigService {
 export interface IDhcService extends IDisposable, ConnectionState {
   readonly isInitialized: boolean;
   readonly isConnected: boolean;
+  isRunningCode: boolean;
+
   readonly onDidDisconnect: vscode.Event<URL>;
+  readonly onDidChangeRunningCodeStatus: vscode.Event<boolean>;
 
   initSession(): Promise<boolean>;
   getClient(): Promise<CoreAuthenticatedClient | null>;

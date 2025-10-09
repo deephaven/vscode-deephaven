@@ -41,7 +41,7 @@ import { assertDefined } from '../shared';
 
 const logger = new Logger('DhcService');
 
-export class DhcService extends DisposableBase {
+export class DhcService extends DisposableBase implements IDhcService {
   /**
    * Creates a factory function that can be used to create DhcService instances.
    * @param coreClientCache Core client cache.
@@ -103,8 +103,14 @@ export class DhcService extends DisposableBase {
 
     this.coreClientCache.onDidChange(this.onDidCoreClientCacheInvalidate);
 
+    this.disposables.add(this._onDidChangeRunningCodeStatus);
     this.disposables.add(this._onDidDisconnect);
   }
+
+  private readonly _onDidChangeRunningCodeStatus =
+    new vscode.EventEmitter<boolean>();
+  readonly onDidChangeRunningCodeStatus =
+    this._onDidChangeRunningCodeStatus.event;
 
   private readonly _onDidDisconnect = new vscode.EventEmitter<URL>();
   readonly onDidDisconnect = this._onDidDisconnect.event;
@@ -132,6 +138,17 @@ export class DhcService extends DisposableBase {
 
   get isConnected(): boolean {
     return this.cn != null && this.session != null;
+  }
+
+  private _isRunningCode = false;
+  get isRunningCode(): boolean {
+    return this._isRunningCode;
+  }
+  private set isRunningCode(value: boolean) {
+    if (this._isRunningCode !== value) {
+      this._isRunningCode = value;
+      this._onDidChangeRunningCodeStatus.fire(this._isRunningCode);
+    }
   }
 
   private onDidCoreClientCacheInvalidate = (url: URL): void => {
@@ -376,10 +393,15 @@ export class DhcService extends DisposableBase {
 
     try {
       const start = performance.now();
+
+      this.isRunningCode = true;
       result = await this.session.runCode(text);
+      this.isRunningCode = false;
+
       logger.debug('Command took', performance.now() - start, 'ms');
       error = result.error;
     } catch (err) {
+      this.isRunningCode = false;
       error = String(err);
 
       // Grpc UNAUTHENTICATED code. This should not generally happen since we
