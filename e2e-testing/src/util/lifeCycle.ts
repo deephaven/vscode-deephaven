@@ -12,9 +12,6 @@ import { locators } from './locators';
  */
 export async function setup(): Promise<ViewControl | undefined> {
   const chatCloseButton = await getElementOrNull(locators.chatCloseButton);
-  // eslint-disable-next-line no-console
-  console.log('chatCloseButton found:', chatCloseButton != null);
-
   await chatCloseButton?.click();
 
   const explorer = await new ActivityBar().getViewControl('Explorer');
