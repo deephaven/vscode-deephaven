@@ -8,7 +8,7 @@ name: Docs PR Preview
 on:
   # This should be safe since the action doesn't do any build with the PR code
   # It would not be safe to run scripts from the PR code, so we use docker directly in this action
-  pull_request_target:
+  pull_request:
     branches: [main]
 
 concurrency:
