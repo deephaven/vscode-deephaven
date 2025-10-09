@@ -3,15 +3,15 @@ import {
   EditorView,
   type ViewControl,
 } from 'vscode-extension-tester';
-import { disconnectFromServer } from './testUtils';
+import { disconnectFromServer, getElementOrNull } from './testUtils';
 import { SERVER_TITLE } from './constants';
-import { WorkbenchExtended } from '../pageObjects';
+import { locators } from './locators';
 
 /**
  * Setup before running test suite.
  */
 export async function setup(): Promise<ViewControl | undefined> {
-  const chatCloseButton = await new WorkbenchExtended().getChatCloseButton();
+  const chatCloseButton = await getElementOrNull(locators.chatCloseButton);
   await chatCloseButton?.click();
 
   const explorer = await new ActivityBar().getViewControl('Explorer');
@@ -19,6 +19,7 @@ export async function setup(): Promise<ViewControl | undefined> {
   if (!(await explorer?.isSelected())) {
     await explorer?.openView();
   }
+
   return explorer;
 }
 

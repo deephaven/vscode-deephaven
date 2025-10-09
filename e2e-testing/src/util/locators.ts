@@ -1,6 +1,15 @@
 import { By } from 'vscode-extension-tester';
 
 export const locators = {
+  /**
+   * Locator for side panel close button so we can close the Copilot chat. Note
+   * that the button is always present, but parent div gets `empty` class when
+   * collapsed.
+   */
+  chatCloseButton: By.css(
+    '.auxiliarybar:not(.empty) a[aria-label="Hide Secondary Side Bar (⌥⌘B)"]'
+  ),
+
   irisGrid: By.css('.iris-grid'),
 
   /** Locator for the containing div of a WebView */

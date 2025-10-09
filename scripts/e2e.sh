@@ -26,5 +26,5 @@ if [ $test_exit_code -ne 0 ]; then
     echo -e "\033[0;31mE2E tests FAILED with exit code $test_exit_code\033[0m"
     exit $test_exit_code
 else
-    echo "E2E tests PASSED"
+    echo -e "\033[0;32mE2E tests PASSED\033[0m"
 fi

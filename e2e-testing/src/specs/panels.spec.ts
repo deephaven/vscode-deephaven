@@ -1,7 +1,7 @@
 import { Workbench } from 'vscode-extension-tester';
-import { assert } from 'chai';
 import { EditorViewExtended } from '../pageObjects';
 import {
+  expectDeepEqualArray,
   openFileResources,
   runDhFileCodeLens,
   setup,
@@ -71,7 +71,7 @@ describe('Panels Tests', () => {
 
     await step(2, 'Initial editor group state', async stepLabel => {
       const editorGroupsData = await editorView.getEditorGroupsData();
-      assert.deepEqual(
+      expectDeepEqualArray(
         editorGroupsData,
         [
           {
@@ -95,7 +95,7 @@ describe('Panels Tests', () => {
     await step(3, 'Switch to another tab', async stepLabel => {
       await editorView.openWebView('t1', 2);
       const editorGroupsData = await editorView.getEditorGroupsData();
-      assert.deepEqual(
+      expectDeepEqualArray(
         editorGroupsData,
         [
           {
@@ -123,7 +123,7 @@ describe('Panels Tests', () => {
     await step(4, 'Switch back to initial tab', async stepLabel => {
       await editorView.openWebView('t3', 2);
       const editorGroupsData = await editorView.getEditorGroupsData();
-      assert.deepEqual(
+      expectDeepEqualArray(
         editorGroupsData,
         [
           {
@@ -153,7 +153,7 @@ describe('Panels Tests', () => {
       await editorView.closeEditor('t2', 2);
 
       const editorGroupsData = await editorView.getEditorGroupsData();
-      assert.deepEqual(
+      expectDeepEqualArray(
         editorGroupsData,
         [
           {
@@ -182,7 +182,7 @@ describe('Panels Tests', () => {
 
         const editorGroupsData = await editorView.getEditorGroupsData();
 
-        assert.deepEqual(
+        expectDeepEqualArray(
           editorGroupsData,
           [
             {
@@ -210,7 +210,7 @@ describe('Panels Tests', () => {
       await new Workbench().executeCommand('View: Move Editor into Next Group');
 
       const editorGroupsData = await editorView.getEditorGroupsData();
-      assert.deepEqual(
+      expectDeepEqualArray(
         editorGroupsData,
         [
           {
@@ -245,7 +245,8 @@ describe('Panels Tests', () => {
         await runDhFileCodeLens(editor);
 
         const editorGroupsData = await editorView.getEditorGroupsData();
-        assert.deepEqual(
+
+        expectDeepEqualArray(
           editorGroupsData,
           [
             {
