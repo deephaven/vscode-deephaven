@@ -1,5 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { urlToDirectoryName } from './uriUtils';
+
+// See __mocks__/vscode.ts for the mock implementation
+vi.mock('vscode');
 
 describe('urlUtils', () => {
   it.each([
