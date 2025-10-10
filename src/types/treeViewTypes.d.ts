@@ -4,7 +4,7 @@ import type {
   ServerState,
   VariableDefintion,
 } from './commonTypes';
-import type { ModuleFullname } from './localExecutionTypes';
+import type { ModuleFullname } from './remoteFileSourceTypes';
 
 export type ServerGroupState = 'Managed' | 'Running' | 'Stopped';
 export type ServerNode = ServerGroupState | ServerState;

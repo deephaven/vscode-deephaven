@@ -74,7 +74,7 @@ import {
   DheService,
   DheServiceCache,
   FilteredWorkspace,
-  LocalExecutionService,
+  RemoteFileSourceService,
   PanelService,
   ParsedDocumentCache,
   PYTHON_FILE_PATTERN,
@@ -186,8 +186,8 @@ export class ExtensionController implements IDisposable {
   private _dhcServiceFactory: IDhcServiceFactory | null = null;
   private _dheJsApiCache: IAsyncCacheService<URL, DheType> | null = null;
   private _dheServiceFactory: IDheServiceFactory | null = null;
-  private _localExecutionService: LocalExecutionService | null = null;
   private _pythonWorkspace: FilteredWorkspace | null = null;
+  private _remoteFileSourceService: RemoteFileSourceService | null = null;
   private _secretService: ISecretService | null = null;
   private _serverManager: IServerManager | null = null;
   private _userLoginController: UserLoginController | null = null;
@@ -228,7 +228,7 @@ export class ExtensionController implements IDisposable {
     this.initializeDocumentCaches();
     this.initializeCodeLenses();
     this.initializeHoverProviders();
-    this.initializeLocalExecution();
+    this.initializeRemoteFileSourcing();
     this.initializeServerManager();
     this.initializeAuthProviders();
     this.initializeTempDirectory();
@@ -330,19 +330,6 @@ export class ExtensionController implements IDisposable {
   };
 
   /**
-   * Initialize services needed for local execution.
-   */
-  initializeLocalExecution = (): void => {
-    this._pythonWorkspace = new FilteredWorkspace(PYTHON_FILE_PATTERN);
-    this._context.subscriptions.push(this._pythonWorkspace);
-
-    this._localExecutionService = new LocalExecutionService(
-      this._pythonWorkspace
-    );
-    this._context.subscriptions.push(this._localExecutionService);
-  };
-
-  /**
    * Initialize panel controller.
    */
   initializePanelController = (): void => {
@@ -373,6 +360,19 @@ export class ExtensionController implements IDisposable {
     );
 
     this._context.subscriptions.push(this._pipServerController);
+  };
+
+  /**
+   * Initialize services needed for remote file sourcing.
+   */
+  initializeRemoteFileSourcing = (): void => {
+    this._pythonWorkspace = new FilteredWorkspace(PYTHON_FILE_PATTERN);
+    this._context.subscriptions.push(this._pythonWorkspace);
+
+    this._remoteFileSourceService = new RemoteFileSourceService(
+      this._pythonWorkspace
+    );
+    this._context.subscriptions.push(this._remoteFileSourceService);
   };
 
   /**
@@ -475,9 +475,9 @@ export class ExtensionController implements IDisposable {
   };
 
   initializeServerManager = (): void => {
-    assertDefined(this._localExecutionService, 'localExecutionService');
     assertDefined(this._pythonDiagnostics, 'pythonDiagnostics');
     assertDefined(this._outputChannel, 'outputChannel');
+    assertDefined(this._remoteFileSourceService, 'remoteFileSourceService');
     assertDefined(this._secretService, 'secretService');
     assertDefined(this._toaster, 'toaster');
 
@@ -602,7 +602,7 @@ export class ExtensionController implements IDisposable {
     this._dhcServiceFactory = DhcService.factory(
       this._coreClientCache,
       this._pythonDiagnostics,
-      this._localExecutionService,
+      this._remoteFileSourceService,
       this._outputChannel,
       this._panelService,
       this._secretService,
@@ -947,7 +947,7 @@ export class ExtensionController implements IDisposable {
   onRemoveRemoteFileSource = async (
     nodeOrUri: MarkableWsTreeNode | vscode.Uri
   ): Promise<void> => {
-    assertDefined(this._pythonWorkspace, 'localExecutionService');
+    assertDefined(this._pythonWorkspace, 'pythonWorkspace');
 
     const uri = nodeOrUri instanceof vscode.Uri ? nodeOrUri : nodeOrUri.uri;
     this._pythonWorkspace.unmarkFolder(uri);

@@ -1,5 +1,4 @@
 export * from './dataUtils';
-export * from './dhLocalExecutionUtils';
 export * from './documentUtils';
 export * from './extensionApiUtils';
 export * from './hoverUtils';
@@ -11,6 +10,7 @@ export * from './maps';
 export * from './OutputChannelWithHistory';
 export * from './panelUtils';
 export * from './promiseUtils';
+export * from './remoteFileSourceUtils';
 export * from './sanitizeUtils';
 export * from './selectionUtils';
 export * from './serverUtils';

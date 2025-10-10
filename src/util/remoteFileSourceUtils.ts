@@ -21,7 +21,7 @@ import {
   DH_PYTHON_REMOTE_SOURCE_PLUGIN_NAME,
 } from '../common';
 
-const logger = new Logger('dhLocalExecutionUtils');
+const logger = new Logger('remoteFileSourceUtils');
 
 export type PythonModuleWorkspaceMap = URIMap<
   Map<ModuleFullname, Include<vscode.Uri>>
@@ -45,15 +45,15 @@ export const DH_PYTHON_REMOTE_SOURCE_PLUGIN_INIT_SCRIPT = [
 export const DH_WIDGET_EVENT_MESSAGE = 'message' as const;
 
 /**
- * If local execution plugin is installed, get an instance of it and set the
- * connection ID.
+ * If a remote file system plugin is installed, get an instance of it and set
+ * the connection ID.
  * @param cnId connection ID to set on the message stream / connection
  * @param session session to get the plugin from
  * @param workerUrl URL of the Core / Core+ worker
- * @returns a Promise that resolves to the local execution plugin widget, or
+ * @returns a Promise that resolves to the remote file source plugin widget, or
  * null if plugin is not installed
  */
-export async function getLocalExecutionPlugin(
+export async function getRemoteFileSourcePlugin(
   cnId: UniqueID,
   session: DhcType.IdeSession,
   workerUrl: URL
@@ -64,10 +64,10 @@ export async function getLocalExecutionPlugin(
     return null;
   }
 
-  // Initialize the local execution plugin if it is not already initialized.
+  // Initialize the plugin if it is not already initialized.
   await session.runCode(DH_PYTHON_REMOTE_SOURCE_PLUGIN_INIT_SCRIPT);
 
-  const localExecPlugin: DhcType.Widget = await session.getObject({
+  const plugin: DhcType.Widget = await session.getObject({
     name: DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE,
     type: DH_PYTHON_REMOTE_SOURCE_PLUGIN_CLASS,
   });
@@ -78,9 +78,9 @@ export async function getLocalExecutionPlugin(
     method: 'set_connection_id',
   };
 
-  await sendWidgetMessageAsync(localExecPlugin, msg);
+  await sendWidgetMessageAsync(plugin, msg);
 
-  return localExecPlugin;
+  return plugin;
 }
 
 export async function getWorkspaceFileUriMap(
@@ -108,7 +108,7 @@ export async function getWorkspaceFileUriMap(
 }
 
 /**
- * Get a script to set the execution context on the local execution plugin.
+ * Get a script to set the execution context on the remote file source plugin.
  * @param connectionId The unique ID of the connection.
  * @param moduleFullnames An iterable of module fullnames of python files.
  * @returns A Python script string.
@@ -140,22 +140,22 @@ export async function isPluginInstalled(
 
     return manifestJson.plugins.some(plugin => plugin.name === pluginName);
   } catch (err) {
-    logger.error('Error checking for local execution plugin', err);
+    logger.error('Error checking for remote file source plugin', err);
     return false;
   }
 }
 
 /**
- * Register a message listener on the local execution plugin to handle requests.
- * @param localExecPlugin the local execution plugin widget
+ * Register a message listener on the remote file source plugin to handle requests.
+ * @param plugin the remote file source plugin widget
  * @param getModuleFilePath a function that returns the file path for a given module fullname
  * @returns a function to unregister the listener
  */
-export function registerLocalExecPluginMessageListener(
-  localExecPlugin: DhcType.Widget,
+export function registerRemoteFileSourcePluginMessageListener(
+  plugin: DhcType.Widget,
   getModuleFilePath: (moduleFullname: ModuleFullname) => vscode.Uri | undefined
 ): () => void {
-  return localExecPlugin.addEventListener<DhcType.Widget>(
+  return plugin.addEventListener<DhcType.Widget>(
     DH_WIDGET_EVENT_MESSAGE,
     async ({ detail }) => {
       try {
@@ -184,7 +184,7 @@ export function registerLocalExecPluginMessageListener(
         };
 
         logger.log('Sending response to server:', response);
-        localExecPlugin.sendMessage(JSON.stringify(response));
+        plugin.sendMessage(JSON.stringify(response));
       } catch (err) {
         logger.error('Error parsing message from server:', err);
       }

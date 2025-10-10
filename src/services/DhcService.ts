@@ -38,7 +38,7 @@ import { NoConsoleTypesError, parseServerError } from '../dh/errorUtils';
 import { hasErrorCode } from '../util/typeUtils';
 import { DisposableBase } from './DisposableBase';
 import { assertDefined } from '../shared';
-import type { LocalExecutionService } from './LocalExcecutionService';
+import type { RemoteFileSourceService } from './RemoteFileSourceService';
 
 const logger = new Logger('DhcService');
 
@@ -47,7 +47,7 @@ export class DhcService extends DisposableBase implements IDhcService {
    * Creates a factory function that can be used to create DhcService instances.
    * @param coreClientCache Core client cache.
    * @param diagnosticsCollection Diagnostics collection.
-   * @param localExecutionService Local execution service.
+   * @param remoteFileSourceService Remote file source service.
    * @param outputChannel Output channel.
    * @param panelService Panel service.
    * @param secretService Secret service.
@@ -57,7 +57,7 @@ export class DhcService extends DisposableBase implements IDhcService {
   static factory = (
     coreClientCache: URLMap<CoreAuthenticatedClient>,
     diagnosticsCollection: vscode.DiagnosticCollection,
-    localExecutionService: LocalExecutionService,
+    remoteFileSourceService: RemoteFileSourceService,
     outputChannel: vscode.OutputChannel,
     panelService: IPanelService,
     secretService: ISecretService,
@@ -69,7 +69,7 @@ export class DhcService extends DisposableBase implements IDhcService {
           serverUrl,
           coreClientCache,
           diagnosticsCollection,
-          localExecutionService,
+          remoteFileSourceService,
           outputChannel,
           panelService,
           secretService,
@@ -88,7 +88,7 @@ export class DhcService extends DisposableBase implements IDhcService {
     serverUrl: URL,
     coreClientCache: URLMap<CoreAuthenticatedClient>,
     diagnosticsCollection: vscode.DiagnosticCollection,
-    localExecutionService: LocalExecutionService,
+    remoteFileSourceService: RemoteFileSourceService,
     outputChannel: vscode.OutputChannel,
     panelService: IPanelService,
     secretService: ISecretService,
@@ -99,7 +99,7 @@ export class DhcService extends DisposableBase implements IDhcService {
 
     this.coreClientCache = coreClientCache;
     this.diagnosticsCollection = diagnosticsCollection;
-    this.localExecutionService = localExecutionService;
+    this.remoteFileSourceService = remoteFileSourceService;
     this.outputChannel = outputChannel;
     this.panelService = panelService;
     this.secretService = secretService;
@@ -125,8 +125,8 @@ export class DhcService extends DisposableBase implements IDhcService {
   public readonly tagId?: UniqueID;
 
   private readonly coreClientCache: URLMap<CoreAuthenticatedClient>;
-  private readonly localExecutionService: LocalExecutionService;
   private readonly outputChannel: vscode.OutputChannel;
+  private readonly remoteFileSourceService: RemoteFileSourceService;
   private readonly secretService: ISecretService;
   private readonly toaster: IToastService;
   private readonly panelService: IPanelService;
@@ -138,7 +138,7 @@ export class DhcService extends DisposableBase implements IDhcService {
 
   private cn: DhcType.IdeConnection | null = null;
   private cnId: UniqueID | null = null;
-  private localExecPlugin: DhcType.Widget | null = null;
+  private remoteFileSourcePlugin: DhcType.Widget | null = null;
   private session: DhcType.IdeSession | null = null;
 
   get isInitialized(): boolean {
@@ -281,30 +281,30 @@ export class DhcService extends DisposableBase implements IDhcService {
     }
 
     try {
-      const { cn, cnId, localExecPlugin, session } =
+      const { cn, cnId, remoteFileSourcePlugin, session } =
         await this.initSessionPromise;
       this.cn = cn;
       this.cnId = cnId;
-      this.localExecPlugin = localExecPlugin;
+      this.remoteFileSourcePlugin = remoteFileSourcePlugin;
       this.session = session;
 
-      if (localExecPlugin != null) {
+      if (remoteFileSourcePlugin != null) {
         this.disposables.add(() => {
-          localExecPlugin.close();
+          remoteFileSourcePlugin.close();
         });
 
-        await this.localExecutionService.registerLocalExecPlugin(
-          localExecPlugin
+        await this.remoteFileSourceService.registerPlugin(
+          remoteFileSourcePlugin
         );
-        await this.localExecutionService.setServerExecutionContext(
+        await this.remoteFileSourceService.setServerExecutionContext(
           cnId,
           session
         );
 
         this.disposables.add(
           // If module meta is updated, update module names in the server plugin
-          this.localExecutionService.onDidUpdateModuleMeta(async () => {
-            await this.localExecutionService.setServerExecutionContext(
+          this.remoteFileSourceService.onDidUpdateModuleMeta(async () => {
+            await this.remoteFileSourceService.setServerExecutionContext(
               // runCode will call `setServerExecutionContext` again with an
               // actual connection ID before running code, so passing null here
               // should be fine.
@@ -443,8 +443,8 @@ export class DhcService extends DisposableBase implements IDhcService {
 
       this.isRunningCode = true;
 
-      if (this.localExecPlugin != null) {
-        await this.localExecutionService.setServerExecutionContext(
+      if (this.remoteFileSourcePlugin != null) {
+        await this.remoteFileSourceService.setServerExecutionContext(
           this.cnId,
           this.session
         );

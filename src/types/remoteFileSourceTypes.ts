@@ -14,6 +14,7 @@ interface JsonRpcRequestBase {
 
 export interface JsonRpcFetchModuleRequest extends JsonRpcRequestBase {
   method: 'fetch_module';
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   params: { module_name: ModuleFullname };
 }
 

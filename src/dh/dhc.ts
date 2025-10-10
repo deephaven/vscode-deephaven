@@ -14,7 +14,7 @@ import {
   REQUIREMENTS_TABLE_NAME_COLUMN_NAME,
   REQUIREMENTS_TABLE_VERSION_COLUMN_NAME,
 } from '../common';
-import { getLocalExecutionPlugin, uniqueId } from '../util';
+import { getRemoteFileSourcePlugin, uniqueId } from '../util';
 
 export const AUTH_HANDLER_TYPE_ANONYMOUS =
   'io.deephaven.auth.AnonymousAuthenticationHandler';
@@ -28,7 +28,7 @@ export const AUTH_HANDLER_TYPE_DHE =
 export type ConnectionAndSession<TConnection, TSession> = {
   cn: TConnection;
   cnId: UniqueID;
-  localExecPlugin: DhType.Widget | null;
+  remoteFileSourcePlugin: DhType.Widget | null;
   session: TSession;
 };
 
@@ -154,13 +154,13 @@ export async function initDhcSession(
 
   const workerUrl = new URL(await client.getServerUrl());
 
-  const localExecPlugin = await getLocalExecutionPlugin(
+  const remoteFileSourcePlugin = await getRemoteFileSourcePlugin(
     cnId,
     session,
     workerUrl
   );
 
-  return { cn, cnId, localExecPlugin, session };
+  return { cn, cnId, remoteFileSourcePlugin, session };
 }
 
 /**

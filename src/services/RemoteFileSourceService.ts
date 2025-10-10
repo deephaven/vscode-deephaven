@@ -4,15 +4,15 @@ import { DisposableBase } from './DisposableBase';
 import { Logger } from '../shared';
 import {
   getSetExecutionContextScript,
-  registerLocalExecPluginMessageListener,
+  registerRemoteFileSourcePluginMessageListener,
   relativeWsUriString,
 } from '../util';
 import type { ModuleFullname, RelativeWsUriString, UniqueID } from '../types';
 import type { FilteredWorkspace } from './FilteredWorkspace';
 
-const logger = new Logger('LocalExcecutionService');
+const logger = new Logger('RemoteFileSourceService');
 
-export class LocalExecutionService extends DisposableBase {
+export class RemoteFileSourceService extends DisposableBase {
   constructor(private readonly _pythonWorkspace: FilteredWorkspace) {
     super();
 
@@ -23,20 +23,18 @@ export class LocalExecutionService extends DisposableBase {
     );
 
     this.disposables.add(() => {
-      this._unregisterLocalExecPlugin?.();
-      this._unregisterLocalExecPlugin = null;
+      this._unregisterPlugin?.();
+      this._unregisterPlugin = null;
     });
   }
 
-  // private _localExecPlugin: DhcType.Widget | null = null;
-  private _unregisterLocalExecPlugin: (() => void) | null = null;
+  private _unregisterPlugin: (() => void) | null = null;
 
   private _onDidUpdateModuleMeta = new vscode.EventEmitter<void>();
   readonly onDidUpdateModuleMeta = this._onDidUpdateModuleMeta.event;
 
   /**
-   * Get the top level Python module names sourced by local execution excluding
-   * any marked to ignore.
+   * Get the top level Python module names available to the remote file source.
    */
   getTopLevelPythonModuleNames(): Set<ModuleFullname> {
     const set = new Set<ModuleFullname>();
@@ -98,15 +96,13 @@ export class LocalExecutionService extends DisposableBase {
   }
 
   /**
-   * Register a local execution plugin.
+   * Register a remote file source plugin.
    */
-  async registerLocalExecPlugin(
-    localExecPlugin: DhcType.Widget
-  ): Promise<void> {
-    this._unregisterLocalExecPlugin?.();
+  async registerPlugin(plugin: DhcType.Widget): Promise<void> {
+    this._unregisterPlugin?.();
 
-    this._unregisterLocalExecPlugin = registerLocalExecPluginMessageListener(
-      localExecPlugin,
+    this._unregisterPlugin = registerRemoteFileSourcePluginMessageListener(
+      plugin,
       this.getUriForModuleFullname.bind(this)
     );
   }
