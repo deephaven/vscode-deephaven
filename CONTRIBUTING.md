@@ -144,7 +144,7 @@ The generator can be run via the following script, where `<path-to-dh-icons-dire
 npm run icon:gen -- <path-to-dh-icons-directory>
 ```
 
-The script will automatically copy `icons/dist/dh-icons.woff2` file to the `/assets` folder of the extension, but the contents of `icons/dist/dh-contributes-icons.json` has to be manually copied to the `package.json` `contributes/icons` section.
+The script will automatically copy `icons/dist/dh-icons.woff2` file to the `/assets` folder of the extension, but the contents of `icons/dist/dh/dh-contributes-icons.json` has to be manually copied to the `package.json` `contributes/icons` section.
 > Note: All of the icons should be consumed via the `dh-xxx` icon ids, so no code changes should be necessary unless icons have been renamed or removed.
 
 ## Implementation Notes
