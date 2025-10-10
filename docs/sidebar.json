@@ -6,7 +6,7 @@
     "main": [
       {
         "label": "Introduction",
-        "path": "introduction.md"
+        "path": "README.md"
       },
       {
         "label": "Installation",
@@ -35,6 +35,10 @@
       {
         "label": "Enterprise Authentication",
         "path": "enterprise-auth.md"
+      },
+      {
+        "label": "Data Storage",
+        "path": "data-storage.md"
       }
     ]
   }
