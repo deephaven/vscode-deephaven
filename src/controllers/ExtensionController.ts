@@ -13,7 +13,6 @@ import {
 import { NodeHttp2gRPCTransport } from '@deephaven/jsapi-nodejs';
 import {
   ADD_REMOTE_FILE_SOURCE_CMD,
-  ADD_REST_REMOTE_FILE_SOURCE_CMD,
   CLEAR_SECRET_STORAGE_CMD,
   CREATE_NEW_TEXT_DOC_CMD,
   DELETE_VARIABLE_CMD,
@@ -735,11 +734,6 @@ export class ExtensionController implements IDisposable {
     );
     this.registerCommand(
       ADD_REMOTE_FILE_SOURCE_CMD,
-      this.onAddRemoteFileSource
-    );
-    this.registerCommand(
-      ADD_REST_REMOTE_FILE_SOURCE_CMD,
-      // For now, this does the same as ADD_REMOTE_FILE_SOURCE_CMD
       this.onAddRemoteFileSource
     );
     this.registerCommand(

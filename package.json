@@ -277,11 +277,6 @@
         "icon": "$(remove)"
       },
       {
-        "command": "vscode-deephaven.addRestRemoteFileSource",
-        "title": "Add to Deephaven remote file sources",
-        "icon": "$(add)"
-      },
-      {
         "command": "vscode-deephaven.deleteVariable",
         "title": "Delete Deephaven Variable",
         "icon": "$(trash)"
@@ -790,10 +785,6 @@
           "when": "false"
         },
         {
-          "command": "vscode-deephaven.addRestRemoteFileSource",
-          "when": "false"
-        },
-        {
           "command": "vscode-deephaven.deleteVariable",
           "when": "false"
         }
@@ -954,7 +945,7 @@
         },
         {
           "id": "vscode-deephaven.view.pythonModuleTree",
-          "name": "Python Modules",
+          "name": "Remote Import Sources",
           "type": "tree"
         }
       ],
