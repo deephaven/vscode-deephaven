@@ -13,5 +13,3 @@
 !out/**/*.js
 !out/**/*.css
 !snippets.code-snippets
-
-!node_modules

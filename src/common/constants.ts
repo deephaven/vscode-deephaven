@@ -89,6 +89,7 @@ export const ICON_ID = {
   disconnected: 'plug',
   runAll: 'run-all',
   runSelection: 'run',
+  runningCode: 'sync~spin',
   saml: 'shield',
   server: 'server',
   serverConnected: 'circle-large-filled',
