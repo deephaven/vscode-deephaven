@@ -1,6 +1,9 @@
 import type { IServerManager } from '../types';
 import { TreeDataProviderBase } from './TreeDataProviderBase';
 
+/**
+ * Base class for tree data providers that depend on a server manager.
+ */
 export abstract class ServerTreeProviderBase<
   T,
 > extends TreeDataProviderBase<T> {
