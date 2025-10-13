@@ -338,39 +338,15 @@ export class DhcService extends DisposableBase implements IDhcService {
     session: DhcType.IdeSession,
     remoteFileSourcePlugin: DhcType.Widget
   ): Promise<void> => {
-    this.disposables.add(
-      remoteFileSourcePlugin.close.bind(remoteFileSourcePlugin)
-    );
-
-    const getModuleFilePath =
-      this.remoteFileSourceService.getUriForModuleFullname.bind(
-        this.remoteFileSourceService
-      );
+    this.disposables.add(() => {
+      remoteFileSourcePlugin.close();
+    });
 
     this.disposables.add(
-      (this.remoteFileSourcePluginSubscription =
-        registerRemoteFileSourcePluginMessageListener(
-          remoteFileSourcePlugin,
-          getModuleFilePath
-        ))
-    );
-
-    await this.remoteFileSourceService.setServerExecutionContext(
-      this.cnId,
-      session
-    );
-
-    this.disposables.add(
-      // If module meta is updated, update module names in the server plugin
-      this.remoteFileSourceService.onDidUpdateModuleMeta(async () => {
-        await this.remoteFileSourceService.setServerExecutionContext(
-          // runCode will call `setServerExecutionContext` again with an
-          // actual connection ID before running code, so passing null here
-          // should be fine.
-          null,
-          session
-        );
-      })
+      await this.remoteFileSourceService.registerPlugin(
+        session,
+        remoteFileSourcePlugin
+      )
     );
   };
 

@@ -2,7 +2,11 @@ import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { DisposableBase } from './DisposableBase';
 import { Logger } from '../shared';
-import { getSetExecutionContextScript, relativeWsUriString } from '../util';
+import {
+  getSetExecutionContextScript,
+  registerRemoteFileSourcePluginMessageListener,
+  relativeWsUriString,
+} from '../util';
 import type { ModuleFullname, RelativeWsUriString, UniqueID } from '../types';
 import type { FilteredWorkspace } from './FilteredWorkspace';
 
@@ -82,6 +86,43 @@ export class RemoteFileSourceService extends DisposableBase {
         }
       }
     }
+  }
+
+  /**
+   * Register a session + plugin with the remote file source service.
+   * @param session the ide session
+   * @param plugin the remote file source plugin widget
+   * @returns an unsubscribe function to unregister subscriptions
+   */
+  async registerPlugin(
+    session: DhcType.IdeSession,
+    plugin: DhcType.Widget
+  ): Promise<() => void> {
+    const getModuleFilePath = this.getUriForModuleFullname.bind(this);
+    const messageSubscription = registerRemoteFileSourcePluginMessageListener(
+      plugin,
+      getModuleFilePath
+    );
+
+    const setServerExecutionContext = this.setServerExecutionContext.bind(
+      this,
+      null,
+      session
+    );
+
+    // Set initial top-level module names and subscribe to update on meta changes
+    await setServerExecutionContext();
+    const metaSubscription = this.onDidUpdateModuleMeta(
+      setServerExecutionContext
+    );
+
+    this.disposables.add(messageSubscription);
+    this.disposables.add(metaSubscription);
+
+    return () => {
+      messageSubscription();
+      metaSubscription.dispose();
+    };
   }
 
   /**
