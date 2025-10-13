@@ -1,0 +1,63 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`parseServerError > should parse an error originating from another file > error <string> 1`] = `
+{
+  "file": "<string>",
+  "java.lang.runtimeexception": "Error in Python interpreter",
+  "line": 6,
+  "namespace": "<module>",
+  "type": "<class 'Exception'>",
+  "value": "Some error",
+}
+`;
+
+exports[`parseServerError > should parse an error originating from another file > error path 1`] = `
+{
+  "file": "/some/path/my_weather/error_test.py",
+  "java.lang.runtimeexception": "Error in Python interpreter",
+  "line": 1,
+  "namespace": "<module>",
+  "type": "<class 'Exception'>",
+  "value": "Some error",
+}
+`;
+
+exports[`parseServerError > should parse an error originating from another file > traceback 1`] = `
+"
+  File "<string>", line 6, in <module>
+  File "/some/path/my_weather/__init__.py", line 3, in <module>
+  File "/some/path/my_weather/weather.py", line 9, in <module>
+  File "/some/path/my_weather/error_test.py", line 1, in <module>
+
+	at org.jpy.PyLib.executeCode(Native Method)
+	at org.jpy.PyObject.executeCode(PyObject.java:133)
+	at io.deephaven.engine.util.PythonEvaluatorJpy.evalScript(PythonEvaluatorJpy.java:73)
+	at io.deephaven.integrations.python.PythonDeephavenSession.lambda$evaluate$1(PythonDeephavenSession.java:229)
+	blah
+	bleh
+"
+`;
+
+exports[`parseServerError > should parse an error originating from the current file > error <string> 1`] = `
+{
+  "file": "<string>",
+  "java.lang.runtimeexception": "Error in Python interpreter",
+  "line": 5,
+  "namespace": "<module>",
+  "type": "<class 'NameError'>",
+  "value": "name 'x' is not defined",
+}
+`;
+
+exports[`parseServerError > should parse an error originating from the current file > traceback 1`] = `
+"
+  File "<string>", line 5, in <module>
+
+	at org.jpy.PyLib.executeCode(Native Method)
+	at org.jpy.PyObject.executeCode(PyObject.java:133)
+	at io.deephaven.engine.util.PythonEvaluatorJpy.evalScript(PythonEvaluatorJpy.java:73)
+	at io.deephaven.integrations.python.PythonDeephavenSession.lambda$evaluate$1(PythonDeephavenSession.java:229)
+	blah
+	bleh
+"
+`;

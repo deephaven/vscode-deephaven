@@ -15,15 +15,21 @@ export interface ParsedError {
 }
 
 /**
- * Parse a server error string into an array of key-value object.
+ * Parse a server error string into a tuple of `ParsedError` objects.
  * @param error Error string to parse.
- * @param logger Optional logger for debugging. Defaluts to console.
- * @returns Array of parsed error objects.
+ * @param logger Optional logger for debugging. Defaults to console.
+ * @returns Array of parsed error objects. This can be one of:
+ * - []: Unrecognized error format.
+ * - [ParsedError]: Error originated from the file being executed.
+ * - [ParsedError, ParsedError]: Error originated from another file, but we
+ *   were able to extract a `File: <string>` line from the traceback. First
+ *   object is the originating error, second object is an adjusted version that
+ *   points to the line in the executed file.
  */
 export function parseServerError(
   error: string,
   logger: { debug: (...args: unknown[]) => void } = console
-): ParsedError[] {
+): [] | [ParsedError] | [ParsedError, ParsedError] {
   const lines = error.split('\n');
 
   if (lines[0] !== 'java.lang.RuntimeException: Error in Python interpreter:') {
