@@ -4,6 +4,9 @@ import type { MarkableWsTreeNode } from '../types';
 import type { FilteredWorkspace } from '../services';
 import { getMarkableWsTreeCheckBoxState } from '../util';
 
+/**
+ * Tree data provider that shows the Python modules in the workspace.
+ */
 export class PythonModuleTreeProvider extends TreeDataProviderBase<MarkableWsTreeNode> {
   constructor(private readonly _pythonWorkspace: FilteredWorkspace) {
     super();
@@ -13,6 +16,11 @@ export class PythonModuleTreeProvider extends TreeDataProviderBase<MarkableWsTre
     );
   }
 
+  /**
+   * Get the children of a given node, or the root nodes if no node is provided.
+   * @param node The parent node, or undefined for root nodes.
+   * @returns a Promise that resolves to an array of child nodes.
+   */
   getChildren(
     node?: MarkableWsTreeNode | undefined
   ): vscode.ProviderResult<MarkableWsTreeNode[]> {
@@ -25,9 +33,12 @@ export class PythonModuleTreeProvider extends TreeDataProviderBase<MarkableWsTre
       .sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  getTreeItem(
-    node: MarkableWsTreeNode
-  ): vscode.TreeItem | Thenable<vscode.TreeItem> {
+  /**
+   * Get a TreeItem representation of a node.
+   * @param node The node to get the TreeItem for.
+   * @returns A TreeItem representing the node.
+   */
+  getTreeItem(node: MarkableWsTreeNode): vscode.TreeItem {
     return {
       label: node.name,
       checkboxState: node.isFile
@@ -37,9 +48,9 @@ export class PythonModuleTreeProvider extends TreeDataProviderBase<MarkableWsTre
       collapsibleState: node.isFile
         ? vscode.TreeItemCollapsibleState.None
         : vscode.TreeItemCollapsibleState.Collapsed,
-      contextValue: node.isFile ? undefined : `remoteFileSource.${node.status}`,
       command: node.isFile
         ? {
+            // Standard VS Code behavior to open the file in the editor when clicked
             command: 'vscode.open',
             title: 'Open File',
             arguments: [node.uri],
