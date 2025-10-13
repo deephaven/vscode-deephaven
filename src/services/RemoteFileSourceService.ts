@@ -2,11 +2,7 @@ import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { DisposableBase } from './DisposableBase';
 import { Logger } from '../shared';
-import {
-  getSetExecutionContextScript,
-  registerRemoteFileSourcePluginMessageListener,
-  relativeWsUriString,
-} from '../util';
+import { getSetExecutionContextScript, relativeWsUriString } from '../util';
 import type { ModuleFullname, RelativeWsUriString, UniqueID } from '../types';
 import type { FilteredWorkspace } from './FilteredWorkspace';
 
@@ -21,14 +17,7 @@ export class RemoteFileSourceService extends DisposableBase {
         this._onDidUpdateModuleMeta.fire();
       })
     );
-
-    this.disposables.add(() => {
-      this._unregisterPlugin?.();
-      this._unregisterPlugin = null;
-    });
   }
-
-  private _unregisterPlugin: (() => void) | null = null;
 
   private _onDidUpdateModuleMeta = new vscode.EventEmitter<void>();
   readonly onDidUpdateModuleMeta = this._onDidUpdateModuleMeta.event;
@@ -93,18 +82,6 @@ export class RemoteFileSourceService extends DisposableBase {
         }
       }
     }
-  }
-
-  /**
-   * Register a remote file source plugin.
-   */
-  async registerPlugin(plugin: DhcType.Widget): Promise<void> {
-    this._unregisterPlugin?.();
-
-    this._unregisterPlugin = registerRemoteFileSourcePluginMessageListener(
-      plugin,
-      this.getUriForModuleFullname.bind(this)
-    );
   }
 
   /**

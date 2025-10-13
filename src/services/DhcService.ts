@@ -6,6 +6,7 @@ import {
   getCombinedRangeLinesText,
   isNonEmptyArray,
   Logger,
+  registerRemoteFileSourcePluginMessageListener,
   saveRequirementsTxt,
   type URLMap,
 } from '../util';
@@ -138,7 +139,7 @@ export class DhcService extends DisposableBase implements IDhcService {
 
   private cn: DhcType.IdeConnection | null = null;
   private cnId: UniqueID | null = null;
-  private remoteFileSourcePlugin: DhcType.Widget | null = null;
+  private remoteFileSourcePluginSubscription: (() => void) | null = null;
   private session: DhcType.IdeSession | null = null;
 
   get isInitialized(): boolean {
@@ -285,34 +286,10 @@ export class DhcService extends DisposableBase implements IDhcService {
         await this.initSessionPromise;
       this.cn = cn;
       this.cnId = cnId;
-      this.remoteFileSourcePlugin = remoteFileSourcePlugin;
       this.session = session;
 
       if (remoteFileSourcePlugin != null) {
-        this.disposables.add(() => {
-          remoteFileSourcePlugin.close();
-        });
-
-        await this.remoteFileSourceService.registerPlugin(
-          remoteFileSourcePlugin
-        );
-        await this.remoteFileSourceService.setServerExecutionContext(
-          cnId,
-          session
-        );
-
-        this.disposables.add(
-          // If module meta is updated, update module names in the server plugin
-          this.remoteFileSourceService.onDidUpdateModuleMeta(async () => {
-            await this.remoteFileSourceService.setServerExecutionContext(
-              // runCode will call `setServerExecutionContext` again with an
-              // actual connection ID before running code, so passing null here
-              // should be fine.
-              null,
-              session
-            );
-          })
-        );
+        await this._initRemoteFileSourcePlugin(session, remoteFileSourcePlugin);
       }
     } catch (err) {
       logger.error(err);
@@ -350,6 +327,51 @@ export class DhcService extends DisposableBase implements IDhcService {
     const maybeClient = await this.coreClientCache.get(this.serverUrl);
 
     return maybeClient ?? null;
+  };
+
+  /**
+   * Initialize the remote file source plugin.
+   * @param session the ide session to associate with the plugin
+   * @param remoteFileSourcePlugin the remote file source plugin widget
+   */
+  private _initRemoteFileSourcePlugin = async (
+    session: DhcType.IdeSession,
+    remoteFileSourcePlugin: DhcType.Widget
+  ): Promise<void> => {
+    this.disposables.add(
+      remoteFileSourcePlugin.close.bind(remoteFileSourcePlugin)
+    );
+
+    const getModuleFilePath =
+      this.remoteFileSourceService.getUriForModuleFullname.bind(
+        this.remoteFileSourceService
+      );
+
+    this.disposables.add(
+      (this.remoteFileSourcePluginSubscription =
+        registerRemoteFileSourcePluginMessageListener(
+          remoteFileSourcePlugin,
+          getModuleFilePath
+        ))
+    );
+
+    await this.remoteFileSourceService.setServerExecutionContext(
+      this.cnId,
+      session
+    );
+
+    this.disposables.add(
+      // If module meta is updated, update module names in the server plugin
+      this.remoteFileSourceService.onDidUpdateModuleMeta(async () => {
+        await this.remoteFileSourceService.setServerExecutionContext(
+          // runCode will call `setServerExecutionContext` again with an
+          // actual connection ID before running code, so passing null here
+          // should be fine.
+          null,
+          session
+        );
+      })
+    );
   };
 
   async getClient(): Promise<CoreAuthenticatedClient | null> {
@@ -443,7 +465,7 @@ export class DhcService extends DisposableBase implements IDhcService {
 
       this.isRunningCode = true;
 
-      if (this.remoteFileSourcePlugin != null) {
+      if (this.remoteFileSourcePluginSubscription != null) {
         await this.remoteFileSourceService.setServerExecutionContext(
           this.cnId,
           this.session
