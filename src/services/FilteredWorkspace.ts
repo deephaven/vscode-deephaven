@@ -10,6 +10,7 @@ import { DisposableBase } from './DisposableBase';
 
 export const PYTHON_FILE_PATTERN = '**/*.py' as const;
 
+// TODO: This should be configurable DH-20662
 const PYTHON_IGNORE_TOP_LEVEL_FOLDER_NAMES: Set<FolderName> =
   new Set<FolderName>([
     '.venv',
@@ -44,7 +45,7 @@ export class FilteredWorkspace
     this.disposables.add(watcher.onDidDelete(() => this.refresh()));
     this.disposables.add(watcher);
 
-    // TODO: Load marked folders from storage
+    // TODO: Load marked folders from storage DH-20573
 
     this.refresh();
   }
@@ -57,7 +58,6 @@ export class FilteredWorkspace
   private _onDidUpdate = new vscode.EventEmitter<void>();
   readonly onDidUpdate = this._onDidUpdate.event;
 
-  // TODO: Make this configurable
   private readonly _ignoreTopLevelFolderNames =
     PYTHON_IGNORE_TOP_LEVEL_FOLDER_NAMES;
 
