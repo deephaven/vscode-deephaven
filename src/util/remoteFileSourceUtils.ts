@@ -83,6 +83,14 @@ export async function getRemoteFileSourcePlugin(
   return plugin;
 }
 
+/**
+ * Get a map of workspace folder URIs to sets of file URIs matching the given
+ * file pattern, ignoring files in top-level folders with names in the ignore
+ * set.
+ * @param filePattern The glob pattern to match files against.
+ * @param ignoreTopLevelFolderNames A set of top-level folder names to ignore.
+ * @returns A Promise that resolves to a map of workspace folder URIs to sets of file URIs.
+ */
 export async function getWorkspaceFileUriMap(
   filePattern: FilePattern,
   ignoreTopLevelFolderNames: Set<FolderName>
