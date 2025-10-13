@@ -6,7 +6,6 @@ import {
   getCombinedRangeLinesText,
   isNonEmptyArray,
   Logger,
-  registerRemoteFileSourcePluginMessageListener,
   saveRequirementsTxt,
   type URLMap,
 } from '../util';
