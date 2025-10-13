@@ -78,7 +78,6 @@ export class FilteredWorkspace
     this._onDidUpdate.fire();
   }
 
-  // TODO: Make this smart enough to remove sub rules
   unmarkFolder(folderUri: vscode.Uri): void {
     for (const node of this.iterateNodeTree(folderUri)) {
       node.status = 'unmarked';
