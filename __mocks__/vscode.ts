@@ -188,6 +188,7 @@ export const workspace = {
     .fn()
     .mockName('getConfiguration')
     .mockReturnValue(new Map()),
+  openTextDocument: vi.fn().mockName('openTextDocument'),
   onDidChangeTextDocument: vi.fn().mockName('onDidChangeTextDocument'),
   onDidCloseTextDocument: vi.fn().mockName('onDidCloseTextDocument'),
   getWorkspaceFolder: vi.fn().mockName('getWorkspaceFolder'),
