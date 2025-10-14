@@ -28,12 +28,7 @@ beforeEach(() => {
 });
 
 const mockColorTheme = {} as vscode.ColorTheme;
-const mockExtensionUri = {
-  path: 'mock.extensionUri',
-  toString: function () {
-    return this.path;
-  },
-} as vscode.Uri;
+const mockExtensionUri = vscode.Uri.parse('mock://mock.extensionUri');
 const mockViewId = `${VIEW_ID_PREFIX}mockViewId` as ViewID;
 const mockWebView = mockT<vscode.Webview>({
   cspSource: 'mock.cspSource',
@@ -88,7 +83,7 @@ describe('getWebViewContentRootUri', () => {
 describe('getWebViewHtml', () => {
   beforeEach(() => {
     vi.mocked(mockWebView.asWebviewUri).mockImplementation(uri =>
-      vscode.Uri.parse(`mockwebview://${uri}`)
+      vscode.Uri.parse(`mockwebview://${uri.path}`)
     );
   });
 
