@@ -161,6 +161,11 @@ export const ThemeIcon = vi
     color,
   }));
 
+export enum TreeItemCheckboxState {
+  Unchecked = 0,
+  Checked = 1,
+}
+
 export enum TreeItemCollapsibleState {
   None = 0,
   Collapsed = 1,

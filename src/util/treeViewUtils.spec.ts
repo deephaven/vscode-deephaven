@@ -1,6 +1,8 @@
+import * as vscode from 'vscode';
 import { describe, it, expect, vi } from 'vitest';
 import { bitValues, boolValues, matrix } from '../testUtils';
 import {
+  getMarkableWsTreeCheckBoxState,
   getPanelConnectionTreeItem,
   getPanelVariableTreeItem,
   getServerContextValue,
@@ -39,6 +41,30 @@ const variableTypes: readonly VariableType[] = [
   'Treemap',
   'TreeTable',
 ] as const;
+
+describe('getMarkableWsTreeCheckBoxState', () => {
+  const checked: vscode.TreeItem['checkboxState'] = {
+    state: vscode.TreeItemCheckboxState.Checked,
+    tooltip: 'Remove from Deephaven remote file sources',
+  };
+
+  const unchecked: vscode.TreeItem['checkboxState'] = {
+    state: vscode.TreeItemCheckboxState.Unchecked,
+    tooltip: 'Add to Deephaven remote file sources',
+  };
+
+  it.each([
+    ['marked', checked],
+    ['unmarked', unchecked],
+    ['mixed', unchecked],
+  ] as const)(
+    'should create checkbox state based on mark status: %s',
+    (markStatus, expected) => {
+      const result = getMarkableWsTreeCheckBoxState(markStatus);
+      expect(result).toEqual(expected);
+    }
+  );
+});
 
 describe('getPanelConnectionTreeItem', () => {
   const getConsoleTypes: IDhcService['getConsoleTypes'] = vi
