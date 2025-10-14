@@ -36,6 +36,7 @@ const mock = {
   },
 };
 
+// Utils for creating node data
 const fileNode = node.bind(null, true);
 const folderNode = node.bind(null, false);
 function node(
@@ -50,6 +51,15 @@ function node(
     status: 'unmarked',
     ...overrides,
   };
+}
+
+/** Sort an array of nodes */
+function sortNodes(nodes: MarkableWsTreeNode[]): MarkableWsTreeNode[] {
+  return [...nodes].sort(
+    (a: MarkableWsTreeNode, b: MarkableWsTreeNode): number => {
+      return a.uri.path.localeCompare(b.uri.path);
+    }
+  );
 }
 
 const mockEmptyWs = new URIMap<URISet>();
@@ -71,6 +81,118 @@ const mock2RootWs = new URIMap([
     new URISet([mock.folder2.sub1_file1, mock.folder2.sub1_file2]),
   ],
 ]);
+
+const expected = {
+  folder1: {
+    allMarked: sortNodes([
+      folderNode(mock.folder1.root, { name: 'Workspace1', status: 'marked' }),
+
+      folderNode(mock.folder1.sub1, { status: 'marked' }),
+      folderNode(mock.folder1.sub2, { status: 'marked' }),
+
+      fileNode(mock.folder1.sub1_file1, { status: 'marked' }),
+      fileNode(mock.folder1.sub1_file2, { status: 'marked' }),
+
+      folderNode(mock.folder1.sub1_a, { status: 'marked' }),
+      folderNode(mock.folder1.sub1_b, { status: 'marked' }),
+
+      fileNode(mock.folder1.sub2_file1, { status: 'marked' }),
+
+      fileNode(mock.folder1.sub1_a_file1, { status: 'marked' }),
+      fileNode(mock.folder1.sub1_b_file1, { status: 'marked' }),
+    ]),
+    allUnmarked: sortNodes([
+      folderNode(mock.folder1.root, { name: 'Workspace1' }),
+
+      folderNode(mock.folder1.sub1),
+      folderNode(mock.folder1.sub2),
+
+      fileNode(mock.folder1.sub1_file1),
+      fileNode(mock.folder1.sub1_file2),
+
+      folderNode(mock.folder1.sub1_a),
+      folderNode(mock.folder1.sub1_b),
+
+      fileNode(mock.folder1.sub2_file1),
+
+      fileNode(mock.folder1.sub1_a_file1),
+      fileNode(mock.folder1.sub1_b_file1),
+    ]),
+    sub1Marked: sortNodes([
+      folderNode(mock.folder1.root, {
+        name: 'Workspace1',
+        status: 'mixed',
+      }),
+
+      folderNode(mock.folder1.sub1, { status: 'marked' }),
+      fileNode(mock.folder1.sub1_file1, { status: 'marked' }),
+      fileNode(mock.folder1.sub1_file2, { status: 'marked' }),
+      folderNode(mock.folder1.sub1_a, { status: 'marked' }),
+      folderNode(mock.folder1.sub1_b, { status: 'marked' }),
+      fileNode(mock.folder1.sub1_a_file1, { status: 'marked' }),
+      fileNode(mock.folder1.sub1_b_file1, { status: 'marked' }),
+
+      folderNode(mock.folder1.sub2),
+      fileNode(mock.folder1.sub2_file1),
+    ]),
+    sub1aMarked: sortNodes([
+      folderNode(mock.folder1.root, {
+        name: 'Workspace1',
+        status: 'mixed',
+      }),
+
+      folderNode(mock.folder1.sub1, { status: 'mixed' }),
+      fileNode(mock.folder1.sub1_file1),
+      fileNode(mock.folder1.sub1_file2),
+
+      folderNode(mock.folder1.sub1_a, { status: 'marked' }),
+      fileNode(mock.folder1.sub1_a_file1, { status: 'marked' }),
+
+      folderNode(mock.folder1.sub1_b),
+      fileNode(mock.folder1.sub1_b_file1),
+
+      folderNode(mock.folder1.sub2),
+      fileNode(mock.folder1.sub2_file1),
+    ]),
+  },
+  folder2: {
+    allUnmarked: sortNodes([
+      folderNode(mock.folder2.root, { name: 'Workspace2' }),
+
+      folderNode(mock.folder2.sub1),
+
+      fileNode(mock.folder2.sub1_file1),
+      fileNode(mock.folder2.sub1_file2),
+    ]),
+  },
+} as const;
+
+/**
+ * Create a FilteredWorkspace instance with the given workspace map and a helper
+ * `expectResult` function to check the current state of the workspace nodes.
+ */
+async function initWorkspace(wsMap: URIMap<URISet>): Promise<{
+  expectResult(rootUri: vscode.Uri, expectedNodes: MarkableWsTreeNode[]): void;
+  workspace: FilteredWorkspace;
+}> {
+  vi.mocked(getWorkspaceFileUriMap).mockResolvedValue(wsMap);
+
+  // await since there is an async init step inside of the constructor. This
+  // ensures if any errors are thrown they are caught by the test framework.
+  const workspace = await new FilteredWorkspace(PYTHON_FILE_PATTERN);
+
+  return {
+    workspace,
+    // Helper to check the current state of the workspace against expected nodes
+    expectResult(
+      rootUri: vscode.Uri,
+      expectedNodes: MarkableWsTreeNode[]
+    ): void {
+      const descendants = Array.from(workspace.iterateNodeTree(rootUri));
+      expect(sortNodes(descendants)).toEqual(sortNodes(expectedNodes));
+    },
+  };
+}
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -105,15 +227,98 @@ beforeEach(() => {
 });
 
 describe('constructor', () => {
-  it('should create an instance', () => {
-    const workspace = new FilteredWorkspace(PYTHON_FILE_PATTERN);
+  it('should create an instance', async () => {
+    const { workspace } = await initWorkspace(mockEmptyWs);
     expect(workspace).toBeInstanceOf(FilteredWorkspace);
+  });
+});
+
+describe('getTopLevelMarkedFolderUris', () => {
+  it('should return an empty Set when workspace is empty', async () => {
+    const { workspace } = await initWorkspace(mockEmptyWs);
+    expect(workspace.getTopLevelMarkedFolderUris().size).toEqual(0);
+  });
+
+  it('should return an empty Set when no folders are marked', async () => {
+    const { workspace } = await initWorkspace(mock2RootWs);
+    expect(workspace.getTopLevelMarkedFolderUris().size).toEqual(0);
+  });
+
+  it.each([
+    [mock.folder1.sub1_a, [mock.folder1.sub1_a]],
+    [mock.folder1.sub1, [mock.folder1.sub1]],
+    [mock.folder1.root, [mock.folder1.sub1, mock.folder1.sub2]],
+  ])(
+    'should return only top-level marked folder URIs: %s',
+    async (markUri, expected) => {
+      const { workspace } = await initWorkspace(mock2RootWs);
+
+      workspace.markFolder(markUri);
+
+      const topLevel = Array.from(
+        workspace.getTopLevelMarkedFolderUris().values()
+      );
+      expect(topLevel).toEqual(expected);
+    }
+  );
+});
+
+describe('mark / unmark', () => {
+  it.each([
+    [mock.folder1.root, expected.folder1.allMarked],
+    [mock.folder1.sub1, expected.folder1.sub1Marked],
+    [mock.folder1.sub1_a, expected.folder1.sub1aMarked],
+  ])(
+    'should mark a folder and its children: %s',
+    async (markRoot, expected) => {
+      const { workspace, expectResult } = await initWorkspace(mock2RootWs);
+
+      workspace.markFolder(markRoot);
+
+      expectResult(mock.folder1.root, expected);
+    }
+  );
+
+  it('should mark parent folders based on children status', async () => {
+    const { workspace, expectResult } = await initWorkspace(mock2RootWs);
+
+    // Start with everything marked
+    workspace.markFolder(mock.folder1.root);
+    expectResult(mock.folder1.root, expected.folder1.allMarked);
+
+    // Unmarking sub2 should result in only sub1 being marked and root being mixed
+    workspace.unmarkFolder(mock.folder1.sub2);
+    expectResult(mock.folder1.root, expected.folder1.sub1Marked);
+
+    // Re-marking sub2 should result in everything being marked again
+    workspace.markFolder(mock.folder1.sub2);
+    expectResult(mock.folder1.root, expected.folder1.allMarked);
+
+    // Unmark all
+    workspace.unmarkFolder(mock.folder1.root);
+    expectResult(mock.folder1.root, expected.folder1.allUnmarked);
+
+    // Marking sub1_a should result in sub1 being mixed and root being mixed
+    workspace.markFolder(mock.folder1.sub1_a);
+    expectResult(mock.folder1.root, expected.folder1.sub1aMarked);
+  });
+});
+
+describe('unmarkFolder', () => {
+  it('should unmark a folder and its children', async () => {
+    const { workspace, expectResult } = await initWorkspace(mock2RootWs);
+    workspace.markFolder(mock.folder1.root);
+
+    workspace.unmarkFolder(mock.folder1.sub2);
+
+    // Unmarking sub2 should result in only sub1 being marked
+    expectResult(mock.folder1.root, expected.folder1.sub1Marked);
   });
 });
 
 describe('refresh', () => {
   it('should refresh the workspace file URI map', async () => {
-    const workspace = new FilteredWorkspace(PYTHON_FILE_PATTERN);
+    const { workspace, expectResult } = await initWorkspace(mockEmptyWs);
 
     vi.mocked(getWorkspaceFileUriMap).mockResolvedValue(mock2RootWs);
 
@@ -122,38 +327,7 @@ describe('refresh', () => {
     const map = workspace.getWsFileUriMap();
     expect(map).toBe(mock2RootWs);
 
-    const folder1Children = Array.from(
-      workspace.iterateNodeTree(mock.folder1.root)
-    );
-    expect(folder1Children).toEqual([
-      folderNode(mock.folder1.root, { name: 'Workspace1' }),
-      // mock.folder1.file0_1 is in the root, so should be ignored
-
-      folderNode(mock.folder1.sub1),
-      folderNode(mock.folder1.sub2),
-
-      fileNode(mock.folder1.sub1_file1),
-      fileNode(mock.folder1.sub1_file2),
-
-      folderNode(mock.folder1.sub1_a),
-      folderNode(mock.folder1.sub1_b),
-
-      fileNode(mock.folder1.sub2_file1),
-
-      fileNode(mock.folder1.sub1_a_file1),
-      fileNode(mock.folder1.sub1_b_file1),
-    ]);
-
-    const folder2Children = Array.from(
-      workspace.iterateNodeTree(mock.folder2.root)
-    );
-    expect(folder2Children).toEqual([
-      folderNode(mock.folder2.root, { name: 'Workspace2' }),
-
-      folderNode(mock.folder2.sub1),
-
-      fileNode(mock.folder2.sub1_file1),
-      fileNode(mock.folder2.sub1_file2),
-    ]);
+    expectResult(mock.folder1.root, expected.folder1.allUnmarked);
+    expectResult(mock.folder2.root, expected.folder2.allUnmarked);
   });
 });
