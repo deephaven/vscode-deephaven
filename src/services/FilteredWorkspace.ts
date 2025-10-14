@@ -269,6 +269,7 @@ export class FilteredWorkspace
       this._updateNodeMaps(null, {
         uri: wsUri,
         name: ws.name,
+        isFile: false,
         status: 'unmarked',
       });
 
