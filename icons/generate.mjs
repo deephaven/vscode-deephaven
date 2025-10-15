@@ -2,7 +2,7 @@
  * This script generates an icon font + manifest from a directory of SVG files.
  * Usage:
  *
- * npm run icon:gen -- <path-to-dh-icons-directory>
+ * npm run icon:gen -- <path-to-icons-directory>
  */
 
 /* eslint-disable no-console */
@@ -13,12 +13,16 @@ import { generateFonts } from 'fantasticon';
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const __dirname = import.meta.dirname;
 
-const inputDir = process.argv[2];
-const outputDir = path.join(__dirname, 'dist');
-const assetsDir = path.join(__dirname, '..', 'assets');
+const prefix = process.argv[2];
+const inputDir = process.argv[3];
+
+if (prefix == null) {
+  console.error('No icon prefix specified');
+  process.exit(1);
+}
 
 if (inputDir == null) {
-  console.error('No icon directory specified');
+  console.error(`No icon directory specified for '${prefix}' prefix`);
   process.exit(1);
 }
 
@@ -27,11 +31,14 @@ if (!fs.existsSync(inputDir)) {
   process.exit(1);
 }
 
+const outputDir = path.join(__dirname, 'dist', prefix);
+const assetsDir = path.join(__dirname, '..', 'assets');
+
 // Remove and recreate the output directory
 if (fs.existsSync(outputDir)) {
   fs.rmSync(outputDir, { recursive: true });
 }
-fs.mkdirSync(outputDir);
+fs.mkdirSync(outputDir, { recursive: true });
 
 console.log(`Generating icons from '${inputDir}'`);
 
@@ -58,10 +65,10 @@ const codepoints = fs
 // in vscode extension.
 const contributesIcons = Object.entries(codepoints).reduce(
   (memo, [name, codepoint]) => {
-    memo[`dh-${name}`] = {
-      description: `Deephaven ${name} icon`,
+    memo[`${prefix}-${name}`] = {
+      description: `Deephaven ${prefix}-${name} icon`,
       default: {
-        fontPath: 'assets/dh-icons.woff2',
+        fontPath: `assets/${prefix}-icons.woff2`,
         fontCharacter: `\\${codepoint.toString(16)}`,
       },
     };
@@ -71,12 +78,12 @@ const contributesIcons = Object.entries(codepoints).reduce(
 );
 
 fs.writeFileSync(
-  path.join(outputDir, 'dh-contributes-icons.json'),
+  path.join(outputDir, `${prefix}-contributes-icons.json`),
   JSON.stringify(contributesIcons, null, 2)
 );
 
 await generateFonts({
-  name: 'dh-icons',
+  name: `${prefix}-icons`,
   prefix: 'dh',
   normalize: true,
   inputDir,
@@ -85,6 +92,6 @@ await generateFonts({
 });
 
 fs.copyFileSync(
-  path.join(outputDir, 'dh-icons.woff2'),
-  path.join(assetsDir, 'dh-icons.woff2')
+  path.join(outputDir, `${prefix}-icons.woff2`),
+  path.join(assetsDir, `${prefix}-icons.woff2`)
 );
