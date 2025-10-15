@@ -341,12 +341,13 @@ export class DhcService extends DisposableBase implements IDhcService {
       remoteFileSourcePlugin.close();
     });
 
-    this.disposables.add(
+    this.remoteFileSourcePluginSubscription =
       await this.remoteFileSourceService.registerPlugin(
         session,
         remoteFileSourcePlugin
-      )
-    );
+      );
+
+    this.disposables.add(this.remoteFileSourcePluginSubscription);
   };
 
   async getClient(): Promise<CoreAuthenticatedClient | null> {
