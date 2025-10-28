@@ -21,11 +21,12 @@ export interface ServerConnectionPanelTreeView
   extends vscode.TreeView<ServerConnectionPanelNode> {}
 
 export type MarkStatus = 'marked' | 'unmarked' | 'mixed';
-export type MarkableWsTreeNode = {
+export interface MarkableWsTreeNode {
   uri: vscode.Uri;
   status: MarkStatus;
   isFile: boolean;
   name: string;
-};
-export interface PythonModuleTreeView
-  extends vscode.TreeView<MarkableWsTreeNode> {}
+}
+export type RemoteImportSourceTreeNode = MarkableWsTreeNode | vscode.Uri;
+export interface RemoteImportSourceTreeView
+  extends vscode.TreeView<RemoteImportSourceTreeNode> {}

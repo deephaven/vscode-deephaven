@@ -51,7 +51,9 @@ export const GENERATE_DHE_KEY_PAIR_CMD = cmd('generateDHEKeyPair');
 export const GENERATE_REQUIREMENTS_TXT_CMD = cmd('generateRequirementsTxt');
 export const OPEN_IN_BROWSER_CMD = cmd('openInBrowser');
 export const OPEN_VARIABLE_PANELS_CMD = cmd('openVariablePanels');
-export const REFRESH_PYTHON_MODULE_TREE_CMD = cmd('refreshPythonModuleTree');
+export const REFRESH_REMOTE_IMPORT_SOURCE_TREE_CMD = cmd(
+  'refreshRemoteImportSourceTree'
+);
 export const REFRESH_SERVER_TREE_CMD = cmd('refreshServerTree');
 export const REFRESH_SERVER_CONNECTION_TREE_CMD = cmd(
   'refreshServerConnectionTree'

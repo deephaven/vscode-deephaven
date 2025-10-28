@@ -1,4 +1,5 @@
 export * from './CreateQueryViewProvider';
+export * from './RemoteImportSourceTreeProvider';
 export * from './RunCommandCodeLensProvider';
 export * from './RunMarkdownCodeBlockCodeLensProvider';
 export * from './RunMarkdownCodeBlockHoverProvider';

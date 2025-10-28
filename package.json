@@ -229,8 +229,8 @@
         "icon": "$(refresh)"
       },
       {
-        "command": "vscode-deephaven.refreshPythonModuleTree",
-        "title": "Refresh Python Module Tree",
+        "command": "vscode-deephaven.refreshRemoteImportSourceTree",
+        "title": "Refresh Remote Import Source Tree",
         "icon": "$(refresh)"
       },
       {
@@ -753,7 +753,7 @@
           "when": "false"
         },
         {
-          "command": "vscode-deephaven.refreshPythonModuleTree",
+          "command": "vscode-deephaven.refreshRemoteImportSourceTree",
           "when": "false"
         },
         {
@@ -837,9 +837,9 @@
           "when": "view == vscode-deephaven.view.serverConnectionTree"
         },
         {
-          "command": "vscode-deephaven.refreshPythonModuleTree",
-          "group": "navigation",
-          "when": "view == vscode-deephaven.view.pythonModuleTree"
+          "command": "vscode-deephaven.refreshRemoteImportSourceTree",
+          "group": "navigation@1",
+          "when": "view == vscode-deephaven.view.remoteImportSourceTree"
         },
         {
           "command": "vscode-deephaven.refreshVariablePanels",
@@ -909,6 +909,11 @@
           "command": "vscode-deephaven.deleteVariable",
           "when": "view == vscode-deephaven.view.serverConnectionPanelTree && viewItem == canDeleteDeephavenVariable",
           "group": "inline@2"
+        },
+        {
+          "command": "vscode-deephaven.removeRemoteFileSource",
+          "when": "view == vscode-deephaven.view.remoteImportSourceTree && viewItem == canRemoveRemoteFileSource",
+          "group": "inline"
         }
       ]
     },
@@ -944,7 +949,7 @@
           "type": "tree"
         },
         {
-          "id": "vscode-deephaven.view.pythonModuleTree",
+          "id": "vscode-deephaven.view.remoteImportSourceTree",
           "name": "Remote Import Sources",
           "type": "tree"
         }

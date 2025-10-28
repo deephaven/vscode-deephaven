@@ -56,6 +56,7 @@ import {
   withResolvers,
 } from '../util';
 import {
+  RemoteImportSourceTreeProvider,
   RunCommandCodeLensProvider,
   ServerTreeProvider,
   ServerConnectionTreeProvider,
@@ -110,9 +111,10 @@ import type {
   ConsoleType,
   DheAuthenticatedClientWrapper,
   DheUnauthenticatedClientWrapper,
-  PythonModuleTreeView,
+  RemoteImportSourceTreeView,
   MarkableWsTreeNode,
   VariableDefintion,
+  RemoteImportSourceTreeNode,
 } from '../types';
 import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTreeDragAndDropController';
 import { ConnectionController } from './ConnectionController';
@@ -124,7 +126,6 @@ import {
   type QuerySerial,
   type SerializableRefreshToken,
 } from '../shared';
-import { PythonModuleTreeProvider } from '../providers/PythonModuleTreeProvider';
 
 const logger = new Logger('ExtensionController');
 
@@ -197,14 +198,15 @@ export class ExtensionController implements IDisposable {
     null;
   private _serverConnectionPanelTreeProvider: ServerConnectionPanelTreeProvider | null =
     null;
-  private _pythonModuleTreeProvider: PythonModuleTreeProvider | null = null;
+  private _remoteImportSourceTreeProvider: RemoteImportSourceTreeProvider | null =
+    null;
 
   // Tree views
   private _serverTreeView: ServerTreeView | null = null;
   private _serverConnectionTreeView: ServerConnectionTreeView | null = null;
   private _serverConnectionPanelTreeView: ServerConnectionPanelTreeView | null =
     null;
-  private _pythonModuleTreeView: PythonModuleTreeView | null = null;
+  private _remoteImportSourceTreeView: RemoteImportSourceTreeView | null = null;
 
   // Web views
   private _createQueryViewProvider: CreateQueryViewProvider | null = null;
@@ -727,10 +729,10 @@ export class ExtensionController implements IDisposable {
       this.onRefreshServerStatus
     );
 
-    /** Python module tree */
+    /** Remote import source tree */
     this.registerCommand(
-      REFRESH_PYTHON_MODULE_TREE_CMD,
-      this.onRefreshPythonModuleTree
+      REFRESH_REMOTE_IMPORT_SOURCE_TREE_CMD,
+      this.onRefreshRemoteImportSourceTree
     );
     this.registerCommand(
       ADD_REMOTE_FILE_SOURCE_CMD,
@@ -828,25 +830,25 @@ export class ExtensionController implements IDisposable {
         }
       );
 
-    // Python module tree
-    this._pythonModuleTreeProvider = new PythonModuleTreeProvider(
+    // Remote import source tree
+    this._remoteImportSourceTreeProvider = new RemoteImportSourceTreeProvider(
       this._pythonWorkspace
     );
-    this._pythonModuleTreeView =
-      vscode.window.createTreeView<MarkableWsTreeNode>(
-        VIEW_ID.pythonModuleTree,
+    this._remoteImportSourceTreeView =
+      vscode.window.createTreeView<RemoteImportSourceTreeNode>(
+        VIEW_ID.remoteImportSourceTree,
         {
           showCollapseAll: true,
-          treeDataProvider: this._pythonModuleTreeProvider,
+          treeDataProvider: this._remoteImportSourceTreeProvider,
         }
       );
-    this._pythonModuleTreeView.onDidChangeCheckboxState(({ items }) => {
+    this._remoteImportSourceTreeView.onDidChangeCheckboxState(({ items }) => {
       // Note that this assumes the first item is the one that was clicked.
       // This is not documented either way, but seems to be the behavior. If we
       // ever find this is not the case, we'll need to identify the item in the
       // list that is highest in the tree instead.
       const [node, state] = items[0];
-      if (node.isFile) {
+      if (!isMarkableWsTreeNode(node) || node.isFile) {
         return;
       }
 
@@ -861,11 +863,11 @@ export class ExtensionController implements IDisposable {
       this._serverTreeView,
       this._serverConnectionTreeView,
       this._serverConnectionPanelTreeView,
-      this._pythonModuleTreeView,
+      this._remoteImportSourceTreeView,
       this._serverTreeProvider,
       this._serverConnectionTreeProvider,
       this._serverConnectionPanelTreeProvider,
-      this._pythonModuleTreeProvider
+      this._remoteImportSourceTreeProvider
     );
   };
 
@@ -1024,9 +1026,8 @@ export class ExtensionController implements IDisposable {
     );
   };
 
-  onRefreshPythonModuleTree = async (): Promise<void> => {
-    this._pythonWorkspace?.refresh();
-    this._pythonModuleTreeProvider?.refresh();
+  onRefreshRemoteImportSourceTree = async (): Promise<void> => {
+    this._remoteImportSourceTreeProvider?.refresh();
   };
 
   onRefreshServerStatus = async (): Promise<void> => {

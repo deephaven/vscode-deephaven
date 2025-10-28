@@ -75,7 +75,7 @@ export const VIEW_ID_PREFIX = `${EXTENSION_ID}.view.` as const;
 
 export const VIEW_ID = {
   createQuery: `${VIEW_ID_PREFIX}createQuery`,
-  pythonModuleTree: `${VIEW_ID_PREFIX}pythonModuleTree`,
+  remoteImportSourceTree: `${VIEW_ID_PREFIX}remoteImportSourceTree`,
   serverTree: `${VIEW_ID_PREFIX}serverTree`,
   serverConnectionTree: `${VIEW_ID_PREFIX}serverConnectionTree`,
   serverConnectionPanelTree: `${VIEW_ID_PREFIX}serverConnectionPanelTree`,

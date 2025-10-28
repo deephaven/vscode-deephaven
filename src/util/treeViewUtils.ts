@@ -2,8 +2,10 @@ import * as vscode from 'vscode';
 import type {
   ConnectionState,
   ConsoleType,
+  MarkableWsTreeNode,
   MarkStatus,
   NonEmptyArray,
+  RemoteImportSourceTreeNode,
   ServerGroupState,
   ServerState,
   VariableDefintion,
@@ -130,6 +132,24 @@ export function getPanelVariableTreeItem([url, variable]: [
       command: OPEN_VARIABLE_PANELS_CMD,
       arguments: [url, variablesToOpen],
     },
+  };
+}
+
+/**
+ * Get `TreeItem` for a top-level marked folder in the remote import source tree.
+ * @param uri URI of the top-level marked folder
+ * @returns TreeItem for the top-level marked folder
+ */
+export function getRemoteImportSourceTopLevelMarkedFolderTreeItem(
+  uri: vscode.Uri
+): vscode.TreeItem {
+  return {
+    label: uri.path.split('/').at(-1),
+    description: vscode.workspace.asRelativePath(uri, false),
+    contextValue: 'canRemoveRemoteFileSource',
+    resourceUri: uri,
+    iconPath: new vscode.ThemeIcon('dh-python'),
+    collapsibleState: vscode.TreeItemCollapsibleState.None,
   };
 }
 
@@ -346,4 +366,17 @@ export function groupServers(servers: ServerState[]): {
     running,
     stopped,
   };
+}
+
+/**
+ * Type guard to check if a RemoteImportSourceTreeNode is a MarkableWsTreeNode.
+ * @param node
+ * @returns
+ */
+export function isMarkableWsTreeNode(
+  node: RemoteImportSourceTreeNode
+): node is MarkableWsTreeNode {
+  return (
+    'status' in node && 'isFile' in node && 'name' in node && 'uri' in node
+  );
 }

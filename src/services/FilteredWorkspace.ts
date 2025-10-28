@@ -62,10 +62,20 @@ export class FilteredWorkspace
     PYTHON_IGNORE_TOP_LEVEL_FOLDER_NAMES;
 
   private readonly _childNodeMap = new URIMap<URIMap<MarkableWsTreeNode>>();
+  private readonly _hasMarkedDescendantsSet = new URISet();
   private readonly _parentUriMap = new URIMap<vscode.Uri | null>();
   private readonly _nodeMap = new URIMap<MarkableWsTreeNode>();
   private readonly _rootNodeMap = new URIMap<MarkableWsTreeNode>();
   private _wsFileUriMap = new URIMap<URISet>();
+
+  /**
+   * Check if a given URI has marked descendants.
+   * @param uri The URI to check.
+   * @returns True if the URI has marked descendants, false otherwise.
+   */
+  hasMarkedDescendants(uri: vscode.Uri): boolean {
+    return this._hasMarkedDescendantsSet.has(uri);
+  }
 
   /**
    * Mark a folder and all its children. Will also update parent folders if the
@@ -75,17 +85,26 @@ export class FilteredWorkspace
   markFolder(folderUri: vscode.Uri): void {
     for (const node of this.iterateNodeTree(folderUri)) {
       node.status = 'marked';
-    }
 
-    this._updateAncestorMarkStatus(folderUri);
+      const parentUri = this._parentUriMap.get(node.uri);
+
+      // If the node is marked, all ancestors are flagged as having marked
+      // descendants
+      if (node.status === 'marked') {
+        let currentUri: vscode.Uri | null | undefined = parentUri;
+        while (currentUri != null) {
+          this._hasMarkedDescendantsSet.add(currentUri);
+          currentUri = this._parentUriMap.get(currentUri);
+        }
+      }
+    }
 
     this._onDidChangeFileDecorations.fire(undefined);
     this._onDidUpdate.fire();
   }
 
   /**
-   * Unmark a folder and all its children. Will also update parent folders if
-   * the changes cause a status change.
+   * Unmark a folder, its children, and its ancestors.
    * @param folderUri The folder URI to unmark.
    */
   unmarkFolder(folderUri: vscode.Uri): void {
@@ -93,7 +112,9 @@ export class FilteredWorkspace
       node.status = 'unmarked';
     }
 
-    this._updateAncestorMarkStatus(folderUri);
+    for (const node of this.iterateAncestors(folderUri)) {
+      node.status = 'unmarked';
+    }
 
     this._onDidChangeFileDecorations.fire(undefined);
     this._onDidUpdate.fire();
@@ -118,40 +139,36 @@ export class FilteredWorkspace
   }
 
   /**
-   * Get the URIs of top-level marked folders. A top-level marked folder is a
-   * folder where all its children are marked, and it is not a workspace root.
+   * BFS search to get top-level marked folder URIs. The first marked folder
+   * that is found in a branch is added to the set, and its children are not
+   * searched further.
    * @returns The set of URIs of top-level marked folders.
    */
-  getTopLevelMarkedFolderUris(): URISet {
+  getTopLevelMarkedFolderUris(rootUri?: vscode.Uri): URISet {
     const set = new URISet();
 
-    const queue: MarkableWsTreeNode[] = [...this._rootNodeMap.values()].filter(
-      n => n.status !== 'unmarked'
-    );
+    const queue: MarkableWsTreeNode[] =
+      rootUri == null
+        ? [...this._rootNodeMap.values()]
+        : [this._nodeMap.getOrThrow(rootUri)];
 
     while (queue.length > 0) {
-      const node = queue.shift()!;
+      const folderNode = queue.shift()!;
 
-      const childSet = this._childNodeMap.get(node.uri);
+      if (folderNode.status === 'marked') {
+        set.add(folderNode.uri);
+        continue;
+      }
+
+      const childSet = this._childNodeMap.get(folderNode.uri);
       if (childSet == null || childSet.size === 0) {
         continue;
       }
 
-      const markedChildren = [...childSet.values()].filter(
-        n => n.status !== 'unmarked'
-      );
+      // Queue all child folders so we can continue looking for marked nodes
+      const childFolders = [...childSet.values()].filter(n => !n.isFile);
 
-      // If all children are marked, and this isn't a workspace root, this is
-      // considered a top-level marked folder
-      if (
-        markedChildren.length === childSet.size &&
-        this._parentUriMap.get(node.uri) !== null
-      ) {
-        set.add(node.uri);
-        continue;
-      }
-
-      queue.push(...markedChildren);
+      queue.push(...childFolders);
     }
 
     return set;
@@ -187,6 +204,28 @@ export class FilteredWorkspace
     }
 
     return node.status;
+  }
+
+  /**
+   * Iterate the ancestors of a given URI up to the root. Excludes the given
+   * URI itself.
+   * @param uri The URI to start the iteration from.
+   */
+  private *iterateAncestors(uri: vscode.Uri): Iterable<MarkableWsTreeNode> {
+    const queue: vscode.Uri[] = [uri];
+
+    while (queue.length > 0) {
+      const currentUri = queue.shift()!;
+      const parentUri = this._parentUriMap.get(currentUri);
+      if (parentUri == null) {
+        break;
+      }
+
+      const parentNode = this._nodeMap.getOrThrow(parentUri);
+      yield parentNode;
+
+      queue.push(parentUri);
+    }
   }
 
   /**
@@ -252,6 +291,7 @@ export class FilteredWorkspace
 
     this._rootNodeMap.clear();
     this._parentUriMap.clear();
+    this._hasMarkedDescendantsSet.clear();
     this._nodeMap.clear();
     this._childNodeMap.clear();
 
@@ -303,41 +343,6 @@ export class FilteredWorkspace
 
     this._onDidChangeFileDecorations.fire(undefined);
     this._onDidUpdate.fire();
-  }
-
-  /**
-   * Update the mark status of all ancestor nodes based on their children's
-   * statuses.
-   * @param uri The starting URI to update from.
-   */
-  private _updateAncestorMarkStatus(uri: vscode.Uri): void {
-    const parentUri = this._parentUriMap.get(uri);
-
-    if (parentUri == null) {
-      return;
-    }
-
-    const parentNode = this._nodeMap.getOrThrow(parentUri);
-    const childMap = this._childNodeMap.getOrThrow(parentUri);
-
-    const counts = {
-      marked: 0,
-      unmarked: 0,
-      mixed: 0,
-    };
-
-    for (const n of childMap.values()) {
-      counts[n.status]++;
-    }
-
-    parentNode.status =
-      counts.marked === childMap.size
-        ? 'marked'
-        : counts.unmarked === childMap.size
-          ? 'unmarked'
-          : 'mixed';
-
-    this._updateAncestorMarkStatus(parentUri);
   }
 
   /**
