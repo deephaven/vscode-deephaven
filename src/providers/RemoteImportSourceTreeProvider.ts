@@ -7,7 +7,7 @@ import { getMarkableWsTreeCheckBoxState } from '../util';
 /**
  * Tree data provider that shows the Python modules in the workspace.
  */
-export class PythonModuleTreeProvider extends TreeDataProviderBase<MarkableWsTreeNode> {
+export class RemoteImportSourceTreeProvider extends TreeDataProviderBase<MarkableWsTreeNode> {
   constructor(private readonly _pythonWorkspace: FilteredWorkspace) {
     super();
 
