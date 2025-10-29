@@ -11,11 +11,14 @@ import type {
 import {
   getTopLevelModuleFullname,
   getWorkspaceFileUriMap,
+  Logger,
   URIMap,
   URISet,
   type Toaster,
 } from '../util';
 import { DisposableBase } from './DisposableBase';
+
+const logger = new Logger('FilteredWorkspace');
 
 export const PYTHON_FILE_PATTERN = '**/*.py' as const;
 
@@ -91,6 +94,20 @@ export class FilteredWorkspace
   private _wsFileUriMap = new URIMap<URISet>();
 
   /**
+   * Delete top-level marked URI only if it exactly matches the given folder URI.
+   * @param folderUri The folder URI to delete.
+   */
+  deleteExactTopLevelMarkedUri(folderUri: vscode.Uri): void {
+    const moduleName = getTopLevelModuleFullname(folderUri);
+
+    if (
+      this._topLevelMarkedUriMap.get(moduleName)?.fsPath === folderUri.fsPath
+    ) {
+      this._topLevelMarkedUriMap.delete(moduleName);
+    }
+  }
+
+  /**
    * Mark a folder and all its children. Will also update parent folders if the
    * changes cause a status change.
    * @param folderUri The folder URI to mark.
@@ -126,13 +143,18 @@ export class FilteredWorkspace
   unmarkConflictingTopLevelFolder(folderUri: vscode.Uri): void {
     const moduleName = getTopLevelModuleFullname(folderUri);
     const existingTopLevelUri = this._topLevelMarkedUriMap.get(moduleName);
+    const noConflict =
+      existingTopLevelUri == null ||
+      existingTopLevelUri.fsPath === folderUri.fsPath;
+
+    logger.debug(
+      'unmarkConflictingTopLevelFolder:',
+      `moduleName:${moduleName},conflict:${existingTopLevelUri?.fsPath ?? 'none'}`
+    );
 
     // If no existing mapping or mapping is the same as the requested one, no
     // need to unmark
-    if (
-      existingTopLevelUri == null ||
-      existingTopLevelUri.fsPath === folderUri.fsPath
-    ) {
+    if (noConflict) {
       return;
     }
 
@@ -157,14 +179,12 @@ export class FilteredWorkspace
   unmarkFolder(folderUri: vscode.Uri): void {
     for (const node of this.iterateNodeTree(folderUri)) {
       node.isMarked = false;
-      const moduleName = getTopLevelModuleFullname(node.uri);
-      this._topLevelMarkedUriMap.delete(moduleName);
+      this.deleteExactTopLevelMarkedUri(node.uri);
     }
 
     for (const node of this.iterateAncestors(folderUri)) {
       node.isMarked = false;
-      const moduleName = getTopLevelModuleFullname(node.uri);
-      this._topLevelMarkedUriMap.delete(moduleName);
+      this.deleteExactTopLevelMarkedUri(node.uri);
 
       // Since we've unmarked the parent as a top-level folder, we look for any
       // remaining marked children to re-add as top-level folders

@@ -9,8 +9,8 @@ import {
   sortByStringProp,
 } from '../util';
 
-const ACTIVE_SOURCES_LABEL = 'ACTIVE SOURCES';
-const WORKSPACE_LABEL = 'WORKSPACE';
+const ACTIVE_SOURCES_LABEL = 'Active Sources';
+const WORKSPACE_LABEL = 'Workspace';
 
 /**
  * Tree data provider that shows the Python modules in the workspace.
