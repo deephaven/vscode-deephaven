@@ -701,6 +701,10 @@
           "when": "true"
         },
         {
+          "command": "vscode-deephaven.createNewTextDoc",
+          "when": "false"
+        },
+        {
           "command": "vscode-deephaven.downloadLogs",
           "when": "true"
         },
