@@ -2,8 +2,10 @@ import * as vscode from 'vscode';
 import type {
   FilePattern,
   FolderName,
-  MarkableWsTreeNode,
-  MarkStatus,
+  RemoteImportSourceTreeFileElement,
+  RemoteImportSourceTreeFolderElement,
+  RemoteImportSourceTreeTopLevelMarkedFolderElement,
+  RemoteImportSourceTreeWkspRootFolderElement,
 } from '../types';
 import { getWorkspaceFileUriMap, URIMap, URISet } from '../util';
 import { DisposableBase } from './DisposableBase';
@@ -26,6 +28,13 @@ const PYTHON_IGNORE_TOP_LEVEL_FOLDER_NAMES: Set<FolderName> =
     'dist',
     '*.egg-info',
   ] as Array<FolderName>);
+
+type FilteredWorkspaceRootNode = RemoteImportSourceTreeWkspRootFolderElement;
+type FilteredWorkspaceTopLevelMarkedNode =
+  RemoteImportSourceTreeTopLevelMarkedFolderElement;
+type FilteredWorkspaceNode =
+  | RemoteImportSourceTreeFileElement
+  | RemoteImportSourceTreeFolderElement;
 
 /**
  * Represents a filtered view of a VS Code workspace. Also supports "marking"
@@ -61,11 +70,11 @@ export class FilteredWorkspace
   private readonly _ignoreTopLevelFolderNames =
     PYTHON_IGNORE_TOP_LEVEL_FOLDER_NAMES;
 
-  private readonly _childNodeMap = new URIMap<URIMap<MarkableWsTreeNode>>();
+  private readonly _childNodeMap = new URIMap<URIMap<FilteredWorkspaceNode>>();
   private readonly _hasMarkedDescendantsSet = new URISet();
   private readonly _parentUriMap = new URIMap<vscode.Uri | null>();
-  private readonly _nodeMap = new URIMap<MarkableWsTreeNode>();
-  private readonly _rootNodeMap = new URIMap<MarkableWsTreeNode>();
+  private readonly _nodeMap = new URIMap<FilteredWorkspaceNode>();
+  private readonly _rootNodeMap = new URIMap<FilteredWorkspaceRootNode>();
   private _wsFileUriMap = new URIMap<URISet>();
 
   /**
@@ -84,13 +93,13 @@ export class FilteredWorkspace
    */
   markFolder(folderUri: vscode.Uri): void {
     for (const node of this.iterateNodeTree(folderUri)) {
-      node.status = 'marked';
+      node.isMarked = true;
 
       const parentUri = this._parentUriMap.get(node.uri);
 
       // If the node is marked, all ancestors are flagged as having marked
       // descendants
-      if (node.status === 'marked') {
+      if (node.isMarked) {
         let currentUri: vscode.Uri | null | undefined = parentUri;
         while (currentUri != null) {
           this._hasMarkedDescendantsSet.add(currentUri);
@@ -109,11 +118,11 @@ export class FilteredWorkspace
    */
   unmarkFolder(folderUri: vscode.Uri): void {
     for (const node of this.iterateNodeTree(folderUri)) {
-      node.status = 'unmarked';
+      node.isMarked = false;
     }
 
     for (const node of this.iterateAncestors(folderUri)) {
-      node.status = 'unmarked';
+      node.isMarked = false;
     }
 
     this._onDidChangeFileDecorations.fire(undefined);
@@ -125,7 +134,14 @@ export class FilteredWorkspace
    * @param parentUri The parent URI to get child nodes for, or null for root nodes.
    * @returns An array of child nodes.
    */
-  getChildNodes(parentUri: vscode.Uri | null): MarkableWsTreeNode[] {
+  getChildNodes(parentUri: null): FilteredWorkspaceRootNode[];
+  getChildNodes(parentUri: vscode.Uri): FilteredWorkspaceNode[];
+  getChildNodes(
+    parentUri: vscode.Uri | null
+  ): FilteredWorkspaceRootNode[] | FilteredWorkspaceNode[];
+  getChildNodes(
+    parentUri: vscode.Uri | null
+  ): FilteredWorkspaceRootNode[] | FilteredWorkspaceNode[] {
     if (parentUri == null) {
       return [...this._rootNodeMap.values()];
     }
@@ -144,10 +160,12 @@ export class FilteredWorkspace
    * searched further.
    * @returns The set of URIs of top-level marked folders.
    */
-  getTopLevelMarkedFolderUris(rootUri?: vscode.Uri): URISet {
-    const set = new URISet();
+  getTopLevelMarkedFolders(
+    rootUri?: vscode.Uri
+  ): FilteredWorkspaceTopLevelMarkedNode[] {
+    const folders: FilteredWorkspaceTopLevelMarkedNode[] = [];
 
-    const queue: MarkableWsTreeNode[] =
+    const queue: (FilteredWorkspaceNode | FilteredWorkspaceRootNode)[] =
       rootUri == null
         ? [...this._rootNodeMap.values()]
         : [this._nodeMap.getOrThrow(rootUri)];
@@ -155,8 +173,14 @@ export class FilteredWorkspace
     while (queue.length > 0) {
       const folderNode = queue.shift()!;
 
-      if (folderNode.status === 'marked') {
-        set.add(folderNode.uri);
+      if (folderNode.type === 'folder' && folderNode.isMarked) {
+        const { name, uri } = folderNode;
+        folders.push({
+          name,
+          type: 'topLevelMarkedFolder',
+          isMarked: true,
+          uri,
+        });
         continue;
       }
 
@@ -166,12 +190,14 @@ export class FilteredWorkspace
       }
 
       // Queue all child folders so we can continue looking for marked nodes
-      const childFolders = [...childSet.values()].filter(n => !n.isFile);
+      const childFolders = [...childSet.values()].filter(
+        n => n.type === 'folder'
+      );
 
       queue.push(...childFolders);
     }
 
-    return set;
+    return folders;
   }
 
   /**
@@ -197,13 +223,13 @@ export class FilteredWorkspace
    * @param uri The URI to get the mark status for.
    * @returns The mark status of the URI.
    */
-  getMarkStatus(uri: vscode.Uri): MarkStatus {
+  isMarked(uri: vscode.Uri): boolean {
     const node = this._nodeMap.get(uri);
     if (node == null) {
-      return 'unmarked';
+      return false;
     }
 
-    return node.status;
+    return node.isMarked;
   }
 
   /**
@@ -211,13 +237,13 @@ export class FilteredWorkspace
    * URI itself.
    * @param uri The URI to start the iteration from.
    */
-  private *iterateAncestors(uri: vscode.Uri): Iterable<MarkableWsTreeNode> {
+  private *iterateAncestors(uri: vscode.Uri): Iterable<FilteredWorkspaceNode> {
     const queue: vscode.Uri[] = [uri];
 
     while (queue.length > 0) {
       const currentUri = queue.shift()!;
       const parentUri = this._parentUriMap.get(currentUri);
-      if (parentUri == null) {
+      if (parentUri == null || this._rootNodeMap.has(parentUri)) {
         break;
       }
 
@@ -231,9 +257,9 @@ export class FilteredWorkspace
   /**
    * Iterate the node tree starting at the given root URI in breadth-first order.
    * @param rootUri The root URI to start the iteration from.
-   * @returns An iterable of MarkableWsTreeNode objects.
+   * @returns An iterable of FilteredWorkspaceNode objects.
    */
-  *iterateNodeTree(rootUri: vscode.Uri): Iterable<MarkableWsTreeNode> {
+  *iterateNodeTree(rootUri: vscode.Uri): Iterable<FilteredWorkspaceNode> {
     const queue: vscode.Uri[] = [rootUri];
 
     while (queue.length > 0) {
@@ -265,17 +291,15 @@ export class FilteredWorkspace
     uri: vscode.Uri,
     _token: vscode.CancellationToken
   ): vscode.ProviderResult<vscode.FileDecoration> {
-    const markStatus = this.getMarkStatus(uri);
-    if (markStatus === 'unmarked') {
+    const isMarked = this.isMarked(uri);
+    if (!isMarked) {
       return;
     }
 
     return new vscode.FileDecoration(
       '\u{25AA}',
       'Deephaven source',
-      new vscode.ThemeColor(
-        markStatus === 'marked' ? 'charts.green' : 'charts.orange'
-      )
+      new vscode.ThemeColor(isMarked ? 'charts.green' : 'charts.orange')
     );
   }
 
@@ -307,10 +331,9 @@ export class FilteredWorkspace
       }
 
       this._updateNodeMaps(null, {
-        uri: wsUri,
         name: ws.name,
-        isFile: false,
-        status: 'unmarked',
+        type: 'workspaceRootFolder',
+        uri: wsUri,
       });
 
       for (const fileUri of fileUris.keys()) {
@@ -331,8 +354,8 @@ export class FilteredWorkspace
 
           this._updateNodeMaps(parentUri, {
             uri,
-            isFile: uri.fsPath === fileUri.fsPath,
-            status: 'unmarked',
+            type: uri.fsPath === fileUri.fsPath ? 'file' : 'folder',
+            isMarked: false,
             name: token,
           });
 
@@ -351,20 +374,28 @@ export class FilteredWorkspace
    * @param node the node to update maps for
    */
   private _updateNodeMaps(
+    parentUri: null,
+    node: FilteredWorkspaceRootNode
+  ): void;
+  private _updateNodeMaps(
+    parentUri: vscode.Uri,
+    node: FilteredWorkspaceNode
+  ): void;
+  private _updateNodeMaps(
     parentUri: vscode.Uri | null,
-    node: MarkableWsTreeNode
+    node: FilteredWorkspaceRootNode | FilteredWorkspaceNode
   ): void {
     this._parentUriMap.set(node.uri, parentUri);
-    this._nodeMap.set(node.uri, node);
 
     if (parentUri == null) {
-      this._rootNodeMap.set(node.uri, node);
+      this._rootNodeMap.set(node.uri, node as FilteredWorkspaceRootNode);
     } else {
+      this._nodeMap.set(node.uri, node as FilteredWorkspaceNode);
       if (!this._childNodeMap.has(parentUri)) {
         this._childNodeMap.set(parentUri, new URIMap());
       }
       const childMap = this._childNodeMap.get(parentUri)!;
-      childMap.set(node.uri, node);
+      childMap.set(node.uri, node as FilteredWorkspaceNode);
     }
   }
 }

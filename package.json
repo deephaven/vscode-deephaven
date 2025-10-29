@@ -911,6 +911,11 @@
           "group": "inline@2"
         },
         {
+          "command": "vscode-deephaven.addRemoteFileSource",
+          "when": "view == vscode-deephaven.view.remoteImportSourceTree && viewItem == canAddRemoteFileSource",
+          "group": "inline"
+        },
+        {
           "command": "vscode-deephaven.removeRemoteFileSource",
           "when": "view == vscode-deephaven.view.remoteImportSourceTree && viewItem == canRemoveRemoteFileSource",
           "group": "inline"

@@ -11,6 +11,9 @@ import type {
   JsonRpcSetConnectionIdRequest,
   JsonRpcSuccess,
   ModuleFullname,
+  RemoteImportSourceTreeFileElement,
+  RemoteImportSourceTreeFolderElement,
+  RemoteImportSourceTreeTopLevelMarkedFolderElement,
   UniqueID,
 } from '../types';
 import { withResolvers } from './promiseUtils';
@@ -81,6 +84,67 @@ export async function getRemoteFileSourcePlugin(
   await sendWidgetMessageAsync(plugin, msg);
 
   return plugin;
+}
+
+/**
+ * Get `TreeItem` for a file element in the remote import source tree.
+ * @param element The file element.
+ * @returns TreeItem for the file
+ */
+export function getFileTreeItem({
+  name,
+  uri,
+}: RemoteImportSourceTreeFileElement): vscode.TreeItem {
+  return {
+    label: name,
+    resourceUri: uri,
+    collapsibleState: vscode.TreeItemCollapsibleState.None,
+    command: {
+      title: 'Open File',
+      command: 'vscode.open',
+      arguments: [uri],
+    },
+  };
+}
+
+/**
+ * Get `TreeItem` for a folder element in the remote import source tree.
+ * @param element The folder element.
+ * @returns TreeItem for the folder
+ */
+export function getFolderTreeItem({
+  name,
+  isMarked,
+  uri,
+}: RemoteImportSourceTreeFolderElement): vscode.TreeItem {
+  return {
+    label: name,
+    collapsibleState: vscode.TreeItemCollapsibleState.Collapsed,
+    resourceUri: uri,
+    contextValue: isMarked
+      ? 'canRemoveRemoteFileSource'
+      : 'canAddRemoteFileSource',
+    iconPath: new vscode.ThemeIcon('folder'),
+  };
+}
+
+/**
+ * Get `TreeItem` for a top-level marked folder element in the remote import
+ * source tree.
+ * @param element The top-level marked folder element.
+ * @returns TreeItem for the top-level marked folder
+ */
+export function getTopLevelMarkedFolderTreeItem({
+  uri,
+}: RemoteImportSourceTreeTopLevelMarkedFolderElement): vscode.TreeItem {
+  return {
+    label: uri.path.split('/').at(-1),
+    description: vscode.workspace.asRelativePath(uri, true),
+    contextValue: 'canRemoveRemoteFileSource',
+    resourceUri: uri,
+    iconPath: new vscode.ThemeIcon('dh-python'),
+    collapsibleState: vscode.TreeItemCollapsibleState.None,
+  };
 }
 
 /**

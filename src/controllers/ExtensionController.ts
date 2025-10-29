@@ -41,7 +41,6 @@ import {
   getEditorForUri,
   getTempDir,
   isInstanceOf,
-  isMarkableWsTreeNode,
   isSerializedRange,
   isSupportedLanguageId,
   LogFileHandler,
@@ -113,9 +112,9 @@ import type {
   DheAuthenticatedClientWrapper,
   DheUnauthenticatedClientWrapper,
   RemoteImportSourceTreeView,
-  MarkableWsTreeNode,
   VariableDefintion,
-  RemoteImportSourceTreeNode,
+  RemoteImportSourceTreeElement,
+  RemoteImportSourceTreeFolderElement,
 } from '../types';
 import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTreeDragAndDropController';
 import { ConnectionController } from './ConnectionController';
@@ -836,7 +835,7 @@ export class ExtensionController implements IDisposable {
       this._pythonWorkspace
     );
     this._remoteImportSourceTreeView =
-      vscode.window.createTreeView<RemoteImportSourceTreeNode>(
+      vscode.window.createTreeView<RemoteImportSourceTreeElement>(
         VIEW_ID.remoteImportSourceTree,
         {
           showCollapseAll: true,
@@ -849,7 +848,7 @@ export class ExtensionController implements IDisposable {
       // ever find this is not the case, we'll need to identify the item in the
       // list that is highest in the tree instead.
       const [node, state] = items[0];
-      if (!isMarkableWsTreeNode(node) || node.isFile) {
+      if (node.type !== 'folder') {
         return;
       }
 
@@ -933,20 +932,26 @@ export class ExtensionController implements IDisposable {
   };
 
   onAddRemoteFileSource = async (
-    nodeOrUri: MarkableWsTreeNode | vscode.Uri
+    folderElementOrUri: RemoteImportSourceTreeFolderElement | vscode.Uri
   ): Promise<void> => {
     assertDefined(this._pythonWorkspace, 'pythonWorkspace');
 
-    const uri = nodeOrUri instanceof vscode.Uri ? nodeOrUri : nodeOrUri.uri;
+    const uri =
+      folderElementOrUri instanceof vscode.Uri
+        ? folderElementOrUri
+        : folderElementOrUri.uri;
     this._pythonWorkspace.markFolder(uri);
   };
 
   onRemoveRemoteFileSource = async (
-    nodeOrUri: MarkableWsTreeNode | vscode.Uri
+    folderElementOrUri: RemoteImportSourceTreeFolderElement | vscode.Uri
   ): Promise<void> => {
     assertDefined(this._pythonWorkspace, 'pythonWorkspace');
 
-    const uri = nodeOrUri instanceof vscode.Uri ? nodeOrUri : nodeOrUri.uri;
+    const uri =
+      folderElementOrUri instanceof vscode.Uri
+        ? folderElementOrUri
+        : folderElementOrUri.uri;
     this._pythonWorkspace.unmarkFolder(uri);
   };
 

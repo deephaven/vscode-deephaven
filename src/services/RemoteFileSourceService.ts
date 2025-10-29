@@ -32,7 +32,7 @@ export class RemoteFileSourceService extends DisposableBase {
   getTopLevelPythonModuleNames(): Set<ModuleFullname> {
     const set = new Set<ModuleFullname>();
 
-    this._pythonWorkspace.getTopLevelMarkedFolderUris().forEach(uri => {
+    this._pythonWorkspace.getTopLevelMarkedFolders().forEach(({ uri }) => {
       const folderPathStr = relativeWsUriString(uri);
       set.add(folderPathStr.replaceAll('/', '.') as ModuleFullname);
     });
@@ -73,10 +73,7 @@ export class RemoteFileSourceService extends DisposableBase {
           `${relativePath}${ext}`
         );
 
-        if (
-          uriSet.has(fileUri) &&
-          this._pythonWorkspace.getMarkStatus(fileUri) === 'marked'
-        ) {
+        if (uriSet.has(fileUri) && this._pythonWorkspace.isMarked(fileUri)) {
           logger.log(
             'Found moduleFullName fs path:',
             moduleFullname,

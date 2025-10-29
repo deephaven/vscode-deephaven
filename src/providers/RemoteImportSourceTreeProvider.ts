@@ -1,13 +1,20 @@
 import * as vscode from 'vscode';
 import { TreeDataProviderBase } from './TreeDataProviderBase';
-import type { MarkableWsTreeNode } from '../types';
 import type { FilteredWorkspace } from '../services';
-import { getMarkableWsTreeCheckBoxState } from '../util';
+import type { RemoteImportSourceTreeElement } from '../types';
+import {
+  getFileTreeItem,
+  getFolderTreeItem,
+  getTopLevelMarkedFolderTreeItem,
+} from '../util';
+
+const ACTIVE_SOURCES_LABEL = 'ACTIVE SOURCES';
+const WORKSPACE_LABEL = 'WORKSPACE';
 
 /**
  * Tree data provider that shows the Python modules in the workspace.
  */
-export class RemoteImportSourceTreeProvider extends TreeDataProviderBase<MarkableWsTreeNode> {
+export class RemoteImportSourceTreeProvider extends TreeDataProviderBase<RemoteImportSourceTreeElement> {
   constructor(private readonly _pythonWorkspace: FilteredWorkspace) {
     super();
 
@@ -22,9 +29,20 @@ export class RemoteImportSourceTreeProvider extends TreeDataProviderBase<Markabl
    * @returns a Promise that resolves to an array of child nodes.
    */
   getChildren(
-    node?: MarkableWsTreeNode | undefined
-  ): vscode.ProviderResult<MarkableWsTreeNode[]> {
+    node?: RemoteImportSourceTreeElement | undefined
+  ): vscode.ProviderResult<RemoteImportSourceTreeElement[]> {
     if (node == null) {
+      return [
+        { type: 'root', name: ACTIVE_SOURCES_LABEL },
+        { type: 'root', name: WORKSPACE_LABEL },
+      ];
+    }
+
+    if (node.type === 'root') {
+      if (node.name === ACTIVE_SOURCES_LABEL) {
+        return this._pythonWorkspace.getTopLevelMarkedFolders();
+      }
+
       return this._pythonWorkspace.getChildNodes(null);
     }
 
@@ -34,28 +52,29 @@ export class RemoteImportSourceTreeProvider extends TreeDataProviderBase<Markabl
   }
 
   /**
-   * Get a TreeItem representation of a node.
-   * @param node The node to get the TreeItem for.
-   * @returns A TreeItem representing the node.
+   * Get a TreeItem representation of an element.
+   * @param element The element to get the TreeItem for.
+   * @returns A TreeItem representing the element.
    */
-  getTreeItem(node: MarkableWsTreeNode): vscode.TreeItem {
+  getTreeItem(element: RemoteImportSourceTreeElement): vscode.TreeItem {
+    if (element.type === 'topLevelMarkedFolder') {
+      return getTopLevelMarkedFolderTreeItem(element);
+    }
+
+    if (element.type === 'folder') {
+      return getFolderTreeItem(element);
+    }
+
+    if (element.type === 'file') {
+      return getFileTreeItem(element);
+    }
+
     return {
-      label: node.name,
-      checkboxState: node.isFile
-        ? undefined
-        : getMarkableWsTreeCheckBoxState(node.status),
-      resourceUri: node.uri,
-      collapsibleState: node.isFile
-        ? vscode.TreeItemCollapsibleState.None
-        : vscode.TreeItemCollapsibleState.Collapsed,
-      command: node.isFile
-        ? {
-            // Standard VS Code behavior to open the file in the editor when clicked
-            command: 'vscode.open',
-            title: 'Open File',
-            arguments: [node.uri],
-          }
-        : undefined,
+      label: element.name,
+      collapsibleState:
+        element.type === 'root'
+          ? vscode.TreeItemCollapsibleState.Expanded
+          : vscode.TreeItemCollapsibleState.Collapsed,
     };
   }
 }
