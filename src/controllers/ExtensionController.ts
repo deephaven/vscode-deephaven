@@ -1037,6 +1037,7 @@ export class ExtensionController implements IDisposable {
   };
 
   onRefreshRemoteImportSourceTree = async (): Promise<void> => {
+    this._pythonWorkspace?.refresh();
     this._remoteImportSourceTreeProvider?.refresh();
   };
 

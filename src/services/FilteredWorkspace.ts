@@ -407,6 +407,15 @@ export class FilteredWorkspace
       }
     }
 
+    // Re-apply top level marked folders if they still exist after refresh
+    for (const uri of this._topLevelMarkedUriMap.values()) {
+      if (this._nodeMap.has(uri)) {
+        this.markFolder(uri);
+      } else {
+        this.deleteExactTopLevelMarkedUri(uri);
+      }
+    }
+
     this._onDidChangeFileDecorations.fire(undefined);
     this._onDidUpdate.fire();
   }
