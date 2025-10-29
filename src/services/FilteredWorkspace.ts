@@ -81,7 +81,6 @@ export class FilteredWorkspace
     PYTHON_IGNORE_TOP_LEVEL_FOLDER_NAMES;
 
   private readonly _childNodeMap = new URIMap<URIMap<FilteredWorkspaceNode>>();
-  private readonly _hasMarkedDescendantsSet = new URISet();
   private readonly _parentUriMap = new URIMap<vscode.Uri | null>();
   private readonly _nodeMap = new URIMap<FilteredWorkspaceNode>();
   private readonly _rootNodeMap = new URIMap<FilteredWorkspaceRootNode>();
@@ -90,15 +89,6 @@ export class FilteredWorkspace
     vscode.Uri
   >();
   private _wsFileUriMap = new URIMap<URISet>();
-
-  /**
-   * Check if a given URI has marked descendants.
-   * @param uri The URI to check.
-   * @returns True if the URI has marked descendants, false otherwise.
-   */
-  hasMarkedDescendants(uri: vscode.Uri): boolean {
-    return this._hasMarkedDescendantsSet.has(uri);
-  }
 
   /**
    * Mark a folder and all its children. Will also update parent folders if the
@@ -119,18 +109,6 @@ export class FilteredWorkspace
         // Since we've marked the parent folder as top-level, remove top-level
         // status from any children
         this._topLevelMarkedUriMap.delete(moduleName);
-      }
-
-      const parentUri = this._parentUriMap.get(node.uri);
-
-      // If the node is marked, all ancestors are flagged as having marked
-      // descendants
-      if (node.isMarked) {
-        let currentUri: vscode.Uri | null | undefined = parentUri;
-        while (currentUri != null) {
-          this._hasMarkedDescendantsSet.add(currentUri);
-          currentUri = this._parentUriMap.get(currentUri);
-        }
       }
     }
 
@@ -361,7 +339,6 @@ export class FilteredWorkspace
 
     this._rootNodeMap.clear();
     this._parentUriMap.clear();
-    this._hasMarkedDescendantsSet.clear();
     this._nodeMap.clear();
     this._childNodeMap.clear();
 
