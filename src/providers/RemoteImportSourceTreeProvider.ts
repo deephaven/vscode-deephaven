@@ -6,6 +6,7 @@ import {
   getFileTreeItem,
   getFolderTreeItem,
   getTopLevelMarkedFolderTreeItem,
+  sortByStringProp,
 } from '../util';
 
 const ACTIVE_SOURCES_LABEL = 'ACTIVE SOURCES';
@@ -40,7 +41,9 @@ export class RemoteImportSourceTreeProvider extends TreeDataProviderBase<RemoteI
 
     if (node.type === 'root') {
       if (node.name === ACTIVE_SOURCES_LABEL) {
-        return this._pythonWorkspace.getTopLevelMarkedFolders();
+        return this._pythonWorkspace
+          .getTopLevelMarkedFolders()
+          .sort(sortByStringProp('name'));
       }
 
       return this._pythonWorkspace.getChildNodes(null);
@@ -48,7 +51,7 @@ export class RemoteImportSourceTreeProvider extends TreeDataProviderBase<RemoteI
 
     return this._pythonWorkspace
       .getChildNodes(node.uri)
-      .sort((a, b) => a.name.localeCompare(b.name));
+      .sort(sortByStringProp('name'));
   }
 
   /**

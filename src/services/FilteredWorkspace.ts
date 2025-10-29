@@ -2,12 +2,19 @@ import * as vscode from 'vscode';
 import type {
   FilePattern,
   FolderName,
+  ModuleFullname,
   RemoteImportSourceTreeFileElement,
   RemoteImportSourceTreeFolderElement,
   RemoteImportSourceTreeTopLevelMarkedFolderElement,
   RemoteImportSourceTreeWkspRootFolderElement,
 } from '../types';
-import { getWorkspaceFileUriMap, URIMap, URISet } from '../util';
+import {
+  getTopLevelModuleFullname,
+  getWorkspaceFileUriMap,
+  URIMap,
+  URISet,
+  type Toaster,
+} from '../util';
 import { DisposableBase } from './DisposableBase';
 
 export const PYTHON_FILE_PATTERN = '**/*.py' as const;
@@ -44,7 +51,10 @@ export class FilteredWorkspace
   extends DisposableBase
   implements vscode.FileDecorationProvider
 {
-  constructor(readonly filePattern: FilePattern) {
+  constructor(
+    readonly filePattern: FilePattern,
+    private readonly _toaster: Toaster
+  ) {
     super();
 
     this.disposables.add(vscode.window.registerFileDecorationProvider(this));
@@ -75,6 +85,10 @@ export class FilteredWorkspace
   private readonly _parentUriMap = new URIMap<vscode.Uri | null>();
   private readonly _nodeMap = new URIMap<FilteredWorkspaceNode>();
   private readonly _rootNodeMap = new URIMap<FilteredWorkspaceRootNode>();
+  private readonly _topLevelMarkedUriMap = new Map<
+    ModuleFullname,
+    vscode.Uri
+  >();
   private _wsFileUriMap = new URIMap<URISet>();
 
   /**
@@ -92,8 +106,20 @@ export class FilteredWorkspace
    * @param folderUri The folder URI to mark.
    */
   markFolder(folderUri: vscode.Uri): void {
+    this.unmarkConflictingTopLevelFolder(folderUri);
+
     for (const node of this.iterateNodeTree(folderUri)) {
       node.isMarked = true;
+
+      const moduleName = getTopLevelModuleFullname(node.uri);
+
+      if (node.uri.fsPath === folderUri.fsPath) {
+        this._topLevelMarkedUriMap.set(moduleName, folderUri);
+      } else {
+        // Since we've marked the parent folder as top-level, remove top-level
+        // status from any children
+        this._topLevelMarkedUriMap.delete(moduleName);
+      }
 
       const parentUri = this._parentUriMap.get(node.uri);
 
@@ -113,16 +139,67 @@ export class FilteredWorkspace
   }
 
   /**
+   * A top-level module name can only be sourced from 1 folder. This method
+   * checks for any existing mappings for the same module name as the given
+   * folder URI, and unmarks them.
+   * @param folderUri
+   * @returns
+   */
+  unmarkConflictingTopLevelFolder(folderUri: vscode.Uri): void {
+    const moduleName = getTopLevelModuleFullname(folderUri);
+    const existingTopLevelUri = this._topLevelMarkedUriMap.get(moduleName);
+
+    // If no existing mapping or mapping is the same as the requested one, no
+    // need to unmark
+    if (
+      existingTopLevelUri == null ||
+      existingTopLevelUri.fsPath === folderUri.fsPath
+    ) {
+      return;
+    }
+
+    // A module name can only be sourced from 1 folder. If we find an existing
+    // mapping, unmark it first.
+    const relativePath = vscode.workspace.asRelativePath(
+      existingTopLevelUri,
+      true
+    );
+
+    this.unmarkFolder(existingTopLevelUri);
+
+    this._toaster.info(
+      `Updated '${moduleName}' import source to '${relativePath}'.`
+    );
+  }
+
+  /**
    * Unmark a folder, its children, and its ancestors.
    * @param folderUri The folder URI to unmark.
    */
   unmarkFolder(folderUri: vscode.Uri): void {
     for (const node of this.iterateNodeTree(folderUri)) {
       node.isMarked = false;
+      const moduleName = getTopLevelModuleFullname(node.uri);
+      this._topLevelMarkedUriMap.delete(moduleName);
     }
 
     for (const node of this.iterateAncestors(folderUri)) {
       node.isMarked = false;
+      const moduleName = getTopLevelModuleFullname(node.uri);
+      this._topLevelMarkedUriMap.delete(moduleName);
+
+      // Since we've unmarked the parent as a top-level folder, we look for any
+      // remaining marked children to re-add as top-level folders
+      for (const childNode of this.getChildNodes(node.uri)) {
+        if (childNode.isMarked) {
+          this.unmarkConflictingTopLevelFolder(childNode.uri);
+
+          this._topLevelMarkedUriMap.set(
+            getTopLevelModuleFullname(childNode.uri),
+            childNode.uri
+          );
+        }
+      }
     }
 
     this._onDidChangeFileDecorations.fire(undefined);
@@ -155,49 +232,18 @@ export class FilteredWorkspace
   }
 
   /**
-   * BFS search to get top-level marked folder URIs. The first marked folder
-   * that is found in a branch is added to the set, and its children are not
-   * searched further.
-   * @returns The set of URIs of top-level marked folders.
+   * Get top-level marked folder elements in the filtered workspace.
+   * @returns The set of top-level marked folder elements.
    */
-  getTopLevelMarkedFolders(
-    rootUri?: vscode.Uri
-  ): FilteredWorkspaceTopLevelMarkedNode[] {
-    const folders: FilteredWorkspaceTopLevelMarkedNode[] = [];
+  getTopLevelMarkedFolders(): FilteredWorkspaceTopLevelMarkedNode[] {
+    const topLeveMarkedlUris = [...this._topLevelMarkedUriMap.entries()];
 
-    const queue: (FilteredWorkspaceNode | FilteredWorkspaceRootNode)[] =
-      rootUri == null
-        ? [...this._rootNodeMap.values()]
-        : [this._nodeMap.getOrThrow(rootUri)];
-
-    while (queue.length > 0) {
-      const folderNode = queue.shift()!;
-
-      if (folderNode.type === 'folder' && folderNode.isMarked) {
-        const { name, uri } = folderNode;
-        folders.push({
-          name,
-          type: 'topLevelMarkedFolder',
-          isMarked: true,
-          uri,
-        });
-        continue;
-      }
-
-      const childSet = this._childNodeMap.get(folderNode.uri);
-      if (childSet == null || childSet.size === 0) {
-        continue;
-      }
-
-      // Queue all child folders so we can continue looking for marked nodes
-      const childFolders = [...childSet.values()].filter(
-        n => n.type === 'folder'
-      );
-
-      queue.push(...childFolders);
-    }
-
-    return folders;
+    return topLeveMarkedlUris.map(([name, uri]) => ({
+      name,
+      type: 'topLevelMarkedFolder',
+      isMarked: true,
+      uri,
+    }));
   }
 
   /**

@@ -367,7 +367,11 @@ export class ExtensionController implements IDisposable {
    * Initialize services needed for remote file sourcing.
    */
   initializeRemoteFileSourcing = (): void => {
-    this._pythonWorkspace = new FilteredWorkspace(PYTHON_FILE_PATTERN);
+    assertDefined(this._toaster, 'toaster');
+    this._pythonWorkspace = new FilteredWorkspace(
+      PYTHON_FILE_PATTERN,
+      this._toaster
+    );
     this._context.subscriptions.push(this._pythonWorkspace);
 
     this._remoteFileSourceService = new RemoteFileSourceService(

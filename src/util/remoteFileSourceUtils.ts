@@ -148,6 +148,18 @@ export function getTopLevelMarkedFolderTreeItem({
 }
 
 /**
+ * Get the top-level Python module name for a given folder URI. It will be the
+ * last segment of the folder path.
+ * @param folderUri The folder URI.
+ * @returns The top-level module name.
+ */
+export function getTopLevelModuleFullname(
+  folderUri: vscode.Uri
+): ModuleFullname {
+  return folderUri.path.split('/').at(-1) as ModuleFullname;
+}
+
+/**
  * Get a map of workspace folder URIs to sets of file URIs matching the given
  * file pattern, ignoring files in top-level folders with names in the ignore
  * set.
