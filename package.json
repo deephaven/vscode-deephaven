@@ -34,6 +34,7 @@
     "compile": "npm run build:ts && node scripts/esbuild.js",
     "compile:prod": "npm run build:ts && npm run test:lint && node scripts/esbuild.js --production",
     "icon:gen": "node icons/generate.mjs dh",
+    "package:dev": "./scripts/package-dev.sh",
     "package:latest": "vsce package -o releases/vscode-deephaven-latest.vsix",
     "publish": "./scripts/publish.sh",
     "publish:prerelease": "./scripts/publish.sh --pre-release",

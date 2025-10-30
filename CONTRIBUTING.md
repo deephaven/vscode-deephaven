@@ -65,9 +65,11 @@ This extension can also be installed directly from a `.vsix`. To get a `.vsix`, 
 
 Download one from the [releases/](releases/) folder.
 
-or
+Alternatively, you can build a `.vsix` locally using either:
+- `npm run package:dev` or
+- `npm run package:latest`
 
-Build a .vsix locally via `npm run package:latest` (see [VSCE](#vsce) section)
+(see [VSCE](#vsce) section)
 
 Then install in `VS Code`:
 ![Install Deephaven VS Code](./docs/assets/install-vsix.png)
