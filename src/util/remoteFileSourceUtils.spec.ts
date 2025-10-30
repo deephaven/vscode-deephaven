@@ -2,7 +2,11 @@ import * as vscode from 'vscode';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import {
+  getFileTreeItem,
+  getFolderTreeItem,
   getSetExecutionContextScript,
+  getTopLevelMarkedFolderTreeItem,
+  getTopLevelModuleFullname,
   isPluginInstalled,
   registerRemoteFileSourcePluginMessageListener,
   sendWidgetMessageAsync,
@@ -12,6 +16,9 @@ import type {
   JsonRpcRequest,
   JsonRpcResponse,
   ModuleFullname,
+  RemoteImportSourceTreeFileElement,
+  RemoteImportSourceTreeFolderElement,
+  RemoteImportSourceTreeTopLevelMarkedFolderElement,
   UniqueID,
 } from '../types';
 import { getLastEventListener } from '../testUtils';
@@ -37,6 +44,32 @@ beforeEach(() => {
   vi.mocked(mockPlugin.addEventListener).mockReturnValue(removeEventListener);
 });
 
+describe('getFileTreeItem', () => {
+  it('should return a TreeItem for a file element', () => {
+    const element = {
+      name: 'mock.py',
+      uri: vscode.Uri.parse('file:///mock/file/path.py'),
+    } as RemoteImportSourceTreeFileElement;
+
+    expect(getFileTreeItem(element)).toMatchSnapshot();
+  });
+});
+
+describe('getFolderTreeItem', () => {
+  it.each([true, false])(
+    'should return a TreeItem for a folder element. isMarked:%s',
+    isMarked => {
+      const element = {
+        name: 'mockFolder',
+        isMarked,
+        uri: vscode.Uri.parse('file:///mock/folder/path/'),
+      } as RemoteImportSourceTreeFolderElement;
+
+      expect(getFolderTreeItem(element)).toMatchSnapshot();
+    }
+  );
+});
+
 describe('getSetExecutionContextScript', () => {
   it.each([
     [null, [], '__deephaven_vscode.set_execution_context(None, {})'],
@@ -50,6 +83,29 @@ describe('getSetExecutionContextScript', () => {
     (cnId, moduleFullNames, expected) => {
       const script = getSetExecutionContextScript(cnId, moduleFullNames);
       expect(script).toBe(expected);
+    }
+  );
+});
+
+describe('getTopLevelMarkedFolderTreeItem', () => {
+  it('should return a TreeItem for a top-level marked folder element', () => {
+    const element = {
+      uri: vscode.Uri.parse('file:///mock/top/level/marked/folder/'),
+    } as RemoteImportSourceTreeTopLevelMarkedFolderElement;
+
+    expect(getTopLevelMarkedFolderTreeItem(element)).toMatchSnapshot();
+  });
+});
+
+describe('getTopLevelModuleFullname', () => {
+  it.each([
+    ['file:///mock/trailing-slash/', 'trailing-slash'],
+    ['file:///mock/module', 'module'],
+  ])(
+    'should return the top-level module fullname for a given folder URI: %s',
+    (uriPath, expectedModuleName) => {
+      const result = getTopLevelModuleFullname(vscode.Uri.parse(uriPath));
+      expect(result).toBe(expectedModuleName);
     }
   );
 });

@@ -156,7 +156,7 @@ export function getTopLevelMarkedFolderTreeItem({
 export function getTopLevelModuleFullname(
   folderUri: vscode.Uri
 ): ModuleFullname {
-  return folderUri.path.split('/').at(-1) as ModuleFullname;
+  return folderUri.path.replace(/\/$/, '').split('/').at(-1) as ModuleFullname;
 }
 
 /**
