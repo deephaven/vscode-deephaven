@@ -162,14 +162,9 @@ export class FilteredWorkspace
       return;
     }
 
-    // A module name can only be sourced from 1 folder. If we find an existing
-    // mapping, unmark it first.
-    const relativePath = vscode.workspace.asRelativePath(
-      existingTopLevelUri,
-      true
-    );
-
     this.unmarkFolder(existingTopLevelUri);
+
+    const relativePath = vscode.workspace.asRelativePath(folderUri, true);
 
     this._toaster.info(
       `Updated '${moduleName}' import source to '${relativePath}'.`

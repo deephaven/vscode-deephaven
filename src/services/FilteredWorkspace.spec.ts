@@ -36,6 +36,9 @@ const mock = {
 
     sub2: vscode.Uri.parse('file:///path/to/ws1/sub2'),
     sub2_file1: vscode.Uri.parse('file:///path/to/ws1/sub2/file1.py'),
+
+    sub2_a: vscode.Uri.parse('file:///path/to/ws1/sub2/a'),
+    sub2_a_file1: vscode.Uri.parse('file:///path/to/ws1/sub2/a/file1.py'),
   },
   folder2: {
     root: vscode.Uri.parse('file:///path/to/ws2'),
@@ -122,6 +125,7 @@ const mock2RootWs = new URIMap([
       mock.folder1.sub1_file1,
       mock.folder1.sub1_file2,
       mock.folder1.sub2_file1,
+      mock.folder1.sub2_a_file1,
       mock.folder1.sub1_a_file1,
       mock.folder1.sub1_b_file1,
     ]),
@@ -132,7 +136,7 @@ const mock2RootWs = new URIMap([
   ],
 ]);
 
-const mockToaster = new Toaster();
+const mockToaster = { error: vi.fn(), info: vi.fn() } as Toaster;
 
 const expected = {
   folder1: {
@@ -149,6 +153,8 @@ const expected = {
       folderElement(mock.folder1.sub1_b, { isMarked: true }),
 
       fileElement(mock.folder1.sub2_file1, { isMarked: true }),
+      folderElement(mock.folder1.sub2_a, { isMarked: true }),
+      fileElement(mock.folder1.sub2_a_file1, { isMarked: true }),
 
       fileElement(mock.folder1.sub1_a_file1, { isMarked: true }),
       fileElement(mock.folder1.sub1_b_file1, { isMarked: true }),
@@ -166,6 +172,8 @@ const expected = {
       folderElement(mock.folder1.sub1_b),
 
       fileElement(mock.folder1.sub2_file1),
+      folderElement(mock.folder1.sub2_a),
+      fileElement(mock.folder1.sub2_a_file1),
 
       fileElement(mock.folder1.sub1_a_file1),
       fileElement(mock.folder1.sub1_b_file1),
@@ -183,6 +191,8 @@ const expected = {
 
       folderElement(mock.folder1.sub2),
       fileElement(mock.folder1.sub2_file1),
+      folderElement(mock.folder1.sub2_a),
+      fileElement(mock.folder1.sub2_a_file1),
     ]),
     sub1aMarked: sortNodes([
       wkspFolderElement(mock.folder1.root, { name: 'Workspace1' }),
@@ -199,6 +209,26 @@ const expected = {
 
       folderElement(mock.folder1.sub2),
       fileElement(mock.folder1.sub2_file1),
+      folderElement(mock.folder1.sub2_a),
+      fileElement(mock.folder1.sub2_a_file1),
+    ]),
+    sub2aMarked: sortNodes([
+      wkspFolderElement(mock.folder1.root, { name: 'Workspace1' }),
+
+      folderElement(mock.folder1.sub1),
+      fileElement(mock.folder1.sub1_file1),
+      fileElement(mock.folder1.sub1_file2),
+
+      folderElement(mock.folder1.sub1_a),
+      fileElement(mock.folder1.sub1_a_file1),
+
+      folderElement(mock.folder1.sub1_b),
+      fileElement(mock.folder1.sub1_b_file1),
+
+      folderElement(mock.folder1.sub2),
+      fileElement(mock.folder1.sub2_file1),
+      folderElement(mock.folder1.sub2_a, { isMarked: true }),
+      fileElement(mock.folder1.sub2_a_file1, { isMarked: true }),
     ]),
   },
   folder2: {
@@ -220,7 +250,8 @@ const expected = {
 async function initWorkspace(wsMap: URIMap<URISet>): Promise<{
   expectResult(
     rootUri: vscode.Uri,
-    expectedNodes: RemoteImportSourceTreeElement[]
+    expectedNodes: RemoteImportSourceTreeElement[],
+    message?: string
   ): void;
   workspace: FilteredWorkspace;
 }> {
@@ -236,9 +267,13 @@ async function initWorkspace(wsMap: URIMap<URISet>): Promise<{
   return {
     workspace,
     // Helper to check the current state of the workspace against expected nodes
-    expectResult(rootUri: vscode.Uri, expectedNodes: FsElement[]): void {
+    expectResult(
+      rootUri: vscode.Uri,
+      expectedNodes: FsElement[],
+      message?: string
+    ): void {
       const descendants = Array.from(workspace.iterateNodeTree(rootUri));
-      expect(sortNodes(descendants)).toEqual(sortNodes(expectedNodes));
+      expect(sortNodes(descendants), message).toEqual(sortNodes(expectedNodes));
     },
   };
 }
@@ -325,28 +360,69 @@ describe('mark / unmark', () => {
     }
   );
 
+  it('should replace folder with conflicting module name', async () => {
+    const { workspace, expectResult } = await initWorkspace(mock2RootWs);
+
+    const moduleA = mock.folder1.sub1_a;
+    const conflictingModuleA = mock.folder1.sub2_a;
+
+    workspace.markFolder(moduleA);
+
+    expectResult(
+      mock.folder1.root,
+      expected.folder1.sub1aMarked,
+      'mark module a'
+    );
+
+    workspace.markFolder(moduleA);
+    expect(mockToaster.error).not.toHaveBeenCalled();
+    expectResult(
+      mock.folder1.root,
+      expected.folder1.sub1aMarked,
+      'mark same module a again'
+    );
+
+    workspace.markFolder(conflictingModuleA);
+    expect(mockToaster.info).toHaveBeenCalledWith(
+      `Updated 'a' import source to 'sub2/a'.`
+    );
+    expectResult(
+      mock.folder1.root,
+      expected.folder1.sub2aMarked,
+      'unmark conflicting module a'
+    );
+  });
+
   it('should mark parent folders based on children status', async () => {
     const { workspace, expectResult } = await initWorkspace(mock2RootWs);
 
     // Start with everything marked
     workspace.markFolder(mock.folder1.root);
-    expectResult(mock.folder1.root, expected.folder1.allMarked);
+    expectResult(
+      mock.folder1.root,
+      expected.folder1.allMarked,
+      'everything marked'
+    );
 
     // Unmarking sub2 should result in only sub1 being marked and root being mixed
     workspace.unmarkFolder(mock.folder1.sub2);
-    expectResult(mock.folder1.root, expected.folder1.sub1Marked);
+    expectResult(mock.folder1.root, expected.folder1.sub1Marked, 'unmark sub2');
 
     // Re-marking sub2 should result in everything being marked again
     workspace.markFolder(mock.folder1.sub2);
-    expectResult(mock.folder1.root, expected.folder1.allMarked);
+    expectResult(mock.folder1.root, expected.folder1.allMarked, 're-mark sub2');
 
     // Unmark all
     workspace.unmarkFolder(mock.folder1.root);
-    expectResult(mock.folder1.root, expected.folder1.allUnmarked);
+    expectResult(mock.folder1.root, expected.folder1.allUnmarked, 'unmark all');
 
     // Marking sub1_a should result in sub1 being mixed and root being mixed
     workspace.markFolder(mock.folder1.sub1_a);
-    expectResult(mock.folder1.root, expected.folder1.sub1aMarked);
+    expectResult(
+      mock.folder1.root,
+      expected.folder1.sub1aMarked,
+      'mark sub1_a'
+    );
   });
 });
 
@@ -359,6 +435,41 @@ describe('unmarkFolder', () => {
 
     // Unmarking sub2 should result in only sub1 being marked
     expectResult(mock.folder1.root, expected.folder1.sub1Marked);
+  });
+});
+
+describe('unmarkConflictingTopLevelFolder', () => {
+  it('should unmark conflicting top-level marked folders', async () => {
+    const { workspace, expectResult } = await initWorkspace(mock2RootWs);
+
+    const moduleA = mock.folder1.sub1_a;
+    const conflictingModuleA = mock.folder1.sub2_a;
+
+    workspace.markFolder(moduleA);
+
+    expectResult(
+      mock.folder1.root,
+      expected.folder1.sub1aMarked,
+      'mark module a'
+    );
+
+    workspace.unmarkConflictingTopLevelFolder(moduleA);
+    expect(mockToaster.error).not.toHaveBeenCalled();
+    expectResult(
+      mock.folder1.root,
+      expected.folder1.sub1aMarked,
+      'unmark non-conclicting module a'
+    );
+
+    workspace.unmarkConflictingTopLevelFolder(conflictingModuleA);
+    expect(mockToaster.info).toHaveBeenCalledWith(
+      `Updated 'a' import source to 'sub2/a'.`
+    );
+    expectResult(
+      mock.folder1.root,
+      expected.folder1.allUnmarked,
+      'unmark conflicting module a'
+    );
   });
 });
 
