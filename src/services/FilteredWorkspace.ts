@@ -116,6 +116,10 @@ export class FilteredWorkspace
     this.unmarkConflictingTopLevelFolder(folderUri);
 
     for (const node of this.iterateNodeTree(folderUri)) {
+      if (node.type === 'workspaceRootFolder') {
+        continue;
+      }
+
       node.isMarked = true;
 
       const moduleName = getTopLevelModuleFullname(node.uri);
@@ -178,8 +182,10 @@ export class FilteredWorkspace
    */
   unmarkFolder(folderUri: vscode.Uri): void {
     for (const node of this.iterateNodeTree(folderUri)) {
-      node.isMarked = false;
-      this.deleteExactTopLevelMarkedUri(node.uri);
+      if (node.type !== 'workspaceRootFolder') {
+        node.isMarked = false;
+        this.deleteExactTopLevelMarkedUri(node.uri);
+      }
     }
 
     for (const node of this.iterateAncestors(folderUri)) {
@@ -303,12 +309,21 @@ export class FilteredWorkspace
    * @param rootUri The root URI to start the iteration from.
    * @returns An iterable of FilteredWorkspaceNode objects.
    */
-  *iterateNodeTree(rootUri: vscode.Uri): Iterable<FilteredWorkspaceNode> {
+  *iterateNodeTree(
+    rootUri: vscode.Uri
+  ): Iterable<FilteredWorkspaceRootNode | FilteredWorkspaceNode> {
+    // const queue: vscode.Uri[] = this._rootNodeMap.has(rootUri)
+    //   ? // If rootUri is a root node, start with its children since we don't mark
+    //     // workspace folders directly
+    //     [...(this._childNodeMap.get(rootUri)?.keys() ?? [])]
+    //   : [rootUri];
+
     const queue: vscode.Uri[] = [rootUri];
 
     while (queue.length > 0) {
       const currentUri = queue.shift()!;
-      const currentNode = this._nodeMap.get(currentUri);
+      const currentNode =
+        this._rootNodeMap.get(currentUri) ?? this._nodeMap.get(currentUri);
 
       if (currentNode == null) {
         continue;

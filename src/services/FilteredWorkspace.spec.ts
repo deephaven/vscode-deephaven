@@ -2,12 +2,22 @@
 import * as vscode from 'vscode';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { FilteredWorkspace, PYTHON_FILE_PATTERN } from './FilteredWorkspace';
-import { getWorkspaceFileUriMap, URIMap, URISet } from '../util';
-import type { MarkableWsTreeNode } from '../types';
+import { getWorkspaceFileUriMap, Toaster, URIMap, URISet } from '../util';
+import type {
+  RemoteImportSourceTreeElement,
+  RemoteImportSourceTreeFileElement,
+  RemoteImportSourceTreeFolderElement,
+} from '../types';
 
 vi.mock('vscode');
 
-vi.mock('../util/remoteFileSourceUtils');
+vi.mock('../util/remoteFileSourceUtils', async () => {
+  const actual = await vi.importActual('../util/remoteFileSourceUtils');
+  return {
+    ...actual,
+    getWorkspaceFileUriMap: vi.fn(),
+  };
+});
 
 const mock = {
   folder1: {
@@ -36,28 +46,68 @@ const mock = {
   },
 };
 
+type FsElement =
+  | RemoteImportSourceTreeFileElement
+  | RemoteImportSourceTreeFolderElement;
+
 // Utils for creating node data
-const fileNode = node.bind(null, true);
-const folderNode = node.bind(null, false);
-function node(
-  isFile: boolean,
+const fileElement = element.bind(null, 'file');
+const folderElement = element.bind(null, 'folder');
+const wkspFolderElement = element.bind(null, 'workspaceRootFolder');
+const topLevelMarkedFolderElement = element.bind(null, 'topLevelMarkedFolder');
+
+function element(
+  type: RemoteImportSourceTreeElement['type'],
   uri: vscode.Uri,
-  overrides: Partial<MarkableWsTreeNode> = {}
-): MarkableWsTreeNode {
+  overrides: Partial<FsElement> = {}
+): RemoteImportSourceTreeElement {
+  const name = uri.path.split('/').pop() ?? '';
+
+  if (type === 'root') {
+    return {
+      name,
+      type: 'root',
+    };
+  }
+
+  if (type === 'topLevelMarkedFolder') {
+    return {
+      name,
+      type: 'topLevelMarkedFolder',
+      uri,
+      isMarked: true,
+    };
+  }
+
+  if (type === 'workspaceRootFolder') {
+    return {
+      name: overrides.name ?? name,
+      type: 'workspaceRootFolder',
+      uri,
+    };
+  }
+
   return {
     uri,
-    name: uri.path.split('/').pop() ?? '',
-    isFile,
-    status: 'unmarked',
+    name,
+    type,
+    isMarked: false,
     ...overrides,
   };
 }
 
 /** Sort an array of nodes */
-function sortNodes(nodes: MarkableWsTreeNode[]): MarkableWsTreeNode[] {
+function sortNodes(
+  nodes: RemoteImportSourceTreeElement[]
+): RemoteImportSourceTreeElement[] {
   return [...nodes].sort(
-    (a: MarkableWsTreeNode, b: MarkableWsTreeNode): number => {
-      return a.uri.path.localeCompare(b.uri.path);
+    (
+      a: RemoteImportSourceTreeElement,
+      b: RemoteImportSourceTreeElement
+    ): number => {
+      const pathA = 'uri' in a ? a.uri.path : '';
+      const pathB = 'uri' in b ? b.uri.path : '';
+      return pathA.localeCompare(pathB);
     }
   );
 }
@@ -82,87 +132,83 @@ const mock2RootWs = new URIMap([
   ],
 ]);
 
+const mockToaster = new Toaster();
+
 const expected = {
   folder1: {
     allMarked: sortNodes([
-      folderNode(mock.folder1.root, { name: 'Workspace1', status: 'marked' }),
+      wkspFolderElement(mock.folder1.root, { name: 'Workspace1' }),
 
-      folderNode(mock.folder1.sub1, { status: 'marked' }),
-      folderNode(mock.folder1.sub2, { status: 'marked' }),
+      folderElement(mock.folder1.sub1, { isMarked: true }),
+      folderElement(mock.folder1.sub2, { isMarked: true }),
 
-      fileNode(mock.folder1.sub1_file1, { status: 'marked' }),
-      fileNode(mock.folder1.sub1_file2, { status: 'marked' }),
+      fileElement(mock.folder1.sub1_file1, { isMarked: true }),
+      fileElement(mock.folder1.sub1_file2, { isMarked: true }),
 
-      folderNode(mock.folder1.sub1_a, { status: 'marked' }),
-      folderNode(mock.folder1.sub1_b, { status: 'marked' }),
+      folderElement(mock.folder1.sub1_a, { isMarked: true }),
+      folderElement(mock.folder1.sub1_b, { isMarked: true }),
 
-      fileNode(mock.folder1.sub2_file1, { status: 'marked' }),
+      fileElement(mock.folder1.sub2_file1, { isMarked: true }),
 
-      fileNode(mock.folder1.sub1_a_file1, { status: 'marked' }),
-      fileNode(mock.folder1.sub1_b_file1, { status: 'marked' }),
+      fileElement(mock.folder1.sub1_a_file1, { isMarked: true }),
+      fileElement(mock.folder1.sub1_b_file1, { isMarked: true }),
     ]),
     allUnmarked: sortNodes([
-      folderNode(mock.folder1.root, { name: 'Workspace1' }),
+      wkspFolderElement(mock.folder1.root, { name: 'Workspace1' }),
 
-      folderNode(mock.folder1.sub1),
-      folderNode(mock.folder1.sub2),
+      folderElement(mock.folder1.sub1),
+      folderElement(mock.folder1.sub2),
 
-      fileNode(mock.folder1.sub1_file1),
-      fileNode(mock.folder1.sub1_file2),
+      fileElement(mock.folder1.sub1_file1),
+      fileElement(mock.folder1.sub1_file2),
 
-      folderNode(mock.folder1.sub1_a),
-      folderNode(mock.folder1.sub1_b),
+      folderElement(mock.folder1.sub1_a),
+      folderElement(mock.folder1.sub1_b),
 
-      fileNode(mock.folder1.sub2_file1),
+      fileElement(mock.folder1.sub2_file1),
 
-      fileNode(mock.folder1.sub1_a_file1),
-      fileNode(mock.folder1.sub1_b_file1),
+      fileElement(mock.folder1.sub1_a_file1),
+      fileElement(mock.folder1.sub1_b_file1),
     ]),
     sub1Marked: sortNodes([
-      folderNode(mock.folder1.root, {
-        name: 'Workspace1',
-        status: 'mixed',
-      }),
+      wkspFolderElement(mock.folder1.root, { name: 'Workspace1' }),
 
-      folderNode(mock.folder1.sub1, { status: 'marked' }),
-      fileNode(mock.folder1.sub1_file1, { status: 'marked' }),
-      fileNode(mock.folder1.sub1_file2, { status: 'marked' }),
-      folderNode(mock.folder1.sub1_a, { status: 'marked' }),
-      folderNode(mock.folder1.sub1_b, { status: 'marked' }),
-      fileNode(mock.folder1.sub1_a_file1, { status: 'marked' }),
-      fileNode(mock.folder1.sub1_b_file1, { status: 'marked' }),
+      folderElement(mock.folder1.sub1, { isMarked: true }),
+      fileElement(mock.folder1.sub1_file1, { isMarked: true }),
+      fileElement(mock.folder1.sub1_file2, { isMarked: true }),
+      folderElement(mock.folder1.sub1_a, { isMarked: true }),
+      folderElement(mock.folder1.sub1_b, { isMarked: true }),
+      fileElement(mock.folder1.sub1_a_file1, { isMarked: true }),
+      fileElement(mock.folder1.sub1_b_file1, { isMarked: true }),
 
-      folderNode(mock.folder1.sub2),
-      fileNode(mock.folder1.sub2_file1),
+      folderElement(mock.folder1.sub2),
+      fileElement(mock.folder1.sub2_file1),
     ]),
     sub1aMarked: sortNodes([
-      folderNode(mock.folder1.root, {
-        name: 'Workspace1',
-        status: 'mixed',
-      }),
+      wkspFolderElement(mock.folder1.root, { name: 'Workspace1' }),
 
-      folderNode(mock.folder1.sub1, { status: 'mixed' }),
-      fileNode(mock.folder1.sub1_file1),
-      fileNode(mock.folder1.sub1_file2),
+      folderElement(mock.folder1.sub1),
+      fileElement(mock.folder1.sub1_file1),
+      fileElement(mock.folder1.sub1_file2),
 
-      folderNode(mock.folder1.sub1_a, { status: 'marked' }),
-      fileNode(mock.folder1.sub1_a_file1, { status: 'marked' }),
+      folderElement(mock.folder1.sub1_a, { isMarked: true }),
+      fileElement(mock.folder1.sub1_a_file1, { isMarked: true }),
 
-      folderNode(mock.folder1.sub1_b),
-      fileNode(mock.folder1.sub1_b_file1),
+      folderElement(mock.folder1.sub1_b),
+      fileElement(mock.folder1.sub1_b_file1),
 
-      folderNode(mock.folder1.sub2),
-      fileNode(mock.folder1.sub2_file1),
+      folderElement(mock.folder1.sub2),
+      fileElement(mock.folder1.sub2_file1),
     ]),
   },
   folder2: {
     allUnmarked: sortNodes([
-      folderNode(mock.folder2.root, { name: 'Workspace2' }),
+      wkspFolderElement(mock.folder2.root, { name: 'Workspace2' }),
 
-      folderNode(mock.folder2.sub1),
+      folderElement(mock.folder2.sub1),
 
-      fileNode(mock.folder2.sub1_file1),
-      fileNode(mock.folder2.sub1_file2),
+      fileElement(mock.folder2.sub1_file1),
+      fileElement(mock.folder2.sub1_file2),
     ]),
   },
 } as const;
@@ -172,22 +218,25 @@ const expected = {
  * `expectResult` function to check the current state of the workspace nodes.
  */
 async function initWorkspace(wsMap: URIMap<URISet>): Promise<{
-  expectResult(rootUri: vscode.Uri, expectedNodes: MarkableWsTreeNode[]): void;
+  expectResult(
+    rootUri: vscode.Uri,
+    expectedNodes: RemoteImportSourceTreeElement[]
+  ): void;
   workspace: FilteredWorkspace;
 }> {
   vi.mocked(getWorkspaceFileUriMap).mockResolvedValue(wsMap);
 
   // await since there is an async init step inside of the constructor. This
   // ensures if any errors are thrown they are caught by the test framework.
-  const workspace = await new FilteredWorkspace(PYTHON_FILE_PATTERN);
+  const workspace = await new FilteredWorkspace(
+    PYTHON_FILE_PATTERN,
+    mockToaster
+  );
 
   return {
     workspace,
     // Helper to check the current state of the workspace against expected nodes
-    expectResult(
-      rootUri: vscode.Uri,
-      expectedNodes: MarkableWsTreeNode[]
-    ): void {
+    expectResult(rootUri: vscode.Uri, expectedNodes: FsElement[]): void {
       const descendants = Array.from(workspace.iterateNodeTree(rootUri));
       expect(sortNodes(descendants)).toEqual(sortNodes(expectedNodes));
     },
@@ -233,21 +282,20 @@ describe('constructor', () => {
   });
 });
 
-describe('getTopLevelMarkedFolderUris', () => {
+describe('getTopLevelMarkedFolders', () => {
   it('should return an empty Set when workspace is empty', async () => {
     const { workspace } = await initWorkspace(mockEmptyWs);
-    expect(workspace.getTopLevelMarkedFolderUris().size).toEqual(0);
+    expect(workspace.getTopLevelMarkedFolders().length).toEqual(0);
   });
 
   it('should return an empty Set when no folders are marked', async () => {
     const { workspace } = await initWorkspace(mock2RootWs);
-    expect(workspace.getTopLevelMarkedFolderUris().size).toEqual(0);
+    expect(workspace.getTopLevelMarkedFolders().length).toEqual(0);
   });
 
   it.each([
-    [mock.folder1.sub1_a, [mock.folder1.sub1_a]],
-    [mock.folder1.sub1, [mock.folder1.sub1]],
-    [mock.folder1.root, [mock.folder1.sub1, mock.folder1.sub2]],
+    [mock.folder1.sub1_a, [topLevelMarkedFolderElement(mock.folder1.sub1_a)]],
+    [mock.folder1.sub1, [topLevelMarkedFolderElement(mock.folder1.sub1)]],
   ])(
     'should return only top-level marked folder URIs: %s',
     async (markUri, expected) => {
@@ -255,9 +303,7 @@ describe('getTopLevelMarkedFolderUris', () => {
 
       workspace.markFolder(markUri);
 
-      const topLevel = Array.from(
-        workspace.getTopLevelMarkedFolderUris().values()
-      );
+      const topLevel = workspace.getTopLevelMarkedFolders();
       expect(topLevel).toEqual(expected);
     }
   );
