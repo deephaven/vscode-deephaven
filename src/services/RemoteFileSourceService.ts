@@ -4,10 +4,10 @@ import { DisposableBase } from './DisposableBase';
 import { Logger } from '../shared';
 import {
   getSetExecutionContextScript,
+  getTopLevelModuleFullname,
   registerRemoteFileSourcePluginMessageListener,
-  relativeWsUriString,
 } from '../util';
-import type { ModuleFullname, RelativeWsUriString, UniqueID } from '../types';
+import type { ModuleFullname, UniqueID } from '../types';
 import type { FilteredWorkspace } from './FilteredWorkspace';
 
 const logger = new Logger('RemoteFileSourceService');
@@ -33,47 +33,35 @@ export class RemoteFileSourceService extends DisposableBase {
     const set = new Set<ModuleFullname>();
 
     this._pythonWorkspace.getTopLevelMarkedFolders().forEach(({ uri }) => {
-      const folderPathStr = relativeWsUriString(uri);
-      set.add(folderPathStr.replaceAll('/', '.') as ModuleFullname);
+      set.add(getTopLevelModuleFullname(uri));
     });
 
     return set;
   }
 
   /**
-   * Get the URI for a given module fullname. Checks in workspace folder order
-   * defined in the current workspace. If a module fullname is in multiple
-   * workspace folders, the first one found is returned.
+   * Get the URI for a given module fullname.
    * @param moduleFullname The Python module fullname to look for.
    * @returns The URI for the module fullname, or undefined if not found.
    */
   getUriForModuleFullname(
     moduleFullname: ModuleFullname
   ): vscode.Uri | undefined {
-    if (vscode.workspace.workspaceFolders == null) {
-      return;
-    }
+    const [firstModuleToken, ...restModuleTokens] = moduleFullname.split('.');
 
-    // Check in the workspace folder order defined in the current workspace
-    for (const wsFolder of vscode.workspace.workspaceFolders) {
-      const uriSet = this._pythonWorkspace.getWsFileUriMap().get(wsFolder.uri);
-
-      if (uriSet == null) {
+    for (const { uri } of this._pythonWorkspace.getTopLevelMarkedFolders()) {
+      const topLevelModuleName = getTopLevelModuleFullname(uri);
+      if (firstModuleToken !== topLevelModuleName) {
         continue;
       }
 
-      const relativePath = moduleFullname.replaceAll(
-        '.',
-        '/'
-      ) as RelativeWsUriString;
-
       for (const ext of ['.py', '/__init__.py']) {
-        const fileUri = vscode.Uri.joinPath(
-          wsFolder.uri,
-          `${relativePath}${ext}`
-        );
+        const fileUri =
+          restModuleTokens.length === 0
+            ? vscode.Uri.parse(`${uri.toString()}${ext}`)
+            : vscode.Uri.joinPath(uri, `${restModuleTokens.join('/')}${ext}`);
 
-        if (uriSet.has(fileUri) && this._pythonWorkspace.isMarked(fileUri)) {
+        if (this._pythonWorkspace.isMarked(fileUri)) {
           logger.log(
             'Found moduleFullName fs path:',
             moduleFullname,

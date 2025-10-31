@@ -924,10 +924,13 @@ export class ExtensionController implements IDisposable {
   ): Promise<void> => {
     assertDefined(this._pythonWorkspace, 'pythonWorkspace');
 
+    await this._pythonWorkspace.refresh();
+
     const uri =
       folderElementOrUri instanceof vscode.Uri
         ? folderElementOrUri
         : folderElementOrUri.uri;
+
     this._pythonWorkspace.markFolder(uri);
   };
 
@@ -935,6 +938,8 @@ export class ExtensionController implements IDisposable {
     folderElementOrUri: RemoteImportSourceTreeFolderElement | vscode.Uri
   ): Promise<void> => {
     assertDefined(this._pythonWorkspace, 'pythonWorkspace');
+
+    await this._pythonWorkspace.refresh();
 
     const uri =
       folderElementOrUri instanceof vscode.Uri

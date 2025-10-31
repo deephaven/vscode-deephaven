@@ -122,14 +122,14 @@ export class FilteredWorkspace
 
       node.isMarked = true;
 
-      const moduleName = getTopLevelModuleFullname(node.uri);
-
+      // If this node is the parent folder being marked, add it to the map
       if (node.uri.fsPath === folderUri.fsPath) {
+        const moduleName = getTopLevelModuleFullname(node.uri);
         this._topLevelMarkedUriMap.set(moduleName, folderUri);
       } else {
         // Since we've marked the parent folder as top-level, remove top-level
         // status from any children
-        this._topLevelMarkedUriMap.delete(moduleName);
+        this.deleteExactTopLevelMarkedUri(node.uri);
       }
     }
 
