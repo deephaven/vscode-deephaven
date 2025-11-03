@@ -4,10 +4,10 @@
 export class Logger {
   constructor(private readonly label: string) {
     /* eslint-disable no-console */
-    this.info = console.info.bind(`[${label}]`);
-    this.log = console.log.bind(`[${label}]`);
-    this.warn = console.warn.bind(`[${label}]`);
-    this.error = console.error.bind(`[${label}]`);
+    this.info = console.info.bind(console, `[${this.label}]`);
+    this.log = console.log.bind(console, `[${this.label}]`);
+    this.warn = console.warn.bind(console, `[${this.label}]`);
+    this.error = console.error.bind(console, `[${this.label}]`);
     /* eslint-enable no-console */
   }
 
