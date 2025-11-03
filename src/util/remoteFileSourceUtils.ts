@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { URIMap } from './maps';
-import { Logger } from '../shared';
 import type {
   FilePattern,
   FolderName,
@@ -23,6 +22,7 @@ import {
   DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE,
   DH_PYTHON_REMOTE_SOURCE_PLUGIN_NAME,
 } from '../common';
+import { Logger } from './Logger';
 
 const logger = new Logger('remoteFileSourceUtils');
 

@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { DisposableBase } from './DisposableBase';
-import { Logger } from '../shared';
 import {
   getSetExecutionContextScript,
   getTopLevelModuleFullname,
+  Logger,
   registerRemoteFileSourcePluginMessageListener,
 } from '../util';
 import type { ModuleFullname, UniqueID } from '../types';
