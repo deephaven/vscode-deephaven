@@ -247,14 +247,14 @@ export class ServerManager implements IServerManager {
     const connection = this._dhcServiceFactory.create(serverUrl, tagId);
 
     // Initialize client + prompt for login if necessary
-    const isClientConnected = await connection.getClient();
+    const coreClient = await connection.getClient();
 
     // Cleanup placeholder connection if one exists
     if (placeholderUrl) {
       this.removeWorkerPlaceholderConnection(placeholderUrl);
     }
 
-    if (!isClientConnected) {
+    if (coreClient == null) {
       return null;
     }
 
@@ -262,6 +262,8 @@ export class ServerManager implements IServerManager {
     this._onDidUpdate.fire();
 
     if (!(await connection.initSession())) {
+      this._coreClientCache.delete(serverUrl);
+
       connection.dispose();
       this._connectionMap.delete(serverUrl);
       return null;
@@ -389,7 +391,11 @@ export class ServerManager implements IServerManager {
     });
 
     if (isDisposable(connection)) {
-      await connection.dispose();
+      try {
+        await connection.dispose();
+      } catch {
+        // Ignore failed disposals
+      }
     }
 
     this._coreClientCache.get(serverOrWorkerUrl)?.disconnect();
