@@ -263,6 +263,34 @@ export class FilteredWorkspace
   }
 
   /**
+   * Check if the workspace has a given file URI.
+   * @param uri The file URI to check.
+   * @returns True if the file URI exists in the workspace, false otherwise.
+   */
+  hasFile(uri: vscode.Uri): boolean {
+    const node = this._nodeMap.get(uri);
+    if (node == null) {
+      return false;
+    }
+
+    return node.type === 'file';
+  }
+
+  /**
+   * Check if the workspace has a given folder URI.
+   * @param uri The folder URI to check.
+   * @returns True if the folder URI exists in the workspace, false otherwise.
+   */
+  hasFolder(uri: vscode.Uri): boolean {
+    const node = this._nodeMap.get(uri);
+    if (node == null) {
+      return false;
+    }
+
+    return node.type === 'folder';
+  }
+
+  /**
    * Get the mark status for a given URI. If the URI is not in the node map,
    * it is considered unmarked.
    * @param uri The URI to get the mark status for.

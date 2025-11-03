@@ -7,7 +7,7 @@ import {
   Logger,
   registerRemoteFileSourcePluginMessageListener,
 } from '../util';
-import type { ModuleFullname, UniqueID } from '../types';
+import type { ModuleFullname, PythonModuleSpecData, UniqueID } from '../types';
 import type { FilteredWorkspace } from './FilteredWorkspace';
 
 const logger = new Logger('RemoteFileSourceService');
@@ -40,36 +40,72 @@ export class RemoteFileSourceService extends DisposableBase {
   }
 
   /**
-   * Get the URI for a given module fullname.
+   * Get Python module spec data for a given module fullname.
    * @param moduleFullname The Python module fullname to look for.
-   * @returns The URI for the module fullname, or undefined if not found.
+   * @returns The Python module spec data, or undefined if not found.
    */
-  getUriForModuleFullname(
+  getPythonModuleSpecData(
     moduleFullname: ModuleFullname
-  ): vscode.Uri | undefined {
+  ): PythonModuleSpecData | undefined {
     const [firstModuleToken, ...restModuleTokens] = moduleFullname.split('.');
 
-    for (const { uri } of this._pythonWorkspace.getTopLevelMarkedFolders()) {
-      const topLevelModuleName = getTopLevelModuleFullname(uri);
-      if (firstModuleToken !== topLevelModuleName) {
-        continue;
-      }
+    // Get the top-level folder URI that could contain this module
+    const topLevelFolderUri = this._pythonWorkspace
+      .getTopLevelMarkedFolders()
+      .find(
+        ({ uri }) => getTopLevelModuleFullname(uri) === firstModuleToken
+      )?.uri;
 
-      for (const ext of ['.py', '/__init__.py']) {
-        const fileUri =
-          restModuleTokens.length === 0
-            ? vscode.Uri.parse(`${uri.toString()}${ext}`)
-            : vscode.Uri.joinPath(uri, `${restModuleTokens.join('/')}${ext}`);
+    if (topLevelFolderUri == null) {
+      return;
+    }
 
-        if (this._pythonWorkspace.isMarked(fileUri)) {
-          logger.log(
-            'Found moduleFullName fs path:',
-            moduleFullname,
-            fileUri.fsPath
-          );
-          return fileUri;
-        }
-      }
+    // Get the full URI for the module without extension under the top-level folder
+    const moduleUriNoExt = vscode.Uri.joinPath(
+      topLevelFolderUri,
+      `${restModuleTokens.join('/')}`
+    );
+
+    // If this is a folder, it is a package
+    if (this._pythonWorkspace.hasFolder(moduleUriNoExt)) {
+      const initUri = vscode.Uri.joinPath(moduleUriNoExt, '__init__.py');
+
+      // Regular packages have an __init__.py file. Namespace packages do not.
+      const packageType = this._pythonWorkspace.hasFile(initUri)
+        ? 'regular'
+        : 'namespace';
+
+      logger.info(
+        `${packageType} package found:`,
+        moduleFullname,
+        moduleUriNoExt.fsPath
+      );
+
+      // Regular packages have an origin, namespace packages do not.
+      const origin = packageType === 'regular' ? initUri.fsPath : undefined;
+
+      return {
+        name: moduleFullname,
+        isPackage: true,
+        origin,
+        // Note that the extension currently only supports single submodule
+        // search locations. We could eventually support namespaces packages
+        // with multiple by including top-level marked folders with the same
+        // name.
+        subModuleSearchLocations: [moduleUriNoExt.fsPath],
+      };
+    }
+
+    const pyFileUri = vscode.Uri.parse(`${moduleUriNoExt.toString()}.py`);
+
+    if (this._pythonWorkspace.hasFile(pyFileUri)) {
+      logger.info('regular module found:', moduleFullname, pyFileUri.fsPath);
+
+      return {
+        name: moduleFullname,
+        isPackage: false,
+        origin: pyFileUri.fsPath,
+      };
     }
   }
 
@@ -83,10 +119,10 @@ export class RemoteFileSourceService extends DisposableBase {
     session: DhcType.IdeSession,
     plugin: DhcType.Widget
   ): Promise<() => void> {
-    const getModuleFilePath = this.getUriForModuleFullname.bind(this);
+    const getPythonModuleSpecData = this.getPythonModuleSpecData.bind(this);
     const messageSubscription = registerRemoteFileSourcePluginMessageListener(
       plugin,
-      getModuleFilePath
+      getPythonModuleSpecData
     );
 
     const setServerExecutionContext = this.setServerExecutionContext.bind(

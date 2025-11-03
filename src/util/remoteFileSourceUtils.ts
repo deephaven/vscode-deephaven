@@ -10,6 +10,7 @@ import type {
   JsonRpcSetConnectionIdRequest,
   JsonRpcSuccess,
   ModuleFullname,
+  PythonModuleSpecData,
   RemoteImportSourceTreeFileElement,
   RemoteImportSourceTreeFolderElement,
   RemoteImportSourceTreeTopLevelMarkedFolderElement,
@@ -232,12 +233,15 @@ export async function isPluginInstalled(
 /**
  * Register a message listener on the remote file source plugin to handle requests.
  * @param plugin the remote file source plugin widget
- * @param getModuleFilePath a function that returns the file path for a given module fullname
+ * @param getPythonModuleSpecData a function that returns the module spec data
+ * for a given module fullname
  * @returns a function to unregister the listener
  */
 export function registerRemoteFileSourcePluginMessageListener(
   plugin: DhcType.Widget,
-  getModuleFilePath: (moduleFullname: ModuleFullname) => vscode.Uri | undefined
+  getPythonModuleSpecData: (
+    moduleFullname: ModuleFullname
+  ) => PythonModuleSpecData | undefined
 ): () => void {
   return plugin.addEventListener<DhcType.Widget>(
     DH_WIDGET_EVENT_MESSAGE,
@@ -248,13 +252,32 @@ export function registerRemoteFileSourcePluginMessageListener(
           return;
         }
 
-        logger.log('Received message from server:', message);
+        logger.info('Received message from server:', message);
 
-        const filepath = getModuleFilePath(message.params.module_name);
+        const moduleSpecData = getPythonModuleSpecData(
+          message.params.module_name
+        );
+
+        if (moduleSpecData == null) {
+          const errorResponse = {
+            jsonrpc: '2.0',
+            id: message.id,
+            error: {
+              code: -32602, // Invalid params error code
+              message: `Module not found: ${message.params.module_name}`,
+            },
+          };
+          logger.error('Sending error response to server:', errorResponse);
+          plugin.sendMessage(JSON.stringify(errorResponse));
+          return;
+        }
+
+        const { name, isPackage, origin, subModuleSearchLocations } =
+          moduleSpecData;
 
         let source: string | undefined;
-        if (filepath != null) {
-          const textDoc = await vscode.workspace.openTextDocument(filepath);
+        if (origin != null) {
+          const textDoc = await vscode.workspace.openTextDocument(origin);
           source = textDoc.getText();
         }
 
@@ -262,12 +285,17 @@ export function registerRemoteFileSourcePluginMessageListener(
           jsonrpc: '2.0',
           id: message.id,
           result: {
-            filepath: filepath?.fsPath ?? '<string>',
-            source: filepath == null ? undefined : source,
+            name,
+            origin,
+            /* eslint-disable @typescript-eslint/naming-convention */
+            is_package: isPackage,
+            submodule_search_locations: subModuleSearchLocations,
+            /* eslint-enable @typescript-eslint/naming-convention */
+            source,
           },
         };
 
-        logger.log('Sending response to server:', response);
+        logger.info('Sending response to server:', response);
         plugin.sendMessage(JSON.stringify(response));
       } catch (err) {
         logger.error('Error parsing message from server:', err);

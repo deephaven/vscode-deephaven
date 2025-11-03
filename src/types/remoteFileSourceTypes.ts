@@ -43,3 +43,33 @@ export interface JsonRpcError {
 }
 
 export type JsonRpcResponse = JsonRpcSuccess | JsonRpcError;
+
+export interface PythonRegularPackageSpecData {
+  name: ModuleFullname;
+  isPackage: true;
+  origin: string;
+  subModuleSearchLocations: string[];
+}
+
+export interface PythonNamespacePackageSpecData {
+  name: ModuleFullname;
+  isPackage: true;
+  subModuleSearchLocations: string[];
+
+  // makes it easier to spread the `PythonModuleSpecData` union type
+  origin?: never;
+}
+
+export interface PythonRegularModuleSpecData {
+  name: ModuleFullname;
+  isPackage: false;
+  origin: string;
+
+  // makes it easier to spread the `PythonModuleSpecData` union type
+  subModuleSearchLocations?: never;
+}
+
+export type PythonModuleSpecData =
+  | PythonRegularPackageSpecData
+  | PythonNamespacePackageSpecData
+  | PythonRegularModuleSpecData;
