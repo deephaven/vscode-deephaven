@@ -46,7 +46,7 @@ export class RemoteFileSourceService extends DisposableBase {
    */
   getPythonModuleSpecData(
     moduleFullname: ModuleFullname
-  ): PythonModuleSpecData | undefined {
+  ): PythonModuleSpecData | null {
     const [firstModuleToken, ...restModuleTokens] = moduleFullname.split('.');
 
     // Get the top-level folder URI that could contain this module
@@ -57,7 +57,7 @@ export class RemoteFileSourceService extends DisposableBase {
       )?.uri;
 
     if (topLevelFolderUri == null) {
-      return;
+      return null;
     }
 
     // Get the full URI for the module without extension under the top-level folder
@@ -107,6 +107,8 @@ export class RemoteFileSourceService extends DisposableBase {
         origin: pyFileUri.fsPath,
       };
     }
+
+    return null;
   }
 
   /**

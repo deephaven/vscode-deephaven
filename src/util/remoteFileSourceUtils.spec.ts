@@ -16,12 +16,14 @@ import type {
   JsonRpcRequest,
   JsonRpcResponse,
   ModuleFullname,
+  PythonModuleSpecData,
   RemoteImportSourceTreeFileElement,
   RemoteImportSourceTreeFolderElement,
   RemoteImportSourceTreeTopLevelMarkedFolderElement,
   UniqueID,
 } from '../types';
 import { getLastEventListener } from '../testUtils';
+import * as Msg from './remoteFileSourceMsgUtils';
 
 vi.mock('vscode');
 
@@ -145,21 +147,23 @@ describe('isPluginInstalled', () => {
 });
 
 describe('registerRemoteFileSourcePluginMessageListener', () => {
-  const getModuleFilePath =
-    vi.fn<(moduleFullname: ModuleFullname) => vscode.Uri | undefined>();
+  const getPythonModuleSpecData =
+    vi.fn<(moduleFullname: ModuleFullname) => PythonModuleSpecData | null>();
+
+  const mockModuleName = 'a.b.c' as ModuleFullname;
 
   const mockFile = {
     exists: {
-      moduleName: 'a.b.c' as ModuleFullname,
-      uri: vscode.Uri.parse('file:///some/path/a/b/c.py'),
+      name: mockModuleName,
+      isPackage: false,
+      origin: 'file:///some/path/a/b/c.py',
       source: 'mock source code from a/b/c.py',
     },
-    notExists: {
-      moduleName: 'a.b.c' as ModuleFullname,
-      uri: undefined,
-      source: undefined,
-    },
-  } as const;
+    notExists: null,
+  } as const satisfies Record<
+    string,
+    (PythonModuleSpecData & { source?: string }) | null
+  >;
 
   const mockMsg = {
     fetchModuleReq: (moduleName: string): JsonRpcFetchModuleRequest => ({
@@ -169,18 +173,12 @@ describe('registerRemoteFileSourcePluginMessageListener', () => {
       // eslint-disable-next-line @typescript-eslint/naming-convention
       params: { module_name: moduleName as ModuleFullname },
     }),
-    fetchModuleRes: (file: {
-      moduleName: ModuleFullname;
-      uri: vscode.Uri | undefined;
-      source: string | undefined;
-    }): JsonRpcResponse => ({
-      jsonrpc: '2.0',
-      id: '1',
-      result: {
-        filepath: file.uri?.fsPath ?? '<string>',
-        source: file.source,
-      },
-    }),
+    fetchModuleRes: ({
+      source,
+      ...spec
+    }: PythonModuleSpecData & { source?: string }) =>
+      Msg.moduleSpecResponse('1', spec, source),
+    fetchModuleErrRes: () => Msg.moduleSpecErrorResponse('1', mockModuleName),
   } as const;
 
   beforeEach(() => {
@@ -192,7 +190,7 @@ describe('registerRemoteFileSourcePluginMessageListener', () => {
             : uri instanceof vscode.Uri
               ? uri.fsPath
               : '';
-        const file = Object.values(mockFile).find(f => f.uri?.fsPath === path);
+        const file = Object.values(mockFile).find(f => f?.origin === path);
         const text = file?.source ?? '';
         return {
           getText: () => text,
@@ -203,13 +201,13 @@ describe('registerRemoteFileSourcePluginMessageListener', () => {
 
   it.each([[mockFile.exists], [mockFile.notExists]])(
     'should register a message listener for the remote file source plugin: %s',
-    async file => {
-      mockIncomingMsg(mockMsg.fetchModuleReq(file.moduleName));
-      getModuleFilePath.mockReturnValueOnce(file.uri);
+    async spec => {
+      mockIncomingMsg(mockMsg.fetchModuleReq(mockModuleName));
+      getPythonModuleSpecData.mockReturnValueOnce(spec);
 
       registerRemoteFileSourcePluginMessageListener(
         mockPlugin,
-        getModuleFilePath
+        getPythonModuleSpecData
       );
 
       const msgHandler = getLastEventListener(
@@ -219,8 +217,13 @@ describe('registerRemoteFileSourcePluginMessageListener', () => {
 
       await msgHandler({ type: 'message', detail: mockPlugin });
 
+      const response =
+        spec == null
+          ? mockMsg.fetchModuleErrRes()
+          : mockMsg.fetchModuleRes(spec);
+
       expect(mockPlugin.sendMessage).toHaveBeenCalledWith(
-        JSON.stringify(mockMsg.fetchModuleRes(file))
+        JSON.stringify(response)
       );
     }
   );

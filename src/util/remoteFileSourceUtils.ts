@@ -7,8 +7,6 @@ import type {
   Include,
   JsonRpcRequest,
   JsonRpcResponse,
-  JsonRpcSetConnectionIdRequest,
-  JsonRpcSuccess,
   ModuleFullname,
   PythonModuleSpecData,
   RemoteImportSourceTreeFileElement,
@@ -23,6 +21,7 @@ import {
   DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE,
   DH_PYTHON_REMOTE_SOURCE_PLUGIN_NAME,
 } from '../common';
+import * as Msg from './remoteFileSourceMsgUtils';
 import { Logger } from './Logger';
 
 const logger = new Logger('remoteFileSourceUtils');
@@ -76,11 +75,7 @@ export async function getRemoteFileSourcePlugin(
     type: DH_PYTHON_REMOTE_SOURCE_PLUGIN_CLASS,
   });
 
-  const msg: JsonRpcSetConnectionIdRequest = {
-    jsonrpc: '2.0',
-    id: cnId,
-    method: 'set_connection_id',
-  };
+  const msg = Msg.setConnectionIdRequest(cnId);
 
   await sendWidgetMessageAsync(plugin, msg);
 
@@ -241,7 +236,7 @@ export function registerRemoteFileSourcePluginMessageListener(
   plugin: DhcType.Widget,
   getPythonModuleSpecData: (
     moduleFullname: ModuleFullname
-  ) => PythonModuleSpecData | undefined
+  ) => PythonModuleSpecData | null
 ): () => void {
   return plugin.addEventListener<DhcType.Widget>(
     DH_WIDGET_EVENT_MESSAGE,
@@ -259,41 +254,28 @@ export function registerRemoteFileSourcePluginMessageListener(
         );
 
         if (moduleSpecData == null) {
-          const errorResponse = {
-            jsonrpc: '2.0',
-            id: message.id,
-            error: {
-              code: -32602, // Invalid params error code
-              message: `Module not found: ${message.params.module_name}`,
-            },
-          };
+          const errorResponse = Msg.moduleSpecErrorResponse(
+            message.id,
+            message.params.module_name
+          );
           logger.error('Sending error response to server:', errorResponse);
           plugin.sendMessage(JSON.stringify(errorResponse));
           return;
         }
 
-        const { name, isPackage, origin, subModuleSearchLocations } =
-          moduleSpecData;
-
         let source: string | undefined;
-        if (origin != null) {
-          const textDoc = await vscode.workspace.openTextDocument(origin);
+        if (moduleSpecData.origin != null) {
+          const textDoc = await vscode.workspace.openTextDocument(
+            moduleSpecData.origin
+          );
           source = textDoc.getText();
         }
 
-        const response: JsonRpcSuccess = {
-          jsonrpc: '2.0',
-          id: message.id,
-          result: {
-            name,
-            origin,
-            /* eslint-disable @typescript-eslint/naming-convention */
-            is_package: isPackage,
-            submodule_search_locations: subModuleSearchLocations,
-            /* eslint-enable @typescript-eslint/naming-convention */
-            source,
-          },
-        };
+        const response = Msg.moduleSpecResponse(
+          message.id,
+          moduleSpecData,
+          source
+        );
 
         logger.info('Sending response to server:', response);
         plugin.sendMessage(JSON.stringify(response));
