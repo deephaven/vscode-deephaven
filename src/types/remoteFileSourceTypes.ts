@@ -26,10 +26,10 @@ export type JsonRpcRequest =
   | JsonRpcFetchModuleRequest
   | JsonRpcSetConnectionIdRequest;
 
-export interface JsonRpcSuccess {
+export interface JsonRpcSuccess<TResult = unknown> {
   jsonrpc: '2.0';
   id: string;
-  result: unknown;
+  result: TResult;
 }
 
 export interface JsonRpcError {
@@ -73,3 +73,13 @@ export type PythonModuleSpecData =
   | PythonRegularPackageSpecData
   | PythonNamespacePackageSpecData
   | PythonRegularModuleSpecData;
+
+export interface PythonModuleSpecDataResult {
+  name: ModuleFullname;
+  origin?: string;
+  /* eslint-disable @typescript-eslint/naming-convention */
+  is_package: boolean;
+  submodule_search_locations?: string[];
+  /* eslint-enable @typescript-eslint/naming-convention */
+  source?: string;
+}
