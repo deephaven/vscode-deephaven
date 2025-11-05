@@ -916,7 +916,7 @@ export class ExtensionController implements IDisposable {
       return;
     }
 
-    connectionState.deleteVariable(variable);
+    await connectionState.deleteVariable(variable);
   };
 
   onAddRemoteFileSource = async (

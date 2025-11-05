@@ -335,12 +335,6 @@ export class FilteredWorkspace
   *iterateNodeTree(
     rootUri: vscode.Uri
   ): Iterable<FilteredWorkspaceRootNode | FilteredWorkspaceNode> {
-    // const queue: vscode.Uri[] = this._rootNodeMap.has(rootUri)
-    //   ? // If rootUri is a root node, start with its children since we don't mark
-    //     // workspace folders directly
-    //     [...(this._childNodeMap.get(rootUri)?.keys() ?? [])]
-    //   : [rootUri];
-
     const queue: vscode.Uri[] = [rootUri];
 
     while (queue.length > 0) {
