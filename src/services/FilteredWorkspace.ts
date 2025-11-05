@@ -416,11 +416,6 @@ export class FilteredWorkspace
           .asRelativePath(fileUri, false)
           .split('/');
 
-        if (tokens.length < 2) {
-          // Ignore files directly under the workspace folders
-          continue;
-        }
-
         // traverse each path token starting at the workspace folder down to the
         // file and update the node maps
         let parentUri = wsUri;
