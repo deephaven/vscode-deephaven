@@ -49,9 +49,12 @@ export class RemoteImportSourceTreeProvider extends TreeDataProviderBase<RemoteI
       return this._pythonWorkspace.getChildNodes(null);
     }
 
-    return this._pythonWorkspace
-      .getChildNodes(node.uri)
-      .sort(sortByStringProp('name'));
+    return this._pythonWorkspace.getChildNodes(node.uri).sort(
+      (nodeA, nodeB) =>
+        // Sort folders before files, then by name
+        nodeB.type.localeCompare(nodeA.type) ||
+        nodeA.name.localeCompare(nodeB.name)
+    );
   }
 
   /**
