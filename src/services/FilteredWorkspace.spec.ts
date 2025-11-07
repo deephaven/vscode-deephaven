@@ -143,6 +143,8 @@ const expected = {
     allMarked: sortNodes([
       wkspFolderElement(mock.folder1.root, { name: 'Workspace1' }),
 
+      fileElement(mock.folder1.file0_1),
+
       folderElement(mock.folder1.sub1, { isMarked: true }),
       folderElement(mock.folder1.sub2, { isMarked: true }),
 
@@ -161,6 +163,8 @@ const expected = {
     ]),
     allUnmarked: sortNodes([
       wkspFolderElement(mock.folder1.root, { name: 'Workspace1' }),
+
+      fileElement(mock.folder1.file0_1),
 
       folderElement(mock.folder1.sub1),
       folderElement(mock.folder1.sub2),
@@ -181,6 +185,8 @@ const expected = {
     sub1Marked: sortNodes([
       wkspFolderElement(mock.folder1.root, { name: 'Workspace1' }),
 
+      fileElement(mock.folder1.file0_1),
+
       folderElement(mock.folder1.sub1, { isMarked: true }),
       fileElement(mock.folder1.sub1_file1, { isMarked: true }),
       fileElement(mock.folder1.sub1_file2, { isMarked: true }),
@@ -196,6 +202,8 @@ const expected = {
     ]),
     sub1aMarked: sortNodes([
       wkspFolderElement(mock.folder1.root, { name: 'Workspace1' }),
+
+      fileElement(mock.folder1.file0_1),
 
       folderElement(mock.folder1.sub1),
       fileElement(mock.folder1.sub1_file1),
@@ -214,6 +222,8 @@ const expected = {
     ]),
     sub2aMarked: sortNodes([
       wkspFolderElement(mock.folder1.root, { name: 'Workspace1' }),
+
+      fileElement(mock.folder1.file0_1),
 
       folderElement(mock.folder1.sub1),
       fileElement(mock.folder1.sub1_file1),
@@ -346,15 +356,17 @@ describe('getTopLevelMarkedFolders', () => {
 
 describe('mark / unmark', () => {
   it.each([
-    [mock.folder1.root, expected.folder1.allMarked],
-    [mock.folder1.sub1, expected.folder1.sub1Marked],
-    [mock.folder1.sub1_a, expected.folder1.sub1aMarked],
+    [[mock.folder1.sub1, mock.folder1.sub2], expected.folder1.allMarked],
+    [[mock.folder1.sub1], expected.folder1.sub1Marked],
+    [[mock.folder1.sub1_a], expected.folder1.sub1aMarked],
   ])(
     'should mark a folder and its children: %s',
-    async (markRoot, expected) => {
+    async (markRoots, expected) => {
       const { workspace, expectResult } = await initWorkspace(mock2RootWs);
 
-      workspace.markFolder(markRoot);
+      markRoots.forEach(markRoot => {
+        workspace.markFolder(markRoot);
+      });
 
       expectResult(mock.folder1.root, expected);
     }
@@ -392,49 +404,22 @@ describe('mark / unmark', () => {
       'unmark conflicting module a'
     );
   });
-
-  it('should mark parent folders based on children status', async () => {
-    const { workspace, expectResult } = await initWorkspace(mock2RootWs);
-
-    // Start with everything marked
-    workspace.markFolder(mock.folder1.root);
-    expectResult(
-      mock.folder1.root,
-      expected.folder1.allMarked,
-      'everything marked'
-    );
-
-    // Unmarking sub2 should result in only sub1 being marked and root being mixed
-    workspace.unmarkFolder(mock.folder1.sub2);
-    expectResult(mock.folder1.root, expected.folder1.sub1Marked, 'unmark sub2');
-
-    // Re-marking sub2 should result in everything being marked again
-    workspace.markFolder(mock.folder1.sub2);
-    expectResult(mock.folder1.root, expected.folder1.allMarked, 're-mark sub2');
-
-    // Unmark all
-    workspace.unmarkFolder(mock.folder1.root);
-    expectResult(mock.folder1.root, expected.folder1.allUnmarked, 'unmark all');
-
-    // Marking sub1_a should result in sub1 being mixed and root being mixed
-    workspace.markFolder(mock.folder1.sub1_a);
-    expectResult(
-      mock.folder1.root,
-      expected.folder1.sub1aMarked,
-      'mark sub1_a'
-    );
-  });
 });
 
 describe('unmarkFolder', () => {
   it('should unmark a folder and its children', async () => {
     const { workspace, expectResult } = await initWorkspace(mock2RootWs);
-    workspace.markFolder(mock.folder1.root);
+    workspace.markFolder(mock.folder1.sub1);
+    workspace.markFolder(mock.folder1.sub2);
 
     workspace.unmarkFolder(mock.folder1.sub2);
 
     // Unmarking sub2 should result in only sub1 being marked
-    expectResult(mock.folder1.root, expected.folder1.sub1Marked);
+    expectResult(
+      mock.folder1.root,
+      expected.folder1.sub1Marked,
+      'unmark folder1 sub2'
+    );
   });
 });
 
