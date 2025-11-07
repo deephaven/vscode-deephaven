@@ -1,0 +1,76 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`getFileTreeItem > should return a TreeItem for a file element 1`] = `
+{
+  "collapsibleState": 0,
+  "command": {
+    "arguments": [
+      Uri {
+        "fsPath": "/mock/file/path.py",
+        "path": "/mock/file/path.py",
+        "scheme": "file",
+      },
+    ],
+    "command": "vscode.open",
+    "title": "Open File",
+  },
+  "label": "mock.py",
+  "resourceUri": Uri {
+    "fsPath": "/mock/file/path.py",
+    "path": "/mock/file/path.py",
+    "scheme": "file",
+  },
+}
+`;
+
+exports[`getFolderTreeItem > should return a TreeItem for a folder element. isMarked:false 1`] = `
+{
+  "collapsibleState": 1,
+  "contextValue": "canAddRemoteFileSource",
+  "iconPath": {
+    "color": undefined,
+    "id": "folder",
+  },
+  "label": "mockFolder",
+  "resourceUri": Uri {
+    "fsPath": "/mock/folder/path/",
+    "path": "/mock/folder/path/",
+    "scheme": "file",
+  },
+}
+`;
+
+exports[`getFolderTreeItem > should return a TreeItem for a folder element. isMarked:true 1`] = `
+{
+  "collapsibleState": 1,
+  "contextValue": "canRemoveRemoteFileSource",
+  "iconPath": {
+    "color": undefined,
+    "id": "folder",
+  },
+  "label": "mockFolder",
+  "resourceUri": Uri {
+    "fsPath": "/mock/folder/path/",
+    "path": "/mock/folder/path/",
+    "scheme": "file",
+  },
+}
+`;
+
+exports[`getTopLevelMarkedFolderTreeItem > should return a TreeItem for a top-level marked folder element 1`] = `
+{
+  "collapsibleState": 0,
+  "contextValue": "canRemoveRemoteFileSource",
+  "description": undefined,
+  "iconPath": {
+    "color": undefined,
+    "id": "dh-python",
+  },
+  "label": "",
+  "resourceUri": Uri {
+    "fsPath": "/mock/top/level/marked/folder/",
+    "path": "/mock/top/level/marked/folder/",
+    "scheme": "file",
+  },
+}
+`;

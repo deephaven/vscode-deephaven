@@ -8,7 +8,6 @@ import {
   type Username,
 } from '@deephaven-enterprise/auth-nodejs';
 import { type dh as DhcType } from '@deephaven/jsapi-types';
-import type { URLMap } from '../services';
 import { ControllerBase } from './ControllerBase';
 import {
   CREATE_CORE_AUTHENTICATED_CLIENT_CMD,
@@ -23,6 +22,7 @@ import {
   isMultiAuthConfig,
   getAuthFlow,
   isNoAuthConfig,
+  type URLMap,
 } from '../util';
 import type {
   CoreAuthenticatedClient,

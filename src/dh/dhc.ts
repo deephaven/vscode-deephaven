@@ -5,6 +5,7 @@ import type {
   CoreUnauthenticatedClient,
   DependencyName,
   DependencyVersion,
+  UniqueID,
 } from '../types';
 import { hasStatusCode, loadDhModules } from '@deephaven/jsapi-nodejs';
 import {
@@ -13,6 +14,7 @@ import {
   REQUIREMENTS_TABLE_NAME_COLUMN_NAME,
   REQUIREMENTS_TABLE_VERSION_COLUMN_NAME,
 } from '../common';
+import { getRemoteFileSourcePlugin, uniqueId } from '../util';
 
 export const AUTH_HANDLER_TYPE_ANONYMOUS =
   'io.deephaven.auth.AnonymousAuthenticationHandler';
@@ -25,6 +27,8 @@ export const AUTH_HANDLER_TYPE_DHE =
 
 export type ConnectionAndSession<TConnection, TSession> = {
   cn: TConnection;
+  cnId: UniqueID;
+  remoteFileSourcePlugin: DhType.Widget | null;
   session: TSession;
 };
 
@@ -138,6 +142,7 @@ export async function initDhcSession(
   client: CoreAuthenticatedClient
 ): Promise<ConnectionAndSession<DhType.IdeConnection, DhType.IdeSession>> {
   const cn = await client.getAsIdeConnection();
+  const cnId = uniqueId();
 
   const [type] = await cn.getConsoleTypes();
 
@@ -147,7 +152,15 @@ export async function initDhcSession(
 
   const session = await cn.startSession(type);
 
-  return { cn, session };
+  const workerUrl = new URL(await client.getServerUrl());
+
+  const remoteFileSourcePlugin = await getRemoteFileSourcePlugin(
+    cnId,
+    session,
+    workerUrl
+  );
+
+  return { cn, cnId, remoteFileSourcePlugin, session };
 }
 
 /**

@@ -16,6 +16,31 @@ export type MessageHandler<TData> = (
 ) => unknown;
 
 /**
+ * Return last registered event handler to a given registration function for a
+ * given event type. Assumes that the registration function has been mocked or
+ * spied on.
+ * @param type event type to filter on
+ * @param addEventListener the mocked event registration function
+ * @returns the last registered event handler for the given event type. Throws
+ * if none found.
+ */
+export function getLastEventListener<
+  TEventType extends string,
+  TEventFn extends (
+    eventType: TEventType,
+    listener: (...args: any[]) => any
+  ) => void,
+>(type: TEventType, addEventListener: TEventFn): Parameters<TEventFn>[1] {
+  const calls = vi
+    .mocked(addEventListener)
+    .mock.calls.filter(([callType]) => callType === type);
+
+  expect(calls.length).toBeGreaterThan(0);
+
+  return calls.at(-1)![1];
+}
+
+/**
  * Return last registered event handler for 'message' event. Assumes that
  * `window.addEventListener` has been mocked or spied on.
  */

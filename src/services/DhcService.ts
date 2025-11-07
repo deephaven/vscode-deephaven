@@ -7,6 +7,7 @@ import {
   isNonEmptyArray,
   Logger,
   saveRequirementsTxt,
+  type URLMap,
 } from '../util';
 import {
   getPythonDependencies,
@@ -27,7 +28,6 @@ import type {
   VariableDefintion,
   VariableID,
 } from '../types';
-import type { URLMap } from './URLMap';
 import {
   CREATE_CORE_AUTHENTICATED_CLIENT_CMD,
   OPEN_VARIABLE_PANELS_CMD,
@@ -38,6 +38,7 @@ import { NoConsoleTypesError, parseServerError } from '../dh/errorUtils';
 import { hasErrorCode } from '../util/typeUtils';
 import { DisposableBase } from './DisposableBase';
 import { assertDefined } from '../shared';
+import type { RemoteFileSourceService } from './RemoteFileSourceService';
 
 const logger = new Logger('DhcService');
 
@@ -45,18 +46,20 @@ export class DhcService extends DisposableBase implements IDhcService {
   /**
    * Creates a factory function that can be used to create DhcService instances.
    * @param coreClientCache Core client cache.
-   * @param panelService Panel service.
    * @param diagnosticsCollection Diagnostics collection.
+   * @param remoteFileSourceService Remote file source service.
    * @param outputChannel Output channel.
+   * @param panelService Panel service.
    * @param secretService Secret service.
    * @param toaster Toast service for notifications.
    * @returns A factory function that can be used to create DhcService instances.
    */
   static factory = (
     coreClientCache: URLMap<CoreAuthenticatedClient>,
-    panelService: IPanelService,
     diagnosticsCollection: vscode.DiagnosticCollection,
+    remoteFileSourceService: RemoteFileSourceService,
     outputChannel: vscode.OutputChannel,
+    panelService: IPanelService,
     secretService: ISecretService,
     toaster: IToastService
   ): IDhcServiceFactory => {
@@ -65,9 +68,10 @@ export class DhcService extends DisposableBase implements IDhcService {
         return new DhcService(
           serverUrl,
           coreClientCache,
-          panelService,
           diagnosticsCollection,
+          remoteFileSourceService,
           outputChannel,
+          panelService,
           secretService,
           toaster,
           tagId
@@ -83,9 +87,10 @@ export class DhcService extends DisposableBase implements IDhcService {
   private constructor(
     serverUrl: URL,
     coreClientCache: URLMap<CoreAuthenticatedClient>,
-    panelService: IPanelService,
     diagnosticsCollection: vscode.DiagnosticCollection,
+    remoteFileSourceService: RemoteFileSourceService,
     outputChannel: vscode.OutputChannel,
+    panelService: IPanelService,
     secretService: ISecretService,
     toaster: IToastService,
     tagId?: UniqueID
@@ -93,11 +98,12 @@ export class DhcService extends DisposableBase implements IDhcService {
     super();
 
     this.coreClientCache = coreClientCache;
-    this.serverUrl = serverUrl;
-    this.panelService = panelService;
     this.diagnosticsCollection = diagnosticsCollection;
+    this.remoteFileSourceService = remoteFileSourceService;
     this.outputChannel = outputChannel;
+    this.panelService = panelService;
     this.secretService = secretService;
+    this.serverUrl = serverUrl;
     this.toaster = toaster;
     this.tagId = tagId;
 
@@ -120,6 +126,7 @@ export class DhcService extends DisposableBase implements IDhcService {
 
   private readonly coreClientCache: URLMap<CoreAuthenticatedClient>;
   private readonly outputChannel: vscode.OutputChannel;
+  private readonly remoteFileSourceService: RemoteFileSourceService;
   private readonly secretService: ISecretService;
   private readonly toaster: IToastService;
   private readonly panelService: IPanelService;
@@ -130,6 +137,8 @@ export class DhcService extends DisposableBase implements IDhcService {
   > | null = null;
 
   private cn: DhcType.IdeConnection | null = null;
+  private cnId: UniqueID | null = null;
+  private remoteFileSourcePluginSubscription: (() => void) | null = null;
   private session: DhcType.IdeSession | null = null;
 
   get isInitialized(): boolean {
@@ -272,9 +281,15 @@ export class DhcService extends DisposableBase implements IDhcService {
     }
 
     try {
-      const { cn, session } = await this.initSessionPromise;
+      const { cn, cnId, remoteFileSourcePlugin, session } =
+        await this.initSessionPromise;
       this.cn = cn;
+      this.cnId = cnId;
       this.session = session;
+
+      if (remoteFileSourcePlugin != null) {
+        await this._initRemoteFileSourcePlugin(session, remoteFileSourcePlugin);
+      }
     } catch (err) {
       logger.error(err);
       const toastMessage = this.getToastErrorMessage(
@@ -311,6 +326,28 @@ export class DhcService extends DisposableBase implements IDhcService {
     const maybeClient = await this.coreClientCache.get(this.serverUrl);
 
     return maybeClient ?? null;
+  };
+
+  /**
+   * Initialize the remote file source plugin.
+   * @param session the ide session to associate with the plugin
+   * @param remoteFileSourcePlugin the remote file source plugin widget
+   */
+  private _initRemoteFileSourcePlugin = async (
+    session: DhcType.IdeSession,
+    remoteFileSourcePlugin: DhcType.Widget
+  ): Promise<void> => {
+    this.disposables.add(() => {
+      remoteFileSourcePlugin.close();
+    });
+
+    this.remoteFileSourcePluginSubscription =
+      await this.remoteFileSourceService.registerPlugin(
+        session,
+        remoteFileSourcePlugin
+      );
+
+    this.disposables.add(this.remoteFileSourcePluginSubscription);
   };
 
   async getClient(): Promise<CoreAuthenticatedClient | null> {
@@ -359,6 +396,14 @@ export class DhcService extends DisposableBase implements IDhcService {
     await saveRequirementsTxt(dependencies);
   }
 
+  async deleteVariable(variableDefinition: VariableDefintion): Promise<void> {
+    if (this.session == null) {
+      throw new Error('No session found to delete variable.');
+    }
+
+    await this.session.runCode(`del ${variableDefinition.name}`);
+  }
+
   async runCode(
     document: vscode.TextDocument,
     languageId: string,
@@ -371,7 +416,7 @@ export class DhcService extends DisposableBase implements IDhcService {
       await this.initSession();
     }
 
-    if (this.cn == null || this.session == null) {
+    if (this.cn == null || this.cnId == null || this.session == null) {
       return;
     }
 
@@ -395,6 +440,14 @@ export class DhcService extends DisposableBase implements IDhcService {
       const start = performance.now();
 
       this.isRunningCode = true;
+
+      if (this.remoteFileSourcePluginSubscription != null) {
+        await this.remoteFileSourceService.setServerExecutionContext(
+          this.cnId,
+          this.session
+        );
+      }
+
       result = await this.session.runCode(text);
       this.isRunningCode = false;
 
@@ -417,37 +470,46 @@ export class DhcService extends DisposableBase implements IDhcService {
 
     if (error) {
       logger.error(error);
+      // Note we shouldn't have to log the error to the output channel since code
+      // execution errors should already get captured via the server output.
       this.outputChannel.show(true);
-      this.outputChannel.appendLine(error);
       this.toaster.error('An error occurred when running a command');
 
       if (languageId === 'python') {
-        const { line, value } = parseServerError(error);
+        const errors = parseServerError(error);
 
-        if (line != null) {
-          // If ranges were provided, the line number in the error will be
-          // relative to the ranges content (Python line numbers are 1 based.
-          // vscode line numbers are zero based.)
-          const fileLine = (ranges ? line + ranges[0].start.line : line) - 1;
+        for (const { type, file, line, value } of errors) {
+          if (line != null) {
+            // If ranges were provided, the line number in the error will be
+            // relative to the ranges content (Python line numbers are 1 based.
+            // vscode line numbers are zero based.)
+            const fileLine = (ranges ? line + ranges[0].start.line : line) - 1;
 
-          // There seems to be an error for certain Python versions where line
-          // numbers are shown as -1. In such cases, we'll just mark the first
-          // token on the first line to at least flag the file as having an error.
-          const startLine = Math.max(0, fileLine);
+            // There seems to be an error for certain Python versions where line
+            // numbers are shown as -1. In such cases, we'll just mark the first
+            // token on the first line to at least flag the file as having an error.
+            const startLine = Math.max(0, fileLine);
 
-          // Zero length will flag a token instead of a line
-          const lineLength =
-            fileLine < 0 ? 0 : document.lineAt(fileLine).text.length;
+            // Zero length will flag a token instead of a line
+            const lineLength =
+              fileLine < 0 ? 0 : document.lineAt(fileLine).text.length;
 
-          // Diagnostic representing the line of code that produced the server error
-          const diagnostic: vscode.Diagnostic = {
-            message: value == null ? error : `${value}\n${error}`,
-            severity: vscode.DiagnosticSeverity.Error,
-            range: new vscode.Range(startLine, 0, startLine, lineLength),
-            source: 'deephaven',
-          };
+            // Diagnostic representing the line of code that produced the server error
+            const diagnostic: vscode.Diagnostic = {
+              code: type,
+              message: value == null ? error : `${value}\n${error}`,
+              severity: vscode.DiagnosticSeverity.Error,
+              range: new vscode.Range(startLine, 0, startLine, lineLength),
+              source: 'deephaven',
+            };
 
-          this.diagnosticsCollection.set(document.uri, [diagnostic]);
+            this.diagnosticsCollection.set(
+              file == null || file === '<string>'
+                ? document.uri
+                : vscode.Uri.parse(file),
+              [diagnostic]
+            );
+          }
         }
       }
 

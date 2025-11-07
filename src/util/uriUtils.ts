@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import type { RelativeWsUriString } from '../types';
 
 /**
  * Ensure url has a trailing slash.
@@ -35,6 +36,19 @@ export function getServerUrlAndPath(uri: vscode.Uri): {
     root,
     path,
   };
+}
+
+/**
+ * Get a workspace relative path for a given uri.
+ * @param uri The uri to get the relative path for.
+ * @returns The relative path.
+ */
+export function relativeWsUriString(uri: vscode.Uri): RelativeWsUriString {
+  if (uri.fsPath === vscode.workspace.getWorkspaceFolder(uri)?.uri.fsPath) {
+    return '' as RelativeWsUriString;
+  }
+
+  return vscode.workspace.asRelativePath(uri, false) as RelativeWsUriString;
 }
 
 /**

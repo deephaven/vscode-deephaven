@@ -9,6 +9,7 @@ import type {
   VariableType,
 } from '../types';
 import {
+  DH_PROTECTED_VARIABLE_NAMES,
   ICON_ID,
   OPEN_VARIABLE_PANELS_CMD,
   SERVER_TREE_ITEM_CONTEXT,
@@ -99,6 +100,9 @@ export function getPanelVariableTreeItem([url, variable]: [
   return {
     label: variable.title,
     iconPath,
+    contextValue: DH_PROTECTED_VARIABLE_NAMES.has(variable.name)
+      ? undefined
+      : 'canDeleteDeephavenVariable',
     command: {
       title: 'Open Panel',
       command: OPEN_VARIABLE_PANELS_CMD,

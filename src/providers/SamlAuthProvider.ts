@@ -5,13 +5,14 @@ import {
   parseSamlScopes,
   rejectAfterTimeout,
   uniqueId,
+  URLMap,
 } from '../util';
 import {
   DH_SAML_AUTH_PROVIDER_TYPE,
   DH_SAML_LOGIN_URL_SCOPE_KEY,
   DH_SAML_SERVER_URL_SCOPE_KEY,
 } from '../common';
-import { UriEventHandler, URLMap } from '../services';
+import { UriEventHandler } from '../services';
 import {
   type DheAuthenticatedClientWrapper,
   type DheUnauthenticatedClientWrapper,

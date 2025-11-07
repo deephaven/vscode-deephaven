@@ -29,9 +29,9 @@ import {
   isInstanceOf,
   Logger,
   uniqueId,
+  URIMap,
+  URLMap,
 } from '../util';
-import { URLMap } from './URLMap';
-import { URIMap } from './URIMap';
 import { DhcService } from './DhcService';
 import { getWorkerCredentials, isDheServerRunning } from '../dh/dhe';
 import { isDhcServerRunning } from '../dh/dhc';

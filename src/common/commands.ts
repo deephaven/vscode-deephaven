@@ -43,6 +43,7 @@ export const CREATE_DHE_AUTHENTICATED_CLIENT_CMD = cmd(
   'createDHEAuthenticatedClient'
 );
 export const CREATE_NEW_TEXT_DOC_CMD = cmd('createNewTextDoc');
+export const DELETE_VARIABLE_CMD = cmd('deleteVariable');
 export const DISCONNECT_EDITOR_CMD = cmd('disconnectEditor');
 export const DISCONNECT_FROM_SERVER_CMD = cmd('disconnectFromServer');
 export const DOWNLOAD_LOGS_CMD = cmd('downloadLogs');
@@ -50,6 +51,9 @@ export const GENERATE_DHE_KEY_PAIR_CMD = cmd('generateDHEKeyPair');
 export const GENERATE_REQUIREMENTS_TXT_CMD = cmd('generateRequirementsTxt');
 export const OPEN_IN_BROWSER_CMD = cmd('openInBrowser');
 export const OPEN_VARIABLE_PANELS_CMD = cmd('openVariablePanels');
+export const REFRESH_REMOTE_IMPORT_SOURCE_TREE_CMD = cmd(
+  'refreshRemoteImportSourceTree'
+);
 export const REFRESH_SERVER_TREE_CMD = cmd('refreshServerTree');
 export const REFRESH_SERVER_CONNECTION_TREE_CMD = cmd(
   'refreshServerConnectionTree'
@@ -63,3 +67,5 @@ export const SEARCH_PANELS_CMD = cmd('searchPanels');
 export const SELECT_CONNECTION_COMMAND = cmd('selectConnection');
 export const START_SERVER_CMD = cmd('startServer');
 export const STOP_SERVER_CMD = cmd('stopServer');
+export const ADD_REMOTE_FILE_SOURCE_CMD = cmd('addRemoteFileSource');
+export const REMOVE_REMOTE_FILE_SOURCE_CMD = cmd('removeRemoteFileSource');

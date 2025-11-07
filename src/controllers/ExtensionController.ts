@@ -12,13 +12,17 @@ import {
 } from '@deephaven-enterprise/auth-nodejs';
 import { NodeHttp2gRPCTransport } from '@deephaven/jsapi-nodejs';
 import {
+  ADD_REMOTE_FILE_SOURCE_CMD,
   CLEAR_SECRET_STORAGE_CMD,
   CREATE_NEW_TEXT_DOC_CMD,
+  DELETE_VARIABLE_CMD,
   DOWNLOAD_LOGS_CMD,
   GENERATE_REQUIREMENTS_TXT_CMD,
   OPEN_IN_BROWSER_CMD,
+  REFRESH_REMOTE_IMPORT_SOURCE_TREE_CMD,
   REFRESH_SERVER_CONNECTION_TREE_CMD,
   REFRESH_SERVER_TREE_CMD,
+  REMOVE_REMOTE_FILE_SOURCE_CMD,
   RUN_CODE_COMMAND,
   RUN_MARKDOWN_CODEBLOCK_CMD,
   RUN_SELECTION_COMMAND,
@@ -48,9 +52,11 @@ import {
   serializeRefreshToken,
   Toaster,
   uniqueId,
+  URLMap,
   withResolvers,
 } from '../util';
 import {
+  RemoteImportSourceTreeProvider,
   RunCommandCodeLensProvider,
   ServerTreeProvider,
   ServerConnectionTreeProvider,
@@ -62,16 +68,18 @@ import {
   CreateQueryViewProvider,
 } from '../providers';
 import {
+  CoreJsApiCache,
+  DhcService,
   DheJsApiCache,
   DheService,
   DheServiceCache,
-  DhcService,
+  FilteredWorkspace,
+  RemoteFileSourceService,
   PanelService,
   ParsedDocumentCache,
+  PYTHON_FILE_PATTERN,
   SecretService,
   ServerManager,
-  URLMap,
-  CoreJsApiCache,
 } from '../services';
 import type {
   IDisposable,
@@ -103,6 +111,10 @@ import type {
   ConsoleType,
   DheAuthenticatedClientWrapper,
   DheUnauthenticatedClientWrapper,
+  RemoteImportSourceTreeView,
+  VariableDefintion,
+  RemoteImportSourceTreeElement,
+  RemoteImportSourceTreeFolderElement,
 } from '../types';
 import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTreeDragAndDropController';
 import { ConnectionController } from './ConnectionController';
@@ -174,6 +186,8 @@ export class ExtensionController implements IDisposable {
   private _dhcServiceFactory: IDhcServiceFactory | null = null;
   private _dheJsApiCache: IAsyncCacheService<URL, DheType> | null = null;
   private _dheServiceFactory: IDheServiceFactory | null = null;
+  private _pythonWorkspace: FilteredWorkspace | null = null;
+  private _remoteFileSourceService: RemoteFileSourceService | null = null;
   private _secretService: ISecretService | null = null;
   private _serverManager: IServerManager | null = null;
   private _userLoginController: UserLoginController | null = null;
@@ -184,12 +198,15 @@ export class ExtensionController implements IDisposable {
     null;
   private _serverConnectionPanelTreeProvider: ServerConnectionPanelTreeProvider | null =
     null;
+  private _remoteImportSourceTreeProvider: RemoteImportSourceTreeProvider | null =
+    null;
 
   // Tree views
   private _serverTreeView: ServerTreeView | null = null;
   private _serverConnectionTreeView: ServerConnectionTreeView | null = null;
   private _serverConnectionPanelTreeView: ServerConnectionPanelTreeView | null =
     null;
+  private _remoteImportSourceTreeView: RemoteImportSourceTreeView | null = null;
 
   // Web views
   private _createQueryViewProvider: CreateQueryViewProvider | null = null;
@@ -212,6 +229,7 @@ export class ExtensionController implements IDisposable {
     this.initializeDocumentCaches();
     this.initializeCodeLenses();
     this.initializeHoverProviders();
+    this.initializeRemoteFileSourcing();
     this.initializeServerManager();
     this.initializeAuthProviders();
     this.initializeTempDirectory();
@@ -346,6 +364,23 @@ export class ExtensionController implements IDisposable {
   };
 
   /**
+   * Initialize services needed for remote file sourcing.
+   */
+  initializeRemoteFileSourcing = (): void => {
+    assertDefined(this._toaster, 'toaster');
+    this._pythonWorkspace = new FilteredWorkspace(
+      PYTHON_FILE_PATTERN,
+      this._toaster
+    );
+    this._context.subscriptions.push(this._pythonWorkspace);
+
+    this._remoteFileSourceService = new RemoteFileSourceService(
+      this._pythonWorkspace
+    );
+    this._context.subscriptions.push(this._remoteFileSourceService);
+  };
+
+  /**
    * Initialize user login controller.
    */
   initializeUserLoginController = (): void => {
@@ -447,6 +482,7 @@ export class ExtensionController implements IDisposable {
   initializeServerManager = (): void => {
     assertDefined(this._pythonDiagnostics, 'pythonDiagnostics');
     assertDefined(this._outputChannel, 'outputChannel');
+    assertDefined(this._remoteFileSourceService, 'remoteFileSourceService');
     assertDefined(this._secretService, 'secretService');
     assertDefined(this._toaster, 'toaster');
 
@@ -570,9 +606,10 @@ export class ExtensionController implements IDisposable {
 
     this._dhcServiceFactory = DhcService.factory(
       this._coreClientCache,
-      this._panelService,
       this._pythonDiagnostics,
+      this._remoteFileSourceService,
       this._outputChannel,
+      this._panelService,
       this._secretService,
       this._toaster
     );
@@ -696,6 +733,20 @@ export class ExtensionController implements IDisposable {
       this.onRefreshServerStatus
     );
 
+    /** Remote import source tree */
+    this.registerCommand(
+      REFRESH_REMOTE_IMPORT_SOURCE_TREE_CMD,
+      this.onRefreshRemoteImportSourceTree
+    );
+    this.registerCommand(
+      ADD_REMOTE_FILE_SOURCE_CMD,
+      this.onAddRemoteFileSource
+    );
+    this.registerCommand(
+      REMOVE_REMOTE_FILE_SOURCE_CMD,
+      this.onRemoveRemoteFileSource
+    );
+
     /** Search connections */
     this.registerCommand(
       SEARCH_CONNECTIONS_CMD,
@@ -710,6 +761,8 @@ export class ExtensionController implements IDisposable {
       VIEW_ID.serverConnectionPanelTree
     );
 
+    this.registerCommand(DELETE_VARIABLE_CMD, this.onDeleteVariable);
+
     /** Start a server */
     this.registerCommand(START_SERVER_CMD, this.onStartServer);
 
@@ -722,6 +775,7 @@ export class ExtensionController implements IDisposable {
    */
   initializeWebViews = (): void => {
     assertDefined(this._dheClientCache, 'dheClientCache');
+    assertDefined(this._pythonWorkspace, 'pythonWorkspace');
     assertDefined(this._panelService, 'panelService');
     assertDefined(this._serverManager, 'serverManager');
 
@@ -780,13 +834,28 @@ export class ExtensionController implements IDisposable {
         }
       );
 
+    // Remote import source tree
+    this._remoteImportSourceTreeProvider = new RemoteImportSourceTreeProvider(
+      this._pythonWorkspace
+    );
+    this._remoteImportSourceTreeView =
+      vscode.window.createTreeView<RemoteImportSourceTreeElement>(
+        VIEW_ID.remoteImportSourceTree,
+        {
+          showCollapseAll: true,
+          treeDataProvider: this._remoteImportSourceTreeProvider,
+        }
+      );
+
     this._context.subscriptions.push(
       this._serverTreeView,
       this._serverConnectionTreeView,
       this._serverConnectionPanelTreeView,
+      this._remoteImportSourceTreeView,
       this._serverTreeProvider,
       this._serverConnectionTreeProvider,
-      this._serverConnectionPanelTreeProvider
+      this._serverConnectionPanelTreeProvider,
+      this._remoteImportSourceTreeProvider
     );
   };
 
@@ -836,6 +905,47 @@ export class ExtensionController implements IDisposable {
 
     this._serverManager?.updateStatus();
     this._pipServerController?.syncManagedServers();
+  };
+
+  onDeleteVariable = async ([url, variable]: [
+    URL,
+    VariableDefintion,
+  ]): Promise<void> => {
+    const connectionState = this._serverManager?.getConnection(url);
+    if (!isInstanceOf(connectionState, DhcService)) {
+      return;
+    }
+
+    await connectionState.deleteVariable(variable);
+  };
+
+  onAddRemoteFileSource = async (
+    folderElementOrUri: RemoteImportSourceTreeFolderElement | vscode.Uri
+  ): Promise<void> => {
+    assertDefined(this._pythonWorkspace, 'pythonWorkspace');
+
+    await this._pythonWorkspace.refresh();
+
+    const uri =
+      folderElementOrUri instanceof vscode.Uri
+        ? folderElementOrUri
+        : folderElementOrUri.uri;
+
+    this._pythonWorkspace.markFolder(uri);
+  };
+
+  onRemoveRemoteFileSource = async (
+    folderElementOrUri: RemoteImportSourceTreeFolderElement | vscode.Uri
+  ): Promise<void> => {
+    assertDefined(this._pythonWorkspace, 'pythonWorkspace');
+
+    await this._pythonWorkspace.refresh();
+
+    const uri =
+      folderElementOrUri instanceof vscode.Uri
+        ? folderElementOrUri
+        : folderElementOrUri.uri;
+    this._pythonWorkspace.unmarkFolder(uri);
   };
 
   /**
@@ -913,6 +1023,11 @@ export class ExtensionController implements IDisposable {
       'vscode.open',
       vscode.Uri.parse(serverUrl.toString())
     );
+  };
+
+  onRefreshRemoteImportSourceTree = async (): Promise<void> => {
+    this._pythonWorkspace?.refresh();
+    this._remoteImportSourceTreeProvider?.refresh();
   };
 
   onRefreshServerStatus = async (): Promise<void> => {

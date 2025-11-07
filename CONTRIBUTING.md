@@ -65,9 +65,9 @@ This extension can also be installed directly from a `.vsix`. To get a `.vsix`, 
 
 Download one from the [releases/](releases/) folder.
 
-or
+Alternatively, you can build a `.vsix` locally by running `npm run package:dev`. This will increment the version number in package.json to a `-dev` version and create a `releases/vscode-deephaven-$PACKAGE_VERSION.vsix` file.
 
-Build a .vsix locally via `npm run package:latest` (see [VSCE](#vsce) section)
+(see [VSCE](#vsce) section)
 
 Then install in `VS Code`:
 ![Install Deephaven VS Code](./docs/assets/install-vsix.png)
@@ -105,7 +105,7 @@ See [versioning strategy](#versioning-strategy) for details on our version numbe
 npx vsce ls
 ```
 1. If new content has been added that is not included in the output, you may need to tweak the `.vscodeignore`, to make sure it is included (this should not be common).
-1. Optionally run `npm run package:latest` if you want to locally install a `.vsix` for testing before publishing.
+1. Optionally run `npm run package:dev` if you want to locally install a `.vsix` for testing before publishing.
 
 #### Publish a New Version
 1. Make sure you are in a clean branch whose HEAD points to the commit to publish.

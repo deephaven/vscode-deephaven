@@ -161,6 +161,11 @@ export const ThemeIcon = vi
     color,
   }));
 
+export enum TreeItemCheckboxState {
+  Unchecked = 0,
+  Checked = 1,
+}
+
 export enum TreeItemCollapsibleState {
   None = 0,
   Collapsed = 1,
@@ -170,22 +175,35 @@ export enum TreeItemCollapsibleState {
 export const window = {
   onDidChangeActiveColorTheme: vi.fn().mockName('onDidChangeActiveColorTheme'),
   onDidReceiveMessage: vi.fn().mockName('onDidReceiveMessage'),
+  registerFileDecorationProvider: vi
+    .fn()
+    .mockName('registerFileDecorationProvider'),
 };
 
 export const workspace = {
+  asRelativePath: vi.fn().mockName('asRelativePath'),
+  createFileSystemWatcher: vi
+    .fn()
+    .mockName('createFileSystemWatcher')
+    .mockReturnValue({
+      onDidCreate: vi.fn().mockName('onDidCreate'),
+      onDidDelete: vi.fn().mockName('onDidDelete'),
+    }),
   getConfiguration: vi
     .fn()
     .mockName('getConfiguration')
     .mockReturnValue(new Map()),
+  openTextDocument: vi.fn().mockName('openTextDocument'),
   onDidChangeTextDocument: vi.fn().mockName('onDidChangeTextDocument'),
   onDidCloseTextDocument: vi.fn().mockName('onDidCloseTextDocument'),
+  getWorkspaceFolder: vi.fn().mockName('getWorkspaceFolder'),
 };
 
 export class Uri {
   static joinPath = vi
     .fn()
     .mockName('joinPath')
-    .mockImplementation((...args) => args.join('/'));
+    .mockImplementation((...args) => Uri.parse(args.join('/')));
 
   static parse = vi
     .fn()
@@ -196,10 +214,16 @@ export class Uri {
         throw new Error('Invalid URI');
       }
 
-      return {
-        scheme,
-        path,
-        toString: () => value,
-      };
+      return new Uri(scheme, path, path);
     });
+
+  private constructor(
+    public scheme: string,
+    public fsPath: string,
+    public path: string
+  ) {}
+
+  toString() {
+    return `${this.scheme}://${this.path}`;
+  }
 }

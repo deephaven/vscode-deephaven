@@ -75,6 +75,7 @@ export const VIEW_ID_PREFIX = `${EXTENSION_ID}.view.` as const;
 
 export const VIEW_ID = {
   createQuery: `${VIEW_ID_PREFIX}createQuery`,
+  remoteImportSourceTree: `${VIEW_ID_PREFIX}remoteImportSourceTree`,
   serverTree: `${VIEW_ID_PREFIX}serverTree`,
   serverConnectionTree: `${VIEW_ID_PREFIX}serverConnectionTree`,
   serverConnectionPanelTree: `${VIEW_ID_PREFIX}serverConnectionPanelTree`,
@@ -180,3 +181,14 @@ export const DHE_CREATE_QUERY_URL_PATH =
   '/iriside/iframecontent/createworker' as const;
 
 export const DHE_FEATURES_URL_PATH = '/iriside/features.json' as const;
+
+export const DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE =
+  '__deephaven_vscode' as const;
+export const DH_PYTHON_REMOTE_SOURCE_PLUGIN_CLASS =
+  'DeephavenPythonRemoteFileSourcePlugin' as const;
+export const DH_PYTHON_REMOTE_SOURCE_PLUGIN_NAME =
+  '@deephaven/js-plugin-python-remote-file-source';
+
+export const DH_PROTECTED_VARIABLE_NAMES: Set<string> = new Set([
+  DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE,
+]);

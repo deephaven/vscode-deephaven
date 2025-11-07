@@ -1,0 +1,37 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`moduleSpecErrorResponse > should return correct JSON-RPC error response 1`] = `
+{
+  "error": {
+    "code": -32602,
+    "message": "Module not found: mock.module",
+  },
+  "id": "mock.msgId",
+  "jsonrpc": "2.0",
+}
+`;
+
+exports[`moduleSpecResponse > should return correct JSON-RPC success response 1`] = `
+{
+  "id": "mock.msgId",
+  "jsonrpc": "2.0",
+  "result": {
+    "is_package": true,
+    "name": "mock.module",
+    "origin": "/path/to/foo",
+    "source": "print("hello")",
+    "submodule_search_locations": [
+      "foo/bar",
+      "foo/baz",
+    ],
+  },
+}
+`;
+
+exports[`setConnectionIdRequest > should return correct JSON-RPC set connection ID request 1`] = `
+{
+  "id": "mock.cnId",
+  "jsonrpc": "2.0",
+  "method": "set_connection_id",
+}
+`;

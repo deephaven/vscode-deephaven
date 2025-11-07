@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import type { IDisposable } from '../types';
-import { isDisposable } from '../util';
+import type { IDisposable } from '../../types';
+import { isDisposable } from '../isDisposable';
 
 /**
  * Base class for Maps that need to store their keys as serialized string values

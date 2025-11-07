@@ -63,6 +63,7 @@ exports[`getPanelVariableTreeItem > should return panel variable tree item: type
     "command": "vscode-deephaven.openVariablePanels",
     "title": "Open Panel",
   },
+  "contextValue": "canDeleteDeephavenVariable",
   "iconPath": {
     "color": undefined,
     "id": "graph",
@@ -86,6 +87,7 @@ exports[`getPanelVariableTreeItem > should return panel variable tree item: type
     "command": "vscode-deephaven.openVariablePanels",
     "title": "Open Panel",
   },
+  "contextValue": "canDeleteDeephavenVariable",
   "iconPath": {
     "color": undefined,
     "id": "dh-table",
@@ -109,6 +111,7 @@ exports[`getPanelVariableTreeItem > should return panel variable tree item: type
     "command": "vscode-deephaven.openVariablePanels",
     "title": "Open Panel",
   },
+  "contextValue": "canDeleteDeephavenVariable",
   "iconPath": {
     "color": undefined,
     "id": "preview",
@@ -132,6 +135,7 @@ exports[`getPanelVariableTreeItem > should return panel variable tree item: type
     "command": "vscode-deephaven.openVariablePanels",
     "title": "Open Panel",
   },
+  "contextValue": "canDeleteDeephavenVariable",
   "iconPath": {
     "color": undefined,
     "id": "dh-table",
@@ -155,6 +159,7 @@ exports[`getPanelVariableTreeItem > should return panel variable tree item: type
     "command": "vscode-deephaven.openVariablePanels",
     "title": "Open Panel",
   },
+  "contextValue": "canDeleteDeephavenVariable",
   "iconPath": {
     "color": undefined,
     "id": "dh-table",
@@ -178,6 +183,7 @@ exports[`getPanelVariableTreeItem > should return panel variable tree item: type
     "command": "vscode-deephaven.openVariablePanels",
     "title": "Open Panel",
   },
+  "contextValue": "canDeleteDeephavenVariable",
   "iconPath": {
     "color": undefined,
     "id": "dh-table",
@@ -201,6 +207,7 @@ exports[`getPanelVariableTreeItem > should return panel variable tree item: type
     "command": "vscode-deephaven.openVariablePanels",
     "title": "Open Panel",
   },
+  "contextValue": "canDeleteDeephavenVariable",
   "iconPath": {
     "color": undefined,
     "id": "dh-table",
@@ -224,6 +231,7 @@ exports[`getPanelVariableTreeItem > should return panel variable tree item: type
     "command": "vscode-deephaven.openVariablePanels",
     "title": "Open Panel",
   },
+  "contextValue": "canDeleteDeephavenVariable",
   "iconPath": {
     "color": undefined,
     "id": "preview",
@@ -247,6 +255,7 @@ exports[`getPanelVariableTreeItem > should return panel variable tree item: type
     "command": "vscode-deephaven.openVariablePanels",
     "title": "Open Panel",
   },
+  "contextValue": "canDeleteDeephavenVariable",
   "iconPath": {
     "color": undefined,
     "id": "graph",
@@ -270,6 +279,7 @@ exports[`getPanelVariableTreeItem > should return panel variable tree item: type
     "command": "vscode-deephaven.openVariablePanels",
     "title": "Open Panel",
   },
+  "contextValue": "canDeleteDeephavenVariable",
   "iconPath": {
     "color": undefined,
     "id": "preview",
@@ -293,6 +303,7 @@ exports[`getPanelVariableTreeItem > should return panel variable tree item: type
     "command": "vscode-deephaven.openVariablePanels",
     "title": "Open Panel",
   },
+  "contextValue": "canDeleteDeephavenVariable",
   "iconPath": {
     "color": undefined,
     "id": "dh-pandas",

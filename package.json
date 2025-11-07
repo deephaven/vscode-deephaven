@@ -34,7 +34,7 @@
     "compile": "npm run build:ts && node scripts/esbuild.js",
     "compile:prod": "npm run build:ts && npm run test:lint && node scripts/esbuild.js --production",
     "icon:gen": "node icons/generate.mjs dh",
-    "package:latest": "vsce package -o releases/vscode-deephaven-latest.vsix",
+    "package:dev": "./scripts/package-dev.sh",
     "publish": "./scripts/publish.sh",
     "publish:prerelease": "./scripts/publish.sh --pre-release",
     "report:ctrfsummary": "github-actions-ctrf summary test-reports/ctrf-report.json && github-actions-ctrf failed test-reports/ctrf-report.json",
@@ -215,7 +215,8 @@
       },
       {
         "command": "vscode-deephaven.refreshVariablePanels",
-        "title": "Refresh Variable Panels"
+        "title": "Refresh Variable Panels",
+        "icon": "$(refresh)"
       },
       {
         "command": "vscode-deephaven.refreshServerTree",
@@ -225,6 +226,11 @@
       {
         "command": "vscode-deephaven.refreshServerConnectionTree",
         "title": "Refresh Server Connection Tree",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "vscode-deephaven.refreshRemoteImportSourceTree",
+        "title": "Refresh Remote Import Source Tree",
         "icon": "$(refresh)"
       },
       {
@@ -259,6 +265,21 @@
         "command": "vscode-deephaven.view.createQuery.close",
         "title": "Close Create Connection View",
         "icon": "$(close)"
+      },
+      {
+        "command": "vscode-deephaven.addRemoteFileSource",
+        "title": "Add to Deephaven remote file sources",
+        "icon": "$(add)"
+      },
+      {
+        "command": "vscode-deephaven.removeRemoteFileSource",
+        "title": "Remove from Deephaven remote file sources",
+        "icon": "$(remove)"
+      },
+      {
+        "command": "vscode-deephaven.deleteVariable",
+        "title": "Delete Deephaven Variable",
+        "icon": "$(trash)"
       }
     ],
     "icons": {
@@ -680,6 +701,10 @@
           "when": "true"
         },
         {
+          "command": "vscode-deephaven.createNewTextDoc",
+          "when": "false"
+        },
+        {
           "command": "vscode-deephaven.downloadLogs",
           "when": "true"
         },
@@ -732,6 +757,10 @@
           "when": "false"
         },
         {
+          "command": "vscode-deephaven.refreshRemoteImportSourceTree",
+          "when": "false"
+        },
+        {
           "command": "vscode-deephaven.refreshVariablePanels",
           "when": "false"
         },
@@ -749,6 +778,18 @@
         },
         {
           "command": "vscode-deephaven.createDHEAuthenticatedClient",
+          "when": "false"
+        },
+        {
+          "command": "vscode-deephaven.addRemoteFileSource",
+          "when": "false"
+        },
+        {
+          "command": "vscode-deephaven.removeRemoteFileSource",
+          "when": "false"
+        },
+        {
+          "command": "vscode-deephaven.deleteVariable",
           "when": "false"
         }
       ],
@@ -776,6 +817,18 @@
           "when": "editorLangId == python || editorLangId == groovy"
         }
       ],
+      "explorer/context": [
+        {
+          "command": "vscode-deephaven.addRemoteFileSource",
+          "group": "deephaven",
+          "when": "explorerResourceIsFolder"
+        },
+        {
+          "command": "vscode-deephaven.removeRemoteFileSource",
+          "group": "deephaven",
+          "when": "explorerResourceIsFolder"
+        }
+      ],
       "view/title": [
         {
           "command": "vscode-deephaven.refreshServerTree",
@@ -786,6 +839,16 @@
           "command": "vscode-deephaven.refreshServerConnectionTree",
           "group": "navigation",
           "when": "view == vscode-deephaven.view.serverConnectionTree"
+        },
+        {
+          "command": "vscode-deephaven.refreshRemoteImportSourceTree",
+          "group": "navigation@1",
+          "when": "view == vscode-deephaven.view.remoteImportSourceTree"
+        },
+        {
+          "command": "vscode-deephaven.refreshVariablePanels",
+          "group": "navigation",
+          "when": "view == vscode-deephaven.view.serverConnectionPanelTree"
         },
         {
           "command": "vscode-deephaven.searchConnections",
@@ -845,6 +908,21 @@
           "command": "vscode-deephaven.stopServer",
           "when": "view == vscode-deephaven.view.serverTree && (viewItem == isManagedServerConnected || viewItem == isManagedServerConnecting || viewItem == isManagedServerDisconnected)",
           "group": "inline"
+        },
+        {
+          "command": "vscode-deephaven.deleteVariable",
+          "when": "view == vscode-deephaven.view.serverConnectionPanelTree && viewItem == canDeleteDeephavenVariable",
+          "group": "inline@2"
+        },
+        {
+          "command": "vscode-deephaven.addRemoteFileSource",
+          "when": "view == vscode-deephaven.view.remoteImportSourceTree && viewItem == canAddRemoteFileSource",
+          "group": "inline"
+        },
+        {
+          "command": "vscode-deephaven.removeRemoteFileSource",
+          "when": "view == vscode-deephaven.view.remoteImportSourceTree && viewItem == canRemoveRemoteFileSource",
+          "group": "inline"
         }
       ]
     },
@@ -877,6 +955,11 @@
         {
           "id": "vscode-deephaven.view.serverConnectionPanelTree",
           "name": "Panels",
+          "type": "tree"
+        },
+        {
+          "id": "vscode-deephaven.view.remoteImportSourceTree",
+          "name": "Remote Import Sources",
           "type": "tree"
         }
       ],
