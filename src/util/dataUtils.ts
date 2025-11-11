@@ -144,15 +144,25 @@ export function parseSamlScopes(scopes: readonly string[]): {
  * @returns The serialized refresh token.
  */
 export function serializeRefreshToken(
-  refreshToken?: DhcType.RefreshToken | null
+  refreshToken?:
+    | (DhcType.RefreshToken & {
+        // TODO: Once the types changes made by DH-17975 have been published, we
+        // should be able to update @deephaven-enterprise/jsapi-types and use
+        // the proper RefreshToken type there and get rid of this augmentation.
+        authenticatedUser?: string;
+        effectiveUser?: string;
+      })
+    | null
 ): SerializableRefreshToken | null {
   if (refreshToken == null) {
     return null;
   }
 
-  const { bytes, expiry } = refreshToken;
+  const { authenticatedUser, bytes, effectiveUser, expiry } = refreshToken;
 
   return {
+    effectiveUser,
+    authenticatedUser,
     bytes,
     expiry,
   } as SerializableRefreshToken;

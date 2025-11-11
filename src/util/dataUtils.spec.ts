@@ -27,9 +27,21 @@ describe('parseSamlScopes', () => {
 });
 
 describe('serializeRefreshToken', () => {
-  const mockRefreshToken: DhType.RefreshToken = {
+  const mockRefreshToken: DhType.RefreshToken & {
+    // TODO: Once the types changes made by DH-17975 have been published, we
+    // should be able to update @deephaven-enterprise/jsapi-types and use
+    // the proper RefreshToken type there and get rid of this augmentation.
+    authenticatedUser?: string;
+    effectiveUser?: string;
+  } = {
+    get authenticatedUser() {
+      return 'mockAuthenticatedUser';
+    },
     get bytes() {
       return 'mockBytes';
+    },
+    get effectiveUser() {
+      return 'mockEffectiveUser';
     },
     get expiry() {
       return 1234567890;
@@ -45,7 +57,9 @@ describe('serializeRefreshToken', () => {
         expect(result).toBeNull();
       } else {
         expect(result).toEqual({
+          authenticatedUser: mockRefreshToken.authenticatedUser,
           bytes: mockRefreshToken.bytes,
+          effectiveUser: mockRefreshToken.effectiveUser,
           expiry: mockRefreshToken.expiry,
         });
       }
