@@ -17,7 +17,9 @@ export interface ExternalThemeData {
 export type SerializableRefreshToken = Brand<
   'SerializableRefreshToken',
   {
+    authenticatedUser?: string;
     bytes: string;
+    effectiveUser?: string;
     expiry: number;
   }
 >;
