@@ -295,7 +295,7 @@ export class ConnectionController
     const workerConsoleType =
       serverState.type === 'DHE' ? getConsoleType(languageId) : undefined;
 
-    this._serverManager?.connectToServer(
+    await this._serverManager?.connectToServer(
       serverState.url,
       workerConsoleType,
       operateAsAnotherUser
