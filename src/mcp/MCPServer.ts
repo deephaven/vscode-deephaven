@@ -193,8 +193,16 @@ export class MCPServer {
       'listConnections',
       {
         title: 'List Connections',
-        description: 'List all active Deephaven connections.',
-        inputSchema: {},
+        description:
+          'List all active Deephaven connections, optionally filtered by server URL.',
+        inputSchema: {
+          serverUrl: z
+            .string()
+            .optional()
+            .describe(
+              'Optional server URL to filter connections (e.g., "http://localhost:10000")'
+            ),
+        },
         outputSchema: {
           success: z.boolean(),
           connections: z
@@ -210,7 +218,7 @@ export class MCPServer {
           message: z.string().optional(),
         },
       },
-      async () => {
+      async ({ serverUrl }: { serverUrl?: string }) => {
         try {
           if (!this.serverManager) {
             const output = {
@@ -225,15 +233,16 @@ export class MCPServer {
             };
           }
 
-          // Get all connections
-          const connections = this.serverManager
-            .getConnections()
-            .map(connection => ({
-              serverUrl: connection.serverUrl.toString(),
-              isConnected: connection.isConnected,
-              isRunningCode: connection.isRunningCode,
-              tagId: connection.tagId,
-            }));
+          // Get connections, optionally filtered by serverUrl
+          const parsedUrl = serverUrl ? new URL(serverUrl) : undefined;
+          const rawConnections = this.serverManager.getConnections(parsedUrl);
+
+          const connections = rawConnections.map(connection => ({
+            serverUrl: connection.serverUrl.toString(),
+            isConnected: connection.isConnected,
+            isRunningCode: connection.isRunningCode,
+            tagId: connection.tagId,
+          }));
 
           const output = {
             success: true,
