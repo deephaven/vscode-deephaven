@@ -156,8 +156,68 @@ export class MCPServer {
             };
           }
 
+          if (!this.serverManager) {
+            const output = {
+              success: false,
+              message: 'Server manager not available',
+            };
+            return {
+              content: [
+                { type: 'text' as const, text: JSON.stringify(output) },
+              ],
+              structuredContent: output,
+            };
+          }
+
           // Parse URL
           const parsedUrl = new URL(url);
+
+          // Check if there's an active connection to this URL
+          const connections = this.serverManager.getConnections(parsedUrl);
+          const hasConnection = connections.length > 0;
+
+          if (!hasConnection) {
+            const server = this.serverManager.getServer(parsedUrl);
+
+            if (!server) {
+              const output = {
+                success: false,
+                message: `Server not found: ${url}. Use listServers to see available servers.`,
+              };
+              return {
+                content: [
+                  { type: 'text' as const, text: JSON.stringify(output) },
+                ],
+                structuredContent: output,
+              };
+            }
+
+            // Only auto-connect for DHC servers
+            if (server.type === 'DHC') {
+              // Connect to the DHC server
+              const serverState = {
+                type: server.type,
+                url: server.url,
+              };
+
+              await vscode.commands.executeCommand(
+                CONNECT_TO_SERVER_CMD,
+                serverState
+              );
+            } else {
+              // For DHE servers, require manual connection
+              const output = {
+                success: false,
+                message: `No active connection to ${url}. Use connectToServer first.`,
+              };
+              return {
+                content: [
+                  { type: 'text' as const, text: JSON.stringify(output) },
+                ],
+                structuredContent: output,
+              };
+            }
+          }
 
           // Get panel variables
           const variables = [...this.panelService.getVariables(parsedUrl)].map(

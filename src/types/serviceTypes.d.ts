@@ -168,7 +168,7 @@ export interface IServerManager extends IDisposable {
   hasConnectionUris: (connection: ConnectionState) => boolean;
 
   getConnection: (serverUrl: URL) => ConnectionState | undefined;
-  getConnections: (serverUrl?: URL) => ConnectionState[];
+  getConnections: (serverOrWorkerUrl?: URL) => ConnectionState[];
   getConnectionUris: (connection: ConnectionState) => vscode.Uri[];
   getEditorConnection: (uri: vscode.Uri) => Promise<ConnectionState | null>;
   getWorkerCredentials: (
