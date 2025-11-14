@@ -30,34 +30,14 @@ type HandlerResult = McpToolHandlerResult<Spec>;
 type CreateListPanelVariablesTool = McpTool<Spec>;
 
 export function createListPanelVariablesTool(
-  panelService: IPanelService | null,
-  serverManager: IServerManager | null
+  panelService: IPanelService,
+  serverManager: IServerManager
 ): CreateListPanelVariablesTool {
   return {
     name: 'listPanelVariables',
     spec,
     handler: async ({ url }: { url: string }): Promise<HandlerResult> => {
       try {
-        if (!panelService) {
-          const output = {
-            success: false,
-            message: 'Panel service not available',
-          };
-          return {
-            content: [{ type: 'text' as const, text: JSON.stringify(output) }],
-            structuredContent: output,
-          };
-        }
-        if (!serverManager) {
-          const output = {
-            success: false,
-            message: 'Server manager not available',
-          };
-          return {
-            content: [{ type: 'text' as const, text: JSON.stringify(output) }],
-            structuredContent: output,
-          };
-        }
         const parsedUrl = new URL(url);
         const connections = serverManager.getConnections(parsedUrl);
         const hasConnection = connections.length > 0;

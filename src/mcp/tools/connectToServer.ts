@@ -25,23 +25,13 @@ type HandlerResult = McpToolHandlerResult<Spec>;
 type ConnectToServerTool = McpTool<Spec>;
 
 export function createConnectToServerTool(
-  serverManager: IServerManager | null
+  serverManager: IServerManager
 ): ConnectToServerTool {
   return {
     name: 'connectToServer',
     spec,
     handler: async ({ url }: { url: string }): Promise<HandlerResult> => {
       try {
-        if (!serverManager) {
-          const output = {
-            success: false,
-            message: 'Server manager not available',
-          };
-          return {
-            content: [{ type: 'text' as const, text: JSON.stringify(output) }],
-            structuredContent: output,
-          };
-        }
         const serverUrl = new URL(url);
         const server = serverManager.getServer(serverUrl);
         if (!server) {
