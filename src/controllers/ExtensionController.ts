@@ -416,6 +416,10 @@ export class ExtensionController implements IDisposable {
    * Initialize MCP server for AI assistant integration.
    */
   initializeMCPServer = async (): Promise<void> => {
+    assertDefined(this._panelService, 'panelService');
+    assertDefined(this._pipServerController, 'pipServerController');
+    assertDefined(this._serverManager, 'serverManager');
+
     try {
       // Check if we have a workspace folder
       const workspaceFolders = vscode.workspace.workspaceFolders;
@@ -424,22 +428,23 @@ export class ExtensionController implements IDisposable {
         return;
       }
 
-      // Get existing port from mcp.json or allocate a new one
-      const [port, isNewPort] = await this.getMCPServerPort(
-        workspaceFolders[0].uri
+      // Get existing port from mcp.json or 0 if none found
+      const port = await this.getMCPServerPort(workspaceFolders[0].uri);
+
+      this._mcpServer = new MCPServer(
+        port,
+        this._panelService,
+        this._pipServerController,
+        this._serverManager
       );
 
       // Start MCP server on the determined port with panel service and server manager
-      this._mcpServer = new MCPServer(
-        port,
-        this._panelService ?? undefined,
-        this._serverManager ?? undefined
-      );
+
       const actualPort = await this._mcpServer.start();
       logger.info(`MCP Server initialized on port ${actualPort}`);
 
       // Only update mcp.json if this is a newly allocated port
-      if (isNewPort) {
+      if (port === 0) {
         const mcpServerConfig = {
           ['deephaven-vscode']: {
             type: 'http',
@@ -467,12 +472,11 @@ export class ExtensionController implements IDisposable {
 
   /**
    * Get the MCP server port for this workspace.
-   * Reads from .vscode/mcp.json if it exists, otherwise allocates a new port.
-   * Returns [port, isNewPort] tuple.
+   * Reads from .vscode/mcp.json if it exists, otherwise returns 0.
    */
   private async getMCPServerPort(
     workspaceFolderUri: vscode.Uri
-  ): Promise<[number, boolean]> {
+  ): Promise<number> {
     const mcpJsonPath = vscode.Uri.joinPath(
       workspaceFolderUri,
       '.vscode',
@@ -501,7 +505,7 @@ export class ExtensionController implements IDisposable {
         if (match) {
           const port = parseInt(match[1], 10);
           logger.info(`Using existing MCP server port ${port} from mcp.json`);
-          return [port, false]; // existing port
+          return port;
         }
       }
     } catch (error) {
@@ -509,14 +513,7 @@ export class ExtensionController implements IDisposable {
       logger.info('No existing mcp.json found, will allocate new port');
     }
 
-    // No existing port found, allocate a new one
-    // Use port 0 to let OS assign an available port
-    const testServer = new MCPServer(0);
-    const port = await testServer.start();
-    await testServer.stop();
-
-    logger.info(`Allocated new MCP server port ${port}`);
-    return [port, true]; // new port
+    return 0;
   }
 
   private async updateMCPJson(

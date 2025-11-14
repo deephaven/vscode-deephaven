@@ -34,7 +34,7 @@ type Spec = typeof spec;
 type OpenVariablePanelsTool = McpTool<Spec>;
 
 export function createOpenVariablePanelsTool(
-  serverManager: IServerManager | null
+  serverManager: IServerManager
 ): OpenVariablePanelsTool {
   return {
     name: 'openVariablePanels',
@@ -47,16 +47,6 @@ export function createOpenVariablePanelsTool(
       variables: { id: string; title: string; type: string }[];
     }): Promise<McpToolHandlerResult<Spec>> => {
       try {
-        if (!serverManager) {
-          const output = {
-            success: false,
-            message: 'Server manager not available',
-          };
-          return {
-            content: [{ type: 'text' as const, text: JSON.stringify(output) }],
-            structuredContent: output,
-          };
-        }
         const parsedUrl = new URL(connectionUrl);
         let connections = serverManager.getConnections(parsedUrl);
         if (!connections.length) {

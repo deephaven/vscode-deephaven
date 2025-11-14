@@ -38,7 +38,7 @@ type HandlerResult = McpToolHandlerResult<Spec>;
 type ListConnectionsTool = McpTool<Spec>;
 
 export function createListConnectionsTool(
-  serverManager: IServerManager | null
+  serverManager: IServerManager
 ): ListConnectionsTool {
   return {
     name: 'listConnections',
@@ -49,16 +49,6 @@ export function createListConnectionsTool(
       serverUrl?: string;
     }): Promise<HandlerResult> => {
       try {
-        if (!serverManager) {
-          const output = {
-            success: false,
-            message: 'Server manager not available',
-          };
-          return {
-            content: [{ type: 'text' as const, text: JSON.stringify(output) }],
-            structuredContent: output,
-          };
-        }
         const parsedUrl = serverUrl ? new URL(serverUrl) : undefined;
         const rawConnections = serverManager.getConnections(parsedUrl);
         const connections = rawConnections.map(connection => ({
