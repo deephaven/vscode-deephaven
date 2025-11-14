@@ -14,6 +14,7 @@ import { createListConnectionsTool } from './tools/listConnections';
 import { createListServersTool } from './tools/listServers';
 import { createConnectToServerTool } from './tools/connectToServer';
 import { createSetEditorConnectionTool } from './tools/setEditorConnection';
+import { createOpenVariablePanelsTool } from './tools/openVariablePanels';
 
 /**
  * MCP Server for Deephaven extension.
@@ -61,6 +62,7 @@ export class MCPServer {
     this.registerTool(createListServersTool(this.serverManager));
     this.registerTool(createConnectToServerTool(this.serverManager));
     this.registerTool(createSetEditorConnectionTool(this.serverManager));
+    this.registerTool(createOpenVariablePanelsTool(this.serverManager));
   }
 
   /**
