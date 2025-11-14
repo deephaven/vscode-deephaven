@@ -8,6 +8,7 @@ import type {
   McpTool,
   McpToolSpec,
 } from '../types';
+import type { PipServerController } from '../controllers';
 import { createRunCodeTool } from './tools/runCode';
 import { createListPanelVariablesTool } from './tools/listPanelVariables';
 import { createListConnectionsTool } from './tools/listConnections';
@@ -16,7 +17,7 @@ import { createConnectToServerTool } from './tools/connectToServer';
 import { createSetEditorConnectionTool } from './tools/setEditorConnection';
 import { createOpenVariablePanelsTool } from './tools/openVariablePanels';
 import { createStartPipServerTool } from './tools/startPipServer';
-import type { PipServerController } from '../controllers';
+import { createCheckPythonEnvTool } from './tools/checkPythonEnvironment';
 
 /**
  * MCP Server for Deephaven extension.
@@ -69,6 +70,7 @@ export class MCPServer {
     this.registerTool(createSetEditorConnectionTool(this.serverManager));
     this.registerTool(createOpenVariablePanelsTool(this.serverManager));
     this.registerTool(createStartPipServerTool(this.pipServerController));
+    this.registerTool(createCheckPythonEnvTool(this.pipServerController));
   }
 
   /**
