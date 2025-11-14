@@ -1,5 +1,9 @@
 import * as vscode from 'vscode';
-import { RUN_CODE_COMMAND, type RunCodeCmdArgs } from '../../common/commands';
+import {
+  CONNECT_TO_SERVER_CMD,
+  RUN_CODE_COMMAND,
+  type RunCodeCmdArgs,
+} from '../../common/commands';
 import { z } from 'zod';
 import type { McpTool, McpToolHandlerResult } from '../../types';
 
@@ -91,7 +95,7 @@ export function createRunCodeTool(
             if (server.type === 'DHC') {
               const serverState = { type: server.type, url: server.url };
               await vscode.commands.executeCommand(
-                'deephaven.connectToServer',
+                CONNECT_TO_SERVER_CMD,
                 serverState
               );
               // Wait for connection to be established (could poll or just re-fetch)
