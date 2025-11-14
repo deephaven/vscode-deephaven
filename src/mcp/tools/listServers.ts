@@ -49,7 +49,7 @@ type HandlerResult = McpToolHandlerResult<Spec>;
 type CreateListServersTool = McpTool<Spec>;
 
 export function createListServersTool(
-  serverManager: IServerManager | null
+  serverManager: IServerManager
 ): CreateListServersTool {
   return {
     name: 'listServers',
@@ -64,16 +64,6 @@ export function createListServersTool(
       type?: 'DHC' | 'DHE';
     }): Promise<HandlerResult> => {
       try {
-        if (!serverManager) {
-          const output = {
-            success: false,
-            message: 'Server manager not available',
-          };
-          return {
-            content: [{ type: 'text' as const, text: JSON.stringify(output) }],
-            structuredContent: output,
-          };
-        }
         const servers = serverManager
           .getServers({ isRunning, hasConnections, type })
           .map(server => ({

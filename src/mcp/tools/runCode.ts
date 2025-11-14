@@ -43,9 +43,7 @@ type Spec = typeof spec;
 type HandlerResult = McpToolHandlerResult<Spec>;
 type RunCodeTool = McpTool<Spec>;
 
-export function createRunCodeTool(
-  serverManager: IServerManager | null
-): RunCodeTool {
+export function createRunCodeTool(serverManager: IServerManager): RunCodeTool {
   return {
     name: 'runCode',
     spec,
@@ -61,17 +59,6 @@ export function createRunCodeTool(
       connectionUrl?: string;
     }): Promise<HandlerResult> => {
       try {
-        if (!serverManager) {
-          const output = {
-            success: false,
-            message: 'Server manager not available',
-          };
-          return {
-            content: [{ type: 'text' as const, text: JSON.stringify(output) }],
-            structuredContent: output,
-          };
-        }
-
         let parsedUri = uri ? vscode.Uri.parse(uri) : undefined;
         // If connectionUrl is provided, ensure connection exists and associate editor
         if (connectionUrl) {

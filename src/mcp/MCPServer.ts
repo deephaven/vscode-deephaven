@@ -15,6 +15,8 @@ import { createListServersTool } from './tools/listServers';
 import { createConnectToServerTool } from './tools/connectToServer';
 import { createSetEditorConnectionTool } from './tools/setEditorConnection';
 import { createOpenVariablePanelsTool } from './tools/openVariablePanels';
+import { createStartPipServerTool } from './tools/startPipServer';
+import type { PipServerController } from '../controllers';
 
 /**
  * MCP Server for Deephaven extension.
@@ -24,17 +26,20 @@ export class MCPServer {
   private server: McpServer;
   private httpServer: http.Server | null = null;
   private port: number;
-  private panelService: IPanelService | null = null;
-  private serverManager: IServerManager | null = null;
+  private readonly panelService: IPanelService;
+  private readonly pipServerController: PipServerController;
+  private readonly serverManager: IServerManager;
 
   constructor(
-    port: number = 3000,
-    panelService?: IPanelService,
-    serverManager?: IServerManager
+    port: number,
+    panelService: IPanelService,
+    pipServerController: PipServerController,
+    serverManager: IServerManager
   ) {
     this.port = port;
-    this.panelService = panelService ?? null;
-    this.serverManager = serverManager ?? null;
+    this.panelService = panelService;
+    this.pipServerController = pipServerController;
+    this.serverManager = serverManager;
 
     // Create an MCP server
     this.server = new McpServer({
@@ -63,6 +68,7 @@ export class MCPServer {
     this.registerTool(createConnectToServerTool(this.serverManager));
     this.registerTool(createSetEditorConnectionTool(this.serverManager));
     this.registerTool(createOpenVariablePanelsTool(this.serverManager));
+    this.registerTool(createStartPipServerTool(this.pipServerController));
   }
 
   /**

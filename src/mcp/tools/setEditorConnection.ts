@@ -25,7 +25,7 @@ type HandlerResult = McpToolHandlerResult<Spec>;
 type SetEditorConnectionTool = McpTool<Spec>;
 
 export function createSetEditorConnectionTool(
-  serverManager: IServerManager | null
+  serverManager: IServerManager
 ): SetEditorConnectionTool {
   return {
     name: 'setEditorConnection',
@@ -38,16 +38,6 @@ export function createSetEditorConnectionTool(
       connectionUrl: string;
     }): Promise<HandlerResult> => {
       try {
-        if (!serverManager) {
-          const output = {
-            success: false,
-            message: 'Server manager not available',
-          };
-          return {
-            content: [{ type: 'text' as const, text: JSON.stringify(output) }],
-            structuredContent: output,
-          };
-        }
         const parsedUri = vscode.Uri.parse(uri);
         const parsedUrl = new URL(connectionUrl);
         const connections = serverManager.getConnections(parsedUrl);
