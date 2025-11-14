@@ -37,6 +37,17 @@ const spec = {
           isRunning: z.boolean(),
           connectionCount: z.number(),
           isManaged: z.boolean().optional(),
+          tags: z.array(z.string()).optional(),
+          connections: z
+            .array(
+              z.object({
+                isConnected: z.boolean(),
+                isRunningCode: z.boolean().optional(),
+                serverUrl: z.string(),
+                tagId: z.string().optional(),
+              })
+            )
+            .optional(),
         })
       )
       .optional(),
@@ -66,15 +77,27 @@ export function createListServersTool(
       try {
         const servers = serverManager
           .getServers({ isRunning, hasConnections, type })
-          .map(server => ({
-            type: server.type,
-            url: server.url.toString(),
-            label: server.label,
-            isConnected: server.isConnected,
-            isRunning: server.isRunning,
-            connectionCount: server.connectionCount,
-            isManaged: server.isManaged,
-          }));
+          .map(server => {
+            const connections = serverManager
+              .getConnections(server.url)
+              .map(conn => ({
+                isConnected: conn.isConnected,
+                isRunningCode: conn.isRunningCode,
+                serverUrl: conn.serverUrl.toString(),
+                tagId: conn.tagId ? String(conn.tagId) : undefined,
+              }));
+            return {
+              type: server.type,
+              url: server.url.toString(),
+              label: server.label,
+              isConnected: server.isConnected,
+              isRunning: server.isRunning,
+              connectionCount: server.connectionCount,
+              isManaged: server.isManaged,
+              tags: server.isManaged ? ['pip', 'managed'] : [],
+              connections,
+            };
+          });
         const output = {
           success: true,
           servers,
