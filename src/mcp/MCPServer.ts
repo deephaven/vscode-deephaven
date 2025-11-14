@@ -53,7 +53,7 @@ export class MCPServer {
   }
 
   private registerTools(): void {
-    this.registerTool(createRunCodeTool());
+    this.registerTool(createRunCodeTool(this.serverManager));
     this.registerTool(
       createListPanelVariablesTool(this.panelService, this.serverManager)
     );
