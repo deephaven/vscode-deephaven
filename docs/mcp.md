@@ -1,7 +1,7 @@
 # Deephaven VS Code MCP Server (experimental)
 
 ## VS Code Installation
-- Download and install [vscode-deephaven-1.1.6-mcp-dev.0.vsix](../releases/vscode-deephaven-1.1.6-mcp-dev.0.vsix)
+- Download and install [vscode-deephaven-1.1.6-mcp-dev.0.vsix](https://github.com/deephaven/vscode-deephaven/raw/refs/heads/mcp/releases/vscode-deephaven-1.1.6-mcp-dev.0.vsix)
 - Restart VS Code
 - Should see a popup in the bottom right that the MCP server has started, and a `.vscode/mcp.json` file should get created. e.g.:
    ```json
@@ -19,7 +19,7 @@
 ![alt text](assets/copilot-mcp-servers.png)
 
 ## Windsurf
-- Download and install [vscode-deephaven-1.1.6-mcp-dev.0.vsix](../releases/vscode-deephaven-1.1.6-mcp-dev.0.vsix)
+- Download and install [vscode-deephaven-1.1.6-mcp-dev.0.vsix](https://github.com/deephaven/vscode-deephaven/raw/refs/heads/mcp/releases/vscode-deephaven-1.1.6-mcp-dev.0.vsix)
 - Restart Windsurf
 - Should see a popup in the bottom right that the MCP server has started, and a `.vscode/mcp.json` file should get created.
 
