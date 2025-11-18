@@ -39,6 +39,10 @@
       {
         "label": "Data Storage",
         "path": "data-storage.md"
+      },
+      {
+        "label": "Python Remote File Sourcing",
+        "path": "python-remote-file-sourcing.md"
       }
     ]
   }
