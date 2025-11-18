@@ -29,17 +29,20 @@ export class MCPServer {
   private port: number;
   private readonly panelService: IPanelService;
   private readonly pipServerController: PipServerController;
+  private readonly pythonDiagnostics: vscode.DiagnosticCollection;
   private readonly serverManager: IServerManager;
 
   constructor(
     port: number,
     panelService: IPanelService,
     pipServerController: PipServerController,
+    pythonDiagnostics: vscode.DiagnosticCollection,
     serverManager: IServerManager
   ) {
     this.port = port;
     this.panelService = panelService;
     this.pipServerController = pipServerController;
+    this.pythonDiagnostics = pythonDiagnostics;
     this.serverManager = serverManager;
 
     // Create an MCP server
@@ -60,7 +63,9 @@ export class MCPServer {
   }
 
   private registerTools(): void {
-    this.registerTool(createRunCodeTool(this.serverManager));
+    this.registerTool(
+      createRunCodeTool(this.pythonDiagnostics, this.serverManager)
+    );
     this.registerTool(
       createListPanelVariablesTool(this.panelService, this.serverManager)
     );

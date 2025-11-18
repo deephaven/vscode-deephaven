@@ -43,7 +43,10 @@ type Spec = typeof spec;
 type HandlerResult = McpToolHandlerResult<Spec>;
 type RunCodeTool = McpTool<Spec>;
 
-export function createRunCodeTool(serverManager: IServerManager): RunCodeTool {
+export function createRunCodeTool(
+  pythonDiagnostics: vscode.DiagnosticCollection,
+  serverManager: IServerManager
+): RunCodeTool {
   return {
     name: 'runCode',
     spec,
@@ -146,6 +149,23 @@ export function createRunCodeTool(serverManager: IServerManager): RunCodeTool {
           languageId,
         ];
         await vscode.commands.executeCommand(RUN_CODE_COMMAND, ...cmdArgs);
+
+
+        const errors = getDiagnosticsErrors(pythonDiagnostics);
+        if (errors.length > 0) {
+          const errorMsg = errors
+            .map(e => `${e.uri}: ${e.message} [${e.range.start.line + 1}:${e.range.start.character + 1}]`)
+            .join('\n');
+          const output = {
+            success: false,
+            message: `Code not executed due to errors:\n${errorMsg}`,
+          };
+          return {
+            content: [{ type: 'text', text: JSON.stringify(output) }],
+            structuredContent: output,
+          };
+        }
+
         const output = { success: true, message: 'Code executed successfully' };
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(output) }],
@@ -163,4 +183,25 @@ export function createRunCodeTool(serverManager: IServerManager): RunCodeTool {
       }
     },
   };
+}
+
+function getDiagnosticsErrors(diagnostics: vscode.DiagnosticCollection): {
+  uri: string;
+  message: string;
+  range: vscode.Range;
+}[] {
+  const diagnosticsMap = new Map([...diagnostics]);
+  const errors: { uri: string; message: string; range: vscode.Range }[] = [];
+  for (const [uri, diags] of diagnosticsMap) {
+    for (const diag of diags) {
+      if (diag.severity === vscode.DiagnosticSeverity.Error) {
+        errors.push({
+          uri: uri.toString(),
+          message: diag.message,
+          range: diag.range,
+        });
+      }
+    }
+  }
+  return errors;
 }
