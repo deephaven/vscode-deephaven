@@ -1031,7 +1031,7 @@ export class ExtensionController implements IDisposable {
   };
 
   onRefreshServerStatus = async (): Promise<void> => {
-    await this._pipServerController?.syncManagedServers();
+    await this._pipServerController?.syncManagedServers({ forceCheck: true });
     await this._serverManager?.updateStatus();
   };
 
