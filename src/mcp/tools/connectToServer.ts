@@ -32,7 +32,19 @@ export function createConnectToServerTool(
     spec,
     handler: async ({ url }: { url: string }): Promise<HandlerResult> => {
       try {
-        const serverUrl = new URL(url);
+        let serverUrl: URL;
+        try {
+          serverUrl = new URL(url);
+        } catch (e) {
+          const output = {
+            success: false,
+            message: `Invalid server URL: '${url}'. Please provide a valid URL (e.g., 'http://localhost:10000'). If this was a server label, you can check the list of configured servers to find the corresponding URL.`,
+          };
+          return {
+            content: [{ type: 'text', text: JSON.stringify(output) }],
+            structuredContent: output,
+          };
+        }
         const server = serverManager.getServer(serverUrl);
         if (!server) {
           const output = {
