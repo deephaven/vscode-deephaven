@@ -65,7 +65,19 @@ export function createRunCodeTool(
         let parsedUri = uri ? vscode.Uri.parse(uri) : undefined;
         // If connectionUrl is provided, ensure connection exists and associate editor
         if (connectionUrl) {
-          const parsedUrl = new URL(connectionUrl);
+          let parsedUrl: URL;
+          try {
+            parsedUrl = new URL(connectionUrl);
+          } catch (e) {
+            const output = {
+              success: false,
+              message: `Invalid connectionUrl: '${connectionUrl}'. Please provide a valid Deephaven server URL (e.g., 'http://localhost:10000'). If this was a server label, use listServers to find the corresponding URL.`,
+            };
+            return {
+              content: [{ type: 'text', text: JSON.stringify(output) }],
+              structuredContent: output,
+            };
+          }
           let connections = serverManager.getConnections(parsedUrl);
           if (!connections.length) {
             // Try to connect (DHC only, for DHE user must use connectToServer first)
@@ -150,11 +162,13 @@ export function createRunCodeTool(
         ];
         await vscode.commands.executeCommand(RUN_CODE_COMMAND, ...cmdArgs);
 
-
         const errors = getDiagnosticsErrors(pythonDiagnostics);
         if (errors.length > 0) {
           const errorMsg = errors
-            .map(e => `${e.uri}: ${e.message} [${e.range.start.line + 1}:${e.range.start.character + 1}]`)
+            .map(
+              e =>
+                `${e.uri}: ${e.message} [${e.range.start.line + 1}:${e.range.start.character + 1}]`
+            )
             .join('\n');
           const output = {
             success: false,
