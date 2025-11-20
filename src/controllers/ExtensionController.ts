@@ -418,6 +418,7 @@ export class ExtensionController implements IDisposable {
     assertDefined(this._panelService, 'panelService');
     assertDefined(this._pipServerController, 'pipServerController');
     assertDefined(this._pythonDiagnostics, 'pythonDiagnostics');
+    assertDefined(this._pythonWorkspace, 'pythonWorkspace');
     assertDefined(this._serverManager, 'serverManager');
 
     try {
@@ -436,6 +437,7 @@ export class ExtensionController implements IDisposable {
         this._panelService,
         this._pipServerController,
         this._pythonDiagnostics,
+        this._pythonWorkspace,
         this._serverManager
       );
 
