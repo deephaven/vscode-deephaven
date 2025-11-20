@@ -8,6 +8,7 @@ import { z } from 'zod';
 import type { McpTool, McpToolHandlerResult } from '../../types';
 
 import type { IServerManager } from '../../types';
+import type { FilteredWorkspace } from '../../services';
 
 const spec = {
   title: 'Run Deephaven Code',
@@ -45,6 +46,7 @@ type RunCodeTool = McpTool<Spec>;
 
 export function createRunCodeTool(
   pythonDiagnostics: vscode.DiagnosticCollection,
+  pythonWorkspace: FilteredWorkspace,
   serverManager: IServerManager
 ): RunCodeTool {
   return {
@@ -164,6 +166,39 @@ export function createRunCodeTool(
 
         const errors = getDiagnosticsErrors(pythonDiagnostics);
         if (errors.length > 0) {
+          // Look for 'No module named' errors and extract the module names
+          const noModuleErrors = new Set(
+            errors
+              .map(e => /^No module named '([^']+)'/.exec(e.message)?.[1])
+              .filter(e => e != null)
+          );
+
+          let hint = '';
+          if (noModuleErrors.size > 0) {
+            const foundUris: string[] = [];
+
+            const rootNodes = pythonWorkspace.getChildNodes(null);
+
+            for (const rootNode of rootNodes) {
+              for (const node of pythonWorkspace.iterateNodeTree(
+                rootNode.uri
+              )) {
+                if (
+                  node.type === 'folder' &&
+                  noModuleErrors.has(node.name) &&
+                  node.uri
+                ) {
+                  foundUris.push(node.uri.toString());
+                }
+              }
+            }
+
+            if (foundUris.length > 0) {
+              hint = `\n\nHint: If this is a package in your workspace, try adding one of these folders as a remote file source using the addRemoteFileSources tool:\n${foundUris.map(u => `- ${u}`).join('\n')}`;
+            } else {
+              hint = `\n\nHint: If this is a package in your workspace, try adding its folder as a remote file source using the addRemoteFileSources tool.`;
+            }
+          }
           const errorMsg = errors
             .map(
               e =>
@@ -172,7 +207,7 @@ export function createRunCodeTool(
             .join('\n');
           const output = {
             success: false,
-            message: `Code not executed due to errors:\n${errorMsg}`,
+            message: `Code execution failed due to errors:\n${errorMsg}${hint}`,
           };
           return {
             content: [{ type: 'text', text: JSON.stringify(output) }],

@@ -19,6 +19,8 @@ import { createOpenVariablePanelsTool } from './tools/openVariablePanels';
 import { createStartPipServerTool } from './tools/startPipServer';
 import { createCheckPythonEnvTool } from './tools/checkPythonEnvironment';
 import { createAddRemoteFileSourcesTool } from './tools/addRemoteFileSources';
+import { createOpenFilesInEditorTool } from './tools/openFilesInEditor';
+import type { FilteredWorkspace } from '../services';
 
 /**
  * MCP Server for Deephaven extension.
@@ -31,6 +33,7 @@ export class MCPServer {
   private readonly panelService: IPanelService;
   private readonly pipServerController: PipServerController;
   private readonly pythonDiagnostics: vscode.DiagnosticCollection;
+  private readonly pythonWorkspace: FilteredWorkspace;
   private readonly serverManager: IServerManager;
 
   constructor(
@@ -38,12 +41,14 @@ export class MCPServer {
     panelService: IPanelService,
     pipServerController: PipServerController,
     pythonDiagnostics: vscode.DiagnosticCollection,
+    pythonWorkspace: FilteredWorkspace,
     serverManager: IServerManager
   ) {
     this.port = port;
     this.panelService = panelService;
     this.pipServerController = pipServerController;
     this.pythonDiagnostics = pythonDiagnostics;
+    this.pythonWorkspace = pythonWorkspace;
     this.serverManager = serverManager;
 
     // Create an MCP server
@@ -65,7 +70,11 @@ export class MCPServer {
 
   private registerTools(): void {
     this.registerTool(
-      createRunCodeTool(this.pythonDiagnostics, this.serverManager)
+      createRunCodeTool(
+        this.pythonDiagnostics,
+        this.pythonWorkspace,
+        this.serverManager
+      )
     );
     this.registerTool(
       createListPanelVariablesTool(this.panelService, this.serverManager)
@@ -78,6 +87,7 @@ export class MCPServer {
     this.registerTool(createStartPipServerTool(this.pipServerController));
     this.registerTool(createCheckPythonEnvTool(this.pipServerController));
     this.registerTool(createAddRemoteFileSourcesTool());
+    this.registerTool(createOpenFilesInEditorTool());
   }
 
   /**
