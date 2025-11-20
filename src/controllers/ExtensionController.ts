@@ -1198,18 +1198,24 @@ export class ExtensionController implements IDisposable {
   };
 
   onAddRemoteFileSource = async (
-    folderElementOrUri: RemoteImportSourceTreeFolderElement | vscode.Uri
+    folderElementOrUri:
+      | RemoteImportSourceTreeFolderElement
+      | vscode.Uri
+      | vscode.Uri[]
   ): Promise<void> => {
     assertDefined(this._pythonWorkspace, 'pythonWorkspace');
 
     await this._pythonWorkspace.refresh();
 
-    const uri =
-      folderElementOrUri instanceof vscode.Uri
-        ? folderElementOrUri
-        : folderElementOrUri.uri;
+    const uris = Array.isArray(folderElementOrUri)
+      ? folderElementOrUri
+      : folderElementOrUri instanceof vscode.Uri
+        ? [folderElementOrUri]
+        : [folderElementOrUri.uri];
 
-    this._pythonWorkspace.markFolder(uri);
+    for (const uri of uris) {
+      this._pythonWorkspace.markFolder(uri);
+    }
   };
 
   onRemoveRemoteFileSource = async (
