@@ -96,8 +96,11 @@ export class PipServerController implements IDisposable {
 
     const pythonInterpreterPath = await this.getPythonInterpreterPath();
     if (pythonInterpreterPath == null) {
+      logger.debug('Python interpreter path not found');
       return { isAvailable: false };
     }
+
+    logger.debug('Using Python interpreter:', pythonInterpreterPath);
 
     try {
       execFileSync(pythonInterpreterPath, ['-c', 'import deephaven_server']);
@@ -130,7 +133,7 @@ export class PipServerController implements IDisposable {
     }
 
     if (this._serverUrlTerminalMap.size > 0) {
-      await this.syncManagedServers(true);
+      await this.syncManagedServers({ preferExistingPsk: true });
 
       for (const port of this._serverUrlTerminalMap.keys()) {
         await this.pollUntilServerStarts(port);
@@ -323,12 +326,20 @@ export class PipServerController implements IDisposable {
 
   /**
    * Sync current managed server state with the server manager.
-   * @param preferExistingPsk If true, use existing PSK if one exists for each
+   * @param options Optional options:
+   *  - forceCheck If true, force a re-check of pip server availability
+   *  - preferExistingPsk If true, use existing PSK if one exists for each
    * server.
    * @returns
    */
-  syncManagedServers = async (preferExistingPsk = false): Promise<void> => {
-    if (!this._isPipServerInstalled) {
+  syncManagedServers = async ({
+    forceCheck = false,
+    preferExistingPsk = false,
+  }: {
+    forceCheck?: boolean;
+    preferExistingPsk?: boolean;
+  } = {}): Promise<void> => {
+    if (forceCheck || !this._isPipServerInstalled) {
       this._isPipServerInstalled = (await this.checkPipInstall()).isAvailable;
     }
 
