@@ -5,6 +5,7 @@ import type {
   EnterpriseClient,
   QueryInfo,
   TypeSpecificFields,
+  WorkerKind,
 } from '@deephaven-enterprise/jsapi-types';
 import { DraftQuery, QueryScheduler } from '@deephaven-enterprise/query-utils';
 import type {
@@ -36,6 +37,7 @@ import {
   DHE_FEATURES_URL_PATH,
   INTERACTIVE_CONSOLE_QUERY_TYPE,
   INTERACTIVE_CONSOLE_TEMPORARY_QUEUE_NAME,
+  PROTOCOL,
   UnsupportedFeatureQueryError,
 } from '../common';
 import { withResolvers } from '../util';
@@ -230,13 +232,21 @@ export async function createInteractiveConsoleQuery(
 
   const jvmProfile =
     workerConfig?.jvmProfile ?? serverConfigValues.jvmProfileDefault;
+
   const scriptLanguage =
     workerConfig?.scriptLanguage ??
     serverConfigValues.scriptSessionProviders?.find(
       p => p.toLocaleLowerCase() === consoleType
     ) ??
     'Python';
-  const workerKind = serverConfigValues.workerKinds?.[0]?.name;
+
+  const workerKind = serverConfigValues.workerKinds?.filter(
+    isCommunityWorkerKind
+  )[0]?.name;
+
+  if (workerKind == null) {
+    throw new Error('No community worker kinds were found');
+  }
 
   const autoDelete = autoDeleteTimeoutMs > 0;
 
@@ -459,6 +469,14 @@ export async function getWorkerInfoFromQuery(
     workerName,
     workerUrl,
   };
+}
+
+/**
+ * Determine if a given worker kind is a Community worker.
+ * @returns True if the worker kind is a Community worker, false otherwise.
+ */
+export function isCommunityWorkerKind(workerKind?: WorkerKind): boolean {
+  return workerKind?.protocols?.includes(PROTOCOL.COMMUNITY) ?? false;
 }
 
 /**
