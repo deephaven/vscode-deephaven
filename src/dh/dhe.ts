@@ -204,14 +204,12 @@ export async function createInteractiveConsoleQuery(
   workerConfig: WorkerConfig = {},
   consoleType?: ConsoleType
 ): Promise<QuerySerial> {
+  const userInfo = await dheClient.getUserInfo();
+  const owner = userInfo.operateAs;
   const type = INTERACTIVE_CONSOLE_QUERY_TYPE;
   const queueName = INTERACTIVE_CONSOLE_TEMPORARY_QUEUE_NAME;
   const autoDeleteTimeoutMs = DEFAULT_TEMPORARY_QUERY_AUTO_TIMEOUT_MS;
   const timeout = DEFAULT_TEMPORARY_QUERY_TIMEOUT_MS;
-
-  // ownership
-  const userInfo = await dheClient.getUserInfo();
-  const owner = userInfo.operateAs;
 
   const [dbServers, queryConstants, serverConfigValues] = await Promise.all([
     dheClient.getDbServers(),
