@@ -326,7 +326,7 @@ export class UserLoginController extends ControllerBase {
           title,
           userLoginPreferences,
           privateKeyUserNames,
-          showOperatesAs: operateAsAnotherUser,
+          showOperateAs: operateAsAnotherUser,
         });
 
         // Cancelled by user
