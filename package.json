@@ -110,7 +110,21 @@
                     "type": "object",
                     "description": "(experimental) Worker configuration used when creating new connections to the server",
                     "properties": {
+                      "additionalMemory": {
+                        "type": "number",
+                        "description": "(GB) The amount of additional memory allocated to this worker process beyond the JVM heap memory. This allows Deephaven to account for memory allocated by Python native code, Java direct memory, and other types of non-heap memory."
+                      },
+                      "classPaths": {
+                        "type": "string"
+                      },
                       "dbServerName": {
+                        "type": "string"
+                      },
+                      "engine": {
+                        "type": "string",
+                        "description": "Core+ engine configuration name"
+                      },
+                      "envVars": {
                         "type": "string"
                       },
                       "heapSize": {

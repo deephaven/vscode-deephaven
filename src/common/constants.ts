@@ -192,3 +192,11 @@ export const DH_PYTHON_REMOTE_SOURCE_PLUGIN_NAME =
 export const DH_PROTECTED_VARIABLE_NAMES: Set<string> = new Set([
   DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE,
 ]);
+
+export const PROTOCOL = {
+  /* eslint-disable @typescript-eslint/naming-convention */
+  COMMUNITY: 'Community',
+  ENTERPRISE_COMM: 'EnterpriseComm',
+  ENTERPRISE_WEBSOCKET: 'EnterpriseWebsocket',
+  /* eslint-enable @typescript-eslint/naming-convention */
+} as const;

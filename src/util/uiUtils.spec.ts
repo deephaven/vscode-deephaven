@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
-import { describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
+import type { Username } from '@deephaven-enterprise/auth-nodejs';
 import {
   createConnectText,
   ConnectionOption,
@@ -7,6 +8,7 @@ import {
   updateConnectionStatusBarItem,
   createConnectionQuickPickOptions,
   createSeparatorPickItem,
+  promptForCredentials,
 } from './uiUtils';
 import type {
   ConnectionState,
@@ -27,6 +29,10 @@ const groovyServerConfig: CoreConnectionConfig = {
   label: 'groovy',
   url: new URL('http://localhost:10001'),
 };
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 describe('createConnectionOption', () => {
   it.each([
@@ -137,4 +143,100 @@ describe('createSeparatorPickItem', () => {
       kind: vscode.QuickPickItemKind.Separator,
     });
   });
+});
+
+describe('promptForCredentials', () => {
+  const title = 'mock.title';
+  const username = 'mock.username' as Username;
+  const token = 'mock.token';
+  const operateAs = 'mock.operateAs';
+
+  it.each([
+    [
+      'password',
+      { title },
+      [username, token],
+      { type: 'password', token, username },
+    ],
+    ['password / cancelled username', { title }, [undefined], undefined],
+    ['password / cancelled token', { title }, [username, undefined], undefined],
+    [
+      'password operateAs',
+      { title, showOperateAs: true },
+      [username, token, operateAs],
+      { type: 'password', operateAs, token, username },
+    ],
+    [
+      'password operateAs / cancelled username',
+      { title, showOperateAs: true },
+      [undefined],
+      undefined,
+    ],
+    [
+      'password operateAs / cancelled token',
+      { title, showOperateAs: true },
+      [username, undefined],
+      undefined,
+    ],
+    [
+      'password operateAs / cancelled operateAs',
+      { title, showOperateAs: true },
+      [username, token, undefined],
+      undefined,
+    ],
+    [
+      'privateKey',
+      { title, privateKeyUserNames: [username] },
+      [username],
+      { type: 'keyPair', username },
+    ],
+    [
+      'privateKey / cancelled username',
+      { title, privateKeyUserNames: [username] },
+      [undefined],
+      undefined,
+    ],
+    [
+      'privateKey operateAs',
+      {
+        title,
+        privateKeyUserNames: [username],
+        showOperateAs: true,
+      },
+      [username, operateAs],
+      { type: 'keyPair', username, operateAs },
+    ],
+    [
+      'privateKey operateAs / cancelled username',
+      {
+        title,
+        privateKeyUserNames: [username],
+        showOperateAs: true,
+      },
+      [undefined],
+      undefined,
+    ],
+    [
+      'privateKey operateAs / cancelled operateAs',
+      {
+        title,
+        privateKeyUserNames: [username],
+        showOperateAs: true,
+      },
+      [username, undefined],
+      undefined,
+    ],
+  ])(
+    'should prompt for username, password, and operateAs: %s',
+    async (_label, arg, promptResponses, expected) => {
+      for (const promptResponse of promptResponses) {
+        vi.mocked(vscode.window.showInputBox).mockResolvedValueOnce(
+          promptResponse
+        );
+      }
+
+      const actual = await promptForCredentials(arg);
+      expect(actual).toEqual(expected);
+    }
+  );
 });

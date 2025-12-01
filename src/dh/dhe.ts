@@ -5,6 +5,7 @@ import type {
   EnterpriseClient,
   QueryInfo,
   TypeSpecificFields,
+  WorkerKind,
 } from '@deephaven-enterprise/jsapi-types';
 import { DraftQuery, QueryScheduler } from '@deephaven-enterprise/query-utils';
 import type {
@@ -36,6 +37,7 @@ import {
   DHE_FEATURES_URL_PATH,
   INTERACTIVE_CONSOLE_QUERY_TYPE,
   INTERACTIVE_CONSOLE_TEMPORARY_QUEUE_NAME,
+  PROTOCOL,
   UnsupportedFeatureQueryError,
 } from '../common';
 import { withResolvers } from '../util';
@@ -203,7 +205,7 @@ export async function createInteractiveConsoleQuery(
   consoleType?: ConsoleType
 ): Promise<QuerySerial> {
   const userInfo = await dheClient.getUserInfo();
-  const owner = userInfo.username;
+  const owner = userInfo.operateAs;
   const type = INTERACTIVE_CONSOLE_QUERY_TYPE;
   const queueName = INTERACTIVE_CONSOLE_TEMPORARY_QUEUE_NAME;
   const autoDeleteTimeoutMs = DEFAULT_TEMPORARY_QUERY_AUTO_TIMEOUT_MS;
@@ -214,6 +216,27 @@ export async function createInteractiveConsoleQuery(
     dheClient.getQueryConstants(),
     dheClient.getServerConfigValues(),
   ]);
+
+  const coreWorkerKinds = serverConfigValues.workerKinds.filter(
+    isCommunityWorkerKind
+  );
+
+  const engine = (
+    workerConfig.engine == null
+      ? coreWorkerKinds[0]
+      : coreWorkerKinds.find(({ name, title }) =>
+          // Match on title first since it's the most likely to be configured by
+          // a user, but fallback to name just in case someone is using the actual
+          // worker kind name.
+          [title, name].includes(workerConfig.engine!)
+        )
+  )?.name;
+
+  if (engine == null) {
+    throw new Error(
+      `No Core+ engine configurations were found${workerConfig.engine == null ? '' : ` matching '${workerConfig.engine}'`}.`
+    );
+  }
 
   const name = createQueryName(tagId);
   const dbServerName =
@@ -230,13 +253,13 @@ export async function createInteractiveConsoleQuery(
 
   const jvmProfile =
     workerConfig?.jvmProfile ?? serverConfigValues.jvmProfileDefault;
+
   const scriptLanguage =
     workerConfig?.scriptLanguage ??
     serverConfigValues.scriptSessionProviders?.find(
       p => p.toLocaleLowerCase() === consoleType
     ) ??
     'Python';
-  const workerKind = serverConfigValues.workerKinds?.[0]?.name;
 
   const autoDelete = autoDeleteTimeoutMs > 0;
 
@@ -256,21 +279,26 @@ export async function createInteractiveConsoleQuery(
     queueName,
   });
 
+  const { additionalMemory, classPaths, envVars } = workerConfig;
+
   const draftQuery = new DraftQuery({
-    isClientSide: true,
-    draftOwner: owner,
-    name,
-    type,
-    owner,
+    additionalMemory: additionalMemory ?? 0,
     dbServerName,
+    draftOwner: owner,
+    envVars: envVars ?? '',
+    extraClasspaths: classPaths ?? '',
     heapSize,
-    scheduling,
+    isClientSide: true,
     jvmArgs,
     jvmProfile,
+    name,
+    owner,
+    scheduling,
     scriptLanguage,
     timeout,
+    type,
     typeSpecificFields,
-    workerKind,
+    workerKind: engine,
   });
 
   if (draftQuery.serial == null) {
@@ -459,6 +487,14 @@ export async function getWorkerInfoFromQuery(
     workerName,
     workerUrl,
   };
+}
+
+/**
+ * Determine if a given worker kind is a Community worker.
+ * @returns True if the worker kind is a Community worker, false otherwise.
+ */
+export function isCommunityWorkerKind(workerKind?: WorkerKind): boolean {
+  return workerKind?.protocols?.includes(PROTOCOL.COMMUNITY) ?? false;
 }
 
 /**

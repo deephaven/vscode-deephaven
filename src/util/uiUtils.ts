@@ -168,31 +168,31 @@ export async function promptForAuthFlow(
  * @param privateKeyUserNames Optional list of private key user names. If provided,
  * the authentication method will be prompted to determine if user wants to use
  * one of these private keys or username/password.
- * @param showOperatesAs Whether to show the operate as prompt.
+ * @param showOperateAs Whether to show the operate as prompt.
  */
 export async function promptForCredentials(args: {
   title: string;
   userLoginPreferences?: UserLoginPreferences;
   privateKeyUserNames?: undefined | [];
-  showOperatesAs?: boolean;
+  showOperateAs?: boolean;
 }): Promise<PasswordCredentials | undefined>;
 export async function promptForCredentials(args: {
   title: string;
   userLoginPreferences?: UserLoginPreferences;
   privateKeyUserNames?: Username[];
-  showOperatesAs?: boolean;
+  showOperateAs?: boolean;
 }): Promise<LoginPromptCredentials | undefined>;
 export async function promptForCredentials(args: {
   title: string;
   userLoginPreferences?: UserLoginPreferences;
   privateKeyUserNames?: Username[];
-  showOperatesAs?: boolean;
+  showOperateAs?: boolean;
 }): Promise<LoginPromptCredentials | undefined> {
   const {
     title,
     userLoginPreferences,
     privateKeyUserNames = [],
-    showOperatesAs,
+    showOperateAs,
   } = args;
 
   const username = await promptForUsername(
@@ -220,10 +220,10 @@ export async function promptForCredentials(args: {
   }
 
   // Operate As
-  if (showOperatesAs) {
+  if (showOperateAs) {
     const defaultValue = username as unknown as OperateAsUsername | undefined;
 
-    const operateAs = await promptForOperateAs(
+    operateAs = await promptForOperateAs(
       title,
       userLoginPreferences?.operateAsUser[username] ?? defaultValue
     );
