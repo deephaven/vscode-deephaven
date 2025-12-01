@@ -151,7 +151,7 @@ describe('promptForCredentials', () => {
   const token = 'mock.token';
   const operateAs = 'mock.operateAs';
 
-  it.only.each([
+  it.each([
     [
       'password',
       { title },
