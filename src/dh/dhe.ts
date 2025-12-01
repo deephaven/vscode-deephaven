@@ -227,7 +227,12 @@ export async function createInteractiveConsoleQuery(
   const engine = (
     workerConfig.engine == null
       ? coreWorkerKinds[0]
-      : coreWorkerKinds.find(({ name }) => name === workerConfig.engine)
+      : coreWorkerKinds.find(({ name, title }) =>
+          // Match on title first since it's the most likely to be configured by
+          // a user, but fallback to name just in case someone is using the actual
+          // worker kind name.
+          [title, name].includes(workerConfig.engine!)
+        )
   )?.name;
 
   if (engine == null) {
