@@ -204,18 +204,37 @@ export async function createInteractiveConsoleQuery(
   workerConfig: WorkerConfig = {},
   consoleType?: ConsoleType
 ): Promise<QuerySerial> {
-  const userInfo = await dheClient.getUserInfo();
-  const owner = userInfo.username;
   const type = INTERACTIVE_CONSOLE_QUERY_TYPE;
   const queueName = INTERACTIVE_CONSOLE_TEMPORARY_QUEUE_NAME;
   const autoDeleteTimeoutMs = DEFAULT_TEMPORARY_QUERY_AUTO_TIMEOUT_MS;
   const timeout = DEFAULT_TEMPORARY_QUERY_TIMEOUT_MS;
+
+  // ownership
+  const userInfo = await dheClient.getUserInfo();
+  const draftOwner = userInfo.operateAs;
+  const sessionOwner = workerConfig.operateAs ?? draftOwner;
 
   const [dbServers, queryConstants, serverConfigValues] = await Promise.all([
     dheClient.getDbServers(),
     dheClient.getQueryConstants(),
     dheClient.getServerConfigValues(),
   ]);
+
+  const coreWorkerKinds = serverConfigValues.workerKinds.filter(
+    isCommunityWorkerKind
+  );
+
+  const engine = (
+    workerConfig.engine == null
+      ? coreWorkerKinds[0]
+      : coreWorkerKinds.find(({ name }) => name === workerConfig.engine)
+  )?.name;
+
+  if (engine == null) {
+    throw new Error(
+      `No Core+ engine configurations were found${workerConfig.engine == null ? '' : ` matching '${workerConfig.engine}'`}.`
+    );
+  }
 
   const name = createQueryName(tagId);
   const dbServerName =
@@ -240,14 +259,6 @@ export async function createInteractiveConsoleQuery(
     ) ??
     'Python';
 
-  const workerKind = serverConfigValues.workerKinds?.filter(
-    isCommunityWorkerKind
-  )[0]?.name;
-
-  if (workerKind == null) {
-    throw new Error('No community worker kinds were found');
-  }
-
   const autoDelete = autoDeleteTimeoutMs > 0;
 
   const typeSpecificFields: TypeSpecificFields<string> | null =
@@ -266,21 +277,26 @@ export async function createInteractiveConsoleQuery(
     queueName,
   });
 
+  const { additionalMemory, classPaths, envVars } = workerConfig;
+
   const draftQuery = new DraftQuery({
-    isClientSide: true,
-    draftOwner: owner,
-    name,
-    type,
-    owner,
+    additionalMemory: additionalMemory ?? 0,
     dbServerName,
+    draftOwner,
+    envVars: envVars ?? '',
+    extraClasspaths: classPaths ?? '',
     heapSize,
-    scheduling,
+    isClientSide: true,
     jvmArgs,
     jvmProfile,
+    name,
+    owner: sessionOwner,
+    scheduling,
     scriptLanguage,
     timeout,
+    type,
     typeSpecificFields,
-    workerKind,
+    workerKind: engine,
   });
 
   if (draftQuery.serial == null) {

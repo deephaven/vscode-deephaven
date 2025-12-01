@@ -130,10 +130,15 @@ export type ServerConnectionConfig =
   | URL;
 
 export interface WorkerConfig {
+  additionalMemory?: number;
+  classPaths?: string;
   dbServerName?: string;
+  engine?: string;
+  envVars?: string;
   heapSize?: number;
   jvmArgs?: string;
   jvmProfile?: string;
+  operateAs?: OperateAsUsername;
   scriptLanguage?: string;
 }
 

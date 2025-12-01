@@ -110,7 +110,20 @@
                     "type": "object",
                     "description": "(experimental) Worker configuration used when creating new connections to the server",
                     "properties": {
+                      "additionalMemory": {
+                        "type": "number"
+                      },
+                      "classPaths": {
+                        "type": "string"
+                      },
                       "dbServerName": {
+                        "type": "string"
+                      },
+                      "engine": {
+                        "type": "string",
+                        "description": "Core+ engine configuration name"
+                      },
+                      "envVars": {
                         "type": "string"
                       },
                       "heapSize": {
@@ -121,6 +134,10 @@
                       },
                       "jvmProfile": {
                         "type": "string"
+                      },
+                      "operateAs": {
+                        "type": "string",
+                        "description": "Username to operate as for the connection"
                       },
                       "scriptLanguage": {
                         "type": "string"
