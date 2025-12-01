@@ -191,6 +191,12 @@ describe('promptForCredentials', () => {
       { type: 'keyPair', username },
     ],
     [
+      'privateKey / cancelled username',
+      { title, privateKeyUserNames: [username] },
+      [undefined],
+      undefined,
+    ],
+    [
       'privateKey operateAs',
       {
         title,
@@ -199,6 +205,16 @@ describe('promptForCredentials', () => {
       },
       [username, operateAs],
       { type: 'keyPair', username, operateAs },
+    ],
+    [
+      'privateKey operateAs / cancelled username',
+      {
+        title,
+        privateKeyUserNames: [username],
+        showOperateAs: true,
+      },
+      [undefined],
+      undefined,
     ],
     [
       'privateKey operateAs / cancelled operateAs',
