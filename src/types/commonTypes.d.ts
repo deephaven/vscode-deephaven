@@ -138,7 +138,6 @@ export interface WorkerConfig {
   heapSize?: number;
   jvmArgs?: string;
   jvmProfile?: string;
-  operateAs?: OperateAsUsername;
   scriptLanguage?: string;
 }
 

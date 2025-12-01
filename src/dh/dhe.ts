@@ -211,8 +211,7 @@ export async function createInteractiveConsoleQuery(
 
   // ownership
   const userInfo = await dheClient.getUserInfo();
-  const draftOwner = userInfo.operateAs;
-  const sessionOwner = workerConfig.operateAs ?? draftOwner;
+  const owner = userInfo.operateAs;
 
   const [dbServers, queryConstants, serverConfigValues] = await Promise.all([
     dheClient.getDbServers(),
@@ -287,7 +286,7 @@ export async function createInteractiveConsoleQuery(
   const draftQuery = new DraftQuery({
     additionalMemory: additionalMemory ?? 0,
     dbServerName,
-    draftOwner,
+    draftOwner: owner,
     envVars: envVars ?? '',
     extraClasspaths: classPaths ?? '',
     heapSize,
@@ -295,7 +294,7 @@ export async function createInteractiveConsoleQuery(
     jvmArgs,
     jvmProfile,
     name,
-    owner: sessionOwner,
+    owner,
     scheduling,
     scriptLanguage,
     timeout,
