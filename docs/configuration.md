@@ -43,18 +43,25 @@ When connecting to an Enterprise server, you will be presented with a panel to c
 
 ![Query Creation UI](./assets/create-query-ui.png)
 
-For Legacy servers that do not support the query creation UI, you can use the `experimentalWorkerConfig` property to specify query (worker) settings directly in your configuration.
+Grizzly servers do not support the query creation UI, but you can use the `experimentalWorkerConfig` property to specify query (worker) settings directly in your VS Code settings.
 
-Example configurations:
+Example configuration:
 
 ```jsonc
 "deephaven.enterpriseServers": [
   {
-    "url": "https://my-server-legacy.acme.org:8123/",
-    "label": "Legacy Server",
-    // Legacy: Only needed if your server does not support the query creation UI
+    "url": "https://my-grizzly-server.acme.org:8123/",
+    "label": "Grizzly Server",
+    // Since Grizzly servers don't support the query creation UI, they can be
+    // set here. These are all optional and are completely ignored by Gplus and
+    // above.
     "experimentalWorkerConfig": {
-      "heapSize": 0.5
+      "additionalMemory": 1.0,
+      "classPaths": "/path/to/Some.jar",
+      "dbServerName": "MyServer",
+      "engine": "Core+",
+      "envVars": "SOME_ENV=SOME_VALUE",
+      "heapSize": 0.5,
     }
   }
 ]
