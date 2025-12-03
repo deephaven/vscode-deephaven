@@ -52,7 +52,9 @@ Example configuration:
   {
     "url": "https://my-grizzly-server.acme.org:8123/",
     "label": "Grizzly Server",
-    // Legacy: Only needed for Grizzly servers since they don't support the query creation UI
+    // Since Grizzly servers don't support the query creation UI, they can be
+    // set here. These are all optional and are completely ignored by Gplus and
+    // above.
     "experimentalWorkerConfig": {
       "additionalMemory": 1.0,
       "classPaths": "/path/to/Some.jar",
