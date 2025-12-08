@@ -6,7 +6,7 @@ exports[`createConnectText > should return text and tooltip: 'connecting' 1`] = 
 
 exports[`createConnectText > should return text and tooltip: 'disconnected' 1`] = `"$(plug) Deephaven: Disconnected"`;
 
-exports[`createConnectionOption > should return connection option: 'DHC', { label: 'groovy', url: URL{} } 1`] = `
+exports[`createConnectionOption > should return connection option: 'DHC', { label: 'groovy', url: URL { href: 'http://localhost:10001/', origin: 'http://localhost:10001', protocol: 'http:', username: '', password: '', host: 'localhost:10001', hostname: 'localhost', port: '10001', pathname: '/', search: '', searchParams: [Object], hash: '' } } 1`] = `
 {
   "label": "DHC: localhost:10001",
   "type": "DHC",
@@ -14,7 +14,7 @@ exports[`createConnectionOption > should return connection option: 'DHC', { labe
 }
 `;
 
-exports[`createConnectionOption > should return connection option: 'DHC', { label: 'python', url: URL{} } 1`] = `
+exports[`createConnectionOption > should return connection option: 'DHC', { label: 'python', url: URL { href: 'http://localhost:10000/', origin: 'http://localhost:10000', protocol: 'http:', username: '', password: '', host: 'localhost:10000', hostname: 'localhost', port: '10000', pathname: '/', search: '', searchParams: [Object], hash: '' } } 1`] = `
 {
   "label": "DHC: localhost:10000",
   "type": "DHC",
@@ -34,7 +34,7 @@ exports[`createConnectionQuickPickOptions > should return quick pick options: ed
       "serverUrl": "http://localhost:10000/",
     },
     "description": "python (current)",
-    "iconPath": {
+    "iconPath": ThemeIcon {
       "color": undefined,
       "id": "vm-connect",
     },
@@ -47,7 +47,7 @@ exports[`createConnectionQuickPickOptions > should return quick pick options: ed
       "serverUrl": "http://localhost:10002/",
     },
     "description": "python",
-    "iconPath": {
+    "iconPath": ThemeIcon {
       "color": undefined,
       "id": "vm-connect",
     },
@@ -67,7 +67,7 @@ exports[`createConnectionQuickPickOptions > should return quick pick options: ed
       "url": "http://localhost:10001/",
     },
     "description": undefined,
-    "iconPath": {
+    "iconPath": ThemeIcon {
       "color": undefined,
       "id": "server",
     },
@@ -83,7 +83,7 @@ exports[`createConnectionQuickPickOptions > should return quick pick options: ed
       "url": "http://localhost:10003/",
     },
     "description": undefined,
-    "iconPath": {
+    "iconPath": ThemeIcon {
       "color": undefined,
       "id": "server",
     },
@@ -105,7 +105,7 @@ exports[`createConnectionQuickPickOptions > should return quick pick options: ed
       "serverUrl": "http://localhost:10000/",
     },
     "description": "python",
-    "iconPath": {
+    "iconPath": ThemeIcon {
       "color": undefined,
       "id": "vm-connect",
     },
@@ -118,7 +118,7 @@ exports[`createConnectionQuickPickOptions > should return quick pick options: ed
       "serverUrl": "http://localhost:10002/",
     },
     "description": "python",
-    "iconPath": {
+    "iconPath": ThemeIcon {
       "color": undefined,
       "id": "vm-connect",
     },
@@ -138,7 +138,7 @@ exports[`createConnectionQuickPickOptions > should return quick pick options: ed
       "url": "http://localhost:10001/",
     },
     "description": undefined,
-    "iconPath": {
+    "iconPath": ThemeIcon {
       "color": undefined,
       "id": "server",
     },
@@ -154,7 +154,7 @@ exports[`createConnectionQuickPickOptions > should return quick pick options: ed
       "url": "http://localhost:10003/",
     },
     "description": undefined,
-    "iconPath": {
+    "iconPath": ThemeIcon {
       "color": undefined,
       "id": "server",
     },

@@ -116,14 +116,11 @@ describe('isPluginInstalled', () => {
   const existingPluginName = 'my-plugin';
   const nonExistingPluginName = 'non-existing-plugin';
   const workerUrl = new URL('http://mock-worker-url/');
-
-  beforeEach(() => {
-    vi.spyOn(global, 'fetch').mockResolvedValueOnce({
-      json: async () => ({
-        plugins: [{ name: 'other-plugin' }, { name: existingPluginName }],
-      }),
-    } as Response);
-  });
+  const pluginListResponse = {
+    json: async () => ({
+      plugins: [{ name: 'other-plugin' }, { name: existingPluginName }],
+    }),
+  } as Response;
 
   it.each([
     [existingPluginName, true],
@@ -131,6 +128,8 @@ describe('isPluginInstalled', () => {
   ])(
     'should return true if the plugin is installed',
     async (pluginName, expected) => {
+      vi.spyOn(global, 'fetch').mockResolvedValueOnce(pluginListResponse);
+
       const result = await isPluginInstalled(workerUrl, pluginName);
 
       expect(result).toBe(expected);

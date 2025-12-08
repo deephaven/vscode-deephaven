@@ -146,20 +146,16 @@ export class Selection {
   active: Position;
 }
 
-export const ThemeColor = vi
-  .fn()
-  .mockName('ThemeColor')
-  .mockImplementation((id: string) => ({
-    id,
-  }));
+export class ThemeColor {
+  constructor(public id: string) {}
+}
 
-export const ThemeIcon = vi
-  .fn()
-  .mockName('ThemeIcon')
-  .mockImplementation((id: string, color?: typeof ThemeColor) => ({
-    id,
-    color,
-  }));
+export class ThemeIcon {
+  constructor(
+    public id: string,
+    public color?: ThemeColor
+  ) {}
+}
 
 export enum TreeItemCheckboxState {
   Unchecked = 0,
