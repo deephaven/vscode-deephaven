@@ -165,8 +165,9 @@ export class SamlAuthProvider
    * @returns A promise that resolves to an array of authentication sessions.
    */
   getSessions = async (
-    _scopes?: readonly string[]
-  ): Promise<readonly vscode.AuthenticationSession[]> => {
+    _scopes: readonly string[] | undefined,
+    _options: vscode.AuthenticationProviderSessionOptions
+  ): Promise<vscode.AuthenticationSession[]> => {
     // Not implementing this since there really isn't a concept of persistent
     // SAML sessions that we can store in the extension. Once the user disconnects,
     // there's no way to re-use the session since the extension only has access

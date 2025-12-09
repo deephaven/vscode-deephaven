@@ -4,7 +4,7 @@ exports[`getPanelConnectionTreeItem > should return panel connection tree item: 
 {
   "collapsibleState": 2,
   "description": undefined,
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "sync~spin",
   },
@@ -16,7 +16,7 @@ exports[`getPanelConnectionTreeItem > should return panel connection tree item: 
 {
   "collapsibleState": 2,
   "description": "python",
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "sync~spin",
   },
@@ -28,7 +28,7 @@ exports[`getPanelConnectionTreeItem > should return panel connection tree item: 
 {
   "collapsibleState": 2,
   "description": undefined,
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "vm-connect",
   },
@@ -40,7 +40,7 @@ exports[`getPanelConnectionTreeItem > should return panel connection tree item: 
 {
   "collapsibleState": 2,
   "description": "python",
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "vm-connect",
   },
@@ -64,7 +64,7 @@ exports[`getPanelVariableTreeItem > should return panel variable tree item: type
     "title": "Open Panel",
   },
   "contextValue": "canDeleteDeephavenVariable",
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "graph",
   },
@@ -88,7 +88,7 @@ exports[`getPanelVariableTreeItem > should return panel variable tree item: type
     "title": "Open Panel",
   },
   "contextValue": "canDeleteDeephavenVariable",
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "dh-table",
   },
@@ -112,7 +112,7 @@ exports[`getPanelVariableTreeItem > should return panel variable tree item: type
     "title": "Open Panel",
   },
   "contextValue": "canDeleteDeephavenVariable",
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "preview",
   },
@@ -136,7 +136,7 @@ exports[`getPanelVariableTreeItem > should return panel variable tree item: type
     "title": "Open Panel",
   },
   "contextValue": "canDeleteDeephavenVariable",
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "dh-table",
   },
@@ -160,7 +160,7 @@ exports[`getPanelVariableTreeItem > should return panel variable tree item: type
     "title": "Open Panel",
   },
   "contextValue": "canDeleteDeephavenVariable",
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "dh-table",
   },
@@ -184,7 +184,7 @@ exports[`getPanelVariableTreeItem > should return panel variable tree item: type
     "title": "Open Panel",
   },
   "contextValue": "canDeleteDeephavenVariable",
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "dh-table",
   },
@@ -208,7 +208,7 @@ exports[`getPanelVariableTreeItem > should return panel variable tree item: type
     "title": "Open Panel",
   },
   "contextValue": "canDeleteDeephavenVariable",
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "dh-table",
   },
@@ -232,7 +232,7 @@ exports[`getPanelVariableTreeItem > should return panel variable tree item: type
     "title": "Open Panel",
   },
   "contextValue": "canDeleteDeephavenVariable",
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "preview",
   },
@@ -256,7 +256,7 @@ exports[`getPanelVariableTreeItem > should return panel variable tree item: type
     "title": "Open Panel",
   },
   "contextValue": "canDeleteDeephavenVariable",
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "graph",
   },
@@ -280,7 +280,7 @@ exports[`getPanelVariableTreeItem > should return panel variable tree item: type
     "title": "Open Panel",
   },
   "contextValue": "canDeleteDeephavenVariable",
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "preview",
   },
@@ -304,7 +304,7 @@ exports[`getPanelVariableTreeItem > should return panel variable tree item: type
     "title": "Open Panel",
   },
   "contextValue": "canDeleteDeephavenVariable",
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "dh-pandas",
   },
@@ -356,7 +356,7 @@ exports[`getServerGroupTreeItem > should return server group tree item: group=Ma
 {
   "collapsibleState": 2,
   "contextValue": undefined,
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "server",
   },
@@ -368,7 +368,7 @@ exports[`getServerGroupTreeItem > should return server group tree item: group=Ma
 {
   "collapsibleState": 2,
   "contextValue": "canStartServer",
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "server",
   },
@@ -380,7 +380,7 @@ exports[`getServerGroupTreeItem > should return server group tree item: group=Ru
 {
   "collapsibleState": 2,
   "contextValue": undefined,
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "server",
   },
@@ -392,7 +392,7 @@ exports[`getServerGroupTreeItem > should return server group tree item: group=Ru
 {
   "collapsibleState": 2,
   "contextValue": undefined,
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "server",
   },
@@ -421,7 +421,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHC, isConnect
   "command": undefined,
   "contextValue": "isServerStopped",
   "description": "",
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "circle-slash",
   },
@@ -448,7 +448,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHC, isConnect
   },
   "contextValue": "isServerRunningDisconnected",
   "description": "",
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "circle-large-outline",
   },
@@ -462,7 +462,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHC, isConnect
   "command": undefined,
   "contextValue": "isManagedServerConnecting",
   "description": "pip",
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "sync~spin",
   },
@@ -490,7 +490,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHC, isConnect
   },
   "contextValue": "isManagedServerDisconnected",
   "description": "pip",
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "circle-large-outline",
   },
@@ -504,7 +504,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHC, isConnect
   "command": undefined,
   "contextValue": "isServerStopped",
   "description": "(1)",
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "circle-slash",
   },
@@ -518,7 +518,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHC, isConnect
   "command": undefined,
   "contextValue": "isServerRunningConnected",
   "description": "(1)",
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "circle-large-filled",
   },
@@ -532,7 +532,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHC, isConnect
   "command": undefined,
   "contextValue": "isManagedServerConnected",
   "description": "pip (1)",
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "sync~spin",
   },
@@ -546,7 +546,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHC, isConnect
   "command": undefined,
   "contextValue": "isManagedServerConnected",
   "description": "pip (1)",
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "circle-large-filled",
   },
@@ -560,7 +560,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHE, isConnect
   "command": undefined,
   "contextValue": "isServerStopped",
   "description": "",
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "circle-slash",
   },
@@ -587,7 +587,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHE, isConnect
   },
   "contextValue": "isDHEServerRunningDisconnected",
   "description": "",
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "circle-large-outline",
   },
@@ -601,7 +601,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHE, isConnect
   "command": undefined,
   "contextValue": "isManagedServerConnecting",
   "description": "pip",
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "sync~spin",
   },
@@ -629,7 +629,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHE, isConnect
   },
   "contextValue": "isManagedServerDisconnected",
   "description": "pip",
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "circle-large-outline",
   },
@@ -643,7 +643,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHE, isConnect
   "command": undefined,
   "contextValue": "isServerStopped",
   "description": "(1)",
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "circle-slash",
   },
@@ -670,7 +670,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHE, isConnect
   },
   "contextValue": "isDHEServerRunningConnected",
   "description": "(1)",
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "circle-large-filled",
   },
@@ -684,7 +684,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHE, isConnect
   "command": undefined,
   "contextValue": "isManagedServerConnected",
   "description": "pip (1)",
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "sync~spin",
   },
@@ -698,7 +698,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHE, isConnect
   "command": undefined,
   "contextValue": "isManagedServerConnected",
   "description": "pip (1)",
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "circle-large-filled",
   },
@@ -711,77 +711,77 @@ exports[`getVariableIconPath > should return icon path for variableType 1`] = `
 [
   [
     "deephaven.plot.express.DeephavenFigure",
-    {
+    ThemeIcon {
       "color": undefined,
       "id": "graph",
     },
   ],
   [
     "deephaven.ui.Element",
-    {
+    ThemeIcon {
       "color": undefined,
       "id": "preview",
     },
   ],
   [
     "Figure",
-    {
+    ThemeIcon {
       "color": undefined,
       "id": "graph",
     },
   ],
   [
     "HierarchicalTable",
-    {
+    ThemeIcon {
       "color": undefined,
       "id": "dh-table",
     },
   ],
   [
     "OtherWidget",
-    {
+    ThemeIcon {
       "color": undefined,
       "id": "preview",
     },
   ],
   [
     "pandas.DataFrame",
-    {
+    ThemeIcon {
       "color": undefined,
       "id": "dh-pandas",
     },
   ],
   [
     "PartitionedTable",
-    {
+    ThemeIcon {
       "color": undefined,
       "id": "dh-table",
     },
   ],
   [
     "Table",
-    {
+    ThemeIcon {
       "color": undefined,
       "id": "dh-table",
     },
   ],
   [
     "TableMap",
-    {
+    ThemeIcon {
       "color": undefined,
       "id": "dh-table",
     },
   ],
   [
     "Treemap",
-    {
+    ThemeIcon {
       "color": undefined,
       "id": "preview",
     },
   ],
   [
     "TreeTable",
-    {
+    ThemeIcon {
       "color": undefined,
       "id": "dh-table",
     },

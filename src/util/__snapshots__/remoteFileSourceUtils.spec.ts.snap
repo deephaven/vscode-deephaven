@@ -27,7 +27,7 @@ exports[`getFolderTreeItem > should return a TreeItem for a folder element. isMa
 {
   "collapsibleState": 1,
   "contextValue": "canAddRemoteFileSource",
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "folder",
   },
@@ -44,7 +44,7 @@ exports[`getFolderTreeItem > should return a TreeItem for a folder element. isMa
 {
   "collapsibleState": 1,
   "contextValue": "canRemoveRemoteFileSource",
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "folder",
   },
@@ -62,7 +62,7 @@ exports[`getTopLevelMarkedFolderTreeItem > should return a TreeItem for a top-le
   "collapsibleState": 0,
   "contextValue": "canRemoveRemoteFileSource",
   "description": undefined,
-  "iconPath": {
+  "iconPath": ThemeIcon {
     "color": undefined,
     "id": "dh-python",
   },
