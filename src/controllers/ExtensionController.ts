@@ -7,7 +7,6 @@ import type {
 } from '@deephaven-enterprise/jsapi-types';
 import {
   createClient as createDheClient,
-  getWsUrl,
   type UnauthenticatedClient as DheUnauthenticatedClient,
 } from '@deephaven-enterprise/auth-nodejs';
 import { NodeHttp2gRPCTransport } from '@deephaven/jsapi-nodejs';
@@ -549,10 +548,9 @@ export class ExtensionController implements IDisposable {
       assertDefined(this._dheJsApiCache, 'dheJsApiCache');
       const dhe = await this._dheJsApiCache.get(url);
 
-      const client: DheUnauthenticatedClient = await createDheClient(
-        dhe,
-        getWsUrl(url)
-      );
+      const client: DheUnauthenticatedClient = await createDheClient(dhe, url, {
+        transportFactory: NodeHttp2gRPCTransport.factory,
+      });
 
       const wResolvers = withResolvers<SerializableRefreshToken | null>();
       let { promise: refreshTokenSerializedPromise } = wResolvers;
