@@ -7,6 +7,7 @@ import {
   getSetExecutionContextScript,
   getTopLevelMarkedFolderTreeItem,
   getTopLevelModuleFullname,
+  hasPythonPluginVariable,
   registerRemoteFileSourcePluginMessageListener,
   sendWidgetMessageAsync,
 } from './remoteFileSourceUtils';
@@ -23,6 +24,10 @@ import type {
 } from '../types';
 import { getLastEventListener } from '../testUtils';
 import * as Msg from './remoteFileSourceMsgUtils';
+import {
+  DH_PYTHON_REMOTE_SOURCE_PLUGIN_CLASS,
+  DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE,
+} from '../common';
 
 vi.mock('vscode');
 
@@ -107,6 +112,43 @@ describe('getTopLevelModuleFullname', () => {
     (uriPath, expectedModuleName) => {
       const result = getTopLevelModuleFullname(vscode.Uri.parse(uriPath));
       expect(result).toBe(expectedModuleName);
+    }
+  );
+});
+
+describe('hasPythonPluginVariable', () => {
+  it.each([
+    [
+      [
+        { name: 'other_variable', type: 'SomeType' },
+        {
+          name: DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE,
+          type: DH_PYTHON_REMOTE_SOURCE_PLUGIN_CLASS,
+        },
+      ] as DhcType.ide.VariableDefinition[],
+      true,
+    ],
+    [
+      [
+        { name: 'other_variable', type: 'SomeType' },
+        {
+          name: DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE,
+          type: 'WrongType',
+        },
+      ] as DhcType.ide.VariableDefinition[],
+      false,
+    ],
+    [
+      [
+        { name: 'other_variable', type: 'SomeType' },
+      ] as DhcType.ide.VariableDefinition[],
+      false,
+    ],
+  ])(
+    'should check if the Python remote file source plugin variable is present: %o',
+    (variables, expected) => {
+      const result = hasPythonPluginVariable(variables);
+      expect(result).toBe(expected);
     }
   );
 });

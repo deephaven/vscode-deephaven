@@ -80,7 +80,7 @@ export async function getRemoteFileSourcePlugin(
   // Check for existing plugin instance
   const hasPluginInstance = await new Promise<boolean>(resolve => {
     const unsubscribe = session.subscribeToFieldUpdates(arg => {
-      resolve(hasPluginVariable(arg.created));
+      resolve(hasPythonPluginVariable(arg.created));
       unsubscribe();
     });
   });
@@ -96,7 +96,7 @@ export async function getRemoteFileSourcePlugin(
     );
 
     // If plugin was not created, assume it is not installed
-    if (!hasPluginVariable(changes.created)) {
+    if (!hasPythonPluginVariable(changes.created)) {
       logger.debug('Remote file source plugin not installed');
       return null;
     }
@@ -237,17 +237,20 @@ export function getSetExecutionContextScript(
 }
 
 /**
- * Check if the remote file source plugin variable is present in the given
- * variable definitions.
+ * Check if the Python remote file source plugin variable is present in the
+ * given variable definitions.
  * @param variables The variable definitions to check.
  * @returns `true` if the plugin variable is present, `false` otherwise.
  */
-export function hasPluginVariable(
+export function hasPythonPluginVariable(
   variables: DhcType.ide.VariableDefinition[]
 ): boolean {
   return (
-    variables.find(v => v.name === DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE) !=
-    null
+    variables.find(
+      v =>
+        v.name === DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE &&
+        v.type === DH_PYTHON_REMOTE_SOURCE_PLUGIN_CLASS
+    ) != null
   );
 }
 
