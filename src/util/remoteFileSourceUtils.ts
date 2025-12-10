@@ -90,14 +90,19 @@ export async function getRemoteFileSourcePlugin(
       `Found existing ${DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE} instance`
     );
   } else {
-    // Initialize the plugin if it is not already initialized.
-    const { changes } = await session.runCode(
-      DH_PYTHON_REMOTE_SOURCE_PLUGIN_INIT_SCRIPT
-    );
+    try {
+      // Initialize the plugin if it is not already initialized.
+      const { changes } = await session.runCode(
+        DH_PYTHON_REMOTE_SOURCE_PLUGIN_INIT_SCRIPT
+      );
 
-    // If plugin was not created, assume it is not installed
-    if (!hasPythonPluginVariable(changes.created)) {
-      logger.debug('Python remote file source plugin not installed');
+      // If plugin was not created, assume it is not installed
+      if (!hasPythonPluginVariable(changes.created)) {
+        logger.debug('Python remote file source plugin not installed');
+        return null;
+      }
+    } catch (err) {
+      logger.error('Error initializing remote file source plugin:', err);
       return null;
     }
 
