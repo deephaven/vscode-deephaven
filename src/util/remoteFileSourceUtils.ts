@@ -58,7 +58,7 @@ export const DH_PYTHON_REMOTE_SOURCE_PLUGIN_INIT_SCRIPT = [
   '        from deephaven.python_remote_file_source import PluginObject as DeephavenRemoteFileSourcePlugin',
   `        ${DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE} = DeephavenRemoteFileSourcePlugin()`,
   '    except ModuleNotFoundError:',
-  '        print("Remote file source plugin not installed")',
+  '        print("Python remote file source plugin not installed")',
 ].join('\n');
 
 // Alias for `dh.Widget.EVENT_MESSAGE` to avoid having to pass in a `dh` instance
@@ -97,7 +97,7 @@ export async function getRemoteFileSourcePlugin(
 
     // If plugin was not created, assume it is not installed
     if (!hasPythonPluginVariable(changes.created)) {
-      logger.debug('Remote file source plugin not installed');
+      logger.debug('Python remote file source plugin not installed');
       return null;
     }
 
