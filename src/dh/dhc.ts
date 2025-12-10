@@ -152,13 +152,7 @@ export async function initDhcSession(
 
   const session = await cn.startSession(type);
 
-  const workerUrl = new URL(await client.getServerUrl());
-
-  const remoteFileSourcePlugin = await getRemoteFileSourcePlugin(
-    cnId,
-    session,
-    workerUrl
-  );
+  const remoteFileSourcePlugin = await getRemoteFileSourcePlugin(cnId, session);
 
   return { cn, cnId, remoteFileSourcePlugin, session };
 }

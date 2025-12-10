@@ -7,7 +7,6 @@ import {
   getSetExecutionContextScript,
   getTopLevelMarkedFolderTreeItem,
   getTopLevelModuleFullname,
-  isPluginInstalled,
   registerRemoteFileSourcePluginMessageListener,
   sendWidgetMessageAsync,
 } from './remoteFileSourceUtils';
@@ -110,39 +109,6 @@ describe('getTopLevelModuleFullname', () => {
       expect(result).toBe(expectedModuleName);
     }
   );
-});
-
-describe('isPluginInstalled', () => {
-  const existingPluginName = 'my-plugin';
-  const nonExistingPluginName = 'non-existing-plugin';
-  const workerUrl = new URL('http://mock-worker-url/');
-  const pluginListResponse = {
-    json: async () => ({
-      plugins: [{ name: 'other-plugin' }, { name: existingPluginName }],
-    }),
-  } as Response;
-
-  it.each([
-    [existingPluginName, true],
-    [nonExistingPluginName, false],
-  ])(
-    'should return true if the plugin is installed',
-    async (pluginName, expected) => {
-      vi.spyOn(global, 'fetch').mockResolvedValueOnce(pluginListResponse);
-
-      const result = await isPluginInstalled(workerUrl, pluginName);
-
-      expect(result).toBe(expected);
-    }
-  );
-
-  it('should return false if there is an error checking for the plugin', async () => {
-    vi.spyOn(global, 'fetch').mockRejectedValueOnce(new Error('Network error'));
-
-    const result = await isPluginInstalled(workerUrl, existingPluginName);
-
-    expect(result).toBe(false);
-  });
 });
 
 describe('registerRemoteFileSourcePluginMessageListener', () => {

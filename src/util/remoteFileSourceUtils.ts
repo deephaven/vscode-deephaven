@@ -19,7 +19,6 @@ import { URISet } from './sets';
 import {
   DH_PYTHON_REMOTE_SOURCE_PLUGIN_CLASS,
   DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE,
-  DH_PYTHON_REMOTE_SOURCE_PLUGIN_NAME,
 } from '../common';
 import * as Msg from './remoteFileSourceMsgUtils';
 import { Logger } from './Logger';
@@ -35,12 +34,31 @@ export interface PythonModuleMeta {
   topLevelModuleNames: URIMap<Map<ModuleFullname, Include<ModuleFullname>>>;
 }
 
+/**
+ * Initialization script for the remote file source plugin. Should only get called
+ * after `subscribeToFieldUpdates` indicates that the plugin variable does not
+ * already exist.
+ * 1. Try to access the plugin variable; if it exists, raise an error.
+ * 2. If the variable does not exist, try to import the plugin class and
+ * instantiate it.
+ * 3. If the import fails with ModuleNotFoundError, print a message indicating
+ * that the plugin is not installed.
+ *
+ * TODO: DH-21155: It would be nice if we didn't have to rely on the magic
+ * variable. DH-21155 to explore alternative approaches.
+ */
 export const DH_PYTHON_REMOTE_SOURCE_PLUGIN_INIT_SCRIPT = [
   'try:',
   `    ${DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE}`,
+  '    raise RuntimeError("Plugin variable already exists")',
+  // This is a little messy, but we actually want a `NameError` to indicate that
+  // the variable does not exist yet and we are safe to create it.
   'except NameError:',
-  '    from deephaven.python_remote_file_source import PluginObject as DeephavenRemoteFileSourcePlugin',
-  `    ${DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE} = DeephavenRemoteFileSourcePlugin()`,
+  '    try:',
+  '        from deephaven.python_remote_file_source import PluginObject as DeephavenRemoteFileSourcePlugin',
+  `        ${DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE} = DeephavenRemoteFileSourcePlugin()`,
+  '    except ModuleNotFoundError:',
+  '        print("Remote file source plugin not installed")',
 ].join('\n');
 
 // Alias for `dh.Widget.EVENT_MESSAGE` to avoid having to pass in a `dh` instance
@@ -52,23 +70,39 @@ export const DH_WIDGET_EVENT_MESSAGE = 'message' as const;
  * the connection ID.
  * @param cnId connection ID to set on the message stream / connection
  * @param session session to get the plugin from
- * @param workerUrl URL of the Core / Core+ worker
  * @returns a Promise that resolves to the remote file source plugin widget, or
  * null if plugin is not installed
  */
 export async function getRemoteFileSourcePlugin(
   cnId: UniqueID,
-  session: DhcType.IdeSession,
-  workerUrl: URL
+  session: DhcType.IdeSession
 ): Promise<DhcType.Widget | null> {
-  if (
-    !(await isPluginInstalled(workerUrl, DH_PYTHON_REMOTE_SOURCE_PLUGIN_NAME))
-  ) {
-    return null;
-  }
+  // Check for existing plugin instance
+  const hasPluginInstance = await new Promise<boolean>(resolve => {
+    const unsubscribe = session.subscribeToFieldUpdates(arg => {
+      resolve(hasPluginVariable(arg.created));
+      unsubscribe();
+    });
+  });
 
-  // Initialize the plugin if it is not already initialized.
-  await session.runCode(DH_PYTHON_REMOTE_SOURCE_PLUGIN_INIT_SCRIPT);
+  if (hasPluginInstance) {
+    logger.debug(
+      `Found existing ${DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE} instance`
+    );
+  } else {
+    // Initialize the plugin if it is not already initialized.
+    const { changes } = await session.runCode(
+      DH_PYTHON_REMOTE_SOURCE_PLUGIN_INIT_SCRIPT
+    );
+
+    // If plugin was not created, assume it is not installed
+    if (!hasPluginVariable(changes.created)) {
+      logger.debug('Remote file source plugin not installed');
+      return null;
+    }
+
+    logger.debug(`Instantiating ${DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE}`);
+  }
 
   const plugin: DhcType.Widget = await session.getObject({
     name: DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE,
@@ -203,26 +237,18 @@ export function getSetExecutionContextScript(
 }
 
 /**
- * Check if a plugin is installed on the given worker.
- * @param workerUrl URL of the Core / Core+ worker
- * @param pluginName Name of the plugin to check for
- * @returns Promise that resolves to true if the plugin is installed, false otherwise
+ * Check if the remote file source plugin variable is present in the given
+ * variable definitions.
+ * @param variables The variable definitions to check.
+ * @returns `true` if the plugin variable is present, `false` otherwise.
  */
-export async function isPluginInstalled(
-  workerUrl: URL,
-  pluginName: string
-): Promise<boolean> {
-  const pluginsManifestUrl = new URL('/js-plugins/manifest.json', workerUrl);
-
-  try {
-    const response = await fetch(pluginsManifestUrl, { method: 'GET' });
-    const manifestJson: { plugins: { name: string }[] } = await response.json();
-
-    return manifestJson.plugins.some(plugin => plugin.name === pluginName);
-  } catch (err) {
-    logger.error('Error checking for remote file source plugin', err);
-    return false;
-  }
+export function hasPluginVariable(
+  variables: DhcType.ide.VariableDefinition[]
+): boolean {
+  return (
+    variables.find(v => v.name === DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE) !=
+    null
+  );
 }
 
 /**
