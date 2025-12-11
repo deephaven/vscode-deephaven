@@ -7,7 +7,7 @@ import {
   getSetExecutionContextScript,
   getTopLevelMarkedFolderTreeItem,
   getTopLevelModuleFullname,
-  isPluginInstalled,
+  hasPythonPluginVariable,
   registerRemoteFileSourcePluginMessageListener,
   sendWidgetMessageAsync,
 } from './remoteFileSourceUtils';
@@ -24,6 +24,10 @@ import type {
 } from '../types';
 import { getLastEventListener } from '../testUtils';
 import * as Msg from './remoteFileSourceMsgUtils';
+import {
+  DH_PYTHON_REMOTE_SOURCE_PLUGIN_CLASS,
+  DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE,
+} from '../common';
 
 vi.mock('vscode');
 
@@ -112,37 +116,41 @@ describe('getTopLevelModuleFullname', () => {
   );
 });
 
-describe('isPluginInstalled', () => {
-  const existingPluginName = 'my-plugin';
-  const nonExistingPluginName = 'non-existing-plugin';
-  const workerUrl = new URL('http://mock-worker-url/');
-  const pluginListResponse = {
-    json: async () => ({
-      plugins: [{ name: 'other-plugin' }, { name: existingPluginName }],
-    }),
-  } as Response;
-
+describe('hasPythonPluginVariable', () => {
   it.each([
-    [existingPluginName, true],
-    [nonExistingPluginName, false],
+    [
+      [
+        { name: 'other_variable', type: 'SomeType' },
+        {
+          name: DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE,
+          type: DH_PYTHON_REMOTE_SOURCE_PLUGIN_CLASS,
+        },
+      ] as DhcType.ide.VariableDefinition[],
+      true,
+    ],
+    [
+      [
+        { name: 'other_variable', type: 'SomeType' },
+        {
+          name: DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE,
+          type: 'WrongType',
+        },
+      ] as DhcType.ide.VariableDefinition[],
+      false,
+    ],
+    [
+      [
+        { name: 'other_variable', type: 'SomeType' },
+      ] as DhcType.ide.VariableDefinition[],
+      false,
+    ],
   ])(
-    'should return true if the plugin is installed',
-    async (pluginName, expected) => {
-      vi.spyOn(global, 'fetch').mockResolvedValueOnce(pluginListResponse);
-
-      const result = await isPluginInstalled(workerUrl, pluginName);
-
+    'should check if the Python remote file source plugin variable is present: %o',
+    (variables, expected) => {
+      const result = hasPythonPluginVariable(variables);
       expect(result).toBe(expected);
     }
   );
-
-  it('should return false if there is an error checking for the plugin', async () => {
-    vi.spyOn(global, 'fetch').mockRejectedValueOnce(new Error('Network error'));
-
-    const result = await isPluginInstalled(workerUrl, existingPluginName);
-
-    expect(result).toBe(false);
-  });
 });
 
 describe('registerRemoteFileSourcePluginMessageListener', () => {

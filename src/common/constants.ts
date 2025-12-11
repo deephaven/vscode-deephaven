@@ -186,8 +186,6 @@ export const DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE =
   '__deephaven_vscode' as const;
 export const DH_PYTHON_REMOTE_SOURCE_PLUGIN_CLASS =
   'DeephavenPythonRemoteFileSourcePlugin' as const;
-export const DH_PYTHON_REMOTE_SOURCE_PLUGIN_NAME =
-  '@deephaven/js-plugin-python-remote-file-source';
 
 export const DH_PROTECTED_VARIABLE_NAMES: Set<string> = new Set([
   DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE,
