@@ -29,7 +29,7 @@ import type { FilteredWorkspace } from '../services';
 export class MCPServer {
   private server: McpServer;
   private httpServer: http.Server | null = null;
-  private port: number;
+  private port: number | null = null;
   private readonly panelService: IPanelService;
   private readonly pipServerController: PipServerController;
   private readonly pythonDiagnostics: vscode.DiagnosticCollection;
@@ -37,14 +37,12 @@ export class MCPServer {
   private readonly serverManager: IServerManager;
 
   constructor(
-    port: number,
     panelService: IPanelService,
     pipServerController: PipServerController,
     pythonDiagnostics: vscode.DiagnosticCollection,
     pythonWorkspace: FilteredWorkspace,
     serverManager: IServerManager
   ) {
-    this.port = port;
     this.panelService = panelService;
     this.pipServerController = pipServerController;
     this.pythonDiagnostics = pythonDiagnostics;
@@ -92,9 +90,12 @@ export class MCPServer {
 
   /**
    * Start the MCP server on an HTTP endpoint.
+   * @param preferredPort Optional port to try first. If not provided or unavailable, will auto-allocate.
    * @returns The actual port the server is listening on
    */
-  async start(): Promise<number> {
+  async start(preferredPort?: number): Promise<number> {
+    const portToTry = preferredPort ?? 0;
+
     return new Promise((resolve, reject) => {
       this.httpServer = http.createServer(async (req, res) => {
         if (req.url === '/mcp' && req.method === 'POST') {
@@ -135,22 +136,42 @@ export class MCPServer {
         }
       });
 
-      this.httpServer.listen(this.port, () => {
+      this.httpServer.listen(portToTry, () => {
         // Get the actual port assigned by the OS (important when port is 0)
         const address = this.httpServer!.address();
         if (address && typeof address !== 'string') {
           this.port = address.port;
         }
-        resolve(this.port);
+        resolve(this.port!);
       });
 
-      this.httpServer.on('error', error => {
-        vscode.window.showErrorMessage(
-          `Failed to start MCP server: ${error.message}`
-        );
-        reject(error);
+      this.httpServer.on('error', (error: NodeJS.ErrnoException) => {
+        // If preferred port is in use, try auto-allocating
+        if (
+          error.code === 'EADDRINUSE' &&
+          preferredPort != null &&
+          preferredPort !== 0
+        ) {
+          this.httpServer?.close();
+          this.httpServer = null;
+          // Retry with auto-allocated port
+          this.start(0).then(resolve).catch(reject);
+        } else {
+          vscode.window.showErrorMessage(
+            `Failed to start MCP server: ${error.message}`
+          );
+          reject(error);
+        }
       });
     });
+  }
+
+  /**
+   * Get the current port the server is listening on.
+   * @returns The port number, or null if the server is not running.
+   */
+  getPort(): number | null {
+    return this.port;
   }
 
   /**
