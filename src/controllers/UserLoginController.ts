@@ -144,8 +144,8 @@ export class UserLoginController extends ControllerBase {
   onDidRequestGenerateDheKeyPair = async (
     serverState: ServerState | undefined
   ): Promise<void> => {
-    // Sometimes view/item/context commands pass undefined instead of a tree.
-    // node. Just ignore.
+    // Sometimes view/item/context commands pass undefined instead of a value.
+    // Just ignore.
     if (serverState == null) {
       return;
     }

@@ -914,8 +914,8 @@ export class ExtensionController implements IDisposable {
   onDeleteVariable = async (
     urlAndVariable: [URL, VariableDefintion] | undefined
   ): Promise<void> => {
-    // Sometimes view/item/context commands pass undefined instead of a tree.
-    // node. Just ignore.
+    // Sometimes view/item/context commands pass undefined instead of a value.
+    // Just ignore.
     if (urlAndVariable == null) {
       return;
     }
@@ -935,8 +935,8 @@ export class ExtensionController implements IDisposable {
       | vscode.Uri
       | undefined
   ): Promise<void> => {
-    // Sometimes view/item/context commands pass undefined instead of a tree.
-    // node. Just ignore.
+    // Sometimes view/item/context commands pass undefined instead of a value.
+    // Just ignore.
     if (folderElementOrUri == null) {
       return;
     }
@@ -959,8 +959,8 @@ export class ExtensionController implements IDisposable {
       | vscode.Uri
       | undefined
   ): Promise<void> => {
-    // Sometimes view/item/context commands pass undefined instead of a tree.
-    // node. Just ignore.
+    // Sometimes view/item/context commands pass undefined instead of a value.
+    // Just ignore.
     if (folderElementOrUri == null) {
       return;
     }
@@ -991,8 +991,8 @@ export class ExtensionController implements IDisposable {
   onCreateNewDocument = async (
     dhService: IDhcService | undefined
   ): Promise<void> => {
-    // Sometimes view/item/context commands pass undefined instead of a tree.
-    // node. Just ignore.
+    // Sometimes view/item/context commands pass undefined instead of a value.
+    // Just ignore.
     if (dhService == null) {
       return;
     }
@@ -1040,8 +1040,8 @@ export class ExtensionController implements IDisposable {
   onGenerateRequirementsTxt = async (
     connectionState: ConnectionState | undefined
   ): Promise<void> => {
-    // Sometimes view/item/context commands pass undefined instead of a tree.
-    // node. Just ignore.
+    // Sometimes view/item/context commands pass undefined instead of a value.
+    // Just ignore.
     if (connectionState == null) {
       return;
     }
@@ -1056,8 +1056,8 @@ export class ExtensionController implements IDisposable {
   onOpenInBrowser = async (
     serverState: ServerState | undefined
   ): Promise<void> => {
-    // Sometimes view/item/context commands pass undefined instead of a tree.
-    // node. Just ignore.
+    // Sometimes view/item/context commands pass undefined instead of a value.
+    // Just ignore.
     if (serverState == null) {
       return;
     }
@@ -1186,8 +1186,8 @@ export class ExtensionController implements IDisposable {
    * @param value
    */
   onStopServer = async (value: ServerState | undefined): Promise<void> => {
-    // Sometimes view/item/context commands pass undefined instead of a tree.
-    // node. Just ignore.
+    // Sometimes view/item/context commands pass undefined instead of a value.
+    // Just ignore.
     if (value == null) {
       return;
     }

@@ -309,8 +309,8 @@ export class ConnectionController
   onConnectToServerOperateAs = async (
     serverState: ServerState | undefined
   ): Promise<void> => {
-    // Sometimes view/item/context commands pass undefined instead of a tree.
-    // node. Just ignore.
+    // Sometimes view/item/context commands pass undefined instead of a value.
+    // Just ignore.
     if (serverState == null) {
       return;
     }
@@ -323,8 +323,8 @@ export class ConnectionController
    * @param uri
    */
   onDisconnectEditor = (uri: vscode.Uri | undefined): void => {
-    // Sometimes view/item/context commands pass undefined instead of a tree.
-    // node. Just ignore.
+    // Sometimes view/item/context commands pass undefined instead of a value.
+    // Just ignore.
     if (uri == null) {
       return;
     }
@@ -339,8 +339,8 @@ export class ConnectionController
   onDisconnectFromServer = async (
     serverOrConnectionState: ServerState | ConnectionState | undefined
   ): Promise<void> => {
-    // Sometimes view/item/context commands pass undefined instead of a tree.
-    // node. Just ignore.
+    // Sometimes view/item/context commands pass undefined instead of a value.
+    // Just ignore.
     if (serverOrConnectionState == null) {
       return;
     }
