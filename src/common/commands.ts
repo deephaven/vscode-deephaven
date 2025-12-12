@@ -70,3 +70,4 @@ export const START_SERVER_CMD = cmd('startServer');
 export const STOP_SERVER_CMD = cmd('stopServer');
 export const ADD_REMOTE_FILE_SOURCE_CMD = cmd('addRemoteFileSource');
 export const REMOVE_REMOTE_FILE_SOURCE_CMD = cmd('removeRemoteFileSource');
+export const COPY_MCP_URL_CMD = cmd('copyMcpUrl');
