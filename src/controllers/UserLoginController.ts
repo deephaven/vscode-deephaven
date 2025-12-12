@@ -147,6 +147,10 @@ export class UserLoginController extends ControllerBase {
     // Sometimes view/item/context commands pass undefined instead of a value.
     // Just ignore.
     if (serverState == null) {
+      logger.debug(
+        'onDidRequestGenerateDheKeyPair',
+        'serverState is undefined'
+      );
       return;
     }
 

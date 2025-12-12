@@ -917,6 +917,7 @@ export class ExtensionController implements IDisposable {
     // Sometimes view/item/context commands pass undefined instead of a value.
     // Just ignore.
     if (urlAndVariable == null) {
+      logger.debug('onDeleteVariable', 'urlAndVariable is undefined');
       return;
     }
 
@@ -938,6 +939,7 @@ export class ExtensionController implements IDisposable {
     // Sometimes view/item/context commands pass undefined instead of a value.
     // Just ignore.
     if (folderElementOrUri == null) {
+      logger.debug('onAddRemoteFileSource', 'folderElementOrUri is undefined');
       return;
     }
 
@@ -962,6 +964,10 @@ export class ExtensionController implements IDisposable {
     // Sometimes view/item/context commands pass undefined instead of a value.
     // Just ignore.
     if (folderElementOrUri == null) {
+      logger.debug(
+        'onRemoveRemoteFileSource',
+        'folderElementOrUri is undefined'
+      );
       return;
     }
 
@@ -994,6 +1000,7 @@ export class ExtensionController implements IDisposable {
     // Sometimes view/item/context commands pass undefined instead of a value.
     // Just ignore.
     if (dhService == null) {
+      logger.debug('onCreateNewDocument', 'dhService is undefined');
       return;
     }
 
@@ -1043,6 +1050,7 @@ export class ExtensionController implements IDisposable {
     // Sometimes view/item/context commands pass undefined instead of a value.
     // Just ignore.
     if (connectionState == null) {
+      logger.debug('onGenerateRequirementsTxt', 'connectionState is undefined');
       return;
     }
 
@@ -1059,6 +1067,7 @@ export class ExtensionController implements IDisposable {
     // Sometimes view/item/context commands pass undefined instead of a value.
     // Just ignore.
     if (serverState == null) {
+      logger.debug('onOpenInBrowser', 'serverState is undefined');
       return;
     }
 
@@ -1189,6 +1198,7 @@ export class ExtensionController implements IDisposable {
     // Sometimes view/item/context commands pass undefined instead of a value.
     // Just ignore.
     if (value == null) {
+      logger.debug('onStopServer', 'value is undefined');
       return;
     }
 

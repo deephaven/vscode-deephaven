@@ -312,6 +312,7 @@ export class ConnectionController
     // Sometimes view/item/context commands pass undefined instead of a value.
     // Just ignore.
     if (serverState == null) {
+      logger.debug('onConnectToServerOperateAs', 'serverState is undefined');
       return;
     }
 
@@ -326,6 +327,7 @@ export class ConnectionController
     // Sometimes view/item/context commands pass undefined instead of a value.
     // Just ignore.
     if (uri == null) {
+      logger.debug('onDisconnectEditor', 'uri is undefined');
       return;
     }
 
@@ -342,6 +344,10 @@ export class ConnectionController
     // Sometimes view/item/context commands pass undefined instead of a value.
     // Just ignore.
     if (serverOrConnectionState == null) {
+      logger.debug(
+        'onDisconnectFromServer',
+        'serverOrConnectionState is undefined'
+      );
       return;
     }
 
