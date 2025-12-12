@@ -14,6 +14,7 @@ import { MCPServer } from '../mcp';
 import {
   ADD_REMOTE_FILE_SOURCE_CMD,
   CLEAR_SECRET_STORAGE_CMD,
+  COPY_MCP_URL_CMD,
   CREATE_NEW_TEXT_DOC_CMD,
   DELETE_VARIABLE_CMD,
   DOWNLOAD_LOGS_CMD,
@@ -194,6 +195,7 @@ export class ExtensionController implements IDisposable {
   private _serverManager: IServerManager | null = null;
   private _userLoginController: UserLoginController | null = null;
   private _mcpServer: MCPServer | null = null;
+  private _mcpStatusBarItem: vscode.StatusBarItem | null = null;
 
   // Tree providers
   private _serverTreeProvider: ServerTreeProvider | null = null;
@@ -242,6 +244,7 @@ export class ExtensionController implements IDisposable {
     this.initializePanelController();
     this.initializePipServerController();
     this.initializeUserLoginController();
+    this.initializeStatusBar();
     this.initializeCommands();
     this.initializeMCPServer();
 
@@ -437,6 +440,9 @@ export class ExtensionController implements IDisposable {
       // Start with auto-allocated port (0)
       const actualPort = await this._mcpServer.start();
       logger.info(`MCP Server started on port ${actualPort}`);
+
+      // Update status bar
+      this.updateMcpStatusBar(actualPort);
 
       vscode.window.showInformationMessage(
         `Deephaven MCP Server started on port ${actualPort}.`
@@ -767,6 +773,37 @@ export class ExtensionController implements IDisposable {
   };
 
   /**
+   * Initialize MCP status bar item.
+   */
+  initializeStatusBar = (): void => {
+    this._mcpStatusBarItem = vscode.window.createStatusBarItem(
+      vscode.StatusBarAlignment.Right,
+      100
+    );
+    this._mcpStatusBarItem.command = COPY_MCP_URL_CMD;
+    this._context.subscriptions.push(this._mcpStatusBarItem);
+  };
+
+  /**
+   * Update MCP status bar with current port.
+   * @param port The port the MCP server is running on, or null to hide the status bar
+   */
+  updateMcpStatusBar = (port: number | null): void => {
+    if (this._mcpStatusBarItem == null) {
+      return;
+    }
+
+    if (port == null) {
+      this._mcpStatusBarItem.hide();
+      return;
+    }
+
+    this._mcpStatusBarItem.text = `$(plug) MCP: ${port}`;
+    this._mcpStatusBarItem.tooltip = `Deephaven MCP Server running on port ${port}. Click to copy URL.`;
+    this._mcpStatusBarItem.show();
+  };
+
+  /**
    * Register commands for the extension.
    */
   initializeCommands = (): void => {
@@ -774,6 +811,9 @@ export class ExtensionController implements IDisposable {
 
     /** Clear secret storage */
     this.registerCommand(CLEAR_SECRET_STORAGE_CMD, this.onClearSecretStorage);
+
+    /** Copy MCP URL to clipboard */
+    this.registerCommand(COPY_MCP_URL_CMD, this.onCopyMcpUrl);
 
     /** Create new document */
     this.registerCommand(CREATE_NEW_TEXT_DOC_CMD, this.onCreateNewDocument);
@@ -1069,6 +1109,23 @@ export class ExtensionController implements IDisposable {
   onClearSecretStorage = async (): Promise<void> => {
     await this._secretService?.clearStorage();
     this._toaster?.info('Stored secrets have been removed.');
+  };
+
+  /**
+   * Handle copying MCP URL to clipboard.
+   */
+  onCopyMcpUrl = async (): Promise<void> => {
+    const port = this._mcpServer?.getPort();
+    if (port == null) {
+      vscode.window.showWarningMessage('MCP Server is not running.');
+      return;
+    }
+
+    const mcpUrl = `http://localhost:${port}/mcp`;
+    await vscode.env.clipboard.writeText(mcpUrl);
+    vscode.window.showInformationMessage(
+      `MCP URL copied to clipboard: ${mcpUrl}`
+    );
   };
 
   /**

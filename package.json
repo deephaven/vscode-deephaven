@@ -187,6 +187,10 @@
         "title": "Deephaven: Clear Secrets"
       },
       {
+        "command": "vscode-deephaven.copyMcpUrl",
+        "title": "Deephaven: Copy MCP Server URL"
+      },
+      {
         "command": "vscode-deephaven.connectToServer",
         "title": "Connect to Server",
         "icon": "$(plug)"
