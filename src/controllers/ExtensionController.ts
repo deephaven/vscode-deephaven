@@ -911,10 +911,16 @@ export class ExtensionController implements IDisposable {
     this._pipServerController?.syncManagedServers();
   };
 
-  onDeleteVariable = async ([url, variable]: [
-    URL,
-    VariableDefintion,
-  ]): Promise<void> => {
+  onDeleteVariable = async (
+    urlAndVariable: [URL, VariableDefintion] | undefined
+  ): Promise<void> => {
+    // Sometimes view/item/context commands pass undefined instead of a tree.
+    // node. Just ignore.
+    if (urlAndVariable == null) {
+      return;
+    }
+
+    const [url, variable] = urlAndVariable;
     const connectionState = this._serverManager?.getConnection(url);
     if (!isInstanceOf(connectionState, DhcService)) {
       return;
@@ -924,8 +930,17 @@ export class ExtensionController implements IDisposable {
   };
 
   onAddRemoteFileSource = async (
-    folderElementOrUri: RemoteImportSourceTreeFolderElement | vscode.Uri
+    folderElementOrUri:
+      | RemoteImportSourceTreeFolderElement
+      | vscode.Uri
+      | undefined
   ): Promise<void> => {
+    // Sometimes view/item/context commands pass undefined instead of a tree.
+    // node. Just ignore.
+    if (folderElementOrUri == null) {
+      return;
+    }
+
     assertDefined(this._pythonWorkspace, 'pythonWorkspace');
 
     await this._pythonWorkspace.refresh();
@@ -939,8 +954,17 @@ export class ExtensionController implements IDisposable {
   };
 
   onRemoveRemoteFileSource = async (
-    folderElementOrUri: RemoteImportSourceTreeFolderElement | vscode.Uri
+    folderElementOrUri:
+      | RemoteImportSourceTreeFolderElement
+      | vscode.Uri
+      | undefined
   ): Promise<void> => {
+    // Sometimes view/item/context commands pass undefined instead of a tree.
+    // node. Just ignore.
+    if (folderElementOrUri == null) {
+      return;
+    }
+
     assertDefined(this._pythonWorkspace, 'pythonWorkspace');
 
     await this._pythonWorkspace.refresh();
@@ -964,7 +988,15 @@ export class ExtensionController implements IDisposable {
    * Create a new text document based on the given connection capabilities.
    * @param dhService
    */
-  onCreateNewDocument = async (dhService: IDhcService): Promise<void> => {
+  onCreateNewDocument = async (
+    dhService: IDhcService | undefined
+  ): Promise<void> => {
+    // Sometimes view/item/context commands pass undefined instead of a tree.
+    // node. Just ignore.
+    if (dhService == null) {
+      return;
+    }
+
     const language = (await dhService.supportsConsoleType('python'))
       ? 'python'
       : 'groovy';
@@ -1006,8 +1038,14 @@ export class ExtensionController implements IDisposable {
    * Handle generating requirements.txt command
    */
   onGenerateRequirementsTxt = async (
-    connectionState: ConnectionState
+    connectionState: ConnectionState | undefined
   ): Promise<void> => {
+    // Sometimes view/item/context commands pass undefined instead of a tree.
+    // node. Just ignore.
+    if (connectionState == null) {
+      return;
+    }
+
     if (!isInstanceOf(connectionState, DhcService)) {
       throw new Error('Connection is not a DHC service');
     }
@@ -1015,7 +1053,15 @@ export class ExtensionController implements IDisposable {
     await connectionState.generateRequirementsTxt();
   };
 
-  onOpenInBrowser = async (serverState: ServerState): Promise<void> => {
+  onOpenInBrowser = async (
+    serverState: ServerState | undefined
+  ): Promise<void> => {
+    // Sometimes view/item/context commands pass undefined instead of a tree.
+    // node. Just ignore.
+    if (serverState == null) {
+      return;
+    }
+
     const psk = await this._secretService?.getPsk(serverState.url);
     const serverUrl = new URL(serverState.url);
 
@@ -1139,7 +1185,13 @@ export class ExtensionController implements IDisposable {
    * Stop a server.
    * @param value
    */
-  onStopServer = async (value: ServerState): Promise<void> => {
+  onStopServer = async (value: ServerState | undefined): Promise<void> => {
+    // Sometimes view/item/context commands pass undefined instead of a tree.
+    // node. Just ignore.
+    if (value == null) {
+      return;
+    }
+
     await this._pipServerController?.stopServer(value.url);
   };
 

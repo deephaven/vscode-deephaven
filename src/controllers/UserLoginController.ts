@@ -142,8 +142,14 @@ export class UserLoginController extends ControllerBase {
    * @param serverState The server state to generate the key pair for.
    */
   onDidRequestGenerateDheKeyPair = async (
-    serverState: ServerState
+    serverState: ServerState | undefined
   ): Promise<void> => {
+    // Sometimes view/item/context commands pass undefined instead of a tree.
+    // node. Just ignore.
+    if (serverState == null) {
+      return;
+    }
+
     const serverUrl = serverState.url;
 
     const title = 'Generate Private Key';
