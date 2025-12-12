@@ -712,6 +712,12 @@
         }
       }
     },
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "deephaven-vscode.mcpServer",
+        "label": "Deephaven VS Code MCP Server"
+      }
+    ],
     "menus": {
       "commandPalette": [
         {

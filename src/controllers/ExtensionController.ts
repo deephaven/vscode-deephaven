@@ -243,7 +243,7 @@ export class ExtensionController implements IDisposable {
     this.initializePipServerController();
     this.initializeUserLoginController();
     this.initializeCommands();
-    this.initializeMCPServer();
+    this.initializeMCPServer2();
 
     this._context.subscriptions.push(NodeHttp2gRPCTransport);
 
@@ -410,6 +410,49 @@ export class ExtensionController implements IDisposable {
     );
 
     this._context.subscriptions.push(this._userLoginController);
+  };
+
+  initializeMCPServer2 = async (): Promise<void> => {
+    vscode.lm.registerMcpServerDefinitionProvider(
+      'deephaven-vscode.mcpServer',
+      {
+        provideMcpServerDefinitions: async () => {
+          assertDefined(this._panelService, 'panelService');
+          assertDefined(this._pipServerController, 'pipServerController');
+          assertDefined(this._pythonDiagnostics, 'pythonDiagnostics');
+          assertDefined(this._pythonWorkspace, 'pythonWorkspace');
+          assertDefined(this._serverManager, 'serverManager');
+
+          this._mcpServer = new MCPServer(
+            0, // auto-allocate port
+            this._panelService,
+            this._pipServerController,
+            this._pythonDiagnostics,
+            this._pythonWorkspace,
+            this._serverManager
+          );
+
+          const actualPort = await this._mcpServer.start();
+          logger.info(`MCP Server initialized on port ${actualPort}`);
+
+          vscode.window.showInformationMessage(
+            `Deephaven MCP Server started on port ${actualPort}.`
+          );
+
+          return [
+            new vscode.McpHttpServerDefinition(
+              'Deephaven VS Code MCP Server',
+              vscode.Uri.parse(`http://localhost:${actualPort}/mcp`),
+              {
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                API_VERSION: '1.0.0',
+              },
+              '1.0.0'
+            ),
+          ];
+        },
+      }
+    );
   };
 
   /**
