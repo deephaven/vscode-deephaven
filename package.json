@@ -243,6 +243,11 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "vscode-deephaven.refreshPanelsTree",
+        "title": "Refresh Panels Tree",
+        "icon": "$(refresh)"
+      },
+      {
         "command": "vscode-deephaven.refreshRemoteImportSourceTree",
         "title": "Refresh Remote Import Source Tree",
         "icon": "$(refresh)"
@@ -771,6 +776,10 @@
           "when": "false"
         },
         {
+          "command": "vscode-deephaven.refreshPanelsTree",
+          "when": "false"
+        },
+        {
           "command": "vscode-deephaven.refreshRemoteImportSourceTree",
           "when": "false"
         },
@@ -860,7 +869,7 @@
           "when": "view == vscode-deephaven.view.remoteImportSourceTree"
         },
         {
-          "command": "vscode-deephaven.refreshVariablePanels",
+          "command": "vscode-deephaven.refreshPanelsTree",
           "group": "navigation",
           "when": "view == vscode-deephaven.view.serverConnectionPanelTree"
         },
@@ -959,22 +968,26 @@
         {
           "id": "vscode-deephaven.view.serverTree",
           "name": "Servers",
-          "type": "tree"
+          "type": "tree",
+          "icon": "images/dh-logo-28.svg"
         },
         {
           "id": "vscode-deephaven.view.serverConnectionTree",
           "name": "Connections",
-          "type": "tree"
+          "type": "tree",
+          "icon": "images/dh-logo-28.svg"
         },
         {
           "id": "vscode-deephaven.view.serverConnectionPanelTree",
           "name": "Panels",
-          "type": "tree"
+          "type": "tree",
+          "icon": "images/dh-logo-28.svg"
         },
         {
           "id": "vscode-deephaven.view.remoteImportSourceTree",
           "name": "Remote Import Sources",
-          "type": "tree"
+          "type": "tree",
+          "icon": "images/dh-logo-28.svg"
         }
       ],
       "vscode-deephaven_viewContainer_detail": [
@@ -982,6 +995,7 @@
           "id": "vscode-deephaven.view.createQuery",
           "name": "Create Connection",
           "type": "webview",
+          "icon": "images/dh-logo-28.svg",
           "when": "vscode-deephaven.view.createQuery.isVisible"
         }
       ]

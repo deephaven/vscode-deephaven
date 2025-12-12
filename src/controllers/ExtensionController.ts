@@ -19,6 +19,7 @@ import {
   DOWNLOAD_LOGS_CMD,
   GENERATE_REQUIREMENTS_TXT_CMD,
   OPEN_IN_BROWSER_CMD,
+  REFRESH_PANELS_TREE_CMD,
   REFRESH_REMOTE_IMPORT_SOURCE_TREE_CMD,
   REFRESH_SERVER_CONNECTION_TREE_CMD,
   REFRESH_SERVER_TREE_CMD,
@@ -732,6 +733,9 @@ export class ExtensionController implements IDisposable {
       REFRESH_SERVER_CONNECTION_TREE_CMD,
       this.onRefreshServerStatus
     );
+
+    /** Refresh variable panels tree */
+    this.registerCommand(REFRESH_PANELS_TREE_CMD, this.onRefreshServerStatus);
 
     /** Remote import source tree */
     this.registerCommand(
