@@ -1,0 +1,14 @@
+<!-- 
+    Modified logo to be 28x28 without half pixels:
+    2  2  2  2  2
+    2  8  8  8  2
+    2  8  8  8  2
+    2  8  8  8  2
+    2  2  2  2  2
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28"><defs><style>.bl{fill:#4DCCFA;}.t{fill:#4DCCFA;}.b{fill:#FDD041;}.r{fill:#F33666;}.tl{fill:#3A57E1;}</style></defs>
+<rect class="bl" x="2" y="18" width="8" height="8"/>
+<rect class="t" x="10" y="2" width="8" height="8"/>
+<rect class="b" x="10" y="18" width="8" height="8"/>
+<rect class="r" x="18" y="10" width="8" height="8"/>
+<rect class="tl" x="2" y="2" width="8" height="16"/></svg>

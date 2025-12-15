@@ -33,7 +33,8 @@
     "clean": "rm -rf dist out e2e-testing/out tsconfig.tsbuildinfo e2e-testing/tsconfig.tsbuildinfo",
     "compile": "npm run build:ts && node scripts/esbuild.js",
     "compile:prod": "npm run build:ts && npm run test:lint && node scripts/esbuild.js --production",
-    "icon:gen": "node icons/generate.mjs dh",
+    "icon:gen:dh": "node icons/generate.mjs dh",
+    "icon:gen:ext": "node icons/generate.mjs dh-ext icons/src",
     "package:dev": "./scripts/package-dev.sh",
     "publish": "./scripts/publish.sh",
     "publish:prerelease": "./scripts/publish.sh --pre-release",
@@ -710,6 +711,13 @@
         "default": {
           "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ee81"
+        }
+      },
+      "dh-ext-logo": {
+        "description": "Deephaven dh-ext-logo icon",
+        "default": {
+          "fontPath": "assets/dh-ext-icons.woff2",
+          "fontCharacter": "\\ee48"
         }
       }
     },
