@@ -145,7 +145,7 @@ export class UserLoginController extends ControllerBase {
     serverState: ServerState | undefined
   ): Promise<void> => {
     // Sometimes view/item/context commands pass undefined instead of a value.
-    // Just ignore.
+    // Just ignore. microsoft/vscode#283655
     if (serverState == null) {
       logger.debug(
         'onDidRequestGenerateDheKeyPair',

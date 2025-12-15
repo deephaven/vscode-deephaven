@@ -915,7 +915,7 @@ export class ExtensionController implements IDisposable {
     urlAndVariable: [URL, VariableDefintion] | undefined
   ): Promise<void> => {
     // Sometimes view/item/context commands pass undefined instead of a value.
-    // Just ignore.
+    // Just ignore. microsoft/vscode#283655
     if (urlAndVariable == null) {
       logger.debug('onDeleteVariable', 'urlAndVariable is undefined');
       return;
@@ -937,7 +937,7 @@ export class ExtensionController implements IDisposable {
       | undefined
   ): Promise<void> => {
     // Sometimes view/item/context commands pass undefined instead of a value.
-    // Just ignore.
+    // Just ignore. microsoft/vscode#283655
     if (folderElementOrUri == null) {
       logger.debug('onAddRemoteFileSource', 'folderElementOrUri is undefined');
       return;
@@ -962,7 +962,7 @@ export class ExtensionController implements IDisposable {
       | undefined
   ): Promise<void> => {
     // Sometimes view/item/context commands pass undefined instead of a value.
-    // Just ignore.
+    // Just ignore. microsoft/vscode#283655
     if (folderElementOrUri == null) {
       logger.debug(
         'onRemoveRemoteFileSource',
@@ -998,7 +998,7 @@ export class ExtensionController implements IDisposable {
     dhService: IDhcService | undefined
   ): Promise<void> => {
     // Sometimes view/item/context commands pass undefined instead of a value.
-    // Just ignore.
+    // Just ignore. microsoft/vscode#283655
     if (dhService == null) {
       logger.debug('onCreateNewDocument', 'dhService is undefined');
       return;
@@ -1048,7 +1048,7 @@ export class ExtensionController implements IDisposable {
     connectionState: ConnectionState | undefined
   ): Promise<void> => {
     // Sometimes view/item/context commands pass undefined instead of a value.
-    // Just ignore.
+    // Just ignore. microsoft/vscode#283655
     if (connectionState == null) {
       logger.debug('onGenerateRequirementsTxt', 'connectionState is undefined');
       return;
@@ -1065,7 +1065,7 @@ export class ExtensionController implements IDisposable {
     serverState: ServerState | undefined
   ): Promise<void> => {
     // Sometimes view/item/context commands pass undefined instead of a value.
-    // Just ignore.
+    // Just ignore. microsoft/vscode#283655
     if (serverState == null) {
       logger.debug('onOpenInBrowser', 'serverState is undefined');
       return;
@@ -1196,7 +1196,7 @@ export class ExtensionController implements IDisposable {
    */
   onStopServer = async (value: ServerState | undefined): Promise<void> => {
     // Sometimes view/item/context commands pass undefined instead of a value.
-    // Just ignore.
+    // Just ignore. microsoft/vscode#283655
     if (value == null) {
       logger.debug('onStopServer', 'value is undefined');
       return;

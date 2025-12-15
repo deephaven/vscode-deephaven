@@ -310,7 +310,7 @@ export class ConnectionController
     serverState: ServerState | undefined
   ): Promise<void> => {
     // Sometimes view/item/context commands pass undefined instead of a value.
-    // Just ignore.
+    // Just ignore. microsoft/vscode#283655
     if (serverState == null) {
       logger.debug('onConnectToServerOperateAs', 'serverState is undefined');
       return;
@@ -325,7 +325,7 @@ export class ConnectionController
    */
   onDisconnectEditor = (uri: vscode.Uri | undefined): void => {
     // Sometimes view/item/context commands pass undefined instead of a value.
-    // Just ignore.
+    // Just ignore. microsoft/vscode#283655
     if (uri == null) {
       logger.debug('onDisconnectEditor', 'uri is undefined');
       return;
@@ -342,7 +342,7 @@ export class ConnectionController
     serverOrConnectionState: ServerState | ConnectionState | undefined
   ): Promise<void> => {
     // Sometimes view/item/context commands pass undefined instead of a value.
-    // Just ignore.
+    // Just ignore. microsoft/vscode#283655
     if (serverOrConnectionState == null) {
       logger.debug(
         'onDisconnectFromServer',
