@@ -95,20 +95,44 @@ We are following the official `VS Code` extension publishing guidance.
 You can find additional details here:
 https://code.visualstudio.com/api/working-with-extensions/publishing-extension#prerelease-extensions
 
+We create tags for released commits as well as named branches (`vX.X.X-pre` and `vX.X.X-release`). These branches do not get merged or deleted but serve to keep a record of the actual commit that was published + the corresponding package.json version bump.
+
 ### Publish a new Version
 
 See [versioning strategy](#versioning-strategy) for details on our version number scheme.
 
-#### Before Publishing
-1. Verify the contents of the package will be what you expect:
+#### Choosing a Commit
+Before publishing, you will need to checkout the commit to be published.
+
+##### Pre-release
+This will typically be latest `main` 
+
+##### Release
+Releases should be published from a tagged commit for an existing `pre-release`. e.g. To deploy `v1.0.7-release`, we deploy from the `v1.1.7-pre` tag. Since the `publish.sh` script increments based on the previous release tag, it's important to do a release corresponding to every pre-release to keep things in sequence.
+
+1. Determine what the next release tag will be:
+
+   ```sh
+   ./scripts/nextreleasetag.sh
+   ```
+ 
+1. Checkout the corresponding pre-release tag (the minor version should be odd) 
+
+   e.g. If the script yields `1.0.7-release`, run
+   ```sh
+   git checkout v1.1.7-pre
+   ```
+
+#### Verify Package Contents
+To verify the package will include what you expect, run:
 ```sh
 npx vsce ls
 ```
-1. If new content has been added that is not included in the output, you may need to tweak the `.vscodeignore`, to make sure it is included (this should not be common).
+1. If expected content is missing or unexpected content is included, the `.vscodeignore` file will likely need to be updated in a separate PR before doing the release (this should not be common).
 1. Optionally run `npm run package:dev` if you want to locally install a `.vsix` for testing before publishing.
 
 #### Publish a New Version
-1. Make sure you are in a clean branch whose HEAD points to the commit to publish.
+1. Make sure you are in a clean branch whose HEAD points to the commit to publish (see [Choosing a Commit](#choosing-a-commit)).
 1. `npm install` to ensure npm packages up to date
 1. Make sure you are logged in with `vsce` using a personal access token for a user in the https://dev.azure.com/deephaven-oss/ org. `npx vsce login deephaven`.
 
@@ -127,6 +151,9 @@ npm run publish
 > Note that new features should typically go through a `pre-release` before a release. Otherwise, early adopters won't get released features.
 
 > Note if the publish fails due to an expired token, you can just re-run the appropriate `npx vsce publish` cmd found at the end of the `scripts/publish.sh` file.
+
+#### Release Notes
+After a successful pre-release / release, release notes can be created here: https://github.com/deephaven/vscode-deephaven/releases. A branch will have been created for the release. Just leave this as-is. No need to merge or delete.
 
 ## PNG Generation
 

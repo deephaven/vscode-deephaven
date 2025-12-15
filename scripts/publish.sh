@@ -31,16 +31,8 @@ else
   tagsuffix="-release"
 fi
 
-# Determine current npm version based on latest git tag
-git fetch --tags
-current=$(git tag -l "v*.*.*$tagsuffix" | sort -V | tail -n 1 | sed -E 's/^v([0-9]+\.[0-9]+\.[0-9]+).*$/\1/')
-if [ -z "$current" ]; then
-  echo "No version tags found. Please create a version tag first."
-  exit 1
-fi
-
-# Calculate the next version
-next=$(npx semver $current -i patch)
+# Calculate the next version using nextreleasetag.sh
+next=$(scripts/nextreleasetag.sh "$tagsuffix" false)
 tag="v$next$tagsuffix"
 
 # Prompt user to confirm the publish
