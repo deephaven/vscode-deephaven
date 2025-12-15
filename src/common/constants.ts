@@ -172,6 +172,7 @@ export const AUTH_CONFIG_SAML_LOGIN_URL =
   'authentication.client.samlauth.login.url' as const;
 
 export const CREATE_QUERY_SETTINGS_STORAGE_KEY = 'createQuerySettings' as const;
+export const MCP_SERVER_NAME = 'Deephaven VS Code MCP Server' as const;
 export const MCP_SERVER_PORT_STORAGE_KEY = 'deephaven.mcpServerPort' as const;
 
 export const DH_SAML_AUTH_PROVIDER_TYPE = 'dhsaml' as const;
