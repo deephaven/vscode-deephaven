@@ -9,6 +9,7 @@ import type {
   McpToolSpec,
 } from '../types';
 import type { PipServerController } from '../controllers';
+import { MCP_SERVER_NAME } from '../common';
 import { createRunCodeTool } from './tools/runCode';
 import { createListPanelVariablesTool } from './tools/listPanelVariables';
 import { createListConnectionsTool } from './tools/listConnections';
@@ -51,7 +52,7 @@ export class MCPServer {
 
     // Create an MCP server
     this.server = new McpServer({
-      name: 'deephaven-vscode',
+      name: MCP_SERVER_NAME,
       version: '1.0.0',
     });
 

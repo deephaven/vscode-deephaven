@@ -19,6 +19,7 @@ import {
   DELETE_VARIABLE_CMD,
   DOWNLOAD_LOGS_CMD,
   GENERATE_REQUIREMENTS_TXT_CMD,
+  MCP_SERVER_NAME,
   MCP_SERVER_PORT_STORAGE_KEY,
   OPEN_IN_BROWSER_CMD,
   REFRESH_PANELS_TREE_CMD,
@@ -474,7 +475,7 @@ export class ExtensionController implements IDisposable {
 
             return [
               new vscode.McpHttpServerDefinition(
-                'Deephaven VS Code MCP Server',
+                MCP_SERVER_NAME,
                 vscode.Uri.parse(`http://localhost:${port}/mcp`),
                 {
                   // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -1136,9 +1137,62 @@ export class ExtensionController implements IDisposable {
 
     const mcpUrl = `http://localhost:${port}/mcp`;
     await vscode.env.clipboard.writeText(mcpUrl);
-    vscode.window.showInformationMessage(
-      `MCP URL copied to clipboard: ${mcpUrl}`
-    );
+
+    // Windsurf uses a separate MCP config file - automatically add/update the server entry
+    const isWindsurf = vscode.env.appName.toLowerCase().includes('windsurf');
+    if (isWindsurf) {
+      const homeDir = process.env.HOME ?? process.env.USERPROFILE ?? '';
+      const windsurfMcpConfigPath = `${homeDir}/.codeium/windsurf/mcp_config.json`;
+      const configUri = vscode.Uri.file(windsurfMcpConfigPath);
+
+      try {
+        // Read existing config or create new one
+        let config: { mcpServers?: Record<string, unknown> } = {
+          mcpServers: {},
+        };
+        try {
+          const existingContent = await vscode.workspace.fs.readFile(configUri);
+          config = JSON.parse(existingContent.toString());
+          if (config.mcpServers == null) {
+            config.mcpServers = {};
+          }
+        } catch {
+          // File doesn't exist or is invalid - start fresh
+        }
+
+        // Add/update the Deephaven MCP server entry
+        config.mcpServers![MCP_SERVER_NAME] = {
+          serverUrl: mcpUrl,
+        };
+
+        // Ensure parent directory exists
+        const configDir = vscode.Uri.file(`${homeDir}/.codeium/windsurf`);
+        try {
+          await vscode.workspace.fs.createDirectory(configDir);
+        } catch {
+          // Directory may already exist
+        }
+
+        // Write updated config
+        await vscode.workspace.fs.writeFile(
+          configUri,
+          Buffer.from(JSON.stringify(config, null, 2))
+        );
+
+        await vscode.window.showTextDocument(configUri);
+        vscode.window.showInformationMessage(
+          `MCP URL copied and Windsurf config updated with '${MCP_SERVER_NAME}' server.`
+        );
+      } catch (error) {
+        vscode.window.showErrorMessage(
+          `Failed to update Windsurf MCP config: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+    } else {
+      vscode.window.showInformationMessage(
+        `MCP URL copied to clipboard: ${mcpUrl}`
+      );
+    }
   };
 
   /**
