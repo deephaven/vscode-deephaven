@@ -19,6 +19,7 @@ import {
   DELETE_VARIABLE_CMD,
   DOWNLOAD_LOGS_CMD,
   GENERATE_REQUIREMENTS_TXT_CMD,
+  MCP_SERVER_PORT_STORAGE_KEY,
   OPEN_IN_BROWSER_CMD,
   REFRESH_PANELS_TREE_CMD,
   REFRESH_REMOTE_IMPORT_SOURCE_TREE_CMD,
@@ -437,9 +438,21 @@ export class ExtensionController implements IDisposable {
         this._serverManager
       );
 
-      // Start with auto-allocated port (0)
-      const actualPort = await this._mcpServer.start();
+      // Try to use previously stored port for consistency across sessions
+      const storedPort = this._context.workspaceState.get<number>(
+        MCP_SERVER_PORT_STORAGE_KEY
+      );
+
+      const actualPort = await this._mcpServer.start(storedPort);
       logger.info(`MCP Server started on port ${actualPort}`);
+
+      // Store the port for next session (only if different from stored)
+      if (actualPort !== storedPort) {
+        await this._context.workspaceState.update(
+          MCP_SERVER_PORT_STORAGE_KEY,
+          actualPort
+        );
+      }
 
       // Update status bar
       this.updateMcpStatusBar(actualPort);
@@ -778,7 +791,7 @@ export class ExtensionController implements IDisposable {
   initializeStatusBar = (): void => {
     this._mcpStatusBarItem = vscode.window.createStatusBarItem(
       vscode.StatusBarAlignment.Right,
-      100
+      200
     );
     this._mcpStatusBarItem.command = COPY_MCP_URL_CMD;
     this._context.subscriptions.push(this._mcpStatusBarItem);
@@ -798,7 +811,7 @@ export class ExtensionController implements IDisposable {
       return;
     }
 
-    this._mcpStatusBarItem.text = `$(plug) MCP: ${port}`;
+    this._mcpStatusBarItem.text = `$(dh-ext-logo) MCP: ${port}`;
     this._mcpStatusBarItem.tooltip = `Deephaven MCP Server running on port ${port}. Click to copy URL.`;
     this._mcpStatusBarItem.show();
   };
