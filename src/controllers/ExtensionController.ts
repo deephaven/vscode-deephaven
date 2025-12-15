@@ -458,6 +458,9 @@ export class ExtensionController implements IDisposable {
       // Update status bar
       this.updateMcpStatusBar(actualPort);
 
+      // Auto-configure Windsurf MCP config if running in Windsurf
+      await this.updateWindsurfMcpConfig(actualPort, true);
+
       vscode.window.showInformationMessage(
         `Deephaven MCP Server started on port ${actualPort}.`
       );
@@ -1141,57 +1144,113 @@ export class ExtensionController implements IDisposable {
     // Windsurf uses a separate MCP config file - automatically add/update the server entry
     const isWindsurf = vscode.env.appName.toLowerCase().includes('windsurf');
     if (isWindsurf) {
-      const homeDir = process.env.HOME ?? process.env.USERPROFILE ?? '';
-      const windsurfMcpConfigPath = `${homeDir}/.codeium/windsurf/mcp_config.json`;
-      const configUri = vscode.Uri.file(windsurfMcpConfigPath);
-
-      try {
-        // Read existing config or create new one
-        let config: { mcpServers?: Record<string, unknown> } = {
-          mcpServers: {},
-        };
-        try {
-          const existingContent = await vscode.workspace.fs.readFile(configUri);
-          config = JSON.parse(existingContent.toString());
-          if (config.mcpServers == null) {
-            config.mcpServers = {};
-          }
-        } catch {
-          // File doesn't exist or is invalid - start fresh
-        }
-
-        // Add/update the Deephaven MCP server entry
-        config.mcpServers![MCP_SERVER_NAME] = {
-          serverUrl: mcpUrl,
-        };
-
-        // Ensure parent directory exists
-        const configDir = vscode.Uri.file(`${homeDir}/.codeium/windsurf`);
-        try {
-          await vscode.workspace.fs.createDirectory(configDir);
-        } catch {
-          // Directory may already exist
-        }
-
-        // Write updated config
-        await vscode.workspace.fs.writeFile(
-          configUri,
-          Buffer.from(JSON.stringify(config, null, 2))
-        );
-
-        await vscode.window.showTextDocument(configUri);
+      const updated = await this.updateWindsurfMcpConfig(port, false);
+      if (updated) {
         vscode.window.showInformationMessage(
           `MCP URL copied and Windsurf config updated with '${MCP_SERVER_NAME}' server.`
         );
-      } catch (error) {
-        vscode.window.showErrorMessage(
-          `Failed to update Windsurf MCP config: ${error instanceof Error ? error.message : String(error)}`
+      } else {
+        vscode.window.showInformationMessage(
+          `MCP URL copied to clipboard: ${mcpUrl}`
         );
       }
     } else {
       vscode.window.showInformationMessage(
         `MCP URL copied to clipboard: ${mcpUrl}`
       );
+    }
+  };
+
+  /**
+   * Update Windsurf MCP config with the Deephaven server entry.
+   * @param port The port the MCP server is running on
+   * @param promptBeforeUpdate If true, prompt the user before updating the config
+   * @returns true if the config was updated, false otherwise
+   */
+  private updateWindsurfMcpConfig = async (
+    port: number,
+    promptBeforeUpdate: boolean
+  ): Promise<boolean> => {
+    const isWindsurf = vscode.env.appName.toLowerCase().includes('windsurf');
+    if (!isWindsurf) {
+      return false;
+    }
+
+    const mcpUrl = `http://localhost:${port}/mcp`;
+    const homeDir = process.env.HOME ?? process.env.USERPROFILE ?? '';
+    const windsurfMcpConfigPath = `${homeDir}/.codeium/windsurf/mcp_config.json`;
+    const configUri = vscode.Uri.file(windsurfMcpConfigPath);
+
+    try {
+      // Read existing config or create new one
+      let config: { mcpServers?: Record<string, { serverUrl?: string }> } = {
+        mcpServers: {},
+      };
+      try {
+        const existingContent = await vscode.workspace.fs.readFile(configUri);
+        config = JSON.parse(existingContent.toString());
+        if (config.mcpServers == null) {
+          config.mcpServers = {};
+        }
+      } catch {
+        // File doesn't exist or is invalid - start fresh
+      }
+
+      // Check if config already has the correct entry
+      const existingEntry = config.mcpServers![MCP_SERVER_NAME];
+      if (existingEntry?.serverUrl === mcpUrl) {
+        // Config is already up to date
+        return false;
+      }
+
+      // Prompt user before updating if requested
+      if (promptBeforeUpdate) {
+        let message: string;
+        if (existingEntry == null) {
+          message = `Add '${MCP_SERVER_NAME}' to your Windsurf MCP config?`;
+        } else {
+          message = `Your Windsurf MCP config doesn't match this workspace's '${MCP_SERVER_NAME}'. Update to port ${port}?`;
+        }
+        const response = await vscode.window.showInformationMessage(
+          message,
+          'Yes',
+          'No'
+        );
+        if (response !== 'Yes') {
+          return false;
+        }
+      }
+
+      // Add/update the Deephaven MCP server entry
+      config.mcpServers![MCP_SERVER_NAME] = {
+        serverUrl: mcpUrl,
+      };
+
+      // Ensure parent directory exists
+      const configDir = vscode.Uri.file(`${homeDir}/.codeium/windsurf`);
+      try {
+        await vscode.workspace.fs.createDirectory(configDir);
+      } catch {
+        // Directory may already exist
+      }
+
+      // Write updated config
+      await vscode.workspace.fs.writeFile(
+        configUri,
+        Buffer.from(JSON.stringify(config, null, 2))
+      );
+
+      // Open the config file if we prompted the user (so they can see the change)
+      if (promptBeforeUpdate) {
+        await vscode.window.showTextDocument(configUri);
+      }
+
+      return true;
+    } catch (error) {
+      vscode.window.showErrorMessage(
+        `Failed to update Windsurf MCP config: ${error instanceof Error ? error.message : String(error)}`
+      );
+      return false;
     }
   };
 
