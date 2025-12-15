@@ -58,6 +58,7 @@ export const REFRESH_SERVER_TREE_CMD = cmd('refreshServerTree');
 export const REFRESH_SERVER_CONNECTION_TREE_CMD = cmd(
   'refreshServerConnectionTree'
 );
+export const REFRESH_PANELS_TREE_CMD = cmd('refreshPanelsTree');
 export const REFRESH_VARIABLE_PANELS_CMD = cmd('refreshVariablePanels');
 export const RUN_CODE_COMMAND = cmd('runCode');
 export const RUN_MARKDOWN_CODEBLOCK_CMD = cmd('runMarkdownCodeBlock');

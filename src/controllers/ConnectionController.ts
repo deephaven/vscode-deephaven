@@ -307,8 +307,15 @@ export class ConnectionController
    * @param serverState
    */
   onConnectToServerOperateAs = async (
-    serverState: ServerState
+    serverState: ServerState | undefined
   ): Promise<void> => {
+    // Sometimes view/item/context commands pass undefined instead of a value.
+    // Just ignore. microsoft/vscode#283655
+    if (serverState == null) {
+      logger.debug('onConnectToServerOperateAs', 'serverState is undefined');
+      return;
+    }
+
     this.onConnectToServer(serverState, true);
   };
 
@@ -316,7 +323,14 @@ export class ConnectionController
    * Disconnect editor from active connections.
    * @param uri
    */
-  onDisconnectEditor = (uri: vscode.Uri): void => {
+  onDisconnectEditor = (uri: vscode.Uri | undefined): void => {
+    // Sometimes view/item/context commands pass undefined instead of a value.
+    // Just ignore. microsoft/vscode#283655
+    if (uri == null) {
+      logger.debug('onDisconnectEditor', 'uri is undefined');
+      return;
+    }
+
     this._serverManager?.disconnectEditor(uri);
     this.updateConnectionStatusBarItem();
   };
@@ -325,8 +339,18 @@ export class ConnectionController
    * Handle disconnecting from a server.
    */
   onDisconnectFromServer = async (
-    serverOrConnectionState: ServerState | ConnectionState
+    serverOrConnectionState: ServerState | ConnectionState | undefined
   ): Promise<void> => {
+    // Sometimes view/item/context commands pass undefined instead of a value.
+    // Just ignore. microsoft/vscode#283655
+    if (serverOrConnectionState == null) {
+      logger.debug(
+        'onDisconnectFromServer',
+        'serverOrConnectionState is undefined'
+      );
+      return;
+    }
+
     const url = getServerUrlFromState(serverOrConnectionState);
 
     if (url.origin === this._createQueryViewProvider.activeServerUrl?.origin) {
