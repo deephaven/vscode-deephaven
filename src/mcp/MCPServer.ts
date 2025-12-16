@@ -18,6 +18,7 @@ import { createSetEditorConnectionTool } from './tools/setEditorConnection';
 import { createOpenVariablePanelsTool } from './tools/openVariablePanels';
 import { createStartPipServerTool } from './tools/startPipServer';
 import { createCheckPythonEnvTool } from './tools/checkPythonEnvironment';
+import { createAddRemoteFileSourcesTool } from './tools/addRemoteFileSources';
 
 /**
  * MCP Server for Deephaven extension.
@@ -76,6 +77,7 @@ export class MCPServer {
     this.registerTool(createOpenVariablePanelsTool(this.serverManager));
     this.registerTool(createStartPipServerTool(this.pipServerController));
     this.registerTool(createCheckPythonEnvTool(this.pipServerController));
+    this.registerTool(createAddRemoteFileSourcesTool());
   }
 
   /**

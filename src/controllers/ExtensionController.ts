@@ -1221,6 +1221,7 @@ export class ExtensionController implements IDisposable {
     folderElementOrUri:
       | RemoteImportSourceTreeFolderElement
       | vscode.Uri
+      | vscode.Uri[]
       | undefined
   ): Promise<void> => {
     // Sometimes view/item/context commands pass undefined instead of a value.
@@ -1234,12 +1235,15 @@ export class ExtensionController implements IDisposable {
 
     await this._pythonWorkspace.refresh();
 
-    const uri =
-      folderElementOrUri instanceof vscode.Uri
-        ? folderElementOrUri
-        : folderElementOrUri.uri;
+    const uris = Array.isArray(folderElementOrUri)
+      ? folderElementOrUri
+      : folderElementOrUri instanceof vscode.Uri
+        ? [folderElementOrUri]
+        : [folderElementOrUri.uri];
 
-    this._pythonWorkspace.markFolder(uri);
+    for (const uri of uris) {
+      this._pythonWorkspace.markFolder(uri);
+    }
   };
 
   onRemoveRemoteFileSource = async (
