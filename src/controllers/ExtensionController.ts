@@ -1004,7 +1004,7 @@ export class ExtensionController implements IDisposable {
     assertDefined(this._serverTreeView, 'serverManager');
 
     vscode.window.onDidChangeWindowState(
-      this.maybeUpdateServerStatuses,
+      this.onWindowStateChange,
       undefined,
       this._context.subscriptions
     );
@@ -1029,6 +1029,14 @@ export class ExtensionController implements IDisposable {
   };
 
   /**
+   * Handle window state changes (focus/active).
+   */
+  onWindowStateChange = (): void => {
+    this.maybeUpdateServerStatuses();
+    this.maybeUpdateWindsurfMcpConfig();
+  };
+
+  /**
    * Update server statuses if vscode window is
    * active and focused.
    */
@@ -1045,6 +1053,26 @@ export class ExtensionController implements IDisposable {
     this._pipServerController?.syncManagedServers();
   };
 
+  /**
+   * Check and update Windsurf MCP config if window gains focus.
+   * Only runs in Windsurf and when window is active and focused.
+   */
+  maybeUpdateWindsurfMcpConfig = async (): Promise<void> => {
+    const shouldUpdate =
+      vscode.window.state.active && vscode.window.state.focused;
+
+    if (!shouldUpdate) {
+      return;
+    }
+
+    const port = this._mcpServer?.getPort();
+    if (port == null) {
+      return;
+    }
+
+    await this.updateWindsurfMcpConfig(port, true);
+  };
+
   onDeleteVariable = async (
     urlAndVariable: [URL, VariableDefintion] | undefined
   ): Promise<void> => {
@@ -1056,6 +1084,7 @@ export class ExtensionController implements IDisposable {
     }
 
     const [url, variable] = urlAndVariable;
+
     const connectionState = this._serverManager?.getConnection(url);
     if (!isInstanceOf(connectionState, DhcService)) {
       return;
