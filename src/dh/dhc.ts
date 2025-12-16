@@ -152,7 +152,8 @@ export async function initDhcSession(
 
   const session = await cn.startSession(type);
 
-  const remoteFileSourcePlugin = await getRemoteFileSourcePlugin(cnId, session);
+  const remoteFileSourcePlugin =
+    type === 'python' ? await getRemoteFileSourcePlugin(cnId, session) : null;
 
   return { cn, cnId, remoteFileSourcePlugin, session };
 }
