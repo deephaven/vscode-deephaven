@@ -14,6 +14,6 @@ For VS Code and Windsurf, you can manually download and install the latest mcp-d
 - Download and install the .vsix
 - Restart Windsurf
 - Should see a prompt "Your Windsurf MCP config doesn't match this workspace's 'Deephaven VS Code MCP Server'. Update to port XXXXX?"
-- Say yes
+- Say "yes" for this time or "always" for it to automatically update when you switch windows
 
 > Note Windsurf only supports a global mcp server configuration (`~/.codeium/windsurf/mcp_config.json`), but the extension assigns a unique MCP port to each workspace. This means whenever you switch workspaces, you will be prompted to sync the port again so that Cascade can talk to the correct MCP server.
