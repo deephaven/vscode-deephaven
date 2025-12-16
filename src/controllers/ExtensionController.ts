@@ -39,6 +39,8 @@ import {
 import {
   deserializeRange,
   getEditorForUri,
+  getGroovyTopLevelPackageName,
+  getPythonTopLevelModuleFullname,
   getTempDir,
   isInstanceOf,
   isSerializedRange,
@@ -118,6 +120,8 @@ import type {
   VariableDefintion,
   RemoteImportSourceTreeElement,
   RemoteImportSourceTreeFolderElement,
+  GroovyPackageName,
+  PythonModuleFullname,
 } from '../types';
 import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTreeDragAndDropController';
 import { ConnectionController } from './ConnectionController';
@@ -190,8 +194,9 @@ export class ExtensionController implements IDisposable {
   private _dhcServiceFactory: IDhcServiceFactory | null = null;
   private _dheJsApiCache: IAsyncCacheService<URL, DheType> | null = null;
   private _dheServiceFactory: IDheServiceFactory | null = null;
-  private _groovyWorkspace: FilteredWorkspace | null = null;
-  private _pythonWorkspace: FilteredWorkspace | null = null;
+  private _groovyWorkspace: FilteredWorkspace<GroovyPackageName> | null = null;
+  private _pythonWorkspace: FilteredWorkspace<PythonModuleFullname> | null =
+    null;
   private _remoteFileSourceService: RemoteFileSourceService | null = null;
   private _secretService: ISecretService | null = null;
   private _serverManager: IServerManager | null = null;
@@ -376,6 +381,7 @@ export class ExtensionController implements IDisposable {
 
     this._groovyWorkspace = new FilteredWorkspace(
       GROOVY_FILE_PATTERN,
+      getGroovyTopLevelPackageName,
       GROOVY_IGNORE_TOP_LEVEL_FOLDER_NAMES,
       this._toaster
     );
@@ -383,6 +389,7 @@ export class ExtensionController implements IDisposable {
 
     this._pythonWorkspace = new FilteredWorkspace(
       PYTHON_FILE_PATTERN,
+      getPythonTopLevelModuleFullname,
       PYTHON_IGNORE_TOP_LEVEL_FOLDER_NAMES,
       this._toaster
     );

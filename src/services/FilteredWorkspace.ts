@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import type {
   FilePattern,
   FolderName,
+  GroovyPackageName,
   PythonModuleFullname,
   RemoteImportSourceTreeFileElement,
   RemoteImportSourceTreeFolderElement,
@@ -9,7 +10,6 @@ import type {
   RemoteImportSourceTreeWkspRootFolderElement,
 } from '../types';
 import {
-  getTopLevelModuleFullname,
   getWorkspaceFileUriMap,
   Logger,
   URIMap,
@@ -53,12 +53,17 @@ type FilteredWorkspaceNode =
  * Represents a filtered view of a VS Code workspace. Also supports "marking"
  * folders that can be used for an additional filter layer.
  */
-export class FilteredWorkspace
+export class FilteredWorkspace<
+    TModuleName extends PythonModuleFullname | GroovyPackageName,
+  >
   extends DisposableBase
   implements vscode.FileDecorationProvider
 {
   constructor(
     readonly filePattern: FilePattern,
+    private readonly _getTopLevelModuleName: (
+      folderUri: vscode.Uri
+    ) => TModuleName,
     private readonly _ignoreTopLevelFolderNames: Set<FolderName>,
     private readonly _toaster: Toaster
   ) {
@@ -88,10 +93,7 @@ export class FilteredWorkspace
   private readonly _parentUriMap = new URIMap<vscode.Uri | null>();
   private readonly _nodeMap = new URIMap<FilteredWorkspaceNode>();
   private readonly _rootNodeMap = new URIMap<FilteredWorkspaceRootNode>();
-  private readonly _topLevelMarkedUriMap = new Map<
-    PythonModuleFullname,
-    vscode.Uri
-  >();
+  private readonly _topLevelMarkedUriMap = new Map<TModuleName, vscode.Uri>();
   private _wsFileUriMap = new URIMap<URISet>();
 
   /**
@@ -99,7 +101,7 @@ export class FilteredWorkspace
    * @param folderUri The folder URI to delete.
    */
   deleteExactTopLevelMarkedUri(folderUri: vscode.Uri): void {
-    const moduleName = getTopLevelModuleFullname(folderUri);
+    const moduleName = this._getTopLevelModuleName(folderUri);
 
     if (
       this._topLevelMarkedUriMap.get(moduleName)?.fsPath === folderUri.fsPath
@@ -125,7 +127,7 @@ export class FilteredWorkspace
 
       // If this node is the parent folder being marked, add it to the map
       if (node.uri.fsPath === folderUri.fsPath) {
-        const moduleName = getTopLevelModuleFullname(node.uri);
+        const moduleName = this._getTopLevelModuleName(node.uri);
         this._topLevelMarkedUriMap.set(moduleName, folderUri);
       } else {
         // Since we've marked the parent folder as top-level, remove top-level
@@ -146,7 +148,7 @@ export class FilteredWorkspace
    * @returns
    */
   unmarkConflictingTopLevelFolder(folderUri: vscode.Uri): void {
-    const moduleName = getTopLevelModuleFullname(folderUri);
+    const moduleName = this._getTopLevelModuleName(folderUri);
     const existingTopLevelUri = this._topLevelMarkedUriMap.get(moduleName);
     const noConflict =
       existingTopLevelUri == null ||
@@ -195,7 +197,7 @@ export class FilteredWorkspace
           this.unmarkConflictingTopLevelFolder(childNode.uri);
 
           this._topLevelMarkedUriMap.set(
-            getTopLevelModuleFullname(childNode.uri),
+            this._getTopLevelModuleName(childNode.uri),
             childNode.uri
           );
         }

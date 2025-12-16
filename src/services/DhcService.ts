@@ -142,6 +142,10 @@ export class DhcService extends DisposableBase implements IDhcService {
   private pythonRemoteFileSourcePluginSubscription: (() => void) | null = null;
   private session: DhcType.IdeSession | null = null;
 
+  private groovyRemoteFileSourcePluginService: DhcType.remotefilesource.RemoteFileSourceService | null =
+    null;
+  private pythonRemoteFileSourcePlugin: DhcType.Widget | null = null;
+
   get isInitialized(): boolean {
     return this.initSessionPromise != null;
   }
@@ -339,24 +343,28 @@ export class DhcService extends DisposableBase implements IDhcService {
   /**
    * Initialize the remote file source plugins.
    * @param session the ide session to associate with the plugins
-   * @param groovyRemoteFileSourcePlugin the Groovy remote file source plugin widget
+   * @param groovyRemoteFileSourcePluginService the Groovy remote file source plugin service
    * @param pythonRemoteFileSourcePlugin the Python remote file source plugin widget
    */
   private _initRemoteFileSourcePlugins = async (
     session: DhcType.IdeSession,
-    groovyRemoteFileSourcePlugin: DhcType.remotefilesource.RemoteFileSourceService | null,
+    groovyRemoteFileSourcePluginService: DhcType.remotefilesource.RemoteFileSourceService | null,
     pythonRemoteFileSourcePlugin: DhcType.Widget | null
   ): Promise<void> => {
+    this.groovyRemoteFileSourcePluginService =
+      groovyRemoteFileSourcePluginService;
+    this.pythonRemoteFileSourcePlugin = pythonRemoteFileSourcePlugin;
+
     // Groovy plugin
-    if (groovyRemoteFileSourcePlugin != null) {
+    if (groovyRemoteFileSourcePluginService != null) {
       this.disposables.add(() => {
-        groovyRemoteFileSourcePlugin.close();
+        groovyRemoteFileSourcePluginService.close();
       });
 
       this.groovyRemoteFileSourcePluginSubscription =
         await this.remoteFileSourceService.registerGroovyPlugin(
           session,
-          groovyRemoteFileSourcePlugin
+          groovyRemoteFileSourcePluginService
         );
 
       this.disposables.add(this.groovyRemoteFileSourcePluginSubscription);
@@ -469,10 +477,16 @@ export class DhcService extends DisposableBase implements IDhcService {
 
       this.isRunningCode = true;
 
-      if (this.pythonRemoteFileSourcePluginSubscription != null) {
+      if (this.pythonRemoteFileSourcePlugin != null) {
         await this.remoteFileSourceService.setPythonServerExecutionContext(
           this.cnId,
           this.session
+        );
+      }
+
+      if (this.groovyRemoteFileSourcePluginService != null) {
+        await this.remoteFileSourceService.setGroovyServerExecutionContext(
+          this.groovyRemoteFileSourcePluginService
         );
       }
 
