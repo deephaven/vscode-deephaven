@@ -7,51 +7,13 @@ For VS Code and Windsurf, you can manually download and install the latest mcp-d
 ## VS Code Installation
 - Download and install the .vsix
 - Restart VS Code
-- Should see a popup in the bottom right that the MCP server has started, and a `.vscode/mcp.json` file should get created. e.g.:
-   ```json
-   {
-    "servers": {
-      "deephaven-vscode": {
-        "type": "http",
-        "url": "http://localhost:51520/mcp"
-      }
-    }
-  }
-  ```
-- Copilot should now have access to the MCP server
-![alt text](assets/copilot-mcp-settings.png)
-![alt text](assets/copilot-mcp-servers.png)
+- A toast message should say that Deephaven MCP Server has started
+- No need to configure anything. Copilot should now have access to the MCP server
 
 ## Windsurf
 - Download and install the .vsix
 - Restart Windsurf
-- Should see a popup in the bottom right that the MCP server has started, and a `.vscode/mcp.json` file should get created.
+- Should see a prompt "Your Windsurf MCP config doesn't match this workspace's 'Deephaven VS Code MCP Server'. Update to port XXXXX?"
+- Say yes
 
-> Note that Windsurf won't actually use the mcp.json file, so there's an extra step. Windsurf doesn't seem to have a workspace level mcp settings (although I may just be missing it). There is a user level mcp settings file at `~/.codeium/windsurf/mcp_config.json`. 
-
-You can copy / modify your `.vscode/mcp.json` contents to the Windsurf user settings:
-
-`.vscode/mcp.json`
-```json
-{
-  "servers": {
-    "deephaven-vscode": {
-      "type": "http",
-      "url": "http://localhost:51520/mcp"
-    }
-  }
-}
-```
-
-becomes
-
-`~/.codeium/windsurf/mcp_config.json`
-```json
-{
-  "mcpServers": {
-    "deephaven-vscode": {
-      "serverUrl": "http://localhost:51520/mcp"
-    }
-  }
-}
-```
+> Note Windsurf only supports a global mcp server configuration (`~/.codeium/windsurf/mcp_config.json`), but the extension assigns a unique MCP port to each workspace. This means whenever you switch workspaces, you will be prompted to sync the port again so that Cascade can talk to the correct MCP server.
