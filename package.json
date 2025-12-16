@@ -150,6 +150,11 @@
             ]
           },
           "default": []
+        },
+        "deephaven.mcp.autoUpdateConfig": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Automatically update MCP config without prompting when the extension's MCP server port changes. Applies to supported editors (e.g., Windsurf)."
         }
       }
     },

@@ -16,6 +16,7 @@ export const CONFIG_KEY = {
   root: 'deephaven',
   coreServers: 'coreServers',
   enterpriseServers: 'enterpriseServers',
+  mcpAutoUpdateConfig: 'mcp.autoUpdateConfig',
 } as const;
 
 export const CENSORED_TEXT = '********' as const;
