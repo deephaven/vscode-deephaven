@@ -4,6 +4,7 @@ import { URIMap } from './maps';
 import type {
   FilePattern,
   FolderName,
+  GroovyPackageName,
   Include,
   JsonRpcRequest,
   JsonRpcResponse,
@@ -185,12 +186,27 @@ export function getTopLevelMarkedFolderTreeItem({
 }
 
 /**
+ * Get the top-level Groovy package name for a given folder URI. It will be the
+ * last segment of the folder path.
+ * @param folderUri The folder URI.
+ * @returns The top-level package name.
+ */
+export function getGroovyTopLevelPackageName(
+  folderUri: vscode.Uri
+): GroovyPackageName {
+  return folderUri.path
+    .replace(/\/$/, '')
+    .split('/')
+    .at(-1) as GroovyPackageName;
+}
+
+/**
  * Get the top-level Python module name for a given folder URI. It will be the
  * last segment of the folder path.
  * @param folderUri The folder URI.
  * @returns The top-level module name.
  */
-export function getTopLevelModuleFullname(
+export function getPythonTopLevelModuleFullname(
   folderUri: vscode.Uri
 ): PythonModuleFullname {
   return folderUri.path
@@ -265,13 +281,30 @@ export function hasPythonPluginVariable(
 }
 
 /**
+ * Register a message listener on the Groovy remote file source plugin to
+ * handle requests.
+ * @param pluginService The remote file source plugin service.
+ * @returns a function to unregister the listener
+ */
+export function registerGroovyRemoteFileSourcePluginMessageListener(
+  pluginService: DhcType.remotefilesource.RemoteFileSourceService
+): () => void {
+  return pluginService.addEventListener<DhcType.remotefilesource.ResourceRequestEvent>(
+    'requestsource',
+    async ({ detail }) => {
+      console.log('[TESTING] requestSource event:', detail.resourceName);
+    }
+  );
+}
+
+/**
  * Register a message listener on the remote file source plugin to handle requests.
  * @param plugin the remote file source plugin widget
  * @param getPythonModuleSpecData a function that returns the module spec data
  * for a given module fullname
  * @returns a function to unregister the listener
  */
-export function registerRemoteFileSourcePluginMessageListener(
+export function registerPythonRemoteFileSourcePluginMessageListener(
   plugin: DhcType.Widget,
   getPythonModuleSpecData: (
     moduleFullname: PythonModuleFullname
