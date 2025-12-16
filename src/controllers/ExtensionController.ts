@@ -1234,19 +1234,32 @@ export class ExtensionController implements IDisposable {
 
       // Prompt user before updating if requested
       if (promptBeforeUpdate) {
-        let message: string;
-        if (existingEntry == null) {
-          message = `Add '${MCP_SERVER_NAME}' to your Windsurf MCP config?`;
-        } else {
-          message = `Your Windsurf MCP config doesn't match this workspace's '${MCP_SERVER_NAME}'. Update to port ${port}?`;
-        }
-        const response = await vscode.window.showInformationMessage(
-          message,
-          'Yes',
-          'No'
-        );
-        if (response !== 'Yes') {
-          return false;
+        // Check if user has enabled auto-update in settings
+        const autoUpdate = this._config.getMcpAutoUpdateConfig();
+
+        if (!autoUpdate) {
+          let message: string;
+          let buttons: string[];
+
+          if (existingEntry == null) {
+            message = `Add '${MCP_SERVER_NAME}' to your Windsurf MCP config?`;
+            buttons = ['Yes', 'No'];
+          } else {
+            message = `Your Windsurf MCP config doesn't match this workspace's '${MCP_SERVER_NAME}'. Update to port ${port}?`;
+            buttons = ['Yes', 'Always', 'No'];
+          }
+
+          const response = await vscode.window.showInformationMessage(
+            message,
+            ...buttons
+          );
+
+          if (response === 'Always') {
+            // Store the preference to auto-update in the future
+            await this._config.setMcpAutoUpdateConfig(true);
+          } else if (response !== 'Yes') {
+            return false;
+          }
         }
       }
 

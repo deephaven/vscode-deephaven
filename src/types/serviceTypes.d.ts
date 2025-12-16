@@ -41,6 +41,8 @@ export interface IConfigService {
   isElectronFetchEnabled: () => boolean;
   getCoreServers: () => CoreConnectionConfig[];
   getEnterpriseServers: () => EnterpriseConnectionConfig[];
+  getMcpAutoUpdateConfig: () => boolean;
+  setMcpAutoUpdateConfig: (value: boolean) => Promise<void>;
 }
 
 /**
