@@ -80,6 +80,9 @@ import {
   PYTHON_FILE_PATTERN,
   SecretService,
   ServerManager,
+  PYTHON_IGNORE_TOP_LEVEL_FOLDER_NAMES,
+  GROOVY_FILE_PATTERN,
+  GROOVY_IGNORE_TOP_LEVEL_FOLDER_NAMES,
 } from '../services';
 import type {
   IDisposable,
@@ -187,6 +190,7 @@ export class ExtensionController implements IDisposable {
   private _dhcServiceFactory: IDhcServiceFactory | null = null;
   private _dheJsApiCache: IAsyncCacheService<URL, DheType> | null = null;
   private _dheServiceFactory: IDheServiceFactory | null = null;
+  private _groovyWorkspace: FilteredWorkspace | null = null;
   private _pythonWorkspace: FilteredWorkspace | null = null;
   private _remoteFileSourceService: RemoteFileSourceService | null = null;
   private _secretService: ISecretService | null = null;
@@ -369,13 +373,23 @@ export class ExtensionController implements IDisposable {
    */
   initializeRemoteFileSourcing = (): void => {
     assertDefined(this._toaster, 'toaster');
+
+    this._groovyWorkspace = new FilteredWorkspace(
+      GROOVY_FILE_PATTERN,
+      GROOVY_IGNORE_TOP_LEVEL_FOLDER_NAMES,
+      this._toaster
+    );
+    this._context.subscriptions.push(this._groovyWorkspace);
+
     this._pythonWorkspace = new FilteredWorkspace(
       PYTHON_FILE_PATTERN,
+      PYTHON_IGNORE_TOP_LEVEL_FOLDER_NAMES,
       this._toaster
     );
     this._context.subscriptions.push(this._pythonWorkspace);
 
     this._remoteFileSourceService = new RemoteFileSourceService(
+      this._groovyWorkspace,
       this._pythonWorkspace
     );
     this._context.subscriptions.push(this._remoteFileSourceService);

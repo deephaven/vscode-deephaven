@@ -7,30 +7,59 @@ import {
   Logger,
   registerRemoteFileSourcePluginMessageListener,
 } from '../util';
-import type { ModuleFullname, PythonModuleSpecData, UniqueID } from '../types';
+import type {
+  GroovyResourceName,
+  PythonModuleFullname,
+  PythonModuleSpecData,
+  UniqueID,
+} from '../types';
 import type { FilteredWorkspace } from './FilteredWorkspace';
 
 const logger = new Logger('RemoteFileSourceService');
 
 export class RemoteFileSourceService extends DisposableBase {
-  constructor(private readonly _pythonWorkspace: FilteredWorkspace) {
+  constructor(
+    private readonly _groovyWorkspace: FilteredWorkspace,
+    private readonly _pythonWorkspace: FilteredWorkspace
+  ) {
     super();
 
     this.disposables.add(
+      this._groovyWorkspace.onDidUpdate(() => {
+        this._onDidUpdateGroovyModuleMeta.fire();
+      })
+    );
+
+    this.disposables.add(
       this._pythonWorkspace.onDidUpdate(() => {
-        this._onDidUpdateModuleMeta.fire();
+        this._onDidUpdatePythonModuleMeta.fire();
       })
     );
   }
 
-  private _onDidUpdateModuleMeta = new vscode.EventEmitter<void>();
-  readonly onDidUpdateModuleMeta = this._onDidUpdateModuleMeta.event;
+  private _onDidUpdateGroovyModuleMeta = new vscode.EventEmitter<void>();
+  readonly onDidUpdateGroovyModuleMeta =
+    this._onDidUpdateGroovyModuleMeta.event;
+
+  private _onDidUpdatePythonModuleMeta = new vscode.EventEmitter<void>();
+  readonly onDidUpdatePythonModuleMeta =
+    this._onDidUpdatePythonModuleMeta.event;
+
+  /**
+   * Get Groovy resource content for a given resource name.
+   * @param resourceName The Groovy resource name.
+   * @returns The Groovy resource content.
+   */
+  getGroovyResource(resourceName: GroovyResourceName): string {
+    console.log(resourceName);
+    return '';
+  }
 
   /**
    * Get the top level Python module names available to the remote file source.
    */
-  getTopLevelPythonModuleNames(): Set<ModuleFullname> {
-    const set = new Set<ModuleFullname>();
+  getTopLevelPythonModuleNames(): Set<PythonModuleFullname> {
+    const set = new Set<PythonModuleFullname>();
 
     this._pythonWorkspace.getTopLevelMarkedFolders().forEach(({ uri }) => {
       set.add(getTopLevelModuleFullname(uri));
@@ -45,7 +74,7 @@ export class RemoteFileSourceService extends DisposableBase {
    * @returns The Python module spec data, or undefined if not found.
    */
   getPythonModuleSpecData(
-    moduleFullname: ModuleFullname
+    moduleFullname: PythonModuleFullname
   ): PythonModuleSpecData | null {
     const [firstModuleToken, ...restModuleTokens] = moduleFullname.split('.');
 
@@ -111,13 +140,22 @@ export class RemoteFileSourceService extends DisposableBase {
     return null;
   }
 
+  async registerGroovyPlugin(
+    _session: DhcType.IdeSession,
+    plugin: DhcType.remotefilesource.RemoteFileSourceService
+  ): Promise<() => void> {
+    return plugin.addEventListener('requestSource', async event => {
+      console.log('[TESTING] requestSource event:', event);
+    });
+  }
+
   /**
    * Register a session + plugin with the remote file source service.
    * @param session the ide session
    * @param plugin the remote file source plugin widget
    * @returns an unsubscribe function to unregister subscriptions
    */
-  async registerPlugin(
+  async registerPythonPlugin(
     session: DhcType.IdeSession,
     plugin: DhcType.Widget
   ): Promise<() => void> {
@@ -127,7 +165,7 @@ export class RemoteFileSourceService extends DisposableBase {
       getPythonModuleSpecData
     );
 
-    const setServerExecutionContext = this.setServerExecutionContext.bind(
+    const setServerExecutionContext = this.setPythonServerExecutionContext.bind(
       this,
       null,
       session
@@ -135,7 +173,7 @@ export class RemoteFileSourceService extends DisposableBase {
 
     // Set initial top-level module names and subscribe to update on meta changes
     await setServerExecutionContext();
-    const metaSubscription = this.onDidUpdateModuleMeta(
+    const metaSubscription = this.onDidUpdatePythonModuleMeta(
       setServerExecutionContext
     );
 
@@ -149,11 +187,11 @@ export class RemoteFileSourceService extends DisposableBase {
   }
 
   /**
-   * Set the server execution context for the plugin using the given session.
+   * Set the Python server execution context for the plugin using the given session.
    * @param connectionId The unique ID of the connection.
    * @param session The IdeSession to use to run the code.
    */
-  async setServerExecutionContext(
+  async setPythonServerExecutionContext(
     connectionId: UniqueID | null,
     session: DhcType.IdeSession
   ): Promise<void> {

@@ -15,7 +15,7 @@ import type {
   JsonRpcFetchModuleRequest,
   JsonRpcRequest,
   JsonRpcResponse,
-  ModuleFullname,
+  PythonModuleFullname,
   PythonModuleSpecData,
   RemoteImportSourceTreeFileElement,
   RemoteImportSourceTreeFolderElement,
@@ -155,9 +155,11 @@ describe('hasPythonPluginVariable', () => {
 
 describe('registerRemoteFileSourcePluginMessageListener', () => {
   const getPythonModuleSpecData =
-    vi.fn<(moduleFullname: ModuleFullname) => PythonModuleSpecData | null>();
+    vi.fn<
+      (moduleFullname: PythonModuleFullname) => PythonModuleSpecData | null
+    >();
 
-  const mockModuleName = 'a.b.c' as ModuleFullname;
+  const mockModuleName = 'a.b.c' as PythonModuleFullname;
 
   const mockFile = {
     exists: {
@@ -178,7 +180,7 @@ describe('registerRemoteFileSourcePluginMessageListener', () => {
       id: '1',
       method: 'fetch_module',
       // eslint-disable-next-line @typescript-eslint/naming-convention
-      params: { module_name: moduleName as ModuleFullname },
+      params: { module_name: moduleName as PythonModuleFullname },
     }),
     fetchModuleRes: ({
       source,

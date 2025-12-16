@@ -4,7 +4,8 @@ export type Include<T> = { value: T; include?: boolean };
 
 export type FilePattern = `**/*.${string}`;
 export type FolderName = Brand<'FolderName', string>;
-export type ModuleFullname = Brand<'ModuleFullname', string>;
+export type GroovyResourceName = Brand<'GroovyResourceName', string>;
+export type PythonModuleFullname = Brand<'ModuleFullname', string>;
 export type RelativeWsUriString = Brand<'RelativeWsUriString', string>;
 
 interface JsonRpcRequestBase {
@@ -15,7 +16,7 @@ interface JsonRpcRequestBase {
 export interface JsonRpcFetchModuleRequest extends JsonRpcRequestBase {
   method: 'fetch_module';
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  params: { module_name: ModuleFullname };
+  params: { module_name: PythonModuleFullname };
 }
 
 export interface JsonRpcSetConnectionIdRequest extends JsonRpcRequestBase {
@@ -45,14 +46,14 @@ export interface JsonRpcError {
 export type JsonRpcResponse = JsonRpcSuccess | JsonRpcError;
 
 export interface PythonRegularPackageSpecData {
-  name: ModuleFullname;
+  name: PythonModuleFullname;
   isPackage: true;
   origin: string;
   subModuleSearchLocations: string[];
 }
 
 export interface PythonNamespacePackageSpecData {
-  name: ModuleFullname;
+  name: PythonModuleFullname;
   isPackage: true;
   subModuleSearchLocations: string[];
 
@@ -61,7 +62,7 @@ export interface PythonNamespacePackageSpecData {
 }
 
 export interface PythonRegularModuleSpecData {
-  name: ModuleFullname;
+  name: PythonModuleFullname;
   isPackage: false;
   origin: string;
 
@@ -75,7 +76,7 @@ export type PythonModuleSpecData =
   | PythonRegularModuleSpecData;
 
 export interface PythonModuleSpecDataResult {
-  name: ModuleFullname;
+  name: PythonModuleFullname;
   origin?: string;
   /* eslint-disable @typescript-eslint/naming-convention */
   is_package: boolean;

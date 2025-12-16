@@ -7,7 +7,7 @@ import type {
   Include,
   JsonRpcRequest,
   JsonRpcResponse,
-  ModuleFullname,
+  PythonModuleFullname,
   PythonModuleSpecData,
   RemoteImportSourceTreeFileElement,
   RemoteImportSourceTreeFolderElement,
@@ -26,12 +26,14 @@ import { Logger } from './Logger';
 const logger = new Logger('remoteFileSourceUtils');
 
 export type PythonModuleWorkspaceMap = URIMap<
-  Map<ModuleFullname, Include<vscode.Uri>>
+  Map<PythonModuleFullname, Include<vscode.Uri>>
 >;
 
 export interface PythonModuleMeta {
   moduleMap: PythonModuleWorkspaceMap;
-  topLevelModuleNames: URIMap<Map<ModuleFullname, Include<ModuleFullname>>>;
+  topLevelModuleNames: URIMap<
+    Map<PythonModuleFullname, Include<PythonModuleFullname>>
+  >;
 }
 
 /**
@@ -190,8 +192,11 @@ export function getTopLevelMarkedFolderTreeItem({
  */
 export function getTopLevelModuleFullname(
   folderUri: vscode.Uri
-): ModuleFullname {
-  return folderUri.path.replace(/\/$/, '').split('/').at(-1) as ModuleFullname;
+): PythonModuleFullname {
+  return folderUri.path
+    .replace(/\/$/, '')
+    .split('/')
+    .at(-1) as PythonModuleFullname;
 }
 
 /**
@@ -269,7 +274,7 @@ export function hasPythonPluginVariable(
 export function registerRemoteFileSourcePluginMessageListener(
   plugin: DhcType.Widget,
   getPythonModuleSpecData: (
-    moduleFullname: ModuleFullname
+    moduleFullname: PythonModuleFullname
   ) => PythonModuleSpecData | null
 ): () => void {
   return plugin.addEventListener<DhcType.Widget>(

@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import type {
   FilePattern,
   FolderName,
-  ModuleFullname,
+  PythonModuleFullname,
   RemoteImportSourceTreeFileElement,
   RemoteImportSourceTreeFolderElement,
   RemoteImportSourceTreeTopLevelMarkedFolderElement,
@@ -20,10 +20,13 @@ import { DisposableBase } from './DisposableBase';
 
 const logger = new Logger('FilteredWorkspace');
 
+export const GROOVY_FILE_PATTERN = '**/*.groovy' as const;
 export const PYTHON_FILE_PATTERN = '**/*.py' as const;
 
+export const GROOVY_IGNORE_TOP_LEVEL_FOLDER_NAMES = new Set<FolderName>();
+
 // TODO: This should be configurable DH-20662
-const PYTHON_IGNORE_TOP_LEVEL_FOLDER_NAMES: Set<FolderName> =
+export const PYTHON_IGNORE_TOP_LEVEL_FOLDER_NAMES: Set<FolderName> =
   new Set<FolderName>([
     '.venv',
     'venv',
@@ -56,6 +59,7 @@ export class FilteredWorkspace
 {
   constructor(
     readonly filePattern: FilePattern,
+    private readonly _ignoreTopLevelFolderNames: Set<FolderName>,
     private readonly _toaster: Toaster
   ) {
     super();
@@ -80,15 +84,12 @@ export class FilteredWorkspace
   private _onDidUpdate = new vscode.EventEmitter<void>();
   readonly onDidUpdate = this._onDidUpdate.event;
 
-  private readonly _ignoreTopLevelFolderNames =
-    PYTHON_IGNORE_TOP_LEVEL_FOLDER_NAMES;
-
   private readonly _childNodeMap = new URIMap<URIMap<FilteredWorkspaceNode>>();
   private readonly _parentUriMap = new URIMap<vscode.Uri | null>();
   private readonly _nodeMap = new URIMap<FilteredWorkspaceNode>();
   private readonly _rootNodeMap = new URIMap<FilteredWorkspaceRootNode>();
   private readonly _topLevelMarkedUriMap = new Map<
-    ModuleFullname,
+    PythonModuleFullname,
     vscode.Uri
   >();
   private _wsFileUriMap = new URIMap<URISet>();
