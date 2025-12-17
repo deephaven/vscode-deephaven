@@ -11,7 +11,8 @@ import {
 } from '@deephaven-enterprise/auth-nodejs';
 import { NodeHttp2gRPCTransport } from '@deephaven/jsapi-nodejs';
 import {
-  ADD_REMOTE_FILE_SOURCE_CMD,
+  ADD_GROOVY_REMOTE_FILE_SOURCE_CMD,
+  ADD_PYTHON_REMOTE_FILE_SOURCE_CMD,
   CLEAR_SECRET_STORAGE_CMD,
   CREATE_NEW_TEXT_DOC_CMD,
   DELETE_VARIABLE_CMD,
@@ -22,7 +23,8 @@ import {
   REFRESH_REMOTE_IMPORT_SOURCE_TREE_CMD,
   REFRESH_SERVER_CONNECTION_TREE_CMD,
   REFRESH_SERVER_TREE_CMD,
-  REMOVE_REMOTE_FILE_SOURCE_CMD,
+  REMOVE_GROOVY_REMOTE_FILE_SOURCE_CMD,
+  REMOVE_PYTHON_REMOTE_FILE_SOURCE_CMD,
   RUN_CODE_COMMAND,
   RUN_MARKDOWN_CODEBLOCK_CMD,
   RUN_SELECTION_COMMAND,
@@ -381,6 +383,7 @@ export class ExtensionController implements IDisposable {
 
     this._groovyWorkspace = new FilteredWorkspace(
       GROOVY_FILE_PATTERN,
+      'groovy',
       getGroovyTopLevelPackageName,
       GROOVY_IGNORE_TOP_LEVEL_FOLDER_NAMES,
       this._toaster
@@ -389,6 +392,7 @@ export class ExtensionController implements IDisposable {
 
     this._pythonWorkspace = new FilteredWorkspace(
       PYTHON_FILE_PATTERN,
+      'python',
       getPythonTopLevelModuleFullname,
       PYTHON_IGNORE_TOP_LEVEL_FOLDER_NAMES,
       this._toaster
@@ -773,12 +777,20 @@ export class ExtensionController implements IDisposable {
       this.onRefreshRemoteImportSourceTree
     );
     this.registerCommand(
-      ADD_REMOTE_FILE_SOURCE_CMD,
-      this.onAddRemoteFileSource
+      ADD_GROOVY_REMOTE_FILE_SOURCE_CMD,
+      this.onAddRemoteFileSource.bind(this, 'groovy')
     );
     this.registerCommand(
-      REMOVE_REMOTE_FILE_SOURCE_CMD,
-      this.onRemoveRemoteFileSource
+      REMOVE_GROOVY_REMOTE_FILE_SOURCE_CMD,
+      this.onRemoveRemoteFileSource.bind(this, 'groovy')
+    );
+    this.registerCommand(
+      ADD_PYTHON_REMOTE_FILE_SOURCE_CMD,
+      this.onAddRemoteFileSource.bind(this, 'python')
+    );
+    this.registerCommand(
+      REMOVE_PYTHON_REMOTE_FILE_SOURCE_CMD,
+      this.onRemoveRemoteFileSource.bind(this, 'python')
     );
 
     /** Search connections */
@@ -809,6 +821,7 @@ export class ExtensionController implements IDisposable {
    */
   initializeWebViews = (): void => {
     assertDefined(this._dheClientCache, 'dheClientCache');
+    assertDefined(this._groovyWorkspace, 'groovyWorkspace');
     assertDefined(this._pythonWorkspace, 'pythonWorkspace');
     assertDefined(this._panelService, 'panelService');
     assertDefined(this._serverManager, 'serverManager');
@@ -870,6 +883,7 @@ export class ExtensionController implements IDisposable {
 
     // Remote import source tree
     this._remoteImportSourceTreeProvider = new RemoteImportSourceTreeProvider(
+      this._groovyWorkspace,
       this._pythonWorkspace
     );
     this._remoteImportSourceTreeView =
@@ -961,6 +975,7 @@ export class ExtensionController implements IDisposable {
   };
 
   onAddRemoteFileSource = async (
+    languageId: 'groovy' | 'python',
     folderElementOrUri:
       | RemoteImportSourceTreeFolderElement
       | vscode.Uri
@@ -969,23 +984,31 @@ export class ExtensionController implements IDisposable {
     // Sometimes view/item/context commands pass undefined instead of a value.
     // Just ignore. microsoft/vscode#283655
     if (folderElementOrUri == null) {
-      logger.debug('onAddRemoteFileSource', 'folderElementOrUri is undefined');
+      logger.debug(
+        'onAddRemoteFileSource',
+        languageId,
+        'folderElementOrUri is undefined'
+      );
       return;
     }
 
-    assertDefined(this._pythonWorkspace, 'pythonWorkspace');
+    const workspace =
+      languageId === 'groovy' ? this._groovyWorkspace : this._pythonWorkspace;
 
-    await this._pythonWorkspace.refresh();
+    assertDefined(workspace, `${languageId}Workspace`);
+
+    await workspace.refresh();
 
     const uri =
       folderElementOrUri instanceof vscode.Uri
         ? folderElementOrUri
         : folderElementOrUri.uri;
 
-    this._pythonWorkspace.markFolder(uri);
+    workspace.markFolder(uri);
   };
 
   onRemoveRemoteFileSource = async (
+    languageId: 'groovy' | 'python',
     folderElementOrUri:
       | RemoteImportSourceTreeFolderElement
       | vscode.Uri
@@ -996,20 +1019,25 @@ export class ExtensionController implements IDisposable {
     if (folderElementOrUri == null) {
       logger.debug(
         'onRemoveRemoteFileSource',
+        languageId,
         'folderElementOrUri is undefined'
       );
       return;
     }
 
-    assertDefined(this._pythonWorkspace, 'pythonWorkspace');
+    const workspace =
+      languageId === 'groovy' ? this._groovyWorkspace : this._pythonWorkspace;
 
-    await this._pythonWorkspace.refresh();
+    assertDefined(workspace, `${languageId}Workspace`);
+
+    await workspace.refresh();
 
     const uri =
       folderElementOrUri instanceof vscode.Uri
         ? folderElementOrUri
         : folderElementOrUri.uri;
-    this._pythonWorkspace.unmarkFolder(uri);
+
+    workspace.unmarkFolder(uri);
   };
 
   /**

@@ -68,5 +68,15 @@ export const SEARCH_PANELS_CMD = cmd('searchPanels');
 export const SELECT_CONNECTION_COMMAND = cmd('selectConnection');
 export const START_SERVER_CMD = cmd('startServer');
 export const STOP_SERVER_CMD = cmd('stopServer');
-export const ADD_REMOTE_FILE_SOURCE_CMD = cmd('addRemoteFileSource');
-export const REMOVE_REMOTE_FILE_SOURCE_CMD = cmd('removeRemoteFileSource');
+export const ADD_GROOVY_REMOTE_FILE_SOURCE_CMD = cmd(
+  'addGroovyRemoteFileSource'
+);
+export const REMOVE_GROOVY_REMOTE_FILE_SOURCE_CMD = cmd(
+  'removeGroovyRemoteFileSource'
+);
+export const ADD_PYTHON_REMOTE_FILE_SOURCE_CMD = cmd(
+  'addPythonRemoteFileSource'
+);
+export const REMOVE_PYTHON_REMOTE_FILE_SOURCE_CMD = cmd(
+  'removePythonRemoteFileSource'
+);

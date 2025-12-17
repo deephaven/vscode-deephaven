@@ -8,12 +8,14 @@ export interface RemoteImportSourceTreeRootElement {
 export interface RemoteImportSourceTreeWkspRootFolderElement {
   name: string;
   type: 'workspaceRootFolder';
+  languageId: string;
   uri: vscode.Uri;
 }
 
 export interface RemoteImportSourceTreeTopLevelMarkedFolderElement {
   name: string;
   type: 'topLevelMarkedFolder';
+  languageId: string;
   isMarked: true;
   uri: vscode.Uri;
 }
@@ -21,6 +23,7 @@ export interface RemoteImportSourceTreeTopLevelMarkedFolderElement {
 export interface RemoteImportSourceTreeFileElement {
   name: string;
   type: 'file';
+  languageId: string;
   isMarked: boolean;
   uri: vscode.Uri;
 }
@@ -28,14 +31,15 @@ export interface RemoteImportSourceTreeFileElement {
 export interface RemoteImportSourceTreeFolderElement {
   name: string;
   type: 'folder';
+  languageId: string;
   isMarked: boolean;
   uri: vscode.Uri;
 }
 
 export type RemoteImportSourceTreeElement =
   | RemoteImportSourceTreeRootElement
-  | RemoteImportSourceTreeTopLevelMarkedFolderElement
   | RemoteImportSourceTreeWkspRootFolderElement
+  | RemoteImportSourceTreeTopLevelMarkedFolderElement
   | RemoteImportSourceTreeFileElement
   | RemoteImportSourceTreeFolderElement;
 

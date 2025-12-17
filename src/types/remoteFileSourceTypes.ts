@@ -71,6 +71,11 @@ export interface PythonRegularModuleSpecData {
   subModuleSearchLocations?: never;
 }
 
+export interface GroovyResourceData {
+  name: GroovyResourceName;
+  origin: string;
+}
+
 export type PythonModuleSpecData =
   | PythonRegularPackageSpecData
   | PythonNamespacePackageSpecData

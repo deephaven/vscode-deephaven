@@ -5,6 +5,8 @@ import type {
   FilePattern,
   FolderName,
   GroovyPackageName,
+  GroovyResourceData,
+  GroovyResourceName,
   Include,
   JsonRpcRequest,
   JsonRpcResponse,
@@ -20,6 +22,7 @@ import { URISet } from './sets';
 import {
   DH_PYTHON_REMOTE_SOURCE_PLUGIN_CLASS,
   DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE,
+  ICON_ID,
 } from '../common';
 import * as Msg from './remoteFileSourceMsgUtils';
 import { Logger } from './Logger';
@@ -63,6 +66,8 @@ export const DH_PYTHON_REMOTE_SOURCE_PLUGIN_INIT_SCRIPT = [
   '    except ModuleNotFoundError:',
   '        print("Python remote file source plugin not installed")',
 ].join('\n');
+
+export const DH_REQUEST_SOURCE_EVENT = 'requestsource' as const;
 
 // Alias for `dh.Widget.EVENT_MESSAGE` to avoid having to pass in a `dh` instance
 // to util functions that only need the event name.
@@ -153,6 +158,7 @@ export function getFileTreeItem({
 export function getFolderTreeItem({
   name,
   isMarked,
+  languageId,
   uri,
 }: RemoteImportSourceTreeFolderElement): vscode.TreeItem {
   return {
@@ -160,8 +166,8 @@ export function getFolderTreeItem({
     collapsibleState: vscode.TreeItemCollapsibleState.Collapsed,
     resourceUri: uri,
     contextValue: isMarked
-      ? 'canRemoveRemoteFileSource'
-      : 'canAddRemoteFileSource',
+      ? `canRemoveRemoteFileSource:${languageId}`
+      : `canAddRemoteFileSource:${languageId}`,
     iconPath: new vscode.ThemeIcon('folder'),
   };
 }
@@ -174,13 +180,17 @@ export function getFolderTreeItem({
  */
 export function getTopLevelMarkedFolderTreeItem({
   uri,
+  languageId,
 }: RemoteImportSourceTreeTopLevelMarkedFolderElement): vscode.TreeItem {
   return {
     label: uri.path.split('/').at(-1),
     description: vscode.workspace.asRelativePath(uri, true),
-    contextValue: 'canRemoveRemoteFileSource',
+    contextValue: `canRemoveRemoteFileSource:${languageId}`,
     resourceUri: uri,
-    iconPath: new vscode.ThemeIcon('dh-python'),
+    iconPath:
+      languageId === 'groovy'
+        ? new vscode.ThemeIcon(ICON_ID.groovy)
+        : new vscode.ThemeIcon(ICON_ID.python),
     collapsibleState: vscode.TreeItemCollapsibleState.None,
   };
 }
@@ -287,12 +297,36 @@ export function hasPythonPluginVariable(
  * @returns a function to unregister the listener
  */
 export function registerGroovyRemoteFileSourcePluginMessageListener(
-  pluginService: DhcType.remotefilesource.RemoteFileSourceService
+  pluginService: DhcType.remotefilesource.RemoteFileSourceService,
+  getGroovyResourceData: (
+    resourceName: GroovyResourceName
+  ) => GroovyResourceData | null
 ): () => void {
   return pluginService.addEventListener<DhcType.remotefilesource.ResourceRequestEvent>(
-    'requestsource',
+    DH_REQUEST_SOURCE_EVENT,
     async ({ detail }) => {
-      console.log('[TESTING] requestSource event:', detail.resourceName);
+      logger.info(
+        'Received resource request from server:',
+        detail.resourceName
+      );
+
+      const resourceData = getGroovyResourceData(
+        detail.resourceName as GroovyResourceName
+      );
+
+      let source: string | undefined;
+      if (resourceData?.origin != null) {
+        const textDoc = await vscode.workspace.openTextDocument(
+          resourceData.origin
+        );
+        source = textDoc.getText();
+      }
+
+      if (source == null) {
+        logger.error('Resource source not found:', detail.resourceName);
+      }
+
+      detail.respond(source);
     }
   );
 }
