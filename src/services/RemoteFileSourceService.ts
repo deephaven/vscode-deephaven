@@ -11,6 +11,7 @@ import {
 } from '../util';
 import type {
   GroovyPackageName,
+  GroovyResourceData,
   GroovyResourceName,
   PythonModuleFullname,
   PythonModuleSpecData,
@@ -53,32 +54,36 @@ export class RemoteFileSourceService extends DisposableBase {
    * @param resourceName The Groovy resource name.
    * @returns The Groovy source content.
    */
-  getGroovySource(resourceName: GroovyResourceName): string {
-    console.log('[TESTING]', resourceName);
-    return '';
-  }
+  getGroovyResourceData(
+    resourceName: GroovyResourceName
+  ): GroovyResourceData | null {
+    const [firstModuleToken, ...restModuleTokens] = resourceName.split('/');
 
-  getGroovyTopLevelPackageNames(): Set<GroovyPackageName> {
-    const set = new Set<GroovyPackageName>();
+    // Get the top-level folder URI that could contain this module
+    const topLevelFolderUri = this._groovyWorkspace
+      .getTopLevelMarkedFolders()
+      .find(
+        ({ uri }) => getGroovyTopLevelPackageName(uri) === firstModuleToken
+      )?.uri;
 
-    this._groovyWorkspace.getTopLevelMarkedFolders().forEach(({ uri }) => {
-      set.add(getGroovyTopLevelPackageName(uri));
-    });
+    if (topLevelFolderUri == null) {
+      return null;
+    }
 
-    return set;
-  }
+    // Get the full URI for the resource under the top-level folder
+    const originUri = vscode.Uri.joinPath(
+      topLevelFolderUri,
+      `${restModuleTokens.join('/')}`
+    );
 
-  /**
-   * Get the top level Python module names available to the remote file source.
-   */
-  getPythonTopLevelModuleNames(): Set<PythonModuleFullname> {
-    const set = new Set<PythonModuleFullname>();
+    if (!this._groovyWorkspace.hasFile(originUri)) {
+      return null;
+    }
 
-    this._pythonWorkspace.getTopLevelMarkedFolders().forEach(({ uri }) => {
-      set.add(getPythonTopLevelModuleFullname(uri));
-    });
-
-    return set;
+    return {
+      name: resourceName,
+      origin: originUri.fsPath,
+    };
   }
 
   /**
@@ -153,12 +158,40 @@ export class RemoteFileSourceService extends DisposableBase {
     return null;
   }
 
+  getGroovyTopLevelPackageNames(): Set<GroovyPackageName> {
+    const set = new Set<GroovyPackageName>();
+
+    this._groovyWorkspace.getTopLevelMarkedFolders().forEach(({ uri }) => {
+      set.add(getGroovyTopLevelPackageName(uri));
+    });
+
+    return set;
+  }
+
+  /**
+   * Get the top level Python module names available to the remote file source.
+   */
+  getPythonTopLevelModuleNames(): Set<PythonModuleFullname> {
+    const set = new Set<PythonModuleFullname>();
+
+    this._pythonWorkspace.getTopLevelMarkedFolders().forEach(({ uri }) => {
+      set.add(getPythonTopLevelModuleFullname(uri));
+    });
+
+    return set;
+  }
+
   async registerGroovyPlugin(
     _session: DhcType.IdeSession,
     pluginService: DhcType.remotefilesource.RemoteFileSourceService
   ): Promise<() => void> {
+    const getGroovyResourceData = this.getGroovyResourceData.bind(this);
+
     const messageSubscription =
-      registerGroovyRemoteFileSourcePluginMessageListener(pluginService);
+      registerGroovyRemoteFileSourcePluginMessageListener(
+        pluginService,
+        getGroovyResourceData
+      );
 
     const setServerExecutionContext = this.setGroovyServerExecutionContext.bind(
       this,

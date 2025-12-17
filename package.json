@@ -289,13 +289,23 @@
         "icon": "$(close)"
       },
       {
-        "command": "vscode-deephaven.addRemoteFileSource",
-        "title": "Add to Deephaven remote file sources",
+        "command": "vscode-deephaven.addGroovyRemoteFileSource",
+        "title": "Add to Deephaven Groovy remote file sources",
         "icon": "$(add)"
       },
       {
-        "command": "vscode-deephaven.removeRemoteFileSource",
-        "title": "Remove from Deephaven remote file sources",
+        "command": "vscode-deephaven.removeGroovyRemoteFileSource",
+        "title": "Remove from Deephaven Groovy remote file sources",
+        "icon": "$(remove)"
+      },
+      {
+        "command": "vscode-deephaven.addPythonRemoteFileSource",
+        "title": "Add to Deephaven Python remote file sources",
+        "icon": "$(add)"
+      },
+      {
+        "command": "vscode-deephaven.removePythonRemoteFileSource",
+        "title": "Remove from Deephaven Python remote file sources",
         "icon": "$(remove)"
       },
       {
@@ -807,11 +817,19 @@
           "when": "false"
         },
         {
-          "command": "vscode-deephaven.addRemoteFileSource",
+          "command": "vscode-deephaven.addGroovyRemoteFileSource",
           "when": "false"
         },
         {
-          "command": "vscode-deephaven.removeRemoteFileSource",
+          "command": "vscode-deephaven.removeGroovyRemoteFileSource",
+          "when": "false"
+        },
+        {
+          "command": "vscode-deephaven.addPythonRemoteFileSource",
+          "when": "false"
+        },
+        {
+          "command": "vscode-deephaven.removePythonRemoteFileSource",
           "when": "false"
         },
         {
@@ -845,12 +863,22 @@
       ],
       "explorer/context": [
         {
-          "command": "vscode-deephaven.addRemoteFileSource",
+          "command": "vscode-deephaven.addGroovyRemoteFileSource",
           "group": "deephaven",
           "when": "explorerResourceIsFolder"
         },
         {
-          "command": "vscode-deephaven.removeRemoteFileSource",
+          "command": "vscode-deephaven.removeGroovyRemoteFileSource",
+          "group": "deephaven",
+          "when": "explorerResourceIsFolder"
+        },
+        {
+          "command": "vscode-deephaven.addPythonRemoteFileSource",
+          "group": "deephaven",
+          "when": "explorerResourceIsFolder"
+        },
+        {
+          "command": "vscode-deephaven.removePythonRemoteFileSource",
           "group": "deephaven",
           "when": "explorerResourceIsFolder"
         }
@@ -941,13 +969,23 @@
           "group": "inline@2"
         },
         {
-          "command": "vscode-deephaven.addRemoteFileSource",
-          "when": "view == vscode-deephaven.view.remoteImportSourceTree && viewItem == canAddRemoteFileSource",
+          "command": "vscode-deephaven.addGroovyRemoteFileSource",
+          "when": "view == vscode-deephaven.view.remoteImportSourceTree && viewItem == canAddRemoteFileSource:groovy",
           "group": "inline"
         },
         {
-          "command": "vscode-deephaven.removeRemoteFileSource",
-          "when": "view == vscode-deephaven.view.remoteImportSourceTree && viewItem == canRemoveRemoteFileSource",
+          "command": "vscode-deephaven.removeGroovyRemoteFileSource",
+          "when": "view == vscode-deephaven.view.remoteImportSourceTree && viewItem == canRemoveRemoteFileSource:groovy",
+          "group": "inline"
+        },
+        {
+          "command": "vscode-deephaven.addPythonRemoteFileSource",
+          "when": "view == vscode-deephaven.view.remoteImportSourceTree && viewItem == canAddRemoteFileSource:python",
+          "group": "inline"
+        },
+        {
+          "command": "vscode-deephaven.removePythonRemoteFileSource",
+          "when": "view == vscode-deephaven.view.remoteImportSourceTree && viewItem == canRemoveRemoteFileSource:python",
           "group": "inline"
         }
       ]
