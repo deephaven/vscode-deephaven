@@ -15,7 +15,7 @@ import {
 import { ICON_ID } from '../common';
 
 const ACTIVE_SOURCES_LABEL = 'Active Sources';
-// const WORKSPACE_LABEL = 'Workspace';
+const WORKSPACE_LABEL = 'Workspace';
 const GROOVY_LABEL = 'Groovy';
 const PYTHON_LABEL = 'Python';
 
@@ -49,8 +49,7 @@ export class RemoteImportSourceTreeProvider extends TreeDataProviderBase<RemoteI
     if (node == null) {
       return [
         { type: 'root', name: ACTIVE_SOURCES_LABEL },
-        { type: 'root', name: GROOVY_LABEL },
-        { type: 'root', name: PYTHON_LABEL },
+        { type: 'root', name: WORKSPACE_LABEL },
       ];
     }
 
@@ -60,6 +59,13 @@ export class RemoteImportSourceTreeProvider extends TreeDataProviderBase<RemoteI
           ...this._groovyWorkspace.getTopLevelMarkedFolders(),
           ...this._pythonWorkspace.getTopLevelMarkedFolders(),
         ].sort(sortByStringProp('name'));
+      }
+
+      if (node.name === WORKSPACE_LABEL) {
+        return [
+          { type: 'root', name: GROOVY_LABEL },
+          { type: 'root', name: PYTHON_LABEL },
+        ];
       }
 
       if (node.name === GROOVY_LABEL) {
@@ -103,7 +109,8 @@ export class RemoteImportSourceTreeProvider extends TreeDataProviderBase<RemoteI
     return {
       label: element.name,
       collapsibleState:
-        element.type === 'root' && element.name === ACTIVE_SOURCES_LABEL
+        element.type === 'root' &&
+        [ACTIVE_SOURCES_LABEL, WORKSPACE_LABEL].includes(element.name)
           ? vscode.TreeItemCollapsibleState.Expanded
           : vscode.TreeItemCollapsibleState.Collapsed,
       iconPath:
