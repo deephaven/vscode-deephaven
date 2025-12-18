@@ -1,9 +1,11 @@
 import * as vscode from 'vscode';
+import path from 'node:path';
 import type {
   FilePattern,
   FolderName,
   GroovyPackageName,
   PythonModuleFullname,
+  RelativeWsUriString,
   RemoteImportSourceTreeFileElement,
   RemoteImportSourceTreeFolderElement,
   RemoteImportSourceTreeTopLevelMarkedFolderElement,
@@ -115,9 +117,11 @@ export class FilteredWorkspace<
    * Mark a folder and all its children. Will also update parent folders if the
    * changes cause a status change.
    * @param folderUri The folder URI to mark.
+   * @param supressNotify If true, will not notify listeners of changes.
    */
-  markFolder(folderUri: vscode.Uri): void {
-    this.unmarkConflictingTopLevelFolder(folderUri);
+  markFolder(folderUri: vscode.Uri, supressNotify = false): void {
+    // supress notify to avoid multiple notifications during marking
+    this.unmarkConflictingTopLevelFolder(folderUri, true);
 
     for (const node of this.iterateNodeTree(folderUri)) {
       if (node.type === 'workspaceRootFolder') {
@@ -137,8 +141,10 @@ export class FilteredWorkspace<
       }
     }
 
-    this._onDidChangeFileDecorations.fire(undefined);
-    this._onDidUpdate.fire();
+    if (!supressNotify) {
+      this._onDidChangeFileDecorations.fire(undefined);
+      this._onDidUpdate.fire();
+    }
   }
 
   /**
@@ -146,9 +152,13 @@ export class FilteredWorkspace<
    * checks for any existing mappings for the same module name as the given
    * folder URI, and unmarks them.
    * @param folderUri
+   * @param supressNotify If true, will not notify listeners of changes.
    * @returns
    */
-  unmarkConflictingTopLevelFolder(folderUri: vscode.Uri): void {
+  unmarkConflictingTopLevelFolder(
+    folderUri: vscode.Uri,
+    supressNotify = false
+  ): void {
     const moduleName = this._getTopLevelModuleName(folderUri);
     const existingTopLevelUri = this._topLevelMarkedUriMap.get(moduleName);
     const noConflict =
@@ -166,7 +176,7 @@ export class FilteredWorkspace<
       return;
     }
 
-    this.unmarkFolder(existingTopLevelUri);
+    this.unmarkFolder(existingTopLevelUri, supressNotify);
 
     const relativePath = vscode.workspace.asRelativePath(folderUri, true);
 
@@ -178,8 +188,9 @@ export class FilteredWorkspace<
   /**
    * Unmark a folder, its children, and its ancestors.
    * @param folderUri The folder URI to unmark.
+   * @param supressNotify If true, will not notify listeners of changes.
    */
-  unmarkFolder(folderUri: vscode.Uri): void {
+  unmarkFolder(folderUri: vscode.Uri, supressNotify = false): void {
     for (const node of this.iterateNodeTree(folderUri)) {
       if (node.type !== 'workspaceRootFolder') {
         node.isMarked = false;
@@ -195,7 +206,8 @@ export class FilteredWorkspace<
       // remaining marked children to re-add as top-level folders
       for (const childNode of this.getChildNodes(node.uri)) {
         if (childNode.isMarked) {
-          this.unmarkConflictingTopLevelFolder(childNode.uri);
+          // supress notify to avoid multiple notifications during unmarking
+          this.unmarkConflictingTopLevelFolder(childNode.uri, true);
 
           this._topLevelMarkedUriMap.set(
             this._getTopLevelModuleName(childNode.uri),
@@ -205,8 +217,10 @@ export class FilteredWorkspace<
       }
     }
 
-    this._onDidChangeFileDecorations.fire(undefined);
-    this._onDidUpdate.fire();
+    if (!supressNotify) {
+      this._onDidChangeFileDecorations.fire(undefined);
+      this._onDidUpdate.fire();
+    }
   }
 
   /**
@@ -232,6 +246,29 @@ export class FilteredWorkspace<
     }
 
     return [...childMap.values()];
+  }
+
+  /**
+   * Get relative file paths under marked folders.
+   * @returns The set of relative file paths.
+   */
+  getMarkedRelativeFilePaths(): Set<RelativeWsUriString> {
+    const relativeFilePaths = new Set<RelativeWsUriString>();
+
+    const topLeveMarkedlUris = [...this._topLevelMarkedUriMap.entries()];
+    for (const [, folderUri] of topLeveMarkedlUris) {
+      for (const node of this.iterateNodeTree(folderUri)) {
+        if (node.type === 'file') {
+          const relativePath = path.join(
+            path.basename(folderUri.fsPath),
+            path.relative(folderUri.fsPath, node.uri.fsPath)
+          );
+          relativeFilePaths.add(relativePath as RelativeWsUriString);
+        }
+      }
+    }
+
+    return relativeFilePaths;
   }
 
   /**
@@ -386,8 +423,9 @@ export class FilteredWorkspace<
 
   /**
    * Refresh caches based on current workspace state.
+   * @param supressNotify If true, will not notify listeners of changes.
    */
-  async refresh(): Promise<void> {
+  async refresh(supressNotify = false): Promise<void> {
     // Store a map of just the filtered files in the workspace
     this._wsFileUriMap = await getWorkspaceFileUriMap(
       this.filePattern,
@@ -444,14 +482,17 @@ export class FilteredWorkspace<
     // Re-apply top level marked folders if they still exist after refresh
     for (const uri of this._topLevelMarkedUriMap.values()) {
       if (this._nodeMap.has(uri)) {
-        this.markFolder(uri);
+        // surpress notify to avoid multiple notifications during refresh
+        this.markFolder(uri, true);
       } else {
         this.deleteExactTopLevelMarkedUri(uri);
       }
     }
 
-    this._onDidChangeFileDecorations.fire(undefined);
-    this._onDidUpdate.fire();
+    if (!supressNotify) {
+      this._onDidChangeFileDecorations.fire(undefined);
+      this._onDidUpdate.fire();
+    }
   }
 
   /**
