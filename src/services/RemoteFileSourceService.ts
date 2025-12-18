@@ -158,16 +158,6 @@ export class RemoteFileSourceService extends DisposableBase {
     return null;
   }
 
-  getGroovyTopLevelPackageNames(): Set<GroovyPackageName> {
-    const set = new Set<GroovyPackageName>();
-
-    this._groovyWorkspace.getTopLevelMarkedFolders().forEach(({ uri }) => {
-      set.add(getGroovyTopLevelPackageName(uri));
-    });
-
-    return set;
-  }
-
   /**
    * Get the top level Python module names available to the remote file source.
    */
@@ -258,7 +248,7 @@ export class RemoteFileSourceService extends DisposableBase {
     pluginService: DhcType.remotefilesource.RemoteFileSourceService
   ): Promise<void> {
     await pluginService.setExecutionContext([
-      ...this.getGroovyTopLevelPackageNames(),
+      ...this._groovyWorkspace.getMarkedRelativeFilePaths(),
     ]);
   }
 

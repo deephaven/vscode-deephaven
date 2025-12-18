@@ -1036,7 +1036,9 @@ export class ExtensionController implements IDisposable {
 
     assertDefined(workspace, `${languageId}Workspace`);
 
-    await workspace.refresh();
+    // supress notifications since `markFolder` will raise notifications.
+    // this avoids sending data to the server that will change anyway
+    await workspace.refresh(true);
 
     const uris = Array.isArray(folderElementOrUri)
       ? folderElementOrUri
@@ -1070,7 +1072,9 @@ export class ExtensionController implements IDisposable {
 
     assertDefined(workspace, `${languageId}Workspace`);
 
-    await workspace.refresh();
+    // supress notifications since `unmarkFolder` will raise notifications.
+    // this avoids sending data to the server that will change anyway
+    await workspace.refresh(true);
 
     const uris = Array.isArray(folderElementOrUri)
       ? folderElementOrUri
