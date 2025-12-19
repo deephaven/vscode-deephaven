@@ -126,6 +126,7 @@ import {
   type QuerySerial,
   type SerializableRefreshToken,
 } from '../shared';
+import { getWsUrl } from '../dh/dhe';
 
 const logger = new Logger('ExtensionController');
 
@@ -548,13 +549,19 @@ export class ExtensionController implements IDisposable {
       assertDefined(this._dheJsApiCache, 'dheJsApiCache');
       const dhe = await this._dheJsApiCache.get(url);
 
-      const client: DheUnauthenticatedClient = await createDheClient(dhe, url, {
-        // Note that grizzly servers don't support the gRPC transport, but it
-        // should just be ignored if provided. We don't really have a good way
-        // to determine if the server supports it or not, and gplus and beyond
-        // require it on non-envoy servers, so we just always provide it.
-        transportFactory: NodeHttp2gRPCTransport.factory,
-      });
+      const client: DheUnauthenticatedClient = await createDheClient(
+        dhe,
+        // While gplus forward will normalize the URL, Grizzly still requires
+        // the websocket URL
+        getWsUrl(url),
+        {
+          // Note that grizzly servers don't support the gRPC transport, but it
+          // should just be ignored if provided. We don't really have a good way
+          // to determine if the server supports it or not, and gplus and beyond
+          // require it on non-envoy servers, so we just always provide it.
+          transportFactory: NodeHttp2gRPCTransport.factory,
+        }
+      );
 
       const wResolvers = withResolvers<SerializableRefreshToken | null>();
       let { promise: refreshTokenSerializedPromise } = wResolvers;

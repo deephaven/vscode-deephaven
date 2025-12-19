@@ -125,6 +125,21 @@ export async function getWorkerCredentials(
 }
 
 /**
+ * Get the WebSocket URL for a DHE server URL.
+ * @param serverUrl The DHE server URL.
+ * @returns The WebSocket URL.
+ */
+export function getWsUrl(serverUrl: URL): URL {
+  const url = new URL('/socket', serverUrl);
+  if (url.protocol === 'http:') {
+    url.protocol = 'ws:';
+  } else {
+    url.protocol = 'wss:';
+  }
+  return url;
+}
+
+/**
  * Determine if the logged in user has permission to interact with the UI.
  * @param dheClient The DHE client.
  * @returns A promise that resolves to true if the user has permission to interact with the UI.
