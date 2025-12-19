@@ -549,6 +549,10 @@ export class ExtensionController implements IDisposable {
       const dhe = await this._dheJsApiCache.get(url);
 
       const client: DheUnauthenticatedClient = await createDheClient(dhe, url, {
+        // Note that grizzly servers don't support the gRPC transport, but it
+        // should just be ignored if provided. We don't really have a good way
+        // to determine if the server supports it or not, and gplus and beyond
+        // require it on non-envoy servers, so we just always provide it.
         transportFactory: NodeHttp2gRPCTransport.factory,
       });
 
