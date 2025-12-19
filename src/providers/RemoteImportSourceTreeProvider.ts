@@ -9,10 +9,12 @@ import type {
 import {
   getFileTreeItem,
   getFolderTreeItem,
+  getLanguageRootTreeItem,
+  getRootTreeItem,
   getTopLevelMarkedFolderTreeItem,
+  getWorkspaceFolderRootTreeItem,
   sortByStringProp,
 } from '../util';
-import { ICON_ID } from '../common';
 
 const ACTIVE_SOURCES_LABEL = 'Active Sources';
 const WORKSPACE_LABEL = 'Workspace';
@@ -63,16 +65,18 @@ export class RemoteImportSourceTreeProvider extends TreeDataProviderBase<RemoteI
 
       if (node.name === WORKSPACE_LABEL) {
         return [
-          { type: 'root', name: GROOVY_LABEL },
-          { type: 'root', name: PYTHON_LABEL },
+          { type: 'languageRoot', name: GROOVY_LABEL, languageId: 'groovy' },
+          { type: 'languageRoot', name: PYTHON_LABEL, languageId: 'python' },
         ];
       }
 
-      if (node.name === GROOVY_LABEL) {
-        return this._groovyWorkspace.getChildNodes(null);
-      }
+      throw new Error(`Unknown root node name: ${node.name}`);
+    }
 
-      return this._pythonWorkspace.getChildNodes(null);
+    if (node.type === 'languageRoot') {
+      return node.languageId === 'groovy'
+        ? this._groovyWorkspace.getChildNodes(null)
+        : this._pythonWorkspace.getChildNodes(null);
     }
 
     const workspace =
@@ -106,19 +110,14 @@ export class RemoteImportSourceTreeProvider extends TreeDataProviderBase<RemoteI
       return getFileTreeItem(element);
     }
 
-    return {
-      label: element.name,
-      collapsibleState:
-        element.type === 'root' &&
-        [ACTIVE_SOURCES_LABEL, WORKSPACE_LABEL].includes(element.name)
-          ? vscode.TreeItemCollapsibleState.Expanded
-          : vscode.TreeItemCollapsibleState.Collapsed,
-      iconPath:
-        element.name === PYTHON_LABEL
-          ? new vscode.ThemeIcon(ICON_ID.python)
-          : element.name === GROOVY_LABEL
-            ? new vscode.ThemeIcon(ICON_ID.groovy)
-            : undefined,
-    };
+    if (element.type === 'workspaceRootFolder') {
+      return getWorkspaceFolderRootTreeItem(element);
+    }
+
+    if (element.type === 'languageRoot') {
+      return getLanguageRootTreeItem(element);
+    }
+
+    return getRootTreeItem(element);
   }
 }

@@ -5,6 +5,12 @@ export interface RemoteImportSourceTreeRootElement {
   type: 'root';
 }
 
+export interface RemoteImportSourceTreeLanguageRootElement {
+  name: string;
+  type: 'languageRoot';
+  languageId: string;
+}
+
 export interface RemoteImportSourceTreeWkspRootFolderElement {
   name: string;
   type: 'workspaceRootFolder';
@@ -38,6 +44,7 @@ export interface RemoteImportSourceTreeFolderElement {
 
 export type RemoteImportSourceTreeElement =
   | RemoteImportSourceTreeRootElement
+  | RemoteImportSourceTreeLanguageRootElement
   | RemoteImportSourceTreeWkspRootFolderElement
   | RemoteImportSourceTreeTopLevelMarkedFolderElement
   | RemoteImportSourceTreeFileElement
