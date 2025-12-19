@@ -14,7 +14,10 @@ import type {
   PythonModuleSpecData,
   RemoteImportSourceTreeFileElement,
   RemoteImportSourceTreeFolderElement,
+  RemoteImportSourceTreeLanguageRootElement,
+  RemoteImportSourceTreeRootElement,
   RemoteImportSourceTreeTopLevelMarkedFolderElement,
+  RemoteImportSourceTreeWkspRootFolderElement,
   UniqueID,
 } from '../types';
 import { withResolvers } from './promiseUtils';
@@ -173,6 +176,44 @@ export function getFolderTreeItem({
 }
 
 /**
+ * Get `TreeItem` for a language root element in the remote import source tree.
+ * @param element The language root element.
+ * @returns TreeItem for the language root
+ */
+export function getLanguageRootTreeItem({
+  name,
+  languageId,
+}: RemoteImportSourceTreeLanguageRootElement): vscode.TreeItem {
+  return {
+    label: name,
+    contextValue: 'languageRoot',
+    collapsibleState: vscode.TreeItemCollapsibleState.Collapsed,
+    iconPath:
+      languageId === 'python'
+        ? new vscode.ThemeIcon(ICON_ID.python)
+        : languageId === 'groovy'
+          ? new vscode.ThemeIcon(ICON_ID.groovy)
+          : undefined,
+  };
+}
+
+/**
+ * Get `TreeItem` for a root element in the remote import source tree.
+ * @param element The root element.
+ * @returns TreeItem for the root
+ */
+export function getRootTreeItem({
+  name,
+  type,
+}: RemoteImportSourceTreeRootElement): vscode.TreeItem {
+  return {
+    label: name,
+    contextValue: type,
+    collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
+  };
+}
+
+/**
  * Get `TreeItem` for a top-level marked folder element in the remote import
  * source tree.
  * @param element The top-level marked folder element.
@@ -192,6 +233,21 @@ export function getTopLevelMarkedFolderTreeItem({
         ? new vscode.ThemeIcon(ICON_ID.groovy)
         : new vscode.ThemeIcon(ICON_ID.python),
     collapsibleState: vscode.TreeItemCollapsibleState.None,
+  };
+}
+
+/**
+ * Get `TreeItem` for a workspace folder root element in the remote import
+ * source tree.
+ * @param element The workspace folder root element.
+ * @returns TreeItem for the workspace folder root
+ */
+export function getWorkspaceFolderRootTreeItem({
+  name,
+}: RemoteImportSourceTreeWkspRootFolderElement): vscode.TreeItem {
+  return {
+    label: name,
+    collapsibleState: vscode.TreeItemCollapsibleState.Collapsed,
   };
 }
 
