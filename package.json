@@ -309,6 +309,11 @@
         "command": "vscode-deephaven.deleteVariable",
         "title": "Delete Deephaven Variable",
         "icon": "$(trash)"
+      },
+      {
+        "command": "vscode-deephaven.revealInExplorer",
+        "title": "Reveal in Explorer",
+        "icon": "$(eye)"
       }
     ],
     "icons": {
@@ -832,6 +837,10 @@
         {
           "command": "vscode-deephaven.deleteVariable",
           "when": "false"
+        },
+        {
+          "command": "vscode-deephaven.revealInExplorer",
+          "when": "false"
         }
       ],
       "editor/context": [
@@ -984,6 +993,10 @@
           "command": "vscode-deephaven.removePythonRemoteFileSource",
           "when": "view == vscode-deephaven.view.remoteImportSourceTree && viewItem == canRemoveRemoteFileSource:python",
           "group": "inline"
+        },
+        {
+          "command": "vscode-deephaven.revealInExplorer",
+          "when": "view == vscode-deephaven.view.remoteImportSourceTree && viewItem != root && viewItem != languageRoot"
         }
       ]
     },

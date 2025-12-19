@@ -25,6 +25,7 @@ import {
   REFRESH_SERVER_TREE_CMD,
   REMOVE_GROOVY_REMOTE_FILE_SOURCE_CMD,
   REMOVE_PYTHON_REMOTE_FILE_SOURCE_CMD,
+  REVEAL_IN_EXPLORER_CMD,
   RUN_CODE_COMMAND,
   RUN_MARKDOWN_CODEBLOCK_CMD,
   RUN_SELECTION_COMMAND,
@@ -729,6 +730,9 @@ export class ExtensionController implements IDisposable {
   initializeCommands = (): void => {
     assertDefined(this._connectionController, 'connectionController');
 
+    /** Reveal in Explorer */
+    this.registerCommand(REVEAL_IN_EXPLORER_CMD, this.onRevealInExplorer);
+
     /** Clear secret storage */
     this.registerCommand(CLEAR_SECRET_STORAGE_CMD, this.onClearSecretStorage);
 
@@ -1154,6 +1158,22 @@ export class ExtensionController implements IDisposable {
   onRefreshServerStatus = async (): Promise<void> => {
     await this._pipServerController?.syncManagedServers({ forceCheck: true });
     await this._serverManager?.updateStatus();
+  };
+
+  onRevealInExplorer = async (
+    uriOrHasUri: vscode.Uri | { uri: vscode.Uri } | undefined
+  ): Promise<void> => {
+    // Sometimes view/item/context commands pass undefined instead of a value.
+    // Just ignore. microsoft/vscode#283655
+    if (uriOrHasUri == null) {
+      logger.debug('onRevealInExplorer', 'uri is undefined');
+      return;
+    }
+
+    const uri =
+      uriOrHasUri instanceof vscode.Uri ? uriOrHasUri : uriOrHasUri.uri;
+
+    await vscode.commands.executeCommand('revealInExplorer', uri);
   };
 
   /**

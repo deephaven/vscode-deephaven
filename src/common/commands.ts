@@ -80,3 +80,4 @@ export const ADD_PYTHON_REMOTE_FILE_SOURCE_CMD = cmd(
 export const REMOVE_PYTHON_REMOTE_FILE_SOURCE_CMD = cmd(
   'removePythonRemoteFileSource'
 );
+export const REVEAL_IN_EXPLORER_CMD = cmd('revealInExplorer');
