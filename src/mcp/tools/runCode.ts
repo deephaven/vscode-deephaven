@@ -8,7 +8,8 @@ import { z } from 'zod';
 import type { McpTool, McpToolHandlerResult } from '../../types';
 
 import type { IServerManager } from '../../types';
-import type { FilteredWorkspace } from '../../services';
+import { DhcService, type FilteredWorkspace } from '../../services';
+import { isInstanceOf } from '../../util';
 
 const spec = {
   title: 'Run Deephaven Code',
@@ -175,28 +176,42 @@ export function createRunCodeTool(
 
           let hint = '';
           if (noModuleErrors.size > 0) {
-            const foundUris: string[] = [];
+            // Check if the remote file source plugin is installed
+            // Get the connection from the URI that was executed
+            const executedConnection = parsedUri
+              ? serverManager.getUriConnection(parsedUri)
+              : null;
+            const hasPlugin =
+              executedConnection != null &&
+              isInstanceOf(executedConnection, DhcService) &&
+              executedConnection.hasRemoteFileSourcePlugin();
 
-            const rootNodes = pythonWorkspace.getChildNodes(null);
+            if (!hasPlugin) {
+              hint = `\n\nHint: The Python remote file source plugin is not installed. Install it with 'pip install deephaven-plugin-python-remote-file-source' to enable importing workspace packages.`;
+            } else {
+              const foundUris: string[] = [];
 
-            for (const rootNode of rootNodes) {
-              for (const node of pythonWorkspace.iterateNodeTree(
-                rootNode.uri
-              )) {
-                if (
-                  node.type === 'folder' &&
-                  noModuleErrors.has(node.name) &&
-                  node.uri
-                ) {
-                  foundUris.push(node.uri.toString());
+              const rootNodes = pythonWorkspace.getChildNodes(null);
+
+              for (const rootNode of rootNodes) {
+                for (const node of pythonWorkspace.iterateNodeTree(
+                  rootNode.uri
+                )) {
+                  if (
+                    node.type === 'folder' &&
+                    noModuleErrors.has(node.name) &&
+                    node.uri
+                  ) {
+                    foundUris.push(node.uri.toString());
+                  }
                 }
               }
-            }
 
-            if (foundUris.length > 0) {
-              hint = `\n\nHint: If this is a package in your workspace, try adding one of these folders as a remote file source using the addRemoteFileSources tool:\n${foundUris.map(u => `- ${u}`).join('\n')}`;
-            } else {
-              hint = `\n\nHint: If this is a package in your workspace, try adding its folder as a remote file source using the addRemoteFileSources tool.`;
+              if (foundUris.length > 0) {
+                hint = `\n\nHint: If this is a package in your workspace, try adding one of these folders as a remote file source using the addRemoteFileSources tool:\n${foundUris.map(u => `- ${u}`).join('\n')}`;
+              } else {
+                hint = `\n\nHint: If this is a package in your workspace, try adding its folder as a remote file source using the addRemoteFileSources tool.`;
+              }
             }
           }
           const errorMsg = errors

@@ -363,6 +363,14 @@ export class DhcService extends DisposableBase implements IDhcService {
     return client;
   }
 
+  /**
+   * Check if the remote file source plugin is installed.
+   * @returns true if the plugin is installed, false otherwise
+   */
+  hasRemoteFileSourcePlugin = (): boolean => {
+    return this.remoteFileSourcePluginSubscription != null;
+  };
+
   getConsoleTypes = async (): Promise<Set<ConsoleType>> => {
     if (this.cn == null) {
       return new Set();
