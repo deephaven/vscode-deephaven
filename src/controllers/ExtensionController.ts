@@ -427,11 +427,15 @@ export class ExtensionController implements IDisposable {
     assertDefined(this._pythonDiagnostics, 'pythonDiagnostics');
     assertDefined(this._pythonWorkspace, 'pythonWorkspace');
     assertDefined(this._serverManager, 'serverManager');
+    assertDefined(this._outputChannel, 'outputChannel');
+    assertDefined(this._outputChannelDebug, 'outputChannelDebug');
 
     try {
       // Create and start MCP server independently (not inside provider callback)
       // This ensures server is running for external tools (Windsurf, Cline) that access via HTTP
       this._mcpServer = new MCPServer(
+        this._outputChannel,
+        this._outputChannelDebug,
         this._panelService,
         this._pipServerController,
         this._pythonDiagnostics,

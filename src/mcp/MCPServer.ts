@@ -9,6 +9,7 @@ import type {
   McpToolSpec,
 } from '../types';
 import type { PipServerController } from '../controllers';
+import type { OutputChannelWithHistory } from '../util';
 import { MCP_SERVER_NAME } from '../common';
 import { createRunCodeTool } from './tools/runCode';
 import { createListPanelVariablesTool } from './tools/listPanelVariables';
@@ -21,6 +22,8 @@ import { createStartPipServerTool } from './tools/startPipServer';
 import { createCheckPythonEnvTool } from './tools/checkPythonEnvironment';
 import { createAddRemoteFileSourcesTool } from './tools/addRemoteFileSources';
 import { createOpenFilesInEditorTool } from './tools/openFilesInEditor';
+import { createShowOutputPanelTool } from './tools/showOutputPanel';
+import { createGetLogsTool } from './tools/getLogs';
 import type { FilteredWorkspace } from '../services';
 
 /**
@@ -31,6 +34,8 @@ export class MCPServer {
   private server: McpServer;
   private httpServer: http.Server | null = null;
   private port: number | null = null;
+  private readonly outputChannel: vscode.OutputChannel;
+  private readonly outputChannelDebug: OutputChannelWithHistory;
   private readonly panelService: IPanelService;
   private readonly pipServerController: PipServerController;
   private readonly pythonDiagnostics: vscode.DiagnosticCollection;
@@ -38,12 +43,16 @@ export class MCPServer {
   private readonly serverManager: IServerManager;
 
   constructor(
+    outputChannel: vscode.OutputChannel,
+    outputChannelDebug: OutputChannelWithHistory,
     panelService: IPanelService,
     pipServerController: PipServerController,
     pythonDiagnostics: vscode.DiagnosticCollection,
     pythonWorkspace: FilteredWorkspace,
     serverManager: IServerManager
   ) {
+    this.outputChannel = outputChannel;
+    this.outputChannelDebug = outputChannelDebug;
     this.panelService = panelService;
     this.pipServerController = pipServerController;
     this.pythonDiagnostics = pythonDiagnostics;
@@ -87,6 +96,10 @@ export class MCPServer {
     this.registerTool(createCheckPythonEnvTool(this.pipServerController));
     this.registerTool(createAddRemoteFileSourcesTool());
     this.registerTool(createOpenFilesInEditorTool());
+    this.registerTool(
+      createShowOutputPanelTool(this.outputChannel, this.outputChannelDebug)
+    );
+    this.registerTool(createGetLogsTool(this.outputChannelDebug));
   }
 
   /**
