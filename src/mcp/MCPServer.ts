@@ -148,6 +148,13 @@ export class MCPServer {
               );
             }
           });
+        } else if (req.url === '/mcp' && req.method === 'GET') {
+          // Return 405 for GET requests to prevent SSE connection attempts
+          res.writeHead(405, {
+            contentType: 'text/plain',
+            allow: 'POST',
+          });
+          res.end('Method Not Allowed');
         } else {
           res.writeHead(404, { contentType: 'text/plain' });
           res.end('Not found');
