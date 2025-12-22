@@ -413,35 +413,40 @@ export class DhcService extends DisposableBase implements IDhcService {
   }
 
   async runCode(
-    document: vscode.TextDocument,
+    documentOrText: vscode.TextDocument | string,
     languageId: string,
     ranges?: readonly vscode.Range[]
-  ): Promise<void> {
-    // Clear previous diagnostics when cmd starts running
-    this.diagnosticsCollection.set(document.uri, []);
+  ): Promise<DhcType.ide.CommandResult | null> {
+    if (typeof documentOrText !== 'string') {
+      // Clear previous diagnostics when cmd starts running
+      this.diagnosticsCollection.set(documentOrText.uri, []);
+    }
 
     if (this.session == null) {
       await this.initSession();
     }
 
     if (this.cn == null || this.cnId == null || this.session == null) {
-      return;
+      return null;
     }
 
     const [consoleType] = await this.cn.getConsoleTypes();
 
     if (consoleType !== languageId) {
       this.toaster.error(`This connection does not support '${languageId}'.`);
-      return;
+      return null;
     }
 
-    const text = ranges
-      ? getCombinedRangeLinesText(document, ranges)
-      : document.getText();
+    const text =
+      typeof documentOrText === 'string'
+        ? documentOrText
+        : ranges
+          ? getCombinedRangeLinesText(documentOrText, ranges)
+          : documentOrText.getText();
 
     logger.info('Sending text to dh:', text);
 
-    let result: DhcType.ide.CommandResult;
+    let result: DhcType.ide.CommandResult | null = null;
     let error: string | null = null;
 
     try {
@@ -472,7 +477,7 @@ export class DhcService extends DisposableBase implements IDhcService {
         this.toaster.error(
           'Session is no longer valid. Please re-run the command to reconnect.'
         );
-        return;
+        return null;
       }
     }
 
@@ -483,7 +488,7 @@ export class DhcService extends DisposableBase implements IDhcService {
       this.outputChannel.show(true);
       // this.toaster.error('An error occurred when running a command');
 
-      if (languageId === 'python') {
+      if (languageId === 'python' && typeof documentOrText !== 'string') {
         const errors = parseServerError(error);
 
         for (const { type, file, line, value } of errors) {
@@ -500,7 +505,7 @@ export class DhcService extends DisposableBase implements IDhcService {
 
             // Zero length will flag a token instead of a line
             const lineLength =
-              fileLine < 0 ? 0 : document.lineAt(fileLine).text.length;
+              fileLine < 0 ? 0 : documentOrText.lineAt(fileLine).text.length;
 
             // Diagnostic representing the line of code that produced the server error
             const diagnostic: vscode.Diagnostic = {
@@ -513,7 +518,7 @@ export class DhcService extends DisposableBase implements IDhcService {
 
             this.diagnosticsCollection.set(
               file == null || file === '<string>'
-                ? document.uri
+                ? documentOrText.uri
                 : vscode.Uri.parse(file),
               [diagnostic]
             );
@@ -521,7 +526,7 @@ export class DhcService extends DisposableBase implements IDhcService {
         }
       }
 
-      return;
+      return result;
     }
 
     const changed = [
@@ -550,6 +555,8 @@ export class DhcService extends DisposableBase implements IDhcService {
         showVariables
       );
     }
+
+    return result;
   }
 }
 

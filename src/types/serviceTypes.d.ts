@@ -65,7 +65,7 @@ export interface IDhcService extends IDisposable, ConnectionState {
     document: vscode.TextDocument,
     languageId: string,
     ranges?: readonly vscode.Range[]
-  ) => Promise<void>;
+  ) => Promise<DhcType.ide.CommandResult | null>;
 }
 
 export interface IDheService extends ConnectionState, IDisposable {
