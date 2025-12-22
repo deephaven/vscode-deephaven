@@ -27,6 +27,82 @@ Execute code in a Deephaven session.
 }
 ```
 
+### `queryTableData`
+
+Extract and transform data from a Deephaven table with support for filtering, grouping, aggregations, sorting, and row limiting.
+
+**Parameters:**
+- `connectionUrl` (required): Connection URL of the Deephaven server (e.g., "http://localhost:10000")
+- `tableName` (required): Name of the table to query (must exist in the session)
+- `filters` (optional): Array of filter expressions in Deephaven query language (e.g., `["Symbol = \`AAPL\`", "Price > 100"]`)
+- `groupByColumns` (optional): Array of column names to group by
+- `aggregations` (optional): Array of aggregation operations to perform (sum, avg, min, max, count, first, last, countDistinct, median, std, var)
+- `sortBy` (optional): Array of sort specifications with `column` and `direction` (asc/desc)
+- `maxRows` (optional): Maximum number of rows to return (default: 100)
+
+**Example - Simple Filter:**
+```json
+{
+  "name": "queryTableData",
+  "arguments": {
+    "connectionUrl": "http://localhost:10000",
+    "tableName": "stocks",
+    "filters": ["Sym = `AAPL`"],
+    "maxRows": 50
+  }
+}
+```
+
+**Example - Aggregation:**
+```json
+{
+  "name": "queryTableData",
+  "arguments": {
+    "connectionUrl": "http://localhost:10000",
+    "tableName": "sales",
+    "groupByColumns": ["Region"],
+    "aggregations": [
+      {
+        "type": "sum",
+        "sourceColumn": "Amount",
+        "resultColumn": "TotalSales"
+      },
+      {
+        "type": "avg",
+        "sourceColumn": "Amount",
+        "resultColumn": "AvgSales"
+      }
+    ],
+    "sortBy": [
+      {
+        "column": "TotalSales",
+        "direction": "desc"
+      }
+    ]
+  }
+}
+```
+
+**Response Format:**
+Returns data in a format easily represented as a table or values in chat:
+```json
+{
+  "success": true,
+  "data": [
+    {"Symbol": "AAPL", "Price": 150.25, "Volume": 1000},
+    {"Symbol": "GOOGL", "Price": 2800.50, "Volume": 500}
+  ],
+  "columns": [
+    {"name": "Symbol", "type": "java.lang.String"},
+    {"name": "Price", "type": "double"},
+    {"name": "Volume", "type": "long"}
+  ],
+  "rowCount": 2,
+  "totalRows": 2,
+  "message": "Showing all 2 rows"
+}
+```
+
 ## Server Configuration
 
 The MCP server starts automatically when the extension activates. By default, it listens on:
