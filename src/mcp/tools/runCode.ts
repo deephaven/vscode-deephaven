@@ -5,6 +5,11 @@ import type { McpTool, McpToolHandlerResult } from '../../types';
 import type { IServerManager } from '../../types';
 import { DhcService } from '../../services';
 import { isInstanceOf } from '../../util';
+import {
+  runCodeOutputSchema,
+  createResult,
+  extractVariables,
+} from './runCodeUtils';
 
 const spec = {
   title: 'Run Deephaven Code',
@@ -20,10 +25,7 @@ const spec = {
       .optional()
       .describe('The Deephaven connection URL to use for execution.'),
   },
-  outputSchema: {
-    success: z.boolean(),
-    message: z.string(),
-  },
+  outputSchema: runCodeOutputSchema,
 } as const;
 
 type Spec = typeof spec;
@@ -46,14 +48,11 @@ export function createRunCodeTool(serverManager: IServerManager): RunCodeTool {
       try {
         // Validate languageId
         if (languageId !== 'python' && languageId !== 'groovy') {
-          const output = {
-            success: false,
-            message: `Invalid languageId: '${languageId}'. Must be "python" or "groovy".`,
-          };
-          return {
-            content: [{ type: 'text', text: JSON.stringify(output) }],
-            structuredContent: output,
-          };
+          return createResult(
+            false,
+            [],
+            `Invalid languageId: '${languageId}'. Must be "python" or "groovy".`
+          );
         }
 
         // If connectionUrl is provided, ensure connection exists
@@ -62,30 +61,22 @@ export function createRunCodeTool(serverManager: IServerManager): RunCodeTool {
           try {
             parsedUrl = new URL(connectionUrl);
           } catch (e) {
-            const output = {
-              success: false,
-              message: `Invalid connectionUrl: '${connectionUrl}'. Please provide a valid Deephaven server URL (e.g., 'http://localhost:10000'). If this was a server label, use listServers to find the corresponding URL.`,
-            };
-            return {
-              content: [{ type: 'text', text: JSON.stringify(output) }],
-              structuredContent: output,
-            };
+            return createResult(
+              false,
+              [],
+              `Invalid connectionUrl: '${connectionUrl}'. Please provide a valid Deephaven server URL (e.g., 'http://localhost:10000'). If this was a server label, use listServers to find the corresponding URL.`
+            );
           }
           let connections = serverManager.getConnections(parsedUrl);
           if (!connections.length) {
             // Try to connect (DHC only, for DHE user must use connectToServer first)
             const server = serverManager.getServer(parsedUrl);
             if (!server) {
-              const output = {
-                success: false,
-                message: `Server not found: ${connectionUrl}`,
-              };
-              return {
-                content: [
-                  { type: 'text' as const, text: JSON.stringify(output) },
-                ],
-                structuredContent: output,
-              };
+              return createResult(
+                false,
+                [],
+                `Server not found: ${connectionUrl}`
+              );
             }
             if (server.type === 'DHC') {
               const serverState = { type: server.type, url: server.url };
@@ -96,28 +87,18 @@ export function createRunCodeTool(serverManager: IServerManager): RunCodeTool {
               // Wait for connection to be established (could poll or just re-fetch)
               connections = serverManager.getConnections(parsedUrl);
               if (!connections.length) {
-                const output = {
-                  success: false,
-                  message: `Failed to connect to server: ${connectionUrl}`,
-                };
-                return {
-                  content: [
-                    { type: 'text' as const, text: JSON.stringify(output) },
-                  ],
-                  structuredContent: output,
-                };
+                return createResult(
+                  false,
+                  [],
+                  `Failed to connect to server: ${connectionUrl}`
+                );
               }
             } else {
-              const output = {
-                success: false,
-                message: `No active connection to ${connectionUrl}. Use connectToServer first.`,
-              };
-              return {
-                content: [
-                  { type: 'text' as const, text: JSON.stringify(output) },
-                ],
-                structuredContent: output,
-              };
+              return createResult(
+                false,
+                [],
+                `No active connection to ${connectionUrl}. Use connectToServer first.`
+              );
             }
           }
 
@@ -125,57 +106,43 @@ export function createRunCodeTool(serverManager: IServerManager): RunCodeTool {
 
           // Verify it's a DHC connection
           if (!isInstanceOf(connection, DhcService)) {
-            const output = {
-              success: false,
-              message: 'Code execution is only supported for DHC connections.',
-            };
-            return {
-              content: [{ type: 'text', text: JSON.stringify(output) }],
-              structuredContent: output,
-            };
+            return createResult(
+              false,
+              [],
+              'Code execution is only supported for DHC connections.'
+            );
           }
 
           // Execute the code
           const result = await connection.runCode(code, languageId);
 
+          // Extract variables from result (even if there was an error)
+          const variables = extractVariables(result);
+
           // Check for errors in the result
           if (result != null && result.error) {
-            const output = {
-              success: false,
-              message: `Code execution failed:\n${result.error}`,
-            };
-            return {
-              content: [{ type: 'text', text: JSON.stringify(output) }],
-              structuredContent: output,
-            };
+            return createResult(
+              false,
+              variables,
+              `Code execution failed:\n${result.error}`
+            );
           }
+
+          return createResult(true, variables);
         } else {
           // No connectionUrl provided - need to get a default connection
-          const output = {
-            success: false,
-            message:
-              'connectionUrl is required. Use listConnections to find available connections.',
-          };
-          return {
-            content: [{ type: 'text', text: JSON.stringify(output) }],
-            structuredContent: output,
-          };
+          return createResult(
+            false,
+            [],
+            'connectionUrl is required. Use listConnections to find available connections.'
+          );
         }
-
-        const output = { success: true, message: 'Code executed successfully' };
-        return {
-          content: [{ type: 'text' as const, text: JSON.stringify(output) }],
-          structuredContent: output,
-        };
       } catch (error) {
-        const output = {
-          success: false,
-          message: `Failed to execute code: ${error instanceof Error ? error.message : String(error)}`,
-        };
-        return {
-          content: [{ type: 'text' as const, text: JSON.stringify(output) }],
-          structuredContent: output,
-        };
+        return createResult(
+          false,
+          [],
+          `Failed to execute code: ${error instanceof Error ? error.message : String(error)}`
+        );
       }
     },
   };
