@@ -463,7 +463,7 @@ export class ExtensionController implements IDisposable {
       this.updateMcpStatusBar(actualPort);
 
       // Auto-configure Windsurf MCP config if running in Windsurf
-      await this.updateWindsurfMcpConfig(actualPort, true);
+      await this.updateWindsurfMcpConfig(actualPort);
 
       vscode.window.showInformationMessage(
         `Deephaven MCP Server started on port ${actualPort}.`
@@ -1074,7 +1074,7 @@ export class ExtensionController implements IDisposable {
       return;
     }
 
-    await this.updateWindsurfMcpConfig(port, true);
+    await this.updateWindsurfMcpConfig(port);
   };
 
   onDeleteVariable = async (
@@ -1177,7 +1177,7 @@ export class ExtensionController implements IDisposable {
     // Windsurf uses a separate MCP config file - automatically add/update the server entry
     const isWindsurf = vscode.env.appName.toLowerCase().includes('windsurf');
     if (isWindsurf) {
-      const updated = await this.updateWindsurfMcpConfig(port, false);
+      const updated = await this.updateWindsurfMcpConfig(port);
       if (updated) {
         vscode.window.showInformationMessage(
           `MCP URL copied and Windsurf config updated with '${MCP_SERVER_NAME}' server.`
@@ -1197,13 +1197,9 @@ export class ExtensionController implements IDisposable {
   /**
    * Update Windsurf MCP config with the Deephaven server entry.
    * @param port The port the MCP server is running on
-   * @param promptBeforeUpdate If true, prompt the user before updating the config
    * @returns true if the config was updated, false otherwise
    */
-  private updateWindsurfMcpConfig = async (
-    port: number,
-    promptBeforeUpdate: boolean
-  ): Promise<boolean> => {
+  private updateWindsurfMcpConfig = async (port: number): Promise<boolean> => {
     const isWindsurf = vscode.env.appName.toLowerCase().includes('windsurf');
     if (!isWindsurf) {
       return false;
@@ -1236,35 +1232,34 @@ export class ExtensionController implements IDisposable {
         return false;
       }
 
-      // Prompt user before updating if requested
-      if (promptBeforeUpdate) {
-        // Check if user has enabled auto-update in settings
-        const autoUpdate = this._config.getMcpAutoUpdateConfig();
+      // Check if user has enabled auto-update in settings
+      const autoUpdate = this._config.getMcpAutoUpdateConfig();
 
-        if (!autoUpdate) {
-          let message: string;
-          let buttons: string[];
+      if (!autoUpdate) {
+        let message: string;
+        let buttons: string[];
 
-          if (existingEntry == null) {
-            message = `Add '${MCP_SERVER_NAME}' to your Windsurf MCP config?`;
-            buttons = ['Yes', 'No'];
-          } else {
-            message = `Your Windsurf MCP config doesn't match this workspace's '${MCP_SERVER_NAME}'. Update to port ${port}?`;
-            buttons = ['Yes', 'Always', 'No'];
-          }
-
-          const response = await vscode.window.showInformationMessage(
-            message,
-            ...buttons
-          );
-
-          if (response === 'Always') {
-            // Store the preference to auto-update in the future
-            await this._config.setMcpAutoUpdateConfig(true);
-          } else if (response !== 'Yes') {
-            return false;
-          }
+        if (existingEntry == null) {
+          message = `Add '${MCP_SERVER_NAME}' to your Windsurf MCP config?`;
+          buttons = ['Yes', 'No'];
+        } else {
+          message = `Your Windsurf MCP config doesn't match this workspace's '${MCP_SERVER_NAME}'. Update to port ${port}?`;
+          buttons = ['Yes', 'Always', 'No'];
         }
+
+        const response = await vscode.window.showInformationMessage(
+          message,
+          ...buttons
+        );
+
+        if (response === 'Always') {
+          // Store the preference to auto-update in the future
+          await this._config.setMcpAutoUpdateConfig(true);
+        } else if (response !== 'Yes') {
+          return false;
+        }
+
+        await vscode.window.showTextDocument(configUri);
       }
 
       // Add/update the Deephaven MCP server entry
@@ -1285,11 +1280,6 @@ export class ExtensionController implements IDisposable {
         configUri,
         Buffer.from(JSON.stringify(config, null, 2))
       );
-
-      // Open the config file if we prompted the user (so they can see the change)
-      if (promptBeforeUpdate) {
-        await vscode.window.showTextDocument(configUri);
-      }
 
       return true;
     } catch (error) {
@@ -1438,12 +1428,15 @@ export class ExtensionController implements IDisposable {
    * @param languageId Optional languageId to run the code as. If none provided,
    * use the languageId of the editor.
    */
-  onRunCode: (...args: RunCodeCmdArgs) => Promise<void> = async (
+  onRunCode: (
+    ...args: RunCodeCmdArgs
+  ) => Promise<DhcType.ide.CommandResult | null> = async (
     uri?: vscode.Uri,
     _arg?: { groupId: number },
     constrainTo?: 'selection' | vscode.Range[],
-    languageId?: string
-  ): Promise<void> => {
+    languageId?: string,
+    connectionUrl?: URL
+  ): Promise<DhcType.ide.CommandResult | null> => {
     assertDefined(this._connectionController, 'connectionController');
 
     if (uri == null) {
@@ -1458,14 +1451,20 @@ export class ExtensionController implements IDisposable {
     }
 
     const connectionState =
-      await this._connectionController.getOrCreateConnection(uri, languageId);
+      await this._connectionController.getOrCreateConnection(
+        uri,
+        languageId,
+        connectionUrl
+      );
 
     if (isInstanceOf(connectionState, DhcService)) {
       const ranges: readonly vscode.Range[] | undefined =
         constrainTo === 'selection' ? editor.selections : constrainTo;
 
-      await connectionState?.runCode(editor.document, languageId, ranges);
+      return connectionState.runCode(editor.document, languageId, ranges);
     }
+
+    return null;
   };
 
   /**

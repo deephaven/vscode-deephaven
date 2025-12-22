@@ -8,6 +8,7 @@ export type RunCodeCmdArgs = [
   _arg?: { groupId: number },
   constrainTo?: 'selection' | vscode.Range[],
   languageId?: string,
+  connectionUrl?: URL,
 ];
 
 /** Arguments passed to `RUN_MARKDOWN_CODEBLOCK_CMD` handler */
