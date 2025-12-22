@@ -422,6 +422,7 @@ export class ExtensionController implements IDisposable {
    * Server is started independently to work with both VS Code Copilot and external tools like Windsurf.
    */
   initializeMCPServer = async (): Promise<void> => {
+    assertDefined(this._coreJsApiCache, 'coreJsApiCache');
     assertDefined(this._panelService, 'panelService');
     assertDefined(this._pipServerController, 'pipServerController');
     assertDefined(this._pythonDiagnostics, 'pythonDiagnostics');
@@ -434,6 +435,7 @@ export class ExtensionController implements IDisposable {
       // Create and start MCP server independently (not inside provider callback)
       // This ensures server is running for external tools (Windsurf, Cline) that access via HTTP
       this._mcpServer = new MCPServer(
+        this._coreJsApiCache,
         this._outputChannel,
         this._outputChannelDebug,
         this._panelService,

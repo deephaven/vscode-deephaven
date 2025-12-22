@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import * as http from 'http';
@@ -25,7 +26,9 @@ import { createAddRemoteFileSourcesTool } from './tools/addRemoteFileSources';
 import { createOpenFilesInEditorTool } from './tools/openFilesInEditor';
 import { createShowOutputPanelTool } from './tools/showOutputPanel';
 import { createGetLogsTool } from './tools/getLogs';
+import { createQueryTableDataTool } from './tools/queryTableData';
 import type { FilteredWorkspace } from '../services';
+import type { IAsyncCacheService } from '../types';
 
 /**
  * MCP Server for Deephaven extension.
@@ -35,6 +38,7 @@ export class MCPServer {
   private server: McpServer;
   private httpServer: http.Server | null = null;
   private port: number | null = null;
+  private readonly coreJsApiCache: IAsyncCacheService<URL, typeof DhcType>;
   private readonly outputChannel: vscode.OutputChannel;
   private readonly outputChannelDebug: OutputChannelWithHistory;
   private readonly panelService: IPanelService;
@@ -44,6 +48,7 @@ export class MCPServer {
   private readonly serverManager: IServerManager;
 
   constructor(
+    coreJsApiCache: IAsyncCacheService<URL, typeof DhcType>,
     outputChannel: vscode.OutputChannel,
     outputChannelDebug: OutputChannelWithHistory,
     panelService: IPanelService,
@@ -52,6 +57,7 @@ export class MCPServer {
     pythonWorkspace: FilteredWorkspace,
     serverManager: IServerManager
   ) {
+    this.coreJsApiCache = coreJsApiCache;
     this.outputChannel = outputChannel;
     this.outputChannelDebug = outputChannelDebug;
     this.panelService = panelService;
@@ -102,6 +108,9 @@ export class MCPServer {
       createShowOutputPanelTool(this.outputChannel, this.outputChannelDebug)
     );
     this.registerTool(createGetLogsTool(this.outputChannelDebug));
+    this.registerTool(
+      createQueryTableDataTool(this.coreJsApiCache, this.serverManager)
+    );
   }
 
   /**

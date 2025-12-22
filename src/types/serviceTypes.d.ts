@@ -58,6 +58,7 @@ export interface IDhcService extends IDisposable, ConnectionState {
 
   initSession(): Promise<boolean>;
   getClient(): Promise<CoreAuthenticatedClient | null>;
+  getSession(): DhcType.IdeSession | null;
   getConsoleTypes: () => Promise<Set<ConsoleType>>;
   supportsConsoleType: (consoleType: ConsoleType) => Promise<boolean>;
 

@@ -149,6 +149,14 @@ export class DhcService extends DisposableBase implements IDhcService {
     return this.cn != null && this.session != null;
   }
 
+  /**
+   * Get the IdeSession for table operations and queries.
+   * Returns null if session is not initialized.
+   */
+  getSession(): DhcType.IdeSession | null {
+    return this.session;
+  }
+
   private _isRunningCode = false;
   get isRunningCode(): boolean {
     return this._isRunningCode;
