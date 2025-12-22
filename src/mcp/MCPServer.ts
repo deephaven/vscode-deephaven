@@ -11,7 +11,7 @@ import type {
 import type { PipServerController } from '../controllers';
 import type { OutputChannelWithHistory } from '../util';
 import { MCP_SERVER_NAME } from '../common';
-import { createRunCodeTool } from './tools/runCode';
+import { createRunCodeFromUriTool } from './tools/runCodeFromUri';
 import { createListPanelVariablesTool } from './tools/listPanelVariables';
 import { createListConnectionsTool } from './tools/listConnections';
 import { createListServersTool } from './tools/listServers';
@@ -78,7 +78,7 @@ export class MCPServer {
 
   private registerTools(): void {
     this.registerTool(
-      createRunCodeTool(
+      createRunCodeFromUriTool(
         this.pythonDiagnostics,
         this.pythonWorkspace,
         this.serverManager

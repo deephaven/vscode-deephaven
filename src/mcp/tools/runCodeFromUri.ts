@@ -12,24 +12,23 @@ import { DhcService, type FilteredWorkspace } from '../../services';
 import { isInstanceOf } from '../../util';
 
 const spec = {
-  title: 'Run Deephaven Code',
+  title: 'Run Deephaven Code from URI',
   description:
-    'Execute code in a Deephaven session. Runs the code from a file or the current selection.',
+    'Execute code from a workspace file URI in a Deephaven session. Can run the entire file or constrain execution to the current selection within the file.',
   inputSchema: {
-    uri: z
-      .string()
-      .optional()
-      .describe(
-        'The file URI to run. If not provided, runs the active editor.'
-      ),
+    uri: z.string().describe('The file URI to run.'),
     constrainTo: z
       .enum(['selection'])
       .optional()
-      .describe('Constrain execution to current selection'),
+      .describe(
+        'Constrain execution to the current selection within the file specified by uri'
+      ),
     languageId: z
       .string()
       .optional()
-      .describe('The language ID (python, groovy) to use for execution'),
+      .describe(
+        'The language ID (python, groovy) to use for execution. If not provided, inferred from the file.'
+      ),
     connectionUrl: z
       .string()
       .optional()
@@ -43,15 +42,15 @@ const spec = {
 
 type Spec = typeof spec;
 type HandlerResult = McpToolHandlerResult<Spec>;
-type RunCodeTool = McpTool<Spec>;
+type RunCodeFromUriTool = McpTool<Spec>;
 
-export function createRunCodeTool(
+export function createRunCodeFromUriTool(
   pythonDiagnostics: vscode.DiagnosticCollection,
   pythonWorkspace: FilteredWorkspace,
   serverManager: IServerManager
-): RunCodeTool {
+): RunCodeFromUriTool {
   return {
-    name: 'runCode',
+    name: 'runCodeFromUri',
     spec,
     handler: async ({
       uri,
@@ -59,13 +58,13 @@ export function createRunCodeTool(
       languageId,
       connectionUrl,
     }: {
-      uri?: string;
+      uri: string;
       constrainTo?: 'selection';
       languageId?: string;
       connectionUrl?: string;
     }): Promise<HandlerResult> => {
       try {
-        let parsedUri = uri ? vscode.Uri.parse(uri) : undefined;
+        let parsedUri = vscode.Uri.parse(uri);
         // If connectionUrl is provided, ensure connection exists and associate editor
         if (connectionUrl) {
           let parsedUrl: URL;
@@ -132,23 +131,6 @@ export function createRunCodeTool(
           }
           // Set editor connection
           const connection = connections[0];
-          if (!parsedUri) {
-            // If no URI provided, use active text editor
-            const activeEditor = vscode.window.activeTextEditor;
-            if (!activeEditor) {
-              const output = {
-                success: false,
-                message: 'No active editor to associate with connection.',
-              };
-              return {
-                content: [
-                  { type: 'text' as const, text: JSON.stringify(output) },
-                ],
-                structuredContent: output,
-              };
-            }
-            parsedUri = activeEditor.document.uri;
-          }
           const doc = await vscode.workspace.openTextDocument(parsedUri);
           const langId = languageId || doc.languageId;
           await serverManager.setEditorConnection(
