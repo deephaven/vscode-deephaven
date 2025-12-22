@@ -7,7 +7,6 @@ import type {
 } from '@deephaven-enterprise/jsapi-types';
 import {
   createClient as createDheClient,
-  getWsUrl,
   type UnauthenticatedClient as DheUnauthenticatedClient,
 } from '@deephaven-enterprise/auth-nodejs';
 import { NodeHttp2gRPCTransport } from '@deephaven/jsapi-nodejs';
@@ -127,6 +126,7 @@ import {
   type QuerySerial,
   type SerializableRefreshToken,
 } from '../shared';
+import { getWsUrl } from '../dh/dhe';
 
 const logger = new Logger('ExtensionController');
 
@@ -551,7 +551,16 @@ export class ExtensionController implements IDisposable {
 
       const client: DheUnauthenticatedClient = await createDheClient(
         dhe,
-        getWsUrl(url)
+        // While gplus forward will normalize the URL, Grizzly still requires
+        // the websocket URL
+        getWsUrl(url),
+        {
+          // Note that grizzly servers don't support the gRPC transport, but it
+          // should just be ignored if provided. We don't really have a good way
+          // to determine if the server supports it or not, and gplus and beyond
+          // require it on non-envoy servers, so we just always provide it.
+          transportFactory: NodeHttp2gRPCTransport.factory,
+        }
       );
 
       const wResolvers = withResolvers<SerializableRefreshToken | null>();

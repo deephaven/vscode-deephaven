@@ -298,7 +298,7 @@ function handleSettingsRequest(
       newWorkerName,
       settings: {
         ...settings,
-        language: consoleType,
+        language: consoleType ?? settings.language,
       },
       isLegacyWorkerKindSupported: false,
       showHeader: false,
