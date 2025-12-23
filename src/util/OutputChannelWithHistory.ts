@@ -47,6 +47,13 @@ export class OutputChannelWithHistory implements vscode.OutputChannel {
     this.history = [];
   };
 
+  /**
+   * Get the history as an array of strings.
+   */
+  getHistory = (): readonly string[] => {
+    return this.history;
+  };
+
   downloadHistoryToFile = async (): Promise<vscode.Uri | null> => {
     const response = await vscode.window.showSaveDialog({
       defaultUri: vscode.Uri.file(

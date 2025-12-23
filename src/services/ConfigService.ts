@@ -70,9 +70,23 @@ function hasValidURL({ url }: { url: string }): boolean {
   }
 }
 
+function getMcpAutoUpdateConfig(): boolean {
+  return getConfig().get<boolean>(CONFIG_KEY.mcpAutoUpdateConfig, false);
+}
+
+async function setMcpAutoUpdateConfig(value: boolean): Promise<void> {
+  await getConfig().update(
+    CONFIG_KEY.mcpAutoUpdateConfig,
+    value,
+    true // global scope
+  );
+}
+
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export const ConfigService: IConfigService = {
   getCoreServers,
   getEnterpriseServers,
   isElectronFetchEnabled,
+  getMcpAutoUpdateConfig,
+  setMcpAutoUpdateConfig,
 };
