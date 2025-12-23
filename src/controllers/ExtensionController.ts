@@ -10,6 +10,7 @@ import {
   type UnauthenticatedClient as DheUnauthenticatedClient,
 } from '@deephaven-enterprise/auth-nodejs';
 import { NodeHttp2gRPCTransport } from '@deephaven/jsapi-nodejs';
+import { MCPServer } from '../mcp';
 import {
   ADD_REMOTE_FILE_SOURCE_CMD,
   CLEAR_SECRET_STORAGE_CMD,
@@ -192,6 +193,7 @@ export class ExtensionController implements IDisposable {
   private _secretService: ISecretService | null = null;
   private _serverManager: IServerManager | null = null;
   private _userLoginController: UserLoginController | null = null;
+  private _mcpServer: MCPServer | null = null;
 
   // Tree providers
   private _serverTreeProvider: ServerTreeProvider | null = null;
@@ -241,6 +243,7 @@ export class ExtensionController implements IDisposable {
     this.initializePipServerController();
     this.initializeUserLoginController();
     this.initializeCommands();
+    this.initializeMCPServer();
 
     this._context.subscriptions.push(NodeHttp2gRPCTransport);
 
@@ -252,6 +255,7 @@ export class ExtensionController implements IDisposable {
 
   deactivate = (): void => {
     logger.info(`Deactivating Deephaven extension`);
+    this._mcpServer?.stop();
   };
 
   /**
@@ -407,6 +411,281 @@ export class ExtensionController implements IDisposable {
 
     this._context.subscriptions.push(this._userLoginController);
   };
+
+  /**
+   * Initialize MCP server for AI assistant integration.
+   */
+  initializeMCPServer = async (): Promise<void> => {
+    try {
+      // Check if we have a workspace folder
+      const workspaceFolders = vscode.workspace.workspaceFolders;
+      if (!workspaceFolders || workspaceFolders.length === 0) {
+        logger.warn('No workspace folder found. Cannot start MCP server.');
+        return;
+      }
+
+      // Get existing port from mcp.json or allocate a new one
+      const [port, isNewPort] = await this.getMCPServerPort(
+        workspaceFolders[0].uri
+      );
+
+      // Start MCP server on the determined port with panel service and server manager
+      this._mcpServer = new MCPServer(
+        port,
+        this._panelService ?? undefined,
+        this._serverManager ?? undefined
+      );
+      const actualPort = await this._mcpServer.start();
+      logger.info(`MCP Server initialized on port ${actualPort}`);
+
+      // Only update mcp.json if this is a newly allocated port
+      if (isNewPort) {
+        const mcpServerConfig = {
+          ['deephaven-vscode']: {
+            type: 'http',
+            url: `http://localhost:${actualPort}/mcp`,
+          },
+        };
+
+        await this.updateMCPJson(workspaceFolders[0].uri, mcpServerConfig);
+        logger.info(
+          `Created .vscode/mcp.json with MCP server on port ${actualPort}`
+        );
+      }
+
+      vscode.window.showInformationMessage(
+        `Deephaven MCP Server started on port ${actualPort}.`
+      );
+    } catch (error) {
+      logger.error('Failed to initialize MCP server:', error);
+      vscode.window.showErrorMessage(
+        `Failed to initialize MCP server: ${error instanceof Error ? error.message : String(error)}`
+      );
+      // Don't fail extension activation if MCP server fails
+    }
+  };
+
+  /**
+   * Get the MCP server port for this workspace.
+   * Reads from .vscode/mcp.json if it exists, otherwise allocates a new port.
+   * Returns [port, isNewPort] tuple.
+   */
+  private async getMCPServerPort(
+    workspaceFolderUri: vscode.Uri
+  ): Promise<[number, boolean]> {
+    const mcpJsonPath = vscode.Uri.joinPath(
+      workspaceFolderUri,
+      '.vscode',
+      'mcp.json'
+    );
+
+    try {
+      // Try to read existing mcp.json
+      const content = await vscode.workspace.fs.readFile(mcpJsonPath);
+      const text = Buffer.from(content).toString('utf8');
+
+      logger.info(`Read mcp.json: ${text}`);
+
+      // Parse JSON (don't strip comments that might be inside strings)
+      const mcpConfig = JSON.parse(text);
+
+      logger.info(`Parsed config: ${JSON.stringify(mcpConfig, null, 2)}`);
+
+      // Check if we have a deephaven-vscode server configured
+      const existingConfig = mcpConfig.servers?.['deephaven-vscode']?.url;
+      logger.info(`Existing config for deephaven-vscode: ${existingConfig}`);
+
+      if (existingConfig) {
+        // Extract port from URL like "http://localhost:12345/mcp"
+        const match = existingConfig.match(/:(\d+)/);
+        if (match) {
+          const port = parseInt(match[1], 10);
+          logger.info(`Using existing MCP server port ${port} from mcp.json`);
+          return [port, false]; // existing port
+        }
+      }
+    } catch (error) {
+      // File doesn't exist or couldn't be parsed, will allocate new port
+      logger.info('No existing mcp.json found, will allocate new port');
+    }
+
+    // No existing port found, allocate a new one
+    // Use port 0 to let OS assign an available port
+    const testServer = new MCPServer(0);
+    const port = await testServer.start();
+    await testServer.stop();
+
+    logger.info(`Allocated new MCP server port ${port}`);
+    return [port, true]; // new port
+  }
+
+  private async updateMCPJson(
+    workspaceFolderUri: vscode.Uri,
+    mcpServerConfig: any
+  ): Promise<void> {
+    const mcpJsonPath = vscode.Uri.joinPath(
+      workspaceFolderUri,
+      '.vscode',
+      'mcp.json'
+    );
+
+    let mcpConfig: any = { servers: {} };
+
+    try {
+      const content = await vscode.workspace.fs.readFile(mcpJsonPath);
+      const text = Buffer.from(content).toString('utf8');
+
+      // Parse JSON directly (no comments to strip since we write valid JSON)
+      mcpConfig = JSON.parse(text);
+    } catch (error) {
+      // File doesn't exist, will be created with default structure
+      logger.info('Creating new .vscode/mcp.json file');
+    }
+
+    // Update MCP servers in the servers section
+    if (!mcpConfig.servers) {
+      mcpConfig.servers = {};
+    }
+    mcpConfig.servers = {
+      ...mcpConfig.servers,
+      ...mcpServerConfig,
+    };
+
+    // Always write the full config (simpler and more reliable)
+    const updatedText = JSON.stringify(mcpConfig, null, 2);
+
+    const encoder = new TextEncoder();
+    await vscode.workspace.fs.writeFile(
+      mcpJsonPath,
+      encoder.encode(updatedText)
+    );
+    logger.info(`Updated .vscode/mcp.json: ${mcpJsonPath.fsPath}`);
+  }
+
+  private async updateWorkspaceFile(
+    workspaceFileUri: vscode.Uri,
+    mcpServerConfig: any
+  ): Promise<void> {
+    const content = await vscode.workspace.fs.readFile(workspaceFileUri);
+    const text = Buffer.from(content).toString('utf8');
+
+    // Remove comments before parsing (workspace files can have comments)
+    const cleanedText = text.replace(/\/\/.*$|\/\*[\s\S]*?\*\//gm, '');
+    const workspace = JSON.parse(cleanedText);
+
+    if (!workspace.settings) {
+      workspace.settings = {};
+    }
+    if (!workspace.settings['chat.mcp.servers']) {
+      workspace.settings['chat.mcp.servers'] = {};
+    }
+    workspace.settings['chat.mcp.servers'] = {
+      ...workspace.settings['chat.mcp.servers'],
+      ...mcpServerConfig,
+    };
+
+    // Try to preserve formatting by doing a simple text replacement if possible
+    // Otherwise, rewrite the whole file
+    const settingsJson = JSON.stringify(workspace.settings, null, 2);
+    const settingsPattern = /"settings"\s*:\s*\{[^}]*\}/s;
+
+    let updatedText: string;
+    if (settingsPattern.test(text)) {
+      // Replace existing settings section
+      updatedText = text.replace(
+        settingsPattern,
+        `"settings": ${settingsJson}`
+      );
+    } else {
+      // No settings section exists, rewrite entire file
+      updatedText = JSON.stringify(workspace, null, 2);
+    }
+
+    const encoder = new TextEncoder();
+    await vscode.workspace.fs.writeFile(
+      workspaceFileUri,
+      encoder.encode(updatedText)
+    );
+    logger.info(`Updated workspace file: ${workspaceFileUri.fsPath}`);
+  }
+
+  private async updateVSCodeSettings(
+    workspaceFolderUri: vscode.Uri,
+    mcpServerConfig: any
+  ): Promise<void> {
+    const settingsPath = vscode.Uri.joinPath(
+      workspaceFolderUri,
+      '.vscode',
+      'settings.json'
+    );
+
+    let originalText = '';
+    let settings: any = {};
+    let fileExists = false;
+
+    try {
+      const settingsContent = await vscode.workspace.fs.readFile(settingsPath);
+      originalText = Buffer.from(settingsContent).toString('utf8');
+      fileExists = true;
+
+      // Remove comments before parsing
+      const cleanedSettings = originalText.replace(
+        /\/\/.*$|\/\*[\s\S]*?\*\//gm,
+        ''
+      );
+      settings = JSON.parse(cleanedSettings);
+    } catch (error) {
+      // File doesn't exist or is invalid, start with empty object
+      logger.info('Creating new settings.json file');
+    }
+
+    // Update MCP servers configuration
+    if (!settings['chat.mcp.servers']) {
+      settings['chat.mcp.servers'] = {};
+    }
+    settings['chat.mcp.servers'] = {
+      ...settings['chat.mcp.servers'],
+      ...mcpServerConfig,
+    };
+
+    // Try to preserve comments and formatting by doing surgical replacement
+    let updatedText: string;
+    if (fileExists && originalText) {
+      const mcpServersJson = JSON.stringify(
+        settings['chat.mcp.servers'],
+        null,
+        2
+      );
+      const mcpServersPattern = /"chat\.mcp\.servers"\s*:\s*\{[^}]*\}/s;
+
+      if (mcpServersPattern.test(originalText)) {
+        // Replace existing chat.mcp.servers section
+        updatedText = originalText.replace(
+          mcpServersPattern,
+          `"chat.mcp.servers": ${mcpServersJson}`
+        );
+      } else {
+        // Add chat.mcp.servers to existing file
+        // Find the last property and add after it
+        const lastPropertyPattern = /(\s*)(})\s*$/;
+        updatedText = originalText.replace(
+          lastPropertyPattern,
+          `,\n  "chat.mcp.servers": ${mcpServersJson}\n$1$2`
+        );
+      }
+    } else {
+      // New file, write clean JSON
+      updatedText = JSON.stringify(settings, null, 2);
+    }
+
+    // Write back to file
+    const encoder = new TextEncoder();
+    await vscode.workspace.fs.writeFile(
+      settingsPath,
+      encoder.encode(updatedText)
+    );
+    logger.info(`Updated .vscode/settings.json: ${settingsPath.fsPath}`);
+  }
 
   /**
    * Initialize diagnostics collections.
