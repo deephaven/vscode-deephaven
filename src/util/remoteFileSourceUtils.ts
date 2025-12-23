@@ -4,14 +4,20 @@ import { URIMap } from './maps';
 import type {
   FilePattern,
   FolderName,
+  GroovyPackageName,
+  GroovyResourceData,
+  GroovyResourceName,
   Include,
   JsonRpcRequest,
   JsonRpcResponse,
-  ModuleFullname,
+  PythonModuleFullname,
   PythonModuleSpecData,
   RemoteImportSourceTreeFileElement,
   RemoteImportSourceTreeFolderElement,
+  RemoteImportSourceTreeLanguageRootElement,
+  RemoteImportSourceTreeRootElement,
   RemoteImportSourceTreeTopLevelMarkedFolderElement,
+  RemoteImportSourceTreeWkspRootFolderElement,
   UniqueID,
 } from '../types';
 import { withResolvers } from './promiseUtils';
@@ -19,6 +25,7 @@ import { URISet } from './sets';
 import {
   DH_PYTHON_REMOTE_SOURCE_PLUGIN_CLASS,
   DH_PYTHON_REMOTE_SOURCE_PLUGIN_VARIABLE,
+  ICON_ID,
 } from '../common';
 import * as Msg from './remoteFileSourceMsgUtils';
 import { Logger } from './Logger';
@@ -26,12 +33,14 @@ import { Logger } from './Logger';
 const logger = new Logger('remoteFileSourceUtils');
 
 export type PythonModuleWorkspaceMap = URIMap<
-  Map<ModuleFullname, Include<vscode.Uri>>
+  Map<PythonModuleFullname, Include<vscode.Uri>>
 >;
 
 export interface PythonModuleMeta {
   moduleMap: PythonModuleWorkspaceMap;
-  topLevelModuleNames: URIMap<Map<ModuleFullname, Include<ModuleFullname>>>;
+  topLevelModuleNames: URIMap<
+    Map<PythonModuleFullname, Include<PythonModuleFullname>>
+  >;
 }
 
 /**
@@ -60,6 +69,8 @@ export const DH_PYTHON_REMOTE_SOURCE_PLUGIN_INIT_SCRIPT = [
   '    except ModuleNotFoundError:',
   '        print("Python remote file source plugin not installed")',
 ].join('\n');
+
+export const DH_REQUEST_SOURCE_EVENT = 'requestsource' as const;
 
 // Alias for `dh.Widget.EVENT_MESSAGE` to avoid having to pass in a `dh` instance
 // to util functions that only need the event name.
@@ -150,6 +161,7 @@ export function getFileTreeItem({
 export function getFolderTreeItem({
   name,
   isMarked,
+  languageId,
   uri,
 }: RemoteImportSourceTreeFolderElement): vscode.TreeItem {
   return {
@@ -157,9 +169,47 @@ export function getFolderTreeItem({
     collapsibleState: vscode.TreeItemCollapsibleState.Collapsed,
     resourceUri: uri,
     contextValue: isMarked
-      ? 'canRemoveRemoteFileSource'
-      : 'canAddRemoteFileSource',
+      ? `canRemoveRemoteFileSource:${languageId}`
+      : `canAddRemoteFileSource:${languageId}`,
     iconPath: new vscode.ThemeIcon('folder'),
+  };
+}
+
+/**
+ * Get `TreeItem` for a language root element in the remote import source tree.
+ * @param element The language root element.
+ * @returns TreeItem for the language root
+ */
+export function getLanguageRootTreeItem({
+  name,
+  languageId,
+}: RemoteImportSourceTreeLanguageRootElement): vscode.TreeItem {
+  return {
+    label: name,
+    contextValue: 'languageRoot',
+    collapsibleState: vscode.TreeItemCollapsibleState.Collapsed,
+    iconPath:
+      languageId === 'python'
+        ? new vscode.ThemeIcon(ICON_ID.python)
+        : languageId === 'groovy'
+          ? new vscode.ThemeIcon(ICON_ID.groovy)
+          : undefined,
+  };
+}
+
+/**
+ * Get `TreeItem` for a root element in the remote import source tree.
+ * @param element The root element.
+ * @returns TreeItem for the root
+ */
+export function getRootTreeItem({
+  name,
+  type,
+}: RemoteImportSourceTreeRootElement): vscode.TreeItem {
+  return {
+    label: name,
+    contextValue: type,
+    collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
   };
 }
 
@@ -171,15 +221,49 @@ export function getFolderTreeItem({
  */
 export function getTopLevelMarkedFolderTreeItem({
   uri,
+  languageId,
 }: RemoteImportSourceTreeTopLevelMarkedFolderElement): vscode.TreeItem {
   return {
     label: uri.path.split('/').at(-1),
     description: vscode.workspace.asRelativePath(uri, true),
-    contextValue: 'canRemoveRemoteFileSource',
+    contextValue: `canRemoveRemoteFileSource:${languageId}`,
     resourceUri: uri,
-    iconPath: new vscode.ThemeIcon('dh-python'),
+    iconPath:
+      languageId === 'groovy'
+        ? new vscode.ThemeIcon(ICON_ID.groovy)
+        : new vscode.ThemeIcon(ICON_ID.python),
     collapsibleState: vscode.TreeItemCollapsibleState.None,
   };
+}
+
+/**
+ * Get `TreeItem` for a workspace folder root element in the remote import
+ * source tree.
+ * @param element The workspace folder root element.
+ * @returns TreeItem for the workspace folder root
+ */
+export function getWorkspaceFolderRootTreeItem({
+  name,
+}: RemoteImportSourceTreeWkspRootFolderElement): vscode.TreeItem {
+  return {
+    label: name,
+    collapsibleState: vscode.TreeItemCollapsibleState.Collapsed,
+  };
+}
+
+/**
+ * Get the top-level Groovy package name for a given folder URI. It will be the
+ * last segment of the folder path.
+ * @param folderUri The folder URI.
+ * @returns The top-level package name.
+ */
+export function getGroovyTopLevelPackageName(
+  folderUri: vscode.Uri
+): GroovyPackageName {
+  return folderUri.path
+    .replace(/\/$/, '')
+    .split('/')
+    .at(-1) as GroovyPackageName;
 }
 
 /**
@@ -188,10 +272,13 @@ export function getTopLevelMarkedFolderTreeItem({
  * @param folderUri The folder URI.
  * @returns The top-level module name.
  */
-export function getTopLevelModuleFullname(
+export function getPythonTopLevelModuleFullname(
   folderUri: vscode.Uri
-): ModuleFullname {
-  return folderUri.path.replace(/\/$/, '').split('/').at(-1) as ModuleFullname;
+): PythonModuleFullname {
+  return folderUri.path
+    .replace(/\/$/, '')
+    .split('/')
+    .at(-1) as PythonModuleFullname;
 }
 
 /**
@@ -260,16 +347,57 @@ export function hasPythonPluginVariable(
 }
 
 /**
+ * Register a message listener on the Groovy remote file source plugin to
+ * handle requests.
+ * @param pluginService The remote file source plugin service.
+ * @returns a function to unregister the listener
+ */
+export function registerGroovyRemoteFileSourcePluginMessageListener(
+  pluginService: DhcType.remotefilesource.RemoteFileSourceService,
+  getGroovyResourceData: (
+    resourceName: GroovyResourceName
+  ) => GroovyResourceData | null
+): () => void {
+  return pluginService.addEventListener<DhcType.remotefilesource.ResourceRequestEvent>(
+    DH_REQUEST_SOURCE_EVENT,
+    async ({ detail }) => {
+      logger.info(
+        'Received resource request from server:',
+        detail.resourceName
+      );
+
+      const resourceData = getGroovyResourceData(
+        detail.resourceName as GroovyResourceName
+      );
+
+      let source: string | undefined;
+      if (resourceData?.origin != null) {
+        const textDoc = await vscode.workspace.openTextDocument(
+          resourceData.origin
+        );
+        source = textDoc.getText();
+      }
+
+      if (source == null) {
+        logger.error('Resource source not found:', detail.resourceName);
+      }
+
+      detail.respond(source);
+    }
+  );
+}
+
+/**
  * Register a message listener on the remote file source plugin to handle requests.
  * @param plugin the remote file source plugin widget
  * @param getPythonModuleSpecData a function that returns the module spec data
  * for a given module fullname
  * @returns a function to unregister the listener
  */
-export function registerRemoteFileSourcePluginMessageListener(
+export function registerPythonRemoteFileSourcePluginMessageListener(
   plugin: DhcType.Widget,
   getPythonModuleSpecData: (
-    moduleFullname: ModuleFullname
+    moduleFullname: PythonModuleFullname
   ) => PythonModuleSpecData | null
 ): () => void {
   return plugin.addEventListener<DhcType.Widget>(

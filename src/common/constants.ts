@@ -88,6 +88,8 @@ export const ICON_ID = {
   connected: 'vm-connect',
   connecting: 'sync~spin',
   disconnected: 'plug',
+  groovy: 'coffee',
+  python: 'dh-python',
   runAll: 'run-all',
   runSelection: 'run',
   runningCode: 'sync~spin',
