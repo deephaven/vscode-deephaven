@@ -2,7 +2,7 @@
 
 For VS Code and Windsurf, you can manually download and install the latest mcp-dev .vsix:
 
-   [vscode-deephaven-1.1.8-mcp-dev.0.vsix](https://github.com/deephaven/vscode-deephaven/raw/refs/heads/mcp/releases/vscode-deephaven-1.1.8-mcp-dev.0.vsix)
+   [vscode-deephaven-1.1.8-mcp-dev.1.vsix](https://github.com/deephaven/vscode-deephaven/raw/refs/heads/mcp/releases/vscode-deephaven-1.1.8-mcp-dev.1.vsix)
 
 ## VS Code Installation
 - Download and install the .vsix
