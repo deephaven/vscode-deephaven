@@ -285,7 +285,7 @@ export class ConnectionController
    * Handle connecting to a server
    */
   onConnectToServer = async (
-    serverState: ServerState,
+    serverState: Pick<ServerState, 'type' | 'url'>,
     operateAsAnotherUser?: boolean
   ): Promise<void> => {
     const languageId = vscode.window.activeTextEditor?.document.languageId;
