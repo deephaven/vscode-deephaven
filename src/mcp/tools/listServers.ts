@@ -52,6 +52,10 @@ const spec = {
       )
       .optional(),
     message: z.string().optional(),
+    executionTimeMs: z
+      .number()
+      .optional()
+      .describe('Execution time in milliseconds'),
   },
 } as const;
 
@@ -74,6 +78,7 @@ export function createListServersTool(
       hasConnections?: boolean;
       type?: 'DHC' | 'DHE';
     }): Promise<HandlerResult> => {
+      const startTime = performance.now();
       try {
         const servers = serverManager
           .getServers({ isRunning, hasConnections, type })
@@ -102,6 +107,7 @@ export function createListServersTool(
           success: true,
           servers,
           message: `Found ${servers.length} server(s)`,
+          executionTimeMs: performance.now() - startTime,
         };
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(output) }],
@@ -111,6 +117,7 @@ export function createListServersTool(
         const output = {
           success: false,
           message: `Failed to list servers: ${error instanceof Error ? error.message : String(error)}`,
+          executionTimeMs: performance.now() - startTime,
         };
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(output) }],

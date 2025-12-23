@@ -22,6 +22,10 @@ const spec = {
       .array(z.object({ id: z.string(), title: z.string(), type: z.string() }))
       .optional(),
     message: z.string().optional(),
+    executionTimeMs: z
+      .number()
+      .optional()
+      .describe('Execution time in milliseconds'),
   },
 } as const;
 
@@ -37,6 +41,7 @@ export function createListPanelVariablesTool(
     name: 'listPanelVariables',
     spec,
     handler: async ({ url }: { url: string }): Promise<HandlerResult> => {
+      const startTime = performance.now();
       try {
         const parsedUrl = new URL(url);
         const connections = serverManager.getConnections(parsedUrl);
@@ -50,6 +55,7 @@ export function createListPanelVariablesTool(
             const output = {
               success: false,
               message: `Server not found: ${url}. Use listServers to see available servers.`,
+              executionTimeMs: performance.now() - startTime,
             };
             return {
               content: [
@@ -68,6 +74,7 @@ export function createListPanelVariablesTool(
             const output = {
               success: false,
               message: `No active connection to ${url}. Use connectToServer first.`,
+              executionTimeMs: performance.now() - startTime,
             };
             return {
               content: [
@@ -84,6 +91,7 @@ export function createListPanelVariablesTool(
           success: true,
           variables,
           message: `Found ${variables.length} panel variable(s)`,
+          executionTimeMs: performance.now() - startTime,
         };
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(output) }],
@@ -93,6 +101,7 @@ export function createListPanelVariablesTool(
         const output = {
           success: false,
           message: `Failed to list panel variables: ${error instanceof Error ? error.message : String(error)}`,
+          executionTimeMs: performance.now() - startTime,
         };
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(output) }],

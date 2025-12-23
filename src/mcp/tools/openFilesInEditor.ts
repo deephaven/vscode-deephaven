@@ -21,6 +21,10 @@ const spec = {
   outputSchema: {
     success: z.boolean(),
     message: z.string(),
+    executionTimeMs: z
+      .number()
+      .optional()
+      .describe('Execution time in milliseconds'),
   },
 } as const;
 
@@ -40,6 +44,7 @@ export function createOpenFilesInEditorTool(): OpenFilesInEditorTool {
       preview?: boolean;
       preserveFocus?: boolean;
     }): Promise<McpToolHandlerResult<Spec>> => {
+      const startTime = performance.now();
       try {
         for (const uriStr of uris) {
           const uri = vscode.Uri.parse(uriStr);
@@ -48,6 +53,7 @@ export function createOpenFilesInEditorTool(): OpenFilesInEditorTool {
         const output = {
           success: true,
           message: 'Files opened in editor successfully.',
+          executionTimeMs: performance.now() - startTime,
         };
         return {
           content: [{ type: 'text', text: JSON.stringify(output) }],
@@ -57,6 +63,7 @@ export function createOpenFilesInEditorTool(): OpenFilesInEditorTool {
         const output = {
           success: false,
           message: `Failed to open files: ${error instanceof Error ? error.message : String(error)}`,
+          executionTimeMs: performance.now() - startTime,
         };
         return {
           content: [{ type: 'text', text: JSON.stringify(output) }],

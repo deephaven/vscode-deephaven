@@ -10,6 +10,10 @@ const spec = {
   outputSchema: {
     success: z.boolean(),
     message: z.string(),
+    executionTimeMs: z
+      .number()
+      .optional()
+      .describe('Execution time in milliseconds'),
   },
 } as const;
 
@@ -23,6 +27,7 @@ export function createStartPipServerTool(
     name: 'startPipServer',
     spec,
     handler: async (): Promise<McpToolHandlerResult<Spec>> => {
+      const startTime = performance.now();
       try {
         const result = await pipServerController.checkPipInstall();
         if (!result.isAvailable) {
@@ -30,6 +35,7 @@ export function createStartPipServerTool(
             success: false,
             message:
               'Pip server environment is not available. The `deephaven-server` package may not be installed.',
+            executionTimeMs: performance.now() - startTime,
           };
           return {
             content: [{ type: 'text', text: JSON.stringify(output) }],
@@ -40,6 +46,7 @@ export function createStartPipServerTool(
         const output = {
           success: true,
           message: 'Pip server started successfully.',
+          executionTimeMs: performance.now() - startTime,
         };
         return {
           content: [{ type: 'text', text: JSON.stringify(output) }],
@@ -49,6 +56,7 @@ export function createStartPipServerTool(
         const output = {
           success: false,
           message: `Failed to start pip server: ${error instanceof Error ? error.message : String(error)}`,
+          executionTimeMs: performance.now() - startTime,
         };
         return {
           content: [{ type: 'text', text: JSON.stringify(output) }],

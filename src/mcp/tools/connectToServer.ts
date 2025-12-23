@@ -17,6 +17,10 @@ const spec = {
   outputSchema: {
     success: z.boolean(),
     message: z.string(),
+    executionTimeMs: z
+      .number()
+      .optional()
+      .describe('Execution time in milliseconds'),
   },
 } as const;
 
@@ -31,6 +35,7 @@ export function createConnectToServerTool(
     name: 'connectToServer',
     spec,
     handler: async ({ url }: { url: string }): Promise<HandlerResult> => {
+      const startTime = performance.now();
       try {
         let serverUrl: URL;
         try {
@@ -39,6 +44,7 @@ export function createConnectToServerTool(
           const output = {
             success: false,
             message: `Invalid server URL: '${url}'. Please provide a valid URL (e.g., 'http://localhost:10000'). If this was a server label, you can check the list of configured servers to find the corresponding URL.`,
+            executionTimeMs: performance.now() - startTime,
           };
           return {
             content: [{ type: 'text', text: JSON.stringify(output) }],
@@ -50,6 +56,7 @@ export function createConnectToServerTool(
           const output = {
             success: false,
             message: `Server not found: ${url}. Use listServers to see available servers.`,
+            executionTimeMs: performance.now() - startTime,
           };
           return {
             content: [{ type: 'text' as const, text: JSON.stringify(output) }],
@@ -64,6 +71,7 @@ export function createConnectToServerTool(
         const output = {
           success: true,
           message: `Connecting to ${server.type} server at ${url}`,
+          executionTimeMs: performance.now() - startTime,
         };
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(output) }],
@@ -73,6 +81,7 @@ export function createConnectToServerTool(
         const output = {
           success: false,
           message: `Failed to connect to server: ${error instanceof Error ? error.message : String(error)}`,
+          executionTimeMs: performance.now() - startTime,
         };
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(output) }],

@@ -62,6 +62,7 @@ export function createRunCodeFromUriTool(
       languageId?: string;
       connectionUrl?: string;
     }): Promise<HandlerResult> => {
+      const startTime = performance.now();
       try {
         const parsedUri = vscode.Uri.parse(uri);
         let parsedUrl: URL | undefined;
@@ -73,7 +74,8 @@ export function createRunCodeFromUriTool(
             return createResult(
               false,
               [],
-              `Invalid connectionUrl: '${connectionUrl}'. Please provide a valid Deephaven server URL (e.g., 'http://localhost:10000').`
+              `Invalid connectionUrl: '${connectionUrl}'. Please provide a valid Deephaven server URL (e.g., 'http://localhost:10000').`,
+              performance.now() - startTime
             );
           }
         }
@@ -152,19 +154,26 @@ export function createRunCodeFromUriTool(
           return createResult(
             false,
             variables,
-            `Code execution failed due to errors:\n${errorMsg}${hint}`
+            `Code execution failed due to errors:\n${errorMsg}${hint}`,
+            performance.now() - startTime
           );
         }
 
         // Extract variables from result
         const variables = extractVariables(result);
 
-        return createResult(true, variables);
+        return createResult(
+          true,
+          variables,
+          undefined,
+          performance.now() - startTime
+        );
       } catch (error) {
         return createResult(
           false,
           [],
-          `Failed to execute code: ${error instanceof Error ? error.message : String(error)}`
+          `Failed to execute code: ${error instanceof Error ? error.message : String(error)}`,
+          performance.now() - startTime
         );
       }
     },

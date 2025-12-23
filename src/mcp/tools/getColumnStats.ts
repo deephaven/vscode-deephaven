@@ -36,6 +36,10 @@ const spec = {
         'Map of unique values to their counts (only for columns with 19 or fewer unique values)'
       ),
     message: z.string().optional(),
+    executionTimeMs: z
+      .number()
+      .optional()
+      .describe('Execution time in milliseconds'),
   },
 } as const;
 
@@ -61,6 +65,7 @@ export function createGetColumnStatsTool(
       tableName: string;
       columnName: string;
     }): Promise<HandlerResult> => {
+      const startTime = performance.now();
       try {
         // Parse and validate connection URL
         let serverUrl: URL;
@@ -70,6 +75,7 @@ export function createGetColumnStatsTool(
           const output = {
             success: false,
             message: `Invalid connection URL: '${connectionUrl}'. Please provide a valid URL (e.g., 'http://localhost:10000').`,
+            executionTimeMs: performance.now() - startTime,
           };
           return {
             content: [{ type: 'text', text: JSON.stringify(output, null, 2) }],
@@ -124,6 +130,7 @@ export function createGetColumnStatsTool(
             const output = {
               success: false,
               message: `Column '${columnName}' not found in table '${tableName}'. Available columns: ${table.columns.map(c => c.name).join(', ')}`,
+              executionTimeMs: performance.now() - startTime,
             };
             return {
               content: [
@@ -155,6 +162,7 @@ export function createGetColumnStatsTool(
             uniqueValues:
               Object.keys(uniqueValues).length > 0 ? uniqueValues : undefined,
             message: `Retrieved statistics for column '${columnName}' in table '${tableName}'`,
+            executionTimeMs: performance.now() - startTime,
           };
 
           return {
@@ -171,6 +179,7 @@ export function createGetColumnStatsTool(
             error instanceof Error
               ? error.message
               : 'Unknown error occurred while getting column statistics',
+          executionTimeMs: performance.now() - startTime,
         };
         return {
           content: [{ type: 'text', text: JSON.stringify(output, null, 2) }],

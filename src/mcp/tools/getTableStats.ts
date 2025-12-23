@@ -39,6 +39,10 @@ const spec = {
       .optional()
       .describe('Whether the table is refreshing (ticking)'),
     message: z.string().optional(),
+    executionTimeMs: z
+      .number()
+      .optional()
+      .describe('Execution time in milliseconds'),
   },
 } as const;
 
@@ -62,6 +66,7 @@ export function createGetTableStatsTool(
       connectionUrl: string;
       tableName: string;
     }): Promise<HandlerResult> => {
+      const startTime = performance.now();
       try {
         // Parse and validate connection URL
         let serverUrl: URL;
@@ -71,6 +76,7 @@ export function createGetTableStatsTool(
           const output = {
             success: false,
             message: `Invalid connection URL: '${connectionUrl}'. Please provide a valid URL (e.g., 'http://localhost:10000').`,
+            executionTimeMs: performance.now() - startTime,
           };
           return {
             content: [{ type: 'text', text: JSON.stringify(output, null, 2) }],
@@ -132,6 +138,7 @@ export function createGetTableStatsTool(
             columns,
             isRefreshing: table.isRefreshing,
             message: `Table '${tableName}' has ${table.size} rows and ${columns.length} columns`,
+            executionTimeMs: performance.now() - startTime,
           };
 
           return {
@@ -148,6 +155,7 @@ export function createGetTableStatsTool(
             error instanceof Error
               ? error.message
               : 'Unknown error occurred while getting table statistics',
+          executionTimeMs: performance.now() - startTime,
         };
         return {
           content: [{ type: 'text', text: JSON.stringify(output, null, 2) }],

@@ -30,6 +30,10 @@ const spec = {
       )
       .optional(),
     message: z.string().optional(),
+    executionTimeMs: z
+      .number()
+      .optional()
+      .describe('Execution time in milliseconds'),
   },
 } as const;
 
@@ -48,6 +52,7 @@ export function createListConnectionsTool(
     }: {
       serverUrl?: string;
     }): Promise<HandlerResult> => {
+      const startTime = performance.now();
       try {
         const parsedUrl = serverUrl ? new URL(serverUrl) : undefined;
         const rawConnections = serverManager.getConnections(parsedUrl);
@@ -61,6 +66,7 @@ export function createListConnectionsTool(
           success: true,
           connections,
           message: `Found ${connections.length} connection(s)`,
+          executionTimeMs: performance.now() - startTime,
         };
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(output) }],
@@ -70,6 +76,7 @@ export function createListConnectionsTool(
         const output = {
           success: false,
           message: `Failed to list connections: ${error instanceof Error ? error.message : String(error)}`,
+          executionTimeMs: performance.now() - startTime,
         };
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(output) }],

@@ -17,6 +17,10 @@ const spec = {
   outputSchema: {
     success: z.boolean(),
     message: z.string(),
+    executionTimeMs: z
+      .number()
+      .optional()
+      .describe('Execution time in milliseconds'),
   },
 } as const;
 
@@ -37,6 +41,7 @@ export function createSetEditorConnectionTool(
       uri: string;
       connectionUrl: string;
     }): Promise<HandlerResult> => {
+      const startTime = performance.now();
       try {
         const parsedUri = vscode.Uri.parse(uri);
         const parsedUrl = new URL(connectionUrl);
@@ -45,6 +50,7 @@ export function createSetEditorConnectionTool(
           const output = {
             success: false,
             message: 'No active connection for the given URL',
+            executionTimeMs: performance.now() - startTime,
           };
           return {
             content: [{ type: 'text' as const, text: JSON.stringify(output) }],
@@ -62,6 +68,7 @@ export function createSetEditorConnectionTool(
         const output = {
           success: true,
           message: 'Editor connection set successfully',
+          executionTimeMs: performance.now() - startTime,
         };
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(output) }],
@@ -71,6 +78,7 @@ export function createSetEditorConnectionTool(
         const output = {
           success: false,
           message: `Failed to set editor connection: ${error instanceof Error ? error.message : String(error)}`,
+          executionTimeMs: performance.now() - startTime,
         };
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(output) }],

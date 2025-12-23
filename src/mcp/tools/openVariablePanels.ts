@@ -27,6 +27,10 @@ const spec = {
   outputSchema: {
     success: z.boolean(),
     message: z.string(),
+    executionTimeMs: z
+      .number()
+      .optional()
+      .describe('Execution time in milliseconds'),
   },
 } as const;
 
@@ -46,6 +50,7 @@ export function createOpenVariablePanelsTool(
       connectionUrl: string;
       variables: { id: string; title: string; type: string }[];
     }): Promise<McpToolHandlerResult<Spec>> => {
+      const startTime = performance.now();
       try {
         const parsedUrl = new URL(connectionUrl);
         let connections = serverManager.getConnections(parsedUrl);
@@ -56,6 +61,7 @@ export function createOpenVariablePanelsTool(
             const output = {
               success: false,
               message: `Server not found: ${connectionUrl}`,
+              executionTimeMs: performance.now() - startTime,
             };
             return {
               content: [
@@ -76,6 +82,7 @@ export function createOpenVariablePanelsTool(
               const output = {
                 success: false,
                 message: `Failed to connect to server: ${connectionUrl}`,
+                executionTimeMs: performance.now() - startTime,
               };
               return {
                 content: [
@@ -88,6 +95,7 @@ export function createOpenVariablePanelsTool(
             const output = {
               success: false,
               message: `No active connection to ${connectionUrl}. Use connectToServer first.`,
+              executionTimeMs: performance.now() - startTime,
             };
             return {
               content: [
@@ -105,6 +113,7 @@ export function createOpenVariablePanelsTool(
         const output = {
           success: true,
           message: 'Variable panels opened successfully',
+          executionTimeMs: performance.now() - startTime,
         };
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(output) }],
@@ -114,6 +123,7 @@ export function createOpenVariablePanelsTool(
         const output = {
           success: false,
           message: `Failed to open variable panels: ${error instanceof Error ? error.message : String(error)}`,
+          executionTimeMs: performance.now() - startTime,
         };
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(output) }],
