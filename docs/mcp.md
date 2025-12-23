@@ -37,7 +37,7 @@ The extension provides 17 MCP tools for interacting with Deephaven servers:
 
 For VS Code and Windsurf, you can manually download and install the latest mcp-dev .vsix:
 
-   [vscode-deephaven-1.1.10-mcp-dev.1.vsix](https://github.com/deephaven/vscode-deephaven/raw/refs/heads/mcp/releases/vscode-deephaven-1.1.10-mcp-dev.1.vsix)
+   [vscode-deephaven-1.1.10-mcp-dev.0.vsix](https://github.com/deephaven/vscode-deephaven/raw/refs/heads/mcp/releases/vscode-deephaven-1.1.10-mcp-dev.0.vsix)
 
 ### VS Code
 - Download and install the .vsix
