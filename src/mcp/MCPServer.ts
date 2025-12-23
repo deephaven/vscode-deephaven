@@ -28,6 +28,7 @@ import { createShowOutputPanelTool } from './tools/showOutputPanel';
 import { createGetLogsTool } from './tools/getLogs';
 import { createQueryTableDataTool } from './tools/queryTableData';
 import { createGetColumnStatsTool } from './tools/getColumnStats';
+import { createGetTableStatsTool } from './tools/getTableStats';
 import type { FilteredWorkspace } from '../services';
 import type { IAsyncCacheService } from '../types';
 
@@ -113,6 +114,7 @@ export class MCPServer {
       createQueryTableDataTool(this.coreJsApiCache, this.serverManager)
     );
     this.registerTool(createGetColumnStatsTool(this.serverManager));
+    this.registerTool(createGetTableStatsTool(this.serverManager));
   }
 
   /**
