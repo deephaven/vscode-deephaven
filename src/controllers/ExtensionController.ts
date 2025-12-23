@@ -70,6 +70,7 @@ import {
   SamlAuthProvider,
   RunMarkdownCodeBlockHoverProvider,
   CreateQueryViewProvider,
+  McpServerDefinitionProvider,
 } from '../providers';
 import {
   CoreJsApiCache,
@@ -197,6 +198,8 @@ export class ExtensionController implements IDisposable {
   private _serverManager: IServerManager | null = null;
   private _userLoginController: UserLoginController | null = null;
   private _mcpServer: MCPServer | null = null;
+  private _mcpServerDefinitionProvider: McpServerDefinitionProvider | null =
+    null;
   private _mcpStatusBarItem: vscode.StatusBarItem | null = null;
 
   // Tree providers
@@ -472,30 +475,22 @@ export class ExtensionController implements IDisposable {
       );
 
       // Register provider for VS Code Copilot
-      // Provider callback just returns info about already-running server
-      vscode.lm.registerMcpServerDefinitionProvider(
-        'deephaven-vscode.mcpServer',
-        {
-          provideMcpServerDefinitions: async () => {
-            const port = this._mcpServer?.getPort();
-            if (port == null) {
-              return [];
-            }
-
-            return [
-              new vscode.McpHttpServerDefinition(
-                MCP_SERVER_NAME,
-                vscode.Uri.parse(`http://localhost:${port}/mcp`),
-                {
-                  // eslint-disable-next-line @typescript-eslint/naming-convention
-                  API_VERSION: '1.0.0',
-                },
-                '1.0.0'
-              ),
-            ];
-          },
-        }
+      this._mcpServerDefinitionProvider = new McpServerDefinitionProvider(
+        this._mcpServer
       );
+      this._context.subscriptions.push(this._mcpServerDefinitionProvider);
+
+      this._context.subscriptions.push(
+        vscode.lm.registerMcpServerDefinitionProvider(
+          'deephaven-vscode.mcpServer',
+          this._mcpServerDefinitionProvider
+        )
+      );
+
+      // Notify VS Code to refresh MCP tool cache. TBD: whether this is actually
+      // needed, but I've had some issues where tools seem to get cached and
+      // "stuck" as I've iterated on the extension.
+      this._mcpServerDefinitionProvider.refresh();
     } catch (error) {
       logger.error('Failed to initialize MCP server:', error);
       vscode.window.showErrorMessage(
