@@ -25,12 +25,17 @@ export const runCodeOutputSchema = {
     .array(variableResultSchema)
     .optional()
     .describe('Variables created or updated by the code execution'),
+  executionTimeMs: z
+    .number()
+    .optional()
+    .describe('Execution time in milliseconds'),
 };
 
 export type RunCodeOutput = {
   success: boolean;
   message: string;
   variables?: VariableResult[];
+  executionTimeMs?: number;
 };
 
 /**
@@ -39,7 +44,8 @@ export type RunCodeOutput = {
 export function createResult(
   success: boolean,
   variables: VariableResult[],
-  message?: string
+  message?: string,
+  executionTimeMs?: number
 ): {
   content: { type: 'text'; text: string }[];
   structuredContent: RunCodeOutput;
@@ -50,6 +56,7 @@ export function createResult(
       message ??
       (success ? 'Code executed successfully' : 'Code execution failed'),
     variables: variables.length > 0 ? variables : undefined,
+    executionTimeMs,
   };
   return {
     content: [{ type: 'text' as const, text: JSON.stringify(output) }],

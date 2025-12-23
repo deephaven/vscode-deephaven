@@ -11,6 +11,10 @@ const spec = {
     isAvailable: z.boolean(),
     interpreterPath: z.string().optional(),
     message: z.string(),
+    executionTimeMs: z
+      .number()
+      .optional()
+      .describe('Execution time in milliseconds'),
   },
 } as const;
 
@@ -24,10 +28,12 @@ export function createCheckPythonEnvTool(
     name: 'checkPythonEnvironment',
     spec,
     handler: async (): Promise<McpToolHandlerResult<Spec>> => {
+      const startTime = performance.now();
       if (!pipServerController) {
         const output = {
           isAvailable: false,
           message: 'PipServerController not available',
+          executionTimeMs: performance.now() - startTime,
         };
         return {
           content: [{ type: 'text', text: JSON.stringify(output) }],
@@ -44,6 +50,7 @@ export function createCheckPythonEnvTool(
           message: result.isAvailable
             ? 'Python environment is available for pip server.'
             : 'Python environment is not available for pip server.',
+          executionTimeMs: performance.now() - startTime,
         };
         return {
           content: [{ type: 'text', text: JSON.stringify(output) }],
@@ -53,6 +60,7 @@ export function createCheckPythonEnvTool(
         const output = {
           isAvailable: false,
           message: `Failed to check Python environment: ${error instanceof Error ? error.message : String(error)}`,
+          executionTimeMs: performance.now() - startTime,
         };
         return {
           content: [{ type: 'text', text: JSON.stringify(output) }],

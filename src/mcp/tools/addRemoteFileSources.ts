@@ -14,6 +14,10 @@ const spec = {
   outputSchema: {
     success: z.boolean(),
     message: z.string(),
+    executionTimeMs: z
+      .number()
+      .optional()
+      .describe('Execution time in milliseconds'),
   },
 } as const;
 
@@ -29,6 +33,7 @@ export function createAddRemoteFileSourcesTool(): AddRemoteFileSourcesTool {
     }: {
       folderUris: string[];
     }): Promise<McpToolHandlerResult<Spec>> => {
+      const startTime = performance.now();
       try {
         const uris = folderUris.map(uri =>
           vscode.Uri.parse(uri.replace(/\/$/, ''))
@@ -37,6 +42,7 @@ export function createAddRemoteFileSourcesTool(): AddRemoteFileSourcesTool {
         const output = {
           success: true,
           message: 'Remote file sources added successfully.',
+          executionTimeMs: performance.now() - startTime,
         };
         return {
           content: [{ type: 'text', text: JSON.stringify(output) }],
@@ -46,6 +52,7 @@ export function createAddRemoteFileSourcesTool(): AddRemoteFileSourcesTool {
         const output = {
           success: false,
           message: `Failed to add remote file sources: ${error instanceof Error ? error.message : String(error)}`,
+          executionTimeMs: performance.now() - startTime,
         };
         return {
           content: [{ type: 'text', text: JSON.stringify(output) }],

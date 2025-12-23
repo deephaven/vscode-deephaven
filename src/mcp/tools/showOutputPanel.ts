@@ -18,6 +18,10 @@ const spec = {
   outputSchema: {
     success: z.boolean(),
     message: z.string(),
+    executionTimeMs: z
+      .number()
+      .optional()
+      .describe('Execution time in milliseconds'),
   },
 } as const;
 
@@ -34,6 +38,7 @@ export function createShowOutputPanelTool(
     handler: async ({
       channel = 'output',
     }): Promise<McpToolHandlerResult<Spec>> => {
+      const startTime = performance.now();
       try {
         if (channel === 'output') {
           outputChannel.show(true);
@@ -44,6 +49,7 @@ export function createShowOutputPanelTool(
         const output = {
           success: true,
           message: `Deephaven ${channel} panel shown successfully.`,
+          executionTimeMs: performance.now() - startTime,
         };
         return {
           content: [{ type: 'text', text: JSON.stringify(output) }],
@@ -53,6 +59,7 @@ export function createShowOutputPanelTool(
         const output = {
           success: false,
           message: `Failed to show output panel: ${error instanceof Error ? error.message : String(error)}`,
+          executionTimeMs: performance.now() - startTime,
         };
         return {
           content: [{ type: 'text', text: JSON.stringify(output) }],

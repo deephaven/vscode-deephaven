@@ -10,6 +10,10 @@ const spec = {
   outputSchema: {
     success: z.boolean(),
     logs: z.string(),
+    executionTimeMs: z
+      .number()
+      .optional()
+      .describe('Execution time in milliseconds'),
   },
 } as const;
 
@@ -23,6 +27,7 @@ export function createGetLogsTool(
     name: 'getLogs',
     spec,
     handler: async (): Promise<McpToolHandlerResult<Spec>> => {
+      const startTime = performance.now();
       try {
         const history = outputChannelDebug.getHistory();
         const logs = history.join('\n');
@@ -30,6 +35,7 @@ export function createGetLogsTool(
         const output = {
           success: true,
           logs,
+          executionTimeMs: performance.now() - startTime,
         };
         return {
           content: [{ type: 'text', text: JSON.stringify(output) }],
@@ -39,6 +45,7 @@ export function createGetLogsTool(
         const output = {
           success: false,
           logs: '',
+          executionTimeMs: performance.now() - startTime,
         };
         return {
           content: [{ type: 'text', text: JSON.stringify(output) }],

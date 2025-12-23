@@ -159,6 +159,10 @@ const spec = {
       .number()
       .optional()
       .describe('Total rows in table (before maxRows limit)'),
+    executionTimeMs: z
+      .number()
+      .optional()
+      .describe('Query execution time in milliseconds'),
     message: z.string().optional(),
   },
 } as const;
@@ -273,6 +277,7 @@ export function createQueryTableDataTool(
       };
       maxRows?: number;
     }): Promise<HandlerResult> => {
+      const startTime = performance.now();
       try {
         // Parse and validate connection URL
         let serverUrl: URL;
@@ -482,6 +487,7 @@ export function createQueryTableDataTool(
             columns,
             rowCount: data.length,
             totalRows,
+            executionTimeMs: performance.now() - startTime,
             message:
               data.length < totalRows
                 ? `Showing ${data.length} of ${totalRows} rows (limited by maxRows=${maxRows})`

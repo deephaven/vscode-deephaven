@@ -45,13 +45,15 @@ export function createRunCodeTool(serverManager: IServerManager): RunCodeTool {
       languageId: string;
       connectionUrl?: string;
     }): Promise<HandlerResult> => {
+      const startTime = performance.now();
       try {
         // Validate languageId
         if (languageId !== 'python' && languageId !== 'groovy') {
           return createResult(
             false,
             [],
-            `Invalid languageId: '${languageId}'. Must be "python" or "groovy".`
+            `Invalid languageId: '${languageId}'. Must be "python" or "groovy".`,
+            performance.now() - startTime
           );
         }
 
@@ -64,7 +66,8 @@ export function createRunCodeTool(serverManager: IServerManager): RunCodeTool {
             return createResult(
               false,
               [],
-              `Invalid connectionUrl: '${connectionUrl}'. Please provide a valid Deephaven server URL (e.g., 'http://localhost:10000'). If this was a server label, use listServers to find the corresponding URL.`
+              `Invalid connectionUrl: '${connectionUrl}'. Please provide a valid Deephaven server URL (e.g., 'http://localhost:10000'). If this was a server label, use listServers to find the corresponding URL.`,
+              performance.now() - startTime
             );
           }
           let connections = serverManager.getConnections(parsedUrl);
@@ -75,7 +78,8 @@ export function createRunCodeTool(serverManager: IServerManager): RunCodeTool {
               return createResult(
                 false,
                 [],
-                `Server not found: ${connectionUrl}`
+                `Server not found: ${connectionUrl}`,
+                performance.now() - startTime
               );
             }
             if (server.type === 'DHC') {
@@ -90,14 +94,16 @@ export function createRunCodeTool(serverManager: IServerManager): RunCodeTool {
                 return createResult(
                   false,
                   [],
-                  `Failed to connect to server: ${connectionUrl}`
+                  `Failed to connect to server: ${connectionUrl}`,
+                  performance.now() - startTime
                 );
               }
             } else {
               return createResult(
                 false,
                 [],
-                `No active connection to ${connectionUrl}. Use connectToServer first.`
+                `No active connection to ${connectionUrl}. Use connectToServer first.`,
+                performance.now() - startTime
               );
             }
           }
@@ -109,7 +115,8 @@ export function createRunCodeTool(serverManager: IServerManager): RunCodeTool {
             return createResult(
               false,
               [],
-              'Code execution is only supported for DHC connections.'
+              'Code execution is only supported for DHC connections.',
+              performance.now() - startTime
             );
           }
 
@@ -124,24 +131,27 @@ export function createRunCodeTool(serverManager: IServerManager): RunCodeTool {
             return createResult(
               false,
               variables,
-              `Code execution failed:\n${result.error}`
+              `Code execution failed:\n${result.error}`,
+              performance.now() - startTime
             );
           }
 
-          return createResult(true, variables);
+          return createResult(true, variables, undefined, performance.now() - startTime);
         } else {
           // No connectionUrl provided - need to get a default connection
           return createResult(
             false,
             [],
-            'connectionUrl is required. Use listConnections to find available connections.'
+            'connectionUrl is required. Use listConnections to find available connections.',
+            performance.now() - startTime
           );
         }
       } catch (error) {
         return createResult(
           false,
           [],
-          `Failed to execute code: ${error instanceof Error ? error.message : String(error)}`
+          `Failed to execute code: ${error instanceof Error ? error.message : String(error)}`,
+          performance.now() - startTime
         );
       }
     },
