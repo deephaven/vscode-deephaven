@@ -4,10 +4,10 @@ import {
   moduleSpecErrorResponse,
   setConnectionIdRequest,
 } from './remoteFileSourceMsgUtils';
-import type { ModuleFullname, UniqueID } from '../types';
+import type { PythonModuleFullname, UniqueID } from '../types';
 
 const mockMsgId = 'mock.msgId';
-const mockModuleName = 'mock.module' as ModuleFullname;
+const mockModuleName = 'mock.module' as PythonModuleFullname;
 
 describe('moduleSpecResponse', () => {
   it('should return correct JSON-RPC success response', () => {

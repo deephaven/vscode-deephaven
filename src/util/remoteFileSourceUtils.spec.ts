@@ -6,9 +6,9 @@ import {
   getFolderTreeItem,
   getSetExecutionContextScript,
   getTopLevelMarkedFolderTreeItem,
-  getTopLevelModuleFullname,
+  getPythonTopLevelModuleFullname,
   hasPythonPluginVariable,
-  registerRemoteFileSourcePluginMessageListener,
+  registerPythonRemoteFileSourcePluginMessageListener,
   sendWidgetMessageAsync,
 } from './remoteFileSourceUtils';
 import type {
@@ -69,6 +69,7 @@ describe('getFolderTreeItem', () => {
         name: 'mockFolder',
         isMarked,
         uri: vscode.Uri.parse('file:///mock/folder/path/'),
+        languageId: 'python',
       } as RemoteImportSourceTreeFolderElement;
 
       expect(getFolderTreeItem(element)).toMatchSnapshot();
@@ -97,6 +98,7 @@ describe('getTopLevelMarkedFolderTreeItem', () => {
   it('should return a TreeItem for a top-level marked folder element', () => {
     const element = {
       uri: vscode.Uri.parse('file:///mock/top/level/marked/folder/'),
+      languageId: 'python',
     } as RemoteImportSourceTreeTopLevelMarkedFolderElement;
 
     expect(getTopLevelMarkedFolderTreeItem(element)).toMatchSnapshot();
@@ -110,7 +112,7 @@ describe('getTopLevelModuleFullname', () => {
   ])(
     'should return the top-level module fullname for a given folder URI: %s',
     (uriPath, expectedModuleName) => {
-      const result = getTopLevelModuleFullname(vscode.Uri.parse(uriPath));
+      const result = getPythonTopLevelModuleFullname(vscode.Uri.parse(uriPath));
       expect(result).toBe(expectedModuleName);
     }
   );
@@ -214,7 +216,7 @@ describe('registerRemoteFileSourcePluginMessageListener', () => {
       mockIncomingMsg(mockMsg.fetchModuleReq(mockModuleName));
       getPythonModuleSpecData.mockReturnValueOnce(spec);
 
-      registerRemoteFileSourcePluginMessageListener(
+      registerPythonRemoteFileSourcePluginMessageListener(
         mockPlugin,
         getPythonModuleSpecData
       );
