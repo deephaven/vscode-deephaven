@@ -157,7 +157,9 @@ export async function initDhcSession(
     type === 'python' ? await getRemoteFileSourcePlugin(cnId, session) : null;
 
   const groovyRemoteFileSourcePlugin: DhType.remotefilesource.RemoteFileSourceService | null =
-    type === 'groovy' ? await client.getRemoteFileSourceService() : null;
+    type === 'groovy' && 'getRemoteFileSourceService' in client
+      ? await client.getRemoteFileSourceService()
+      : null;
 
   return {
     cn,
