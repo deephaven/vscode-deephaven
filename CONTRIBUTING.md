@@ -65,7 +65,17 @@ This extension can also be installed directly from a `.vsix`. To get a `.vsix`, 
 
 Download one from the [releases/](releases/) folder.
 
-Alternatively, you can build a `.vsix` locally by running `npm run package:dev`. This will increment the version number in package.json to a `-dev` version and create a `releases/vscode-deephaven-$PACKAGE_VERSION.vsix` file.
+Alternatively, you can build a `.vsix` locally by running `npm run package:dev`. This will create a version with a `-dev` prerelease identifier and incremental build number (e.g., `1.0.10-dev.0`). Each subsequent run increments the build number.
+
+You can optionally specify a custom prerelease identifier:
+
+```sh
+npm run package:dev        # Creates 1.0.10-dev.0
+npm run package:dev alpha  # Creates 1.0.10-alpha.0
+npm run package:dev beta   # Creates 1.0.10-beta.0
+```
+
+The packaged extension will be saved as `releases/vscode-deephaven-$PACKAGE_VERSION.vsix`.
 
 (see [VSCE](#vsce) section)
 
