@@ -1,9 +1,20 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from 'vscode';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
-import { FilteredWorkspace, PYTHON_FILE_PATTERN } from './FilteredWorkspace';
-import { getWorkspaceFileUriMap, Toaster, URIMap, URISet } from '../util';
+import {
+  FilteredWorkspace,
+  PYTHON_FILE_PATTERN,
+  PYTHON_IGNORE_TOP_LEVEL_FOLDER_NAMES,
+} from './FilteredWorkspace';
+import {
+  getPythonTopLevelModuleFullname,
+  getWorkspaceFileUriMap,
+  Toaster,
+  URIMap,
+  URISet,
+} from '../util';
 import type {
+  PythonModuleFullname,
   RemoteImportSourceTreeElement,
   RemoteImportSourceTreeFileElement,
   RemoteImportSourceTreeFolderElement,
@@ -73,9 +84,18 @@ function element(
     };
   }
 
+  if (type === 'languageRoot') {
+    return {
+      name,
+      type: 'languageRoot',
+      languageId: 'python',
+    };
+  }
+
   if (type === 'topLevelMarkedFolder') {
     return {
       name,
+      languageId: 'python',
       type: 'topLevelMarkedFolder',
       uri,
       isMarked: true,
@@ -85,6 +105,7 @@ function element(
   if (type === 'workspaceRootFolder') {
     return {
       name: overrides.name ?? name,
+      languageId: 'python',
       type: 'workspaceRootFolder',
       uri,
     };
@@ -93,6 +114,7 @@ function element(
   return {
     uri,
     name,
+    languageId: 'python',
     type,
     isMarked: false,
     ...overrides,
@@ -263,7 +285,7 @@ async function initWorkspace(wsMap: URIMap<URISet>): Promise<{
     expectedNodes: RemoteImportSourceTreeElement[],
     message?: string
   ): void;
-  workspace: FilteredWorkspace;
+  workspace: FilteredWorkspace<PythonModuleFullname>;
 }> {
   vi.mocked(getWorkspaceFileUriMap).mockResolvedValue(wsMap);
 
@@ -271,6 +293,9 @@ async function initWorkspace(wsMap: URIMap<URISet>): Promise<{
   // ensures if any errors are thrown they are caught by the test framework.
   const workspace = await new FilteredWorkspace(
     PYTHON_FILE_PATTERN,
+    'python',
+    getPythonTopLevelModuleFullname,
+    PYTHON_IGNORE_TOP_LEVEL_FOLDER_NAMES,
     mockToaster
   );
 
