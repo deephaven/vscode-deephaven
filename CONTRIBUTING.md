@@ -51,7 +51,7 @@ The `/docs` directory contains the documentation for Deephaven VS Code Extension
 If any changes were made to docs, you **must** format them before committing changes.
 
 ```sh
-npm run docs:start # Start docs server on port 3001. -p <port> to run on a different port.
+npm run docs:start # Start docs server on port 3001 (npm run docs:start -- -p <port>) to run on a different port.
 npm run docs:format # Format all docs using dprint.
 npm run docs:validate # Validates the docs build and links are valid.
 ``` 
