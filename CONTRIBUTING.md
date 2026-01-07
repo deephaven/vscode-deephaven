@@ -174,15 +174,24 @@ rsvg-convert -w 128 -h 128 images/dh-logo-128.svg -o images/dh-logo-128.png
 ```
 
 ## Icon Font Generation
-The extension uses an icon font generated from SVGs in `@deephaven/icons`. Running the generator requires a local checkout of web-client-ui.
+The extension uses icon fonts generated from SVGs. There are two icon fonts:
+1. `dh-ext`: Extension-specific icons from `icons/src`
+2. `dh`: Deephaven icons from `@deephaven/icons`
 
-The generator can be run via the following script, where `<path-to-dh-icons-directory>` is the location of `packages/icons/src/icons` in `web-client-ui`.
+### Extension Icons
+To generate the `dh-ext` icon font from local SVGs in `icons/src`:
 ```sh
-npm run icon:gen -- <path-to-dh-icons-directory>
+npm run icon:gen:ext
 ```
 
-The script will automatically copy `icons/dist/dh-icons.woff2` file to the `/assets` folder of the extension, but the contents of `icons/dist/dh/dh-contributes-icons.json` has to be manually copied to the `package.json` `contributes/icons` section.
-> Note: All of the icons should be consumed via the `dh-xxx` icon ids, so no code changes should be necessary unless icons have been renamed or removed.
+### Deephaven Icons
+Generating the `dh` icon font requires a local checkout of web-client-ui. Run the following where `<path-to-dh-icons-directory>` is the location of `packages/icons/src/icons` in `web-client-ui`:
+```sh
+npm run icon:gen:dh -- <path-to-dh-icons-directory>
+```
+
+The script will automatically copy the `.woff2` files to the `/assets` folder of the extension, but the contents of `icons/dist/dh*/dh*-contributes-icons.json` files need to be manually copied to the `package.json` `contributes/icons` section.
+> Note: All of the icons should be consumed via the `dh-xxx` or `dh-ext-xxx` icon ids, so no code changes should be necessary unless icons have been renamed or removed.
 
 ## Implementation Notes
 
