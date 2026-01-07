@@ -1,0 +1,243 @@
+{
+  "result": {
+    "tools": [
+      {
+        "name": "runCode",
+        "title": "Run Deephaven Code",
+        "description": "Execute code in a Deephaven session. Runs the code from a file or the current selection.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "uri": {
+              "type": "string",
+              "description": "The file URI to run. If not provided, runs the active editor."
+            },
+            "constrainTo": {
+              "type": "string",
+              "enum": [
+                "selection"
+              ],
+              "description": "Constrain execution to current selection"
+            },
+            "languageId": {
+              "type": "string",
+              "description": "The language ID (python, groovy) to use for execution"
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": {
+          "type": "object",
+          "properties": {
+            "success": {
+              "type": "boolean"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "success",
+            "message"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "listPanelVariables",
+        "title": "List Panel Variables",
+        "description": "List all panel variables for a given Deephaven connection URL.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "The connection URL (e.g., \"http://localhost:10000\")"
+            }
+          },
+          "required": [
+            "url"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": {
+          "type": "object",
+          "properties": {
+            "success": {
+              "type": "boolean"
+            },
+            "variables": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "title",
+                  "type"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "success"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "listConnections",
+        "title": "List Connections",
+        "description": "List all active Deephaven connections.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": {
+          "type": "object",
+          "properties": {
+            "success": {
+              "type": "boolean"
+            },
+            "connections": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "serverUrl": {
+                    "type": "string"
+                  },
+                  "isConnected": {
+                    "type": "boolean"
+                  },
+                  "isRunningCode": {
+                    "type": "boolean"
+                  },
+                  "tagId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "serverUrl",
+                  "isConnected"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "success"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "listServers",
+        "title": "List Servers",
+        "description": "List all Deephaven servers with optional filtering by running status, connection status, or type.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "isRunning": {
+              "type": "boolean",
+              "description": "Filter by running status (true = running, false = stopped)"
+            },
+            "hasConnections": {
+              "type": "boolean",
+              "description": "Filter by connection status (true = has connections, false = no connections)"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "DHC",
+                "DHE"
+              ],
+              "description": "Filter by server type (DHC = Community, DHE = Enterprise)"
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": {
+          "type": "object",
+          "properties": {
+            "success": {
+              "type": "boolean"
+            },
+            "servers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "url": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "isConnected": {
+                    "type": "boolean"
+                  },
+                  "isRunning": {
+                    "type": "boolean"
+                  },
+                  "connectionCount": {
+                    "type": "number"
+                  },
+                  "isManaged": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "type",
+                  "url",
+                  "isConnected",
+                  "isRunning",
+                  "connectionCount"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "success"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      }
+    ]
+  },
+  "jsonrpc": "2.0",
+  "id": 1
+}

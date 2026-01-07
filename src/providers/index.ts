@@ -1,4 +1,5 @@
 export * from './CreateQueryViewProvider';
+export * from './McpServerDefinitionProvider';
 export * from './RemoteImportSourceTreeProvider';
 export * from './RunCommandCodeLensProvider';
 export * from './RunMarkdownCodeBlockCodeLensProvider';

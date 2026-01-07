@@ -221,10 +221,12 @@ export class ConnectionController
    * Get or create a connection for the given uri.
    * @param uri Uri to get or create a connection for.
    * @param languageId Language id to use for the connection.
+   * @param serverOrWorkerUrl Optional server or worker URL that takes precedence for connection selection.
    */
   getOrCreateConnection = async (
     uri: vscode.Uri,
-    languageId: string
+    languageId: string,
+    serverOrWorkerUrl?: URL
   ): Promise<ConnectionState | null> => {
     assertDefined(this._outputChannel, 'outputChannel');
     assertDefined(this._serverManager, 'serverManager');
@@ -234,11 +236,21 @@ export class ConnectionController
     let dhService = await this._serverManager.getEditorConnection(uri);
 
     if (dhService != null) {
-      return dhService;
+      if (
+        serverOrWorkerUrl == null ||
+        dhService.serverUrl.href === serverOrWorkerUrl.href
+      ) {
+        return dhService;
+      }
+
+      dhService = null;
     }
 
+    // Get supporting connections and available servers, filtered by serverOrWorkerUrl if provided
     const supportingConnections = await getConnectionsForConsoleType(
-      this._serverManager.getConnections(),
+      serverOrWorkerUrl == null
+        ? this._serverManager.getConnections()
+        : this._serverManager.getConnections(serverOrWorkerUrl),
       languageId as ConsoleType
     );
 
@@ -247,7 +259,27 @@ export class ConnectionController
       hasConnections: false,
     });
 
-    if (supportingConnections.length === 1 && availableServers.length === 0) {
+    if (serverOrWorkerUrl != null) {
+      // If serverOrWorkerUrl was specified, find and connect to that specific server
+      if (supportingConnections.length > 0) {
+        await this.connectEditor(supportingConnections[0], uri, languageId);
+      } else {
+        const server = availableServers.find(
+          s => s.url.href === serverOrWorkerUrl.href
+        );
+        if (server == null) {
+          const logMsg = `Server not available: '${serverOrWorkerUrl.href}'.`;
+          logger.debug(logMsg);
+          this._outputChannel.appendLine(logMsg);
+          this._toaster.error(logMsg);
+          return null;
+        }
+        await this.connectEditor(server, uri, languageId);
+      }
+    } else if (
+      supportingConnections.length === 1 &&
+      availableServers.length === 0
+    ) {
       // If we only have 1 supporting connection, and no available servers, use
       // the available connection.
       await this.connectEditor(supportingConnections[0], uri, languageId);
@@ -285,7 +317,7 @@ export class ConnectionController
    * Handle connecting to a server
    */
   onConnectToServer = async (
-    serverState: ServerState,
+    serverState: Pick<ServerState, 'type' | 'url'>,
     operateAsAnotherUser?: boolean
   ): Promise<void> => {
     const languageId = vscode.window.activeTextEditor?.document.languageId;
@@ -295,7 +327,7 @@ export class ConnectionController
     const workerConsoleType =
       serverState.type === 'DHE' ? getConsoleType(languageId) : undefined;
 
-    this._serverManager?.connectToServer(
+    await this._serverManager?.connectToServer(
       serverState.url,
       workerConsoleType,
       operateAsAnotherUser

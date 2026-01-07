@@ -36,7 +36,8 @@
     "docs:start": "./scripts/startDocs",
     "docs:format": "./scripts/formatDocs",
     "docs:validate": "./scripts/validateDocs",
-    "icon:gen": "node icons/generate.mjs dh",
+    "icon:gen:dh": "node icons/generate.mjs dh",
+    "icon:gen:ext": "node icons/generate.mjs dh-ext icons/src",
     "package:dev": "./scripts/package-dev.sh",
     "publish": "./scripts/publish.sh",
     "publish:prerelease": "./scripts/publish.sh --pre-release",
@@ -149,6 +150,11 @@
             ]
           },
           "default": []
+        },
+        "deephaven.mcp.autoUpdateConfig": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Automatically update MCP config without prompting when the extension's MCP server port changes. Applies to supported editors (e.g., Windsurf)."
         }
       }
     },
@@ -185,6 +191,10 @@
       {
         "command": "vscode-deephaven.clearSecretStorage",
         "title": "Deephaven: Clear Secrets"
+      },
+      {
+        "command": "vscode-deephaven.copyMcpUrl",
+        "title": "Deephaven: Copy MCP Server URL"
       },
       {
         "command": "vscode-deephaven.connectToServer",
@@ -710,8 +720,21 @@
           "fontPath": "assets/dh-icons.woff2",
           "fontCharacter": "\\ee81"
         }
+      },
+      "dh-ext-logo": {
+        "description": "Deephaven dh-ext-logo icon",
+        "default": {
+          "fontPath": "assets/dh-ext-icons.woff2",
+          "fontCharacter": "\\ee48"
+        }
       }
     },
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "deephaven-vscode.mcpServer",
+        "label": "Deephaven VS Code MCP Server"
+      }
+    ],
     "menus": {
       "commandPalette": [
         {
@@ -1008,11 +1031,14 @@
     "@deephaven-enterprise/auth-nodejs": "^1.20250219.134-beta",
     "@deephaven-enterprise/query-utils": "^1.20250219.134-beta",
     "@deephaven/jsapi-nodejs": "^1.3.0",
+    "@modelcontextprotocol/sdk": "^1.21.1",
     "archiver": "^7.0.1",
     "chai": "^4.5.0",
-    "nanoid": "^5.0.7"
+    "nanoid": "^5.0.7",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@cfworker/json-schema": "^4.1.1",
     "@deephaven-enterprise/jsapi-types": "^1.20250219.134-beta",
     "@deephaven/jsapi-types": "^1.0.0-dev0.37.3",
     "@types/archiver": "^6.0.3",

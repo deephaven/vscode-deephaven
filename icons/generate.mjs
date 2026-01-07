@@ -1,8 +1,12 @@
 /**
  * This script generates an icon font + manifest from a directory of SVG files.
- * Usage:
  *
- * npm run icon:gen -- <path-to-icons-directory>
+ * Usage:
+ *   npm run icon:gen:ext                            # Generate dh-ext icons from icons/src
+ *   npm run icon:gen:dh -- <path-to-dh-icons-dir>   # Generate dh icons from @deephaven/icons
+ *
+ * If running the script directly, both prefix and path are required:
+ *   node icons/generate.mjs <prefix> <path-to-icons-directory>
  */
 
 /* eslint-disable no-console */

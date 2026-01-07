@@ -10,13 +10,17 @@ import {
   type UnauthenticatedClient as DheUnauthenticatedClient,
 } from '@deephaven-enterprise/auth-nodejs';
 import { NodeHttp2gRPCTransport } from '@deephaven/jsapi-nodejs';
+import { MCPServer } from '../mcp';
 import {
   ADD_REMOTE_FILE_SOURCE_CMD,
   CLEAR_SECRET_STORAGE_CMD,
+  COPY_MCP_URL_CMD,
   CREATE_NEW_TEXT_DOC_CMD,
   DELETE_VARIABLE_CMD,
   DOWNLOAD_LOGS_CMD,
   GENERATE_REQUIREMENTS_TXT_CMD,
+  MCP_SERVER_NAME,
+  MCP_SERVER_PORT_STORAGE_KEY,
   OPEN_IN_BROWSER_CMD,
   REFRESH_PANELS_TREE_CMD,
   REFRESH_REMOTE_IMPORT_SOURCE_TREE_CMD,
@@ -66,6 +70,7 @@ import {
   SamlAuthProvider,
   RunMarkdownCodeBlockHoverProvider,
   CreateQueryViewProvider,
+  McpServerDefinitionProvider,
 } from '../providers';
 import {
   CoreJsApiCache,
@@ -192,6 +197,10 @@ export class ExtensionController implements IDisposable {
   private _secretService: ISecretService | null = null;
   private _serverManager: IServerManager | null = null;
   private _userLoginController: UserLoginController | null = null;
+  private _mcpServer: MCPServer | null = null;
+  private _mcpServerDefinitionProvider: McpServerDefinitionProvider | null =
+    null;
+  private _mcpStatusBarItem: vscode.StatusBarItem | null = null;
 
   // Tree providers
   private _serverTreeProvider: ServerTreeProvider | null = null;
@@ -240,7 +249,9 @@ export class ExtensionController implements IDisposable {
     this.initializePanelController();
     this.initializePipServerController();
     this.initializeUserLoginController();
+    this.initializeStatusBar();
     this.initializeCommands();
+    this.initializeMCPServer();
 
     this._context.subscriptions.push(NodeHttp2gRPCTransport);
 
@@ -252,6 +263,7 @@ export class ExtensionController implements IDisposable {
 
   deactivate = (): void => {
     logger.info(`Deactivating Deephaven extension`);
+    this._mcpServer?.stop();
   };
 
   /**
@@ -406,6 +418,86 @@ export class ExtensionController implements IDisposable {
     );
 
     this._context.subscriptions.push(this._userLoginController);
+  };
+
+  /**
+   * Initialize MCP server for AI assistant integration.
+   * Server is started independently to work with both VS Code Copilot and external tools like Windsurf.
+   */
+  initializeMCPServer = async (): Promise<void> => {
+    assertDefined(this._coreJsApiCache, 'coreJsApiCache');
+    assertDefined(this._panelService, 'panelService');
+    assertDefined(this._pipServerController, 'pipServerController');
+    assertDefined(this._pythonDiagnostics, 'pythonDiagnostics');
+    assertDefined(this._pythonWorkspace, 'pythonWorkspace');
+    assertDefined(this._serverManager, 'serverManager');
+    assertDefined(this._outputChannel, 'outputChannel');
+    assertDefined(this._outputChannelDebug, 'outputChannelDebug');
+
+    try {
+      // Create and start MCP server independently (not inside provider callback)
+      // This ensures server is running for external tools (Windsurf, Cline) that access via HTTP
+      this._mcpServer = new MCPServer(
+        this._coreJsApiCache,
+        this._outputChannel,
+        this._outputChannelDebug,
+        this._panelService,
+        this._pipServerController,
+        this._pythonDiagnostics,
+        this._pythonWorkspace,
+        this._serverManager
+      );
+
+      // Try to use previously stored port for consistency across sessions
+      const storedPort = this._context.workspaceState.get<number>(
+        MCP_SERVER_PORT_STORAGE_KEY
+      );
+
+      const actualPort = await this._mcpServer.start(storedPort);
+      logger.info(`MCP Server started on port ${actualPort}`);
+
+      // Store the port for next session (only if different from stored)
+      if (actualPort !== storedPort) {
+        await this._context.workspaceState.update(
+          MCP_SERVER_PORT_STORAGE_KEY,
+          actualPort
+        );
+      }
+
+      // Update status bar
+      this.updateMcpStatusBar(actualPort);
+
+      // Auto-configure Windsurf MCP config if running in Windsurf
+      await this.updateWindsurfMcpConfig(actualPort);
+
+      vscode.window.showInformationMessage(
+        `Deephaven MCP Server started on port ${actualPort}.`
+      );
+
+      // Register provider for VS Code Copilot
+      this._mcpServerDefinitionProvider = new McpServerDefinitionProvider(
+        this._mcpServer
+      );
+      this._context.subscriptions.push(this._mcpServerDefinitionProvider);
+
+      this._context.subscriptions.push(
+        vscode.lm.registerMcpServerDefinitionProvider(
+          'deephaven-vscode.mcpServer',
+          this._mcpServerDefinitionProvider
+        )
+      );
+
+      // Notify VS Code to refresh MCP tool cache. TBD: whether this is actually
+      // needed, but I've had some issues where tools seem to get cached and
+      // "stuck" as I've iterated on the extension.
+      this._mcpServerDefinitionProvider.refresh();
+    } catch (error) {
+      logger.error('Failed to initialize MCP server:', error);
+      vscode.window.showErrorMessage(
+        `Failed to initialize MCP server: ${error instanceof Error ? error.message : String(error)}`
+      );
+      // Don't fail extension activation if MCP server fails
+    }
   };
 
   /**
@@ -699,6 +791,37 @@ export class ExtensionController implements IDisposable {
   };
 
   /**
+   * Initialize MCP status bar item.
+   */
+  initializeStatusBar = (): void => {
+    this._mcpStatusBarItem = vscode.window.createStatusBarItem(
+      vscode.StatusBarAlignment.Right,
+      200
+    );
+    this._mcpStatusBarItem.command = COPY_MCP_URL_CMD;
+    this._context.subscriptions.push(this._mcpStatusBarItem);
+  };
+
+  /**
+   * Update MCP status bar with current port.
+   * @param port The port the MCP server is running on, or null to hide the status bar
+   */
+  updateMcpStatusBar = (port: number | null): void => {
+    if (this._mcpStatusBarItem == null) {
+      return;
+    }
+
+    if (port == null) {
+      this._mcpStatusBarItem.hide();
+      return;
+    }
+
+    this._mcpStatusBarItem.text = `$(dh-ext-logo) MCP: ${port}`;
+    this._mcpStatusBarItem.tooltip = `Deephaven MCP Server running on port ${port}. Click to copy URL.`;
+    this._mcpStatusBarItem.show();
+  };
+
+  /**
    * Register commands for the extension.
    */
   initializeCommands = (): void => {
@@ -706,6 +829,9 @@ export class ExtensionController implements IDisposable {
 
     /** Clear secret storage */
     this.registerCommand(CLEAR_SECRET_STORAGE_CMD, this.onClearSecretStorage);
+
+    /** Copy MCP URL to clipboard */
+    this.registerCommand(COPY_MCP_URL_CMD, this.onCopyMcpUrl);
 
     /** Create new document */
     this.registerCommand(CREATE_NEW_TEXT_DOC_CMD, this.onCreateNewDocument);
@@ -879,7 +1005,7 @@ export class ExtensionController implements IDisposable {
     assertDefined(this._serverTreeView, 'serverManager');
 
     vscode.window.onDidChangeWindowState(
-      this.maybeUpdateServerStatuses,
+      this.onWindowStateChange,
       undefined,
       this._context.subscriptions
     );
@@ -904,6 +1030,14 @@ export class ExtensionController implements IDisposable {
   };
 
   /**
+   * Handle window state changes (focus/active).
+   */
+  onWindowStateChange = (): void => {
+    this.maybeUpdateServerStatuses();
+    this.maybeUpdateWindsurfMcpConfig();
+  };
+
+  /**
    * Update server statuses if vscode window is
    * active and focused.
    */
@@ -920,6 +1054,26 @@ export class ExtensionController implements IDisposable {
     this._pipServerController?.syncManagedServers();
   };
 
+  /**
+   * Check and update Windsurf MCP config if window gains focus.
+   * Only runs in Windsurf and when window is active and focused.
+   */
+  maybeUpdateWindsurfMcpConfig = async (): Promise<void> => {
+    const shouldUpdate =
+      vscode.window.state.active && vscode.window.state.focused;
+
+    if (!shouldUpdate) {
+      return;
+    }
+
+    const port = this._mcpServer?.getPort();
+    if (port == null) {
+      return;
+    }
+
+    await this.updateWindsurfMcpConfig(port);
+  };
+
   onDeleteVariable = async (
     urlAndVariable: [URL, VariableDefintion] | undefined
   ): Promise<void> => {
@@ -931,6 +1085,7 @@ export class ExtensionController implements IDisposable {
     }
 
     const [url, variable] = urlAndVariable;
+
     const connectionState = this._serverManager?.getConnection(url);
     if (!isInstanceOf(connectionState, DhcService)) {
       return;
@@ -943,6 +1098,7 @@ export class ExtensionController implements IDisposable {
     folderElementOrUri:
       | RemoteImportSourceTreeFolderElement
       | vscode.Uri
+      | vscode.Uri[]
       | undefined
   ): Promise<void> => {
     // Sometimes view/item/context commands pass undefined instead of a value.
@@ -956,12 +1112,15 @@ export class ExtensionController implements IDisposable {
 
     await this._pythonWorkspace.refresh();
 
-    const uri =
-      folderElementOrUri instanceof vscode.Uri
-        ? folderElementOrUri
-        : folderElementOrUri.uri;
+    const uris = Array.isArray(folderElementOrUri)
+      ? folderElementOrUri
+      : folderElementOrUri instanceof vscode.Uri
+        ? [folderElementOrUri]
+        : [folderElementOrUri.uri];
 
-    this._pythonWorkspace.markFolder(uri);
+    for (const uri of uris) {
+      this._pythonWorkspace.markFolder(uri);
+    }
   };
 
   onRemoveRemoteFileSource = async (
@@ -997,6 +1156,135 @@ export class ExtensionController implements IDisposable {
   onClearSecretStorage = async (): Promise<void> => {
     await this._secretService?.clearStorage();
     this._toaster?.info('Stored secrets have been removed.');
+  };
+
+  /**
+   * Handle copying MCP URL to clipboard.
+   */
+  onCopyMcpUrl = async (): Promise<void> => {
+    const port = this._mcpServer?.getPort();
+    if (port == null) {
+      vscode.window.showWarningMessage('MCP Server is not running.');
+      return;
+    }
+
+    const mcpUrl = `http://localhost:${port}/mcp`;
+    await vscode.env.clipboard.writeText(mcpUrl);
+
+    // Windsurf uses a separate MCP config file - automatically add/update the server entry
+    const isWindsurf = vscode.env.appName.toLowerCase().includes('windsurf');
+    if (isWindsurf) {
+      const updated = await this.updateWindsurfMcpConfig(port);
+      if (updated) {
+        vscode.window.showInformationMessage(
+          `MCP URL copied and Windsurf config updated with '${MCP_SERVER_NAME}' server.`
+        );
+      } else {
+        vscode.window.showInformationMessage(
+          `MCP URL copied to clipboard: ${mcpUrl}`
+        );
+      }
+    } else {
+      vscode.window.showInformationMessage(
+        `MCP URL copied to clipboard: ${mcpUrl}`
+      );
+    }
+  };
+
+  /**
+   * Update Windsurf MCP config with the Deephaven server entry.
+   * @param port The port the MCP server is running on
+   * @returns true if the config was updated, false otherwise
+   */
+  private updateWindsurfMcpConfig = async (port: number): Promise<boolean> => {
+    const isWindsurf = vscode.env.appName.toLowerCase().includes('windsurf');
+    if (!isWindsurf) {
+      return false;
+    }
+
+    const mcpUrl = `http://localhost:${port}/mcp`;
+    const homeDir = process.env.HOME ?? process.env.USERPROFILE ?? '';
+    const windsurfMcpConfigPath = `${homeDir}/.codeium/windsurf/mcp_config.json`;
+    const configUri = vscode.Uri.file(windsurfMcpConfigPath);
+
+    try {
+      // Read existing config or create new one
+      let config: { mcpServers?: Record<string, { serverUrl?: string }> } = {
+        mcpServers: {},
+      };
+      try {
+        const existingContent = await vscode.workspace.fs.readFile(configUri);
+        config = JSON.parse(existingContent.toString());
+        if (config.mcpServers == null) {
+          config.mcpServers = {};
+        }
+      } catch {
+        // File doesn't exist or is invalid - start fresh
+      }
+
+      // Check if config already has the correct entry
+      const existingEntry = config.mcpServers![MCP_SERVER_NAME];
+      if (existingEntry?.serverUrl === mcpUrl) {
+        // Config is already up to date
+        return false;
+      }
+
+      // Check if user has enabled auto-update in settings
+      const autoUpdate = this._config.getMcpAutoUpdateConfig();
+
+      if (!autoUpdate) {
+        let message: string;
+        let buttons: string[];
+
+        if (existingEntry == null) {
+          message = `Add '${MCP_SERVER_NAME}' to your Windsurf MCP config?`;
+          buttons = ['Yes', 'No'];
+        } else {
+          message = `Your Windsurf MCP config doesn't match this workspace's '${MCP_SERVER_NAME}'. Update to port ${port}?`;
+          buttons = ['Yes', 'Always', 'No'];
+        }
+
+        const response = await vscode.window.showInformationMessage(
+          message,
+          ...buttons
+        );
+
+        if (response === 'Always') {
+          // Store the preference to auto-update in the future
+          await this._config.setMcpAutoUpdateConfig(true);
+        } else if (response !== 'Yes') {
+          return false;
+        }
+
+        await vscode.window.showTextDocument(configUri);
+      }
+
+      // Add/update the Deephaven MCP server entry
+      config.mcpServers![MCP_SERVER_NAME] = {
+        serverUrl: mcpUrl,
+      };
+
+      // Ensure parent directory exists
+      const configDir = vscode.Uri.file(`${homeDir}/.codeium/windsurf`);
+      try {
+        await vscode.workspace.fs.createDirectory(configDir);
+      } catch {
+        // Directory may already exist
+      }
+
+      // Write updated config
+      await vscode.workspace.fs.writeFile(
+        configUri,
+        Buffer.from(JSON.stringify(config, null, 2))
+      );
+
+      return true;
+    } catch (error) {
+      vscode.window.showErrorMessage(
+        `Failed to update Windsurf MCP config: ${error instanceof Error ? error.message : String(error)}`
+      );
+      return false;
+    }
   };
 
   /**
@@ -1137,12 +1425,15 @@ export class ExtensionController implements IDisposable {
    * @param languageId Optional languageId to run the code as. If none provided,
    * use the languageId of the editor.
    */
-  onRunCode: (...args: RunCodeCmdArgs) => Promise<void> = async (
+  onRunCode: (
+    ...args: RunCodeCmdArgs
+  ) => Promise<DhcType.ide.CommandResult | null> = async (
     uri?: vscode.Uri,
     _arg?: { groupId: number },
     constrainTo?: 'selection' | vscode.Range[],
-    languageId?: string
-  ): Promise<void> => {
+    languageId?: string,
+    connectionUrl?: URL
+  ): Promise<DhcType.ide.CommandResult | null> => {
     assertDefined(this._connectionController, 'connectionController');
 
     if (uri == null) {
@@ -1157,14 +1448,20 @@ export class ExtensionController implements IDisposable {
     }
 
     const connectionState =
-      await this._connectionController.getOrCreateConnection(uri, languageId);
+      await this._connectionController.getOrCreateConnection(
+        uri,
+        languageId,
+        connectionUrl
+      );
 
     if (isInstanceOf(connectionState, DhcService)) {
       const ranges: readonly vscode.Range[] | undefined =
         constrainTo === 'selection' ? editor.selections : constrainTo;
 
-      await connectionState?.runCode(editor.document, languageId, ranges);
+      return connectionState.runCode(editor.document, languageId, ranges);
     }
+
+    return null;
   };
 
   /**

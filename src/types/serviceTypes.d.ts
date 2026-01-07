@@ -41,6 +41,8 @@ export interface IConfigService {
   isElectronFetchEnabled: () => boolean;
   getCoreServers: () => CoreConnectionConfig[];
   getEnterpriseServers: () => EnterpriseConnectionConfig[];
+  getMcpAutoUpdateConfig: () => boolean;
+  setMcpAutoUpdateConfig: (value: boolean) => Promise<void>;
 }
 
 /**
@@ -56,6 +58,7 @@ export interface IDhcService extends IDisposable, ConnectionState {
 
   initSession(): Promise<boolean>;
   getClient(): Promise<CoreAuthenticatedClient | null>;
+  getSession(): DhcType.IdeSession | null;
   getConsoleTypes: () => Promise<Set<ConsoleType>>;
   supportsConsoleType: (consoleType: ConsoleType) => Promise<boolean>;
 
@@ -63,7 +66,7 @@ export interface IDhcService extends IDisposable, ConnectionState {
     document: vscode.TextDocument,
     languageId: string,
     ranges?: readonly vscode.Range[]
-  ) => Promise<void>;
+  ) => Promise<DhcType.ide.CommandResult | null>;
 }
 
 export interface IDheService extends ConnectionState, IDisposable {
@@ -168,7 +171,7 @@ export interface IServerManager extends IDisposable {
   hasConnectionUris: (connection: ConnectionState) => boolean;
 
   getConnection: (serverUrl: URL) => ConnectionState | undefined;
-  getConnections: () => ConnectionState[];
+  getConnections: (serverOrWorkerUrl?: URL) => ConnectionState[];
   getConnectionUris: (connection: ConnectionState) => vscode.Uri[];
   getEditorConnection: (uri: vscode.Uri) => Promise<ConnectionState | null>;
   getWorkerCredentials: (
