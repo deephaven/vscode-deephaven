@@ -79,7 +79,7 @@ export class McpController extends ControllerBase {
   /**
    * Initialize and start the MCP server if enabled.
    */
-  async initializeMcpServer(): Promise<void> {
+  private async initializeMcpServer(): Promise<void> {
     // If server is already running, stop it
     if (this._mcpServer != null) {
       this._mcpServer.stop();
@@ -197,7 +197,7 @@ export class McpController extends ControllerBase {
   /**
    * Copy the MCP server URL to clipboard.
    */
-  async copyUrl(): Promise<void> {
+  private async copyUrl(): Promise<void> {
     const port = this._mcpServer?.getPort();
     if (port == null) {
       vscode.window.showWarningMessage('MCP Server is not running.');
@@ -224,7 +224,7 @@ export class McpController extends ControllerBase {
    * Check and update Windsurf MCP config if window gains focus.
    * Only runs in Windsurf and when window is active and focused.
    */
-  async maybeUpdateWindsurfMcpConfig(): Promise<void> {
+  private async maybeUpdateWindsurfMcpConfig(): Promise<void> {
     const shouldUpdate =
       isWindsurf() && vscode.window.state.active && vscode.window.state.focused;
 
@@ -238,12 +238,5 @@ export class McpController extends ControllerBase {
     }
 
     await this._config.updateWindsurfMcpConfig(port);
-  }
-
-  /**
-   * Stop the MCP server.
-   */
-  async stop(): Promise<void> {
-    await this._mcpServer?.stop();
   }
 }
