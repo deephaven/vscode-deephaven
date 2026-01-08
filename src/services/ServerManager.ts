@@ -478,11 +478,36 @@ export class ServerManager implements IServerManager {
   };
 
   /**
-   * Get all connections.
+   * Get all connections. Optionally filter connections by server or worker URL.
+   * @param serverOrWorkerUrl The server or worker URL to filter connections by.
    * @returns An array of all connections.
    */
-  getConnections = (): ConnectionState[] => {
-    return [...this._connectionMap.values()];
+  getConnections = (serverOrWorkerUrl?: URL): ConnectionState[] => {
+    if (serverOrWorkerUrl == null) {
+      return [...this._connectionMap.values()];
+    }
+
+    if (this._connectionMap.has(serverOrWorkerUrl)) {
+      return [this._connectionMap.getOrThrow(serverOrWorkerUrl)];
+    }
+
+    const server = this.getServer(serverOrWorkerUrl);
+    if (server == null) {
+      return [];
+    }
+
+    if (server.type === 'DHC') {
+      const connection = this._connectionMap.get(serverOrWorkerUrl);
+      return connection == null ? [] : [connection];
+    }
+
+    // For DHE, return all connections associated with the server URL
+    return [...this._connectionMap.values()].filter(connection => {
+      const dheServerUrl =
+        this._workerURLToServerURLMap.get(connection.serverUrl) ??
+        connection.serverUrl;
+      return dheServerUrl.toString() === serverOrWorkerUrl.toString();
+    });
   };
 
   /**
