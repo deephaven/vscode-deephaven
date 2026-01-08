@@ -175,6 +175,10 @@ export interface IDisposable {
   dispose(): Promise<void>;
 }
 
+export interface IDisposableSync {
+  dispose(): void;
+}
+
 export type EventListenerT = <TEvent>(event: TEvent) => void;
 export type Lazy<T> = () => Promise<T>;
 export type UnsubscribeEventListener = () => void;

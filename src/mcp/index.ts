@@ -1,1 +1,1 @@
-export * from './MCPServer';
+export * from './McpServer';

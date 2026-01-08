@@ -1,5 +1,4 @@
-import * as vscode from 'vscode';
-import type { IDisposable } from '../types';
+import type { IDisposable, IDisposableSync } from '../types';
 import { Logger, withResolvers } from '../util';
 
 /** Base class for disposing of dependencies. */
@@ -9,7 +8,7 @@ export abstract class DisposableBase implements IDisposable {
   }
 
   protected readonly disposables = new Set<
-    (() => void) | IDisposable | vscode.Disposable
+    (() => void) | IDisposable | IDisposableSync
   >();
   private readonly _logger: Logger;
 
