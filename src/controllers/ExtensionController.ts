@@ -423,7 +423,6 @@ export class ExtensionController implements IDisposable {
 
   /**
    * Initialize MCP server for AI assistant integration.
-   * Server is started independently to work with both VS Code Copilot and external tools like Windsurf.
    */
   initializeMCPServer = async (): Promise<void> => {
     assertDefined(this._serverManager, 'serverManager');
@@ -432,18 +431,16 @@ export class ExtensionController implements IDisposable {
 
     this.initializeMcpStatusBar();
 
-    if (!this._config.isMcpEnabled()) {
-      if (this._mcpServer != null) {
-        this._mcpServer.stop();
-        this._mcpServer = null;
+    // If server is already running, stop it
+    if (this._mcpServer != null) {
+      this._mcpServer.stop();
+      this._mcpServer = null;
 
-        logger.info('MCP Server stopped.');
-        vscode.window.showInformationMessage('Deephaven MCP Server stopped.');
-      }
-      return;
+      logger.info('MCP Server stopped.');
+      vscode.window.showInformationMessage('Deephaven MCP Server stopped.');
     }
 
-    if (this._mcpServer != null) {
+    if (!this._config.isMcpEnabled()) {
       return;
     }
 
