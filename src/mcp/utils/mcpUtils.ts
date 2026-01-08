@@ -85,8 +85,9 @@ function mcpToolResult<TSuccess extends boolean, TDetails = unknown>(
 /**
  * Helper class for creating MCP tool responses with automatic execution time tracking.
  *
- * Instantiate at the start of a tool handler, perform work, then call success()
- * or error() to generate a properly formatted MCP response with measured execution time.
+ * Instantiate at the start of a tool handler, perform work, then call one of the
+ * success or error methods to generate a properly formatted MCP response with
+ * measured execution time.
  *
  * @example
  * ```typescript
