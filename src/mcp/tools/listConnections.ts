@@ -22,21 +22,20 @@ const spec = {
   },
   outputSchema: {
     success: z.boolean(),
-    connections: z
-      .array(
-        z.object({
-          serverUrl: z.string(),
-          isConnected: z.boolean(),
-          isRunningCode: z.boolean().optional(),
-          tagId: z.string().optional(),
-        })
-      )
+    message: z.string(),
+    executionTimeMs: z.number().describe('Execution time in milliseconds'),
+    details: z
+      .object({
+        connections: z.array(
+          z.object({
+            serverUrl: z.string(),
+            isConnected: z.boolean(),
+            isRunningCode: z.boolean().optional(),
+            tagId: z.string().optional(),
+          })
+        ),
+      })
       .optional(),
-    message: z.string().optional(),
-    executionTimeMs: z
-      .number()
-      .optional()
-      .describe('Execution time in milliseconds'),
   },
 } as const;
 
