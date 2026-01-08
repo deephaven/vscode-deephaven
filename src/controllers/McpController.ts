@@ -145,11 +145,6 @@ export class McpController extends ControllerBase {
           this._mcpServerDefinitionProvider
         )
       );
-
-      // Notify VS Code to refresh MCP tool cache. TBD: whether this is actually
-      // needed, but I've had some issues where tools seem to get cached and
-      // "stuck" as I've iterated on the extension.
-      this._mcpServerDefinitionProvider.refresh();
     } catch (error) {
       // Don't fail extension activation if MCP server fails
       logger.error('Failed to initialize MCP server:', error);
