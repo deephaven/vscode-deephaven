@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
-import type { RelativeWsUriString } from '../types';
+import type { ParseResult, RelativeWsUriString } from '../types';
+import { parseData } from './dataUtils';
 
 /**
  * Ensure url has a trailing slash.
@@ -36,6 +37,31 @@ export function getServerUrlAndPath(uri: vscode.Uri): {
     root,
     path,
   };
+}
+
+/**
+ * Parses a URI string into a vscode.Uri object.
+ * @param uri The URI string to parse, or null/undefined for no value.
+ * @param strict If true, throw an error when value is empty or when no scheme
+ * can be parsed.
+ * @returns A result object with success status. On success, contains the parsed
+ * Uri or null. On failure, contains an error message.
+ */
+export function parseUri(
+  uri: string | null | undefined,
+  strict?: boolean
+): ParseResult<vscode.Uri> {
+  return parseData(uri, input => vscode.Uri.parse(input, strict));
+}
+
+/**
+ * Parses a URL string into a URL object.
+ * @param url The URL string to parse, or null/undefined for no value.
+ * @returns A result object with success status. On success, contains the parsed
+ * URL or null. On failure, contains an error message.
+ */
+export function parseUrl(url: string | null | undefined): ParseResult<URL> {
+  return parseData(url, input => new URL(input));
 }
 
 /**
