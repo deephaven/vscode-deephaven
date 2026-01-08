@@ -67,12 +67,14 @@ export function createListConnectionsTool({
           parsedURLResult.value ?? undefined
         );
 
-        const connections = rawConnections.map(connection => ({
-          serverUrl: connection.serverUrl.toString(),
-          isConnected: connection.isConnected,
-          isRunningCode: connection.isRunningCode,
-          tagId: connection.tagId,
-        }));
+        const connections = rawConnections.map(
+          ({ serverUrl, isConnected, isRunningCode, tagId }) => ({
+            serverUrl: serverUrl.toString(),
+            isConnected,
+            isRunningCode,
+            tagId,
+          })
+        );
 
         return response.success(`Found ${connections.length} connection(s)`, {
           connections,
