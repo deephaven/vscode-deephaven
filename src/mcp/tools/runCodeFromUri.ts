@@ -74,7 +74,9 @@ export function createRunCodeFromUriTool({
 
       const parsedUriResult = parseUri(uri, true);
       if (!parsedUriResult.success) {
-        return response.error('Invalid URI', parsedUriResult.error, { uri });
+        return response.error('Invalid URI', parsedUriResult.error, {
+          uri,
+        });
       }
 
       const parsedURLResult = parseUrl(connectionUrl);
@@ -121,8 +123,10 @@ export function createRunCodeFromUriTool({
           // Extract variables from result (before returning error)
           const variables = extractVariables(result);
 
-          return response.error(
-            `Code execution failed due to errors:\n${errorMsg}${hint}`,
+          return response.errorWithHint(
+            'Code execution failed due to errors',
+            errorMsg,
+            hint,
             { variables }
           );
         }

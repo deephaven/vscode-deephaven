@@ -33,7 +33,7 @@ export function createPythonModuleErrorHint(
   errors: Array<{ message: string; uri: string; range: vscode.Range }>,
   executedConnection: ConnectionState,
   pythonWorkspace: FilteredWorkspace
-): string {
+): string | undefined {
   // Look for 'No module named' errors and extract the module names
   const noModuleErrors = new Set(
     errors
@@ -42,11 +42,11 @@ export function createPythonModuleErrorHint(
   );
 
   if (noModuleErrors.size === 0) {
-    return '';
+    return;
   }
 
   if (!hasPythonRemoteFileSourcePlugin(executedConnection)) {
-    return `\n\nHint: The Python remote file source plugin is not installed. Install it with 'pip install deephaven-plugin-python-remote-file-source' to enable importing workspace packages.`;
+    return `The Python remote file source plugin is not installed. Install it with 'pip install deephaven-plugin-python-remote-file-source' to enable importing workspace packages.`;
   }
 
   const foundUris: string[] = [];
@@ -61,10 +61,10 @@ export function createPythonModuleErrorHint(
   }
 
   if (foundUris.length > 0) {
-    return `\n\nHint: If this is a package in your workspace, try adding one of these folders as a remote file source using the addRemoteFileSources tool:\n${foundUris.map(u => `- ${u}`).join('\n')}`;
+    return `If this is a package in your workspace, try adding one of these folders as a remote file source using the addRemoteFileSources tool:\n${foundUris.map(u => `- ${u}`).join('\n')}`;
   }
 
-  return `\n\nHint: If this is a package in your workspace, try adding its folder as a remote file source using the addRemoteFileSources tool.`;
+  return 'Hint: If this is a package in your workspace, try adding its folder as a remote file source using the addRemoteFileSources tool.';
 }
 
 /**
@@ -86,6 +86,12 @@ export const runCodeOutputSchema = {
   success: z.boolean(),
   message: z.string(),
   executionTimeMs: z.number().describe('Execution time in milliseconds'),
+  hint: z
+    .string()
+    .optional()
+    .describe(
+      'Guidance for resolving errors or suggestions for next steps (e.g., fixing import errors)'
+    ),
   details: z
     .object({
       variables: z
