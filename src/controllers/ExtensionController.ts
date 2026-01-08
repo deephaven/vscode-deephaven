@@ -307,10 +307,16 @@ export class ExtensionController implements IDisposable {
    * Initialize configuration.
    */
   initializeConfig = (): void => {
+    let isMcpEnabledPrev = this._config.isMcpEnabled();
+
     vscode.workspace.onDidChangeConfiguration(
       () => {
         this._outputChannel?.appendLine('Configuration changed');
-        this.initializeMCPServer();
+
+        if (this._config.isMcpEnabled() !== isMcpEnabledPrev) {
+          isMcpEnabledPrev = !isMcpEnabledPrev;
+          this.initializeMCPServer();
+        }
       },
       null,
       this._context.subscriptions
