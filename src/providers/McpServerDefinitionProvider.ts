@@ -1,12 +1,14 @@
 import * as vscode from 'vscode';
 import { MCP_SERVER_NAME } from '../common';
-import type { McpServer } from '../mcp/MCPServer';
+import type { McpServer } from '../mcp/McpServer';
+import { DisposableBase } from '../services';
 
 /**
  * Provides MCP server definitions to VS Code Copilot. This allows Copilot to
  * discover and connect to a Deephaven MCP server instance.
  */
 export class McpServerDefinitionProvider
+  extends DisposableBase
   implements vscode.McpServerDefinitionProvider
 {
   private readonly _onDidChangeMcpServerDefinitions =
@@ -14,7 +16,10 @@ export class McpServerDefinitionProvider
   readonly onDidChangeMcpServerDefinitions =
     this._onDidChangeMcpServerDefinitions.event;
 
-  constructor(private readonly mcpServer: McpServer) {}
+  constructor(private readonly mcpServer: McpServer) {
+    super();
+    this.disposables.add(this._onDidChangeMcpServerDefinitions);
+  }
 
   async provideMcpServerDefinitions(): Promise<
     vscode.McpHttpServerDefinition[]
@@ -43,9 +48,5 @@ export class McpServerDefinitionProvider
    */
   refresh(): void {
     this._onDidChangeMcpServerDefinitions.fire();
-  }
-
-  dispose(): void {
-    this._onDidChangeMcpServerDefinitions.dispose();
   }
 }

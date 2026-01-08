@@ -6,13 +6,13 @@ import type { IServerManager, McpTool, McpToolSpec } from '../types';
 import { MCP_SERVER_NAME } from '../common';
 import { createListConnectionsTool, createRunCodeFromUriTool } from './tools';
 import { withResolvers } from '../util';
-import type { FilteredWorkspace } from '../services';
+import { DisposableBase, type FilteredWorkspace } from '../services';
 
 /**
  * MCP Server for Deephaven extension.
  * Provides tools for AI assistants (like GitHub Copilot) to interact with Deephaven.
  */
-export class McpServer {
+export class McpServer extends DisposableBase {
   private server: SdkMcpServer;
   private httpServer: http.Server | null = null;
   private port: number | null = null;
@@ -26,6 +26,8 @@ export class McpServer {
     pythonWorkspace: FilteredWorkspace,
     serverManager: IServerManager
   ) {
+    super();
+
     this.pythonDiagnostics = pythonDiagnostics;
     this.pythonWorkspace = pythonWorkspace;
     this.serverManager = serverManager;
@@ -147,6 +149,13 @@ export class McpServer {
    */
   getPort(): number | null {
     return this.port;
+  }
+
+  /**
+   * Stop server on dispose.
+   */
+  override async onDisposing(): Promise<void> {
+    await this.stop();
   }
 
   /**

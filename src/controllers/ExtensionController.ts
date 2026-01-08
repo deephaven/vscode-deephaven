@@ -255,7 +255,6 @@ export class ExtensionController implements IDisposable {
 
   deactivate = async (): Promise<void> => {
     logger.info(`Deactivating Deephaven extension`);
-    await this._mcpController?.stop();
   };
 
   /**
@@ -428,6 +427,8 @@ export class ExtensionController implements IDisposable {
       this._pythonDiagnostics,
       this._pythonWorkspace
     );
+
+    this._context.subscriptions.push(this._mcpController);
   };
 
   /**

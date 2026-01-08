@@ -58,14 +58,14 @@ export class McpController extends ControllerBase {
         }
       },
       null,
-      this._context.subscriptions
+      this.disposables
     );
 
     // Register window state change handler to update Windsurf MCP config
     vscode.window.onDidChangeWindowState(
       () => this.maybeUpdateWindsurfMcpConfig(),
       null,
-      this._context.subscriptions
+      this.disposables
     );
 
     this.initializeStatusBar();
@@ -96,6 +96,7 @@ export class McpController extends ControllerBase {
         this._pythonWorkspace,
         this._serverManager
       );
+      this.disposables.push(this._mcpServer);
 
       // Try to use previously stored port for consistency across sessions within the workspace
       const storedPort = this._context.workspaceState.get<number>(
@@ -132,9 +133,9 @@ export class McpController extends ControllerBase {
       this._mcpServerDefinitionProvider = new McpServerDefinitionProvider(
         this._mcpServer
       );
-      this._context.subscriptions.push(this._mcpServerDefinitionProvider);
+      this.disposables.push(this._mcpServerDefinitionProvider);
 
-      this._context.subscriptions.push(
+      this.disposables.push(
         vscode.lm.registerMcpServerDefinitionProvider(
           'deephaven-vscode.mcpServer',
           this._mcpServerDefinitionProvider
@@ -172,7 +173,7 @@ export class McpController extends ControllerBase {
       200
     );
     this._mcpStatusBarItem.command = COPY_MCP_URL_CMD;
-    this._context.subscriptions.push(this._mcpStatusBarItem);
+    this.disposables.push(this._mcpStatusBarItem);
   }
 
   /**
