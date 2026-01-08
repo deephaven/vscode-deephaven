@@ -9,12 +9,11 @@ import type { FilteredWorkspace } from '../../services';
 import { parseUri, parseUrl } from '../../util';
 import {
   runCodeOutputSchema,
-  mcpRunCodeResult,
   extractVariables,
-  mcpRunCodeErrorResult,
   getDiagnosticsErrors,
   createPythonModuleErrorHint,
   formatDiagnosticError,
+  McpToolResponse,
 } from '../utils';
 import { assertDefined } from '../../shared';
 
@@ -67,22 +66,18 @@ export function createRunCodeFromUriTool(
       languageId?: string;
       connectionUrl?: string;
     }): Promise<HandlerResult> => {
-      const startTime = performance.now();
+      const response = new McpToolResponse();
 
       const parsedUriResult = parseUri(uri, true);
       if (!parsedUriResult.success) {
-        return mcpRunCodeErrorResult(
-          startTime,
-          `Invalid URI: '${uri}'. ${parsedUriResult.error}`
-        );
+        return response.error('Invalid URI', parsedUriResult.error, { uri });
       }
 
       const parsedURLResult = parseUrl(connectionUrl);
       if (!parsedURLResult.success) {
-        return mcpRunCodeErrorResult(
-          startTime,
-          `Invalid connectionUrl: '${connectionUrl}'. ${parsedURLResult.error}`
-        );
+        return response.error('Invalid URL', parsedURLResult.error, {
+          connectionUrl,
+        });
       }
 
       try {
@@ -122,22 +117,20 @@ export function createRunCodeFromUriTool(
           // Extract variables from result (before returning error)
           const variables = extractVariables(result);
 
-          return mcpRunCodeErrorResult(
-            startTime,
+          return response.error(
             `Code execution failed due to errors:\n${errorMsg}${hint}`,
-            variables
+            { variables }
           );
         }
 
         // Extract variables from result
         const variables = extractVariables(result);
 
-        return mcpRunCodeResult(startTime, variables);
+        return response.success('Code executed successfully', {
+          variables,
+        });
       } catch (error) {
-        return mcpRunCodeErrorResult(
-          startTime,
-          `Failed to execute code: ${error instanceof Error ? error.message : String(error)}`
-        );
+        return response.error('Failed to execute code', error);
       }
     },
   };

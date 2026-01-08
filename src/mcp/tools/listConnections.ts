@@ -4,6 +4,8 @@ import type {
   McpTool,
   McpToolHandlerResult,
 } from '../../types';
+import { McpToolResponse } from '../utils';
+import { parseUrl } from '../../util';
 
 const spec = {
   title: 'List Connections',
@@ -52,7 +54,15 @@ export function createListConnectionsTool(
     }: {
       serverUrl?: string;
     }): Promise<HandlerResult> => {
-      const startTime = performance.now();
+      const response = new McpToolResponse();
+
+      const parsedURLResult = parseUrl(serverUrl);
+      if (!parsedURLResult.success) {
+        return response.error('Invalid serverUrl', parsedURLResult.error, {
+          serverUrl,
+        });
+      }
+
       try {
         const parsedUrl = serverUrl ? new URL(serverUrl) : undefined;
         const rawConnections = serverManager.getConnections(parsedUrl);
@@ -62,26 +72,12 @@ export function createListConnectionsTool(
           isRunningCode: connection.isRunningCode,
           tagId: connection.tagId,
         }));
-        const output = {
-          success: true,
+
+        return response.success(`Found ${connections.length} connection(s)`, {
           connections,
-          message: `Found ${connections.length} connection(s)`,
-          executionTimeMs: performance.now() - startTime,
-        };
-        return {
-          content: [{ type: 'text' as const, text: JSON.stringify(output) }],
-          structuredContent: output,
-        };
+        });
       } catch (error) {
-        const output = {
-          success: false,
-          message: `Failed to list connections: ${error instanceof Error ? error.message : String(error)}`,
-          executionTimeMs: performance.now() - startTime,
-        };
-        return {
-          content: [{ type: 'text' as const, text: JSON.stringify(output) }],
-          structuredContent: output,
-        };
+        return response.error('Failed to list connections', error);
       }
     },
   };

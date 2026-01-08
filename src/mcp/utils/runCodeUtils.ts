@@ -1,10 +1,15 @@
 import * as vscode from 'vscode';
 import { z } from 'zod';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
-import { mcpToolResult, type McpToolResult } from './mcpUtils';
 import { DhcService, type FilteredWorkspace } from '../../services';
 import { isInstanceOf } from '../../util';
 import type { ConnectionState } from '../../types';
+
+export interface DiagnosticsError {
+  uri: string;
+  message: string;
+  range: vscode.Range;
+}
 
 /**
  * Schema for variable results returned after code execution.
@@ -80,28 +85,16 @@ function hasPythonRemoteFileSourcePlugin(
 export const runCodeOutputSchema = {
   success: z.boolean(),
   message: z.string(),
-  variables: z
-    .array(variableResultSchema)
-    .optional()
-    .describe('Variables created or updated by the code execution'),
-  executionTimeMs: z
-    .number()
-    .optional()
-    .describe('Execution time in milliseconds'),
+  executionTimeMs: z.number().describe('Execution time in milliseconds'),
+  details: z
+    .object({
+      variables: z
+        .array(variableResultSchema)
+        .optional()
+        .describe('Variables created or updated by the code execution'),
+    })
+    .optional(),
 };
-
-export type RunCodeOutput = {
-  executionTimeMs: number;
-  success: boolean;
-  message: string;
-  variables?: VariableResult[];
-};
-
-export interface DiagnosticsError {
-  uri: string;
-  message: string;
-  range: vscode.Range;
-}
 
 /**
  * Extracts variables from a code execution result.
@@ -146,33 +139,6 @@ export function getDiagnosticsErrors(
     }
   }
   return errors;
-}
-
-/**
- * Creates a result for code execution.
- */
-export function mcpRunCodeResult(
-  startTimeMs: number,
-  variables: VariableResult[],
-  message?: string
-): McpToolResult<RunCodeOutput> {
-  return mcpToolResult(startTimeMs, {
-    success: true,
-    message: message ?? 'Code executed successfully',
-    variables: variables.length > 0 ? variables : undefined,
-  });
-}
-
-export function mcpRunCodeErrorResult(
-  startTimeMs: number,
-  errorMessage: string,
-  variables: VariableResult[] = []
-): McpToolResult<RunCodeOutput> {
-  return mcpToolResult(startTimeMs, {
-    success: false,
-    message: errorMessage,
-    variables: variables.length > 0 ? variables : undefined,
-  });
 }
 
 /**
