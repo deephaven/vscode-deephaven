@@ -1373,6 +1373,14 @@ export class ExtensionController implements IDisposable {
       const ranges: readonly vscode.Range[] | undefined =
         constrainTo === 'selection' ? editor.selections : constrainTo;
 
+      // Return the results since `onRunCode` is the registered RUN_CODE_COMMAND
+      // handler. This allows any caller using `vscode.commands.executeCommand`
+      // to get the result.
+      // e.g.
+      // const result = await vscode.commands.executeCommand<DhcType.ide.CommandResult>(
+      //   RUN_CODE_COMMAND,
+      //   ...
+      // );
       return connectionState.runCode(editor.document, languageId, ranges);
     }
 

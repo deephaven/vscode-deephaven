@@ -13,9 +13,11 @@ import type { Brand, QuerySerial, SerializableRefreshToken } from '../shared';
 
 export type NonEmptyArray<T> = [T, ...T[]];
 
-export type ParseResult<T> =
-  | { success: true; value: T | null }
-  | { success: false; error: string };
+export type ParseSuccess<T> = { success: true; value: T };
+
+export type ParseError = { success: false; error: string };
+
+export type ParseSuccessOrError<T> = ParseSuccess<T> | ParseError;
 
 export type UniqueID = Brand<'UniqueID', string>;
 

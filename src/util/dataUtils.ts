@@ -9,7 +9,8 @@ import type {
   MultiAuthConfig,
   NoAuthConfig,
   NonEmptyArray,
-  ParseResult,
+  ParseSuccessOrError,
+  ParseSuccess,
   SingleAuthConfig,
 } from '../types';
 import type { SerializableRefreshToken } from '../shared';
@@ -101,9 +102,21 @@ export function isNonEmptyArray<T>(array: T[]): array is NonEmptyArray<T> {
  * @returns A result object with success status. On success, contains the parsed value or null. On failure, contains an error message.
  */
 export function parseData<T>(
+  input: null | undefined,
+  parser: (input: string) => T
+): ParseSuccess<null>;
+export function parseData<T>(
+  input: string,
+  parser: (input: string) => T
+): ParseSuccessOrError<T>;
+export function parseData<T>(
   input: string | null | undefined,
   parser: (input: string) => T
-): ParseResult<T> {
+): ParseSuccessOrError<T | null>;
+export function parseData<T>(
+  input: string | null | undefined,
+  parser: (input: string) => T
+): ParseSuccessOrError<T | null> {
   if (input == null) {
     return { success: true, value: null };
   }

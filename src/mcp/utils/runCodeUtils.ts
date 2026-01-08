@@ -1,0 +1,183 @@
+import * as vscode from 'vscode';
+import { z } from 'zod';
+import type { dh as DhcType } from '@deephaven/jsapi-types';
+import { mcpToolResult, type McpToolResult } from './mcpUtils';
+import { DhcService, type FilteredWorkspace } from '../../services';
+import { isInstanceOf } from '../../util';
+import type { ConnectionState } from '../../types';
+
+/**
+ * Schema for variable results returned after code execution.
+ */
+export const variableResultSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  type: z.string(),
+  isNew: z
+    .boolean()
+    .describe('True if the variable was created, false if it was updated'),
+});
+
+export type VariableResult = z.infer<typeof variableResultSchema>;
+
+/**
+ * Creates a hint for Python module import errors by suggesting workspace folders
+ * that could be added as remote file sources.
+ */
+export function createPythonModuleErrorHint(
+  errors: Array<{ message: string; uri: string; range: vscode.Range }>,
+  executedConnection: ConnectionState,
+  pythonWorkspace: FilteredWorkspace
+): string {
+  // Look for 'No module named' errors and extract the module names
+  const noModuleErrors = new Set(
+    errors
+      .map(e => /^No module named '([^']+)'/.exec(e.message)?.[1])
+      .filter(e => e != null)
+  );
+
+  if (noModuleErrors.size === 0) {
+    return '';
+  }
+
+  if (!hasPythonRemoteFileSourcePlugin(executedConnection)) {
+    return `\n\nHint: The Python remote file source plugin is not installed. Install it with 'pip install deephaven-plugin-python-remote-file-source' to enable importing workspace packages.`;
+  }
+
+  const foundUris: string[] = [];
+  const rootNodes = pythonWorkspace.getChildNodes(null);
+
+  for (const rootNode of rootNodes) {
+    for (const node of pythonWorkspace.iterateNodeTree(rootNode.uri)) {
+      if (node.type === 'folder' && noModuleErrors.has(node.name) && node.uri) {
+        foundUris.push(node.uri.toString());
+      }
+    }
+  }
+
+  if (foundUris.length > 0) {
+    return `\n\nHint: If this is a package in your workspace, try adding one of these folders as a remote file source using the addRemoteFileSources tool:\n${foundUris.map(u => `- ${u}`).join('\n')}`;
+  }
+
+  return `\n\nHint: If this is a package in your workspace, try adding its folder as a remote file source using the addRemoteFileSources tool.`;
+}
+
+/**
+ * Checks if the Python remote file source plugin is installed for the given connection.
+ */
+function hasPythonRemoteFileSourcePlugin(
+  executedConnection: ConnectionState
+): boolean {
+  return (
+    isInstanceOf(executedConnection, DhcService) &&
+    executedConnection.hasRemoteFileSourcePlugin()
+  );
+}
+
+/**
+ * Common output schema for runCode and runCodeFromUri tools.
+ */
+export const runCodeOutputSchema = {
+  success: z.boolean(),
+  message: z.string(),
+  variables: z
+    .array(variableResultSchema)
+    .optional()
+    .describe('Variables created or updated by the code execution'),
+  executionTimeMs: z
+    .number()
+    .optional()
+    .describe('Execution time in milliseconds'),
+};
+
+export type RunCodeOutput = {
+  executionTimeMs: number;
+  success: boolean;
+  message: string;
+  variables?: VariableResult[];
+};
+
+export interface DiagnosticsError {
+  uri: string;
+  message: string;
+  range: vscode.Range;
+}
+
+/**
+ * Extracts variables from a code execution result.
+ */
+export function extractVariables(
+  result: DhcType.ide.CommandResult | null | undefined
+): VariableResult[] {
+  if (result == null) {
+    return [];
+  }
+
+  return [
+    ...result.changes.created.map(v => ({
+      id: String(v.id),
+      title: v.title ?? v.id,
+      type: v.type,
+      isNew: true,
+    })),
+    ...result.changes.updated.map(v => ({
+      id: String(v.id),
+      title: v.title ?? v.id,
+      type: v.type,
+      isNew: false,
+    })),
+  ];
+}
+
+export function getDiagnosticsErrors(
+  diagnostics: vscode.DiagnosticCollection
+): DiagnosticsError[] {
+  const diagnosticsMap = new Map([...diagnostics]);
+  const errors: { uri: string; message: string; range: vscode.Range }[] = [];
+  for (const [uri, diags] of diagnosticsMap) {
+    for (const diag of diags) {
+      if (diag.severity === vscode.DiagnosticSeverity.Error) {
+        errors.push({
+          uri: uri.toString(),
+          message: diag.message,
+          range: diag.range,
+        });
+      }
+    }
+  }
+  return errors;
+}
+
+/**
+ * Creates a result for code execution.
+ */
+export function mcpRunCodeResult(
+  startTimeMs: number,
+  variables: VariableResult[],
+  message?: string
+): McpToolResult<RunCodeOutput> {
+  return mcpToolResult(startTimeMs, {
+    success: true,
+    message: message ?? 'Code executed successfully',
+    variables: variables.length > 0 ? variables : undefined,
+  });
+}
+
+export function mcpRunCodeErrorResult(
+  startTimeMs: number,
+  errorMessage: string,
+  variables: VariableResult[] = []
+): McpToolResult<RunCodeOutput> {
+  return mcpToolResult(startTimeMs, {
+    success: false,
+    message: errorMessage,
+    variables: variables.length > 0 ? variables : undefined,
+  });
+}
+
+/**
+ * Formats a diagnostic error as a string for display.
+ */
+export function formatDiagnosticError(error: DiagnosticsError): string {
+  return `${error.uri}: ${error.message} [${error.range.start.line}:${error.range.start.character}]`;
+}
