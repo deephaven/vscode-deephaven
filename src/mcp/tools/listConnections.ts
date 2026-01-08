@@ -58,14 +58,16 @@ export function createListConnectionsTool({
 
       const parsedURLResult = parseUrl(serverUrl);
       if (!parsedURLResult.success) {
-        return response.error('Invalid serverUrl', parsedURLResult.error, {
+        return response.error('Invalid URL', parsedURLResult.error, {
           serverUrl,
         });
       }
 
       try {
-        const parsedUrl = serverUrl ? new URL(serverUrl) : undefined;
-        const rawConnections = serverManager.getConnections(parsedUrl);
+        const rawConnections = serverManager.getConnections(
+          parsedURLResult.value ?? undefined
+        );
+
         const connections = rawConnections.map(connection => ({
           serverUrl: connection.serverUrl.toString(),
           isConnected: connection.isConnected,
