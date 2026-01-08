@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type {
   IServerManager,
   McpTool,
+  McpToolHandlerArg,
   McpToolHandlerResult,
 } from '../../types';
 import { McpToolResponse } from '../utils';
@@ -40,6 +41,7 @@ const spec = {
 } as const;
 
 type Spec = typeof spec;
+type HandlerArg = McpToolHandlerArg<Spec>;
 type HandlerResult = McpToolHandlerResult<Spec>;
 type ListConnectionsTool = McpTool<Spec>;
 
@@ -51,11 +53,7 @@ export function createListConnectionsTool({
   return {
     name: 'listConnections',
     spec,
-    handler: async ({
-      serverUrl,
-    }: {
-      serverUrl?: string;
-    }): Promise<HandlerResult> => {
+    handler: async ({ serverUrl }: HandlerArg): Promise<HandlerResult> => {
       const response = new McpToolResponse();
 
       const parsedURLResult = parseUrl(serverUrl);

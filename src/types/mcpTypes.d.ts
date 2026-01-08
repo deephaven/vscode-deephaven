@@ -1,4 +1,5 @@
 import type { ToolCallback } from '@modelcontextprotocol/sdk/server/mcp';
+import type { ShapeOutput } from '@modelcontextprotocol/sdk/server/zod-compat';
 import type { ZodRawShape } from 'zod';
 
 export interface McpToolSpec<
@@ -13,6 +14,10 @@ export interface McpToolSpec<
 
 export type McpToolHandler<InputSchema extends ZodRawShape> =
   ToolCallback<InputSchema>;
+
+export type McpToolHandlerArg<Spec extends McpToolSpec> = ShapeOutput<
+  Spec['inputSchema']
+>;
 
 export type McpToolHandlerResult<Spec extends McpToolSpec> = Awaited<
   ReturnType<McpToolHandler<Spec['inputSchema']>>

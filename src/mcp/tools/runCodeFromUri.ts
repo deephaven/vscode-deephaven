@@ -2,7 +2,11 @@ import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { RUN_CODE_COMMAND, type RunCodeCmdArgs } from '../../common/commands';
 import { z } from 'zod';
-import type { McpTool, McpToolHandlerResult } from '../../types';
+import type {
+  McpTool,
+  McpToolHandlerArg,
+  McpToolHandlerResult,
+} from '../../types';
 
 import type { IServerManager } from '../../types';
 import type { FilteredWorkspace } from '../../services';
@@ -44,6 +48,7 @@ const spec = {
 } as const;
 
 type Spec = typeof spec;
+type HandlerArg = McpToolHandlerArg<Spec>;
 type HandlerResult = McpToolHandlerResult<Spec>;
 type RunCodeFromUriTool = McpTool<Spec>;
 
@@ -64,12 +69,7 @@ export function createRunCodeFromUriTool({
       constrainTo,
       languageId,
       connectionUrl,
-    }: {
-      uri: string;
-      constrainTo?: 'selection';
-      languageId?: string;
-      connectionUrl?: string;
-    }): Promise<HandlerResult> => {
+    }: HandlerArg): Promise<HandlerResult> => {
       const response = new McpToolResponse();
 
       const parsedUriResult = parseUri(uri, true);
