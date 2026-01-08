@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer as SdkMcpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import * as http from 'http';
 import type { IServerManager, McpTool, McpToolSpec } from '../types';
@@ -12,8 +12,8 @@ import type { FilteredWorkspace } from '../services';
  * MCP Server for Deephaven extension.
  * Provides tools for AI assistants (like GitHub Copilot) to interact with Deephaven.
  */
-export class MCPServer {
-  private server: McpServer;
+export class McpServer {
+  private server: SdkMcpServer;
   private httpServer: http.Server | null = null;
   private port: number | null = null;
 
@@ -31,7 +31,7 @@ export class MCPServer {
     this.serverManager = serverManager;
 
     // Create an MCP server
-    this.server = new McpServer({
+    this.server = new SdkMcpServer({
       name: MCP_SERVER_NAME,
       version: '1.0.0',
     });

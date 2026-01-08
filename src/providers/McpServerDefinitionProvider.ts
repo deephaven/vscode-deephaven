@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { MCP_SERVER_NAME } from '../common';
-import type { MCPServer } from '../mcp/MCPServer';
+import type { McpServer } from '../mcp/MCPServer';
 
 /**
  * Provides MCP server definitions to VS Code Copilot. This allows Copilot to
@@ -14,7 +14,7 @@ export class McpServerDefinitionProvider
   readonly onDidChangeMcpServerDefinitions =
     this._onDidChangeMcpServerDefinitions.event;
 
-  constructor(private readonly mcpServer: MCPServer) {}
+  constructor(private readonly mcpServer: McpServer) {}
 
   async provideMcpServerDefinitions(): Promise<
     vscode.McpHttpServerDefinition[]

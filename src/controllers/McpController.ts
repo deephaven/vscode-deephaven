@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { ControllerBase } from './ControllerBase';
-import { MCPServer } from '../mcp';
+import { McpServer } from '../mcp';
 import { McpServerDefinitionProvider } from '../providers';
 import type { IServerManager, IConfigService } from '../types';
 import type { FilteredWorkspace } from '../services';
@@ -24,7 +24,7 @@ export class McpController extends ControllerBase {
   private _pythonDiagnostics: vscode.DiagnosticCollection;
   private _pythonWorkspace: FilteredWorkspace;
 
-  private _mcpServer: MCPServer | null = null;
+  private _mcpServer: McpServer | null = null;
   private _mcpServerDefinitionProvider: McpServerDefinitionProvider | null =
     null;
   private _mcpStatusBarItem: vscode.StatusBarItem | null = null;
@@ -91,7 +91,7 @@ export class McpController extends ControllerBase {
 
     try {
       // Create and start MCP server
-      this._mcpServer = new MCPServer(
+      this._mcpServer = new McpServer(
         this._pythonDiagnostics,
         this._pythonWorkspace,
         this._serverManager
