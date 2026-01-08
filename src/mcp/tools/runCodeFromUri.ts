@@ -47,11 +47,15 @@ type Spec = typeof spec;
 type HandlerResult = McpToolHandlerResult<Spec>;
 type RunCodeFromUriTool = McpTool<Spec>;
 
-export function createRunCodeFromUriTool(
-  pythonDiagnostics: vscode.DiagnosticCollection,
-  pythonWorkspace: FilteredWorkspace,
-  serverManager: IServerManager
-): RunCodeFromUriTool {
+export function createRunCodeFromUriTool({
+  pythonDiagnostics,
+  pythonWorkspace,
+  serverManager,
+}: {
+  pythonDiagnostics: vscode.DiagnosticCollection;
+  pythonWorkspace: FilteredWorkspace;
+  serverManager: IServerManager;
+}): RunCodeFromUriTool {
   return {
     name: 'runCodeFromUri',
     spec,

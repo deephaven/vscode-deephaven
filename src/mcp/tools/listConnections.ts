@@ -43,9 +43,11 @@ type Spec = typeof spec;
 type HandlerResult = McpToolHandlerResult<Spec>;
 type ListConnectionsTool = McpTool<Spec>;
 
-export function createListConnectionsTool(
-  serverManager: IServerManager
-): ListConnectionsTool {
+export function createListConnectionsTool({
+  serverManager,
+}: {
+  serverManager: IServerManager;
+}): ListConnectionsTool {
   return {
     name: 'listConnections',
     spec,

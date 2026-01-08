@@ -427,6 +427,8 @@ export class ExtensionController implements IDisposable {
    */
   initializeMCPServer = async (): Promise<void> => {
     assertDefined(this._serverManager, 'serverManager');
+    assertDefined(this._pythonDiagnostics, 'pythonDiagnostics');
+    assertDefined(this._pythonWorkspace, 'pythonWorkspace');
 
     this.initializeMcpStatusBar();
 
@@ -447,7 +449,11 @@ export class ExtensionController implements IDisposable {
 
     try {
       // Create and start MCP server
-      this._mcpServer = new MCPServer(this._serverManager);
+      this._mcpServer = new MCPServer(
+        this._pythonDiagnostics,
+        this._pythonWorkspace,
+        this._serverManager
+      );
 
       // Try to use previously stored port for consistency across sessions within the workspace
       const storedPort = this._context.workspaceState.get<number>(

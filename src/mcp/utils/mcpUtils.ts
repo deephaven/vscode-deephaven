@@ -44,7 +44,7 @@ function mcpToolResult<TSuccess extends boolean, TDetails = unknown>(
     success,
     message,
     executionTimeMs,
-    ...(details == null ? { details } : undefined),
+    ...(details == null ? undefined : { details }),
   };
 
   return {

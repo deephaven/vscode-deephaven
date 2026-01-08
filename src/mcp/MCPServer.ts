@@ -4,8 +4,9 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import * as http from 'http';
 import type { IServerManager, McpTool, McpToolSpec } from '../types';
 import { MCP_SERVER_NAME } from '../common';
-import { createListConnectionsTool } from './tools';
+import { createListConnectionsTool, createRunCodeFromUriTool } from './tools';
 import { withResolvers } from '../util';
+import type { FilteredWorkspace } from '../services';
 
 /**
  * MCP Server for Deephaven extension.
@@ -15,9 +16,18 @@ export class MCPServer {
   private server: McpServer;
   private httpServer: http.Server | null = null;
   private port: number | null = null;
-  private readonly serverManager: IServerManager;
 
-  constructor(serverManager: IServerManager) {
+  readonly pythonDiagnostics: vscode.DiagnosticCollection;
+  readonly pythonWorkspace: FilteredWorkspace;
+  readonly serverManager: IServerManager;
+
+  constructor(
+    pythonDiagnostics: vscode.DiagnosticCollection,
+    pythonWorkspace: FilteredWorkspace,
+    serverManager: IServerManager
+  ) {
+    this.pythonDiagnostics = pythonDiagnostics;
+    this.pythonWorkspace = pythonWorkspace;
     this.serverManager = serverManager;
 
     // Create an MCP server
@@ -26,7 +36,8 @@ export class MCPServer {
       version: '1.0.0',
     });
 
-    this.registerTools();
+    this.registerTool(createRunCodeFromUriTool(this));
+    this.registerTool(createListConnectionsTool(this));
   }
 
   private registerTool<Spec extends McpToolSpec>({
@@ -35,10 +46,6 @@ export class MCPServer {
     handler,
   }: McpTool<Spec>): void {
     this.server.registerTool(name, spec, handler);
-  }
-
-  private registerTools(): void {
-    this.registerTool(createListConnectionsTool(this.serverManager));
   }
 
   /**
