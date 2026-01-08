@@ -722,9 +722,6 @@ export class ExtensionController implements IDisposable {
   };
 
   /**
-   * Initialize MCP status bar item.
-   */
-  /**
    * Register commands for the extension.
    */
   initializeCommands = (): void => {

@@ -51,11 +51,15 @@ export class McpController extends ControllerBase {
     let isMcpEnabledPrev = this._config.isMcpEnabled();
     vscode.workspace.onDidChangeConfiguration(
       () => {
-        if (this._config.isMcpEnabled() !== isMcpEnabledPrev) {
-          isMcpEnabledPrev = !isMcpEnabledPrev;
-          this.initializeStatusBar();
-          this.initializeMcpServer();
+        const isMcpEnabledCur = this._config.isMcpEnabled();
+
+        if (isMcpEnabledCur === isMcpEnabledPrev) {
+          return;
         }
+
+        isMcpEnabledPrev = isMcpEnabledCur;
+        this.initializeStatusBar();
+        this.initializeMcpServer();
       },
       null,
       this.disposables
