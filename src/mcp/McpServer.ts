@@ -141,9 +141,6 @@ export class McpServer extends DisposableBase {
         // Retry with auto-allocated port
         this.start().then(resolve).catch(reject);
       } else {
-        vscode.window.showErrorMessage(
-          `Failed to start MCP server: ${error.message}`
-        );
         reject(error);
       }
     });
