@@ -253,7 +253,7 @@ export class ExtensionController implements IDisposable {
     this._outputChannel?.appendLine(message);
   };
 
-  deactivate = async (): Promise<void> => {
+  deactivate = (): void => {
     logger.info(`Deactivating Deephaven extension`);
   };
 
