@@ -87,6 +87,9 @@ export function createRunCodeFromUriTool({
       }
 
       try {
+        // This is split out into an Array so that we can get type safety for
+        // the command args since the signature for `vscode.commands.executeCommand`
+        // takes ...any[]
         const cmdArgs: RunCodeCmdArgs = [
           parsedUriResult.value,
           undefined,
