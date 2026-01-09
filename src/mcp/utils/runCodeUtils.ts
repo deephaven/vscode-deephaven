@@ -11,6 +11,8 @@ export interface DiagnosticsError {
   range: vscode.Range;
 }
 
+export type VariableResult = z.infer<typeof variableResultSchema>;
+
 /**
  * Schema for variable results returned after code execution.
  */
@@ -22,8 +24,6 @@ export const variableResultSchema = z.object({
     .boolean()
     .describe('True if the variable was created, false if it was updated'),
 });
-
-export type VariableResult = z.infer<typeof variableResultSchema>;
 
 /**
  * Common output schema for MCP tools that run code.
