@@ -26,8 +26,13 @@ export const variableResultSchema = z.object({
 export type VariableResult = z.infer<typeof variableResultSchema>;
 
 /**
- * Creates a hint for Python module import errors by suggesting workspace folders
- * that could be added as remote file sources.
+ * Creates a hint for Python module import errors.
+ * - If no import errors are found, returns undefined.
+ * - If import errors are found, and remote file source plugin is not installed,
+ * suggests installing it.
+ * - If import errors are found, and remote file source plugin is installed,
+ * determines a list of folder URIs in the workspace that may contain that might
+ * satisfy the missing imports.
  * @param errors The list of diagnostic errors.
  * @param connection The connection state to check for Python remote file source plugin.
  * @param pythonWorkspace The filtered Python workspace.
