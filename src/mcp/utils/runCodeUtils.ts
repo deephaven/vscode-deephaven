@@ -60,11 +60,10 @@ export function createPythonModuleErrorHint(
     }
   }
 
-  if (foundUris.length > 0) {
-    return `If this is a package in your workspace, try adding one of these folders as a remote file source using the addRemoteFileSources tool:\n${foundUris.map(u => `- ${u}`).join('\n')}`;
-  }
-
-  return 'Hint: If this is a package in your workspace, try adding its folder as a remote file source using the addRemoteFileSources tool.';
+  return [
+    'If this is a package in your workspace, try adding its folder as a remote file source.',
+    ...foundUris.map(u => `- ${u}`),
+  ].join('\n');
 }
 
 /**

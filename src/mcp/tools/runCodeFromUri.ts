@@ -79,6 +79,15 @@ export function createRunCodeFromUriTool({
         });
       }
 
+      // Verify the file exists
+      try {
+        await vscode.workspace.fs.stat(parsedUriResult.value);
+      } catch (error) {
+        return response.error('File not found', error, {
+          uri: parsedUriResult.value.fsPath,
+        });
+      }
+
       const parsedURLResult = parseUrl(connectionUrl);
       if (!parsedURLResult.success) {
         return response.error('Invalid URL', parsedURLResult.error, {
@@ -87,6 +96,14 @@ export function createRunCodeFromUriTool({
       }
 
       try {
+        // If languageId is not provided, infer it from the document
+        if (languageId == null) {
+          const document = await vscode.workspace.openTextDocument(
+            parsedUriResult.value
+          );
+          languageId = document.languageId;
+        }
+
         // This is split out into an Array so that we can get type safety for
         // the command args since the signature for `vscode.commands.executeCommand`
         // takes ...any[]
