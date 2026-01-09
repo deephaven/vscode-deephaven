@@ -26,6 +26,33 @@ export const variableResultSchema = z.object({
 export type VariableResult = z.infer<typeof variableResultSchema>;
 
 /**
+ * Common output schema for MCP tools that run code.
+ */
+export const runCodeOutputSchema = {
+  success: z.boolean(),
+  message: z.string(),
+  executionTimeMs: z.number().describe('Execution time in milliseconds'),
+  hint: z
+    .string()
+    .optional()
+    .describe(
+      'Guidance for resolving errors or suggestions for next steps (e.g., fixing import errors)'
+    ),
+  details: z
+    .object({
+      languageId: z
+        .string()
+        .optional()
+        .describe('The language ID used for execution (python or groovy)'),
+      variables: z
+        .array(variableResultSchema)
+        .optional()
+        .describe('Variables created or updated by the code execution'),
+    })
+    .optional(),
+};
+
+/**
  * Creates a hint for Python module import errors.
  * - If no import errors are found, returns undefined.
  * - If import errors are found, and remote file source plugin is not installed,
@@ -77,41 +104,21 @@ export function createPythonModuleImportErrorHint(
 
 /**
  * Checks if the Python remote file source plugin is installed for the given connection.
+ * @param connection The connection state to check.
+ * @returns True if the Python remote file source plugin is installed, false otherwise.
  */
-function hasPythonRemoteFileSourcePlugin(
-  executedConnection: ConnectionState
-): boolean {
+function hasPythonRemoteFileSourcePlugin(connection: ConnectionState): boolean {
   return (
-    isInstanceOf(executedConnection, DhcService) &&
-    executedConnection.hasRemoteFileSourcePlugin()
+    isInstanceOf(connection, DhcService) &&
+    connection.hasRemoteFileSourcePlugin()
   );
 }
 
 /**
- * Common output schema for runCode and runCodeFromUri tools.
- */
-export const runCodeOutputSchema = {
-  success: z.boolean(),
-  message: z.string(),
-  executionTimeMs: z.number().describe('Execution time in milliseconds'),
-  hint: z
-    .string()
-    .optional()
-    .describe(
-      'Guidance for resolving errors or suggestions for next steps (e.g., fixing import errors)'
-    ),
-  details: z
-    .object({
-      variables: z
-        .array(variableResultSchema)
-        .optional()
-        .describe('Variables created or updated by the code execution'),
-    })
-    .optional(),
-};
-
-/**
  * Extracts variables from a code execution result.
+ * Combines both created and updated variables with their metadata.
+ * @param result The command result from code execution, or null/undefined.
+ * @returns An array of variable results with id, title, type, and isNew flag. Returns empty array if result is null/undefined.
  */
 export function extractVariables(
   result: DhcType.ide.CommandResult | null | undefined
@@ -136,11 +143,17 @@ export function extractVariables(
   ];
 }
 
+/**
+ * Extracts all error-level diagnostics from a diagnostic collection.
+ * @param diagnostics The diagnostic collection to extract errors from.
+ * @returns An array of diagnostic errors with URI, message, and range information.
+ */
 export function getDiagnosticsErrors(
   diagnostics: vscode.DiagnosticCollection
 ): DiagnosticsError[] {
   const diagnosticsMap = new Map([...diagnostics]);
-  const errors: { uri: string; message: string; range: vscode.Range }[] = [];
+  const errors: DiagnosticsError[] = [];
+
   for (const [uri, diags] of diagnosticsMap) {
     for (const diag of diags) {
       if (diag.severity === vscode.DiagnosticSeverity.Error) {
@@ -152,11 +165,14 @@ export function getDiagnosticsErrors(
       }
     }
   }
+
   return errors;
 }
 
 /**
  * Formats a diagnostic error as a string for display.
+ * @param error The diagnostic error to format.
+ * @returns A formatted string including URI, message, and line/character position.
  */
 export function formatDiagnosticError(error: DiagnosticsError): string {
   return `${error.uri}: ${error.message} [${error.range.start.line}:${error.range.start.character}]`;
