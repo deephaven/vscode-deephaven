@@ -149,13 +149,7 @@ export class McpToolResponse {
     error: unknown,
     details?: TDetails
   ): McpToolResult<false, TDetails> {
-    return mcpToolResult(
-      false,
-      formatErrorMessage(errorMessage, error),
-      performance.now() - this.startTimeMs,
-      undefined,
-      details
-    );
+    return this.errorWithHint(errorMessage, error, undefined, details);
   }
 
   /**
