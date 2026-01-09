@@ -14,6 +14,7 @@ import { McpController } from './McpController';
 import {
   ADD_REMOTE_FILE_SOURCE_CMD,
   CLEAR_SECRET_STORAGE_CMD,
+  ConnectionNotFoundError,
   CREATE_NEW_TEXT_DOC_CMD,
   DELETE_VARIABLE_CMD,
   DOWNLOAD_LOGS_CMD,
@@ -1193,6 +1194,10 @@ export class ExtensionController implements IDisposable {
         languageId,
         connectionUrl
       );
+
+    if (connectionUrl != null && connectionState == null) {
+      throw new ConnectionNotFoundError(connectionUrl);
+    }
 
     if (isInstanceOf(connectionState, DhcService)) {
       const ranges: readonly vscode.Range[] | undefined =

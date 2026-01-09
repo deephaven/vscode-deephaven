@@ -1,3 +1,10 @@
+export class ConnectionNotFoundError extends Error {
+  constructor(connectionUrl: URL) {
+    super(`No connection found for URL: ${connectionUrl}`);
+    this.name = 'ConnectionNotFoundError';
+  }
+}
+
 export class QueryCreationCancelledError extends Error {
   constructor() {
     super('Query creation cancelled');

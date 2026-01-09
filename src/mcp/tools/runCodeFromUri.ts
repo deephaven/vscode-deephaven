@@ -3,13 +3,17 @@ import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { RUN_CODE_COMMAND, type RunCodeCmdArgs } from '../../common/commands';
 import { z } from 'zod';
 import type {
+  ConsoleType,
   McpTool,
   McpToolHandlerArg,
   McpToolHandlerResult,
 } from '../../types';
 
 import type { IServerManager } from '../../types';
-import type { FilteredWorkspace } from '../../services';
+import {
+  getConnectionsForConsoleType,
+  type FilteredWorkspace,
+} from '../../services';
 import { parseUri, parseUrl } from '../../util';
 import {
   runCodeOutputSchema,
@@ -20,6 +24,7 @@ import {
   McpToolResponse,
 } from '../utils';
 import { assertDefined } from '../../shared';
+import { ConnectionNotFoundError } from '../../common';
 
 const spec = {
   title: 'Run Deephaven Code from URI',
@@ -32,12 +37,6 @@ const spec = {
       .optional()
       .describe(
         'Constrain execution to the current selection within the file specified by uri'
-      ),
-    languageId: z
-      .string()
-      .optional()
-      .describe(
-        'The language ID (python, groovy) to use for execution. If not provided, inferred from the file.'
       ),
     connectionUrl: z
       .string()
@@ -67,7 +66,6 @@ export function createRunCodeFromUriTool({
     handler: async ({
       uri,
       constrainTo,
-      languageId,
       connectionUrl,
     }: HandlerArg): Promise<HandlerResult> => {
       const response = new McpToolResponse();
@@ -95,15 +93,13 @@ export function createRunCodeFromUriTool({
         });
       }
 
-      try {
-        // If languageId is not provided, infer it from the document
-        if (languageId == null) {
-          const document = await vscode.workspace.openTextDocument(
-            parsedUriResult.value
-          );
-          languageId = document.languageId;
-        }
+      // Infer languageId from file
+      const document = await vscode.workspace.openTextDocument(
+        parsedUriResult.value
+      );
+      const languageId = document.languageId;
 
+      try {
         // This is split out into an Array so that we can get type safety for
         // the command args since the signature for `vscode.commands.executeCommand`
         // takes ...any[]
@@ -158,7 +154,26 @@ export function createRunCodeFromUriTool({
           variables,
         });
       } catch (error) {
-        return response.error('Failed to execute code', error);
+        let hint: string | undefined;
+
+        if (error instanceof ConnectionNotFoundError) {
+          const hintConnections = await getConnectionsForConsoleType(
+            serverManager.getConnections(),
+            languageId as ConsoleType
+          );
+
+          if (hintConnections.length > 0) {
+            hint = `Connection for URL ${connectionUrl} not found. Did you mean to use one of these connections?\n${hintConnections
+              .map(c => `- ${c.serverUrl.toString()}`)
+              .join('\n')}`;
+          } else {
+            hint = `No available connections supporting languageId ${languageId}.`;
+          }
+        }
+
+        return response.errorWithHint('Failed to execute code', error, hint, {
+          languageId,
+        });
       }
     },
   };
