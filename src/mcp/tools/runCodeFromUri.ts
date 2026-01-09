@@ -117,42 +117,43 @@ export function createRunCodeFromUriTool({
             ...cmdArgs
           );
 
-        const pythonErrors =
-          languageId === 'python'
-            ? getDiagnosticsErrors(pythonDiagnostics)
-            : [];
-
-        if (pythonErrors.length > 0) {
-          const executedConnection = serverManager.getUriConnection(
-            parsedUriResult.value
-          );
-          assertDefined(executedConnection, 'executedConnection');
-
-          const errorMsg = pythonErrors.map(formatDiagnosticError).join('\n');
-
-          const hint = createPythonModuleImportErrorHint(
-            pythonErrors,
-            executedConnection,
-            pythonWorkspace
-          );
-
-          // Extract variables from result (before returning error)
-          const variables = extractVariables(result);
-
-          return response.errorWithHint(
-            'Code execution failed due to errors',
-            errorMsg,
-            hint,
-            { variables }
-          );
-        } else if (result.error) {
-          return response.error('Code execution failed', result.error, {
-            languageId,
-          });
-        }
-
         // Extract variables from result
         const variables = extractVariables(result);
+
+        if (result.error) {
+          let errorMsg = result.error;
+          let hint: string | undefined;
+
+          // TODO: We currently only parse Python errors into a
+          // `vscode.DiagnosticsCollection`, but we should be able to improve
+          // error hints for Groovy once DH-21363 is implemented.
+          if (languageId === 'python') {
+            const executedConnection = serverManager.getUriConnection(
+              parsedUriResult.value
+            );
+            assertDefined(executedConnection, 'executedConnection');
+
+            const pythonErrors = getDiagnosticsErrors(pythonDiagnostics);
+
+            errorMsg = pythonErrors.map(formatDiagnosticError).join('\n');
+
+            hint = createPythonModuleImportErrorHint(
+              pythonErrors,
+              executedConnection,
+              pythonWorkspace
+            );
+          }
+
+          return response.errorWithHint(
+            'Code execution failed',
+            errorMsg,
+            hint,
+            {
+              languageId,
+              variables,
+            }
+          );
+        }
 
         return response.success('Code executed successfully', {
           variables,
