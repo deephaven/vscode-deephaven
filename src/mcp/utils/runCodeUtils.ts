@@ -28,10 +28,14 @@ export type VariableResult = z.infer<typeof variableResultSchema>;
 /**
  * Creates a hint for Python module import errors by suggesting workspace folders
  * that could be added as remote file sources.
+ * @param errors The list of diagnostic errors.
+ * @param connection The connection state to check for Python remote file source plugin.
+ * @param pythonWorkspace The filtered Python workspace.
+ * @returns A hint string or undefined if no hint is applicable.
  */
 export function createPythonModuleImportErrorHint(
   errors: Array<{ message: string; uri: string; range: vscode.Range }>,
-  executedConnection: ConnectionState,
+  connection: ConnectionState,
   pythonWorkspace: FilteredWorkspace
 ): string | undefined {
   // Look for 'No module named' errors and extract the module names
@@ -45,7 +49,7 @@ export function createPythonModuleImportErrorHint(
     return;
   }
 
-  if (!hasPythonRemoteFileSourcePlugin(executedConnection)) {
+  if (!hasPythonRemoteFileSourcePlugin(connection)) {
     return `The Python remote file source plugin is not installed. Install it with 'pip install deephaven-plugin-python-remote-file-source' to enable importing workspace packages.`;
   }
 
