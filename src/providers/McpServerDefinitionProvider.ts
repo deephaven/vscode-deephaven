@@ -1,15 +1,19 @@
 import * as vscode from 'vscode';
 import { MCP_SERVER_NAME } from '../common';
 import type { McpServer } from '../mcp/McpServer';
+import { DisposableBase } from '../services';
 
 /**
  * Provides MCP server definitions to VS Code Copilot. This allows Copilot to
  * discover and connect to a Deephaven MCP server instance.
  */
 export class McpServerDefinitionProvider
+  extends DisposableBase
   implements vscode.McpServerDefinitionProvider
 {
-  constructor(private readonly mcpServer: McpServer) {}
+  constructor(private readonly mcpServer: McpServer) {
+    super();
+  }
 
   /**
    * Provides the definition for the MCP server provided by this extension.
