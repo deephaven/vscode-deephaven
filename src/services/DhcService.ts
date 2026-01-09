@@ -486,7 +486,6 @@ export class DhcService extends DisposableBase implements IDhcService {
       // Note we shouldn't have to log the error to the output channel since code
       // execution errors should already get captured via the server output.
       this.outputChannel.show(true);
-      // this.toaster.error('An error occurred when running a command');
 
       if (languageId === 'python' && typeof documentOrText !== 'string') {
         const errors = parseServerError(error);
