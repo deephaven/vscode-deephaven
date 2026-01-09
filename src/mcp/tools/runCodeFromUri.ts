@@ -117,21 +117,21 @@ export function createRunCodeFromUriTool({
             ...cmdArgs
           );
 
-        const errors =
+        const pythonErrors =
           languageId === 'python'
             ? getDiagnosticsErrors(pythonDiagnostics)
             : [];
 
-        if (errors.length > 0) {
+        if (pythonErrors.length > 0) {
           const executedConnection = serverManager.getUriConnection(
             parsedUriResult.value
           );
           assertDefined(executedConnection, 'executedConnection');
 
-          const errorMsg = errors.map(formatDiagnosticError).join('\n');
+          const errorMsg = pythonErrors.map(formatDiagnosticError).join('\n');
 
           const hint = createPythonModuleErrorHint(
-            errors,
+            pythonErrors,
             executedConnection,
             pythonWorkspace
           );
@@ -145,6 +145,10 @@ export function createRunCodeFromUriTool({
             hint,
             { variables }
           );
+        } else if (result.error) {
+          return response.error('Code execution failed', result.error, {
+            languageId,
+          });
         }
 
         // Extract variables from result
