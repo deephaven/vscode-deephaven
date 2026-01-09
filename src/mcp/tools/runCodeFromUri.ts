@@ -19,7 +19,7 @@ import {
   runCodeOutputSchema,
   extractVariables,
   getDiagnosticsErrors,
-  createPythonModuleErrorHint,
+  createPythonModuleImportErrorHint,
   formatDiagnosticError,
   McpToolResponse,
 } from '../utils';
@@ -130,7 +130,7 @@ export function createRunCodeFromUriTool({
 
           const errorMsg = pythonErrors.map(formatDiagnosticError).join('\n');
 
-          const hint = createPythonModuleErrorHint(
+          const hint = createPythonModuleImportErrorHint(
             pythonErrors,
             executedConnection,
             pythonWorkspace

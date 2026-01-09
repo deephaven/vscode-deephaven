@@ -29,7 +29,7 @@ export type VariableResult = z.infer<typeof variableResultSchema>;
  * Creates a hint for Python module import errors by suggesting workspace folders
  * that could be added as remote file sources.
  */
-export function createPythonModuleErrorHint(
+export function createPythonModuleImportErrorHint(
   errors: Array<{ message: string; uri: string; range: vscode.Range }>,
   executedConnection: ConnectionState,
   pythonWorkspace: FilteredWorkspace
