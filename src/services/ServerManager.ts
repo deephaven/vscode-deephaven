@@ -149,9 +149,12 @@ export class ServerManager implements IServerManager {
 
     // If server config changes in a way that removes servers, disconnect any
     // active connections from them.
-    for (const serverUrl of this._connectionMap.keys()) {
+    for (const connectionUrl of this._connectionMap.keys()) {
+      const serverUrl =
+        this._workerURLToServerURLMap.get(connectionUrl) ?? connectionUrl;
+
       if (!this._serverMap.has(serverUrl)) {
-        this.disconnectFromServer(serverUrl);
+        this.disconnectFromServer(connectionUrl);
       }
     }
 
