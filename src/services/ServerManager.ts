@@ -162,6 +162,7 @@ export class ServerManager implements IServerManager {
     // If server config changes in a way that removes servers, disconnect any
     // active connections from them.
     for (const connectionUrl of this._connectionMap.keys()) {
+      // Use the parent DHE server URL for Core+ workers or placeholders, otherwise just use the connection URL (for direct connections)
       const serverUrl =
         this._workerURLToServerURLMap.get(connectionUrl) ?? connectionUrl;
 
