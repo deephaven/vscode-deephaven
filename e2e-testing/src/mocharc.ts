@@ -2,9 +2,12 @@ import { MochaOptions } from 'vscode-extension-tester';
 
 const options: MochaOptions = {
   timeout: 30000,
-  reporter: 'mocha-ctrf-json-reporter',
+  reporter: 'mocha-multi-reporters',
   reporterOptions: {
-    outputDir: 'test-reports',
+    reporterEnabled: 'spec, mocha-ctrf-json-reporter',
+    mochaCtrfJsonReporterReporterOptions: {
+      outputDir: 'test-reports',
+    },
   },
 };
 

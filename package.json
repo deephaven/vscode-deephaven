@@ -1068,6 +1068,7 @@
     "jsdom": "^26.1.0",
     "junit-to-ctrf": "^0.0.4",
     "mocha-ctrf-json-reporter": "^0.0.7",
+    "mocha-multi-reporters": "^1.5.1",
     "npm-run-all": "^4.1.5",
     "prettier": "^3.3.3",
     "ts-node": "^10.9.2",
