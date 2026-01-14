@@ -2,7 +2,7 @@ import type {
   JsonRpcError,
   JsonRpcSetConnectionIdRequest,
   JsonRpcSuccess,
-  ModuleFullname,
+  PythonModuleFullname,
   PythonModuleSpecData,
   PythonModuleSpecDataResult,
   UniqueID,
@@ -43,7 +43,7 @@ export function moduleSpecResponse(
  */
 export function moduleSpecErrorResponse(
   id: string,
-  moduleName: ModuleFullname
+  moduleName: PythonModuleFullname
 ): JsonRpcError {
   return {
     jsonrpc: '2.0',

@@ -26,7 +26,7 @@ exports[`getFileTreeItem > should return a TreeItem for a file element 1`] = `
 exports[`getFolderTreeItem > should return a TreeItem for a folder element. isMarked:false 1`] = `
 {
   "collapsibleState": 1,
-  "contextValue": "canAddRemoteFileSource",
+  "contextValue": "canAddRemoteFileSource:python",
   "iconPath": ThemeIcon {
     "color": undefined,
     "id": "folder",
@@ -43,7 +43,7 @@ exports[`getFolderTreeItem > should return a TreeItem for a folder element. isMa
 exports[`getFolderTreeItem > should return a TreeItem for a folder element. isMarked:true 1`] = `
 {
   "collapsibleState": 1,
-  "contextValue": "canRemoveRemoteFileSource",
+  "contextValue": "canRemoveRemoteFileSource:python",
   "iconPath": ThemeIcon {
     "color": undefined,
     "id": "folder",
@@ -60,7 +60,7 @@ exports[`getFolderTreeItem > should return a TreeItem for a folder element. isMa
 exports[`getTopLevelMarkedFolderTreeItem > should return a TreeItem for a top-level marked folder element 1`] = `
 {
   "collapsibleState": 0,
-  "contextValue": "canRemoveRemoteFileSource",
+  "contextValue": "canRemoveRemoteFileSource:python",
   "description": undefined,
   "iconPath": ThemeIcon {
     "color": undefined,
