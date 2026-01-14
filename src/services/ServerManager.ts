@@ -156,6 +156,10 @@ export class ServerManager implements IServerManager {
         newState.isConnected = existingState.isConnected;
         newState.isRunning = existingState.isRunning;
         newState.connectionCount = existingState.connectionCount;
+        
+        if (newState.isManaged && existingState.isManaged) {
+          newState.psk = existingState.psk;
+        }
       }
     }
 
