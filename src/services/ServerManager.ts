@@ -137,6 +137,8 @@ export class ServerManager implements IServerManager {
       this._configService.getEnterpriseServers()
     );
 
+    const previousServerMap = this._serverMap;
+
     this._serverMap = new URLMap(
       [
         // Managed (pip) servers are first so that they can be overridden by the
@@ -146,6 +148,16 @@ export class ServerManager implements IServerManager {
         ...configuredDheServerState,
       ].map(state => [state.url, state])
     );
+
+    // Preserve server states that are still configured
+    for (const [url, newState] of this._serverMap.entries()) {
+      const existingState = previousServerMap.get(url);
+      if (existingState != null) {
+        newState.isConnected = existingState.isConnected;
+        newState.isRunning = existingState.isRunning;
+        newState.connectionCount = existingState.connectionCount;
+      }
+    }
 
     // If server config changes in a way that removes servers, disconnect any
     // active connections from them.
