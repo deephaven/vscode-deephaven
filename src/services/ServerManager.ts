@@ -137,6 +137,8 @@ export class ServerManager implements IServerManager {
       this._configService.getEnterpriseServers()
     );
 
+    const previousServerMap = this._serverMap;
+
     this._serverMap = new URLMap(
       [
         // Managed (pip) servers are first so that they can be overridden by the
@@ -147,11 +149,29 @@ export class ServerManager implements IServerManager {
       ].map(state => [state.url, state])
     );
 
+    // Preserve server states that are still configured
+    for (const [url, newState] of this._serverMap.entries()) {
+      const existingState = previousServerMap.get(url);
+      if (existingState != null) {
+        newState.isConnected = existingState.isConnected;
+        newState.isRunning = existingState.isRunning;
+        newState.connectionCount = existingState.connectionCount;
+        
+        if (newState.isManaged && existingState.isManaged) {
+          newState.psk = existingState.psk;
+        }
+      }
+    }
+
     // If server config changes in a way that removes servers, disconnect any
     // active connections from them.
-    for (const serverUrl of this._connectionMap.keys()) {
+    for (const connectionUrl of this._connectionMap.keys()) {
+      // Use the parent DHE server URL for Core+ workers or placeholders, otherwise just use the connection URL (for direct connections)
+      const serverUrl =
+        this._workerURLToServerURLMap.get(connectionUrl) ?? connectionUrl;
+
       if (!this._serverMap.has(serverUrl)) {
-        this.disconnectFromServer(serverUrl);
+        this.disconnectFromServer(connectionUrl);
       }
     }
 
