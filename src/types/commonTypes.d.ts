@@ -13,6 +13,12 @@ import type { Brand, QuerySerial, SerializableRefreshToken } from '../shared';
 
 export type NonEmptyArray<T> = [T, ...T[]];
 
+export type ParseSuccess<T> = { success: true; value: T };
+
+export type ParseError = { success: false; error: string };
+
+export type ParseSuccessOrError<T> = ParseSuccess<T> | ParseError;
+
 export type UniqueID = Brand<'UniqueID', string>;
 
 export type Port = Brand<'Port', number>;
@@ -167,6 +173,10 @@ export interface WorkerInfo {
 
 export interface IDisposable {
   dispose(): Promise<void>;
+}
+
+export interface IDisposableSync {
+  dispose(): void;
 }
 
 export type EventListenerT = <TEvent>(event: TEvent) => void;

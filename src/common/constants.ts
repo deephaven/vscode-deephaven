@@ -16,6 +16,8 @@ export const CONFIG_KEY = {
   root: 'deephaven',
   coreServers: 'coreServers',
   enterpriseServers: 'enterpriseServers',
+  mcpEnabled: 'mcp.enabled',
+  mcpAutoUpdateConfig: 'mcp.autoUpdateConfig',
 } as const;
 
 export const CENSORED_TEXT = '********' as const;
@@ -33,6 +35,9 @@ export const DH_PANEL_VIEW_TYPE = 'dhPanel';
 export const INTERACTIVE_CONSOLE_QUERY_TYPE = 'InteractiveConsole';
 export const INTERACTIVE_CONSOLE_TEMPORARY_QUEUE_NAME =
   'InteractiveConsoleTemporaryQueue';
+
+export const MCP_SERVER_NAME = 'Deephaven VS Code MCP Server' as const;
+export const MCP_SERVER_PORT_STORAGE_KEY = 'deephaven.mcpServerPort' as const;
 
 export const PIP_SERVER_STATUS_CHECK_INTERVAL = 3000;
 export const PIP_SERVER_STATUS_CHECK_TIMEOUT = 30000;

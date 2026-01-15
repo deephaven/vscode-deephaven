@@ -9,6 +9,8 @@ import type {
   MultiAuthConfig,
   NoAuthConfig,
   NonEmptyArray,
+  ParseSuccessOrError,
+  ParseSuccess,
   SingleAuthConfig,
 } from '../types';
 import type { SerializableRefreshToken } from '../shared';
@@ -94,19 +96,39 @@ export function isNonEmptyArray<T>(array: T[]): array is NonEmptyArray<T> {
 }
 
 /**
- * Create a sort comparator function that compares a stringified property on
- * 2 objects.
- * @param propName Prop to compare
+ * Parses a string using the provided parser function.
+ * @param input The string to parse, or null/undefined for no value.
+ * @param parser The parser function to use.
+ * @returns A result object with success status. On success, contains the parsed value or null. On failure, contains an error message.
  */
-export function sortByStringProp<TPropName extends string>(
-  propName: TPropName
-) {
-  return <TValue extends { [P in TPropName]: unknown }>(
-    a: TValue,
-    b: TValue
-  ): number => {
-    return String(a[propName]).localeCompare(String(b[propName]));
-  };
+export function parseData<T>(
+  input: null | undefined,
+  parser: (input: string) => T
+): ParseSuccess<null>;
+export function parseData<T>(
+  input: string,
+  parser: (input: string) => T
+): ParseSuccessOrError<T>;
+export function parseData<T>(
+  input: string | null | undefined,
+  parser: (input: string) => T
+): ParseSuccessOrError<T | null>;
+export function parseData<T>(
+  input: string | null | undefined,
+  parser: (input: string) => T
+): ParseSuccessOrError<T | null> {
+  if (input == null) {
+    return { success: true, value: null };
+  }
+
+  try {
+    return { success: true, value: parser(input) };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
 }
 
 /**
@@ -166,4 +188,20 @@ export function serializeRefreshToken(
     bytes,
     expiry,
   } as SerializableRefreshToken;
+}
+
+/**
+ * Create a sort comparator function that compares a stringified property on
+ * 2 objects.
+ * @param propName Prop to compare
+ */
+export function sortByStringProp<TPropName extends string>(
+  propName: TPropName
+) {
+  return <TValue extends { [P in TPropName]: unknown }>(
+    a: TValue,
+    b: TValue
+  ): number => {
+    return String(a[propName]).localeCompare(String(b[propName]));
+  };
 }

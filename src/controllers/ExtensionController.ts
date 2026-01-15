@@ -10,9 +10,11 @@ import {
   type UnauthenticatedClient as DheUnauthenticatedClient,
 } from '@deephaven-enterprise/auth-nodejs';
 import { NodeHttp2gRPCTransport } from '@deephaven/jsapi-nodejs';
+import { McpController } from './McpController';
 import {
   ADD_REMOTE_FILE_SOURCE_CMD,
   CLEAR_SECRET_STORAGE_CMD,
+  ConnectionNotFoundError,
   CREATE_NEW_TEXT_DOC_CMD,
   DELETE_VARIABLE_CMD,
   DOWNLOAD_LOGS_CMD,
@@ -192,6 +194,7 @@ export class ExtensionController implements IDisposable {
   private _secretService: ISecretService | null = null;
   private _serverManager: IServerManager | null = null;
   private _userLoginController: UserLoginController | null = null;
+  private _mcpController: McpController | null = null;
 
   // Tree providers
   private _serverTreeProvider: ServerTreeProvider | null = null;
@@ -241,6 +244,7 @@ export class ExtensionController implements IDisposable {
     this.initializePipServerController();
     this.initializeUserLoginController();
     this.initializeCommands();
+    this.initializeMcpController();
 
     this._context.subscriptions.push(NodeHttp2gRPCTransport);
 
@@ -406,6 +410,26 @@ export class ExtensionController implements IDisposable {
     );
 
     this._context.subscriptions.push(this._userLoginController);
+  };
+
+  /**
+   * Initialize MCP server for AI assistant integration.
+   */
+  initializeMcpController = (): void => {
+    assertDefined(this._serverManager, 'serverManager');
+    assertDefined(this._pythonDiagnostics, 'pythonDiagnostics');
+    assertDefined(this._pythonWorkspace, 'pythonWorkspace');
+    assertDefined(this._config, 'config');
+
+    this._mcpController = new McpController(
+      this._context,
+      this._config,
+      this._serverManager,
+      this._pythonDiagnostics,
+      this._pythonWorkspace
+    );
+
+    this._context.subscriptions.push(this._mcpController);
   };
 
   /**
@@ -931,6 +955,7 @@ export class ExtensionController implements IDisposable {
     }
 
     const [url, variable] = urlAndVariable;
+
     const connectionState = this._serverManager?.getConnection(url);
     if (!isInstanceOf(connectionState, DhcService)) {
       return;
@@ -943,6 +968,7 @@ export class ExtensionController implements IDisposable {
     folderElementOrUri:
       | RemoteImportSourceTreeFolderElement
       | vscode.Uri
+      | vscode.Uri[]
       | undefined
   ): Promise<void> => {
     // Sometimes view/item/context commands pass undefined instead of a value.
@@ -956,12 +982,15 @@ export class ExtensionController implements IDisposable {
 
     await this._pythonWorkspace.refresh();
 
-    const uri =
-      folderElementOrUri instanceof vscode.Uri
-        ? folderElementOrUri
-        : folderElementOrUri.uri;
+    const uris = Array.isArray(folderElementOrUri)
+      ? folderElementOrUri
+      : folderElementOrUri instanceof vscode.Uri
+        ? [folderElementOrUri]
+        : [folderElementOrUri.uri];
 
-    this._pythonWorkspace.markFolder(uri);
+    for (const uri of uris) {
+      this._pythonWorkspace.markFolder(uri);
+    }
   };
 
   onRemoveRemoteFileSource = async (
@@ -1137,12 +1166,15 @@ export class ExtensionController implements IDisposable {
    * @param languageId Optional languageId to run the code as. If none provided,
    * use the languageId of the editor.
    */
-  onRunCode: (...args: RunCodeCmdArgs) => Promise<void> = async (
+  onRunCode: (
+    ...args: RunCodeCmdArgs
+  ) => Promise<DhcType.ide.CommandResult | null> = async (
     uri?: vscode.Uri,
     _arg?: { groupId: number },
     constrainTo?: 'selection' | vscode.Range[],
-    languageId?: string
-  ): Promise<void> => {
+    languageId?: string,
+    connectionUrl?: URL
+  ): Promise<DhcType.ide.CommandResult | null> => {
     assertDefined(this._connectionController, 'connectionController');
 
     if (uri == null) {
@@ -1157,14 +1189,32 @@ export class ExtensionController implements IDisposable {
     }
 
     const connectionState =
-      await this._connectionController.getOrCreateConnection(uri, languageId);
+      await this._connectionController.getOrCreateConnection(
+        uri,
+        languageId,
+        connectionUrl
+      );
+
+    if (connectionUrl != null && connectionState == null) {
+      throw new ConnectionNotFoundError(connectionUrl);
+    }
 
     if (isInstanceOf(connectionState, DhcService)) {
       const ranges: readonly vscode.Range[] | undefined =
         constrainTo === 'selection' ? editor.selections : constrainTo;
 
-      await connectionState?.runCode(editor.document, languageId, ranges);
+      // Return the results since `onRunCode` is the registered RUN_CODE_COMMAND
+      // handler. This allows any caller using `vscode.commands.executeCommand`
+      // to get the result.
+      // e.g.
+      // const result = await vscode.commands.executeCommand<DhcType.ide.CommandResult>(
+      //   RUN_CODE_COMMAND,
+      //   ...
+      // );
+      return connectionState.runCode(editor.document, languageId, ranges);
     }
+
+    return null;
   };
 
   /**

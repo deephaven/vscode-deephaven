@@ -8,6 +8,7 @@ export type RunCodeCmdArgs = [
   _arg?: { groupId: number },
   constrainTo?: 'selection' | vscode.Range[],
   languageId?: string,
+  connectionUrl?: URL,
 ];
 
 /** Arguments passed to `RUN_MARKDOWN_CODEBLOCK_CMD` handler */
@@ -36,6 +37,7 @@ export const CLEAR_SECRET_STORAGE_CMD = cmd('clearSecretStorage');
 export const CLOSE_CREATE_QUERY_VIEW_CMD = cmd('view.createQuery.close');
 export const CONNECT_TO_SERVER_CMD = cmd('connectToServer');
 export const CONNECT_TO_SERVER_OPERATE_AS_CMD = cmd('connectToServerOperateAs');
+export const COPY_MCP_URL_CMD = cmd('copyMcpUrl');
 export const CREATE_CORE_AUTHENTICATED_CLIENT_CMD = cmd(
   'createCoreAuthenticatedClient'
 );

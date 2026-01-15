@@ -1,5 +1,6 @@
 export * from './dataUtils';
 export * from './documentUtils';
+export * from './envUtils';
 export * from './extensionApiUtils';
 export * from './hoverUtils';
 export * from './idUtils';
