@@ -166,16 +166,16 @@ export async function getDhStatusBarItem(): Promise<WebElement | null> {
 }
 
 /**
- * Login to Deephaven server using `Deephaven: Select Connection` command.
+ * Connect to Deephaven server using `Deephaven: Select Connection` command.
  * This always picks the first server in the quick pick list which works fine
  * for now since our tests only configure a single server. May need to make
  * this more flexible in the future. Also, there needs to be an active editor
  * for the command to work, so ensure a file is opened before calling this
  * function.
  */
-export async function login(): Promise<void> {
+export async function connectToServer(): Promise<void> {
   // eslint-disable-next-line no-console
-  console.log('Logging in to Deephaven server...');
+  console.log('Connecting to Deephaven server...');
 
   // We need to open the Deephaven view to ensure the extension is activated
   await openActivityBarView('Deephaven');
@@ -189,7 +189,7 @@ export async function login(): Promise<void> {
 
   let firstInputBox: InputBox | null = null;
   try {
-    firstInputBox = await InputBox.create();
+    firstInputBox = await InputBox.create(2000);
   } catch {}
 
   if (firstInputBox != null) {

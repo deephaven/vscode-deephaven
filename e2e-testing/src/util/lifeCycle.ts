@@ -2,7 +2,7 @@ import { EditorView } from 'vscode-extension-tester';
 import {
   disconnectFromServer,
   getElementOrNull,
-  login,
+  connectToServer,
   openFileResources,
 } from './testUtils';
 import { SERVER_TITLE } from './constants';
@@ -25,7 +25,7 @@ export async function setup(
   // Deephaven: Select Connection command to work
   await openFileResources(...initialFilePaths);
 
-  await login();
+  await connectToServer();
 }
 
 /**
