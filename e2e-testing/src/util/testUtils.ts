@@ -1,17 +1,25 @@
 import {
+  ActivityBar,
   By,
   InputBox,
   SideBarView,
+  StatusBar,
   VSBrowser,
   WebElement,
   Workbench,
   type CodeLens,
   type Locator,
   type TextEditor,
+  type ViewControl,
   type ViewItem,
 } from 'vscode-extension-tester';
+import seleniumWebDriver from 'selenium-webdriver';
 import os from 'node:os';
-import { RETRY_SWITCH_IFRAME_ERRORS } from './constants';
+import {
+  RETRY_SWITCH_IFRAME_ERRORS,
+  STATUS_BAR_TITLE,
+  VIEW_NAME,
+} from './constants';
 import type { FrameSelector } from './types';
 import { assert } from 'chai';
 
@@ -79,15 +87,17 @@ export function extractErrorType(error: unknown): string {
 }
 
 /**
- * Look for elment based on locator, returning null if not found.
+ * Look for element based on locator, returning null if not found.
  * @param locator Locator to look for
+ * @param parent Optional parent element to search within. If not provided, searches from driver root.
  * @returns Element if found, null otherwise
  */
 export async function getElementOrNull(
-  locator: Locator
+  locator: Locator,
+  parent?: { findElements(locator: Locator): Promise<WebElement[]> }
 ): Promise<WebElement | null> {
-  const { driver } = VSBrowser.instance;
-  return (await driver.findElements(locator))[0] ?? null;
+  const searchContext = parent ?? VSBrowser.instance.driver;
+  return (await searchContext.findElements(locator))[0] ?? null;
 }
 
 /**
@@ -122,6 +132,105 @@ export async function getCodeLens(
   return VSBrowser.instance.driver.wait<CodeLens>(async () =>
     editor.getCodeLens(indexOrTitle)
   );
+}
+
+/**
+ * Get the Deephaven status bar item if it exists.
+ * @returns Deephaven status bar item or null if not found
+ */
+export async function getDhStatusBarItem(): Promise<WebElement | null> {
+  const statusBar = new StatusBar();
+  const items = await statusBar.getItems();
+
+  for (const item of items) {
+    let ariaLabel = '';
+    try {
+      ariaLabel = await item.getAttribute('aria-label');
+    } catch (err) {
+      if (
+        !(err instanceof seleniumWebDriver.error.StaleElementReferenceError)
+      ) {
+        throw err;
+      }
+    }
+
+    if (
+      ariaLabel === STATUS_BAR_TITLE.disconnected ||
+      ariaLabel.startsWith(STATUS_BAR_TITLE.connectedPrefix)
+    ) {
+      return item;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Login to Deephaven server using `Deephaven: Select Connection` command.
+ * This always picks the first server in the quick pick list which works fine
+ * for now since our tests only configure a single server. May need to make
+ * this more flexible in the future. Also, there needs to be an active editor
+ * for the command to work, so ensure a file is opened before calling this
+ * function.
+ */
+export async function login(): Promise<void> {
+  // eslint-disable-next-line no-console
+  console.log('Logging in to Deephaven server...');
+
+  // We need to open the Deephaven view to ensure the extension is activated
+  await openActivityBarView('Deephaven');
+
+  await new Workbench().executeCommand('Deephaven: Select Connection');
+  const input = await InputBox.create();
+  // Note that this assumes there is only 1 server configured so we pick the
+  // first one in the list. Will need to be updated if we want to test scenarios
+  // where multiple servers are configured.
+  await input.selectQuickPick(0);
+
+  let firstInputBox: InputBox | null = null;
+  try {
+    firstInputBox = await InputBox.create();
+  } catch {}
+
+  if (firstInputBox != null) {
+    await firstInputBox.setText('');
+    await firstInputBox.confirm();
+
+    const passwordInputBox = await InputBox.create();
+    await passwordInputBox.setText('');
+    await passwordInputBox.confirm();
+  }
+
+  const sideBarView = new SideBarView();
+  const serverSection = await sideBarView
+    .getContent()
+    .getSection(VIEW_NAME.connections);
+
+  // Wait for connection to be active
+  await VSBrowser.instance.driver.wait(async () =>
+    getElementOrNull(
+      By.css('.custom-view-tree-node-item-icon.codicon.codicon-vm-connect'),
+      serverSection
+    )
+  );
+}
+
+/**
+ * Open an activity bar view by name.
+ * @param name Name of view to open
+ * @returns ViewControl of opened view or undefined if not found
+ */
+export async function openActivityBarView(
+  name: string
+): Promise<ViewControl | undefined> {
+  const activityBar = new ActivityBar();
+  const viewControl = await activityBar.getViewControl(name);
+
+  if (viewControl && !(await viewControl.isSelected())) {
+    await viewControl.openView();
+  }
+
+  return viewControl;
 }
 
 /**

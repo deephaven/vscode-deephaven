@@ -1,6 +1,7 @@
 export const SERVER_TITLE = 'localhost:10000';
 
 export const STATUS_BAR_TITLE = {
+  connectedPrefix: 'vm-connect  DHC:',
   disconnected: 'plug  Deephaven: Disconnected',
 } as const;
 

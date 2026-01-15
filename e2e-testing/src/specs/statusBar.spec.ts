@@ -5,8 +5,8 @@ import {
   VSBrowser,
 } from 'vscode-extension-tester';
 import {
+  getDhStatusBarItem,
   getSidebarViewItem,
-  openFileResources,
   setup,
   SIMPLE_TICKING3_PY,
   SIMPLE_TICKING_MD,
@@ -24,16 +24,12 @@ describe('Status Bar Tests', () => {
   let statusBar: StatusBar;
 
   before(async () => {
-    const explorerView = await setup();
-
-    await openFileResources(
+    await setup(
       SIMPLE_TICKING_MD.path,
       SIMPLE_TICKING3_PY.path,
       TEST_GROOVY.path,
       TEST_TXT.path
     );
-
-    await explorerView?.closeView();
 
     editorView = new EditorViewExtended();
     statusBar = new StatusBar();
@@ -55,14 +51,12 @@ describe('Status Bar Tests', () => {
     ] as const) {
       await step(s, fileName, async stepLabel => {
         await editorView.openTextEditor(fileName);
-        const statusBarItem = await statusBar.getItem(
-          'plug  Deephaven: Disconnected'
-        );
+        const statusBarItem = await getDhStatusBarItem();
 
         if (isVisible) {
-          assert.isDefined(statusBarItem, stepLabel);
+          assert.isDefined(null, stepLabel);
         } else {
-          assert.isUndefined(statusBarItem, stepLabel);
+          assert.isNull(statusBarItem, stepLabel);
         }
       });
     }

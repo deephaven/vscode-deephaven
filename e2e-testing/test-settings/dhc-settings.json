@@ -1,4 +1,5 @@
 {
+  "deephaven.coreServers": ["http://localhost:10000/"],
   "extensions.ignoreRecommendations": true,
   "git.openRepositoryInParentFolders": "never"
 }

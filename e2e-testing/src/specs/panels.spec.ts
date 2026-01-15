@@ -2,7 +2,6 @@ import { Workbench } from 'vscode-extension-tester';
 import { EditorViewExtended } from '../pageObjects';
 import {
   expectDeepEqualArray,
-  openFileResources,
   runDhFileCodeLens,
   setup,
   SIMPLE_TICKING3_PY,
@@ -50,9 +49,7 @@ const expectedTabs = {
 
 describe('Panels Tests', () => {
   before(async () => {
-    const explorerView = await setup();
-    await openFileResources(SIMPLE_TICKING3_PY.path);
-    await explorerView?.closeView();
+    await setup(SIMPLE_TICKING3_PY.path);
     await new Workbench().executeCommand('View: Split Editor Down');
   });
 

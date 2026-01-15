@@ -17,6 +17,10 @@ until [ "$(curl --silent --fail --request OPTIONS --output /dev/null http://loca
 done
 echo "Deephaven server is ready!"
 
+# Copy settings to test workspace
+mkdir -p e2e-testing/test-ws/.vscode
+cat e2e-testing/test-settings/dhc-settings.json > e2e-testing/test-ws/.vscode/settings.json
+
 # Run e2e tests
 echo "Running E2E tests..."
 node e2e-testing/out/runner.mjs --setup
