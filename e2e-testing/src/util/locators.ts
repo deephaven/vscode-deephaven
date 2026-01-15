@@ -1,6 +1,11 @@
 import { By } from 'vscode-extension-tester';
 
 export const locators = {
+  /** Locator for an active connection icon */
+  activeConnection: By.css(
+    '.custom-view-tree-node-item-icon.codicon.codicon-vm-connect'
+  ),
+
   /**
    * Locator for side panel close button so we can close the Copilot chat. Note
    * that the button is always present, but parent div gets `empty` class when

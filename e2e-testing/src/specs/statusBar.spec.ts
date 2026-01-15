@@ -1,9 +1,4 @@
-import {
-  InputBox,
-  QuickPickItem,
-  StatusBar,
-  VSBrowser,
-} from 'vscode-extension-tester';
+import { InputBox, QuickPickItem, VSBrowser } from 'vscode-extension-tester';
 import {
   getDhStatusBarItem,
   getSidebarViewItem,
@@ -17,11 +12,10 @@ import {
 } from '../util';
 import { EditorViewExtended } from '../pageObjects';
 import { assert } from 'chai';
-import { SERVER_TITLE, STATUS_BAR_TITLE, VIEW_NAME } from '../util/constants';
+import { SERVER_TITLE, VIEW_NAME } from '../util/constants';
 
 describe('Status Bar Tests', () => {
   let editorView: EditorViewExtended;
-  let statusBar: StatusBar;
 
   before(async () => {
     await setup(
@@ -32,7 +26,6 @@ describe('Status Bar Tests', () => {
     );
 
     editorView = new EditorViewExtended();
-    statusBar = new StatusBar();
   });
 
   after(async () => {
@@ -65,11 +58,9 @@ describe('Status Bar Tests', () => {
   it('should connect to server on click', async () => {
     await editorView.openTextEditor(SIMPLE_TICKING3_PY.name);
 
-    await step(1, 'Click Deephaven status bar item', async () => {
-      const statusBarItem = await statusBar.getItem(
-        STATUS_BAR_TITLE.disconnected
-      );
-      assert.isDefined(statusBarItem);
+    await step(1, 'Click Deephaven status bar item', async stepLabel => {
+      const statusBarItem = await getDhStatusBarItem();
+      assert.isNotNull(statusBarItem, stepLabel);
       await statusBarItem.click();
     });
 

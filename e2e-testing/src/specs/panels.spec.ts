@@ -1,6 +1,7 @@
 import { Workbench } from 'vscode-extension-tester';
 import { EditorViewExtended } from '../pageObjects';
 import {
+  executeCommandWithRetry,
   expectDeepEqualArray,
   runDhFileCodeLens,
   setup,
@@ -204,7 +205,7 @@ describe('Panels Tests', () => {
     await step(7, 'Move tab to new group', async stepLabel => {
       await editorView.openWebView('t3', 2);
 
-      await new Workbench().executeCommand('View: Move Editor into Next Group');
+      await executeCommandWithRetry('View: Move Editor into Next Group');
 
       const editorGroupsData = await editorView.getEditorGroupsData();
       expectDeepEqualArray(

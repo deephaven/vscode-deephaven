@@ -22,6 +22,7 @@ import {
 } from './constants';
 import type { FrameSelector } from './types';
 import { assert } from 'chai';
+import { locators } from './locators';
 
 /**
  * Disconnect from Deephaven server by clicking on disconnect action on server
@@ -180,6 +181,22 @@ export async function connectToServer(): Promise<void> {
   // We need to open the Deephaven view to ensure the extension is activated
   await openActivityBarView('Deephaven');
 
+  const sideBarView = new SideBarView();
+  const serverSection = await sideBarView
+    .getContent()
+    .getSection(VIEW_NAME.connections);
+
+  const connectionEl = await getElementOrNull(
+    locators.activeConnection,
+    serverSection
+  );
+
+  if (connectionEl != null) {
+    // eslint-disable-next-line no-console
+    console.log('Already connected to Deephaven server');
+    return;
+  }
+
   await new Workbench().executeCommand('Deephaven: Select Connection');
   const input = await InputBox.create();
   // Note that this assumes there is only 1 server configured so we pick the
@@ -193,26 +210,53 @@ export async function connectToServer(): Promise<void> {
   } catch {}
 
   if (firstInputBox != null) {
-    await firstInputBox.setText('');
+    const username = process.env.DH_USERNAME ?? 'vscode_testuser';
+    const password = process.env.DH_PASSWORD ?? username;
+
+    await firstInputBox.setText(username);
     await firstInputBox.confirm();
 
     const passwordInputBox = await InputBox.create();
-    await passwordInputBox.setText('');
+    await passwordInputBox.setText(password);
     await passwordInputBox.confirm();
   }
 
-  const sideBarView = new SideBarView();
-  const serverSection = await sideBarView
-    .getContent()
-    .getSection(VIEW_NAME.connections);
-
   // Wait for connection to be active
   await VSBrowser.instance.driver.wait(async () =>
-    getElementOrNull(
-      By.css('.custom-view-tree-node-item-icon.codicon.codicon-vm-connect'),
-      serverSection
-    )
+    getElementOrNull(locators.activeConnection, serverSection)
   );
+}
+
+/**
+ * Execute a VS Code command with retry logic to handle intermittent
+ * "element not interactible" errors.
+ * @param command Command to execute
+ * @param maxRetries Maximum number of retry attempts
+ * @param retryDelay Delay in milliseconds between retries
+ */
+export async function executeCommandWithRetry(
+  command: string,
+  maxRetries = 1,
+  retryDelay = 500
+): Promise<void> {
+  const driver = VSBrowser.instance.driver;
+
+  for (let retryAttempt = 0; retryAttempt <= maxRetries; retryAttempt++) {
+    try {
+      await new Workbench().executeCommand(command);
+      return;
+    } catch (error) {
+      const isRetryable =
+        error instanceof seleniumWebDriver.error.ElementNotInteractableError &&
+        retryAttempt < maxRetries;
+
+      if (!isRetryable) {
+        throw error;
+      }
+
+      await driver.sleep(retryDelay);
+    }
+  }
 }
 
 /**
