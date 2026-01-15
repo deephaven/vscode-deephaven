@@ -1,4 +1,3 @@
-import { Workbench } from 'vscode-extension-tester';
 import { EditorViewExtended } from '../pageObjects';
 import {
   executeCommandWithRetry,
@@ -51,7 +50,7 @@ const expectedTabs = {
 describe('Panels Tests', () => {
   before(async () => {
     await setup(SIMPLE_TICKING3_PY.path);
-    await new Workbench().executeCommand('View: Split Editor Down');
+    await executeCommandWithRetry('View: Split Editor Down');
   });
 
   after(async () => {

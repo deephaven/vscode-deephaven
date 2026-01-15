@@ -1,11 +1,11 @@
 import { EditorView } from 'vscode-extension-tester';
 import {
-  disconnectFromServer,
   getElementOrNull,
   connectToServer,
   openFileResources,
+  openActivityBarView,
+  disconnectFromServers,
 } from './testUtils';
-import { SERVER_TITLE } from './constants';
 import { locators } from './locators';
 
 /**
@@ -25,6 +25,10 @@ export async function setup(
   // Deephaven: Select Connection command to work
   await openFileResources(...initialFilePaths);
 
+  // Ensure Deephaven extension is activated by opening the Deephaven view
+  const viewControl = await openActivityBarView('Deephaven');
+  await viewControl?.closeView();
+
   await connectToServer();
 }
 
@@ -35,6 +39,9 @@ export async function teardown(): Promise<void> {
   await new EditorView().closeAllEditors();
 
   try {
-    await disconnectFromServer(SERVER_TITLE);
-  } catch {}
+    await disconnectFromServers();
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('Error during disconnectFromServers:', err);
+  }
 }

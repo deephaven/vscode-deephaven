@@ -9,33 +9,80 @@ import {
   Workbench,
   type CodeLens,
   type Locator,
+  type Notification,
   type TextEditor,
   type ViewControl,
   type ViewItem,
 } from 'vscode-extension-tester';
 import seleniumWebDriver from 'selenium-webdriver';
 import os from 'node:os';
-import {
-  RETRY_SWITCH_IFRAME_ERRORS,
-  STATUS_BAR_TITLE,
-  VIEW_NAME,
-} from './constants';
+import { RETRY_SWITCH_IFRAME_ERRORS, STATUS_BAR_TITLE } from './constants';
 import type { FrameSelector } from './types';
 import { assert } from 'chai';
-import { locators } from './locators';
 
 /**
- * Disconnect from Deephaven server by clicking on disconnect action on server
- * node.
- * @param title Title of server node to disconnect from
+ * Connect to Deephaven server using `Deephaven: Select Connection` command.
+ * This always picks the first server in the quick pick list which works fine
+ * for now since our tests only configure a single server. May need to make
+ * this more flexible in the future. Also, there needs to be an active editor
+ * for the command to work, so ensure a file is opened before calling this
+ * function.
  */
-export async function disconnectFromServer(title: string): Promise<void> {
-  const serverViewItem = await getSidebarViewItem('Servers', title);
-  await serverViewItem?.select();
-  const disconnectAction = await serverViewItem?.findElement(
-    By.css('[aria-label="Disconnect from Server"]')
+export async function connectToServer(): Promise<void> {
+  // eslint-disable-next-line no-console
+  console.log('Connecting to Deephaven server...');
+
+  await executeCommandWithRetry('Deephaven: Select Connection');
+  const input = await InputBox.create();
+  // Note that this assumes there is only 1 server configured so we pick the
+  // first one in the list. Will need to be updated if we want to test scenarios
+  // where multiple servers are configured.
+  await input.selectQuickPick(0);
+
+  let firstInputBox: InputBox | null = null;
+  try {
+    firstInputBox = await InputBox.create(2000);
+  } catch {}
+
+  if (firstInputBox != null) {
+    const username = process.env.DH_USERNAME ?? 'vscode_testuser';
+    const password = process.env.DH_PASSWORD ?? username;
+
+    await firstInputBox.setText(username);
+    await firstInputBox.confirm();
+
+    const passwordInputBox = await InputBox.create();
+    await passwordInputBox.setText(password);
+    await passwordInputBox.confirm();
+  }
+
+  // Wait for connection to be active
+  const notification = await VSBrowser.instance.driver.wait(
+    getServerConnectedNotification
   );
-  await disconnectAction?.click();
+  await notification?.dismiss();
+}
+
+/**
+ * Disconnect from all Deephaven servers by clicking on disconnect action on
+ * server nodes.
+ */
+export async function disconnectFromServers(): Promise<void> {
+  const sideBarView = new SideBarView();
+  const serverSection = await sideBarView.getContent().getSection('Servers');
+
+  const items = await serverSection.getVisibleItems();
+  for (const item of items) {
+    const level = await item.getAttribute('aria-level');
+    if (level === '2') {
+      await item.select();
+      const disconnectAction = await getElementOrNull(
+        By.css('[aria-label="Disconnect from Server"]'),
+        item
+      );
+      await disconnectAction?.click();
+    }
+  }
 }
 
 /**
@@ -167,67 +214,6 @@ export async function getDhStatusBarItem(): Promise<WebElement | null> {
 }
 
 /**
- * Connect to Deephaven server using `Deephaven: Select Connection` command.
- * This always picks the first server in the quick pick list which works fine
- * for now since our tests only configure a single server. May need to make
- * this more flexible in the future. Also, there needs to be an active editor
- * for the command to work, so ensure a file is opened before calling this
- * function.
- */
-export async function connectToServer(): Promise<void> {
-  // eslint-disable-next-line no-console
-  console.log('Connecting to Deephaven server...');
-
-  // We need to open the Deephaven view to ensure the extension is activated
-  await openActivityBarView('Deephaven');
-
-  const sideBarView = new SideBarView();
-  const serverSection = await sideBarView
-    .getContent()
-    .getSection(VIEW_NAME.connections);
-
-  const connectionEl = await getElementOrNull(
-    locators.activeConnection,
-    serverSection
-  );
-
-  if (connectionEl != null) {
-    // eslint-disable-next-line no-console
-    console.log('Already connected to Deephaven server');
-    return;
-  }
-
-  await new Workbench().executeCommand('Deephaven: Select Connection');
-  const input = await InputBox.create();
-  // Note that this assumes there is only 1 server configured so we pick the
-  // first one in the list. Will need to be updated if we want to test scenarios
-  // where multiple servers are configured.
-  await input.selectQuickPick(0);
-
-  let firstInputBox: InputBox | null = null;
-  try {
-    firstInputBox = await InputBox.create(2000);
-  } catch {}
-
-  if (firstInputBox != null) {
-    const username = process.env.DH_USERNAME ?? 'vscode_testuser';
-    const password = process.env.DH_PASSWORD ?? username;
-
-    await firstInputBox.setText(username);
-    await firstInputBox.confirm();
-
-    const passwordInputBox = await InputBox.create();
-    await passwordInputBox.setText(password);
-    await passwordInputBox.confirm();
-  }
-
-  // Wait for connection to be active
-  await VSBrowser.instance.driver.wait(async () =>
-    getElementOrNull(locators.activeConnection, serverSection)
-  );
-}
-
-/**
  * Execute a VS Code command with retry logic to handle intermittent
  * "element not interactible" errors.
  * @param command Command to execute
@@ -259,6 +245,19 @@ export async function executeCommandWithRetry(
   }
 }
 
+export async function getServerConnectedNotification(): Promise<Notification | null> {
+  const notifications = await new Workbench().getNotifications();
+
+  for (const notification of notifications) {
+    const message = await notification.getMessage();
+    if (message.startsWith('Created Deephaven session:')) {
+      return notification;
+    }
+  }
+
+  return null;
+}
+
 /**
  * Open an activity bar view by name.
  * @param name Name of view to open
@@ -272,6 +271,9 @@ export async function openActivityBarView(
 
   if (viewControl && !(await viewControl.isSelected())) {
     await viewControl.openView();
+    // For some reason, viewControl is not ready to be closed immediately after
+    // opening, so wait a bit to avoid upstream surprises.
+    await VSBrowser.instance.driver.sleep(500);
   }
 
   return viewControl;
@@ -296,7 +298,7 @@ export async function openFileResources(
   // input as a workaround.
   // See https://github.com/redhat-developer/vscode-extension-tester/issues/506#issuecomment-2715696218
   for (const filePath of filePaths) {
-    await new Workbench().executeCommand('workbench.action.quickOpen');
+    await executeCommandWithRetry('workbench.action.quickOpen');
 
     const input = await InputBox.create();
     await input.setText(filePath);
