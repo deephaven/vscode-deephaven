@@ -32,6 +32,8 @@ export async function closeActivityBarView(name: string): Promise<void> {
 
   if (viewControl?.isDisplayed()) {
     await viewControl.closeView();
+
+    // Give some time for the view to close to avoid upstream surprises.
     await VSBrowser.instance.driver.sleep(500);
   }
 }
