@@ -15,6 +15,11 @@ export const locators = {
     '.auxiliarybar:not(.empty) a[aria-label^="Hide Secondary Side Bar"]'
   ),
 
+  /** Locator for a connected server icon */
+  connectedServerIcon: By.css(
+    '.custom-view-tree-node-item-icon.codicon.codicon-circle-large-filled'
+  ),
+
   irisGrid: By.css('.iris-grid'),
 
   /** Locator for the containing div of a WebView */

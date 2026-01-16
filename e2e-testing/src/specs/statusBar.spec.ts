@@ -49,7 +49,7 @@ describe('Status Bar Tests', () => {
         const statusBarItem = await getDhStatusBarItem();
 
         if (isVisible) {
-          assert.isDefined(null, stepLabel);
+          assert.isNotNull(statusBarItem, stepLabel);
         } else {
           assert.isNull(statusBarItem, stepLabel);
         }

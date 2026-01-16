@@ -20,6 +20,21 @@ import os from 'node:os';
 import { RETRY_SWITCH_IFRAME_ERRORS, STATUS_BAR_TITLE } from './constants';
 import type { FrameSelector } from './types';
 import { assert } from 'chai';
+import { locators } from './locators';
+
+/**
+ * Close an activity bar view by name if it is open.
+ * @param name Name of view to close
+ */
+export async function closeActivityBarView(name: string): Promise<void> {
+  const activityBar = new ActivityBar();
+  const viewControl = await activityBar.getViewControl(name);
+
+  if (viewControl?.isDisplayed()) {
+    await viewControl.closeView();
+    await VSBrowser.instance.driver.sleep(500);
+  }
+}
 
 /**
  * Connect to Deephaven server using `Deephaven: Select Connection` command.
@@ -49,10 +64,21 @@ export async function connectToServer(): Promise<void> {
  * server nodes.
  */
 export async function disconnectFromServers(): Promise<void> {
+  const viewControl = await openActivityBarView('Deephaven');
+
   const items = await getServerItems();
 
   for (const item of items) {
-    await item.select();
+    const isConnected =
+      (await item.findElements(locators.connectedServerIcon)).length > 0;
+
+    if (!isConnected) {
+      continue;
+    }
+
+    // hover over the item to reveal the disconnect action. We do this instead
+    // of `item.select()` to avoid triggering a new connection
+    await VSBrowser.instance.driver.actions().move({ origin: item }).perform();
 
     await executeWithRetry(async () => {
       const disconnectAction = await getElementOrNull(
@@ -63,6 +89,8 @@ export async function disconnectFromServers(): Promise<void> {
       await disconnectAction?.click();
     });
   }
+
+  await viewControl?.closeView();
 }
 
 /**
@@ -483,7 +511,7 @@ export async function switchToFrame(
 export async function waitForServerConnection(): Promise<void> {
   let firstInputBox: InputBox | null = null;
   try {
-    firstInputBox = await InputBox.create(2000);
+    firstInputBox = await InputBox.create();
   } catch {}
 
   if (firstInputBox != null) {

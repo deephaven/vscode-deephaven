@@ -4,6 +4,7 @@ import {
   openFileResources,
   openActivityBarView,
   disconnectFromServers,
+  closeActivityBarView,
 } from './testUtils';
 import { locators } from './locators';
 
@@ -25,8 +26,9 @@ export async function setup(
   await openFileResources(...initialFilePaths);
 
   // Ensure Deephaven extension is activated by opening the Deephaven view
-  const viewControl = await openActivityBarView('Deephaven');
-  await viewControl?.closeView();
+  await openActivityBarView('Deephaven');
+
+  await closeActivityBarView('Deephaven');
 }
 
 /**
