@@ -1,26 +1,34 @@
+import { EditorView } from 'vscode-extension-tester';
 import {
-  ActivityBar,
-  EditorView,
-  type ViewControl,
-} from 'vscode-extension-tester';
-import { disconnectFromServer, getElementOrNull } from './testUtils';
-import { SERVER_TITLE } from './constants';
+  getElementOrNull,
+  openFileResources,
+  openActivityBarView,
+  disconnectFromServers,
+  closeActivityBarView,
+} from './testUtils';
 import { locators } from './locators';
 
 /**
  * Setup before running test suite.
  */
-export async function setup(): Promise<ViewControl | undefined> {
-  const chatCloseButton = await getElementOrNull(locators.chatCloseButton);
-  await chatCloseButton?.click();
-
-  const explorer = await new ActivityBar().getViewControl('Explorer');
-
-  if (!(await explorer?.isSelected())) {
-    await explorer?.openView();
+export async function setup(
+  ...initialFilePaths: [string, ...string[]]
+): Promise<void> {
+  try {
+    const chatCloseButton = await getElementOrNull(locators.chatCloseButton);
+    await chatCloseButton?.click();
+  } catch {
+    // Chat button not found or not interactable - continue anyway
   }
 
-  return explorer;
+  // Need to open a file before login since an active editor is required for
+  // Deephaven: Select Connection command to work
+  await openFileResources(...initialFilePaths);
+
+  // Ensure Deephaven extension is activated by opening the Deephaven view
+  await openActivityBarView('Deephaven');
+
+  await closeActivityBarView('Deephaven');
 }
 
 /**
@@ -30,6 +38,9 @@ export async function teardown(): Promise<void> {
   await new EditorView().closeAllEditors();
 
   try {
-    await disconnectFromServer(SERVER_TITLE);
-  } catch {}
+    await disconnectFromServers();
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('Error during disconnectFromServers:', err);
+  }
 }
