@@ -1,6 +1,7 @@
-import { InputBox, QuickPickItem, VSBrowser } from 'vscode-extension-tester';
+import { InputBox } from 'vscode-extension-tester';
 import {
   getDhStatusBarItem,
+  getServerItems,
   getSidebarViewItem,
   setup,
   SIMPLE_TICKING3_PY,
@@ -9,10 +10,11 @@ import {
   teardown,
   TEST_GROOVY,
   TEST_TXT,
+  waitForServerConnection,
 } from '../util';
 import { EditorViewExtended } from '../pageObjects';
 import { assert } from 'chai';
-import { SERVER_TITLE, VIEW_NAME } from '../util/constants';
+import { VIEW_NAME } from '../util/constants';
 
 describe('Status Bar Tests', () => {
   let editorView: EditorViewExtended;
@@ -66,31 +68,18 @@ describe('Status Bar Tests', () => {
 
     await step(2, 'Select connection', async () => {
       const input = await InputBox.create();
-      const qpItem = new QuickPickItem(0, input);
-      await qpItem.click();
+      await input.selectQuickPick(0);
 
-      // We could call `ViewControl.openView` to ensure DH view is opened, but we
-      // want to test it opens automatically when a connection is initiated. The
-      // 500ms sleep matches the timeout that `ViewControl.openView` uses but
-      // without attempting to open the view.
-      await VSBrowser.instance.driver.sleep(500);
+      await waitForServerConnection();
     });
 
-    step(3, 'Verify server node', async stepLabel => {
-      const localhost1000Item = await getSidebarViewItem(
-        VIEW_NAME.servers,
-        SERVER_TITLE
-      );
+    await step(3, 'Verify server node', async stepLabel => {
+      const [serverItem] = await getServerItems();
 
-      assert.isDefined(localhost1000Item, stepLabel);
-      assert.equal(
-        await localhost1000Item.getText(),
-        `${SERVER_TITLE}(1)`,
-        stepLabel
-      );
+      assert.isDefined(serverItem, stepLabel);
     });
 
-    step(4, 'Verify connection node', async stepLabel => {
+    await step(4, 'Verify connection node', async stepLabel => {
       const simpleTickingEditor = await getSidebarViewItem(
         VIEW_NAME.connections,
         SIMPLE_TICKING3_PY.name

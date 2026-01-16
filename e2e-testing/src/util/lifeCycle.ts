@@ -1,7 +1,6 @@
 import { EditorView } from 'vscode-extension-tester';
 import {
   getElementOrNull,
-  connectToServer,
   openFileResources,
   openActivityBarView,
   disconnectFromServers,
@@ -28,8 +27,6 @@ export async function setup(
   // Ensure Deephaven extension is activated by opening the Deephaven view
   const viewControl = await openActivityBarView('Deephaven');
   await viewControl?.closeView();
-
-  await connectToServer();
 }
 
 /**

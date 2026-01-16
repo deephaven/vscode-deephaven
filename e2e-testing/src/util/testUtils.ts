@@ -13,8 +13,9 @@ import {
   type TextEditor,
   type ViewControl,
   type ViewItem,
+  type ViewSection,
 } from 'vscode-extension-tester';
-import seleniumWebDriver from 'selenium-webdriver';
+import selenium from 'selenium-webdriver';
 import os from 'node:os';
 import { RETRY_SWITCH_IFRAME_ERRORS, STATUS_BAR_TITLE } from './constants';
 import type { FrameSelector } from './types';
@@ -33,34 +34,14 @@ export async function connectToServer(): Promise<void> {
   console.log('Connecting to Deephaven server...');
 
   await executeCommandWithRetry('Deephaven: Select Connection');
-  const input = await InputBox.create();
+
   // Note that this assumes there is only 1 server configured so we pick the
   // first one in the list. Will need to be updated if we want to test scenarios
   // where multiple servers are configured.
+  const input = await InputBox.create();
   await input.selectQuickPick(0);
 
-  let firstInputBox: InputBox | null = null;
-  try {
-    firstInputBox = await InputBox.create(2000);
-  } catch {}
-
-  if (firstInputBox != null) {
-    const username = process.env.DH_USERNAME ?? 'vscode_testuser';
-    const password = process.env.DH_PASSWORD ?? username;
-
-    await firstInputBox.setText(username);
-    await firstInputBox.confirm();
-
-    const passwordInputBox = await InputBox.create();
-    await passwordInputBox.setText(password);
-    await passwordInputBox.confirm();
-  }
-
-  // Wait for connection to be active
-  const notification = await VSBrowser.instance.driver.wait(
-    getServerConnectedNotification
-  );
-  await notification?.dismiss();
+  await waitForServerConnection();
 }
 
 /**
@@ -68,20 +49,19 @@ export async function connectToServer(): Promise<void> {
  * server nodes.
  */
 export async function disconnectFromServers(): Promise<void> {
-  const sideBarView = new SideBarView();
-  const serverSection = await sideBarView.getContent().getSection('Servers');
+  const items = await getServerItems();
 
-  const items = await serverSection.getVisibleItems();
   for (const item of items) {
-    const level = await item.getAttribute('aria-level');
-    if (level === '2') {
-      await item.select();
+    await item.select();
+
+    await executeWithRetry(async () => {
       const disconnectAction = await getElementOrNull(
         By.css('[aria-label="Disconnect from Server"]'),
         item
       );
+
       await disconnectAction?.click();
-    }
+    });
   }
 }
 
@@ -94,6 +74,91 @@ export async function disconnectFromServers(): Promise<void> {
 export async function elementExists(locator: Locator): Promise<boolean> {
   const { driver } = VSBrowser.instance;
   return (await driver.findElements(locator)).length > 0;
+}
+
+/**
+ * Execute a command and return null if it errors.
+ * @param command Command to execute
+ * @returns Result of command or null if error occurs
+ */
+export async function errorToNull<T>(
+  command: () => Promise<T>
+): Promise<T | null> {
+  try {
+    return await command();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Execute a VS Code command with retry logic to handle intermittent
+ * `ElementNotInteractableError` errors.
+ * @param command Command to execute
+ * @param maxRetries Maximum number of retry attempts
+ * @param retryDelay Delay in milliseconds between retries
+ */
+export async function executeCommandWithRetry(
+  command: string,
+  maxRetries = 1,
+  retryDelay = 500
+): Promise<void> {
+  return executeWithRetry(
+    () => new Workbench().executeCommand(command),
+    maxRetries,
+    retryDelay,
+    [selenium.error.ElementNotInteractableError]
+  );
+}
+
+/**
+ * Execute a command with retry logic to handle intermittent errors.
+ * @param command Function that executes the command
+ * @param maxRetries Maximum number of retry attempts
+ * @param retryDelay Delay in milliseconds between retries
+ * @param retryErrorTypes Array of error types that should trigger a retry
+ * @returns Result of the command execution
+ */
+export async function executeWithRetry<T>(
+  command: () => Promise<T>,
+  maxRetries = 1,
+  retryDelay = 500,
+  retryErrorTypes = [
+    selenium.error.ElementNotInteractableError,
+    selenium.error.StaleElementReferenceError,
+  ]
+): Promise<T> {
+  const driver = VSBrowser.instance.driver;
+
+  for (let retryAttempt = 0; retryAttempt <= maxRetries; retryAttempt++) {
+    try {
+      return await command();
+    } catch (error) {
+      const isRetryableError = retryErrorTypes.some(
+        errorType => error instanceof errorType
+      );
+
+      if (!isRetryableError) {
+        // eslint-disable-next-line no-console
+        console.error('Non-retryable error encountered:', error);
+        throw error;
+      }
+
+      const hasRetryAttemptsRemaining = retryAttempt < maxRetries;
+
+      if (!hasRetryAttemptsRemaining) {
+        // eslint-disable-next-line no-console
+        console.error('Max retry attempts reached. Last error:', error);
+        throw error;
+      }
+
+      await driver.sleep(retryDelay);
+    }
+  }
+
+  // This really should never be reached due to the logic above, but it makes
+  // TypeScript happy.
+  throw new Error('executeWithRetry: Exceeded maximum retries');
 }
 
 /**
@@ -149,6 +214,29 @@ export async function getElementOrNull(
 }
 
 /**
+ * Get all server items in the sidebar view.
+ * @returns Server view items
+ */
+export async function getServerItems(): Promise<ViewItem[]> {
+  const sideBarView = new SideBarView();
+  const serverSection = await VSBrowser.instance.driver.wait<ViewSection>(() =>
+    errorToNull(() => sideBarView.getContent().getSection('Servers'))
+  );
+
+  const allItems = await serverSection.getVisibleItems();
+  const serverItems: ViewItem[] = [];
+
+  for (const item of allItems) {
+    const level = await item.getAttribute('aria-level');
+    if (level === '2') {
+      serverItems.push(item);
+    }
+  }
+
+  return serverItems;
+}
+
+/**
  * Get a sidebar view item based on section and title.
  * @param section Section of sidebar view to get item from
  * @param title Title of item to get
@@ -195,9 +283,7 @@ export async function getDhStatusBarItem(): Promise<WebElement | null> {
     try {
       ariaLabel = await item.getAttribute('aria-label');
     } catch (err) {
-      if (
-        !(err instanceof seleniumWebDriver.error.StaleElementReferenceError)
-      ) {
+      if (!(err instanceof selenium.error.StaleElementReferenceError)) {
         throw err;
       }
     }
@@ -214,37 +300,9 @@ export async function getDhStatusBarItem(): Promise<WebElement | null> {
 }
 
 /**
- * Execute a VS Code command with retry logic to handle intermittent
- * "element not interactible" errors.
- * @param command Command to execute
- * @param maxRetries Maximum number of retry attempts
- * @param retryDelay Delay in milliseconds between retries
+ * Get the "Created Deephaven session" notification if it exists.
+ * @returns Notification if found, null otherwise
  */
-export async function executeCommandWithRetry(
-  command: string,
-  maxRetries = 1,
-  retryDelay = 500
-): Promise<void> {
-  const driver = VSBrowser.instance.driver;
-
-  for (let retryAttempt = 0; retryAttempt <= maxRetries; retryAttempt++) {
-    try {
-      await new Workbench().executeCommand(command);
-      return;
-    } catch (error) {
-      const isRetryable =
-        error instanceof seleniumWebDriver.error.ElementNotInteractableError &&
-        retryAttempt < maxRetries;
-
-      if (!isRetryable) {
-        throw error;
-      }
-
-      await driver.sleep(retryDelay);
-    }
-  }
-}
-
 export async function getServerConnectedNotification(): Promise<Notification | null> {
   const notifications = await new Workbench().getNotifications();
 
@@ -415,4 +473,35 @@ export async function switchToFrame(
       }
     }
   }
+}
+
+/**
+ * Wait for Deephaven server connection to complete, handling username/password
+ * input if prompted. Closes the "Created Deephaven session" notification when
+ * connection is established.
+ */
+export async function waitForServerConnection(): Promise<void> {
+  let firstInputBox: InputBox | null = null;
+  try {
+    firstInputBox = await InputBox.create(2000);
+  } catch {}
+
+  if (firstInputBox != null) {
+    const username = process.env.DH_USERNAME ?? 'vscode_testuser';
+    const password = process.env.DH_PASSWORD ?? username;
+
+    await firstInputBox.setText(username);
+    await firstInputBox.confirm();
+
+    const passwordInputBox = await InputBox.create();
+    await passwordInputBox.setText(password);
+    await passwordInputBox.confirm();
+  }
+
+  // Wait for connection to be active
+  const notification = await VSBrowser.instance.driver.wait<Notification>(
+    getServerConnectedNotification
+  );
+
+  await notification?.dismiss();
 }

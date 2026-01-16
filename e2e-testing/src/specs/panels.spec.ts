@@ -1,5 +1,6 @@
 import { EditorViewExtended } from '../pageObjects';
 import {
+  connectToServer,
   executeCommandWithRetry,
   expectDeepEqualArray,
   runDhFileCodeLens,
@@ -50,6 +51,7 @@ const expectedTabs = {
 describe('Panels Tests', () => {
   before(async () => {
     await setup(SIMPLE_TICKING3_PY.path);
+    await connectToServer();
     await executeCommandWithRetry('View: Split Editor Down');
   });
 
