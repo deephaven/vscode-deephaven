@@ -34,7 +34,7 @@ const logger = new Logger('PanelController');
 
 export class PanelController extends ControllerBase {
   constructor(
-    extensionUri: vscode.Uri, // NOTE: uri is required in order to load webview content via getWebViewHtml; we could pass it down from ExtensionContext like CreateQueryViewProvider
+    extensionUri: vscode.Uri,
     serverManager: IServerManager,
     panelService: IPanelService
   ) {

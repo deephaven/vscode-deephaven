@@ -85,7 +85,6 @@ export function getPanelHtml(
   webview: vscode.Webview,
   iframeUrl: URL
 ): string {
-  // NOTE: I kept the cachebusting logic from the previous implementation. But not too sure how vscode webviews handle caching, or if this is necessary.
   const cacheBustedIframeUrl = new URL(iframeUrl);
   cacheBustedIframeUrl.searchParams.set('cachebust', Date.now().toString());
 
