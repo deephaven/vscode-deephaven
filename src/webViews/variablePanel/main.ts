@@ -5,9 +5,7 @@ import {
   isLoginOptionsResponse,
   isSessionDetailsRequest,
   isSessionDetailsResponse,
-  isSetThemeRequest,
   Logger,
-  DH_POST_MSG,
   type DhVariablePanelMsg,
   type VscodeVariablePanelMsg,
 } from '../../shared';
@@ -46,21 +44,6 @@ window.addEventListener(
     logger.info('Received session details from ext');
     const iframeWindow = getIframeContentWindow();
     iframeWindow.postMessage(data.payload, data.targetOrigin);
-    return;
-  }
-
-  if (isSetThemeRequest(data)) {
-    logger.info('Received set theme request');
-    const iframeWindow = getIframeContentWindow();
-    const { id, payload, targetOrigin } = data;
-    iframeWindow.postMessage(
-      {
-        id,
-        message: DH_POST_MSG.requestSetTheme,
-        payload,
-      },
-      targetOrigin
-    );
     return;
   }
 });

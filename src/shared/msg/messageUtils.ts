@@ -9,7 +9,6 @@ import {
   type VscodeCreateQueryMsg,
   type VscodeLoginOptionsResponseMsg,
   type VscodeSessionDetailsResponseMsg,
-  type VscodeSetThemeRequestMsg,
   type VscodeVariablePanelMsg,
   VSCODE_POST_MSG,
 } from './vscodePostMsg';
@@ -94,15 +93,4 @@ export function isSessionDetailsResponse(
   msg: DhVariablePanelMsg | VscodeVariablePanelMsg
 ): msg is VscodeSessionDetailsResponseMsg {
   return msg.message === VSCODE_POST_MSG.sessionDetailsResponse;
-}
-
-/**
- * Determine if a given message is a `VscodeSetThemeRequestMsg`.
- * @param msg The message to check.
- * @returns `true` if the message is a `VscodeSetThemeRequestMsg`, `false` otherwise.
- */
-export function isSetThemeRequest(
-  msg: DhVariablePanelMsg | VscodeVariablePanelMsg
-): msg is VscodeSetThemeRequestMsg {
-  return msg.message === VSCODE_POST_MSG.requestSetTheme;
 }

@@ -111,6 +111,5 @@ export type VscodeSessionDetailsResponseMsg = VscodePostMsgDataTargetOrigin<
 >;
 export type VscodeVariablePanelMsg =
   | VscodeLoginOptionsResponseMsg
-  | VscodeSessionDetailsResponseMsg
-  | VscodeSetThemeRequestMsg;
+  | VscodeSessionDetailsResponseMsg;
 
