@@ -73,3 +73,16 @@ export type DhSetThemeRequestMsg = DhPostMsgData<
   typeof DH_POST_MSG.requestSetTheme,
   ExternalThemeData
 >;
+
+/**
+ * Variable panel Deephaven messages
+ */
+export type DhLoginOptionsRequestMsg = DhPostMsgData<
+  typeof DH_POST_MSG.loginOptionsRequest
+>;
+export type DhSessionDetailsRequestMsg = DhPostMsgData<
+  typeof DH_POST_MSG.sessionDetailsRequest
+>;
+export type DhVariablePanelMsg =
+  | DhLoginOptionsRequestMsg
+  | DhSessionDetailsRequestMsg;

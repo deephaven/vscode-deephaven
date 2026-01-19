@@ -98,9 +98,12 @@ async function main() {
     entryPoints: [
       'src/webViews/createQuery/main.ts',
       'src/webViews/createQuery/styles.css',
+      'src/webViews/variablePanel/main.ts',
+      'src/webViews/variablePanel/styles.css',
     ],
     format: 'esm',
-    outdir: 'out/webViews/createQuery',
+    outdir: 'out/webViews',
+    entryNames: '[dir]/[name]',
     loader: {
       // eslint-disable-next-line @typescript-eslint/naming-convention
       '.css': 'copy',

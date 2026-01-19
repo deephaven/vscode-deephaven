@@ -84,6 +84,7 @@ export const VIEW_ID = {
   serverTree: `${VIEW_ID_PREFIX}serverTree`,
   serverConnectionTree: `${VIEW_ID_PREFIX}serverConnectionTree`,
   serverConnectionPanelTree: `${VIEW_ID_PREFIX}serverConnectionPanelTree`,
+  variablePanel: `${VIEW_ID_PREFIX}variablePanel`,
 } as const;
 
 export type ViewID = (typeof VIEW_ID)[keyof typeof VIEW_ID];

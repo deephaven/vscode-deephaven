@@ -33,9 +33,14 @@ import { assertDefined, DH_POST_MSG } from '../shared';
 const logger = new Logger('PanelController');
 
 export class PanelController extends ControllerBase {
-  constructor(serverManager: IServerManager, panelService: IPanelService) {
+  constructor(
+    extensionUri: vscode.Uri, // NOTE: uri is required in order to load webview content via getWebViewHtml; we could pass it down from ExtensionContext like CreateQueryViewProvider
+    serverManager: IServerManager,
+    panelService: IPanelService
+  ) {
     super();
 
+    this._extensionUri = extensionUri;
     this._panelService = panelService;
     this._serverManager = serverManager;
 
@@ -56,6 +61,7 @@ export class PanelController extends ControllerBase {
     );
   }
 
+  private readonly _extensionUri: vscode.Uri;
   private readonly _panelService: IPanelService;
   private readonly _serverManager: IServerManager;
 
@@ -323,7 +329,11 @@ export class PanelController extends ControllerBase {
         workerInfo
       );
 
-      panel.webview.html = getPanelHtml(iframeUrl, title);
+      panel.webview.html = getPanelHtml(
+        this._extensionUri,
+        panel.webview,
+        iframeUrl
+      );
     }
   };
 

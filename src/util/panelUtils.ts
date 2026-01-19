@@ -1,12 +1,13 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
-import { DH_PANEL_VIEW_TYPE } from '../common';
+import { DH_PANEL_VIEW_TYPE, VIEW_ID } from '../common';
 import type {
   LoginOptionsResponsePostMessage,
   SessionDetailsResponsePostMessage,
   WorkerInfo,
 } from '../types';
-import { DH_POST_MSG, VSCODE_POST_MSG } from '../shared';
+import { VSCODE_POST_MSG } from '../shared';
+import { getWebViewHtml } from './webViewUtils';
 
 /**
  * Create response for login options `postMessage` request from Deephaven iframe.
@@ -74,74 +75,28 @@ export function createSessionDetailsResponsePostMessage({
  * 3. DH iframe requests session details. Script in the panel passes the message along via `vscode.postMessage`.
  * 4. Extension receives the message (PanelController._onPanelMessage) and responds with the session details via `postResponseMessage`.
  *    Script passes message back to DH via `iframeWindow.postMessage`.
+ * @param extensionUri The extension URI.
+ * @param webview The webview to generate the html content for.
  * @param iframeUrl The DH URL to load in the iframe.
- * @param title The title of the panel.
  * @returns The html content.
  */
-export function getPanelHtml(iframeUrl: URL, title: string): string {
-  return `<!DOCTYPE html>
-  <html lang="en">
-  <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Deephaven</title>
-      <style>
-      html {
-        height: 100%;
-        overflow: hidden;
-      }
-      body {
-        --vscode-dh-panel-padding-top: 20px;
-        padding-top: var(--vscode-dh-panel-padding-top);
-        height: calc(100vh - var(--vscode-dh-panel-padding-top));
-        overflow: hidden;
-      }
-      iframe {
-        border: none;
-        width: 100%;
-        height: 100%;
-      }
-      </style>
-  </head>
-  <body>
-      <script>
-      (function() {
-        const vscode = acquireVsCodeApi();
+export function getPanelHtml(
+  extensionUri: vscode.Uri,
+  webview: vscode.Webview,
+  iframeUrl: URL
+): string {
+  // NOTE: I kept the cachebusting logic from the previous implementation. But not too sure how vscode webviews handle caching, or if this is necessary.
+  const cacheBustedIframeUrl = new URL(iframeUrl);
+  cacheBustedIframeUrl.searchParams.set('cachebust', Date.now().toString());
 
-        window.addEventListener('message', ({ data }) => {
-          if (data.message === '${DH_POST_MSG.loginOptionsRequest}') {
-            console.log('LoginOptions request received from iframe');
-            vscode.postMessage({ data });
-            return;
-          }
-
-          if (data.message === '${DH_POST_MSG.sessionDetailsRequest}') {
-            console.log('SessionDetails request received from iframe');
-            vscode.postMessage({ data });
-            return;
-          }
-
-          if (data.message === '${VSCODE_POST_MSG.loginOptionsResponse}') {
-            console.log('Received login message from ext');
-            const iframeWindow = document.getElementById('content-iframe').contentWindow;
-            iframeWindow.postMessage(data.payload, data.targetOrigin);
-            return;
-          }
-
-          if (data.message === '${VSCODE_POST_MSG.sessionDetailsResponse}') {
-            console.log('Received session message from ext');
-            const iframeWindow = document.getElementById('content-iframe').contentWindow;
-            iframeWindow.postMessage(data.payload, data.targetOrigin);
-            return;
-          }
-
-          console.log('Unknown message type');
-        });
-      }())
-      </script>
-      <iframe id="content-iframe" src="${iframeUrl}&cachebust=${new Date().getTime()}" title="${title}"></iframe>
-  </body>
-  </html>`;
+  return getWebViewHtml({
+    extensionUri,
+    webView: webview,
+    viewId: VIEW_ID.variablePanel,
+    iframeUrl: cacheBustedIframeUrl,
+    scriptFileName: 'main.js',
+    stylesFileName: 'styles.css',
+  });
 }
 
 /**
