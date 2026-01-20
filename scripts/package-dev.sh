@@ -38,4 +38,4 @@ npm version --no-git-tag-version $NEXT-$PREID.$BUILD_NUM
 
 # Package the extension using the updated version
 PACKAGE_VERSION=$(node -p "require('./package.json').version")
-vsce package -o releases/vscode-deephaven-$PACKAGE_VERSION.vsix
+DHC_ALLOW_LOCAL_ALIAS=1 vsce package -o releases/vscode-deephaven-$PACKAGE_VERSION.vsix
