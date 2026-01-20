@@ -1,6 +1,11 @@
 import { By } from 'vscode-extension-tester';
 
 export const locators = {
+  /** Locator for an active connection icon */
+  activeConnection: By.css(
+    '.custom-view-tree-node-item-icon.codicon.codicon-vm-connect'
+  ),
+
   /**
    * Locator for side panel close button so we can close the Copilot chat. Note
    * that the button is always present, but parent div gets `empty` class when
@@ -8,6 +13,11 @@ export const locators = {
    */
   chatCloseButton: By.css(
     '.auxiliarybar:not(.empty) a[aria-label^="Hide Secondary Side Bar"]'
+  ),
+
+  /** Locator for a connected server icon */
+  connectedServerIcon: By.css(
+    '.custom-view-tree-node-item-icon.codicon.codicon-circle-large-filled'
   ),
 
   irisGrid: By.css('.iris-grid'),

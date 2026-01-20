@@ -1,8 +1,8 @@
-import { Workbench } from 'vscode-extension-tester';
 import { EditorViewExtended } from '../pageObjects';
 import {
+  connectToServer,
+  executeCommandWithRetry,
   expectDeepEqualArray,
-  openFileResources,
   runDhFileCodeLens,
   setup,
   SIMPLE_TICKING3_PY,
@@ -50,10 +50,9 @@ const expectedTabs = {
 
 describe('Panels Tests', () => {
   before(async () => {
-    const explorerView = await setup();
-    await openFileResources(SIMPLE_TICKING3_PY.path);
-    await explorerView?.closeView();
-    await new Workbench().executeCommand('View: Split Editor Down');
+    await setup(SIMPLE_TICKING3_PY.path);
+    await connectToServer();
+    await executeCommandWithRetry('View: Split Editor Down');
   });
 
   after(async () => {
@@ -207,7 +206,7 @@ describe('Panels Tests', () => {
     await step(7, 'Move tab to new group', async stepLabel => {
       await editorView.openWebView('t3', 2);
 
-      await new Workbench().executeCommand('View: Move Editor into Next Group');
+      await executeCommandWithRetry('View: Move Editor into Next Group');
 
       const editorGroupsData = await editorView.getEditorGroupsData();
       expectDeepEqualArray(

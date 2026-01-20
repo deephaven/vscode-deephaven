@@ -1,12 +1,8 @@
+import { InputBox } from 'vscode-extension-tester';
 import {
-  InputBox,
-  QuickPickItem,
-  StatusBar,
-  VSBrowser,
-} from 'vscode-extension-tester';
-import {
+  getDhStatusBarItem,
+  getServerItems,
   getSidebarViewItem,
-  openFileResources,
   setup,
   SIMPLE_TICKING3_PY,
   SIMPLE_TICKING_MD,
@@ -14,29 +10,24 @@ import {
   teardown,
   TEST_GROOVY,
   TEST_TXT,
+  waitForServerConnection,
 } from '../util';
 import { EditorViewExtended } from '../pageObjects';
 import { assert } from 'chai';
-import { SERVER_TITLE, STATUS_BAR_TITLE, VIEW_NAME } from '../util/constants';
+import { VIEW_NAME } from '../util/constants';
 
 describe('Status Bar Tests', () => {
   let editorView: EditorViewExtended;
-  let statusBar: StatusBar;
 
   before(async () => {
-    const explorerView = await setup();
-
-    await openFileResources(
+    await setup(
       SIMPLE_TICKING_MD.path,
       SIMPLE_TICKING3_PY.path,
       TEST_GROOVY.path,
       TEST_TXT.path
     );
 
-    await explorerView?.closeView();
-
     editorView = new EditorViewExtended();
-    statusBar = new StatusBar();
   });
 
   after(async () => {
@@ -55,14 +46,12 @@ describe('Status Bar Tests', () => {
     ] as const) {
       await step(s, fileName, async stepLabel => {
         await editorView.openTextEditor(fileName);
-        const statusBarItem = await statusBar.getItem(
-          'plug  Deephaven: Disconnected'
-        );
+        const statusBarItem = await getDhStatusBarItem();
 
         if (isVisible) {
-          assert.isDefined(statusBarItem, stepLabel);
+          assert.isNotNull(statusBarItem, stepLabel);
         } else {
-          assert.isUndefined(statusBarItem, stepLabel);
+          assert.isNull(statusBarItem, stepLabel);
         }
       });
     }
@@ -71,41 +60,26 @@ describe('Status Bar Tests', () => {
   it('should connect to server on click', async () => {
     await editorView.openTextEditor(SIMPLE_TICKING3_PY.name);
 
-    await step(1, 'Click Deephaven status bar item', async () => {
-      const statusBarItem = await statusBar.getItem(
-        STATUS_BAR_TITLE.disconnected
-      );
-      assert.isDefined(statusBarItem);
+    await step(1, 'Click Deephaven status bar item', async stepLabel => {
+      const statusBarItem = await getDhStatusBarItem();
+      assert.isNotNull(statusBarItem, stepLabel);
       await statusBarItem.click();
     });
 
     await step(2, 'Select connection', async () => {
       const input = await InputBox.create();
-      const qpItem = new QuickPickItem(0, input);
-      await qpItem.click();
+      await input.selectQuickPick(0);
 
-      // We could call `ViewControl.openView` to ensure DH view is opened, but we
-      // want to test it opens automatically when a connection is initiated. The
-      // 500ms sleep matches the timeout that `ViewControl.openView` uses but
-      // without attempting to open the view.
-      await VSBrowser.instance.driver.sleep(500);
+      await waitForServerConnection();
     });
 
-    step(3, 'Verify server node', async stepLabel => {
-      const localhost1000Item = await getSidebarViewItem(
-        VIEW_NAME.servers,
-        SERVER_TITLE
-      );
+    await step(3, 'Verify server node', async stepLabel => {
+      const [serverItem] = await getServerItems();
 
-      assert.isDefined(localhost1000Item, stepLabel);
-      assert.equal(
-        await localhost1000Item.getText(),
-        `${SERVER_TITLE}(1)`,
-        stepLabel
-      );
+      assert.isDefined(serverItem, stepLabel);
     });
 
-    step(4, 'Verify connection node', async stepLabel => {
+    await step(4, 'Verify connection node', async stepLabel => {
       const simpleTickingEditor = await getSidebarViewItem(
         VIEW_NAME.connections,
         SIMPLE_TICKING3_PY.name

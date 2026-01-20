@@ -182,7 +182,7 @@ export class EditorViewExtended extends EditorView {
 
     await tab.select();
 
-    return new WebViewExtended(group).wait();
+    return new WebViewExtended(group).waitForStable();
   }
 
   /**

@@ -1,32 +1,98 @@
 import {
+  ActivityBar,
   By,
   InputBox,
   SideBarView,
+  StatusBar,
   VSBrowser,
   WebElement,
   Workbench,
   type CodeLens,
   type Locator,
+  type Notification,
   type TextEditor,
+  type ViewControl,
   type ViewItem,
+  type ViewSection,
 } from 'vscode-extension-tester';
+import selenium from 'selenium-webdriver';
 import os from 'node:os';
-import { RETRY_SWITCH_IFRAME_ERRORS } from './constants';
+import { RETRY_SWITCH_IFRAME_ERRORS, STATUS_BAR_TITLE } from './constants';
 import type { FrameSelector } from './types';
 import { assert } from 'chai';
+import { locators } from './locators';
 
 /**
- * Disconnect from Deephaven server by clicking on disconnect action on server
- * node.
- * @param title Title of server node to disconnect from
+ * Close an activity bar view by name if it is open.
+ * @param name Name of view to close
  */
-export async function disconnectFromServer(title: string): Promise<void> {
-  const serverViewItem = await getSidebarViewItem('Servers', title);
-  await serverViewItem?.select();
-  const disconnectAction = await serverViewItem?.findElement(
-    By.css('[aria-label="Disconnect from Server"]')
-  );
-  await disconnectAction?.click();
+export async function closeActivityBarView(name: string): Promise<void> {
+  const activityBar = new ActivityBar();
+  const viewControl = await activityBar.getViewControl(name);
+
+  if (viewControl?.isDisplayed()) {
+    await viewControl.closeView();
+
+    // Give some time for the view to close to avoid upstream surprises.
+    await VSBrowser.instance.driver.sleep(500);
+  }
+}
+
+/**
+ * Connect to Deephaven server using `Deephaven: Select Connection` command.
+ * This always picks the first server in the quick pick list which works fine
+ * for now since our tests only configure a single server. May need to make
+ * this more flexible in the future. Also, there needs to be an active editor
+ * for the command to work, so ensure a file is opened before calling this
+ * function.
+ */
+export async function connectToServer(): Promise<void> {
+  // eslint-disable-next-line no-console
+  console.log('Connecting to Deephaven server...');
+
+  await executeCommandWithRetry('Deephaven: Select Connection');
+
+  // Note that this assumes there is only 1 server configured so we pick the
+  // first one in the list. Will need to be updated if we want to test scenarios
+  // where multiple servers are configured.
+  const input = await InputBox.create();
+  await input.selectQuickPick(0);
+
+  await waitForServerConnection();
+}
+
+/**
+ * Disconnect from all Deephaven servers by clicking on disconnect action on
+ * server nodes.
+ */
+export async function disconnectFromServers(): Promise<void> {
+  const viewControl = await openActivityBarView('Deephaven');
+
+  const items = await getServerItems();
+
+  for (const item of items) {
+    const isConnected =
+      (await item.findElements(locators.connectedServerIcon)).length > 0;
+
+    if (!isConnected) {
+      continue;
+    }
+
+    // hover over the item to reveal the disconnect action. We do this instead
+    // of `item.select()` to avoid triggering a new connection
+    await VSBrowser.instance.driver.actions().move({ origin: item }).perform();
+
+    await executeWithRetry(async () => {
+      const disconnectAction = await getElementOrNull(
+        By.css('[aria-label="Disconnect from Server"]'),
+        item
+      );
+
+      await disconnectAction?.click();
+    });
+  }
+
+  await viewControl?.closeView();
 }
 
 /**
@@ -38,6 +104,91 @@ export async function disconnectFromServer(title: string): Promise<void> {
 export async function elementExists(locator: Locator): Promise<boolean> {
   const { driver } = VSBrowser.instance;
   return (await driver.findElements(locator)).length > 0;
+}
+
+/**
+ * Execute a command and return null if it errors.
+ * @param command Command to execute
+ * @returns Result of command or null if error occurs
+ */
+export async function errorToNull<T>(
+  command: () => Promise<T>
+): Promise<T | null> {
+  try {
+    return await command();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Execute a VS Code command with retry logic to handle intermittent
+ * `ElementNotInteractableError` errors.
+ * @param command Command to execute
+ * @param maxRetries Maximum number of retry attempts
+ * @param retryDelay Delay in milliseconds between retries
+ */
+export async function executeCommandWithRetry(
+  command: string,
+  maxRetries = 1,
+  retryDelay = 500
+): Promise<void> {
+  return executeWithRetry(
+    () => new Workbench().executeCommand(command),
+    maxRetries,
+    retryDelay,
+    [selenium.error.ElementNotInteractableError]
+  );
+}
+
+/**
+ * Execute a command with retry logic to handle intermittent errors.
+ * @param command Function that executes the command
+ * @param maxRetries Maximum number of retry attempts
+ * @param retryDelay Delay in milliseconds between retries
+ * @param retryErrorTypes Array of error types that should trigger a retry
+ * @returns Result of the command execution
+ */
+export async function executeWithRetry<T>(
+  command: () => Promise<T>,
+  maxRetries = 1,
+  retryDelay = 500,
+  retryErrorTypes = [
+    selenium.error.ElementNotInteractableError,
+    selenium.error.StaleElementReferenceError,
+  ]
+): Promise<T> {
+  const driver = VSBrowser.instance.driver;
+
+  for (let retryAttempt = 0; retryAttempt <= maxRetries; retryAttempt++) {
+    try {
+      return await command();
+    } catch (error) {
+      const isRetryableError = retryErrorTypes.some(
+        errorType => error instanceof errorType
+      );
+
+      if (!isRetryableError) {
+        // eslint-disable-next-line no-console
+        console.error('Non-retryable error encountered:', error);
+        throw error;
+      }
+
+      const hasRetryAttemptsRemaining = retryAttempt < maxRetries;
+
+      if (!hasRetryAttemptsRemaining) {
+        // eslint-disable-next-line no-console
+        console.error('Max retry attempts reached. Last error:', error);
+        throw error;
+      }
+
+      await driver.sleep(retryDelay);
+    }
+  }
+
+  // This really should never be reached due to the logic above, but it makes
+  // TypeScript happy.
+  throw new Error('executeWithRetry: Exceeded maximum retries');
 }
 
 /**
@@ -79,15 +230,40 @@ export function extractErrorType(error: unknown): string {
 }
 
 /**
- * Look for elment based on locator, returning null if not found.
+ * Look for element based on locator, returning null if not found.
  * @param locator Locator to look for
+ * @param parent Optional parent element to search within. If not provided, searches from driver root.
  * @returns Element if found, null otherwise
  */
 export async function getElementOrNull(
-  locator: Locator
+  locator: Locator,
+  parent?: { findElements(locator: Locator): Promise<WebElement[]> }
 ): Promise<WebElement | null> {
-  const { driver } = VSBrowser.instance;
-  return (await driver.findElements(locator))[0] ?? null;
+  const searchContext = parent ?? VSBrowser.instance.driver;
+  return (await searchContext.findElements(locator))[0] ?? null;
+}
+
+/**
+ * Get all server items in the sidebar view.
+ * @returns Server view items
+ */
+export async function getServerItems(): Promise<ViewItem[]> {
+  const sideBarView = new SideBarView();
+  const serverSection = await VSBrowser.instance.driver.wait<ViewSection>(() =>
+    errorToNull(() => sideBarView.getContent().getSection('Servers'))
+  );
+
+  const allItems = await serverSection.getVisibleItems();
+  const serverItems: ViewItem[] = [];
+
+  for (const item of allItems) {
+    const level = await item.getAttribute('aria-level');
+    if (level === '2') {
+      serverItems.push(item);
+    }
+  }
+
+  return serverItems;
 }
 
 /**
@@ -125,6 +301,73 @@ export async function getCodeLens(
 }
 
 /**
+ * Get the Deephaven status bar item if it exists.
+ * @returns Deephaven status bar item or null if not found
+ */
+export async function getDhStatusBarItem(): Promise<WebElement | null> {
+  const statusBar = new StatusBar();
+  const items = await statusBar.getItems();
+
+  for (const item of items) {
+    let ariaLabel = '';
+    try {
+      ariaLabel = await item.getAttribute('aria-label');
+    } catch (err) {
+      if (!(err instanceof selenium.error.StaleElementReferenceError)) {
+        throw err;
+      }
+    }
+
+    if (
+      ariaLabel === STATUS_BAR_TITLE.disconnected ||
+      ariaLabel.startsWith(STATUS_BAR_TITLE.connectedPrefix)
+    ) {
+      return item;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Get the "Created Deephaven session" notification if it exists.
+ * @returns Notification if found, null otherwise
+ */
+export async function getServerConnectedNotification(): Promise<Notification | null> {
+  const notifications = await new Workbench().getNotifications();
+
+  for (const notification of notifications) {
+    const message = await notification.getMessage();
+    if (message.startsWith('Created Deephaven session:')) {
+      return notification;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Open an activity bar view by name.
+ * @param name Name of view to open
+ * @returns ViewControl of opened view or undefined if not found
+ */
+export async function openActivityBarView(
+  name: string
+): Promise<ViewControl | undefined> {
+  const activityBar = new ActivityBar();
+  const viewControl = await activityBar.getViewControl(name);
+
+  if (viewControl && !(await viewControl.isSelected())) {
+    await viewControl.openView();
+    // For some reason, viewControl is not ready to be closed immediately after
+    // opening, so wait a bit to avoid upstream surprises.
+    await VSBrowser.instance.driver.sleep(500);
+  }
+
+  return viewControl;
+}
+
+/**
  * Open a list of files in VS Code.
  * @param filePaths Paths of files to open (requires at least one path)
  */
@@ -143,7 +386,7 @@ export async function openFileResources(
   // input as a workaround.
   // See https://github.com/redhat-developer/vscode-extension-tester/issues/506#issuecomment-2715696218
   for (const filePath of filePaths) {
-    await new Workbench().executeCommand('workbench.action.quickOpen');
+    await executeCommandWithRetry('workbench.action.quickOpen');
 
     const input = await InputBox.create();
     await input.setText(filePath);
@@ -260,4 +503,35 @@ export async function switchToFrame(
       }
     }
   }
+}
+
+/**
+ * Wait for Deephaven server connection to complete, handling username/password
+ * input if prompted. Closes the "Created Deephaven session" notification when
+ * connection is established.
+ */
+export async function waitForServerConnection(): Promise<void> {
+  let firstInputBox: InputBox | null = null;
+  try {
+    firstInputBox = await InputBox.create();
+  } catch {}
+
+  if (firstInputBox != null) {
+    const username = process.env.DH_USERNAME ?? 'vscode_testuser';
+    const password = process.env.DH_PASSWORD ?? username;
+
+    await firstInputBox.setText(username);
+    await firstInputBox.confirm();
+
+    const passwordInputBox = await InputBox.create();
+    await passwordInputBox.setText(password);
+    await passwordInputBox.confirm();
+  }
+
+  // Wait for connection to be active
+  const notification = await VSBrowser.instance.driver.wait<Notification>(
+    getServerConnectedNotification
+  );
+
+  await notification?.dismiss();
 }
