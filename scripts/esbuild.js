@@ -11,8 +11,8 @@ const { DHC_PACKAGES_PATH } = process.env;
 
 const optionalPlugins = [];
 
-// Alias @deephaven/* packages to custom path
-if (DHC_PACKAGES_PATH != null) {
+// Alias @deephaven/* packages to custom path (for non-production builds)
+if (DHC_PACKAGES_PATH != null && !production) {
   if (!fs.existsSync(DHC_PACKAGES_PATH)) {
     throw new Error(`DHC packages path ${DHC_PACKAGES_PATH} does not exist.`);
   }
