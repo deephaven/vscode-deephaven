@@ -32,7 +32,7 @@ export type McpToolResult<TSuccess extends boolean, TDetails = unknown> = {
  */
 export function formatErrorMessage(
   errorMessage: string,
-  error: unknown
+  error?: unknown
 ): string {
   if (error == null) {
     return errorMessage;
@@ -146,7 +146,7 @@ export class McpToolResponse {
    */
   error<TDetails = unknown>(
     errorMessage: string,
-    error: unknown,
+    error?: unknown,
     details?: TDetails
   ): McpToolResult<false, TDetails> {
     return this.errorWithHint(errorMessage, error, undefined, details);
@@ -167,7 +167,7 @@ export class McpToolResponse {
    */
   errorWithHint<TDetails = unknown>(
     errorMessage: string,
-    error: unknown,
+    error?: unknown,
     hint?: string,
     details?: TDetails
   ): McpToolResult<false, TDetails> {

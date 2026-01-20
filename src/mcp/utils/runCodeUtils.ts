@@ -53,6 +53,29 @@ export const runCodeOutputSchema = {
 };
 
 /**
+ * Creates a hint for connection not found errors based on available connections.
+ * - If hintConnections has items, suggests available connections.
+ * - If hintConnections is empty, indicates no available connections for the language.
+ * @param hintConnections The list of available connections to suggest.
+ * @param connectionUrl The connection URL that was not found.
+ * @param languageId The language ID that the connection should support.
+ * @returns A hint string describing available alternatives or the issue.
+ */
+export function createConnectionNotFoundHint(
+  hintConnections: ConnectionState[],
+  connectionUrl: string | undefined,
+  languageId: string
+): string {
+  if (hintConnections.length > 0) {
+    return `Connection for URL ${connectionUrl} not found. Did you mean to use one of these connections?\n${hintConnections
+      .map(c => `- ${c.serverUrl.toString()}`)
+      .join('\n')}`;
+  }
+
+  return `No available connections supporting languageId ${languageId}.`;
+}
+
+/**
  * Creates a hint for Python module import errors.
  * - If no import errors are found, returns undefined.
  * - If import errors are found, and remote file source plugin is not installed,

@@ -21,6 +21,7 @@ import {
   getDiagnosticsErrors,
   createPythonModuleImportErrorHint,
   formatDiagnosticError,
+  createConnectionNotFoundHint,
   McpToolResponse,
 } from '../utils';
 import { assertDefined } from '../../shared';
@@ -112,7 +113,7 @@ export function createRunCodeFromUriTool({
         ];
 
         const result =
-          await vscode.commands.executeCommand<DhcType.ide.CommandResult>(
+          await vscode.commands.executeCommand<DhcType.ide.CommandResult | null>(
             RUN_CODE_COMMAND,
             ...cmdArgs
           );
@@ -120,7 +121,7 @@ export function createRunCodeFromUriTool({
         // Extract variables from result
         const variables = extractVariables(result);
 
-        if (result.error) {
+        if (result?.error) {
           let errorMsg = result.error;
           let hint: string | undefined;
 
@@ -167,13 +168,11 @@ export function createRunCodeFromUriTool({
             languageId as ConsoleType
           );
 
-          if (hintConnections.length > 0) {
-            hint = `Connection for URL ${connectionUrl} not found. Did you mean to use one of these connections?\n${hintConnections
-              .map(c => `- ${c.serverUrl.toString()}`)
-              .join('\n')}`;
-          } else {
-            hint = `No available connections supporting languageId ${languageId}.`;
-          }
+          hint = createConnectionNotFoundHint(
+            hintConnections,
+            connectionUrl,
+            languageId
+          );
         }
 
         return response.errorWithHint('Failed to execute code', error, hint, {
