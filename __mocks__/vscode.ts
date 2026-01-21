@@ -88,35 +88,30 @@ export class DiagnosticCollection
       return this.diagnostics.has(uri.toString());
     });
 
-  set = vi
-    .fn()
-    .mockName('set')
-    .mockImplementation(
-      (
-        uriOrEntries:
-          | Uri
-          | ReadonlyArray<[Uri, readonly Diagnostic[] | undefined]>,
-        diagnostics?: readonly Diagnostic[] | undefined
-      ) => {
-        if (Array.isArray(uriOrEntries)) {
-          // Handle array of entries
-          for (const [uri, diags] of uriOrEntries) {
-            if (diags === undefined) {
-              this.diagnostics.delete(uri.toString());
-            } else {
-              this.diagnostics.set(uri.toString(), diags);
-            }
-          }
-        } else {
-          // Handle single URI
-          if (diagnostics === undefined) {
-            this.diagnostics.delete(uriOrEntries.toString());
-          } else {
-            this.diagnostics.set(uriOrEntries.toString(), diagnostics);
-          }
-        }
+  private setImpl(uri: Uri, diagnostics?: readonly Diagnostic[]): void;
+  private setImpl(
+    entries: ReadonlyArray<[Uri, readonly Diagnostic[] | undefined]>
+  ): void;
+  private setImpl(
+    uriOrEntries: Uri | ReadonlyArray<[Uri, readonly Diagnostic[] | undefined]>,
+    diagnostics?: readonly Diagnostic[] | undefined
+  ): void {
+    const entries: [Uri, readonly Diagnostic[] | undefined][] = Array.isArray(
+      uriOrEntries
+    )
+      ? uriOrEntries
+      : [[uriOrEntries, diagnostics]];
+
+    for (const [uri, diags] of entries) {
+      if (diags === undefined) {
+        this.diagnostics.delete(uri.toString());
+      } else {
+        this.diagnostics.set(uri.toString(), diags);
       }
-    );
+    }
+  }
+
+  set = vi.fn().mockName('set').mockImplementation(this.setImpl.bind(this));
 
   [Symbol.iterator](): Iterator<[Uri, readonly Diagnostic[]]> {
     const entries = Array.from(this.diagnostics.entries()).map(
