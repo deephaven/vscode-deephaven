@@ -1,17 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { createListConnectionsTool } from './listConnections';
 import type { IServerManager, ConnectionState, UniqueID } from '../../types';
-import * as util from '../../util';
 import { McpToolResponse } from '../utils/mcpUtils';
 
 vi.mock('vscode');
-vi.mock('../../util', async importOriginal => {
-  const actual = await importOriginal<typeof import('../../util')>();
-  return {
-    ...actual,
-    parseUrl: vi.fn(),
-  };
-});
+
+const MOCK_EXECUTION_TIME_MS = 100;
 
 const MOCK_CONNECTIONS: ConnectionState[] = [
   {
@@ -28,10 +23,58 @@ const MOCK_CONNECTIONS: ConnectionState[] = [
   },
 ] as const;
 
-const MOCK_EXECUTION_TIME_MS = 100;
+const EXPECTED_ALL_CONNECTIONS = {
+  success: true,
+  message: 'Found 2 connection(s)',
+  details: {
+    connections: MOCK_CONNECTIONS.map(c => ({
+      ...c,
+      serverUrl: c.serverUrl.toString(),
+    })),
+  },
+  executionTimeMs: MOCK_EXECUTION_TIME_MS,
+} as const;
+
+const EXPECTED_FILTERED_CONNECTIONS = {
+  success: true,
+  message: 'Found 1 connection(s)',
+  details: {
+    connections: [
+      {
+        ...MOCK_CONNECTIONS[0],
+        serverUrl: MOCK_CONNECTIONS[0].serverUrl.toString(),
+      },
+    ],
+  },
+  executionTimeMs: MOCK_EXECUTION_TIME_MS,
+} as const;
+
+const EXPECTED_NO_CONNECTIONS = {
+  success: true,
+  message: 'Found 0 connection(s)',
+  details: {
+    connections: [],
+  },
+  executionTimeMs: MOCK_EXECUTION_TIME_MS,
+} as const;
+
+const EXPECTED_INVALID_URL = {
+  success: false,
+  message: 'Invalid URL: Invalid URL',
+  details: { serverUrl: 'invalid-url' },
+  executionTimeMs: MOCK_EXECUTION_TIME_MS,
+} as const;
+
+const EXPECTED_ERROR = {
+  success: false,
+  message: 'Failed to list connections: Connection error',
+  executionTimeMs: MOCK_EXECUTION_TIME_MS,
+} as const;
 
 describe('listConnections', () => {
-  let serverManager: IServerManager;
+  const serverManager = {
+    getConnections: vi.fn(),
+  } as unknown as IServerManager;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -40,21 +83,6 @@ describe('listConnections', () => {
     vi.spyOn(McpToolResponse.prototype, 'getElapsedTimeMs').mockReturnValue(
       MOCK_EXECUTION_TIME_MS
     );
-
-    // Mock parseUrl to return successful results by default
-    vi.mocked(util.parseUrl).mockImplementation(url => {
-      if (!url) {
-        return { success: true, value: null };
-      }
-      if (url === 'invalid-url') {
-        return { success: false, error: 'Invalid URL' };
-      }
-      return { success: true, value: new URL(url) };
-    });
-
-    serverManager = {
-      getConnections: vi.fn(),
-    } as unknown as IServerManager;
   });
 
   it('should return correct tool spec', () => {
@@ -67,97 +95,60 @@ describe('listConnections', () => {
     );
   });
 
-  describe('handler', () => {
-    it('should call getConnections with undefined when no serverUrl is provided', async () => {
-      vi.mocked(serverManager.getConnections).mockReturnValue(MOCK_CONNECTIONS);
+  it.each([
+    {
+      name: 'list all connections when no serverUrl provided',
+      serverUrl: undefined,
+      connections: MOCK_CONNECTIONS,
+      expectedGetConnectionsArg: undefined,
+      expected: EXPECTED_ALL_CONNECTIONS,
+    },
+    {
+      name: 'filter connections by serverUrl',
+      serverUrl: 'http://localhost:10000',
+      connections: [MOCK_CONNECTIONS[0]],
+      expectedGetConnectionsArg: new URL('http://localhost:10000'),
+      expected: EXPECTED_FILTERED_CONNECTIONS,
+    },
+    {
+      name: 'return empty list when no connections exist',
+      serverUrl: undefined,
+      connections: [],
+      expectedGetConnectionsArg: undefined,
+      expected: EXPECTED_NO_CONNECTIONS,
+    },
+  ])(
+    'should $name',
+    async ({ serverUrl, connections, expectedGetConnectionsArg, expected }) => {
+      vi.mocked(serverManager.getConnections).mockReturnValue(connections);
 
       const tool = createListConnectionsTool({ serverManager });
-      const result = await tool.handler({});
-
-      expect(serverManager.getConnections).toHaveBeenCalledWith(undefined);
-      expect(result.structuredContent).toEqual({
-        success: true,
-        message: 'Found 2 connection(s)',
-        details: {
-          connections: MOCK_CONNECTIONS.map(c => ({
-            ...c,
-            serverUrl: c.serverUrl.toString(),
-          })),
-        },
-        executionTimeMs: MOCK_EXECUTION_TIME_MS,
-      });
-    });
-
-    it('should filter connections by serverUrl', async () => {
-      const filteredConnections = [MOCK_CONNECTIONS[0]];
-      vi.mocked(serverManager.getConnections).mockReturnValue(
-        filteredConnections
-      );
-
-      const tool = createListConnectionsTool({ serverManager });
-      const result = await tool.handler({
-        serverUrl: 'http://localhost:10000',
-      });
+      const result = await tool.handler({ serverUrl });
 
       expect(serverManager.getConnections).toHaveBeenCalledWith(
-        new URL('http://localhost:10000')
+        expectedGetConnectionsArg
       );
-      expect(result.structuredContent).toEqual({
-        success: true,
-        message: 'Found 1 connection(s)',
-        details: {
-          connections: filteredConnections.map(c => ({
-            ...c,
-            serverUrl: c.serverUrl.toString(),
-          })),
-        },
-        executionTimeMs: MOCK_EXECUTION_TIME_MS,
-      });
+      expect(result.structuredContent).toEqual(expected);
+    }
+  );
+
+  it('should handle invalid URL', async () => {
+    const tool = createListConnectionsTool({ serverManager });
+    const result = await tool.handler({ serverUrl: 'invalid-url' });
+
+    expect(result.structuredContent).toEqual(EXPECTED_INVALID_URL);
+    expect(serverManager.getConnections).not.toHaveBeenCalled();
+  });
+
+  it('should handle errors from serverManager', async () => {
+    const error = new Error('Connection error');
+    vi.mocked(serverManager.getConnections).mockImplementation(() => {
+      throw error;
     });
 
-    it('should return empty list when no connections exist', async () => {
-      vi.mocked(serverManager.getConnections).mockReturnValue([]);
+    const tool = createListConnectionsTool({ serverManager });
+    const result = await tool.handler({});
 
-      const tool = createListConnectionsTool({ serverManager });
-      const result = await tool.handler({});
-
-      expect(result.structuredContent).toEqual({
-        success: true,
-        message: 'Found 0 connection(s)',
-        details: {
-          connections: [],
-        },
-        executionTimeMs: MOCK_EXECUTION_TIME_MS,
-      });
-    });
-
-    it('should handle invalid URL', async () => {
-      const tool = createListConnectionsTool({ serverManager });
-      const result = await tool.handler({ serverUrl: 'invalid-url' });
-
-      expect(result.structuredContent).toEqual({
-        success: false,
-        message: 'Invalid URL: Invalid URL',
-        details: { serverUrl: 'invalid-url' },
-        executionTimeMs: MOCK_EXECUTION_TIME_MS,
-      });
-      expect(serverManager.getConnections).not.toHaveBeenCalled();
-    });
-
-    it('should handle errors from serverManager', async () => {
-      const error = new Error('Connection error');
-      vi.mocked(serverManager.getConnections).mockImplementation(() => {
-        throw error;
-      });
-
-      const tool = createListConnectionsTool({ serverManager });
-      const result = await tool.handler({});
-
-      expect(result.structuredContent).toEqual({
-        success: false,
-        message: 'Failed to list connections: Connection error',
-        executionTimeMs: MOCK_EXECUTION_TIME_MS,
-      });
-    });
+    expect(result.structuredContent).toEqual(EXPECTED_ERROR);
   });
 });
