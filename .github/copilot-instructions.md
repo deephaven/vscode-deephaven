@@ -17,6 +17,22 @@
 - Use `vscode.languages.createDiagnosticCollection()` instead of manually mocking DiagnosticCollection
 - If a needed mock doesn't exist, add it to `__mocks__/vscode.ts` so other tests can reuse it
 
+### Test Structure
+
+- **PREFER** `it.each` matrices when testing multiple input/output scenarios
+- Use matrices for parameterized tests with different inputs and expected outputs
+- Matrices improve test readability and reduce code duplication
+- Example:
+  ```typescript
+  it.each([
+    { input: 'invalid', expected: { success: false, error: 'Invalid input' } },
+    { input: 'valid', expected: { success: true, data: 'result' } },
+  ])('should handle $input correctly', async ({ input, expected }) => {
+    const result = await handler({ value: input });
+    expect(result).toEqual(expected);
+  });
+  ```
+
 ## Code Style
 
 ### Import Order

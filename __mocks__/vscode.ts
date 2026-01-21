@@ -17,6 +17,13 @@ export enum DiagnosticSeverity {
 
 export class Diagnostic {}
 
+export enum FileType {
+  Unknown = 0,
+  File = 1,
+  Directory = 2,
+  SymbolicLink = 64,
+}
+
 export class DiagnosticCollection
   implements Iterable<[Uri, readonly Diagnostic[]]>
 {
@@ -298,6 +305,10 @@ export const workspace = {
       onDidCreate: vi.fn().mockName('onDidCreate'),
       onDidDelete: vi.fn().mockName('onDidDelete'),
     }),
+  fs: {
+    stat: vi.fn().mockName('stat'),
+    readFile: vi.fn().mockName('readFile'),
+  },
   getConfiguration: vi
     .fn()
     .mockName('getConfiguration')
