@@ -8,5 +8,6 @@ e2e-testing/.resources
 e2e-testing/.test-extensions
 e2e-testing/test-ws/.vscode/settings.json
 test-reports/
+coverage/
 tsconfig.tsbuildinfo
 .env*.local
