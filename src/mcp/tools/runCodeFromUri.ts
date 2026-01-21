@@ -3,17 +3,13 @@ import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { RUN_CODE_COMMAND, type RunCodeCmdArgs } from '../../common/commands';
 import { z } from 'zod';
 import type {
-  ConsoleType,
   McpTool,
   McpToolHandlerArg,
   McpToolHandlerResult,
 } from '../../types';
 
 import type { IServerManager } from '../../types';
-import {
-  getConnectionsForConsoleType,
-  type FilteredWorkspace,
-} from '../../services';
+import { type FilteredWorkspace } from '../../services';
 import { parseUri, parseUrl } from '../../util';
 import {
   runCodeOutputSchema,
@@ -163,13 +159,8 @@ export function createRunCodeFromUriTool({
         let hint: string | undefined;
 
         if (error instanceof ConnectionNotFoundError) {
-          const hintConnections = await getConnectionsForConsoleType(
-            serverManager.getConnections(),
-            languageId as ConsoleType
-          );
-
-          hint = createConnectionNotFoundHint(
-            hintConnections,
+          hint = await createConnectionNotFoundHint(
+            serverManager,
             connectionUrl,
             languageId
           );

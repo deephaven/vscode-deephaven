@@ -3,7 +3,7 @@ import { CONNECT_TO_SERVER_CMD } from '../../common/commands';
 import { z } from 'zod';
 import type { McpTool, McpToolHandlerResult } from '../../types';
 import type { IServerManager } from '../../types';
-import { DhcService, getConnectionsForConsoleType } from '../../services';
+import { DhcService } from '../../services';
 import { isInstanceOf, parseUrl } from '../../util';
 import {
   runCodeOutputSchema,
@@ -76,13 +76,8 @@ export function createRunCodeTool({
           const server = serverManager.getServer(parsedConnectionURL.value);
 
           if (server == null) {
-            const hintConnections = await getConnectionsForConsoleType(
-              serverManager.getConnections(),
-              languageId
-            );
-
-            const hint = createConnectionNotFoundHint(
-              hintConnections,
+            const hint = await createConnectionNotFoundHint(
+              serverManager,
               connectionUrl,
               languageId
             );

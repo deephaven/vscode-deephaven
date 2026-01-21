@@ -1,9 +1,13 @@
 import * as vscode from 'vscode';
 import { z } from 'zod';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
-import { DhcService, type FilteredWorkspace } from '../../services';
+import {
+  DhcService,
+  getConnectionsForConsoleType,
+  type FilteredWorkspace,
+} from '../../services';
 import { isInstanceOf } from '../../util';
-import type { ConnectionState } from '../../types';
+import type { ConnectionState, ConsoleType, IServerManager } from '../../types';
 
 export interface DiagnosticsError {
   uri: string;
@@ -56,16 +60,21 @@ export const runCodeOutputSchema = {
  * Creates a hint for connection not found errors based on available connections.
  * - If hintConnections has items, suggests available connections.
  * - If hintConnections is empty, indicates no available connections for the language.
- * @param hintConnections The list of available connections to suggest.
+ * @param serverManager The server manager to query for connections.
  * @param connectionUrl The connection URL that was not found.
  * @param languageId The language ID that the connection should support.
- * @returns A hint string describing available alternatives or the issue.
+ * @returns A promise that resolves to a hint string describing available alternatives or the issue.
  */
-export function createConnectionNotFoundHint(
-  hintConnections: ConnectionState[],
+export async function createConnectionNotFoundHint(
+  serverManager: IServerManager,
   connectionUrl: string | undefined,
   languageId: string
-): string {
+): Promise<string> {
+  const hintConnections = await getConnectionsForConsoleType(
+    serverManager.getConnections(),
+    languageId as ConsoleType
+  );
+
   if (hintConnections.length > 0) {
     return `Connection for URL ${connectionUrl} not found. Did you mean to use one of these connections?\n${hintConnections
       .map(c => `- ${c.serverUrl.toString()}`)
