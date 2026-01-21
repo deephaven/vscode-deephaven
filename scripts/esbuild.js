@@ -7,12 +7,12 @@ require('dotenv').config({ path: ['.env.local', '.env'] });
 
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
-const { DHC_PACKAGES_PATH } = process.env;
+const { DHC_PACKAGES_PATH, DHC_ALLOW_LOCAL_ALIAS } = process.env;
 
 const optionalPlugins = [];
 
-// Alias @deephaven/* packages to custom path
-if (DHC_PACKAGES_PATH != null) {
+// Alias @deephaven/* packages to custom path (for non-production builds or when explicitly allowed)
+if (DHC_PACKAGES_PATH != null && (!production || DHC_ALLOW_LOCAL_ALIAS)) {
   if (!fs.existsSync(DHC_PACKAGES_PATH)) {
     throw new Error(`DHC packages path ${DHC_PACKAGES_PATH} does not exist.`);
   }
