@@ -56,7 +56,7 @@ export function isWindowProxy(
  * @param msg The message to check.
  * @returns `true` if the message is a `DhLoginOptionsRequestMsg`, `false` otherwise.
  */
-export function isLoginOptionsRequest(
+export function isLoginOptionsRequestFromDh(
   msg: DhVariablePanelMsg | VscodeVariablePanelMsg
 ): msg is DhLoginOptionsRequestMsg {
   return msg.message === DH_POST_MSG.loginOptionsRequest;
@@ -67,7 +67,7 @@ export function isLoginOptionsRequest(
  * @param msg The message to check.
  * @returns `true` if the message is a `DhSessionDetailsRequestMsg`, `false` otherwise.
  */
-export function isSessionDetailsRequest(
+export function isSessionDetailsRequestFromDh(
   msg: DhVariablePanelMsg | VscodeVariablePanelMsg
 ): msg is DhSessionDetailsRequestMsg {
   return msg.message === DH_POST_MSG.sessionDetailsRequest;
@@ -78,7 +78,7 @@ export function isSessionDetailsRequest(
  * @param msg The message to check.
  * @returns `true` if the message is a `VscodeLoginOptionsResponseMsg`, `false` otherwise.
  */
-export function isLoginOptionsResponse(
+export function isLoginOptionsResponseFromVscode(
   msg: DhVariablePanelMsg | VscodeVariablePanelMsg
 ): msg is VscodeLoginOptionsResponseMsg {
   return msg.message === VSCODE_POST_MSG.loginOptionsResponse;
@@ -89,7 +89,7 @@ export function isLoginOptionsResponse(
  * @param msg The message to check.
  * @returns `true` if the message is a `VscodeSessionDetailsResponseMsg`, `false` otherwise.
  */
-export function isSessionDetailsResponse(
+export function isSessionDetailsResponseFromVscode(
   msg: DhVariablePanelMsg | VscodeVariablePanelMsg
 ): msg is VscodeSessionDetailsResponseMsg {
   return msg.message === VSCODE_POST_MSG.sessionDetailsResponse;

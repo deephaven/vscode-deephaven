@@ -1,12 +1,12 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { DH_PANEL_VIEW_TYPE, VIEW_ID } from '../common';
-import type {
-  LoginOptionsResponsePostMessage,
-  SessionDetailsResponsePostMessage,
-  WorkerInfo,
-} from '../types';
-import { VSCODE_POST_MSG } from '../shared';
+import type { WorkerInfo } from '../types';
+import {
+  VSCODE_POST_MSG,
+  type VscodeLoginOptionsResponseMsg,
+  type VscodeSessionDetailsResponseMsg,
+} from '../shared';
 import { getWebViewHtml } from './webViewUtils';
 
 /**
@@ -24,14 +24,14 @@ export function createLoginOptionsResponsePostMessage({
   id: string;
   credentials: DhcType.LoginCredentials;
   workerInfo: WorkerInfo;
-}): LoginOptionsResponsePostMessage {
+}): VscodeLoginOptionsResponseMsg {
   return {
     message: VSCODE_POST_MSG.loginOptionsResponse,
     payload: {
       id,
       payload: credentials,
     },
-    targetOrigin: workerInfo.ideUrl,
+    targetOrigin: workerInfo.ideUrl.href,
   };
 }
 
@@ -47,7 +47,7 @@ export function createSessionDetailsResponsePostMessage({
 }: {
   id: string;
   workerInfo: WorkerInfo;
-}): SessionDetailsResponsePostMessage {
+}): VscodeSessionDetailsResponseMsg {
   return {
     message: VSCODE_POST_MSG.sessionDetailsResponse,
     payload: {
@@ -57,7 +57,7 @@ export function createSessionDetailsResponsePostMessage({
         processInfoId: workerInfo.processInfoId,
       },
     },
-    targetOrigin: workerInfo.ideUrl,
+    targetOrigin: workerInfo.ideUrl.href,
   };
 }
 

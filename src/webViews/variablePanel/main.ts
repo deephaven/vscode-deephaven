@@ -1,10 +1,10 @@
 import {
   createDhIframe,
   getIframeContentWindow,
-  isLoginOptionsRequest,
-  isLoginOptionsResponse,
-  isSessionDetailsRequest,
-  isSessionDetailsResponse,
+  isLoginOptionsRequestFromDh,
+  isLoginOptionsResponseFromVscode,
+  isSessionDetailsRequestFromDh,
+  isSessionDetailsResponseFromVscode,
   Logger,
   type DhVariablePanelMsg,
   type VscodeVariablePanelMsg,
@@ -20,27 +20,27 @@ window.addEventListener(
   logger.info('Received message:', JSON.stringify(data), origin);
 
   // From DH iframe -> VS Code
-  if (isLoginOptionsRequest(data)) {
+  if (isLoginOptionsRequestFromDh(data)) {
     logger.info('Received login options request from iframe');
     vscode.postMessage({ data });
     return;
   }
 
-  if (isSessionDetailsRequest(data)) {
+  if (isSessionDetailsRequestFromDh(data)) {
     logger.info('Received session details request from iframe');
     vscode.postMessage({ data });
     return;
   }
 
   // From VS Code -> DH iframe
-  if (isLoginOptionsResponse(data)) {
+  if (isLoginOptionsResponseFromVscode(data)) {
     logger.info('Received login response from ext');
     const iframeWindow = getIframeContentWindow();
     iframeWindow.postMessage(data.payload, data.targetOrigin);
     return;
   }
 
-  if (isSessionDetailsResponse(data)) {
+  if (isSessionDetailsResponseFromVscode(data)) {
     logger.info('Received session details from ext');
     const iframeWindow = getIframeContentWindow();
     iframeWindow.postMessage(data.payload, data.targetOrigin);
