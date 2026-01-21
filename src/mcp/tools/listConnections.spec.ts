@@ -111,6 +111,13 @@ describe('listConnections', () => {
       expected: EXPECTED_FILTERED_CONNECTIONS,
     },
     {
+      name: 'return empty list when serverUrl does not match any connections',
+      serverUrl: 'http://localhost:9999',
+      connections: [],
+      expectedGetConnectionsArg: new URL('http://localhost:9999'),
+      expected: EXPECTED_NO_CONNECTIONS,
+    },
+    {
       name: 'return empty list when no connections exist',
       serverUrl: undefined,
       connections: [],
