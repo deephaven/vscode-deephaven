@@ -8,6 +8,118 @@
  */
 import { vi } from 'vitest';
 
+export enum DiagnosticSeverity {
+  Error = 0,
+  Warning = 1,
+  Information = 2,
+  Hint = 3,
+}
+
+export class Diagnostic {}
+
+export class DiagnosticCollection
+  implements Iterable<[Uri, readonly Diagnostic[]]>
+{
+  private diagnostics = new Map<string, readonly Diagnostic[]>();
+
+  readonly name: string;
+
+  constructor(name: string) {
+    this.name = name;
+  }
+
+  clear = vi
+    .fn()
+    .mockName('clear')
+    .mockImplementation(() => {
+      this.diagnostics.clear();
+    });
+
+  delete = vi
+    .fn()
+    .mockName('delete')
+    .mockImplementation((uri: Uri) => {
+      this.diagnostics.delete(uri.toString());
+    });
+
+  dispose = vi
+    .fn()
+    .mockName('dispose')
+    .mockImplementation(() => {
+      this.diagnostics.clear();
+    });
+
+  forEach = vi
+    .fn()
+    .mockName('forEach')
+    .mockImplementation(
+      (
+        callback: (
+          uri: Uri,
+          diagnostics: readonly Diagnostic[],
+          collection: DiagnosticCollection
+        ) => any,
+        thisArg?: any
+      ) => {
+        this.diagnostics.forEach((diags, uriString) => {
+          callback.call(thisArg, Uri.parse(uriString), diags, this);
+        });
+      }
+    );
+
+  get = vi
+    .fn()
+    .mockName('get')
+    .mockImplementation((uri: Uri): readonly Diagnostic[] | undefined => {
+      return this.diagnostics.get(uri.toString());
+    });
+
+  has = vi
+    .fn()
+    .mockName('has')
+    .mockImplementation((uri: Uri): boolean => {
+      return this.diagnostics.has(uri.toString());
+    });
+
+  set = vi
+    .fn()
+    .mockName('set')
+    .mockImplementation(
+      (
+        uriOrEntries:
+          | Uri
+          | ReadonlyArray<[Uri, readonly Diagnostic[] | undefined]>,
+        diagnostics?: readonly Diagnostic[] | undefined
+      ) => {
+        if (Array.isArray(uriOrEntries)) {
+          // Handle array of entries
+          for (const [uri, diags] of uriOrEntries) {
+            if (diags === undefined) {
+              this.diagnostics.delete(uri.toString());
+            } else {
+              this.diagnostics.set(uri.toString(), diags);
+            }
+          }
+        } else {
+          // Handle single URI
+          if (diagnostics === undefined) {
+            this.diagnostics.delete(uriOrEntries.toString());
+          } else {
+            this.diagnostics.set(uriOrEntries.toString(), diagnostics);
+          }
+        }
+      }
+    );
+
+  [Symbol.iterator](): Iterator<[Uri, readonly Diagnostic[]]> {
+    const entries = Array.from(this.diagnostics.entries()).map(
+      ([uriString, diags]) =>
+        [Uri.parse(uriString), diags] as [Uri, readonly Diagnostic[]]
+    );
+    return entries[Symbol.iterator]();
+  }
+}
+
 export class EventEmitter {
   fire = vi.fn().mockName('fire');
 }
@@ -224,3 +336,14 @@ export class Uri {
     return `${this.scheme}://${this.path}`;
   }
 }
+
+export const commands = {
+  executeCommand: vi.fn().mockName('executeCommand'),
+};
+
+export const languages = {
+  createDiagnosticCollection: vi
+    .fn()
+    .mockName('createDiagnosticCollection')
+    .mockImplementation((name: string) => new DiagnosticCollection(name)),
+};

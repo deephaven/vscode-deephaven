@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createListConnectionsTool } from './listConnections';
-import type { IServerManager, ConnectionState } from '../../types';
+import type { IServerManager, ConnectionState, UniqueID } from '../../types';
 import * as util from '../../util';
 import { McpToolResponse } from '../utils/mcpUtils';
 
@@ -18,15 +18,15 @@ const MOCK_CONNECTIONS: ConnectionState[] = [
     serverUrl: new URL('http://localhost:10000'),
     isConnected: true,
     isRunningCode: false,
-    tagId: 'conn1',
+    tagId: 'conn1' as UniqueID,
   },
   {
     serverUrl: new URL('http://localhost:10001'),
     isConnected: true,
     isRunningCode: true,
-    tagId: 'conn2',
+    tagId: 'conn2' as UniqueID,
   },
-] as ConnectionState[];
+] as const;
 
 const MOCK_EXECUTION_TIME_MS = 100;
 
