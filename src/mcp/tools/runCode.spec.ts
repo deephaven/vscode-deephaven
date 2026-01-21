@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createRunCodeTool } from './runCode';
 import type { IServerManager } from '../../types';
+import { McpToolResponse } from '../utils/mcpUtils';
 
 vi.mock('vscode');
+
+const MOCK_EXECUTION_TIME_MS = 100;
 
 describe('runCode tool', () => {
   let serverManager: IServerManager;
@@ -10,21 +13,24 @@ describe('runCode tool', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
+    // Mock getElapsedTimeMs to return a fixed value
+    vi.spyOn(McpToolResponse.prototype, 'getElapsedTimeMs').mockReturnValue(
+      MOCK_EXECUTION_TIME_MS
+    );
+
     serverManager = {
       getConnections: vi.fn(),
       getServer: vi.fn(),
     } as unknown as IServerManager;
   });
 
-  describe('spec', () => {
-    it('should have correct spec', () => {
-      const tool = createRunCodeTool({ serverManager });
-      expect(tool.name).toBe('runCode');
-      expect(tool.spec.title).toBe('Run Deephaven Code');
-      expect(tool.spec.description).toBe(
-        'Execute arbitrary code text in a Deephaven session. Use this for ad-hoc script execution. For running code from workspace files, use runCodeFromUri instead.'
-      );
-    });
+  it('should have correct spec', () => {
+    const tool = createRunCodeTool({ serverManager });
+    expect(tool.name).toBe('runCode');
+    expect(tool.spec.title).toBe('Run Deephaven Code');
+    expect(tool.spec.description).toBe(
+      'Execute arbitrary code text in a Deephaven session. Use this for ad-hoc script execution. For running code from workspace files, use runCodeFromUri instead.'
+    );
   });
 
   describe('input validation', () => {
@@ -39,7 +45,7 @@ describe('runCode tool', () => {
       expect(result.structuredContent).toEqual({
         success: false,
         message: `Invalid languageId: 'javascript'. Must be "python" or "groovy".`,
-        executionTimeMs: expect.any(Number),
+        executionTimeMs: MOCK_EXECUTION_TIME_MS,
       });
       expect(serverManager.getConnections).not.toHaveBeenCalled();
     });
@@ -74,7 +80,7 @@ describe('runCode tool', () => {
         success: false,
         message: 'Invalid URL: Invalid URL',
         details: { connectionUrl: 'not-a-url' },
-        executionTimeMs: expect.any(Number),
+        executionTimeMs: MOCK_EXECUTION_TIME_MS,
       });
       expect(serverManager.getConnections).not.toHaveBeenCalled();
     });
@@ -97,7 +103,7 @@ describe('runCode tool', () => {
         message: 'No connections or server found',
         details: { connectionUrl: 'http://localhost:10000' },
         hint: expect.any(String),
-        executionTimeMs: expect.any(Number),
+        executionTimeMs: MOCK_EXECUTION_TIME_MS,
       });
     });
 
@@ -118,7 +124,7 @@ describe('runCode tool', () => {
         success: false,
         message: 'Failed to execute code: Unexpected error',
         details: { languageId: 'python' },
-        executionTimeMs: expect.any(Number),
+        executionTimeMs: MOCK_EXECUTION_TIME_MS,
       });
     });
   });

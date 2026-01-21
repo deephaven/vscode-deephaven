@@ -110,6 +110,15 @@ export class McpToolResponse {
   }
 
   /**
+   * Gets the elapsed time in milliseconds since this response object was created.
+   *
+   * @returns Elapsed time in milliseconds.
+   */
+  getElapsedTimeMs(): number {
+    return performance.now() - this.startTimeMs;
+  }
+
+  /**
    * Creates a successful MCP tool result.
    *
    * Automatically calculates and includes execution time from when the
@@ -126,7 +135,7 @@ export class McpToolResponse {
     return mcpToolResult(
       true,
       message,
-      performance.now() - this.startTimeMs,
+      this.getElapsedTimeMs(),
       undefined,
       details
     );
@@ -174,7 +183,7 @@ export class McpToolResponse {
     return mcpToolResult(
       false,
       formatErrorMessage(errorMessage, error),
-      performance.now() - this.startTimeMs,
+      this.getElapsedTimeMs(),
       hint,
       details
     );
