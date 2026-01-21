@@ -88,7 +88,7 @@ const EXPECTED_SERVER_NOT_RUNNING = {
 
 const EXPECTED_NOT_DHC_SERVICE = {
   success: false,
-  message: 'Code execution is only supported for DHC connections.',
+  message: 'Code execution is only supported for Core / Core+ connections.',
   details: { connectionUrl: 'http://localhost:10000' },
   executionTimeMs: MOCK_EXECUTION_TIME_MS,
 } as const;

@@ -121,7 +121,7 @@ export function createRunCodeTool({
         // elsewhere
         if (!isInstanceOf(connection, DhcService)) {
           return response.error(
-            'Code execution is only supported for DHC connections.',
+            'Code execution is only supported for Core / Core+ connections.',
             null,
             { connectionUrl }
           );
