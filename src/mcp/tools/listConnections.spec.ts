@@ -65,9 +65,9 @@ const EXPECTED_INVALID_URL = {
   executionTimeMs: MOCK_EXECUTION_TIME_MS,
 } as const;
 
-const EXPECTED_ERROR = {
+const EXPECTED_GET_CONNECTIONS_ERROR = {
   success: false,
-  message: 'Failed to list connections: Connection error',
+  message: 'Failed to list connections: getConnections error',
   executionTimeMs: MOCK_EXECUTION_TIME_MS,
 } as const;
 
@@ -147,15 +147,24 @@ describe('listConnections', () => {
     expect(serverManager.getConnections).not.toHaveBeenCalled();
   });
 
-  it('should handle errors from serverManager', async () => {
-    const error = new Error('Connection error');
+  it.each([
+    {
+      name: 'with undefined serverUrl',
+      serverUrl: undefined,
+    },
+    {
+      name: 'with valid serverUrl',
+      serverUrl: 'http://localhost:10000',
+    },
+  ])('should handle errors from serverManager $name', async ({ serverUrl }) => {
+    const error = new Error('getConnections error');
     vi.mocked(serverManager.getConnections).mockImplementation(() => {
       throw error;
     });
 
     const tool = createListConnectionsTool({ serverManager });
-    const result = await tool.handler({});
+    const result = await tool.handler({ serverUrl });
 
-    expect(result.structuredContent).toEqual(EXPECTED_ERROR);
+    expect(result.structuredContent).toEqual(EXPECTED_GET_CONNECTIONS_ERROR);
   });
 });
