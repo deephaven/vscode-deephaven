@@ -15,7 +15,13 @@ export enum DiagnosticSeverity {
   Hint = 3,
 }
 
-export class Diagnostic {}
+export class Diagnostic {
+  constructor(
+    public range: Range,
+    public message: string,
+    public severity?: DiagnosticSeverity
+  ) {}
+}
 
 export enum FileType {
   Unknown = 0,

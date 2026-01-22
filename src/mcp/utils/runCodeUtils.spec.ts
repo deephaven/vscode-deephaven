@@ -96,9 +96,7 @@ function createPythonWorkspace(
 ): FilteredWorkspace {
   const roots = workspaces.map(nodes => nodes[0] as FilteredWorkspaceRootNode);
 
-  const nodeMap = new URIMap(
-    workspaces.map(([root, ...nodes]) => [root.uri, nodes])
-  );
+  const nodeMap = new URIMap(workspaces.map(nodes => [nodes[0].uri, nodes]));
 
   const workspace: FilteredWorkspace = {
     getChildNodes: vi.fn(),
@@ -120,9 +118,9 @@ beforeEach(() => {
 });
 
 describe('getDiagnosticsErrors', () => {
-  const uri = vscode.Uri.file('/test.py');
-  const uri1 = vscode.Uri.file('/file1.py');
-  const uri2 = vscode.Uri.file('/file2.py');
+  const uri = vscode.Uri.parse('file:///test.py');
+  const uri1 = vscode.Uri.parse('file:///file1.py');
+  const uri2 = vscode.Uri.parse('file:///file2.py');
 
   const DIAGNOSTICS_WITH_MIXED_SEVERITIES = createDiagnosticCollection('test', [
     [
@@ -368,43 +366,43 @@ describe('createConnectionNotFoundHint', () => {
 
 describe('createPythonModuleImportErrorHint', () => {
   const wkspRoot: RemoteImportSourceTreeFolderElement = {
-    uri: vscode.Uri.file('/workspace'),
+    uri: vscode.Uri.parse('file:///workspace'),
     name: 'workspace',
     type: 'folder',
     isMarked: false,
   };
 
   const pandasFolder: RemoteImportSourceTreeFolderElement = {
-    uri: vscode.Uri.file('/workspace/pandas'),
+    uri: vscode.Uri.parse('file:///workspace/pandas'),
     name: 'pandas',
     type: 'folder',
     isMarked: false,
   };
 
   const pandasFile: RemoteImportSourceTreeFileElement = {
-    uri: vscode.Uri.file('/workspace/pandas.py'),
+    uri: vscode.Uri.parse('file:///workspace/pandas.py'),
     name: 'pandas',
     type: 'file',
     isMarked: false,
   };
 
   const numpyFolder: RemoteImportSourceTreeFolderElement = {
-    uri: vscode.Uri.file('/workspace/numpy'),
+    uri: vscode.Uri.parse('file:///workspace/numpy'),
     name: 'numpy',
     type: 'folder',
     isMarked: false,
   };
 
   const wksp2Root: RemoteImportSourceTreeFolderElement = {
-    uri: vscode.Uri.file('/workspace2'),
+    uri: vscode.Uri.parse('file:///workspace2'),
     name: 'workspace2',
     type: 'folder',
     isMarked: false,
   };
 
-  const scipyFolder: RemoteImportSourceTreeFolderElement = {
-    uri: vscode.Uri.file('/workspace2/scipy'),
-    name: 'scipy',
+  const wksp2NumpyFolder: RemoteImportSourceTreeFolderElement = {
+    uri: vscode.Uri.parse('file:///workspace2/numpy'),
+    name: 'numpy',
     type: 'folder',
     isMarked: false,
   };
@@ -436,7 +434,7 @@ describe('createPythonModuleImportErrorHint', () => {
       errors: DIAGNOSTIC_ERRORS_WITH_MODULE_IMPORT,
       hasPlugin: true,
       workspaces: [[wkspRoot, pandasFolder]],
-      expected: `If this is a package in your workspace, try adding its folder as a remote file source.\n- ${vscode.Uri.file('/workspace/pandas').toString()}`,
+      expected: `If this is a package in your workspace, try adding its folder as a remote file source.\n- ${vscode.Uri.parse('file:///workspace/pandas').toString()}`,
     },
     {
       name: 'handle multiple import errors and find matching folders',
@@ -459,16 +457,18 @@ describe('createPythonModuleImportErrorHint', () => {
       hasPlugin: true,
       workspaces: [
         [wkspRoot, pandasFolder],
-        [wksp2Root, scipyFolder],
+        [wksp2Root, wksp2NumpyFolder],
       ],
-      expected: `If this is a package in your workspace, try adding its folder as a remote file source.\n- ${pandasFolder.uri.toString()}\n- ${scipyFolder.uri.toString()}`,
+      expected: `If this is a package in your workspace, try adding its folder as a remote file source.\n- ${pandasFolder.uri.toString()}\n- ${wksp2NumpyFolder.uri.toString()}`,
     },
   ])('should $name', async ({ errors, hasPlugin, workspaces, expected }) => {
     const pythonWorkspace = createPythonWorkspace(...workspaces);
 
     vi.mocked(isInstanceOf).mockReturnValue(hasPlugin);
 
-    const connection = {} as ConnectionState;
+    const connection = {
+      hasRemoteFileSourcePlugin: vi.fn().mockReturnValue(hasPlugin),
+    } as unknown as ConnectionState;
     const hint = createPythonModuleImportErrorHint(
       errors,
       connection,
