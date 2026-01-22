@@ -1,0 +1,17 @@
+html {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  --vscode-dh-panel-padding-top: 20px;
+  padding-top: var(--vscode-dh-panel-padding-top);
+  height: calc(100vh - var(--vscode-dh-panel-padding-top));
+  overflow: hidden;
+}
+
+iframe {
+  border: none;
+  width: 100%;
+  height: 100%;
+}

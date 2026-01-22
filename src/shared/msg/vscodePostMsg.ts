@@ -1,3 +1,4 @@
+import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type {
   BaseThemeKey,
   CreateWorkerIframeSettings,
@@ -87,3 +88,32 @@ export type VscodeGetPropertyResponseMsg<
     value: TValue;
   }
 >;
+
+/**
+ * Variable panel VS Code messages
+ */
+export type VscodeLoginOptionsResponseMsg = {
+  message: typeof VSCODE_POST_MSG.loginOptionsResponse;
+  payload: {
+    id: string;
+    payload: DhcType.LoginCredentials;
+  };
+  targetOrigin: string;
+};
+
+export type VscodeSessionDetailsResponseMsg = {
+  message: typeof VSCODE_POST_MSG.sessionDetailsResponse;
+  payload: {
+    id: string;
+    payload: {
+      workerName: string | null;
+      processInfoId: string | null;
+    };
+  };
+  targetOrigin: string;
+};
+
+export type VscodeVariablePanelMsg =
+  | VscodeLoginOptionsResponseMsg
+  | VscodeSessionDetailsResponseMsg;
+

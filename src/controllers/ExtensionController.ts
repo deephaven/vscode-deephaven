@@ -343,6 +343,7 @@ export class ExtensionController implements IDisposable {
     assertDefined(this._serverManager, 'serverManager');
 
     this._panelController = new PanelController(
+      this._context.extensionUri,
       this._serverManager,
       this._panelService
     );
