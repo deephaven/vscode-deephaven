@@ -17,6 +17,17 @@
 - Use `vscode.languages.createDiagnosticCollection()` instead of manually mocking DiagnosticCollection
 - If a needed mock doesn't exist, add it to `__mocks__/vscode.ts` so other tests can reuse it
 
+### Mocking Module Dependencies
+
+- **PREFER** mocking specific modules over barrel exports (e.g., `../../services/DhcService` instead of `../../services`)
+- Targeting specific modules makes tests more maintainable and reduces the risk of unintended side effects
+- Only use barrel exports when mocking the entire module is necessary
+
+### Test Data Setup
+
+- **PREFER** const variables or factory functions for test data that's reused across tests
+- Factory functions are useful when test data needs slight variations between tests
+
 ### Test Structure
 
 - **PREFER** `it.each` matrices when testing multiple input/output scenarios

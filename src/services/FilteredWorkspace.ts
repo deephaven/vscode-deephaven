@@ -39,10 +39,11 @@ const PYTHON_IGNORE_TOP_LEVEL_FOLDER_NAMES: Set<FolderName> =
     '*.egg-info',
   ] as Array<FolderName>);
 
-type FilteredWorkspaceRootNode = RemoteImportSourceTreeWkspRootFolderElement;
-type FilteredWorkspaceTopLevelMarkedNode =
+export type FilteredWorkspaceRootNode =
+  RemoteImportSourceTreeWkspRootFolderElement;
+export type FilteredWorkspaceTopLevelMarkedNode =
   RemoteImportSourceTreeTopLevelMarkedFolderElement;
-type FilteredWorkspaceNode =
+export type FilteredWorkspaceNode =
   | RemoteImportSourceTreeFileElement
   | RemoteImportSourceTreeFolderElement;
 
