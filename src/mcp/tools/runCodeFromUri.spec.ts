@@ -130,29 +130,30 @@ const EXPECTED_CODE_EXECUTION_FAILED_NO_HINT = {
 } as const;
 
 describe('runCodeFromUri tool', () => {
-  let serverManager: IServerManager;
-  let pythonDiagnostics: vscode.DiagnosticCollection;
-  let pythonWorkspace: FilteredWorkspace;
+  const pythonDiagnostics: vscode.DiagnosticCollection =
+    vscode.languages.createDiagnosticCollection('python');
+
+  const pythonWorkspace = {
+    getUserFiles: vi.fn(),
+  } as unknown as FilteredWorkspace;
+
+  const serverManager = {
+    getConnections: vi.fn(),
+    getServer: vi.fn(),
+    getUriConnection: vi.fn(),
+  } as unknown as IServerManager;
 
   beforeEach(() => {
+    // clear diagnostics before `clearAllMocks` since `clear` is actually a mock
+    // and we also want to reset its call count
+    pythonDiagnostics.clear();
+
     vi.clearAllMocks();
 
     // Mock getElapsedTimeMs to return a fixed value
     vi.spyOn(McpToolResponse.prototype, 'getElapsedTimeMs').mockReturnValue(
       MOCK_EXECUTION_TIME_MS
     );
-
-    pythonDiagnostics = vscode.languages.createDiagnosticCollection('python');
-
-    pythonWorkspace = {
-      getUserFiles: vi.fn(),
-    } as unknown as FilteredWorkspace;
-
-    serverManager = {
-      getConnections: vi.fn(),
-      getServer: vi.fn(),
-      getUriConnection: vi.fn(),
-    } as unknown as IServerManager;
   });
 
   it('should have correct spec', () => {
