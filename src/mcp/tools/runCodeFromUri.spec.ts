@@ -10,11 +10,11 @@ import {
   createPythonModuleImportErrorHint,
   getDiagnosticsErrors,
   type DiagnosticsError,
-} from '../utils';
+} from '../utils/runCodeUtils';
 
 vi.mock('vscode');
-vi.mock('../utils', async () => {
-  const actual = await vi.importActual<typeof import('../utils')>('../utils');
+vi.mock('../utils/runCodeUtils', async () => {
+  const actual = await vi.importActual('../utils/runCodeUtils');
   return {
     ...actual,
     createPythonModuleImportErrorHint: vi.fn(),

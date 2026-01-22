@@ -340,10 +340,10 @@ describe('runCode tool', () => {
 
       expect(result.structuredContent).toEqual(EXPECTED_SUCCESS_WITH_VARIABLES);
 
-      expect(mockExecuteCommand).toHaveBeenCalledWith(
-        'vscode-deephaven.connectToServer',
-        { type: 'DHC', url: new URL('http://localhost:10000') }
-      );
+      expect(mockExecuteCommand).toHaveBeenCalledWith(CONNECT_TO_SERVER_CMD, {
+        type: 'DHC',
+        url: new URL('http://localhost:10000'),
+      });
     });
   });
 });
