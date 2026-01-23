@@ -11,7 +11,10 @@ export class McpServerDefinitionProvider
   extends DisposableBase
   implements vscode.McpServerDefinitionProvider
 {
-  constructor(private readonly mcpServer: McpServer) {
+  constructor(
+    private readonly version: string | undefined,
+    private readonly mcpServer: McpServer
+  ) {
     super();
   }
 
@@ -34,11 +37,8 @@ export class McpServerDefinitionProvider
       new vscode.McpHttpServerDefinition(
         MCP_SERVER_NAME,
         vscode.Uri.parse(`http://localhost:${port}/mcp`),
-        {
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          API_VERSION: '1.0.0',
-        },
-        '1.0.0'
+        undefined,
+        this.version // Important to tell VS Code when MCP tools may have changed
       ),
     ];
   }
