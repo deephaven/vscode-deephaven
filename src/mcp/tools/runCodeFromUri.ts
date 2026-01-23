@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
-import type { dh as DhcType } from '@deephaven/jsapi-types';
-import { RUN_CODE_COMMAND, type RunCodeCmdArgs } from '../../common/commands';
+import { execRunCode } from '../../common/commands';
 import { z } from 'zod';
 import type {
   McpTool,
@@ -97,22 +96,13 @@ export function createRunCodeFromUriTool({
       const languageId = document.languageId;
 
       try {
-        // This is split out into an Array so that we can get type safety for
-        // the command args since the signature for `vscode.commands.executeCommand`
-        // takes ...any[]
-        const cmdArgs: RunCodeCmdArgs = [
+        const result = await execRunCode(
           parsedUriResult.value,
           undefined,
           constrainTo,
           languageId,
-          parsedURLResult.value ?? undefined,
-        ];
-
-        const result =
-          await vscode.commands.executeCommand<DhcType.ide.CommandResult | null>(
-            RUN_CODE_COMMAND,
-            ...cmdArgs
-          );
+          parsedURLResult.value ?? undefined
+        );
 
         // Extract variables from result
         const variables = extractVariables(result);
