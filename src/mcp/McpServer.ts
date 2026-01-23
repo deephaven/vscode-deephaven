@@ -6,6 +6,7 @@ import type { IServerManager, McpTool, McpToolSpec } from '../types';
 import { MCP_SERVER_NAME } from '../common';
 import {
   createListConnectionsTool,
+  createListServersTool,
   createRunCodeFromUriTool,
   createRunCodeTool,
 } from './tools';
@@ -45,6 +46,7 @@ export class McpServer extends DisposableBase {
     this.registerTool(createRunCodeTool(this));
     this.registerTool(createRunCodeFromUriTool(this));
     this.registerTool(createListConnectionsTool(this));
+    this.registerTool(createListServersTool(this));
   }
 
   private registerTool<Spec extends McpToolSpec>({
