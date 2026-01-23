@@ -32,7 +32,7 @@ export type McpToolResult<TSuccess extends boolean, TDetails = unknown> = {
  */
 export function formatErrorMessage(
   errorMessage: string,
-  error: unknown
+  error?: unknown
 ): string {
   if (error == null) {
     return errorMessage;
@@ -110,6 +110,15 @@ export class McpToolResponse {
   }
 
   /**
+   * Gets the elapsed time in milliseconds since this response object was created.
+   *
+   * @returns Elapsed time in milliseconds.
+   */
+  getElapsedTimeMs(): number {
+    return performance.now() - this.startTimeMs;
+  }
+
+  /**
    * Creates a successful MCP tool result.
    *
    * Automatically calculates and includes execution time from when the
@@ -126,7 +135,7 @@ export class McpToolResponse {
     return mcpToolResult(
       true,
       message,
-      performance.now() - this.startTimeMs,
+      this.getElapsedTimeMs(),
       undefined,
       details
     );
@@ -146,7 +155,7 @@ export class McpToolResponse {
    */
   error<TDetails = unknown>(
     errorMessage: string,
-    error: unknown,
+    error?: unknown,
     details?: TDetails
   ): McpToolResult<false, TDetails> {
     return this.errorWithHint(errorMessage, error, undefined, details);
@@ -167,14 +176,14 @@ export class McpToolResponse {
    */
   errorWithHint<TDetails = unknown>(
     errorMessage: string,
-    error: unknown,
+    error?: unknown,
     hint?: string,
     details?: TDetails
   ): McpToolResult<false, TDetails> {
     return mcpToolResult(
       false,
       formatErrorMessage(errorMessage, error),
-      performance.now() - this.startTimeMs,
+      this.getElapsedTimeMs(),
       hint,
       details
     );

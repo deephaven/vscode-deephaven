@@ -17,3 +17,12 @@ export function getMsPythonExtensionApi():
     MS_PYTHON_EXTENSION_ID
   );
 }
+
+/** Get the extension version from the ExtensionContext */
+export function getExtensionVersion(context: vscode.ExtensionContext): string {
+  const version = context.extension.packageJSON.version;
+  if (typeof version !== 'string') {
+    throw new Error('Extension version is not a string');
+  }
+  return version;
+}

@@ -4,7 +4,7 @@ import { McpServer } from '../mcp';
 import { McpServerDefinitionProvider } from '../providers';
 import type { IServerManager, IConfigService } from '../types';
 import type { FilteredWorkspace } from '../services';
-import { isWindsurf, Logger } from '../util';
+import { getExtensionVersion, isWindsurf, Logger } from '../util';
 import {
   COPY_MCP_URL_CMD,
   MCP_SERVER_NAME,
@@ -135,6 +135,7 @@ export class McpController extends ControllerBase {
 
       // Register provider for VS Code Copilot
       this._mcpServerDefinitionProvider = new McpServerDefinitionProvider(
+        getExtensionVersion(this._context),
         this._mcpServer
       );
       this.disposables.push(this._mcpServerDefinitionProvider);

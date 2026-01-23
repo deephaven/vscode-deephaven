@@ -41,6 +41,7 @@ import {
 import {
   deserializeRange,
   getEditorForUri,
+  getExtensionVersion,
   getTempDir,
   isInstanceOf,
   isSerializedRange,
@@ -137,7 +138,7 @@ export class ExtensionController implements IDisposable {
     this._context = context;
     this._config = configService;
     this._instanceId = uniqueId(8);
-    this._version = this._context.extension.packageJSON.version;
+    this._version = getExtensionVersion(this._context);
 
     const envInfo = {
       /* eslint-disable @typescript-eslint/naming-convention */

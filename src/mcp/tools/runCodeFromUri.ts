@@ -3,17 +3,13 @@ import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { RUN_CODE_COMMAND, type RunCodeCmdArgs } from '../../common/commands';
 import { z } from 'zod';
 import type {
-  ConsoleType,
   McpTool,
   McpToolHandlerArg,
   McpToolHandlerResult,
 } from '../../types';
 
 import type { IServerManager } from '../../types';
-import {
-  getConnectionsForConsoleType,
-  type FilteredWorkspace,
-} from '../../services';
+import { type FilteredWorkspace } from '../../services';
 import { parseUri, parseUrl } from '../../util';
 import {
   runCodeOutputSchema,
@@ -21,6 +17,7 @@ import {
   getDiagnosticsErrors,
   createPythonModuleImportErrorHint,
   formatDiagnosticError,
+  createConnectionNotFoundHint,
   McpToolResponse,
 } from '../utils';
 import { assertDefined } from '../../shared';
@@ -112,7 +109,7 @@ export function createRunCodeFromUriTool({
         ];
 
         const result =
-          await vscode.commands.executeCommand<DhcType.ide.CommandResult>(
+          await vscode.commands.executeCommand<DhcType.ide.CommandResult | null>(
             RUN_CODE_COMMAND,
             ...cmdArgs
           );
@@ -120,7 +117,7 @@ export function createRunCodeFromUriTool({
         // Extract variables from result
         const variables = extractVariables(result);
 
-        if (result.error) {
+        if (result?.error) {
           let errorMsg = result.error;
           let hint: string | undefined;
 
@@ -162,18 +159,11 @@ export function createRunCodeFromUriTool({
         let hint: string | undefined;
 
         if (error instanceof ConnectionNotFoundError) {
-          const hintConnections = await getConnectionsForConsoleType(
-            serverManager.getConnections(),
-            languageId as ConsoleType
+          hint = await createConnectionNotFoundHint(
+            serverManager,
+            connectionUrl,
+            languageId
           );
-
-          if (hintConnections.length > 0) {
-            hint = `Connection for URL ${connectionUrl} not found. Did you mean to use one of these connections?\n${hintConnections
-              .map(c => `- ${c.serverUrl.toString()}`)
-              .join('\n')}`;
-          } else {
-            hint = `No available connections supporting languageId ${languageId}.`;
-          }
         }
 
         return response.errorWithHint('Failed to execute code', error, hint, {
