@@ -31,9 +31,11 @@ type HandlerArg = McpToolHandlerArg<Spec>;
 type HandlerResult = McpToolHandlerResult<Spec>;
 type ConnectToServerTool = McpTool<Spec>;
 
-export function createConnectToServerTool(
-  serverManager: IServerManager
-): ConnectToServerTool {
+export function createConnectToServerTool({
+  serverManager,
+}: {
+  serverManager: IServerManager;
+}): ConnectToServerTool {
   return {
     name: 'connectToServer',
     spec,
@@ -41,6 +43,7 @@ export function createConnectToServerTool(
       const response = new McpToolResponse();
 
       const parsedUrlResult = parseUrl(url);
+
       if (!parsedUrlResult.success) {
         return response.errorWithHint(
           'Invalid server URL',
@@ -50,9 +53,9 @@ export function createConnectToServerTool(
         );
       }
 
-      const serverUrl = parsedUrlResult.value;
-      const server = serverManager.getServer(serverUrl);
-      if (!server) {
+      const server = serverManager.getServer(parsedUrlResult.value);
+
+      if (server == null) {
         return response.errorWithHint(
           'Server not found',
           undefined,
@@ -62,7 +65,11 @@ export function createConnectToServerTool(
       }
 
       try {
-        await execConnectToServer({ type: server.type, url: serverUrl });
+        await execConnectToServer({
+          type: server.type,
+          url: parsedUrlResult.value,
+        });
+
         return response.success('Connecting to server', {
           type: server.type,
           url,
