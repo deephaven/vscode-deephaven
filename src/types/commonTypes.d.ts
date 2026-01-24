@@ -21,6 +21,15 @@ export type ParseSuccessOrError<T> = ParseSuccess<T> | ParseError;
 
 export type UniqueID = Brand<'UniqueID', string>;
 
+export type McpVersion = Brand<'McpVersion', string>;
+
+export type ExtensionInfo = {
+  instanceId: UniqueID;
+  version: string;
+  mode: vscode.ExtensionMode;
+  mcpVersion: McpVersion;
+};
+
 export type Port = Brand<'Port', number>;
 
 export type ConnectionType = 'DHC';

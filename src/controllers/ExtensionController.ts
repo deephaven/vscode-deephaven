@@ -39,9 +39,9 @@ import {
   type ViewID,
 } from '../common';
 import {
+  createExtensionInfo,
   deserializeRange,
   getEditorForUri,
-  getExtensionVersion,
   getTempDir,
   isInstanceOf,
   isSerializedRange,
@@ -54,7 +54,6 @@ import {
   saveLogFiles,
   serializeRefreshToken,
   Toaster,
-  uniqueId,
   URLMap,
   withResolvers,
 } from '../util';
@@ -108,6 +107,7 @@ import type {
   ConnectionState,
   WorkerURL,
   UniqueID,
+  ExtensionInfo,
   SerializedRange,
   CodeBlock,
   IInteractiveConsoleQueryFactory,
@@ -137,14 +137,13 @@ export class ExtensionController implements IDisposable {
   constructor(context: vscode.ExtensionContext, configService: IConfigService) {
     this._context = context;
     this._config = configService;
-    this._instanceId = uniqueId(8);
-    this._version = getExtensionVersion(this._context);
+    this._extensionInfo = createExtensionInfo(this._context);
 
     const envInfo = {
       /* eslint-disable @typescript-eslint/naming-convention */
       'VS Code version': vscode.version,
-      'Deephaven Extension version': this._version,
-      'Deephaven Extension instanceId': this._instanceId,
+      'Deephaven Extension version': this._extensionInfo.version,
+      'Deephaven Extension instanceId': this._extensionInfo.instanceId,
       'Electron version': process.versions.electron,
       'Chromium version': process.versions.chrome,
       'Node version': process.versions.node,
@@ -166,8 +165,7 @@ export class ExtensionController implements IDisposable {
 
   private readonly _context: vscode.ExtensionContext;
   private readonly _config: IConfigService;
-  private readonly _instanceId: UniqueID;
-  private readonly _version: string;
+  private readonly _extensionInfo: ExtensionInfo;
   private readonly _envInfoText: string;
 
   private _codeBlockCache: ParsedDocumentCache<CodeBlock[]> | null = null;
@@ -426,6 +424,7 @@ export class ExtensionController implements IDisposable {
     this._mcpController = new McpController(
       this._context,
       this._config,
+      this._extensionInfo.mcpVersion,
       this._serverManager,
       this._pythonDiagnostics,
       this._pythonWorkspace
@@ -486,7 +485,10 @@ export class ExtensionController implements IDisposable {
     Logger.addConsoleHandler();
     Logger.addOutputChannelHandler(this._outputChannelDebug);
 
-    this._logFileHandler = new LogFileHandler(this._instanceId, this._context);
+    this._logFileHandler = new LogFileHandler(
+      this._extensionInfo.instanceId,
+      this._context
+    );
     Logger.handlers.add(this._logFileHandler);
 
     const gRPCOutputChannelHandler = Logger.createOutputChannelHandler(

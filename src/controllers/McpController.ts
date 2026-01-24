@@ -2,9 +2,9 @@ import * as vscode from 'vscode';
 import { ControllerBase } from './ControllerBase';
 import { McpServer } from '../mcp';
 import { McpServerDefinitionProvider } from '../providers';
-import type { IServerManager, IConfigService } from '../types';
+import type { IServerManager, IConfigService, McpVersion } from '../types';
 import type { FilteredWorkspace } from '../services';
-import { getExtensionVersion, isWindsurf, Logger } from '../util';
+import { isWindsurf, Logger } from '../util';
 import {
   COPY_MCP_URL_CMD,
   MCP_SERVER_NAME,
@@ -20,6 +20,7 @@ const logger = new Logger('McpController');
 export class McpController extends ControllerBase {
   private _context: vscode.ExtensionContext;
   private _config: IConfigService;
+  private _mcpVersion: McpVersion;
   private _serverManager: IServerManager;
   private _pythonDiagnostics: vscode.DiagnosticCollection;
   private _pythonWorkspace: FilteredWorkspace;
@@ -32,6 +33,7 @@ export class McpController extends ControllerBase {
   constructor(
     context: vscode.ExtensionContext,
     config: IConfigService,
+    mcpVersion: McpVersion,
     serverManager: IServerManager,
     pythonDiagnostics: vscode.DiagnosticCollection,
     pythonWorkspace: FilteredWorkspace
@@ -40,6 +42,7 @@ export class McpController extends ControllerBase {
 
     this._context = context;
     this._config = config;
+    this._mcpVersion = mcpVersion;
     this._serverManager = serverManager;
     this._pythonDiagnostics = pythonDiagnostics;
     this._pythonWorkspace = pythonWorkspace;
@@ -135,7 +138,7 @@ export class McpController extends ControllerBase {
 
       // Register provider for VS Code Copilot
       this._mcpServerDefinitionProvider = new McpServerDefinitionProvider(
-        getExtensionVersion(this._context),
+        this._mcpVersion,
         this._mcpServer
       );
       this.disposables.push(this._mcpServerDefinitionProvider);
