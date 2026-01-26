@@ -69,7 +69,9 @@ describe('createConnectToServerTool', () => {
 
     expect(tool.name).toBe('connectToServer');
     expect(tool.spec.title).toBe('Connect to Server');
-    expect(tool.spec.description).toContain('Create a connection');
+    expect(tool.spec.description).toBe(
+      'Create a connection to a Deephaven server. The server must already be configured in the extension. For DHE (Enterprise) servers, this will create a new worker.'
+    );
   });
 
   describe('handler', () => {

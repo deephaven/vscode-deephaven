@@ -59,7 +59,9 @@ describe('createListServersTool', () => {
 
     expect(tool.name).toBe('listServers');
     expect(tool.spec.title).toBe('List Servers');
-    expect(tool.spec.description).toContain('List all Deephaven servers');
+    expect(tool.spec.description).toBe(
+      'List all Deephaven servers with optional filtering by running status, connection status, or type.'
+    );
   });
 
   describe('handler', () => {
