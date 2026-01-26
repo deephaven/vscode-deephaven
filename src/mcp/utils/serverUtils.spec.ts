@@ -10,7 +10,7 @@ describe('serverUtils', () => {
     it.each(
       matrix(boolValues, boolValues, ['mock-tag' as UniqueID, undefined])
     )(
-      'should map isConnected=%s, isRunningCode=%s',
+      'should map isConnected=%s, isRunningCode=%s, tagId=%s',
       (isConnected, isRunningCode, tagId) => {
         const resultWithoutTag = connectionToResult({
           isConnected,
