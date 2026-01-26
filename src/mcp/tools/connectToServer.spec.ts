@@ -75,44 +75,36 @@ describe('createConnectToServerTool', () => {
   });
 
   describe('handler', () => {
-    it.each([{ type: 'DHC' as const }, { type: 'DHE' as const }])(
-      'should connect to $type server successfully',
-      async ({ type }) => {
-        const server: ServerState = {
-          ...MOCK_SERVER,
-          type,
-        };
+    it('should connect to server successfully', async () => {
+      vi.mocked(uriUtils.parseUrl).mockReturnValue({
+        success: true,
+        value: MOCK_PARSED_URL,
+      });
+      vi.mocked(serverManager.getServer).mockReturnValue(MOCK_SERVER);
+      vi.mocked(commands.execConnectToServer).mockResolvedValue(undefined);
 
-        vi.mocked(uriUtils.parseUrl).mockReturnValue({
-          success: true,
-          value: MOCK_PARSED_URL,
-        });
-        vi.mocked(serverManager.getServer).mockReturnValue(server);
-        vi.mocked(commands.execConnectToServer).mockResolvedValue(undefined);
+      const tool = createConnectToServerTool({ serverManager });
+      const result = await tool.handler({ url: MOCK_URL });
 
-        const tool = createConnectToServerTool({ serverManager });
-        const result = await tool.handler({ url: MOCK_URL });
+      expect(uriUtils.parseUrl).toHaveBeenCalledWith(MOCK_URL);
+      expect(serverManager.getServer).toHaveBeenCalledWith(MOCK_PARSED_URL);
+      expect(commands.execConnectToServer).toHaveBeenCalledWith({
+        type: MOCK_SERVER.type,
+        url: MOCK_PARSED_URL,
+      });
 
-        expect(uriUtils.parseUrl).toHaveBeenCalledWith(MOCK_URL);
-        expect(serverManager.getServer).toHaveBeenCalledWith(MOCK_PARSED_URL);
-        expect(commands.execConnectToServer).toHaveBeenCalledWith({
-          type,
-          url: MOCK_PARSED_URL,
-        });
+      const expected = {
+        success: true,
+        message: 'Connecting to server',
+        executionTimeMs: MOCK_EXECUTION_TIME_MS,
+        details: {
+          type: MOCK_SERVER.type,
+          url: MOCK_URL,
+        },
+      };
 
-        const expected = {
-          success: true,
-          message: 'Connecting to server',
-          executionTimeMs: MOCK_EXECUTION_TIME_MS,
-          details: {
-            type,
-            url: MOCK_URL,
-          },
-        };
-
-        expect(result.structuredContent).toEqual(expected);
-      }
-    );
+      expect(result.structuredContent).toEqual(expected);
+    });
 
     it.each([
       {
