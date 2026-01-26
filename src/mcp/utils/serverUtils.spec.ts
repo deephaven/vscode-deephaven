@@ -1,17 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import { connectionToResult, serverToResult } from './serverUtils';
 import type { ConnectionState, ServerState, Psk, UniqueID } from '../../types';
-import { boolValues, matrix } from '../../testUtils';
+import { boolValues, matrixObject } from '../../testUtils';
 
 describe('serverUtils', () => {
   const serverUrl = new URL('http://localhost:10000');
 
   describe('connectionToResult', () => {
     it.each(
-      matrix(boolValues, boolValues, ['mock-tag' as UniqueID, undefined])
+      matrixObject({
+        isConnected: boolValues,
+        isRunningCode: boolValues,
+        tagId: ['mock-tag' as UniqueID, undefined],
+      })
     )(
-      'should map isConnected=%s, isRunningCode=%s, tagId=%s',
-      (isConnected, isRunningCode, tagId) => {
+      'should map isConnected=$isConnected, isRunningCode=$isRunningCode, tagId=$tagId',
+      ({ isConnected, isRunningCode, tagId }) => {
         const resultWithoutTag = connectionToResult({
           isConnected,
           isRunningCode,
@@ -42,24 +46,24 @@ describe('serverUtils', () => {
     } as ConnectionState;
 
     it.each(
-      matrix(
-        boolValues,
-        boolValues,
-        boolValues,
-        ['DHC', 'DHE'],
-        [1, 2],
-        [[MOCK_CONNECTION], []]
-      )
+      matrixObject({
+        isConnected: boolValues,
+        isRunning: boolValues,
+        isManaged: boolValues,
+        type: ['DHC', 'DHE'],
+        connectionCount: [1, 2],
+        connections: [[MOCK_CONNECTION], []],
+      })
     )(
-      'should map isConnected=%s, isRunning=%s, isManaged=%s, type=%s, connectionCount=%d, connections=%o',
-      (
+      'should map isConnected=$isConnected, isRunning=$isRunning, isManaged=$isManaged, type=$type, connectionCount=$connectionCount, connections=$connections',
+      ({
         isConnected,
         isRunning,
         isManaged,
         type,
         connectionCount,
-        connections
-      ) => {
+        connections,
+      }) => {
         const server: ServerState = {
           type,
           connectionCount,
