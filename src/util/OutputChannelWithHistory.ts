@@ -43,7 +43,7 @@ export class OutputChannelWithHistory implements vscode.OutputChannel {
   /**
    * Get the history.
    */
-  getHistory = (): string[] => {
+  getHistory = (): readonly string[] => {
     return this.history;
   };
 
