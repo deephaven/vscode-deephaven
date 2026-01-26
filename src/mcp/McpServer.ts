@@ -5,12 +5,14 @@ import * as http from 'http';
 import type { IServerManager, McpTool, McpToolSpec } from '../types';
 import { MCP_SERVER_NAME } from '../common';
 import {
+  createGetLogsTool,
   createListConnectionsTool,
   createListServersTool,
   createRunCodeFromUriTool,
   createRunCodeTool,
+  createShowOutputPanelTool,
 } from './tools';
-import { withResolvers } from '../util';
+import { OutputChannelWithHistory, withResolvers } from '../util';
 import { DisposableBase, type FilteredWorkspace } from '../services';
 import { createConnectToServerTool } from './tools/connectToServer';
 
@@ -26,17 +28,23 @@ export class McpServer extends DisposableBase {
   readonly pythonDiagnostics: vscode.DiagnosticCollection;
   readonly pythonWorkspace: FilteredWorkspace;
   readonly serverManager: IServerManager;
+  readonly outputChannel: vscode.OutputChannel;
+  readonly outputChannelDebug: OutputChannelWithHistory;
 
   constructor(
     pythonDiagnostics: vscode.DiagnosticCollection,
     pythonWorkspace: FilteredWorkspace,
-    serverManager: IServerManager
+    serverManager: IServerManager,
+    outputChannel: vscode.OutputChannel,
+    outputChannelDebug: OutputChannelWithHistory
   ) {
     super();
 
     this.pythonDiagnostics = pythonDiagnostics;
     this.pythonWorkspace = pythonWorkspace;
     this.serverManager = serverManager;
+    this.outputChannel = outputChannel;
+    this.outputChannelDebug = outputChannelDebug;
 
     // Create an MCP server
     this.server = new SdkMcpServer({
@@ -45,10 +53,12 @@ export class McpServer extends DisposableBase {
     });
 
     this.registerTool(createConnectToServerTool(this));
-    this.registerTool(createRunCodeTool(this));
-    this.registerTool(createRunCodeFromUriTool(this));
+    this.registerTool(createGetLogsTool(this));
     this.registerTool(createListConnectionsTool(this));
     this.registerTool(createListServersTool(this));
+    this.registerTool(createRunCodeFromUriTool(this));
+    this.registerTool(createRunCodeTool(this));
+    this.registerTool(createShowOutputPanelTool(this));
   }
 
   private registerTool<Spec extends McpToolSpec>({
