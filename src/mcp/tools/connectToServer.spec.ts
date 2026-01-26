@@ -51,6 +51,16 @@ const EXPECTED_CONNECTION_ERROR = {
   executionTimeMs: MOCK_EXECUTION_TIME_MS,
 };
 
+const EXPECTED_SUCCESS = {
+  success: true,
+  message: 'Connecting to server',
+  executionTimeMs: MOCK_EXECUTION_TIME_MS,
+  details: {
+    type: 'DHC',
+    url: MOCK_URL,
+  },
+};
+
 describe('createConnectToServerTool', () => {
   const serverManager: IServerManager = {
     getServer: vi.fn(),
@@ -93,17 +103,7 @@ describe('createConnectToServerTool', () => {
         url: MOCK_PARSED_URL,
       });
 
-      const expected = {
-        success: true,
-        message: 'Connecting to server',
-        executionTimeMs: MOCK_EXECUTION_TIME_MS,
-        details: {
-          type: MOCK_SERVER.type,
-          url: MOCK_URL,
-        },
-      };
-
-      expect(result.structuredContent).toEqual(expected);
+      expect(result.structuredContent).toEqual(EXPECTED_SUCCESS);
     });
 
     it.each([
