@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { ExtensionInfo, McpVersion } from '../types';
+import type { ExtensionInfo, ExtensionVersion, McpVersion } from '../types';
 import { uniqueId } from './idUtils';
 
 const MS_PYTHON_EXTENSION_ID = 'ms-python.python';
@@ -35,12 +35,15 @@ export function createExtensionInfo(
 }
 
 /** Get the extension version from the ExtensionContext */
-export function getExtensionVersion(context: vscode.ExtensionContext): string {
+export function getExtensionVersion(
+  context: vscode.ExtensionContext
+): ExtensionVersion {
   const version = context.extension.packageJSON.version;
   if (typeof version !== 'string') {
     throw new Error('Extension version is not a string');
   }
-  return version;
+
+  return version as ExtensionVersion;
 }
 
 /** Get Microsoft Python extension api */

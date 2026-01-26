@@ -11,6 +11,10 @@ import type {
 } from '@deephaven-enterprise/auth-nodejs';
 import type { Brand, QuerySerial, SerializableRefreshToken } from '../shared';
 
+export type ExtensionVersion = Brand<'ExtensionVersion', string>;
+
+export type McpVersion = Brand<'McpVersion', string>;
+
 export type NonEmptyArray<T> = [T, ...T[]];
 
 export type ParseSuccess<T> = { success: true; value: T };
@@ -21,11 +25,9 @@ export type ParseSuccessOrError<T> = ParseSuccess<T> | ParseError;
 
 export type UniqueID = Brand<'UniqueID', string>;
 
-export type McpVersion = Brand<'McpVersion', string>;
-
 export type ExtensionInfo = {
   instanceId: UniqueID;
-  version: string;
+  version: ExtensionVersion;
   mode: vscode.ExtensionMode;
   mcpVersion: McpVersion;
 };
