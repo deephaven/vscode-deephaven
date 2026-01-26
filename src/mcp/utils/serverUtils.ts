@@ -36,7 +36,7 @@ export function connectionToResult({
     isConnected,
     isRunningCode,
     serverUrl: serverUrl.toString(),
-    tagId: tagId ? String(tagId) : undefined,
+    tagId,
   };
 }
 
