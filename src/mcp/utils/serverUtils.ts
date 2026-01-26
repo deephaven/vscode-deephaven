@@ -46,24 +46,24 @@ export function connectionToResult({
 export function serverToResult(
   {
     type,
-    url,
-    label,
-    isConnected,
-    isRunning,
     connectionCount,
+    isConnected,
     isManaged,
+    isRunning,
+    label,
+    url,
   }: ServerState,
   connections: ConnectionState[]
 ): ServerResult {
   return {
     type,
-    url: url.toString(),
-    label,
-    isConnected,
-    isRunning,
     connectionCount,
+    isConnected,
     isManaged,
+    isRunning,
+    label,
     tags: isManaged ? ['pip', 'managed'] : [],
+    url: url.toString(),
     connections: connections.map(connectionToResult),
   };
 }
