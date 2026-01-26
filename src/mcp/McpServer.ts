@@ -2,13 +2,20 @@ import * as vscode from 'vscode';
 import { McpServer as SdkMcpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import * as http from 'http';
-import type { IServerManager, McpTool, McpToolSpec } from '../types';
+import type {
+  IServerManager,
+  McpTool,
+  McpToolSpec,
+  PipServerController,
+} from '../types';
 import { MCP_SERVER_NAME } from '../common';
 import {
+  createCheckPythonEnvTool,
   createListConnectionsTool,
   createListServersTool,
   createRunCodeFromUriTool,
   createRunCodeTool,
+  createStartPipServerTool,
 } from './tools';
 import { withResolvers } from '../util';
 import { DisposableBase, type FilteredWorkspace } from '../services';
@@ -26,17 +33,20 @@ export class McpServer extends DisposableBase {
   readonly pythonDiagnostics: vscode.DiagnosticCollection;
   readonly pythonWorkspace: FilteredWorkspace;
   readonly serverManager: IServerManager;
+  readonly pipServerController: PipServerController | null;
 
   constructor(
     pythonDiagnostics: vscode.DiagnosticCollection,
     pythonWorkspace: FilteredWorkspace,
-    serverManager: IServerManager
+    serverManager: IServerManager,
+    pipServerController: PipServerController | null
   ) {
     super();
 
     this.pythonDiagnostics = pythonDiagnostics;
     this.pythonWorkspace = pythonWorkspace;
     this.serverManager = serverManager;
+    this.pipServerController = pipServerController;
 
     // Create an MCP server
     this.server = new SdkMcpServer({
@@ -49,6 +59,8 @@ export class McpServer extends DisposableBase {
     this.registerTool(createRunCodeFromUriTool(this));
     this.registerTool(createListConnectionsTool(this));
     this.registerTool(createListServersTool(this));
+    this.registerTool(createCheckPythonEnvTool(this));
+    this.registerTool(createStartPipServerTool(this));
   }
 
   private registerTool<Spec extends McpToolSpec>({

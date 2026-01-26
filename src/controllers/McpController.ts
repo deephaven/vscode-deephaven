@@ -2,7 +2,12 @@ import * as vscode from 'vscode';
 import { ControllerBase } from './ControllerBase';
 import { McpServer } from '../mcp';
 import { McpServerDefinitionProvider } from '../providers';
-import type { IServerManager, IConfigService, McpVersion } from '../types';
+import type {
+  IServerManager,
+  IConfigService,
+  McpVersion,
+  PipServerController,
+} from '../types';
 import type { FilteredWorkspace } from '../services';
 import { isWindsurf, Logger } from '../util';
 import {
@@ -24,6 +29,7 @@ export class McpController extends ControllerBase {
   private _serverManager: IServerManager;
   private _pythonDiagnostics: vscode.DiagnosticCollection;
   private _pythonWorkspace: FilteredWorkspace;
+  private _pipServerController: PipServerController | null;
 
   private _mcpServer: McpServer | null = null;
   private _mcpServerDefinitionProvider: McpServerDefinitionProvider | null =
@@ -36,7 +42,8 @@ export class McpController extends ControllerBase {
     mcpVersion: McpVersion,
     serverManager: IServerManager,
     pythonDiagnostics: vscode.DiagnosticCollection,
-    pythonWorkspace: FilteredWorkspace
+    pythonWorkspace: FilteredWorkspace,
+    pipServerController: PipServerController | null
   ) {
     super();
 
@@ -46,6 +53,7 @@ export class McpController extends ControllerBase {
     this._serverManager = serverManager;
     this._pythonDiagnostics = pythonDiagnostics;
     this._pythonWorkspace = pythonWorkspace;
+    this._pipServerController = pipServerController;
 
     // Register copy MCP URL command
     this.registerCommand(COPY_MCP_URL_CMD, this.copyUrl, this);
@@ -101,7 +109,8 @@ export class McpController extends ControllerBase {
       this._mcpServer = new McpServer(
         this._pythonDiagnostics,
         this._pythonWorkspace,
-        this._serverManager
+        this._serverManager,
+        this._pipServerController
       );
       this.disposables.push(this._mcpServer);
 
