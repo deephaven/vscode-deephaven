@@ -10,14 +10,14 @@ export const connectionResultSchema = z.object({
 
 export const serverResultSchema = z.object({
   type: z.string(),
-  url: z.string(),
-  label: z.string().optional(),
-  isConnected: z.boolean(),
-  isRunning: z.boolean(),
   connectionCount: z.number(),
-  isManaged: z.boolean().optional(),
-  tags: z.array(z.string()).optional(),
   connections: z.array(connectionResultSchema).optional(),
+  isConnected: z.boolean(),
+  isManaged: z.boolean().optional(),
+  isRunning: z.boolean(),
+  label: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  url: z.string(),
 });
 
 export type ConnectionResult = z.infer<typeof connectionResultSchema>;
