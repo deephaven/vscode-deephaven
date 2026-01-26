@@ -1,10 +1,12 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import type { dh as DhType } from '@deephaven/jsapi-types';
 import { parseSamlScopes, serializeRefreshToken } from './dataUtils';
 import {
   DH_SAML_LOGIN_URL_SCOPE_KEY,
   DH_SAML_SERVER_URL_SCOPE_KEY,
 } from '../common';
+
+vi.mock('vscode');
 
 describe('parseSamlScopes', () => {
   it('should return null if no SAML scopes are found', () => {
