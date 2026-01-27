@@ -189,15 +189,15 @@ export class DheService implements IDheService {
     dheClient.client.addEventListener(
       dhe.Client.EVENT_CONFIG_UPDATED,
       ({ detail: queryInfo }: CustomEvent<QueryInfo>) => {
+        if (queryInfo.designated?.status !== 'Stopping') {
+          return;
+        }
+
         const workerInfo = [...this._workerInfoMap.values()].find(
           w => w.serial === queryInfo.serial
         );
 
         if (workerInfo == null) {
-          return;
-        }
-
-        if (queryInfo.designated?.status !== 'Stopping') {
           return;
         }
 
