@@ -71,7 +71,7 @@ export interface IDhcService extends IDisposable, ConnectionState {
 }
 
 export interface IDheService extends ConnectionState, IDisposable {
-  readonly onDidDeleteWorker: vscode.Event<WorkerURL>;
+  readonly onDidWorkerTerminate: vscode.Event<WorkerURL>;
 
   getClient(
     initializeIfNull: false

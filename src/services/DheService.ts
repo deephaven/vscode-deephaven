@@ -26,8 +26,10 @@ import {
 import {
   CREATE_DHE_AUTHENTICATED_CLIENT_CMD,
   QueryCreationCancelledError,
+  TERMINAL_QUERY_STATUSES,
   UnsupportedFeatureQueryError,
 } from '../common';
+import { TerminalQueryStatus } from '../types';
 import { assertDefined, type QuerySerial } from '../shared';
 
 const logger = new Logger('DheService');
@@ -103,8 +105,8 @@ export class DheService implements IDheService {
   private readonly _toaster: IToastService;
   private readonly _workerInfoMap: URLMap<WorkerInfo, WorkerURL>;
 
-  private readonly _onDidDeleteWorker = new vscode.EventEmitter<WorkerURL>();
-  readonly onDidDeleteWorker = this._onDidDeleteWorker.event;
+  private readonly _onDidWorkerTerminate = new vscode.EventEmitter<WorkerURL>();
+  readonly onDidWorkerTerminate = this._onDidWorkerTerminate.event;
 
   readonly serverUrl: URL;
 
@@ -134,7 +136,7 @@ export class DheService implements IDheService {
     const maybeClient = await this._dheClientCache.get(this.serverUrl);
 
     if (maybeClient != null) {
-      this._subscribeToExternalWorkerStop(maybeClient);
+      this._subscribeToWorkerTermination(maybeClient);
     }
 
     if (!this._dheServerFeaturesCache.has(this.serverUrl)) {
@@ -178,10 +180,10 @@ export class DheService implements IDheService {
   };
 
   /**
-   * Subscribe to DHE config updates to detect when workers are stopped externally.
+   * Subscribe to DHE config updates to detect when workers enter a terminal state.
    * @param dheClient DHE client to use.
    */
-  private _subscribeToExternalWorkerStop = async (
+  private _subscribeToWorkerTermination = async (
     dheClient: DheAuthenticatedClientWrapper
   ): Promise<void> => {
     const dhe = await this._dheJsApiCache.get(this.serverUrl);
@@ -189,7 +191,8 @@ export class DheService implements IDheService {
     dheClient.client.addEventListener(
       dhe.Client.EVENT_CONFIG_UPDATED,
       ({ detail: queryInfo }: CustomEvent<QueryInfo>) => {
-        if (queryInfo.designated?.status !== 'Stopping') {
+        const status = queryInfo.designated?.status;
+        if (status == null || !TERMINAL_QUERY_STATUSES.has(status as TerminalQueryStatus)) {
           return;
         }
 
@@ -201,10 +204,11 @@ export class DheService implements IDheService {
           return;
         }
 
-        logger.info('Worker stopped externally:', workerInfo.workerUrl.href);
-        this._querySerialSet.delete(workerInfo.serial);
-        this._workerInfoMap.delete(workerInfo.workerUrl);
-        this._onDidDeleteWorker.fire(workerInfo.workerUrl);
+        logger.info(
+          'Worker entered terminal state:',
+          workerInfo.workerUrl.href
+        );
+        this._onDidWorkerTerminate.fire(workerInfo.workerUrl);
       }
     );
   };
@@ -363,7 +367,7 @@ export class DheService implements IDheService {
     const querySerials = [...this._querySerialSet];
 
     this._querySerialSet.clear();
-    this._onDidDeleteWorker.dispose();
+    this._onDidWorkerTerminate.dispose();
 
     await Promise.all([
       this._workerInfoMap.dispose(),

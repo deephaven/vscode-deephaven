@@ -216,7 +216,7 @@ export class ServerManager implements IServerManager {
 
       // Handle workers stopped externally (i.e. web-client Query Monitor)
       if (isNewDheService) {
-        dheService.onDidDeleteWorker(workerUrl => {
+        dheService.onDidWorkerTerminate(workerUrl => {
           this.disconnectFromServer(workerUrl);
         });
       }
