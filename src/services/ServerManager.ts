@@ -205,12 +205,20 @@ export class ServerManager implements IServerManager {
     let placeholderUrl: URL | undefined;
 
     if (serverState.type === 'DHE') {
+      const isNewDheService = !this._dheServiceCache.has(serverUrl);
       const dheService = await this._dheServiceCache.get(serverUrl);
 
       // Get client. Client will be initialized if it doesn't exist (including
       // prompting user for login).
       if (!(await dheService.getClient(true, operateAsAnotherUser))) {
         return null;
+      }
+
+      // Handle workers stopped externally (i.e. web-client Query Monitor)
+      if (isNewDheService) {
+        dheService.onDidWorkerTerminate(workerUrl => {
+          this.disconnectFromServer(workerUrl);
+        });
       }
 
       // The `serverUrl` in this block is for the DHE server but gets set to the

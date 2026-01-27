@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { EnterpriseDhType as DheType } from '@deephaven-enterprise/jsapi-types';
+import type { EnterpriseDhType as DheType, QueryInfo } from '@deephaven-enterprise/jsapi-types';
 import {
   type ConsoleType,
   type DheAuthenticatedClientWrapper,
@@ -26,8 +26,10 @@ import {
 import {
   CREATE_DHE_AUTHENTICATED_CLIENT_CMD,
   QueryCreationCancelledError,
+  TERMINAL_QUERY_STATUSES,
   UnsupportedFeatureQueryError,
 } from '../common';
+import { TerminalQueryStatus } from '../types';
 import { assertDefined, type QuerySerial } from '../shared';
 
 const logger = new Logger('DheService');
@@ -103,6 +105,9 @@ export class DheService implements IDheService {
   private readonly _toaster: IToastService;
   private readonly _workerInfoMap: URLMap<WorkerInfo, WorkerURL>;
 
+  private readonly _onDidWorkerTerminate = new vscode.EventEmitter<WorkerURL>();
+  readonly onDidWorkerTerminate = this._onDidWorkerTerminate.event;
+
   readonly serverUrl: URL;
 
   /**
@@ -129,6 +134,10 @@ export class DheService implements IDheService {
     }
 
     const maybeClient = await this._dheClientCache.get(this.serverUrl);
+
+    if (maybeClient != null) {
+      this._subscribeToWorkerTermination(maybeClient);
+    }
 
     if (!this._dheServerFeaturesCache.has(this.serverUrl)) {
       try {
@@ -168,6 +177,40 @@ export class DheService implements IDheService {
       // reinitialize it if necessary.
       this._clientPromise = null;
     }
+  };
+
+  /**
+   * Subscribe to DHE config updates to detect when workers enter a terminal state.
+   * @param dheClient DHE client to use.
+   */
+  private _subscribeToWorkerTermination = async (
+    dheClient: DheAuthenticatedClientWrapper
+  ): Promise<void> => {
+    const dhe = await this._dheJsApiCache.get(this.serverUrl);
+
+    dheClient.client.addEventListener(
+      dhe.Client.EVENT_CONFIG_UPDATED,
+      ({ detail: queryInfo }: CustomEvent<QueryInfo>) => {
+        const status = queryInfo.designated?.status;
+        if (status == null || !TERMINAL_QUERY_STATUSES.has(status as TerminalQueryStatus)) {
+          return;
+        }
+
+        const workerInfo = [...this._workerInfoMap.values()].find(
+          w => w.serial === queryInfo.serial
+        );
+
+        if (workerInfo == null) {
+          return;
+        }
+
+        logger.info(
+          'Worker entered terminal state:',
+          workerInfo.workerUrl.href
+        );
+        this._onDidWorkerTerminate.fire(workerInfo.workerUrl);
+      }
+    );
   };
 
   /**
@@ -324,6 +367,7 @@ export class DheService implements IDheService {
     const querySerials = [...this._querySerialSet];
 
     this._querySerialSet.clear();
+    this._onDidWorkerTerminate.dispose();
 
     await Promise.all([
       this._workerInfoMap.dispose(),

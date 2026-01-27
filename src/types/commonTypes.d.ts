@@ -27,6 +27,14 @@ export type ConnectionType = 'DHC';
 
 export type ConsoleType = 'groovy' | 'python';
 
+export type TerminalQueryStatus =
+  | 'Stopping'
+  | 'Stopped'
+  | 'Failed'
+  | 'Error'
+  | 'Disconnected'
+  | 'Completed';
+
 export type CoreConnectionConfigStored =
   | string
   | {

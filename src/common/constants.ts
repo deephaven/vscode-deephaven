@@ -1,5 +1,5 @@
 import * as path from 'node:path';
-import type { ConsoleType, VariableType } from '../types';
+import type { ConsoleType, TerminalQueryStatus, VariableType } from '../types';
 
 /**
  * This value is a little bit arbitrary, but it needs to be long enough to
@@ -57,6 +57,15 @@ export const SERVER_LANGUAGE_SET = new Set([
   'python',
   'groovy',
 ]) as ReadonlySet<ConsoleType>;
+
+export const TERMINAL_QUERY_STATUSES = new Set([
+  'Stopping',
+  'Stopped',
+  'Failed',
+  'Error',
+  'Disconnected',
+  'Completed',
+]) as ReadonlySet<TerminalQueryStatus>;
 
 export const PIP_SERVER_SUPPORTED_PLATFORMS = new Set<NodeJS.Platform>([
   'darwin',
