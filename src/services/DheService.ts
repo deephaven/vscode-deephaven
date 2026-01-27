@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { EnterpriseDhType as DheType } from '@deephaven-enterprise/jsapi-types';
+import type { EnterpriseDhType as DheType, QueryInfo } from '@deephaven-enterprise/jsapi-types';
 import {
   type ConsoleType,
   type DheAuthenticatedClientWrapper,
@@ -103,6 +103,9 @@ export class DheService implements IDheService {
   private readonly _toaster: IToastService;
   private readonly _workerInfoMap: URLMap<WorkerInfo, WorkerURL>;
 
+  private readonly _onDidDeleteWorker = new vscode.EventEmitter<WorkerURL>();
+  readonly onDidDeleteWorker = this._onDidDeleteWorker.event;
+
   readonly serverUrl: URL;
 
   /**
@@ -129,6 +132,10 @@ export class DheService implements IDheService {
     }
 
     const maybeClient = await this._dheClientCache.get(this.serverUrl);
+
+    if (maybeClient != null) {
+      this._subscribeToExternalWorkerStop(maybeClient);
+    }
 
     if (!this._dheServerFeaturesCache.has(this.serverUrl)) {
       try {
@@ -168,6 +175,38 @@ export class DheService implements IDheService {
       // reinitialize it if necessary.
       this._clientPromise = null;
     }
+  };
+
+  /**
+   * Subscribe to DHE config updates to detect when workers are stopped externally.
+   * @param dheClient DHE client to use.
+   */
+  private _subscribeToExternalWorkerStop = async (
+    dheClient: DheAuthenticatedClientWrapper
+  ): Promise<void> => {
+    const dhe = await this._dheJsApiCache.get(this.serverUrl);
+
+    dheClient.client.addEventListener(
+      dhe.Client.EVENT_CONFIG_UPDATED,
+      ({ detail: queryInfo }: CustomEvent<QueryInfo>) => {
+        const workerInfo = [...this._workerInfoMap.values()].find(
+          w => w.serial === queryInfo.serial
+        );
+
+        if (workerInfo == null) {
+          return;
+        }
+
+        if (queryInfo.designated?.status !== 'Stopping') {
+          return;
+        }
+
+        logger.info('Worker stopped externally:', workerInfo.workerUrl.href);
+        this._querySerialSet.delete(workerInfo.serial);
+        this._workerInfoMap.delete(workerInfo.workerUrl);
+        this._onDidDeleteWorker.fire(workerInfo.workerUrl);
+      }
+    );
   };
 
   /**
@@ -324,6 +363,7 @@ export class DheService implements IDheService {
     const querySerials = [...this._querySerialSet];
 
     this._querySerialSet.clear();
+    this._onDidDeleteWorker.dispose();
 
     await Promise.all([
       this._workerInfoMap.dispose(),
