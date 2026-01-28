@@ -5,7 +5,7 @@ import type {
   McpToolHandlerArg,
   McpToolHandlerResult,
 } from '../../types';
-import { McpToolResponse } from '../utils';
+import { createMcpToolOutputSchema, McpToolResponse } from '../utils';
 import { serverToResult, serverResultSchema } from '../utils/serverUtils';
 
 const spec = {
@@ -28,19 +28,9 @@ const spec = {
       .optional()
       .describe('Filter by server type (DHC = Community, DHE = Enterprise)'),
   },
-  outputSchema: {
-    success: z.boolean(),
-    message: z.string().optional(),
-    executionTimeMs: z
-      .number()
-      .optional()
-      .describe('Execution time in milliseconds'),
-    details: z
-      .object({
-        servers: z.array(serverResultSchema),
-      })
-      .optional(),
-  },
+  outputSchema: createMcpToolOutputSchema({
+    servers: z.array(serverResultSchema),
+  }),
 } as const;
 
 type Spec = typeof spec;

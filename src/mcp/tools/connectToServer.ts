@@ -7,7 +7,7 @@ import type {
   McpToolHandlerResult,
 } from '../../types';
 import { parseUrl } from '../../util';
-import { McpToolResponse } from '../utils';
+import { createMcpToolOutputSchema, McpToolResponse } from '../utils';
 
 const spec = {
   title: 'Connect to Server',
@@ -16,14 +16,7 @@ const spec = {
   inputSchema: {
     url: z.string().describe('Server URL (e.g., "http://localhost:10000")'),
   },
-  outputSchema: {
-    success: z.boolean(),
-    message: z.string().optional(),
-    executionTimeMs: z
-      .number()
-      .optional()
-      .describe('Execution time in milliseconds'),
-  },
+  outputSchema: createMcpToolOutputSchema(),
 } as const;
 
 type Spec = typeof spec;

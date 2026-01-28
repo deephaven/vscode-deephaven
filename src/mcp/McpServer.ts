@@ -5,10 +5,13 @@ import * as http from 'http';
 import type { IServerManager, McpTool, McpToolSpec } from '../types';
 import { MCP_SERVER_NAME } from '../common';
 import {
+  createAddRemoteFileSourcesTool,
   createListConnectionsTool,
   createListServersTool,
+  createOpenFilesInEditorTool,
   createRunCodeFromUriTool,
   createRunCodeTool,
+  createSetEditorConnectionTool,
 } from './tools';
 import { withResolvers } from '../util';
 import { DisposableBase, type FilteredWorkspace } from '../services';
@@ -49,6 +52,9 @@ export class McpServer extends DisposableBase {
     this.registerTool(createRunCodeFromUriTool(this));
     this.registerTool(createListConnectionsTool(this));
     this.registerTool(createListServersTool(this));
+    this.registerTool(createAddRemoteFileSourcesTool());
+    this.registerTool(createOpenFilesInEditorTool());
+    this.registerTool(createSetEditorConnectionTool(this));
   }
 
   private registerTool<Spec extends McpToolSpec>({
