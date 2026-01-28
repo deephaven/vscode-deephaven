@@ -3,13 +3,15 @@ import type { McpTool, McpToolHandlerResult } from '../../types';
 import type { OutputChannelWithHistory } from '../../util';
 import { McpToolResponse } from '../utils';
 
+const LOG_TYPES = ['server', 'debug'] as const;
+
 const spec = {
   title: 'Get Logs',
   description:
     'Get the log history from the Deephaven output. Returns all accumulated log messages.',
   inputSchema: {
     logType: z
-      .enum(['server', 'debug'])
+      .enum(LOG_TYPES)
       .describe(
         'Which logs to retrieve: "server" for Deephaven server output, or "debug" for detailed debug logs. Recommended: "debug" for troubleshooting.'
       ),
@@ -18,15 +20,13 @@ const spec = {
     success: z.boolean(),
     message: z.string(),
     executionTimeMs: z.number().describe('Execution time in milliseconds'),
-    details: z
-      .object({
-        logs: z
-          .string()
-          .optional()
-          .describe('The log messages as a single string'),
-        logType: z.string().optional().describe('The type of logs retrieved'),
-      })
-      .optional(),
+    details: z.object({
+      logs: z
+        .array(z.string())
+        .optional()
+        .describe('The log messages as an array of strings'),
+      logType: z.enum(LOG_TYPES).describe('The type of logs retrieved'),
+    }),
   },
 } as const;
 
@@ -54,8 +54,7 @@ export function createGetLogsTool({
       try {
         const selectedChannel =
           logType === 'server' ? outputChannel : outputChannelDebug;
-        const history = selectedChannel.getHistory();
-        const logs = history.join('\n');
+        const logs = selectedChannel.getHistory();
 
         return response.success('Retrieved log history', { logs, logType });
       } catch (error) {

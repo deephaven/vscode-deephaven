@@ -3,13 +3,15 @@ import type { McpTool, McpToolHandlerResult } from '../../types';
 import type { OutputChannelWithHistory } from '../../util';
 import { McpToolResponse } from '../utils';
 
+const OUTPUT_TYPES = ['server', 'debug'] as const;
+
 const spec = {
   title: 'Show Output Panel',
   description:
     'Show a Deephaven output panel in the VS Code UI. Can show either the server output or debug output.',
   inputSchema: {
     outputType: z
-      .enum(['server', 'debug'])
+      .enum(OUTPUT_TYPES)
       .describe(
         'Which output to show: "server" for Deephaven server output, or "debug" for detailed debug output. Recommended: "server" for general use.'
       ),
@@ -18,14 +20,11 @@ const spec = {
     success: z.boolean(),
     message: z.string(),
     executionTimeMs: z.number().describe('Execution time in milliseconds'),
-    details: z
-      .object({
-        outputType: z
-          .string()
-          .optional()
-          .describe('The type of output panel shown'),
-      })
-      .optional(),
+    details: z.object({
+      outputType: z
+        .enum(OUTPUT_TYPES)
+        .describe('The type of output panel shown'),
+    }),
   },
 } as const;
 

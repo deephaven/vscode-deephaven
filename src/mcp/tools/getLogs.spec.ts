@@ -13,35 +13,6 @@ const MOCK_LOG_HISTORY = [
   '2024-01-01 10:00:02 [INFO] Query executed',
 ];
 
-const EXPECTED_SUCCESS = {
-  success: true,
-  message: 'Retrieved log history',
-  details: {
-    logs: MOCK_LOG_HISTORY.join('\n'),
-    logType: 'debug',
-  },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_EMPTY_LOGS = {
-  success: true,
-  message: 'Retrieved log history',
-  details: {
-    logs: '',
-    logType: 'debug',
-  },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_GET_HISTORY_ERROR = {
-  success: false,
-  message: 'Failed to retrieve logs: getHistory error',
-  details: {
-    logType: 'debug',
-  },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
 describe('getLogs', () => {
   const outputChannel = {
     getHistory: vi.fn(),
@@ -69,35 +40,70 @@ describe('getLogs', () => {
     );
   });
 
-  it('should retrieve and return log history', async () => {
-    vi.mocked(outputChannelDebug.getHistory).mockReturnValue(MOCK_LOG_HISTORY);
+  it.each([{ logType: 'server' as const }, { logType: 'debug' as const }])(
+    'should retrieve and return log history for logType "$logType"',
+    async ({ logType }) => {
+      const channel = logType === 'server' ? outputChannel : outputChannelDebug;
+      vi.mocked(channel.getHistory).mockReturnValue(MOCK_LOG_HISTORY);
 
-    const tool = createGetLogsTool({ outputChannel, outputChannelDebug });
-    const result = await tool.handler({ logType: 'debug' });
+      const tool = createGetLogsTool({ outputChannel, outputChannelDebug });
+      const result = await tool.handler({ logType });
 
-    expect(outputChannelDebug.getHistory).toHaveBeenCalledOnce();
-    expect(result.structuredContent).toEqual(EXPECTED_SUCCESS);
-  });
+      expect(channel.getHistory).toHaveBeenCalledOnce();
+      expect(result.structuredContent).toEqual({
+        success: true,
+        message: 'Retrieved log history',
+        details: {
+          logs: MOCK_LOG_HISTORY,
+          logType,
+        },
+        executionTimeMs: MOCK_EXECUTION_TIME_MS,
+      });
+    }
+  );
 
-  it('should handle empty log history', async () => {
-    vi.mocked(outputChannelDebug.getHistory).mockReturnValue([]);
+  it.each([{ logType: 'server' as const }, { logType: 'debug' as const }])(
+    'should handle empty log history for logType "$logType"',
+    async ({ logType }) => {
+      const channel = logType === 'server' ? outputChannel : outputChannelDebug;
+      vi.mocked(channel.getHistory).mockReturnValue([]);
 
-    const tool = createGetLogsTool({ outputChannel, outputChannelDebug });
-    const result = await tool.handler({ logType: 'debug' });
+      const tool = createGetLogsTool({ outputChannel, outputChannelDebug });
+      const result = await tool.handler({ logType });
 
-    expect(outputChannelDebug.getHistory).toHaveBeenCalledOnce();
-    expect(result.structuredContent).toEqual(EXPECTED_EMPTY_LOGS);
-  });
+      expect(channel.getHistory).toHaveBeenCalledOnce();
+      expect(result.structuredContent).toEqual({
+        success: true,
+        message: 'Retrieved log history',
+        details: {
+          logs: [],
+          logType,
+        },
+        executionTimeMs: MOCK_EXECUTION_TIME_MS,
+      });
+    }
+  );
 
-  it('should handle errors from getHistory', async () => {
-    const error = new Error('getHistory error');
-    vi.mocked(outputChannelDebug.getHistory).mockImplementation(() => {
-      throw error;
-    });
+  it.each([{ logType: 'server' as const }, { logType: 'debug' as const }])(
+    'should handle errors from getHistory for logType "$logType"',
+    async ({ logType }) => {
+      const channel = logType === 'server' ? outputChannel : outputChannelDebug;
+      const error = new Error('getHistory error');
+      vi.mocked(channel.getHistory).mockImplementation(() => {
+        throw error;
+      });
 
-    const tool = createGetLogsTool({ outputChannel, outputChannelDebug });
-    const result = await tool.handler({ logType: 'debug' });
+      const tool = createGetLogsTool({ outputChannel, outputChannelDebug });
+      const result = await tool.handler({ logType });
 
-    expect(result.structuredContent).toEqual(EXPECTED_GET_HISTORY_ERROR);
-  });
+      expect(result.structuredContent).toEqual({
+        success: false,
+        message: 'Failed to retrieve logs: getHistory error',
+        details: {
+          logType,
+        },
+        executionTimeMs: MOCK_EXECUTION_TIME_MS,
+      });
+    }
+  );
 });
