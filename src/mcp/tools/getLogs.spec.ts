@@ -18,6 +18,7 @@ const EXPECTED_SUCCESS = {
   message: 'Retrieved log history',
   details: {
     logs: MOCK_LOG_HISTORY.join('\n'),
+    logType: 'debug',
   },
   executionTimeMs: MOCK_EXECUTION_TIME_MS,
 } as const;
@@ -27,6 +28,7 @@ const EXPECTED_EMPTY_LOGS = {
   message: 'Retrieved log history',
   details: {
     logs: '',
+    logType: 'debug',
   },
   executionTimeMs: MOCK_EXECUTION_TIME_MS,
 } as const;
@@ -34,10 +36,17 @@ const EXPECTED_EMPTY_LOGS = {
 const EXPECTED_GET_HISTORY_ERROR = {
   success: false,
   message: 'Failed to retrieve logs: getHistory error',
+  details: {
+    logType: 'debug',
+  },
   executionTimeMs: MOCK_EXECUTION_TIME_MS,
 } as const;
 
 describe('getLogs', () => {
+  const outputChannel = {
+    getHistory: vi.fn(),
+  } as unknown as OutputChannelWithHistory;
+
   const outputChannelDebug = {
     getHistory: vi.fn(),
   } as unknown as OutputChannelWithHistory;
@@ -51,20 +60,20 @@ describe('getLogs', () => {
   });
 
   it('should return correct tool spec', () => {
-    const tool = createGetLogsTool({ outputChannelDebug });
+    const tool = createGetLogsTool({ outputChannel, outputChannelDebug });
 
     expect(tool.name).toBe('getLogs');
     expect(tool.spec.title).toBe('Get Logs');
     expect(tool.spec.description).toBe(
-      'Get the log history from the Deephaven debug output channel. Returns all accumulated log messages.'
+      'Get the log history from the Deephaven output. Returns all accumulated log messages.'
     );
   });
 
   it('should retrieve and return log history', async () => {
     vi.mocked(outputChannelDebug.getHistory).mockReturnValue(MOCK_LOG_HISTORY);
 
-    const tool = createGetLogsTool({ outputChannelDebug });
-    const result = await tool.handler({});
+    const tool = createGetLogsTool({ outputChannel, outputChannelDebug });
+    const result = await tool.handler({ logType: 'debug' });
 
     expect(outputChannelDebug.getHistory).toHaveBeenCalledOnce();
     expect(result.structuredContent).toEqual(EXPECTED_SUCCESS);
@@ -73,8 +82,8 @@ describe('getLogs', () => {
   it('should handle empty log history', async () => {
     vi.mocked(outputChannelDebug.getHistory).mockReturnValue([]);
 
-    const tool = createGetLogsTool({ outputChannelDebug });
-    const result = await tool.handler({});
+    const tool = createGetLogsTool({ outputChannel, outputChannelDebug });
+    const result = await tool.handler({ logType: 'debug' });
 
     expect(outputChannelDebug.getHistory).toHaveBeenCalledOnce();
     expect(result.structuredContent).toEqual(EXPECTED_EMPTY_LOGS);
@@ -86,8 +95,8 @@ describe('getLogs', () => {
       throw error;
     });
 
-    const tool = createGetLogsTool({ outputChannelDebug });
-    const result = await tool.handler({});
+    const tool = createGetLogsTool({ outputChannel, outputChannelDebug });
+    const result = await tool.handler({ logType: 'debug' });
 
     expect(result.structuredContent).toEqual(EXPECTED_GET_HISTORY_ERROR);
   });

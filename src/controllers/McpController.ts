@@ -24,7 +24,7 @@ export class McpController extends ControllerBase {
   private _serverManager: IServerManager;
   private _pythonDiagnostics: vscode.DiagnosticCollection;
   private _pythonWorkspace: FilteredWorkspace;
-  private _outputChannel: vscode.OutputChannel;
+  private _outputChannel: OutputChannelWithHistory;
   private _outputChannelDebug: OutputChannelWithHistory;
 
   private _mcpServer: McpServer | null = null;
@@ -39,7 +39,7 @@ export class McpController extends ControllerBase {
     serverManager: IServerManager,
     pythonDiagnostics: vscode.DiagnosticCollection,
     pythonWorkspace: FilteredWorkspace,
-    outputChannel: vscode.OutputChannel,
+    outputChannel: OutputChannelWithHistory,
     outputChannelDebug: OutputChannelWithHistory
   ) {
     super();

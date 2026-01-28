@@ -215,7 +215,7 @@ export class ExtensionController implements IDisposable {
   private _createQueryViewProvider: CreateQueryViewProvider | null = null;
 
   private _pythonDiagnostics: vscode.DiagnosticCollection | null = null;
-  private _outputChannel: vscode.OutputChannel | null = null;
+  private _outputChannel: OutputChannelWithHistory | null = null;
   private _outputChannelDebug: OutputChannelWithHistory | null = null;
   private _toaster: IToastService | null = null;
 
@@ -480,7 +480,10 @@ export class ExtensionController implements IDisposable {
    * Initialize output channels, Logger and Toaster.
    */
   initializeMessaging = (): void => {
-    this._outputChannel = vscode.window.createOutputChannel('Deephaven', 'log');
+    this._outputChannel = new OutputChannelWithHistory(
+      this._context,
+      vscode.window.createOutputChannel('Deephaven', 'log')
+    );
     this._outputChannelDebug = new OutputChannelWithHistory(
       this._context,
       vscode.window.createOutputChannel('Deephaven Debug', 'log')

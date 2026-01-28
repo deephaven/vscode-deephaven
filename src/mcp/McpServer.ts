@@ -28,14 +28,14 @@ export class McpServer extends DisposableBase {
   readonly pythonDiagnostics: vscode.DiagnosticCollection;
   readonly pythonWorkspace: FilteredWorkspace;
   readonly serverManager: IServerManager;
-  readonly outputChannel: vscode.OutputChannel;
+  readonly outputChannel: OutputChannelWithHistory;
   readonly outputChannelDebug: OutputChannelWithHistory;
 
   constructor(
     pythonDiagnostics: vscode.DiagnosticCollection,
     pythonWorkspace: FilteredWorkspace,
     serverManager: IServerManager,
-    outputChannel: vscode.OutputChannel,
+    outputChannel: OutputChannelWithHistory,
     outputChannelDebug: OutputChannelWithHistory
   ) {
     super();
