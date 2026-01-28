@@ -427,7 +427,8 @@ export class ExtensionController implements IDisposable {
       this._extensionInfo.mcpVersion,
       this._serverManager,
       this._pythonDiagnostics,
-      this._pythonWorkspace
+      this._pythonWorkspace,
+      this._pipServerController
     );
 
     this._context.subscriptions.push(this._mcpController);
