@@ -1,7 +1,11 @@
 import * as vscode from 'vscode';
 import { z } from 'zod';
-import type { McpTool, McpToolHandlerArg, McpToolHandlerResult } from '../../types';
-import { McpToolResponse } from '../utils';
+import type {
+  McpTool,
+  McpToolHandlerArg,
+  McpToolHandlerResult,
+} from '../../types';
+import { createMcpToolOutputSchema, McpToolResponse } from '../utils';
 
 const spec = {
   title: 'Open Files in Editor',
@@ -19,16 +23,9 @@ const spec = {
       .optional()
       .describe('Preserve focus in the current editor group (default: false).'),
   },
-  outputSchema: {
-    success: z.boolean(),
-    message: z.string(),
-    executionTimeMs: z.number().describe('Execution time in milliseconds'),
-    details: z
-      .object({
-        filesOpened: z.number(),
-      })
-      .optional(),
-  },
+  outputSchema: createMcpToolOutputSchema({
+    filesOpened: z.number(),
+  }),
 } as const;
 
 type Spec = typeof spec;

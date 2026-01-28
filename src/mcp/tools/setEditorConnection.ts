@@ -7,7 +7,7 @@ import type {
   McpToolHandlerResult,
 } from '../../types';
 import { parseUrl } from '../../util';
-import { McpToolResponse } from '../utils';
+import { createMcpToolOutputSchema, McpToolResponse } from '../utils';
 
 const spec = {
   title: 'Set Editor Connection',
@@ -17,18 +17,10 @@ const spec = {
     uri: z.string().describe('The file URI of the editor.'),
     connectionUrl: z.string().describe('The Deephaven connection URL.'),
   },
-  outputSchema: {
-    success: z.boolean(),
-    message: z.string(),
-    executionTimeMs: z.number().describe('Execution time in milliseconds'),
-    details: z
-      .object({
-        uri: z.string(),
-        connectionUrl: z.string(),
-      })
-      .optional(),
-    hint: z.string().optional(),
-  },
+  outputSchema: createMcpToolOutputSchema({
+    uri: z.string(),
+    connectionUrl: z.string(),
+  }),
 } as const;
 
 type Spec = typeof spec;
