@@ -7,42 +7,6 @@ vi.mock('vscode');
 
 const MOCK_EXECUTION_TIME_MS = 100;
 
-const EXPECTED_SERVER_SUCCESS = {
-  success: true,
-  message: 'Output panel shown',
-  details: {
-    outputType: 'server',
-  },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_DEBUG_SUCCESS = {
-  success: true,
-  message: 'Output panel shown',
-  details: {
-    outputType: 'debug',
-  },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_SERVER_ERROR = {
-  success: false,
-  message: 'Failed to show output panel: show error',
-  details: {
-    outputType: 'server',
-  },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_DEBUG_ERROR = {
-  success: false,
-  message: 'Failed to show output panel: show error',
-  details: {
-    outputType: 'debug',
-  },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
 describe('showOutputPanel', () => {
   const outputChannel = {
     show: vi.fn(),
@@ -73,57 +37,64 @@ describe('showOutputPanel', () => {
     );
   });
 
-  it('should show output channel when outputType is "server"', async () => {
-    const tool = createShowOutputPanelTool({
-      outputChannel,
-      outputChannelDebug,
-    });
-    const result = await tool.handler({ outputType: 'server' });
+  it.each([
+    { outputType: 'server' as const },
+    { outputType: 'debug' as const },
+  ])(
+    'should show correct channel when outputType is "$outputType"',
+    async ({ outputType }) => {
+      const tool = createShowOutputPanelTool({
+        outputChannel,
+        outputChannelDebug,
+      });
+      const result = await tool.handler({ outputType });
 
-    expect(outputChannel.show).toHaveBeenCalledWith(true);
-    expect(outputChannelDebug.show).not.toHaveBeenCalled();
-    expect(result.structuredContent).toEqual(EXPECTED_SERVER_SUCCESS);
-  });
+      const channelToShow =
+        outputType === 'server' ? outputChannel : outputChannelDebug;
+      const channelNotToShow =
+        outputType === 'server' ? outputChannelDebug : outputChannel;
 
-  it('should show debug channel when outputType is "debug"', async () => {
-    const tool = createShowOutputPanelTool({
-      outputChannel,
-      outputChannelDebug,
-    });
-    const result = await tool.handler({ outputType: 'debug' });
+      expect(channelToShow.show).toHaveBeenCalledWith(true);
+      expect(channelNotToShow.show).not.toHaveBeenCalled();
+      expect(result.structuredContent).toEqual({
+        success: true,
+        message: 'Output panel shown',
+        details: {
+          outputType,
+        },
+        executionTimeMs: MOCK_EXECUTION_TIME_MS,
+      });
+    }
+  );
 
-    expect(outputChannelDebug.show).toHaveBeenCalledWith(true);
-    expect(outputChannel.show).not.toHaveBeenCalled();
-    expect(result.structuredContent).toEqual(EXPECTED_DEBUG_SUCCESS);
-  });
+  it.each([
+    { outputType: 'server' as const },
+    { outputType: 'debug' as const },
+  ])(
+    'should handle errors for outputType "$outputType"',
+    async ({ outputType }) => {
+      const error = new Error('show error');
+      const channelWithError =
+        outputType === 'server' ? outputChannel : outputChannelDebug;
 
-  it('should handle errors from output channel', async () => {
-    const error = new Error('show error');
-    vi.mocked(outputChannel.show).mockImplementation(() => {
-      throw error;
-    });
+      vi.mocked(channelWithError.show).mockImplementation(() => {
+        throw error;
+      });
 
-    const tool = createShowOutputPanelTool({
-      outputChannel,
-      outputChannelDebug,
-    });
-    const result = await tool.handler({ outputType: 'server' });
+      const tool = createShowOutputPanelTool({
+        outputChannel,
+        outputChannelDebug,
+      });
+      const result = await tool.handler({ outputType });
 
-    expect(result.structuredContent).toEqual(EXPECTED_SERVER_ERROR);
-  });
-
-  it('should handle errors from debug channel', async () => {
-    const error = new Error('show error');
-    vi.mocked(outputChannelDebug.show).mockImplementation(() => {
-      throw error;
-    });
-
-    const tool = createShowOutputPanelTool({
-      outputChannel,
-      outputChannelDebug,
-    });
-    const result = await tool.handler({ outputType: 'debug' });
-
-    expect(result.structuredContent).toEqual(EXPECTED_DEBUG_ERROR);
-  });
+      expect(result.structuredContent).toEqual({
+        success: false,
+        message: 'Failed to show output panel: show error',
+        details: {
+          outputType,
+        },
+        executionTimeMs: MOCK_EXECUTION_TIME_MS,
+      });
+    }
+  );
 });
