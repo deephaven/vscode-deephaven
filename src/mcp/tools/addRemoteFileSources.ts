@@ -1,8 +1,12 @@
 import * as vscode from 'vscode';
 import { z } from 'zod';
 import { ADD_REMOTE_FILE_SOURCE_CMD } from '../../common/commands';
-import type { McpTool, McpToolHandlerArg, McpToolHandlerResult } from '../../types';
-import { McpToolResponse } from '../utils';
+import type {
+  McpTool,
+  McpToolHandlerArg,
+  McpToolHandlerResult,
+} from '../../types';
+import { createMcpToolOutputSchema, McpToolResponse } from '../utils';
 
 const spec = {
   title: 'Add Remote File Sources',
@@ -12,16 +16,9 @@ const spec = {
       .array(z.string())
       .describe('List of folder URIs to add as remote file sources.'),
   },
-  outputSchema: {
-    success: z.boolean(),
-    message: z.string(),
-    executionTimeMs: z.number().describe('Execution time in milliseconds'),
-    details: z
-      .object({
-        foldersAdded: z.number(),
-      })
-      .optional(),
-  },
+  outputSchema: createMcpToolOutputSchema({
+    foldersAdded: z.number(),
+  }),
 } as const;
 
 type Spec = typeof spec;
