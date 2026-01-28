@@ -22,8 +22,12 @@ const EXPECTED_SUCCESS = {
 
 const EXPECTED_ERROR = {
   success: false,
-  message: 'Failed to open files: Failed to open document',
+  message: 'Failed to open some files',
   executionTimeMs: MOCK_EXECUTION_TIME_MS,
+  details: {
+    filesOpened: 0,
+    failedUris: MOCK_FILE_URIS,
+  },
 } as const;
 
 describe('openFilesInEditor', () => {
@@ -152,12 +156,16 @@ describe('openFilesInEditor', () => {
     });
 
     const tool = createOpenFilesInEditorTool();
-    const result = await tool.handler({ uris: ['invalid'] });
+    const result = await tool.handler({ uris: MOCK_FILE_URIS });
 
     expect(result.structuredContent).toEqual({
       success: false,
-      message: 'Failed to open files: Invalid URI',
+      message: 'Failed to open some files',
       executionTimeMs: MOCK_EXECUTION_TIME_MS,
+      details: {
+        filesOpened: 0,
+        failedUris: MOCK_FILE_URIS,
+      },
     });
   });
 });

@@ -25,6 +25,7 @@ const spec = {
   },
   outputSchema: createMcpToolOutputSchema({
     filesOpened: z.number(),
+    failedUris: z.array(z.string()).optional(),
   }),
 } as const;
 
@@ -44,18 +45,29 @@ export function createOpenFilesInEditorTool(): OpenFilesInEditorTool {
     }: HandlerArg): Promise<HandlerResult> => {
       const response = new McpToolResponse();
 
-      try {
-        for (const uriStr of uris) {
+      const failedUris: string[] = [];
+      let filesOpened = 0;
+
+      for (const uriStr of uris) {
+        try {
           const uri = vscode.Uri.parse(uriStr);
           await vscode.window.showTextDocument(uri, { preview, preserveFocus });
+          filesOpened++;
+        } catch (error) {
+          failedUris.push(uriStr);
         }
-
-        return response.success('Files opened in editor successfully', {
-          filesOpened: uris.length,
-        });
-      } catch (error) {
-        return response.error('Failed to open files', error);
       }
+
+      if (failedUris.length > 0) {
+        return response.error('Failed to open some files', null, {
+          filesOpened,
+          failedUris,
+        });
+      }
+
+      return response.success('Files opened in editor successfully', {
+        filesOpened,
+      });
     },
   };
 }
