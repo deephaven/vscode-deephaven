@@ -1,6 +1,7 @@
-import type * as vscode from 'vscode';
+import * as vscode from 'vscode';
+import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { EXTENSION_ID } from './constants';
-import type { SerializedRange } from '../types';
+import type { SerializedRange, ServerState } from '../types';
 
 /** Arguments passed to `RUN_CODE_COMMAND` handler */
 export type RunCodeCmdArgs = [
@@ -23,6 +24,12 @@ export type RunSelectionCmdArgs = [
   uri?: vscode.Uri,
   _arg?: { groupId: number },
   languageId?: string,
+];
+
+/** Arguments passed to `CONNECT_TO_SERVER_CMD` handler */
+export type ConnectToServerCmdArgs = [
+  serverState: Pick<ServerState, 'type' | 'url'>,
+  operateAsAnotherUser?: boolean,
 ];
 
 /**
@@ -72,3 +79,27 @@ export const START_SERVER_CMD = cmd('startServer');
 export const STOP_SERVER_CMD = cmd('stopServer');
 export const ADD_REMOTE_FILE_SOURCE_CMD = cmd('addRemoteFileSource');
 export const REMOVE_REMOTE_FILE_SOURCE_CMD = cmd('removeRemoteFileSource');
+
+/**
+ * Execute the connect to server command with type safety.
+ * @param serverState The server to connect to (type and url).
+ * @param operateAsAnotherUser Whether to operate as another user.
+ */
+export function execConnectToServer(
+  ...args: ConnectToServerCmdArgs
+): Thenable<void> {
+  return vscode.commands.executeCommand(CONNECT_TO_SERVER_CMD, ...args);
+}
+
+/**
+ * Execute the run code command with type safety.
+ * @returns The command result from the Deephaven server, or null.
+ */
+export function execRunCode(
+  ...args: RunCodeCmdArgs
+): Thenable<DhcType.ide.CommandResult | null> {
+  return vscode.commands.executeCommand<DhcType.ide.CommandResult | null>(
+    RUN_CODE_COMMAND,
+    ...args
+  );
+}

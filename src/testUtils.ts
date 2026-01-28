@@ -87,6 +87,39 @@ export function matrix<
   );
 }
 
+/**
+ * Generate an array of all possible combinations of the given object's property
+ * values. Each property should be an array of possible values for that property.
+ *
+ * e.g.
+ * matrixObject({ a: [1, 2], b: ['x', 'y'] }) => [
+ *   { a: 1, b: 'x' },
+ *   { a: 1, b: 'y' },
+ *   { a: 2, b: 'x' },
+ *   { a: 2, b: 'y' },
+ * ]
+ *
+ * @param obj Object where each property is an array of possible values
+ * @returns Array of objects with all possible combinations
+ */
+export function matrixObject<
+  T extends Record<string, readonly unknown[] | unknown[]>,
+  TReturn extends { [K in keyof T]: T[K][number] },
+>(obj: T): TReturn[] {
+  const keys = Object.keys(obj) as (keyof T)[];
+  const values = keys.map(key => obj[key]);
+
+  const combinations = matrix(...values);
+
+  return combinations.map(combo => {
+    const result = {} as TReturn;
+    keys.forEach((key, index) => {
+      result[key] = combo[index] as TReturn[keyof T];
+    });
+    return result;
+  });
+}
+
 function lineAt(this: vscode.TextDocument, line: number): vscode.TextLine;
 function lineAt(
   this: vscode.TextDocument,

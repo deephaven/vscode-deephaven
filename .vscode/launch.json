@@ -11,7 +11,7 @@
       "request": "launch",
       "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
       "outFiles": ["${workspaceFolder}/out/**/*.js"],
-      "preLaunchTask": "${defaultBuildTask}"
+      "preLaunchTask": "watch"
     },
     {
       "name": "e2e Tests",
@@ -21,7 +21,7 @@
       "args": ["--debug"],
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
-      "preLaunchTask": "${defaultBuildTask}"
+      "preLaunchTask": "watch"
     }
   ]
 }

@@ -23,6 +23,7 @@ import { getConnectionsForConsoleType } from '../services';
 import {
   CONNECT_TO_SERVER_CMD,
   CONNECT_TO_SERVER_OPERATE_AS_CMD,
+  ConnectToServerCmdArgs,
   DISCONNECT_EDITOR_CMD,
   DISCONNECT_FROM_SERVER_CMD,
   SELECT_CONNECTION_COMMAND,
@@ -317,8 +318,7 @@ export class ConnectionController
    * Handle connecting to a server
    */
   onConnectToServer = async (
-    serverState: Pick<ServerState, 'type' | 'url'>,
-    operateAsAnotherUser?: boolean
+    ...[serverState, operateAsAnotherUser]: ConnectToServerCmdArgs
   ): Promise<void> => {
     const languageId = vscode.window.activeTextEditor?.document.languageId;
 

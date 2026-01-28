@@ -1,5 +1,4 @@
-import * as vscode from 'vscode';
-import { CONNECT_TO_SERVER_CMD } from '../../common/commands';
+import { execConnectToServer } from '../../common/commands';
 import { z } from 'zod';
 import type { McpTool, McpToolHandlerResult } from '../../types';
 import type { IServerManager } from '../../types';
@@ -100,10 +99,7 @@ export function createRunCodeTool({
 
           const serverState = { type: server.type, url: server.url };
 
-          await vscode.commands.executeCommand(
-            CONNECT_TO_SERVER_CMD,
-            serverState
-          );
+          await execConnectToServer(serverState);
 
           connections = serverManager.getConnections(parsedConnectionURL.value);
 
