@@ -25,6 +25,14 @@ const EXPECTED_ERROR = {
   success: false,
   message: 'Failed to add remote file sources: Command failed',
   executionTimeMs: MOCK_EXECUTION_TIME_MS,
+  details: { folderUris: MOCK_FOLDER_URIS },
+} as const;
+
+const EXPECTED_URI_PARSE_ERROR = {
+  success: false,
+  message: 'Failed to add remote file sources: Invalid URI',
+  executionTimeMs: MOCK_EXECUTION_TIME_MS,
+  details: { folderUris: MOCK_FOLDER_URIS },
 } as const;
 
 describe('addRemoteFileSources', () => {
@@ -53,8 +61,12 @@ describe('addRemoteFileSources', () => {
     const result = await tool.handler({ folderUris: MOCK_FOLDER_URIS });
 
     expect(vscode.Uri.parse).toHaveBeenCalledTimes(3);
-    expect(vscode.Uri.parse).toHaveBeenCalledWith('dh://server1/path/to/folder1');
-    expect(vscode.Uri.parse).toHaveBeenCalledWith('dh://server2/path/to/folder2');
+    expect(vscode.Uri.parse).toHaveBeenCalledWith(
+      'dh://server1/path/to/folder1'
+    );
+    expect(vscode.Uri.parse).toHaveBeenCalledWith(
+      'dh://server2/path/to/folder2'
+    );
     expect(vscode.Uri.parse).toHaveBeenCalledWith('file:///local/path');
 
     expect(vscode.commands.executeCommand).toHaveBeenCalledWith(
@@ -118,12 +130,8 @@ describe('addRemoteFileSources', () => {
     });
 
     const tool = createAddRemoteFileSourcesTool();
-    const result = await tool.handler({ folderUris: ['invalid'] });
+    const result = await tool.handler({ folderUris: MOCK_FOLDER_URIS });
 
-    expect(result.structuredContent).toEqual({
-      success: false,
-      message: 'Failed to add remote file sources: Invalid URI',
-      executionTimeMs: MOCK_EXECUTION_TIME_MS,
-    });
+    expect(result.structuredContent).toEqual(EXPECTED_URI_PARSE_ERROR);
   });
 });

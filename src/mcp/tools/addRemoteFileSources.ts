@@ -43,7 +43,9 @@ export function createAddRemoteFileSourcesTool(): AddRemoteFileSourcesTool {
           foldersAdded: uris.length,
         });
       } catch (error) {
-        return response.error('Failed to add remote file sources', error);
+        return response.error('Failed to add remote file sources', error, {
+          folderUris,
+        });
       }
     },
   };
