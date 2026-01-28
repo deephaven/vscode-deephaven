@@ -70,7 +70,7 @@ export function createMcpToolOutputSchema<TDetailsShape extends z.ZodRawShape>(
     message: z.string(),
     executionTimeMs: z.number().describe('Execution time in milliseconds'),
     hint: z.string().optional(),
-    details: detailsShape ? z.object(detailsShape).optional() : undefined,
+    ...(detailsShape ? { details: z.object(detailsShape).optional() } : {}),
   };
 }
 
