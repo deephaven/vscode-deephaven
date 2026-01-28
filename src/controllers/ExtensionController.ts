@@ -215,7 +215,7 @@ export class ExtensionController implements IDisposable {
   private _createQueryViewProvider: CreateQueryViewProvider | null = null;
 
   private _pythonDiagnostics: vscode.DiagnosticCollection | null = null;
-  private _outputChannel: vscode.OutputChannel | null = null;
+  private _outputChannel: OutputChannelWithHistory | null = null;
   private _outputChannelDebug: OutputChannelWithHistory | null = null;
   private _toaster: IToastService | null = null;
 
@@ -420,6 +420,8 @@ export class ExtensionController implements IDisposable {
     assertDefined(this._pythonDiagnostics, 'pythonDiagnostics');
     assertDefined(this._pythonWorkspace, 'pythonWorkspace');
     assertDefined(this._config, 'config');
+    assertDefined(this._outputChannel, 'outputChannel');
+    assertDefined(this._outputChannelDebug, 'outputChannelDebug');
 
     this._mcpController = new McpController(
       this._context,
@@ -427,7 +429,9 @@ export class ExtensionController implements IDisposable {
       this._extensionInfo.mcpVersion,
       this._serverManager,
       this._pythonDiagnostics,
-      this._pythonWorkspace
+      this._pythonWorkspace,
+      this._outputChannel,
+      this._outputChannelDebug
     );
 
     this._context.subscriptions.push(this._mcpController);
@@ -476,7 +480,10 @@ export class ExtensionController implements IDisposable {
    * Initialize output channels, Logger and Toaster.
    */
   initializeMessaging = (): void => {
-    this._outputChannel = vscode.window.createOutputChannel('Deephaven', 'log');
+    this._outputChannel = new OutputChannelWithHistory(
+      this._context,
+      vscode.window.createOutputChannel('Deephaven', 'log')
+    );
     this._outputChannelDebug = new OutputChannelWithHistory(
       this._context,
       vscode.window.createOutputChannel('Deephaven Debug', 'log')
