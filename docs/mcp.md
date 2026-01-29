@@ -118,11 +118,6 @@ The MCP server provides tools for:
   - `getLogs` - Retrieve server or debug logs
   - `showOutputPanel` - Display output panel in VS Code
 
-- **File Management** - Manage workspace files
-  - `openFilesInEditor` - Open files in the editor
-  - `addRemoteFileSources` - Add remote file sources
-  - `setEditorConnection` - Associate files with connections
-
 For detailed documentation on each tool including parameters, return types, and examples, see [MCP Tool Reference](mcp-tools.md).
 
 All MCP tools follow a consistent response structure:
