@@ -11,7 +11,6 @@ The [Model Context Protocol](https://modelcontextprotocol.io/) is an open protoc
 - Query connection states managed by the extension
 - Access the extension's output channels and logs
 
-
 ## Getting Started
 
 ### Prerequisites
@@ -86,7 +85,6 @@ Example configuration (format may vary by IDE):
 
 Replace `45678` with the actual port shown in the `MCP:<port>` status bar item.
 
-
 ## Available Tools
 
 The MCP server provides tools for:
@@ -137,7 +135,6 @@ All MCP tools follow a consistent response structure:
 }
 ```
 
-
 ## Supported IDEs
 
 The MCP server provided by this extension is designed specifically for VS Code and IDEs built on top of VS Code:
@@ -151,4 +148,3 @@ The MCP server provided by this extension is designed specifically for VS Code a
 - **GitHub Copilot** - Automatically configured
 - **Windsurf's built-in agent** - Automatically configured
 - **Other AI assistants** (e.g., VS Code-based IDEs, AI extensions like Cline) - Automatic configuration not implemented; requires manual MCP server configuration (untested)
-

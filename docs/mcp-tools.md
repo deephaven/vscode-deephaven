@@ -6,12 +6,12 @@ This guide helps you understand what the Deephaven MCP tools can do and how to u
 
 ## Quick Reference
 
-| Category              | Tools                                                              | Purpose                                |
-| --------------------- | ------------------------------------------------------------------ | -------------------------------------- |
-| **Server Management** | `connectToServer`, `listServers`                                   | Connect to and list configured servers |
-| **Connections**       | `listConnections`                                                  | Check active connections               |
-| **Code Execution**    | `runCode`, `runCodeFromUri`                                        | Execute Python/Groovy code             |
-| **Logging**           | `getLogs`, `showOutputPanel`                                       | Access and view logs                   |
+| Category              | Tools                            | Purpose                                |
+| --------------------- | -------------------------------- | -------------------------------------- |
+| **Server Management** | `connectToServer`, `listServers` | Connect to and list configured servers |
+| **Connections**       | `listConnections`                | Check active connections               |
+| **Code Execution**    | `runCode`, `runCodeFromUri`      | Execute Python/Groovy code             |
+| **Logging**           | `getLogs`, `showOutputPanel`     | Access and view logs                   |
 
 ## Server Management
 
