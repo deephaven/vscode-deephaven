@@ -11,19 +11,6 @@ The [Model Context Protocol](https://modelcontextprotocol.io/) is an open protoc
 - Query connection states managed by the extension
 - Access the extension's output channels and logs
 
-## Supported IDEs
-
-The MCP server provided by this extension is designed specifically for VS Code and IDEs built on top of VS Code:
-
-- **VS Code with GitHub Copilot** - Fully supported and tested
-- **Windsurf** - Fully supported and tested
-- **Other VS Code-based IDEs** (e.g., Cursor) - May work but untested; requires manual MCP server configuration
-
-### AI Assistant Support
-
-- **GitHub Copilot** - Automatically configured
-- **Windsurf's built-in agent** - Automatically configured
-- **Other AI assistants** (e.g., VS Code-based IDEs, AI extensions like Cline) - Automatic configuration not implemented; requires manual MCP server configuration (untested)
 
 ## Getting Started
 
@@ -99,6 +86,7 @@ Example configuration (format may vary by IDE):
 
 Replace `45678` with the actual port shown in the `MCP:<port>` status bar item.
 
+
 ## Available Tools
 
 The MCP server provides tools for:
@@ -148,4 +136,19 @@ All MCP tools follow a consistent response structure:
   "hint": "Actionable guidance for fixing the error"
 }
 ```
+
+
+## Supported IDEs
+
+The MCP server provided by this extension is designed specifically for VS Code and IDEs built on top of VS Code:
+
+- **VS Code with GitHub Copilot** - Fully supported and tested
+- **Windsurf** - Fully supported and tested
+- **Other VS Code-based IDEs** (e.g., Cursor) - May work but untested; requires manual MCP server configuration
+
+### AI Assistant Support
+
+- **GitHub Copilot** - Automatically configured
+- **Windsurf's built-in agent** - Automatically configured
+- **Other AI assistants** (e.g., VS Code-based IDEs, AI extensions like Cline) - Automatic configuration not implemented; requires manual MCP server configuration (untested)
 
