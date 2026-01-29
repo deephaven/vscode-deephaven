@@ -5,11 +5,14 @@ import * as http from 'http';
 import type { IServerManager, McpTool, McpToolSpec } from '../types';
 import { MCP_SERVER_NAME } from '../common';
 import {
+  createAddRemoteFileSourcesTool,
   createGetLogsTool,
   createListConnectionsTool,
   createListServersTool,
+  createOpenFilesInEditorTool,
   createRunCodeFromUriTool,
   createRunCodeTool,
+  createSetEditorConnectionTool,
   createShowOutputPanelTool,
 } from './tools';
 import { OutputChannelWithHistory, withResolvers } from '../util';
@@ -52,12 +55,15 @@ export class McpServer extends DisposableBase {
       version: '1.0.0',
     });
 
+    this.registerTool(createAddRemoteFileSourcesTool());
     this.registerTool(createConnectToServerTool(this));
     this.registerTool(createGetLogsTool(this));
     this.registerTool(createListConnectionsTool(this));
     this.registerTool(createListServersTool(this));
+    this.registerTool(createOpenFilesInEditorTool());
     this.registerTool(createRunCodeFromUriTool(this));
     this.registerTool(createRunCodeTool(this));
+    this.registerTool(createSetEditorConnectionTool(this));
     this.registerTool(createShowOutputPanelTool(this));
   }
 

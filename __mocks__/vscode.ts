@@ -295,6 +295,7 @@ export const window = {
     .fn()
     .mockName('registerFileDecorationProvider'),
   showInputBox: vi.fn().mockName('showInputBox'),
+  showTextDocument: vi.fn().mockName('showTextDocument'),
 };
 
 export const workspace = {
