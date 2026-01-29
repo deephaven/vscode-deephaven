@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { MCP_SERVER_NAME } from '../common';
 import type { McpServer } from '../mcp/McpServer';
 import { DisposableBase } from '../services';
+import type { McpVersion } from '../types';
 
 /**
  * Provides MCP server definitions to VS Code Copilot. This allows Copilot to
@@ -12,7 +13,7 @@ export class McpServerDefinitionProvider
   implements vscode.McpServerDefinitionProvider
 {
   constructor(
-    private readonly version: string | undefined,
+    private readonly mcpVersion: McpVersion,
     private readonly mcpServer: McpServer
   ) {
     super();
@@ -38,7 +39,7 @@ export class McpServerDefinitionProvider
         MCP_SERVER_NAME,
         vscode.Uri.parse(`http://localhost:${port}/mcp`),
         undefined,
-        this.version // Important to tell VS Code when MCP tools may have changed
+        this.mcpVersion // Important to tell VS Code when MCP tools may have changed
       ),
     ];
   }

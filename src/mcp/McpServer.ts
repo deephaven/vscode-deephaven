@@ -6,11 +6,13 @@ import type { IServerManager, McpTool, McpToolSpec } from '../types';
 import { MCP_SERVER_NAME } from '../common';
 import {
   createListConnectionsTool,
+  createListServersTool,
   createRunCodeFromUriTool,
   createRunCodeTool,
 } from './tools';
 import { withResolvers } from '../util';
 import { DisposableBase, type FilteredWorkspace } from '../services';
+import { createConnectToServerTool } from './tools/connectToServer';
 
 /**
  * MCP Server for Deephaven extension.
@@ -42,9 +44,11 @@ export class McpServer extends DisposableBase {
       version: '1.0.0',
     });
 
+    this.registerTool(createConnectToServerTool(this));
     this.registerTool(createRunCodeTool(this));
     this.registerTool(createRunCodeFromUriTool(this));
     this.registerTool(createListConnectionsTool(this));
+    this.registerTool(createListServersTool(this));
   }
 
   private registerTool<Spec extends McpToolSpec>({

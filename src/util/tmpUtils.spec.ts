@@ -4,6 +4,7 @@ import * as path from 'node:path';
 import { getTempDir } from './tmpUtils';
 import { TMP_DIR_ROOT } from '../common';
 
+vi.mock('vscode');
 vi.mock('node:fs');
 
 beforeEach(() => {
