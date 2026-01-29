@@ -1,6 +1,10 @@
 import { execConnectToServer } from '../../common/commands';
 import { z } from 'zod';
-import type { McpTool, McpToolHandlerResult } from '../../types';
+import type {
+  McpTool,
+  McpToolHandlerArg,
+  McpToolHandlerResult,
+} from '../../types';
 import type { IServerManager } from '../../types';
 import { DhcService } from '../../services';
 import { isInstanceOf, parseUrl } from '../../util';
@@ -28,6 +32,7 @@ const spec = {
 } as const;
 
 type Spec = typeof spec;
+type HandlerArg = McpToolHandlerArg<Spec>;
 type HandlerResult = McpToolHandlerResult<Spec>;
 type RunCodeTool = McpTool<Spec>;
 
@@ -43,11 +48,7 @@ export function createRunCodeTool({
       code,
       languageId,
       connectionUrl,
-    }: {
-      code: string;
-      languageId: string;
-      connectionUrl: string;
-    }): Promise<HandlerResult> => {
+    }: HandlerArg): Promise<HandlerResult> => {
       const response = new McpToolResponse();
 
       // Validate languageId

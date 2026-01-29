@@ -5,7 +5,7 @@ import type {
   McpToolHandlerArg,
   McpToolHandlerResult,
 } from '../../types';
-import { McpToolResponse } from '../utils';
+import { createMcpToolOutputSchema, McpToolResponse } from '../utils';
 import { parseUrl } from '../../util';
 
 const spec = {
@@ -20,23 +20,16 @@ const spec = {
         'Optional server URL to filter connections (e.g., "http://localhost:10000")'
       ),
   },
-  outputSchema: {
-    success: z.boolean(),
-    message: z.string(),
-    executionTimeMs: z.number().describe('Execution time in milliseconds'),
-    details: z
-      .object({
-        connections: z.array(
-          z.object({
-            serverUrl: z.string(),
-            isConnected: z.boolean(),
-            isRunningCode: z.boolean().optional(),
-            tagId: z.string().optional(),
-          })
-        ),
+  outputSchema: createMcpToolOutputSchema({
+    connections: z.array(
+      z.object({
+        serverUrl: z.string(),
+        isConnected: z.boolean(),
+        isRunningCode: z.boolean().optional(),
+        tagId: z.string().optional(),
       })
-      .optional(),
-  },
+    ),
+  }),
 } as const;
 
 type Spec = typeof spec;
