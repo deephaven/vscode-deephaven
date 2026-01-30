@@ -71,6 +71,31 @@ Example configuration:
 
 For information on how to authenticate with enterprise servers, see [Enterprise Authentication](enterprise-auth.md).
 
+## Model Context Protocol (MCP)
+
+The extension can expose MCP (Model Context Protocol) server integration for AI assistants in VS Code and compatible IDEs. This is disabled by default.
+
+To enable MCP features:
+
+**Via the Settings UI:**
+
+1. Open VS Code Settings (`Cmd+,` on macOS, `Ctrl+,` on Windows/Linux).
+2. Choose **User** settings (applies to all workspaces) or **Workspace** settings (applies only to the current workspace).
+3. Search for `deephaven.mcp.enabled`.
+4. Check the box to enable.
+
+**Via `settings.json`:**
+
+```json
+{
+  "deephaven.mcp.enabled": true
+}
+```
+
+Once enabled, AI assistants like GitHub Copilot and Windsurf can interact with the extension to manage Deephaven servers, execute code, and more.
+
+For detailed information on MCP features and usage, see [Model Context Protocol (MCP)](mcp.md).
+
 ## SSL Certificates
 
 Deephaven servers using self-signed certificates or internal CA's will require configuring VS Code to trust the signing certificate.
@@ -81,6 +106,7 @@ Deephaven servers using self-signed certificates or internal CA's will require c
 1. Set the `NODE_EXTRA_CA_CERTS` environment variable to the path of the signing certificate.
 
    On Mac / Linux, set the env variable, or if you'd like for it to persist, export it from an appropriate config file for your shell.
+
    ```sh
    export NODE_EXTRA_CA_CERTS=/path/to/cert.pem
    ```
@@ -90,7 +116,9 @@ Deephaven servers using self-signed certificates or internal CA's will require c
    ```sh
    setx NODE_EXTRA_CA_CERTS C:\Path\To\cert.pem
    ```
+
    > Note that paths in env variables should not be wrapped in quotes on Windows.
+
 1. Start VS Code in a shell that has the `NODE_EXTRA_CA_CERTS` variable set.
 
 > Note: VS Code runs in NodeJS which does not consult the trust store of the OS to determine trusted certificates. Instead, it comes pre-installed with a set of trusted root CA's. Any CA's that are not installed with NodeJS will need to be configured as described above. See [here](https://nodejs.org/docs/latest-v22.x/api/cli.html#node_extra_ca_certsfile) for more information on `NODE_EXTRA_CA_CERTS`.
