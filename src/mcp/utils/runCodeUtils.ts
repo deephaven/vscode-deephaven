@@ -52,6 +52,12 @@ export const runCodeOutputSchema = {
         .array(variableResultSchema)
         .optional()
         .describe('Variables created or updated by the code execution'),
+      panelUrlFormat: z
+        .string()
+        .optional()
+        .describe(
+          'URL format for accessing panel variables. Replace <variableTitle> with the variable title.'
+        ),
     })
     .optional(),
 };
