@@ -32,10 +32,10 @@ This guide helps you understand what the Deephaven MCP tools can do and how to u
 
 **Important notes:**
 
-- Servers must be configured in VS Code settings first (see [Configuration](configuration.md))
-- Community servers auto-start if they're pip-managed
-- The AI can find servers by URL or label when connecting
-- Connecting to Enterprise servers creates a new worker
+- Servers must be configured in VS Code settings first (see [Configuration](configuration.md)).
+- Community servers auto-start if they're pip-managed.
+- The AI can find servers by URL or label when connecting.
+- Connecting to Enterprise servers creates a new worker.
 
 ## Running Code
 
@@ -58,8 +58,8 @@ This guide helps you understand what the Deephaven MCP tools can do and how to u
 
 **Important notes:**
 
-- Language is detected from file extension or specified explicitly
-- Variables created by the code are returned in the response
+- Language is detected from the file extension or specified explicitly.
+- Variables created by the code are returned in the response.
 
 ## Checking Connections
 
@@ -77,9 +77,9 @@ This guide helps you understand what the Deephaven MCP tools can do and how to u
 
 **Useful for:**
 
-- Debugging connection issues
-- Checking if code is currently running
-- Resolving connection names to URLs
+- Debugging connection issues.
+- Checking if code is currently running.
+- Resolving connection names to URLs.
 
 ## Accessing Logs
 
@@ -99,15 +99,15 @@ This guide helps you understand what the Deephaven MCP tools can do and how to u
 
 **Useful for:**
 
-- Debugging connection issues
-- Investigating code execution errors
-- Seeing what happened during operations
+- Debugging connection issues.
+- Investigating code execution errors.
+- Seeing what happened during operations.
 
 ## Getting Help
 
 If tools aren't working as expected:
 
-1. Use `getLogs` to see what errors occurred
-2. Verify your server configuration in VS Code settings
-3. Check that the MCP server is enabled (`deephaven.mcp.enabled`)
-4. Check the VS Code Output panel (View → Output → Deephaven) for error messages
+1. Use `getLogs` to see what errors occurred.
+2. Verify your server configuration in VS Code settings.
+3. Check that the MCP server is enabled (`deephaven.mcp.enabled`).
+4. Check the VS Code Output panel (View → Output → Deephaven) for error messages.

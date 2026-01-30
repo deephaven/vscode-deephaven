@@ -77,14 +77,14 @@ The extension can expose MCP (Model Context Protocol) server integration for AI 
 
 To enable MCP features:
 
-**Via Settings UI:**
+**Via the Settings UI:**
 
-1. Open VS Code Settings (`Cmd+,` on macOS, `Ctrl+,` on Windows/Linux)
-2. Choose **User** settings (applies to all workspaces) or **Workspace** settings (applies only to the current workspace)
-3. Search for `deephaven.mcp.enabled`
-4. Check the box to enable
+1. Open VS Code Settings (`Cmd+,` on macOS, `Ctrl+,` on Windows/Linux).
+2. Choose **User** settings (applies to all workspaces) or **Workspace** settings (applies only to the current workspace).
+3. Search for `deephaven.mcp.enabled`.
+4. Check the box to enable.
 
-**Via settings.json:**
+**Via `settings.json`:**
 
 ```json
 {

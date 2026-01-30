@@ -6,10 +6,10 @@ The Deephaven VS Code extension provides MCP (Model Context Protocol) server sup
 
 The [Model Context Protocol](https://modelcontextprotocol.io/) is an open protocol that standardizes how AI assistants connect to external data sources and tools. By running as an MCP server, this extension exposes its functionality to AI assistants within VS Code and compatible IDEs, allowing them to:
 
-- Connect to and manage Deephaven servers through the extension
-- Execute Python and Groovy code via the extension's connection management
-- Query connection states managed by the extension
-- Access the extension's output channels and logs
+- Connect to and manage Deephaven servers through the extension.
+- Execute Python and Groovy code via the extension's connection management.
+- Query connection states managed by the extension.
+- Access the extension's output channels and logs.
 
 ## Getting Started
 
@@ -32,14 +32,14 @@ The MCP server can be controlled via the VS Code setting:
 
 To enable the MCP server, set this to `true` in your VS Code settings (UI or JSON):
 
-**Via Settings UI:**
+**Via the Settings UI:**
 
-1. Open VS Code Settings (`Cmd+,` on macOS, `Ctrl+,` on Windows/Linux)
-2. Choose **User** settings (applies to all workspaces) or **Workspace** settings (applies only to the current workspace)
-3. Search for `deephaven.mcp.enabled`
-4. Check the box to enable
+1. Open VS Code Settings (`Cmd+,` on macOS, `Ctrl+,` on Windows/Linux).
+2. Choose **User** settings (applies to all workspaces) or **Workspace** settings (applies only to the current workspace).
+3. Search for `deephaven.mcp.enabled`.
+4. Check the box to enable.
 
-**Via settings.json:**
+**Via `settings.json`:**
 
 ```json
 {
@@ -57,7 +57,7 @@ When using GitHub Copilot in VS Code, the extension's MCP server is automaticall
 
 Windsurf automatically detects and connects to the MCP server when the Deephaven extension is active. No additional configuration is required.
 
-> **Note:** Since each workspace uses a unique port and Windsurf only supports user-level MCP configuration, the extension will automatically update the MCP configuration when a Windsurf window becomes active to match the current workspace's port. This has not been thoroughly tested and may require manual actions such as restarting IDE / agent sessions.
+> **Note:** Since each workspace uses a unique port and Windsurf only supports user-level MCP configuration, the extension will automatically update the MCP configuration when a Windsurf window becomes active to match the current workspace's port. This has not been thoroughly tested and may require manual steps, such as restarting IDE/agent sessions.
 
 #### Other VS Code-based IDEs
 
@@ -69,7 +69,7 @@ The MCP server uses an auto-allocated port that varies per session. When the MCP
 http://localhost:<port>/mcp
 ```
 
-> **Note:** The port is unique per workspace. If you switch workspaces, you may need to update your MCP configuration with the new port shown in the status bar. Most IDEs don't yet seem to support workspace level MCP configs, so settings may have to be updated at the user level. This may also require restarting agent sessions, MCP tool caches, etc.
+> **Note:** The port is unique per workspace. If you switch workspaces, you may need to update your MCP configuration with the new port shown in the status bar. Most IDEs don't yet seem to support workspace-level MCP configs, so settings may have to be updated at the user level. This may also require restarting agent sessions, MCP tool caches, etc.
 
 Example configuration (format may vary by IDE):
 
@@ -89,14 +89,14 @@ Replace `45678` with the actual port shown in the `MCP:<port>` status bar item.
 
 The MCP server provides tools for:
 
-- **Server Management** - Connect to and list configured Deephaven servers
-  - `connectToServer` - Create a connection to a server
-  - `listServers` - List all configured servers
+- **Server Management** - Connect to and list configured Deephaven servers.
+  - `connectToServer` - Create a connection to a server.
+  - `listServers` - List all configured servers.
 
-- **Connection Management** - Query active connections
-  - `listConnections` - List active connections, optionally filtered by URL
+- **Connection Management** - Query active connections.
+  - `listConnections` - List active connections, optionally filtered by URL.
 
-- **Code Execution** - Run Python and Groovy code
+- **Code Execution** - Run Python and Groovy code.
   - `runCode` - Execute arbitrary code text
   - `runCodeFromUri` - Execute code from workspace files
 
