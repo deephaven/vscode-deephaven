@@ -97,12 +97,12 @@ The MCP server provides tools for:
   - `listConnections` - List active connections, optionally filtered by URL.
 
 - **Code Execution** - Run Python and Groovy code.
-  - `runCode` - Execute arbitrary code text
-  - `runCodeFromUri` - Execute code from workspace files
+  - `runCode` - Execute arbitrary code text.
+  - `runCodeFromUri` - Execute code from workspace files.
 
-- **Output & Logging** - Access extension logs
-  - `getLogs` - Retrieve server or debug logs
-  - `showOutputPanel` - Display output panel in VS Code
+- **Output & Logging** - Access extension logs.
+  - `getLogs` - Retrieve server or debug logs.
+  - `showOutputPanel` - Display output panel in VS Code.
 
 For detailed documentation on each tool including parameters, return types, and examples, see [MCP Tool Reference](mcp-tools.md).
 
@@ -139,12 +139,12 @@ All MCP tools follow a consistent response structure:
 
 The MCP server provided by this extension is designed specifically for VS Code and IDEs built on top of VS Code:
 
-- **VS Code with GitHub Copilot** - Fully supported and tested
-- **Windsurf** - Fully supported and tested
-- **Other VS Code-based IDEs** (e.g., Cursor) - May work but untested; requires manual MCP server configuration
+- **VS Code with GitHub Copilot** - Fully supported and tested.
+- **Windsurf** - Fully supported and tested.
+- **Other VS Code-based IDEs** (e.g., Cursor) - May work but untested; requires manual MCP server configuration.
 
 ### AI Assistant Support
 
-- **GitHub Copilot** - Automatically configured
-- **Windsurf's built-in agent** - Automatically configured
-- **Other AI assistants** (e.g., VS Code-based IDEs, AI extensions like Cline) - Automatic configuration not implemented; requires manual MCP server configuration (untested)
+- **GitHub Copilot** - Automatically configured.
+- **Windsurf's built-in agent** - Automatically configured.
+- **Other AI assistants** (e.g., VS Code-based IDEs, AI extensions like Cline) - Automatic configuration not implemented; requires manual MCP server configuration (untested).
