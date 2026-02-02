@@ -17,8 +17,16 @@ const MOCK_URL = 'http://localhost:10000';
 const MOCK_PARSED_URL = new URL(MOCK_URL);
 
 const MOCK_VARIABLES: VariableDefintion[] = [
-  { id: 'var1', title: 'Table 1', type: 'Table' } as unknown as VariableDefintion,
-  { id: 'var2', title: 'Plot 1', type: 'Table' } as unknown as VariableDefintion,
+  {
+    id: 'var1',
+    title: 'Table 1',
+    type: 'Table',
+  } as unknown as VariableDefintion,
+  {
+    id: 'var2',
+    title: 'Plot 1',
+    type: 'Table',
+  } as unknown as VariableDefintion,
 ];
 
 const MOCK_SERVER_DHC: ServerState = {
@@ -67,16 +75,6 @@ const EXPECTED_SUCCESS_WITH_HINT = {
 const EXPECTED_NO_VARIABLES = {
   success: true,
   message: 'Found 0 panel variable(s)',
-  details: {
-    variables: [],
-  },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_NO_VARIABLES_WITH_HINT = {
-  success: true,
-  message: 'Found 0 panel variable(s)',
-  hint: `Variables can be accessed via panel URLs in the format: ${MOCK_PARSED_URL.origin}/iframe/widget/?name=<variableTitle>`,
   details: {
     variables: [],
   },
