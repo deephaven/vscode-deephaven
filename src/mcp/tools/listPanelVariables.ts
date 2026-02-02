@@ -12,7 +12,7 @@ import { McpToolResponse, getFirstConnectionOrCreate } from '../utils';
 const spec = {
   title: 'List Panel Variables',
   description:
-    'List all panel variables for a given Deephaven connection URL. For DHC connections, the response includes a panelUrlFormat in the details to construct panel URLs.',
+    'List all panel variables for a given Deephaven connection URL. The response includes a panelUrlFormat in the details to construct panel URLs.',
   inputSchema: {
     connectionUrl: z
       .string()
