@@ -25,7 +25,6 @@ const spec = {
         z.object({
           id: z.string(),
           title: z.string(),
-          type: z.string(),
         })
       )
       .describe('List of variable definitions to open panels for.'),
