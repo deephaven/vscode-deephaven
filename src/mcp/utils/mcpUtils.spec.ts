@@ -1,5 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { formatErrorMessage, McpToolResponse } from './mcpUtils';
+import type { ConnectionState, IServerManager, ServerState } from '../../types';
+import {
+  formatErrorMessage,
+  getFirstConnectionOrCreate,
+  McpToolResponse,
+} from './mcpUtils';
+
+vi.mock('../../common/commands');
+vi.mock('./runCodeUtils');
 
 const MOCK_EXECUTION_TIME_MS = 100;
 
@@ -290,5 +298,314 @@ describe('McpToolResponse', () => {
         });
       }
     );
+  });
+});
+
+describe('getFirstConnectionOrCreate', () => {
+  const mockUrl = new URL('http://localhost:10000');
+  const mockConnection: ConnectionState = {
+    serverUrl: mockUrl,
+    isConnected: true,
+  };
+
+  let serverManager: IServerManager;
+  let execConnectToServerMock: ReturnType<typeof vi.fn>;
+  let createConnectionNotFoundHintMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+
+    const { execConnectToServer } = await import('../../common/commands');
+    const { createConnectionNotFoundHint } = await import('./runCodeUtils');
+
+    execConnectToServerMock = vi.mocked(execConnectToServer);
+    createConnectionNotFoundHintMock = vi.mocked(createConnectionNotFoundHint);
+
+    serverManager = {
+      getServer: vi.fn(),
+      getConnections: vi.fn(),
+      getDheServiceForWorker: vi.fn(),
+      getWorkerInfo: vi.fn(),
+    } as unknown as IServerManager;
+  });
+
+  describe('error cases', () => {
+    it.each([
+      {
+        scenario: 'no server found with languageId',
+        serverExists: false,
+        languageId: 'python',
+        expectedHint: 'Try connecting to a server first',
+        expected: {
+          success: false,
+          errorMessage: 'No connections or server found',
+          hint: 'Try connecting to a server first',
+          details: { connectionUrl: mockUrl.href },
+        },
+      },
+      {
+        scenario: 'no server found without languageId',
+        serverExists: false,
+        languageId: undefined,
+        expectedHint: undefined,
+        expected: {
+          success: false,
+          errorMessage: 'No connections or server found',
+          details: { connectionUrl: mockUrl.href },
+        },
+      },
+    ])(
+      'should return error when $scenario',
+      async ({ serverExists, languageId, expectedHint, expected }) => {
+        vi.mocked(serverManager.getServer).mockReturnValue(
+          serverExists ? ({} as ServerState) : undefined
+        );
+        if (expectedHint) {
+          createConnectionNotFoundHintMock.mockResolvedValue(expectedHint);
+        }
+
+        const result = await getFirstConnectionOrCreate({
+          serverManager,
+          connectionUrl: mockUrl,
+          languageId,
+        });
+
+        expect(result).toEqual(expected);
+        if (languageId) {
+          expect(createConnectionNotFoundHintMock).toHaveBeenCalledWith(
+            serverManager,
+            mockUrl.href,
+            languageId
+          );
+        }
+      }
+    );
+
+    it('should return error when server is not running', async () => {
+      const mockServer: ServerState = {
+        url: mockUrl,
+        type: 'DHC',
+        isRunning: false,
+      } as ServerState;
+
+      vi.mocked(serverManager.getServer).mockReturnValue(mockServer);
+
+      const result = await getFirstConnectionOrCreate({
+        serverManager,
+        connectionUrl: mockUrl,
+      });
+
+      expect(result).toEqual({
+        success: false,
+        errorMessage: 'Server is not running',
+        details: { connectionUrl: mockUrl.href },
+      });
+    });
+
+    it('should return error when DHE server has no active connection', async () => {
+      const mockServer: ServerState = {
+        url: mockUrl,
+        type: 'DHE',
+        isRunning: true,
+      } as ServerState;
+
+      vi.mocked(serverManager.getServer).mockReturnValue(mockServer);
+      vi.mocked(serverManager.getConnections).mockReturnValue([]);
+
+      const result = await getFirstConnectionOrCreate({
+        serverManager,
+        connectionUrl: mockUrl,
+      });
+
+      expect(result).toEqual({
+        success: false,
+        errorMessage: 'No active connection',
+        hint: 'Use connectToServer first',
+        details: { connectionUrl: mockUrl.href },
+      });
+    });
+
+    it('should return error when DHC auto-connect fails', async () => {
+      const mockServer: ServerState = {
+        url: mockUrl,
+        type: 'DHC',
+        isRunning: true,
+      } as ServerState;
+
+      vi.mocked(serverManager.getServer).mockReturnValue(mockServer);
+      vi.mocked(serverManager.getConnections).mockReturnValue([]);
+      execConnectToServerMock.mockResolvedValue(undefined);
+
+      const result = await getFirstConnectionOrCreate({
+        serverManager,
+        connectionUrl: mockUrl,
+      });
+
+      expect(result).toEqual({
+        success: false,
+        errorMessage: 'Failed to connect to server',
+        details: { connectionUrl: mockUrl.href },
+      });
+      expect(execConnectToServerMock).toHaveBeenCalledWith({
+        type: 'DHC',
+        url: mockUrl,
+      });
+    });
+  });
+
+  describe('success cases', () => {
+    it('should return connection for DHC server with existing connection', async () => {
+      const mockServer: ServerState = {
+        url: mockUrl,
+        type: 'DHC',
+        isRunning: true,
+      } as ServerState;
+
+      vi.mocked(serverManager.getServer).mockReturnValue(mockServer);
+      vi.mocked(serverManager.getConnections).mockReturnValue([mockConnection]);
+
+      const result = await getFirstConnectionOrCreate({
+        serverManager,
+        connectionUrl: mockUrl,
+      });
+
+      expect(result).toEqual({
+        success: true,
+        connection: mockConnection,
+        panelUrlFormat: `${mockUrl.origin}/iframe/widget/?name=<variableTitle>`,
+      });
+    });
+
+    it('should auto-connect and return connection for DHC server with no connection', async () => {
+      const mockServer: ServerState = {
+        url: mockUrl,
+        type: 'DHC',
+        isRunning: true,
+      } as ServerState;
+
+      vi.mocked(serverManager.getServer).mockReturnValue(mockServer);
+      vi.mocked(serverManager.getConnections)
+        .mockReturnValueOnce([]) // First call returns no connections
+        .mockReturnValueOnce([mockConnection]); // After auto-connect
+      execConnectToServerMock.mockResolvedValue(undefined);
+
+      const result = await getFirstConnectionOrCreate({
+        serverManager,
+        connectionUrl: mockUrl,
+      });
+
+      expect(result).toEqual({
+        success: true,
+        connection: mockConnection,
+        panelUrlFormat: `${mockUrl.origin}/iframe/widget/?name=<variableTitle>`,
+      });
+      expect(execConnectToServerMock).toHaveBeenCalledWith({
+        type: 'DHC',
+        url: mockUrl,
+      });
+    });
+
+    it('should return connection for DHE server with embedDashboardsAndWidgets feature', async () => {
+      const mockServer: ServerState = {
+        url: mockUrl,
+        type: 'DHE',
+        isRunning: true,
+      } as ServerState;
+
+      const mockDheService = {
+        getServerFeatures: vi.fn().mockReturnValue({
+          features: {
+            embedDashboardsAndWidgets: true,
+          },
+        }),
+      };
+
+      const mockWorkerInfo = {
+        serial: 'test-serial-123',
+      };
+
+      vi.mocked(serverManager.getServer).mockReturnValue(mockServer);
+      vi.mocked(serverManager.getConnections).mockReturnValue([mockConnection]);
+      vi.mocked(serverManager.getDheServiceForWorker).mockResolvedValue(
+        mockDheService as never
+      );
+      vi.mocked(serverManager.getWorkerInfo).mockResolvedValue(
+        mockWorkerInfo as never
+      );
+
+      const result = await getFirstConnectionOrCreate({
+        serverManager,
+        connectionUrl: mockUrl,
+      });
+
+      expect(result).toEqual({
+        success: true,
+        connection: mockConnection,
+        panelUrlFormat: `${mockUrl.origin}/iriside/embed/widget/serial/test-serial-123/<variableTitle>`,
+      });
+    });
+
+    it('should return connection for DHE server without embedDashboardsAndWidgets feature', async () => {
+      const mockServer: ServerState = {
+        url: mockUrl,
+        type: 'DHE',
+        isRunning: true,
+      } as ServerState;
+
+      const mockDheService = {
+        getServerFeatures: vi.fn().mockReturnValue({
+          features: {
+            embedDashboardsAndWidgets: false,
+          },
+        }),
+      };
+
+      vi.mocked(serverManager.getServer).mockReturnValue(mockServer);
+      vi.mocked(serverManager.getConnections).mockReturnValue([mockConnection]);
+      vi.mocked(serverManager.getDheServiceForWorker).mockResolvedValue(
+        mockDheService as never
+      );
+
+      const result = await getFirstConnectionOrCreate({
+        serverManager,
+        connectionUrl: mockUrl,
+      });
+
+      expect(result).toEqual({
+        success: true,
+        connection: mockConnection,
+        panelUrlFormat: undefined,
+      });
+      expect(serverManager.getWorkerInfo).not.toHaveBeenCalled();
+    });
+
+    it('should return connection for DHE server when getServerFeatures returns undefined', async () => {
+      const mockServer: ServerState = {
+        url: mockUrl,
+        type: 'DHE',
+        isRunning: true,
+      } as ServerState;
+
+      const mockDheService = {
+        getServerFeatures: vi.fn().mockReturnValue(undefined),
+      };
+
+      vi.mocked(serverManager.getServer).mockReturnValue(mockServer);
+      vi.mocked(serverManager.getConnections).mockReturnValue([mockConnection]);
+      vi.mocked(serverManager.getDheServiceForWorker).mockResolvedValue(
+        mockDheService as never
+      );
+
+      const result = await getFirstConnectionOrCreate({
+        serverManager,
+        connectionUrl: mockUrl,
+      });
+
+      expect(result).toEqual({
+        success: true,
+        connection: mockConnection,
+        panelUrlFormat: undefined,
+      });
+    });
   });
 });

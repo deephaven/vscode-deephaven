@@ -363,6 +363,14 @@ export class DheService implements IDheService {
     return getSerialFromTagId(tagId, dheClient.client);
   };
 
+  /**
+   * Get DHE server features.
+   * @returns DHE server features or undefined if not available.
+   */
+  getServerFeatures = (): DheServerFeatures | undefined => {
+    return this._dheServerFeaturesCache.get(this.serverUrl);
+  };
+
   dispose = async (): Promise<void> => {
     const querySerials = [...this._querySerialSet];
 

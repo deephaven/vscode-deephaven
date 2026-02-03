@@ -80,6 +80,7 @@ export interface DheServerFeatures {
   version: number;
   features: {
     createQueryIframe: boolean;
+    embedDashboardsAndWidgets?: boolean;
   };
 }
 

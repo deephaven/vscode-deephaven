@@ -131,6 +131,8 @@ describe('runCode tool', () => {
   const serverManager: IServerManager = {
     getConnections: vi.fn(),
     getServer: vi.fn(),
+    getDheServiceForWorker: vi.fn(),
+    getWorkerInfo: vi.fn(),
   } as unknown as IServerManager;
 
   const mockExecuteCommand = vi.fn();
@@ -150,6 +152,10 @@ describe('runCode tool', () => {
 
     vi.mocked(serverManager.getConnections).mockReturnValue([]);
     vi.mocked(serverManager.getServer).mockReturnValue(undefined);
+    vi.mocked(serverManager.getDheServiceForWorker).mockResolvedValue(
+      undefined
+    );
+    vi.mocked(serverManager.getWorkerInfo).mockResolvedValue(undefined);
   });
 
   it('should have correct spec', () => {

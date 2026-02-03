@@ -9,6 +9,12 @@
 - **NEVER** use watch mode for tests - watch mode will hang and prevent the AI agent from continuing
 - The `runTests` tool runs tests in single-run mode and returns results properly
 
+### Test Discovery Issues
+
+- If `runTests` returns 0 tests passed/failed when tests should exist, **ASK THE USER** to refresh the test list
+- This is a known VS Code issue that sometimes requires manual refresh
+- Do NOT spend time trying to debug or fix this yourself - just ask the user to refresh
+
 ### Using VS Code API Mocks
 
 - **ALWAYS** check `__mocks__/vscode.ts` for existing VS Code API mocks before manually creating new ones

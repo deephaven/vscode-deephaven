@@ -19,6 +19,7 @@ import type {
   CoreAuthenticatedClient,
   WorkerURL,
   DheAuthenticatedClientWrapper,
+  DheServerFeatures,
   DheUnauthenticatedClientWrapper,
 } from '../types/commonTypes';
 import type {
@@ -82,6 +83,7 @@ export interface IDheService extends ConnectionState, IDisposable {
     operateAsAnotherUser: boolean
   ): Promise<DheAuthenticatedClientWrapper | null>;
   getQuerySerialFromTag(tagId: UniqueID): Promise<QuerySerial | null>;
+  getServerFeatures(): DheServerFeatures | undefined;
   getWorkerInfo: (workerUrl: WorkerURL) => WorkerInfo | undefined;
   createWorker: (
     tagId: UniqueID,
@@ -177,11 +179,12 @@ export interface IServerManager extends IDisposable {
   getConnection: (serverUrl: URL) => ConnectionState | undefined;
   getConnections: (serverOrWorkerUrl?: URL) => ConnectionState[];
   getConnectionUris: (connection: ConnectionState) => vscode.Uri[];
+  getDheServiceForWorker: (maybeWorkerUrl: URL) => Promise<IDheService | null>;
   getEditorConnection: (uri: vscode.Uri) => Promise<ConnectionState | null>;
   getWorkerCredentials: (
     serverOrWorkerUrl: URL | WorkerURL
   ) => Promise<DhcType.LoginCredentials | null>;
-  getWorkerInfo: (workerUrl: WorkerURL) => Promise<WorkerInfo | undefined>;
+  getWorkerInfo: (maybeWorkerUrl: URL) => Promise<WorkerInfo | undefined>;
   setEditorConnection: (
     uri: vscode.Uri,
     languageId: string,
