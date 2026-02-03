@@ -1,10 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import * as vscode from 'vscode';
 import { createOpenVariablePanelsTool } from './openVariablePanels';
 import type { IServerManager, ServerState } from '../../types';
 import { McpToolResponse } from '../utils/mcpUtils';
+import {
+  execConnectToServer,
+  execOpenVariablePanels,
+} from '../../common/commands';
 
 vi.mock('vscode');
+vi.mock('../../common/commands');
 
 const MOCK_EXECUTION_TIME_MS = 100;
 
@@ -60,6 +64,13 @@ const EXPECTED_FAILED_TO_CONNECT = {
   executionTimeMs: MOCK_EXECUTION_TIME_MS,
 } as const;
 
+const EXPECTED_NO_VARIABLES = {
+  success: false,
+  message: 'No variables provided',
+  details: { connectionUrl: MOCK_URL },
+  executionTimeMs: MOCK_EXECUTION_TIME_MS,
+} as const;
+
 const EXPECTED_NO_CONNECTION_DHE = {
   success: false,
   message: 'No active connection',
@@ -100,7 +111,6 @@ describe('openVariablePanels', () => {
 
   it('should open variable panels when connection exists', async () => {
     vi.mocked(serverManager.getConnections).mockReturnValue([{} as any] as any);
-    const executeCommand = vi.spyOn(vscode.commands, 'executeCommand');
 
     const tool = createOpenVariablePanelsTool({ serverManager });
     const result = await tool.handler({
@@ -109,8 +119,7 @@ describe('openVariablePanels', () => {
     });
 
     expect(serverManager.getConnections).toHaveBeenCalledWith(MOCK_PARSED_URL);
-    expect(executeCommand).toHaveBeenCalledWith(
-      'deephaven.openVariablePanels',
+    expect(execOpenVariablePanels).toHaveBeenCalledWith(
       MOCK_PARSED_URL,
       MOCK_VARIABLES
     );
@@ -122,7 +131,6 @@ describe('openVariablePanels', () => {
       .mockReturnValueOnce([])
       .mockReturnValueOnce([{} as any] as any);
     vi.mocked(serverManager.getServer).mockReturnValue(MOCK_SERVER_DHC);
-    const executeCommand = vi.spyOn(vscode.commands, 'executeCommand');
 
     const tool = createOpenVariablePanelsTool({ serverManager });
     const result = await tool.handler({
@@ -131,34 +139,55 @@ describe('openVariablePanels', () => {
     });
 
     expect(serverManager.getServer).toHaveBeenCalledWith(MOCK_PARSED_URL);
-    expect(executeCommand).toHaveBeenCalledWith('deephaven.connectToServer', {
+    expect(execConnectToServer).toHaveBeenCalledWith({
       type: 'DHC',
       url: MOCK_PARSED_URL,
     });
-    expect(executeCommand).toHaveBeenCalledWith(
-      'deephaven.openVariablePanels',
+    expect(execOpenVariablePanels).toHaveBeenCalledWith(
       MOCK_PARSED_URL,
       MOCK_VARIABLES
     );
     expect(result.structuredContent).toEqual(EXPECTED_SUCCESS);
   });
 
-  it('should return error when DHC auto-connect fails', async () => {
-    vi.mocked(serverManager.getConnections).mockReturnValue([]);
-    vi.mocked(serverManager.getServer).mockReturnValue(MOCK_SERVER_DHC);
-
+  it('should return error when no variables provided', async () => {
     const tool = createOpenVariablePanelsTool({ serverManager });
     const result = await tool.handler({
       connectionUrl: MOCK_URL,
-      variables: MOCK_VARIABLES,
+      variables: [],
     });
 
-    expect(result.structuredContent).toEqual(EXPECTED_FAILED_TO_CONNECT);
+    expect(result.structuredContent).toEqual(EXPECTED_NO_VARIABLES);
+    expect(serverManager.getConnections).not.toHaveBeenCalled();
   });
 
-  it('should return error for DHE server when no connection exists', async () => {
-    vi.mocked(serverManager.getConnections).mockReturnValue([]);
-    vi.mocked(serverManager.getServer).mockReturnValue(MOCK_SERVER_DHE);
+  it.each([
+    {
+      scenario: 'DHC auto-connect fails',
+      setupMocks: (): void => {
+        vi.mocked(serverManager.getConnections).mockReturnValue([]);
+        vi.mocked(serverManager.getServer).mockReturnValue(MOCK_SERVER_DHC);
+      },
+      expected: EXPECTED_FAILED_TO_CONNECT,
+    },
+    {
+      scenario: 'DHE server when no connection exists',
+      setupMocks: (): void => {
+        vi.mocked(serverManager.getConnections).mockReturnValue([]);
+        vi.mocked(serverManager.getServer).mockReturnValue(MOCK_SERVER_DHE);
+      },
+      expected: EXPECTED_NO_CONNECTION_DHE,
+    },
+    {
+      scenario: 'server not found',
+      setupMocks: (): void => {
+        vi.mocked(serverManager.getConnections).mockReturnValue([]);
+        vi.mocked(serverManager.getServer).mockReturnValue(undefined);
+      },
+      expected: EXPECTED_SERVER_NOT_FOUND,
+    },
+  ])('should return error when $scenario', async ({ setupMocks, expected }) => {
+    setupMocks();
 
     const tool = createOpenVariablePanelsTool({ serverManager });
     const result = await tool.handler({
@@ -166,20 +195,7 @@ describe('openVariablePanels', () => {
       variables: MOCK_VARIABLES,
     });
 
-    expect(result.structuredContent).toEqual(EXPECTED_NO_CONNECTION_DHE);
-  });
-
-  it('should return error when server not found', async () => {
-    vi.mocked(serverManager.getConnections).mockReturnValue([]);
-    vi.mocked(serverManager.getServer).mockReturnValue(undefined);
-
-    const tool = createOpenVariablePanelsTool({ serverManager });
-    const result = await tool.handler({
-      connectionUrl: MOCK_URL,
-      variables: MOCK_VARIABLES,
-    });
-
-    expect(result.structuredContent).toEqual(EXPECTED_SERVER_NOT_FOUND);
+    expect(result.structuredContent).toEqual(expected);
   });
 
   it('should handle invalid URL', async () => {
@@ -193,9 +209,9 @@ describe('openVariablePanels', () => {
     expect(serverManager.getConnections).not.toHaveBeenCalled();
   });
 
-  it('should handle errors from executeCommand', async () => {
+  it('should handle errors from execOpenVariablePanels', async () => {
     vi.mocked(serverManager.getConnections).mockReturnValue([{} as any] as any);
-    vi.spyOn(vscode.commands, 'executeCommand').mockRejectedValue(
+    vi.mocked(execOpenVariablePanels).mockRejectedValue(
       new Error('Test error')
     );
 

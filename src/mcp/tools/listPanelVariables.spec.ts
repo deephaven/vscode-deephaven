@@ -1,13 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import * as vscode from 'vscode';
 import { createListPanelVariablesTool } from './listPanelVariables';
 import type {
   IPanelService,
   IServerManager,
-  ServerState,
   VariableDefintion,
 } from '../../types';
 import { McpToolResponse } from '../utils/mcpUtils';
+import * as mcpUtils from '../utils/mcpUtils';
 
 vi.mock('vscode');
 
@@ -29,26 +28,14 @@ const MOCK_VARIABLES: VariableDefintion[] = [
   } as unknown as VariableDefintion,
 ];
 
-const MOCK_SERVER_DHC: ServerState = {
-  url: MOCK_PARSED_URL,
-  type: 'DHC',
-  isRunning: true,
-  isConnected: false,
-  connectionCount: 0,
-};
+const DHC_PANEL_URL_FORMAT = `${MOCK_PARSED_URL.origin}/iframe/widget/?name=<variableTitle>`;
+const DHE_PANEL_URL_FORMAT = `${MOCK_PARSED_URL.origin}/ide/widgets/?worker=<worker>&name=<variableTitle>`;
 
-const MOCK_SERVER_DHE: ServerState = {
-  url: MOCK_PARSED_URL,
-  type: 'DHE',
-  isRunning: true,
-  isConnected: false,
-  connectionCount: 0,
-};
-
-const EXPECTED_SUCCESS = {
+const EXPECTED_SUCCESS_DHC = {
   success: true,
   message: 'Found 2 panel variable(s)',
   details: {
+    panelUrlFormat: DHC_PANEL_URL_FORMAT,
     variables: MOCK_VARIABLES.map(({ id, title, type }) => ({
       id,
       title,
@@ -58,11 +45,11 @@ const EXPECTED_SUCCESS = {
   executionTimeMs: MOCK_EXECUTION_TIME_MS,
 } as const;
 
-const EXPECTED_SUCCESS_WITH_HINT = {
+const EXPECTED_SUCCESS_DHE = {
   success: true,
   message: 'Found 2 panel variable(s)',
-  hint: `Variables can be accessed via panel URLs in the format: ${MOCK_PARSED_URL.origin}/iframe/widget/?name=<variableTitle>`,
   details: {
+    panelUrlFormat: DHE_PANEL_URL_FORMAT,
     variables: MOCK_VARIABLES.map(({ id, title, type }) => ({
       id,
       title,
@@ -72,10 +59,21 @@ const EXPECTED_SUCCESS_WITH_HINT = {
   executionTimeMs: MOCK_EXECUTION_TIME_MS,
 } as const;
 
-const EXPECTED_NO_VARIABLES = {
+const EXPECTED_NO_VARIABLES_DHC = {
   success: true,
   message: 'Found 0 panel variable(s)',
   details: {
+    panelUrlFormat: DHC_PANEL_URL_FORMAT,
+    variables: [],
+  },
+  executionTimeMs: MOCK_EXECUTION_TIME_MS,
+} as const;
+
+const EXPECTED_NO_VARIABLES_DHE = {
+  success: true,
+  message: 'Found 0 panel variable(s)',
+  details: {
+    panelUrlFormat: DHE_PANEL_URL_FORMAT,
     variables: [],
   },
   executionTimeMs: MOCK_EXECUTION_TIME_MS,
@@ -84,15 +82,21 @@ const EXPECTED_NO_VARIABLES = {
 const EXPECTED_INVALID_URL = {
   success: false,
   message: 'Invalid URL: Invalid URL',
-  details: { url: 'invalid-url' },
+  details: { connectionUrl: 'invalid-url' },
   executionTimeMs: MOCK_EXECUTION_TIME_MS,
 } as const;
 
 const EXPECTED_SERVER_NOT_FOUND = {
   success: false,
-  message: 'Server not found',
-  hint: 'Use listServers to see available servers',
-  details: { url: MOCK_URL },
+  message: 'No connections or server found',
+  details: { connectionUrl: MOCK_URL },
+  executionTimeMs: MOCK_EXECUTION_TIME_MS,
+} as const;
+
+const EXPECTED_SERVER_NOT_RUNNING = {
+  success: false,
+  message: 'Server is not running',
+  details: { connectionUrl: MOCK_URL },
   executionTimeMs: MOCK_EXECUTION_TIME_MS,
 } as const;
 
@@ -100,7 +104,14 @@ const EXPECTED_NO_CONNECTION_DHE = {
   success: false,
   message: 'No active connection',
   hint: 'Use connectToServer first',
-  details: { url: MOCK_URL },
+  details: { connectionUrl: MOCK_URL },
+  executionTimeMs: MOCK_EXECUTION_TIME_MS,
+} as const;
+
+const EXPECTED_FAILED_TO_CONNECT = {
+  success: false,
+  message: 'Failed to connect to server',
+  details: { connectionUrl: MOCK_URL },
   executionTimeMs: MOCK_EXECUTION_TIME_MS,
 } as const;
 
@@ -134,104 +145,154 @@ describe('listPanelVariables', () => {
     expect(tool.name).toBe('listPanelVariables');
     expect(tool.spec.title).toBe('List Panel Variables');
     expect(tool.spec.description).toBe(
-      'List all panel variables for a given Deephaven connection URL.'
+      'List all panel variables for a given Deephaven connection URL. The response includes a panelUrlFormat in the details to construct panel URLs.'
     );
   });
 
-  it('should list panel variables when DHC connection exists', async () => {
-    vi.mocked(serverManager.getConnections).mockReturnValue([{} as any] as any);
-    vi.mocked(serverManager.getServer).mockReturnValue(MOCK_SERVER_DHC);
-    vi.mocked(panelService.getVariables).mockReturnValue(MOCK_VARIABLES);
+  it.each([
+    {
+      serverType: 'DHC',
+      panelUrlFormat: DHC_PANEL_URL_FORMAT,
+      expected: EXPECTED_SUCCESS_DHC,
+    },
+    {
+      serverType: 'DHE',
+      panelUrlFormat: DHE_PANEL_URL_FORMAT,
+      expected: EXPECTED_SUCCESS_DHE,
+    },
+  ])(
+    'should list panel variables for $serverType server with connection',
+    async ({ panelUrlFormat, expected }) => {
+      const getFirstConnectionOrCreateSpy = vi
+        .spyOn(mcpUtils, 'getFirstConnectionOrCreate')
+        .mockResolvedValue({
+          success: true,
+          connection: {} as any,
+          panelUrlFormat,
+        });
+      vi.mocked(panelService.getVariables).mockReturnValue(MOCK_VARIABLES);
 
-    const tool = createListPanelVariablesTool({ panelService, serverManager });
-    const result = await tool.handler({ url: MOCK_URL });
+      const tool = createListPanelVariablesTool({
+        panelService,
+        serverManager,
+      });
+      const result = await tool.handler({ connectionUrl: MOCK_URL });
 
-    expect(serverManager.getConnections).toHaveBeenCalledWith(MOCK_PARSED_URL);
-    expect(panelService.getVariables).toHaveBeenCalledWith(MOCK_PARSED_URL);
-    expect(result.structuredContent).toEqual(EXPECTED_SUCCESS_WITH_HINT);
-  });
+      expect(getFirstConnectionOrCreateSpy).toHaveBeenCalledWith({
+        connectionUrl: MOCK_PARSED_URL,
+        serverManager,
+      });
+      expect(panelService.getVariables).toHaveBeenCalledWith(MOCK_PARSED_URL);
+      expect(result.structuredContent).toEqual(expected);
+    }
+  );
 
-  it('should list panel variables when non-DHC connection exists', async () => {
-    vi.mocked(serverManager.getConnections).mockReturnValue([{} as any] as any);
-    vi.mocked(serverManager.getServer).mockReturnValue(MOCK_SERVER_DHE);
-    vi.mocked(panelService.getVariables).mockReturnValue(MOCK_VARIABLES);
+  it.each([
+    {
+      serverType: 'DHC',
+      panelUrlFormat: DHC_PANEL_URL_FORMAT,
+      expected: EXPECTED_NO_VARIABLES_DHC,
+    },
+    {
+      serverType: 'DHE',
+      panelUrlFormat: DHE_PANEL_URL_FORMAT,
+      expected: EXPECTED_NO_VARIABLES_DHE,
+    },
+  ])(
+    'should return empty list for $serverType server when no variables exist',
+    async ({ panelUrlFormat, expected }) => {
+      const getFirstConnectionOrCreateSpy = vi
+        .spyOn(mcpUtils, 'getFirstConnectionOrCreate')
+        .mockResolvedValue({
+          success: true,
+          connection: {} as any,
+          panelUrlFormat,
+        });
+      vi.mocked(panelService.getVariables).mockReturnValue([]);
 
-    const tool = createListPanelVariablesTool({ panelService, serverManager });
-    const result = await tool.handler({ url: MOCK_URL });
+      const tool = createListPanelVariablesTool({
+        panelService,
+        serverManager,
+      });
+      const result = await tool.handler({ connectionUrl: MOCK_URL });
 
-    expect(serverManager.getConnections).toHaveBeenCalledWith(MOCK_PARSED_URL);
-    expect(panelService.getVariables).toHaveBeenCalledWith(MOCK_PARSED_URL);
-    expect(result.structuredContent).toEqual(EXPECTED_SUCCESS);
-  });
+      expect(getFirstConnectionOrCreateSpy).toHaveBeenCalledWith({
+        connectionUrl: MOCK_PARSED_URL,
+        serverManager,
+      });
+      expect(result.structuredContent).toEqual(expected);
+    }
+  );
 
-  it('should return empty list when no variables exist', async () => {
-    vi.mocked(serverManager.getConnections).mockReturnValue([{} as any] as any);
-    vi.mocked(serverManager.getServer).mockReturnValue(MOCK_SERVER_DHE);
-    vi.mocked(panelService.getVariables).mockReturnValue([]);
+  it.each([
+    {
+      scenario: 'server not found',
+      errorMessage: 'No connections or server found',
+      expected: EXPECTED_SERVER_NOT_FOUND,
+    },
+    {
+      scenario: 'server is not running',
+      errorMessage: 'Server is not running',
+      expected: EXPECTED_SERVER_NOT_RUNNING,
+    },
+    {
+      scenario: 'DHE server when no connection exists',
+      errorMessage: 'No active connection',
+      hint: 'Use connectToServer first',
+      expected: EXPECTED_NO_CONNECTION_DHE,
+    },
+    {
+      scenario: 'DHC auto-connect fails',
+      errorMessage: 'Failed to connect to server',
+      expected: EXPECTED_FAILED_TO_CONNECT,
+    },
+  ])(
+    'should return error when $scenario',
+    async ({ errorMessage, hint, expected }) => {
+      const getFirstConnectionOrCreateSpy = vi
+        .spyOn(mcpUtils, 'getFirstConnectionOrCreate')
+        .mockResolvedValue({
+          success: false,
+          errorMessage,
+          ...(hint && { hint }),
+          details: { connectionUrl: MOCK_URL },
+        });
 
-    const tool = createListPanelVariablesTool({ panelService, serverManager });
-    const result = await tool.handler({ url: MOCK_URL });
+      const tool = createListPanelVariablesTool({
+        panelService,
+        serverManager,
+      });
+      const result = await tool.handler({ connectionUrl: MOCK_URL });
 
-    expect(result.structuredContent).toEqual(EXPECTED_NO_VARIABLES);
-  });
-
-  it('should auto-connect to DHC server when no connection exists', async () => {
-    vi.mocked(serverManager.getConnections).mockReturnValue([]);
-    vi.mocked(serverManager.getServer).mockReturnValue(MOCK_SERVER_DHC);
-    vi.mocked(panelService.getVariables).mockReturnValue(MOCK_VARIABLES);
-    const executeCommand = vi.spyOn(vscode.commands, 'executeCommand');
-
-    const tool = createListPanelVariablesTool({ panelService, serverManager });
-    const result = await tool.handler({ url: MOCK_URL });
-
-    expect(serverManager.getServer).toHaveBeenCalledWith(MOCK_PARSED_URL, true);
-    expect(executeCommand).toHaveBeenCalledWith(
-      'vscode-deephaven.connectToServer',
-      {
-        type: 'DHC',
-        url: MOCK_PARSED_URL,
-      }
-    );
-    expect(result.structuredContent).toEqual(EXPECTED_SUCCESS_WITH_HINT);
-  });
-
-  it('should return error for DHE server when no connection exists', async () => {
-    vi.mocked(serverManager.getConnections).mockReturnValue([]);
-    vi.mocked(serverManager.getServer).mockReturnValue(MOCK_SERVER_DHE);
-
-    const tool = createListPanelVariablesTool({ panelService, serverManager });
-    const result = await tool.handler({ url: MOCK_URL });
-
-    expect(result.structuredContent).toEqual(EXPECTED_NO_CONNECTION_DHE);
-  });
-
-  it('should return error when server not found', async () => {
-    vi.mocked(serverManager.getConnections).mockReturnValue([]);
-    vi.mocked(serverManager.getServer).mockReturnValue(undefined);
-
-    const tool = createListPanelVariablesTool({ panelService, serverManager });
-    const result = await tool.handler({ url: MOCK_URL });
-
-    expect(result.structuredContent).toEqual(EXPECTED_SERVER_NOT_FOUND);
-  });
+      expect(getFirstConnectionOrCreateSpy).toHaveBeenCalledWith({
+        connectionUrl: MOCK_PARSED_URL,
+        serverManager,
+      });
+      expect(result.structuredContent).toEqual(expected);
+      expect(panelService.getVariables).not.toHaveBeenCalled();
+    }
+  );
 
   it('should handle invalid URL', async () => {
     const tool = createListPanelVariablesTool({ panelService, serverManager });
-    const result = await tool.handler({ url: 'invalid-url' });
+    const result = await tool.handler({ connectionUrl: 'invalid-url' });
 
     expect(result.structuredContent).toEqual(EXPECTED_INVALID_URL);
-    expect(serverManager.getConnections).not.toHaveBeenCalled();
+    expect(panelService.getVariables).not.toHaveBeenCalled();
   });
 
   it('should handle errors from panelService', async () => {
-    vi.mocked(serverManager.getConnections).mockReturnValue([{} as any] as any);
-    vi.mocked(serverManager.getServer).mockReturnValue(MOCK_SERVER_DHE);
+    vi.spyOn(mcpUtils, 'getFirstConnectionOrCreate').mockResolvedValue({
+      success: true,
+      connection: {} as any,
+      panelUrlFormat: DHC_PANEL_URL_FORMAT,
+    });
     vi.mocked(panelService.getVariables).mockImplementation(() => {
       throw new Error('Test error');
     });
 
     const tool = createListPanelVariablesTool({ panelService, serverManager });
-    const result = await tool.handler({ url: MOCK_URL });
+    const result = await tool.handler({ connectionUrl: MOCK_URL });
 
     expect(result.structuredContent).toEqual(EXPECTED_ERROR);
   });
