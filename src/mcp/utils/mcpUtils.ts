@@ -291,7 +291,7 @@ export async function getDhePanelUrlFormat(
 
   // Get worker info for DHE servers to include serial ID in panel URLs
   const workerInfo = await serverManager.getWorkerInfo(connectionUrl);
-  if (workerInfo?.serial == null) {
+  if (workerInfo == null) {
     return undefined;
   }
 

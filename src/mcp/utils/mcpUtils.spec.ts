@@ -1,8 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ConnectionState, IServerManager, ServerState } from '../../types';
+import type {
+  ConnectionState,
+  IDheService,
+  IServerManager,
+  ServerState,
+  WorkerInfo,
+} from '../../types';
 import {
   formatErrorMessage,
+  getDhcPanelUrlFormat,
+  getDhePanelUrlFormat,
   getFirstConnectionOrCreate,
+  getServerMatchPortIfLocalHost,
   McpToolResponse,
 } from './mcpUtils';
 
@@ -609,4 +618,161 @@ describe('getFirstConnectionOrCreate', () => {
       });
     });
   });
+});
+
+describe('getDhcPanelUrlFormat', () => {
+  it.each([
+    {
+      url: 'http://localhost:10000',
+      expected: 'http://localhost:10000/iframe/widget/?name=<variableTitle>',
+    },
+    {
+      url: 'https://example.com:8080/some/path',
+      expected: 'https://example.com:8080/iframe/widget/?name=<variableTitle>',
+    },
+  ])('should return correct panel URL format for $url', ({ url, expected }) => {
+    const serverUrl = new URL(url);
+    const result = getDhcPanelUrlFormat(serverUrl);
+    expect(result).toBe(expected);
+  });
+});
+
+describe('getDhePanelUrlFormat', () => {
+  const MOCK_SERVER_URL = new URL('https://example.deephaven.io');
+  const MOCK_CONNECTION_URL = new URL('https://example.deephaven.io/worker/1');
+
+  const mockDheService = {
+    getServerFeatures: vi.fn(),
+  } as unknown as IDheService;
+
+  const serverManager: IServerManager = {
+    getConnections: vi.fn(),
+    getServer: vi.fn(),
+    getDheServiceForWorker: vi.fn(),
+    getWorkerInfo: vi.fn(),
+  } as unknown as IServerManager;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it.each([
+    {
+      scenario: 'DHE service is not available',
+      dheService: null,
+      features: undefined,
+      workerInfo: undefined,
+      expected: undefined,
+    },
+    {
+      scenario: 'embedDashboardsAndWidgets feature is not enabled',
+      dheService: mockDheService,
+      features: { embedDashboardsAndWidgets: false },
+      workerInfo: undefined,
+      expected: undefined,
+    },
+    {
+      scenario: 'getServerFeatures returns undefined',
+      dheService: mockDheService,
+      features: undefined,
+      workerInfo: undefined,
+      expected: undefined,
+    },
+    {
+      scenario: 'worker info is not available',
+      dheService: mockDheService,
+      features: { embedDashboardsAndWidgets: true },
+      workerInfo: undefined,
+      expected: undefined,
+    },
+    {
+      scenario: 'all conditions are met',
+      dheService: mockDheService,
+      features: { embedDashboardsAndWidgets: true },
+      workerInfo: { serial: 'abc123' } as WorkerInfo,
+      expected:
+        'https://example.deephaven.io/iriside/embed/widget/serial/abc123/<variableTitle>',
+    },
+  ])(
+    'should return $expected when $scenario',
+    async ({ dheService, features, workerInfo, expected }) => {
+      if (dheService !== null) {
+        vi.mocked(mockDheService.getServerFeatures).mockReturnValue(
+          features
+            ? { version: 1, features: { createQueryIframe: true, ...features } }
+            : undefined
+        );
+      }
+
+      vi.mocked(serverManager.getDheServiceForWorker).mockResolvedValue(
+        dheService
+      );
+      vi.mocked(serverManager.getWorkerInfo).mockResolvedValue(workerInfo);
+
+      const result = await getDhePanelUrlFormat(
+        MOCK_SERVER_URL,
+        MOCK_CONNECTION_URL,
+        serverManager
+      );
+
+      expect(result).toBe(expected);
+    }
+  );
+});
+
+describe('getServerMatchPortIfLocalHost', () => {
+  const mockServer: ServerState = {
+    isRunning: true,
+    type: 'DHC',
+    url: new URL('http://localhost:10000'),
+    isConnected: false,
+    connectionCount: 0,
+  };
+
+  const getServerMock = vi.fn();
+  const serverManager = { getServer: getServerMock };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it.each([
+    {
+      hostname: 'localhost',
+      url: 'http://localhost:10000',
+      expectedMatchPort: true,
+    },
+    {
+      hostname: '127.0.0.1',
+      url: 'http://127.0.0.1:10000',
+      expectedMatchPort: true,
+    },
+    {
+      hostname: 'example.com',
+      url: 'http://example.com:10000',
+      expectedMatchPort: false,
+    },
+    {
+      hostname: 'remote.server.io',
+      url: 'https://remote.server.io:8080',
+      expectedMatchPort: false,
+    },
+  ])(
+    'should call getServer with matchPort=$expectedMatchPort for $hostname',
+    ({ url, expectedMatchPort }) => {
+      getServerMock.mockReturnValue(mockServer);
+      const connectionUrl = new URL(url);
+
+      const result = getServerMatchPortIfLocalHost(
+        serverManager,
+        connectionUrl
+      );
+
+      expect(result).toBe(mockServer);
+      expect(getServerMock).toHaveBeenCalledWith(
+        connectionUrl,
+        expectedMatchPort
+      );
+    }
+  );
 });
