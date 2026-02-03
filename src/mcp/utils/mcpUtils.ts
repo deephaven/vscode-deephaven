@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { IServerManager, ConnectionState } from '../../types';
+import type { IServerManager, ConnectionState, WorkerInfo } from '../../types';
 import { execConnectToServer } from '../../common/commands';
 import { createConnectionNotFoundHint } from './runCodeUtils';
 
@@ -258,19 +258,38 @@ export class McpToolResponse {
 }
 
 /**
- * Gets the panel URL format for a given connection URL if it's a DHC server.
+ * Gets the panel URL format for a given server.
+ *
+ * For DHC servers, returns the iframe widget URL format:
+ *   `${url.origin}/iframe/widget/?name=<variableTitle>`
+ *
+ * For DHE servers, returns the iriside format with serial ID:
+ *   `${url.origin}/iriside/embed/widget/serial/${workerInfo.serial}/<variableId>`
  *
  * @param serverType The type of the server ('DHC' or 'DHE').
- * @param url The connection URL to use for the panel URL origin.
- * @returns The panel URL format if the server is DHC, undefined otherwise.
+ * @param url The server URL to use for the panel URL origin.
+ * @param workerInfo Optional worker info for DHE servers containing the serial ID.
+ * @returns The panel URL format, or undefined if not a DHC/DHE server or missing workerInfo for DHE.
  */
 export function getPanelUrlFormat(
   serverType: string,
-  url: URL
+  url: URL,
+  workerInfo?: WorkerInfo
 ): string | undefined {
-  return serverType === 'DHC'
-    ? `${url.origin}/iframe/widget/?name=<variableTitle>`
-    : undefined;
+  if (serverType !== 'DHC' && serverType !== 'DHE') {
+    return undefined;
+  }
+
+  // For DHE servers, use the iriside format with serial ID
+  if (serverType === 'DHE') {
+    if (!workerInfo?.serial) {
+      return undefined;
+    }
+    return `${url.origin}/iriside/embed/widget/serial/${workerInfo.serial}/<variableTitle>`;
+  }
+
+  // For DHC servers, use the iframe format
+  return `${url.origin}/iframe/widget/?name=<variableTitle>`;
 }
 
 /**
@@ -389,7 +408,14 @@ export async function getFirstConnectionOrCreate(params: {
   }
 
   const [connection] = connections;
-  const panelUrlFormat = getPanelUrlFormat(server.type, connectionUrl);
+
+  // Get worker info for DHE servers to include serial ID in panel URLs
+  const workerInfo =
+    server.type === 'DHE'
+      ? await serverManager.getWorkerInfo(connectionUrl as any)
+      : undefined;
+
+  const panelUrlFormat = getPanelUrlFormat(server.type, server.url, workerInfo);
 
   return {
     success: true,
