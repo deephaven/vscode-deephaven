@@ -27,13 +27,15 @@ const spec = {
     hint: z.string().optional(),
     details: z
       .object({
-        variables: z.array(
-          z.object({
-            id: z.string(),
-            title: z.string(),
-            type: z.string(),
-          })
-        ),
+        variables: z
+          .array(
+            z.object({
+              id: z.string(),
+              title: z.string(),
+              type: z.string(),
+            })
+          )
+          .optional(),
         panelUrlFormat: z
           .string()
           .optional()
