@@ -6,6 +6,7 @@ import {
   McpToolResponse,
 } from './mcpUtils';
 
+vi.mock('vscode');
 vi.mock('../../common/commands');
 vi.mock('./runCodeUtils');
 

@@ -12,16 +12,17 @@ vi.mock('vscode');
 
 const MOCK_EXECUTION_TIME_MS = 100;
 const MOCK_CODE = 'mock.code';
+const MOCK_CONNECTION_URL = new URL('http://localhost:10000/');
 const MOCK_HANDLER_ARGS = {
   code: MOCK_CODE,
   languageId: 'python',
-  connectionUrl: 'http://localhost:10000',
+  connectionUrl: MOCK_CONNECTION_URL.href,
 } as const;
 
 const MOCK_SERVER_RUNNING: ServerState = {
   isRunning: true,
   type: 'DHC',
-  url: new URL('http://localhost:10000'),
+  url: MOCK_CONNECTION_URL,
   isConnected: false,
   connectionCount: 0,
 };
@@ -29,7 +30,7 @@ const MOCK_SERVER_RUNNING: ServerState = {
 const MOCK_SERVER_NOT_RUNNING: ServerState = {
   isRunning: false,
   type: 'DHC',
-  url: new URL('http://localhost:10000'),
+  url: MOCK_CONNECTION_URL,
   isConnected: false,
   connectionCount: 0,
 };
@@ -54,6 +55,7 @@ const MOCK_DHC_SERVICE_CONNECTION_WITH_VARIABLES: DhcService = Object.assign(
   Object.create(DhcService.prototype),
   {
     runCode: vi.fn().mockResolvedValue(MOCK_RUN_CODE_SUCCESS_WITH_VARIABLES),
+    supportsConsoleType: vi.fn().mockReturnValue(true),
   }
 );
 
@@ -75,21 +77,21 @@ const EXPECTED_INVALID_URL = {
 const EXPECTED_NO_CONNECTION_OR_SERVER = {
   success: false,
   message: 'No connections or server found',
-  details: { connectionUrl: 'http://localhost:10000' },
+  details: { connectionUrl: MOCK_CONNECTION_URL.href },
   executionTimeMs: MOCK_EXECUTION_TIME_MS,
 } as const;
 
 const EXPECTED_SERVER_NOT_RUNNING = {
   success: false,
   message: 'Server is not running',
-  details: { connectionUrl: 'http://localhost:10000' },
+  details: { connectionUrl: MOCK_CONNECTION_URL.href },
   executionTimeMs: MOCK_EXECUTION_TIME_MS,
 } as const;
 
 const EXPECTED_NOT_DHC_SERVICE = {
   success: false,
   message: 'Code execution is only supported for Core / Core+ connections.',
-  details: { connectionUrl: 'http://localhost:10000' },
+  details: { connectionUrl: MOCK_CONNECTION_URL.href },
   executionTimeMs: MOCK_EXECUTION_TIME_MS,
 } as const;
 
@@ -97,6 +99,8 @@ const EXPECTED_SUCCESS_WITH_VARIABLES = {
   success: true,
   message: 'Code executed successfully',
   details: {
+    panelUrlFormat:
+      MOCK_CONNECTION_URL.origin + '/iframe/widget/?name=<variableTitle>',
     variables: [{ id: 'x', title: 'x', type: 'int', isNew: true }],
   },
   executionTimeMs: MOCK_EXECUTION_TIME_MS,
@@ -105,7 +109,7 @@ const EXPECTED_SUCCESS_WITH_VARIABLES = {
 const EXPECTED_FAILED_TO_CONNECT = {
   success: false,
   message: 'Failed to connect to server',
-  details: { connectionUrl: 'http://localhost:10000' },
+  details: { connectionUrl: MOCK_CONNECTION_URL.href },
   executionTimeMs: MOCK_EXECUTION_TIME_MS,
 } as const;
 
@@ -115,6 +119,8 @@ const EXPECTED_CODE_EXECUTION_FAILED = {
     'Code execution failed: NameError: name "undefined_var" is not defined',
   details: {
     languageId: 'python',
+    panelUrlFormat:
+      MOCK_CONNECTION_URL.origin + '/iframe/widget/?name=<variableTitle>',
     variables: [{ id: 'y', title: 'y', type: 'str', isNew: true }],
   },
   executionTimeMs: MOCK_EXECUTION_TIME_MS,
@@ -152,9 +158,7 @@ describe('runCode tool', () => {
 
     vi.mocked(serverManager.getConnections).mockReturnValue([]);
     vi.mocked(serverManager.getServer).mockReturnValue(undefined);
-    vi.mocked(serverManager.getDheServiceForWorker).mockResolvedValue(
-      undefined
-    );
+    vi.mocked(serverManager.getDheServiceForWorker).mockResolvedValue(null);
     vi.mocked(serverManager.getWorkerInfo).mockResolvedValue(undefined);
   });
 
@@ -171,7 +175,7 @@ describe('runCode tool', () => {
     {
       scenario: 'invalid languageId',
       languageId: 'javascript',
-      connectionUrl: 'http://localhost:10000',
+      connectionUrl: MOCK_CONNECTION_URL.href,
       connections: [],
       server: undefined,
       expected: EXPECTED_INVALID_LANGUAGE,
@@ -189,7 +193,7 @@ describe('runCode tool', () => {
     {
       scenario: 'no connections or server found',
       languageId: 'python',
-      connectionUrl: 'http://localhost:10000',
+      connectionUrl: MOCK_CONNECTION_URL.href,
       connections: [],
       server: undefined,
       expected: EXPECTED_NO_CONNECTION_OR_SERVER,
@@ -198,7 +202,7 @@ describe('runCode tool', () => {
     {
       scenario: 'server exists but is not running',
       languageId: 'python',
-      connectionUrl: 'http://localhost:10000',
+      connectionUrl: MOCK_CONNECTION_URL.href,
       connections: [],
       server: MOCK_SERVER_NOT_RUNNING,
       expected: EXPECTED_SERVER_NOT_RUNNING,
@@ -207,27 +211,27 @@ describe('runCode tool', () => {
     {
       scenario: 'connection is not DhcService',
       languageId: 'python',
-      connectionUrl: 'http://localhost:10000',
+      connectionUrl: MOCK_CONNECTION_URL.href,
       connections: [MOCK_CONNECTION_NOT_DHC_SERVICE],
-      server: undefined,
+      server: MOCK_SERVER_RUNNING,
       expected: EXPECTED_NOT_DHC_SERVICE,
       expectHint: false,
     },
     {
       scenario: 'code executes successfully (python)',
       languageId: 'python',
-      connectionUrl: 'http://localhost:10000',
+      connectionUrl: MOCK_CONNECTION_URL.href,
       connections: [MOCK_DHC_SERVICE_CONNECTION_WITH_VARIABLES],
-      server: undefined,
+      server: MOCK_SERVER_RUNNING,
       expected: EXPECTED_SUCCESS_WITH_VARIABLES,
       expectHint: false,
     },
     {
       scenario: 'code executes successfully (groovy)',
       languageId: 'groovy',
-      connectionUrl: 'http://localhost:10000',
+      connectionUrl: MOCK_CONNECTION_URL.href,
       connections: [MOCK_DHC_SERVICE_CONNECTION_WITH_VARIABLES],
-      server: undefined,
+      server: MOCK_SERVER_RUNNING,
       expected: EXPECTED_SUCCESS_WITH_VARIABLES,
       expectHint: false,
     },
@@ -280,8 +284,10 @@ describe('runCode tool', () => {
     it('should error when code execution fails with error', async () => {
       const mockConnection = Object.create(DhcService.prototype);
       mockConnection.runCode = vi.fn().mockResolvedValue(MOCK_RUN_CODE_ERROR);
+      mockConnection.supportsConsoleType = vi.fn().mockReturnValue(true);
 
       vi.mocked(serverManager.getConnections).mockReturnValue([mockConnection]);
+      vi.mocked(serverManager.getServer).mockReturnValue(MOCK_SERVER_RUNNING);
 
       const tool = createRunCodeTool({ serverManager });
       const result = await tool.handler(MOCK_HANDLER_ARGS);
@@ -315,7 +321,7 @@ describe('runCode tool', () => {
       expect(result.structuredContent).toEqual(EXPECTED_FAILED_TO_CONNECT);
       expect(mockExecuteCommand).toHaveBeenCalledWith(CONNECT_TO_SERVER_CMD, {
         type: 'DHC',
-        url: new URL('http://localhost:10000'),
+        url: MOCK_CONNECTION_URL,
       });
     });
   });
@@ -325,13 +331,12 @@ describe('runCode tool', () => {
       vi.mocked(serverManager.getConnections).mockReturnValue([
         MOCK_DHC_SERVICE_CONNECTION_WITH_VARIABLES,
       ]);
+      vi.mocked(serverManager.getServer).mockReturnValue(MOCK_SERVER_RUNNING);
 
       const tool = createRunCodeTool({ serverManager });
       const result = await tool.handler(MOCK_HANDLER_ARGS);
 
       expect(result.structuredContent).toEqual(EXPECTED_SUCCESS_WITH_VARIABLES);
-
-      expect(serverManager.getServer).not.toHaveBeenCalled();
     });
 
     it('should connect to server and execute code when no existing connection', async () => {
@@ -348,7 +353,7 @@ describe('runCode tool', () => {
 
       expect(mockExecuteCommand).toHaveBeenCalledWith(CONNECT_TO_SERVER_CMD, {
         type: 'DHC',
-        url: new URL('http://localhost:10000'),
+        url: MOCK_CONNECTION_URL,
       });
     });
   });

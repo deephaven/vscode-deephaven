@@ -85,7 +85,7 @@ export function createRunCodeTool({
           return response.error(
             'Code execution is only supported for Core / Core+ connections.',
             null,
-            { connectionUrl }
+            { connectionUrl: parsedConnectionURL.value.href }
           );
         }
 
