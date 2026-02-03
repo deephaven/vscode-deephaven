@@ -61,7 +61,7 @@ export class McpServer extends DisposableBase {
     this.registerTool(createConnectToServerTool(this));
     this.registerTool(createGetLogsTool(this));
     this.registerTool(createListConnectionsTool(this));
-    this.registerTool(createListRemoteFileSourcesTool(this.pythonWorkspace));
+    this.registerTool(createListRemoteFileSourcesTool(this));
     this.registerTool(createListServersTool(this));
     this.registerTool(createOpenFilesInEditorTool());
     this.registerTool(createRemoveRemoteFileSourcesTool());

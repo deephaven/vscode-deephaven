@@ -21,9 +21,11 @@ type HandlerArg = McpToolHandlerArg<Spec>;
 type HandlerResult = McpToolHandlerResult<Spec>;
 type ListRemoteFileSourcesTool = McpTool<Spec>;
 
-export function createListRemoteFileSourcesTool(
-  pythonWorkspace: FilteredWorkspace
-): ListRemoteFileSourcesTool {
+export function createListRemoteFileSourcesTool({
+  pythonWorkspace,
+}: {
+  pythonWorkspace: FilteredWorkspace;
+}): ListRemoteFileSourcesTool {
   return {
     name: 'listRemoteFileSources',
     spec,
