@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createListConnectionsTool } from './listConnections';
-import type { IServerManager, ConnectionState, UniqueID } from '../../types';
+import type {
+  IServerManager,
+  ConnectionState,
+  UniqueID,
+  WorkerInfo,
+} from '../../types';
 import { McpToolResponse } from '../utils/mcpUtils';
 
 vi.mock('vscode');
@@ -30,6 +35,7 @@ const EXPECTED_ALL_CONNECTIONS = {
     connections: MOCK_CONNECTIONS.map(c => ({
       ...c,
       serverUrl: c.serverUrl.toString(),
+      querySerial: undefined,
     })),
   },
   executionTimeMs: MOCK_EXECUTION_TIME_MS,
@@ -43,6 +49,7 @@ const EXPECTED_FILTERED_CONNECTIONS = {
       {
         ...MOCK_CONNECTIONS[0],
         serverUrl: MOCK_CONNECTIONS[0].serverUrl.toString(),
+        querySerial: undefined,
       },
     ],
   },
@@ -74,6 +81,7 @@ const EXPECTED_GET_CONNECTIONS_ERROR = {
 describe('listConnections', () => {
   const serverManager = {
     getConnections: vi.fn(),
+    getWorkerInfo: vi.fn(),
   } as unknown as IServerManager;
 
   beforeEach(() => {
@@ -83,6 +91,9 @@ describe('listConnections', () => {
     vi.spyOn(McpToolResponse.prototype, 'getElapsedTimeMs').mockReturnValue(
       MOCK_EXECUTION_TIME_MS
     );
+
+    // Mock getWorkerInfo to return undefined by default (DHC servers)
+    vi.mocked(serverManager.getWorkerInfo).mockResolvedValue(undefined);
   });
 
   it('should return correct tool spec', () => {
@@ -166,5 +177,42 @@ describe('listConnections', () => {
     const result = await tool.handler({ serverUrl });
 
     expect(result.structuredContent).toEqual(EXPECTED_GET_CONNECTIONS_ERROR);
+  });
+
+  it('should include querySerial when workerInfo is available', async () => {
+    const mockWorkerInfo: WorkerInfo = {
+      tagId: 'worker1' as UniqueID,
+      envoyPrefix: null,
+      grpcUrl: new URL('http://localhost:10000/grpc') as any,
+      ideUrl: new URL('http://localhost:10000/ide') as any,
+      jsapiUrl: new URL('http://localhost:10000/jsapi') as any,
+      processInfoId: null,
+      serial: 'test-serial-123' as any,
+      workerName: null,
+      workerUrl: new URL('http://localhost:10000') as any,
+    };
+
+    vi.mocked(serverManager.getConnections).mockReturnValue([
+      MOCK_CONNECTIONS[0],
+    ]);
+    vi.mocked(serverManager.getWorkerInfo).mockResolvedValue(mockWorkerInfo);
+
+    const tool = createListConnectionsTool({ serverManager });
+    const result = await tool.handler({ serverUrl: undefined });
+
+    expect(result.structuredContent).toEqual({
+      success: true,
+      message: 'Found 1 connection(s)',
+      details: {
+        connections: [
+          {
+            ...MOCK_CONNECTIONS[0],
+            serverUrl: MOCK_CONNECTIONS[0].serverUrl.toString(),
+            querySerial: 'test-serial-123',
+          },
+        ],
+      },
+      executionTimeMs: MOCK_EXECUTION_TIME_MS,
+    });
   });
 });

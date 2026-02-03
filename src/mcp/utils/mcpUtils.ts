@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import type { IServerManager, ConnectionState, WorkerInfo } from '../../types';
+import type {
+  IServerManager,
+  ConnectionState,
+  WorkerInfo,
+  WorkerURL,
+} from '../../types';
 import { execConnectToServer } from '../../common/commands';
 import { createConnectionNotFoundHint } from './runCodeUtils';
 
@@ -412,7 +417,7 @@ export async function getFirstConnectionOrCreate(params: {
   // Get worker info for DHE servers to include serial ID in panel URLs
   const workerInfo =
     server.type === 'DHE'
-      ? await serverManager.getWorkerInfo(connectionUrl as any)
+      ? await serverManager.getWorkerInfo(connectionUrl as WorkerURL)
       : undefined;
 
   const panelUrlFormat = getPanelUrlFormat(server.type, server.url, workerInfo);
