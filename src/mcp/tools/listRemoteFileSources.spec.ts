@@ -35,7 +35,9 @@ describe('listRemoteFileSources', () => {
 
   it('should return correct tool spec', () => {
     const mockWorkspace = createMockWorkspace([]);
-    const tool = createListRemoteFileSourcesTool(mockWorkspace);
+    const tool = createListRemoteFileSourcesTool({
+      pythonWorkspace: mockWorkspace,
+    });
 
     expect(tool.name).toBe('listRemoteFileSources');
     expect(tool.spec.title).toBe('List Remote File Sources');
@@ -75,7 +77,9 @@ describe('listRemoteFileSources', () => {
     const mockWorkspace = createMockWorkspace(
       folderUris.map(uri => vscode.Uri.parse(uri))
     );
-    const tool = createListRemoteFileSourcesTool(mockWorkspace);
+    const tool = createListRemoteFileSourcesTool({
+      pythonWorkspace: mockWorkspace,
+    });
     const result = await tool.handler({});
 
     expect(mockWorkspace.getTopLevelMarkedFolders).toHaveBeenCalledOnce();
@@ -90,7 +94,9 @@ describe('listRemoteFileSources', () => {
   it('should handle error from getTopLevelMarkedFolders', async () => {
     const error = new Error('Test error');
     const mockWorkspace = createMockWorkspace(error);
-    const tool = createListRemoteFileSourcesTool(mockWorkspace);
+    const tool = createListRemoteFileSourcesTool({
+      pythonWorkspace: mockWorkspace,
+    });
     const result = await tool.handler({});
 
     expect(result.structuredContent).toEqual({
