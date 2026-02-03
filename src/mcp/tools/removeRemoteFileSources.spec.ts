@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as vscode from 'vscode';
-import { createAddRemoteFileSourcesTool } from './addRemoteFileSources';
+import { createRemoveRemoteFileSourcesTool } from './removeRemoteFileSources';
 import { McpToolResponse } from '../utils/mcpUtils';
 import * as commands from '../../common/commands';
 
@@ -9,13 +9,13 @@ vi.mock('../../common/commands', async () => {
   const actual = await vi.importActual('../../common/commands');
   return {
     ...actual,
-    execAddRemoteFileSource: vi.fn().mockResolvedValue(undefined),
+    execRemoveRemoteFileSource: vi.fn().mockResolvedValue(undefined),
   };
 });
 
 const MOCK_EXECUTION_TIME_MS = 100;
 
-describe('addRemoteFileSources', () => {
+describe('removeRemoteFileSources', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
@@ -25,12 +25,12 @@ describe('addRemoteFileSources', () => {
   });
 
   it('should return correct tool spec', () => {
-    const tool = createAddRemoteFileSourcesTool();
+    const tool = createRemoveRemoteFileSourcesTool();
 
-    expect(tool.name).toBe('addRemoteFileSources');
-    expect(tool.spec.title).toBe('Add Remote File Sources');
+    expect(tool.name).toBe('removeRemoteFileSources');
+    expect(tool.spec.title).toBe('Remove Remote File Sources');
     expect(tool.spec.description).toBe(
-      'Add folder(s) as remote file sources (allows server to fetch source files on-demand during script execution).'
+      'Remove one or more remote file source folders from the workspace.'
     );
   });
 
@@ -68,17 +68,17 @@ describe('addRemoteFileSources', () => {
       expectedParsedUris: ['file:///server/folder'],
     },
   ])('should handle $scenario', async ({ folderUris, expectedParsedUris }) => {
-    const tool = createAddRemoteFileSourcesTool();
+    const tool = createRemoveRemoteFileSourcesTool();
     const result = await tool.handler({ folderUris });
 
-    expect(commands.execAddRemoteFileSource).toHaveBeenCalledWith(
+    expect(commands.execRemoveRemoteFileSource).toHaveBeenCalledWith(
       expectedParsedUris.map(uri => vscode.Uri.parse(uri))
     );
 
     expect(result.structuredContent).toEqual({
       success: true,
-      message: 'Remote file sources added successfully',
-      details: { foldersAdded: expectedParsedUris.length },
+      message: 'Remote file sources removed successfully',
+      details: { foldersRemoved: expectedParsedUris.length },
       executionTimeMs: MOCK_EXECUTION_TIME_MS,
     });
   });
@@ -87,12 +87,12 @@ describe('addRemoteFileSources', () => {
     {
       scenario: 'command execution error',
       mockSetup: (): void => {
-        vi.mocked(commands.execAddRemoteFileSource).mockRejectedValue(
+        vi.mocked(commands.execRemoveRemoteFileSource).mockRejectedValue(
           new Error('Command failed')
         );
       },
       folderUris: ['file:///server/folder'],
-      expectedMessage: 'Failed to add remote file sources: Command failed',
+      expectedMessage: 'Failed to remove remote file sources: Command failed',
     },
     {
       scenario: 'URI parsing error',
@@ -102,14 +102,14 @@ describe('addRemoteFileSources', () => {
         });
       },
       folderUris: ['invalid-uri'],
-      expectedMessage: 'Failed to add remote file sources: Invalid URI',
+      expectedMessage: 'Failed to remove remote file sources: Invalid URI',
     },
   ])(
     'should handle $scenario',
     async ({ mockSetup, folderUris, expectedMessage }) => {
       mockSetup();
 
-      const tool = createAddRemoteFileSourcesTool();
+      const tool = createRemoveRemoteFileSourcesTool();
       const result = await tool.handler({ folderUris });
 
       expect(result.structuredContent).toEqual({

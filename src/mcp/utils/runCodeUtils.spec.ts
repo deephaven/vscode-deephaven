@@ -427,29 +427,43 @@ describe('createPythonModuleImportErrorHint', () => {
       errors: DIAGNOSTIC_ERRORS_WITH_MODULE_IMPORT,
       hasPlugin: false,
       workspaces: [[wkspRoot, pandasFolder]],
-      expected: `The Python remote file source plugin is not installed. Install it with 'pip install deephaven-plugin-python-remote-file-source' to enable importing workspace packages.`,
+      expected: {
+        hint: `The Python remote file source plugin is not installed. Install it with 'pip install deephaven-plugin-python-remote-file-source' to enable importing workspace packages.`,
+        foundMatchingFolderUris: [],
+      },
     },
     {
       name: 'suggest workspace folders when plugin is installed and folders exist',
       errors: DIAGNOSTIC_ERRORS_WITH_MODULE_IMPORT,
       hasPlugin: true,
       workspaces: [[wkspRoot, pandasFolder]],
-      expected: `If this is a package in your workspace, try adding its folder as a remote file source.\n- ${vscode.Uri.parse('file:///workspace/pandas').toString()}`,
+      expected: {
+        hint: `If this is a package in your workspace, add its folder as a remote file source using addRemoteFileSources. DO NOT guess folder URIs - use the exact URIs provided in details.foundMatchingFolderUris. DO NOT create __init__.py files without first attempting to configure remote file sources.`,
+        foundMatchingFolderUris: [pandasFolder.uri.toString()],
+      },
     },
     {
       name: 'handle multiple import errors and find matching folders',
       errors: DIAGNOSTIC_ERRORS_WITH_MULTIPLE_MODULE_IMPORTS,
       hasPlugin: true,
       workspaces: [[wkspRoot, pandasFolder, numpyFolder]],
-      expected: `If this is a package in your workspace, try adding its folder as a remote file source.\n- ${pandasFolder.uri.toString()}\n- ${numpyFolder.uri.toString()}`,
+      expected: {
+        hint: `If this is a package in your workspace, add its folder as a remote file source using addRemoteFileSources. DO NOT guess folder URIs - use the exact URIs provided in details.foundMatchingFolderUris. DO NOT create __init__.py files without first attempting to configure remote file sources.`,
+        foundMatchingFolderUris: [
+          pandasFolder.uri.toString(),
+          numpyFolder.uri.toString(),
+        ],
+      },
     },
     {
       name: 'not include file nodes, only folders',
       errors: DIAGNOSTIC_ERRORS_WITH_MODULE_IMPORT,
       hasPlugin: true,
       workspaces: [[wkspRoot, pandasFile]],
-      expected:
-        'If this is a package in your workspace, try adding its folder as a remote file source.',
+      expected: {
+        hint: `If this is a package in your workspace, add its folder as a remote file source using addRemoteFileSources. DO NOT guess folder URIs - use the exact URIs provided in details.foundMatchingFolderUris. DO NOT create __init__.py files without first attempting to configure remote file sources.`,
+        foundMatchingFolderUris: [],
+      },
     },
     {
       name: 'handle multiple root nodes with matching folders',
@@ -459,7 +473,13 @@ describe('createPythonModuleImportErrorHint', () => {
         [wkspRoot, pandasFolder],
         [wksp2Root, wksp2NumpyFolder],
       ],
-      expected: `If this is a package in your workspace, try adding its folder as a remote file source.\n- ${pandasFolder.uri.toString()}\n- ${wksp2NumpyFolder.uri.toString()}`,
+      expected: {
+        hint: `If this is a package in your workspace, add its folder as a remote file source using addRemoteFileSources. DO NOT guess folder URIs - use the exact URIs provided in details.foundMatchingFolderUris. DO NOT create __init__.py files without first attempting to configure remote file sources.`,
+        foundMatchingFolderUris: [
+          pandasFolder.uri.toString(),
+          wksp2NumpyFolder.uri.toString(),
+        ],
+      },
     },
   ])('should $name', async ({ errors, hasPlugin, workspaces, expected }) => {
     const pythonWorkspace = createPythonWorkspace(...workspaces);
@@ -475,6 +495,6 @@ describe('createPythonModuleImportErrorHint', () => {
       pythonWorkspace
     );
 
-    expect(hint).toBe(expected);
+    expect(hint).toEqual(expected);
   });
 });

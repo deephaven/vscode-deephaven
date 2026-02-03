@@ -33,6 +33,8 @@ import {
   START_SERVER_CMD,
   STOP_SERVER_CMD,
   VIEW_ID,
+  type AddRemoteFileSourceCmdArgs,
+  type RemoveRemoteFileSourceCmdArgs,
   type RunCodeCmdArgs,
   type RunMarkdownCodeblockCmdArgs,
   type RunSelectionCmdArgs,
@@ -117,7 +119,6 @@ import type {
   RemoteImportSourceTreeView,
   VariableDefintion,
   RemoteImportSourceTreeElement,
-  RemoteImportSourceTreeFolderElement,
 } from '../types';
 import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTreeDragAndDropController';
 import { ConnectionController } from './ConnectionController';
@@ -976,12 +977,10 @@ export class ExtensionController implements IDisposable {
   };
 
   onAddRemoteFileSource = async (
-    folderElementOrUri:
-      | RemoteImportSourceTreeFolderElement
-      | vscode.Uri
-      | vscode.Uri[]
-      | undefined
+    ...args: AddRemoteFileSourceCmdArgs
   ): Promise<void> => {
+    const [folderElementOrUri] = args;
+
     // Sometimes view/item/context commands pass undefined instead of a value.
     // Just ignore. microsoft/vscode#283655
     if (folderElementOrUri == null) {
@@ -1005,11 +1004,10 @@ export class ExtensionController implements IDisposable {
   };
 
   onRemoveRemoteFileSource = async (
-    folderElementOrUri:
-      | RemoteImportSourceTreeFolderElement
-      | vscode.Uri
-      | undefined
+    ...args: RemoveRemoteFileSourceCmdArgs
   ): Promise<void> => {
+    const [folderElementOrUri] = args;
+
     // Sometimes view/item/context commands pass undefined instead of a value.
     // Just ignore. microsoft/vscode#283655
     if (folderElementOrUri == null) {
@@ -1024,11 +1022,15 @@ export class ExtensionController implements IDisposable {
 
     await this._pythonWorkspace.refresh();
 
-    const uri =
-      folderElementOrUri instanceof vscode.Uri
-        ? folderElementOrUri
-        : folderElementOrUri.uri;
-    this._pythonWorkspace.unmarkFolder(uri);
+    const uris = Array.isArray(folderElementOrUri)
+      ? folderElementOrUri
+      : folderElementOrUri instanceof vscode.Uri
+        ? [folderElementOrUri]
+        : [folderElementOrUri.uri];
+
+    for (const uri of uris) {
+      this._pythonWorkspace.unmarkFolder(uri);
+    }
   };
 
   /**

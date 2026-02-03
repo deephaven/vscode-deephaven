@@ -109,7 +109,9 @@ export function createRunCodeFromUriTool({
 
         if (result?.error) {
           let errorMsg = result.error;
-          let hint: string | undefined;
+          let hintResult:
+            | { hint: string; foundMatchingFolderUris: string[] }
+            | undefined;
 
           // TODO: We currently only parse Python errors into a
           // `vscode.DiagnosticsCollection`, but we should be able to improve
@@ -124,12 +126,14 @@ export function createRunCodeFromUriTool({
 
             errorMsg = pythonErrors.map(formatDiagnosticError).join('\n');
 
-            hint = createPythonModuleImportErrorHint(
+            hintResult = createPythonModuleImportErrorHint(
               pythonErrors,
               executedConnection,
               pythonWorkspace
             );
           }
+
+          const { hint, foundMatchingFolderUris } = hintResult ?? {};
 
           return response.errorWithHint(
             'Code execution failed',
@@ -138,6 +142,9 @@ export function createRunCodeFromUriTool({
             {
               languageId,
               variables,
+              ...(foundMatchingFolderUris && {
+                foundMatchingFolderUris,
+              }),
             }
           );
         }

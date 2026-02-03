@@ -52,6 +52,12 @@ export const runCodeOutputSchema = {
         .array(variableResultSchema)
         .optional()
         .describe('Variables created or updated by the code execution'),
+      foundMatchingFolderUris: z
+        .array(z.string())
+        .optional()
+        .describe(
+          'Folder URIs in the workspace that match missing Python module names. Use these exact URIs with addRemoteFileSources to resolve import errors.'
+        ),
     })
     .optional(),
 };
@@ -95,13 +101,13 @@ export async function createConnectionNotFoundHint(
  * @param errors The list of diagnostic errors.
  * @param connection The connection state to check for Python remote file source plugin.
  * @param pythonWorkspace The filtered Python workspace.
- * @returns A hint string or undefined if no hint is applicable.
+ * @returns An object with hint and foundMatchingFolderUris, or undefined if no hint is applicable.
  */
 export function createPythonModuleImportErrorHint(
   errors: Array<{ message: string; uri: string; range: vscode.Range }>,
   connection: ConnectionState,
   pythonWorkspace: FilteredWorkspace
-): string | undefined {
+): { hint: string; foundMatchingFolderUris: string[] } | undefined {
   // Look for 'No module named' errors and extract the module names
   const noModuleErrors = new Set(
     errors
@@ -114,7 +120,10 @@ export function createPythonModuleImportErrorHint(
   }
 
   if (!hasPythonRemoteFileSourcePlugin(connection)) {
-    return `The Python remote file source plugin is not installed. Install it with 'pip install deephaven-plugin-python-remote-file-source' to enable importing workspace packages.`;
+    return {
+      hint: `The Python remote file source plugin is not installed. Install it with 'pip install deephaven-plugin-python-remote-file-source' to enable importing workspace packages.`,
+      foundMatchingFolderUris: [],
+    };
   }
 
   const foundUris: string[] = [];
@@ -128,10 +137,10 @@ export function createPythonModuleImportErrorHint(
     }
   }
 
-  return [
-    'If this is a package in your workspace, try adding its folder as a remote file source.',
-    ...foundUris.map(u => `- ${u}`),
-  ].join('\n');
+  return {
+    hint: 'If this is a package in your workspace, add its folder as a remote file source using addRemoteFileSources. DO NOT guess folder URIs - use the exact URIs provided in details.foundMatchingFolderUris. DO NOT create __init__.py files without first attempting to configure remote file sources.',
+    foundMatchingFolderUris: foundUris,
+  };
 }
 
 /**

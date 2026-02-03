@@ -8,8 +8,10 @@ import {
   createAddRemoteFileSourcesTool,
   createGetLogsTool,
   createListConnectionsTool,
+  createListRemoteFileSourcesTool,
   createListServersTool,
   createOpenFilesInEditorTool,
+  createRemoveRemoteFileSourcesTool,
   createRunCodeFromUriTool,
   createRunCodeTool,
   createSetEditorConnectionTool,
@@ -59,8 +61,10 @@ export class McpServer extends DisposableBase {
     this.registerTool(createConnectToServerTool(this));
     this.registerTool(createGetLogsTool(this));
     this.registerTool(createListConnectionsTool(this));
+    this.registerTool(createListRemoteFileSourcesTool(this.pythonWorkspace));
     this.registerTool(createListServersTool(this));
     this.registerTool(createOpenFilesInEditorTool());
+    this.registerTool(createRemoveRemoteFileSourcesTool());
     this.registerTool(createRunCodeFromUriTool(this));
     this.registerTool(createRunCodeTool(this));
     this.registerTool(createSetEditorConnectionTool(this));

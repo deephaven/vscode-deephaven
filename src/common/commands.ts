@@ -1,7 +1,11 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { EXTENSION_ID } from './constants';
-import type { SerializedRange, ServerState } from '../types';
+import type {
+  RemoteImportSourceTreeFolderElement,
+  SerializedRange,
+  ServerState,
+} from '../types';
 
 /** Arguments passed to `RUN_CODE_COMMAND` handler */
 export type RunCodeCmdArgs = [
@@ -30,6 +34,24 @@ export type RunSelectionCmdArgs = [
 export type ConnectToServerCmdArgs = [
   serverState: Pick<ServerState, 'type' | 'url'>,
   operateAsAnotherUser?: boolean,
+];
+
+/** Arguments passed to `ADD_REMOTE_FILE_SOURCE_CMD` handler */
+export type AddRemoteFileSourceCmdArgs = [
+  folderElementOrUri:
+    | RemoteImportSourceTreeFolderElement
+    | vscode.Uri
+    | vscode.Uri[]
+    | undefined,
+];
+
+/** Arguments passed to `REMOVE_REMOTE_FILE_SOURCE_CMD` handler */
+export type RemoveRemoteFileSourceCmdArgs = [
+  folderElementOrUri:
+    | RemoteImportSourceTreeFolderElement
+    | vscode.Uri
+    | vscode.Uri[]
+    | undefined,
 ];
 
 /**
@@ -81,6 +103,16 @@ export const ADD_REMOTE_FILE_SOURCE_CMD = cmd('addRemoteFileSource');
 export const REMOVE_REMOTE_FILE_SOURCE_CMD = cmd('removeRemoteFileSource');
 
 /**
+ * Execute the add remote file source command with type safety.
+ * @param uris The folder URIs to add as remote file sources.
+ */
+export function execAddRemoteFileSource(
+  ...args: AddRemoteFileSourceCmdArgs
+): Thenable<void> {
+  return vscode.commands.executeCommand(ADD_REMOTE_FILE_SOURCE_CMD, ...args);
+}
+
+/**
  * Execute the connect to server command with type safety.
  * @param serverState The server to connect to (type and url).
  * @param operateAsAnotherUser Whether to operate as another user.
@@ -89,6 +121,16 @@ export function execConnectToServer(
   ...args: ConnectToServerCmdArgs
 ): Thenable<void> {
   return vscode.commands.executeCommand(CONNECT_TO_SERVER_CMD, ...args);
+}
+
+/**
+ * Execute the remove remote file source command with type safety.
+ * @param uris The folder URIs to remove as remote file sources.
+ */
+export function execRemoveRemoteFileSource(
+  ...args: RemoveRemoteFileSourceCmdArgs
+): Thenable<void> {
+  return vscode.commands.executeCommand(REMOVE_REMOTE_FILE_SOURCE_CMD, ...args);
 }
 
 /**

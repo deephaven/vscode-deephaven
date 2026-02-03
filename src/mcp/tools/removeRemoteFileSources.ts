@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { z } from 'zod';
-import { execAddRemoteFileSource } from '../../common/commands';
+import { execRemoveRemoteFileSource } from '../../common/commands';
 import type {
   McpTool,
   McpToolHandlerArg,
@@ -10,27 +10,27 @@ import { URISet } from '../../util/sets';
 import { createMcpToolOutputSchema, McpToolResponse } from '../utils';
 
 const spec = {
-  title: 'Add Remote File Sources',
+  title: 'Remove Remote File Sources',
   description:
-    'Add folder(s) as remote file sources (allows server to fetch source files on-demand during script execution).',
+    'Remove one or more remote file source folders from the workspace.',
   inputSchema: {
     folderUris: z
       .array(z.string())
-      .describe('List of folder URIs to add as remote file sources.'),
+      .describe('List of folder URIs to remove as remote file sources.'),
   },
   outputSchema: createMcpToolOutputSchema({
-    foldersAdded: z.number(),
+    foldersRemoved: z.number(),
   }),
 } as const;
 
 type Spec = typeof spec;
 type HandlerArg = McpToolHandlerArg<Spec>;
 type HandlerResult = McpToolHandlerResult<Spec>;
-type AddRemoteFileSourcesTool = McpTool<Spec>;
+type RemoveRemoteFileSourcesTool = McpTool<Spec>;
 
-export function createAddRemoteFileSourcesTool(): AddRemoteFileSourcesTool {
+export function createRemoveRemoteFileSourcesTool(): RemoveRemoteFileSourcesTool {
   return {
-    name: 'addRemoteFileSources',
+    name: 'removeRemoteFileSources',
     spec,
     handler: async ({ folderUris }: HandlerArg): Promise<HandlerResult> => {
       const response = new McpToolResponse();
@@ -39,17 +39,17 @@ export function createAddRemoteFileSourcesTool(): AddRemoteFileSourcesTool {
         const uris = folderUris.map(uri =>
           vscode.Uri.parse(uri.replace(/\/$/, ''))
         );
-
+        
         // Deduplicate URIs using URISet
         const uniqueUris = Array.from(new URISet(uris).values());
+        
+        await execRemoveRemoteFileSource(uniqueUris);
 
-        await execAddRemoteFileSource(uniqueUris);
-
-        return response.success('Remote file sources added successfully', {
-          foldersAdded: uniqueUris.length,
+        return response.success('Remote file sources removed successfully', {
+          foldersRemoved: uniqueUris.length,
         });
       } catch (error) {
-        return response.error('Failed to add remote file sources', error, {
+        return response.error('Failed to remove remote file sources', error, {
           folderUris,
         });
       }
