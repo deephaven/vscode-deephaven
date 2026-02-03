@@ -7,6 +7,30 @@ import type {
   ServerState,
 } from '../types';
 
+/** Arguments passed to `ADD_REMOTE_FILE_SOURCE_CMD` handler */
+export type AddRemoteFileSourceCmdArgs = [
+  folderElementOrUri:
+    | RemoteImportSourceTreeFolderElement
+    | vscode.Uri
+    | vscode.Uri[]
+    | undefined,
+];
+
+/** Arguments passed to `CONNECT_TO_SERVER_CMD` handler */
+export type ConnectToServerCmdArgs = [
+  serverState: Pick<ServerState, 'type' | 'url'>,
+  operateAsAnotherUser?: boolean,
+];
+
+/** Arguments passed to `REMOVE_REMOTE_FILE_SOURCE_CMD` handler */
+export type RemoveRemoteFileSourceCmdArgs = [
+  folderElementOrUri:
+    | RemoteImportSourceTreeFolderElement
+    | vscode.Uri
+    | vscode.Uri[]
+    | undefined,
+];
+
 /** Arguments passed to `RUN_CODE_COMMAND` handler */
 export type RunCodeCmdArgs = [
   uri?: vscode.Uri,
@@ -28,30 +52,6 @@ export type RunSelectionCmdArgs = [
   uri?: vscode.Uri,
   _arg?: { groupId: number },
   languageId?: string,
-];
-
-/** Arguments passed to `CONNECT_TO_SERVER_CMD` handler */
-export type ConnectToServerCmdArgs = [
-  serverState: Pick<ServerState, 'type' | 'url'>,
-  operateAsAnotherUser?: boolean,
-];
-
-/** Arguments passed to `ADD_REMOTE_FILE_SOURCE_CMD` handler */
-export type AddRemoteFileSourceCmdArgs = [
-  folderElementOrUri:
-    | RemoteImportSourceTreeFolderElement
-    | vscode.Uri
-    | vscode.Uri[]
-    | undefined,
-];
-
-/** Arguments passed to `REMOVE_REMOTE_FILE_SOURCE_CMD` handler */
-export type RemoveRemoteFileSourceCmdArgs = [
-  folderElementOrUri:
-    | RemoteImportSourceTreeFolderElement
-    | vscode.Uri
-    | vscode.Uri[]
-    | undefined,
 ];
 
 /**
