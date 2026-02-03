@@ -180,17 +180,9 @@ describe('listConnections', () => {
   });
 
   it('should include querySerial when workerInfo is available', async () => {
-    const mockWorkerInfo: WorkerInfo = {
-      tagId: 'worker1' as UniqueID,
-      envoyPrefix: null,
-      grpcUrl: new URL('http://localhost:10000/grpc') as any,
-      ideUrl: new URL('http://localhost:10000/ide') as any,
-      jsapiUrl: new URL('http://localhost:10000/jsapi') as any,
-      processInfoId: null,
-      serial: 'test-serial-123' as any,
-      workerName: null,
-      workerUrl: new URL('http://localhost:10000') as any,
-    };
+    const mockWorkerInfo = {
+      serial: 'test-serial-123',
+    } as WorkerInfo;
 
     vi.mocked(serverManager.getConnections).mockReturnValue([
       MOCK_CONNECTIONS[0],
