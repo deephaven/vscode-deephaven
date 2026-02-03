@@ -1,4 +1,7 @@
 import { z } from 'zod';
+import type { IServerManager, ConnectionState } from '../../types';
+import { execConnectToServer } from '../../common/commands';
+import { createConnectionNotFoundHint } from './runCodeUtils';
 
 /**
  * MCP tool result with standardized structure following Model Context Protocol.
@@ -183,13 +186,26 @@ export class McpToolResponse {
     message: string,
     details?: TDetails
   ): McpToolResult<true, TDetails> {
-    return mcpToolResult(
-      true,
-      message,
-      this.getElapsedTimeMs(),
-      undefined,
-      details
-    );
+    return this.successWithHint(message, undefined, details);
+  }
+
+  /**
+   * Creates a successful MCP tool result with guidance hint.
+   *
+   * Automatically calculates and includes execution time from when the
+   * McpToolResponse instance was created.
+   *
+   * @param message Success message describing what was accomplished.
+   * @param hint Optional guidance for next steps or additional context.
+   * @param details Optional tool-specific result data.
+   * @returns MCP tool result with success=true, hint, and measured execution time.
+   */
+  successWithHint<TDetails = unknown>(
+    message: string,
+    hint?: string,
+    details?: TDetails
+  ): McpToolResult<true, TDetails> {
+    return mcpToolResult(true, message, this.getElapsedTimeMs(), hint, details);
   }
 
   /**
@@ -239,4 +255,145 @@ export class McpToolResponse {
       details
     );
   }
+}
+
+/**
+ * Gets the panel URL format for a given connection URL if it's a DHC server.
+ *
+ * @param serverType The type of the server ('DHC' or 'DHE').
+ * @param url The connection URL to use for the panel URL origin.
+ * @returns The panel URL format if the server is DHC, undefined otherwise.
+ */
+export function getPanelUrlFormat(
+  serverType: string,
+  url: URL
+): string | undefined {
+  return serverType === 'DHC'
+    ? `${url.origin}/iframe/widget/?name=<variableTitle>`
+    : undefined;
+}
+
+/**
+ * Gets a server from the server manager, matching port for localhost connections.
+ * For localhost servers, different ports mean different servers, so port is
+ * included in the match. For remote servers, different ports on the same
+ * hostname are the same server, so port is ignored in the match.
+ *
+ * @param serverManager The server manager to query for the server.
+ * @param url The connection URL to match against.
+ * @returns The server if found, null otherwise.
+ */
+export function getServerMatchPortIfLocalHost<T>(
+  serverManager: { getServer: (url: URL, matchPort?: boolean) => T },
+  url: URL
+): T {
+  const matchPort =
+    url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+  return serverManager.getServer(url, matchPort);
+}
+
+type GetFirstConnectionOrCreateSuccess = {
+  success: true;
+  connection: ConnectionState;
+  panelUrlFormat: string | undefined;
+};
+
+type GetFirstConnectionOrCreateError = {
+  success: false;
+  errorMessage: string;
+  error?: unknown;
+  hint?: string;
+  details?: Record<string, unknown>;
+};
+
+type GetFirstConnectionOrCreateResult =
+  | GetFirstConnectionOrCreateSuccess
+  | GetFirstConnectionOrCreateError;
+
+/**
+ * Gets the first connection for a given URL, handling server retrieval,
+ * connection creation, and panel URL format generation.
+ *
+ * This function encapsulates the common pattern of:
+ * 1. Getting the server with getServerMatchPortIfLocalHost
+ * 2. Validating the server exists and is running
+ * 3. Getting or creating a connection (auto-connecting for DHC servers)
+ * 4. Returning the first connection and panel URL format
+ *
+ * @param params Configuration for getting the connection
+ * @param params.serverManager The server manager to query
+ * @param params.connectionUrl The connection URL
+ * @param params.languageId Optional language ID for creating connection hints
+ * @returns Success with connection and panelUrlFormat, or error with message and hint
+ */
+export async function getFirstConnectionOrCreate(params: {
+  serverManager: IServerManager;
+  connectionUrl: URL;
+  languageId?: string;
+}): Promise<GetFirstConnectionOrCreateResult> {
+  const { serverManager, connectionUrl, languageId } = params;
+
+  // Get server with matchPort logic
+  const server = getServerMatchPortIfLocalHost(serverManager, connectionUrl);
+
+  if (server == null) {
+    const hint = languageId
+      ? await createConnectionNotFoundHint(
+          serverManager,
+          connectionUrl.href,
+          languageId
+        )
+      : undefined;
+
+    return {
+      success: false,
+      errorMessage: 'No connections or server found',
+      hint,
+      details: { connectionUrl: connectionUrl.href },
+    };
+  }
+
+  // Check if server is running
+  if (!server.isRunning) {
+    return {
+      success: false,
+      errorMessage: 'Server is not running',
+      details: { connectionUrl: connectionUrl.href },
+    };
+  }
+
+  // Get existing connections
+  let connections = serverManager.getConnections(connectionUrl);
+
+  if (connections.length === 0) {
+    // Only Core workers can be connected to if we don't already have a connection
+    if (server.type !== 'DHC') {
+      return {
+        success: false,
+        errorMessage: 'No active connection',
+        hint: 'Use connectToServer first',
+        details: { connectionUrl: connectionUrl.href },
+      };
+    }
+
+    await execConnectToServer({ type: server.type, url: server.url });
+    connections = serverManager.getConnections(connectionUrl);
+
+    if (connections.length === 0) {
+      return {
+        success: false,
+        errorMessage: 'Failed to connect to server',
+        details: { connectionUrl: connectionUrl.href },
+      };
+    }
+  }
+
+  const [connection] = connections;
+  const panelUrlFormat = getPanelUrlFormat(server.type, connectionUrl);
+
+  return {
+    success: true,
+    connection,
+    panelUrlFormat,
+  };
 }

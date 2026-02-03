@@ -2,9 +2,12 @@ import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { EXTENSION_ID } from './constants';
 import type {
+  NonEmptyArray,
   RemoteImportSourceTreeFolderElement,
   SerializedRange,
   ServerState,
+  VariableDefintion,
+  WorkerURL,
 } from '../types';
 
 /** Arguments passed to `ADD_REMOTE_FILE_SOURCE_CMD` handler */
@@ -20,6 +23,18 @@ export type AddRemoteFileSourceCmdArgs = [
 export type ConnectToServerCmdArgs = [
   serverState: Pick<ServerState, 'type' | 'url'>,
   operateAsAnotherUser?: boolean,
+];
+
+/** Arguments passed to `OPEN_VARIABLE_PANELS_CMD` handler */
+export type OpenVariablePanelsCmdArgs = [
+  serverUrl: URL,
+  variables: NonEmptyArray<VariableDefintion>,
+];
+
+/** Arguments passed to `REFRESH_VARIABLE_PANELS_CMD` handler */
+export type RefreshVariablePanelsCmdArgs = [
+  serverUrl: URL | WorkerURL,
+  variables: NonEmptyArray<VariableDefintion>,
 ];
 
 /** Arguments passed to `REMOVE_REMOTE_FILE_SOURCE_CMD` handler */
@@ -123,6 +138,17 @@ export function execConnectToServer(
   ...args: ConnectToServerCmdArgs
 ): Thenable<void> {
   return vscode.commands.executeCommand(CONNECT_TO_SERVER_CMD, ...args);
+}
+
+/**
+ * Execute the open variable panels command with type safety.
+ * @param serverUrl The connection URL.
+ * @param variables The variable definitions to open panels for.
+ */
+export function execOpenVariablePanels(
+  ...args: OpenVariablePanelsCmdArgs
+): Thenable<void> {
+  return vscode.commands.executeCommand(OPEN_VARIABLE_PANELS_CMD, ...args);
 }
 
 /**

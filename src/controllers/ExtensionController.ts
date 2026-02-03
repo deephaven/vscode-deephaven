@@ -423,6 +423,7 @@ export class ExtensionController implements IDisposable {
     assertDefined(this._config, 'config');
     assertDefined(this._outputChannel, 'outputChannel');
     assertDefined(this._outputChannelDebug, 'outputChannelDebug');
+    assertDefined(this._panelService, 'panelService');
 
     this._mcpController = new McpController(
       this._context,
@@ -432,7 +433,8 @@ export class ExtensionController implements IDisposable {
       this._pythonDiagnostics,
       this._pythonWorkspace,
       this._outputChannel,
-      this._outputChannelDebug
+      this._outputChannelDebug,
+      this._panelService
     );
 
     this._context.subscriptions.push(this._mcpController);
