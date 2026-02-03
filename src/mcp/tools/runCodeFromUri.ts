@@ -142,9 +142,7 @@ export function createRunCodeFromUriTool({
             {
               languageId,
               variables,
-              ...(foundMatchingFolderUris && {
-                foundMatchingFolderUris,
-              }),
+              foundMatchingFolderUris,
             }
           );
         }
