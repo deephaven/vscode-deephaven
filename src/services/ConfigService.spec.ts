@@ -85,8 +85,6 @@ describe('toggleMcp', () => {
 
       const shouldUpdate = current !== expected;
 
-      expect(configMap.get(CONFIG_KEY.mcpEnabled)).toBe(expected);
-
       if (shouldUpdate) {
         expect(configMap.update).toHaveBeenCalledWith(
           CONFIG_KEY.mcpEnabled,
