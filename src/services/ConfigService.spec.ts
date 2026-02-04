@@ -71,8 +71,8 @@ describe('getEnterpriseServers', () => {
 describe('toggleMcp', () => {
   it.each([
     { current: false, input: true, expected: true },
-    { current: true, input: true, expected: true },
-    { current: false, input: false, expected: false },
+    { current: true, input: true, expected: null },
+    { current: false, input: false, expected: null },
     { current: true, input: false, expected: false },
     { current: false, input: undefined, expected: true },
     { current: true, input: undefined, expected: false },
@@ -83,9 +83,7 @@ describe('toggleMcp', () => {
 
       await ConfigService.toggleMcp(input);
 
-      const shouldUpdate = current !== expected;
-
-      if (shouldUpdate) {
+      if (typeof expected === 'boolean') {
         expect(configMap.update).toHaveBeenCalledWith(
           CONFIG_KEY.mcpEnabled,
           expected,
