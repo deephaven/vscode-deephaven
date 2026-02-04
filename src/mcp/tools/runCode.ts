@@ -5,8 +5,7 @@ import type {
   McpToolHandlerResult,
 } from '../../types';
 import type { IServerManager } from '../../types';
-import { DhcService } from '../../services';
-import { isInstanceOf, parseUrl } from '../../util';
+import { parseUrl } from '../../util';
 import {
   runCodeOutputSchema,
   extractVariables,
@@ -77,17 +76,6 @@ export function createRunCodeTool({
         }
 
         const { connection, panelUrlFormat } = firstConnectionResult;
-
-        // There shouldn't really be a case where the connection is not a
-        // DhcService, but this is consistent with how we check connections
-        // elsewhere
-        if (!isInstanceOf(connection, DhcService)) {
-          return response.error(
-            'Code execution is only supported for Core / Core+ connections.',
-            null,
-            { connectionUrl: parsedConnectionURL.value.href }
-          );
-        }
 
         // Execute the code
         const result = await connection.runCode(code, languageId);

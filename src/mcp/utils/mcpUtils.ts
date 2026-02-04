@@ -1,6 +1,8 @@
 import { z } from 'zod';
-import type { IServerManager, ConnectionState } from '../../types';
+import type { IServerManager, IDhcService } from '../../types';
 import { execConnectToServer } from '../../common/commands';
+import { DhcService } from '../../services';
+import { isInstanceOf } from '../../util';
 import { createConnectionNotFoundHint } from './runCodeUtils';
 
 /**
@@ -319,7 +321,7 @@ export function getServerMatchPortIfLocalHost<T>(
 
 type GetFirstConnectionOrCreateSuccess = {
   success: true;
-  connection: ConnectionState;
+  connection: IDhcService;
   panelUrlFormat: string | undefined;
 };
 
@@ -414,6 +416,17 @@ export async function getFirstConnectionOrCreate(params: {
   }
 
   const [connection] = connections;
+
+  // There shouldn't really be a case where the connection is not a
+  // DhcService, but this is consistent with how we check connections
+  // elsewhere in order to narrow the type.
+  if (!isInstanceOf(connection, DhcService)) {
+    return {
+      success: false,
+      errorMessage: 'Connection is not a Core / Core+ connection.',
+      details: { connectionUrl: connectionUrl.href },
+    };
+  }
 
   const panelUrlFormat =
     server.type === 'DHE'

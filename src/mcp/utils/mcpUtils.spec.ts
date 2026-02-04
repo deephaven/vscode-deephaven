@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type {
   ConnectionState,
+  IDhcService,
   IDheService,
   IServerManager,
   ServerState,
   WorkerInfo,
 } from '../../types';
+import { DhcService } from '../../services';
 import {
   formatErrorMessage,
   getDhcPanelUrlFormat,
@@ -313,10 +315,12 @@ describe('McpToolResponse', () => {
 
 describe('getFirstConnectionOrCreate', () => {
   const mockUrl = new URL('http://localhost:10000');
-  const mockConnection: ConnectionState = {
-    serverUrl: mockUrl,
-    isConnected: true,
-  };
+  const mockConnection: IDhcService = Object.assign(
+    Object.create(DhcService.prototype),
+    {
+      serverUrl: mockUrl,
+    }
+  );
 
   let serverManager: IServerManager;
   let execConnectToServerMock: ReturnType<typeof vi.fn>;
@@ -459,6 +463,36 @@ describe('getFirstConnectionOrCreate', () => {
       expect(execConnectToServerMock).toHaveBeenCalledWith({
         type: 'DHC',
         url: mockUrl,
+      });
+    });
+
+    it('should return error when connection is not a DhcService', async () => {
+      const mockServer: ServerState = {
+        url: mockUrl,
+        type: 'DHC',
+        isRunning: true,
+      } as ServerState;
+
+      // Create a connection that is not a DhcService instance
+      const nonDhcServiceConnection = {
+        serverUrl: mockUrl,
+        isConnected: true,
+      } as ConnectionState;
+
+      vi.mocked(serverManager.getServer).mockReturnValue(mockServer);
+      vi.mocked(serverManager.getConnections).mockReturnValue([
+        nonDhcServiceConnection,
+      ]);
+
+      const result = await getFirstConnectionOrCreate({
+        serverManager,
+        connectionUrl: mockUrl,
+      });
+
+      expect(result).toEqual({
+        success: false,
+        errorMessage: 'Connection is not a Core / Core+ connection.',
+        details: { connectionUrl: mockUrl.href },
       });
     });
   });

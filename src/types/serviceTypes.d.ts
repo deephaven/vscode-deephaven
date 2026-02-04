@@ -66,7 +66,7 @@ export interface IDhcService extends IDisposable, ConnectionState {
   supportsConsoleType: (consoleType: ConsoleType) => Promise<boolean>;
 
   runCode: (
-    document: vscode.TextDocument,
+    documentOrText: vscode.TextDocument | string,
     languageId: string,
     ranges?: readonly vscode.Range[]
   ) => Promise<DhcType.ide.CommandResult | null>;

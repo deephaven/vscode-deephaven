@@ -2,8 +2,9 @@ import * as vscode from 'vscode';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createRunCodeFromUriTool } from './runCodeFromUri';
-import type { ConnectionState, IServerManager, ServerState } from '../../types';
+import type { IDhcService, IServerManager, ServerState } from '../../types';
 import type { FilteredWorkspace } from '../../services';
+import { DhcService } from '../../services';
 import { McpToolResponse } from '../utils/mcpUtils';
 import { ConnectionNotFoundError, CONNECT_TO_SERVER_CMD } from '../../common';
 import {
@@ -387,15 +388,18 @@ describe('runCodeFromUri tool', () => {
   });
 
   describe('code execution', () => {
+    const mockConnection: IDhcService = Object.assign(Object.create(DhcService.prototype), {
+      serverUrl: new URL('http://localhost:10000'),
+    });
+
     beforeEach(() => {
       vi.mocked(vscode.workspace.fs.stat).mockResolvedValue(MOCK_FILE_STAT);
       vi.mocked(vscode.workspace.openTextDocument).mockResolvedValue(
         MOCK_DOCUMENT
       );
-      vi.mocked(serverManager.getConnections).mockReturnValue([
-        {} as ConnectionState,
-      ]);
+      vi.mocked(serverManager.getConnections).mockReturnValue([mockConnection]);
       vi.mocked(serverManager.getServer).mockReturnValue(MOCK_SERVER_RUNNING);
+      vi.mocked(serverManager.getUriConnection).mockReturnValue(mockConnection);
 
       vi.mocked(getDiagnosticsErrors).mockReturnValue(MOCK_DIAGNOSTIC_ERRORS);
     });
@@ -423,7 +427,6 @@ describe('runCodeFromUri tool', () => {
         name: 'handle code execution failure with Python diagnostics and hint',
         cmdResult: MOCK_RUN_CODE_ERROR,
         connectionUrl: MOCK_CONNECTION_URL,
-        uriConnection: {} as ConnectionState,
         pythonHint: MOCK_HINT,
         expected: EXPECTED_CODE_EXECUTION_FAILED,
       },
@@ -431,19 +434,12 @@ describe('runCodeFromUri tool', () => {
         name: 'handle code execution failure with Python diagnostics without hint',
         cmdResult: MOCK_RUN_CODE_ERROR,
         connectionUrl: MOCK_CONNECTION_URL,
-        uriConnection: {} as ConnectionState,
         pythonHint: undefined,
         expected: EXPECTED_CODE_EXECUTION_FAILED_NO_HINT,
       },
     ])(
       'should $name',
-      async ({
-        cmdResult,
-        connectionUrl,
-        uriConnection,
-        pythonHint,
-        expected,
-      }) => {
+      async ({ cmdResult, connectionUrl, pythonHint, expected }) => {
         if (cmdResult instanceof Error) {
           vi.mocked(vscode.commands.executeCommand).mockRejectedValue(
             cmdResult
@@ -451,12 +447,6 @@ describe('runCodeFromUri tool', () => {
         } else {
           vi.mocked(vscode.commands.executeCommand).mockResolvedValue(
             cmdResult
-          );
-        }
-
-        if (uriConnection) {
-          vi.mocked(serverManager.getUriConnection).mockReturnValue(
-            uriConnection
           );
         }
 

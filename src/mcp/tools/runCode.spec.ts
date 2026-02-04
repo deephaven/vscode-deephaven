@@ -59,8 +59,6 @@ const MOCK_DHC_SERVICE_CONNECTION_WITH_VARIABLES: DhcService = Object.assign(
   }
 );
 
-const MOCK_CONNECTION_NOT_DHC_SERVICE = {} as ConnectionState;
-
 const EXPECTED_INVALID_LANGUAGE = {
   success: false,
   message: `Invalid languageId: 'javascript'. Must be "python" or "groovy".`,
@@ -84,13 +82,6 @@ const EXPECTED_NO_CONNECTION_OR_SERVER = {
 const EXPECTED_SERVER_NOT_RUNNING = {
   success: false,
   message: 'Server is not running',
-  details: { connectionUrl: MOCK_CONNECTION_URL.href },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_NOT_DHC_SERVICE = {
-  success: false,
-  message: 'Code execution is only supported for Core / Core+ connections.',
   details: { connectionUrl: MOCK_CONNECTION_URL.href },
   executionTimeMs: MOCK_EXECUTION_TIME_MS,
 } as const;
@@ -206,15 +197,6 @@ describe('runCode tool', () => {
       connections: [],
       server: MOCK_SERVER_NOT_RUNNING,
       expected: EXPECTED_SERVER_NOT_RUNNING,
-      expectHint: false,
-    },
-    {
-      scenario: 'connection is not DhcService',
-      languageId: 'python',
-      connectionUrl: MOCK_CONNECTION_URL.href,
-      connections: [MOCK_CONNECTION_NOT_DHC_SERVICE],
-      server: MOCK_SERVER_RUNNING,
-      expected: EXPECTED_NOT_DHC_SERVICE,
       expectHint: false,
     },
     {
