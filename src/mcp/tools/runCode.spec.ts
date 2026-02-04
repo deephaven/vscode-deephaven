@@ -56,6 +56,7 @@ const MOCK_DHC_SERVICE_CONNECTION_WITH_VARIABLES: DhcService = Object.assign(
   {
     runCode: vi.fn().mockResolvedValue(MOCK_RUN_CODE_SUCCESS_WITH_VARIABLES),
     supportsConsoleType: vi.fn().mockReturnValue(true),
+    getPsk: vi.fn().mockResolvedValue(undefined),
   }
 );
 
@@ -267,6 +268,7 @@ describe('runCode tool', () => {
       const mockConnection = Object.create(DhcService.prototype);
       mockConnection.runCode = vi.fn().mockResolvedValue(MOCK_RUN_CODE_ERROR);
       mockConnection.supportsConsoleType = vi.fn().mockReturnValue(true);
+      mockConnection.getPsk = vi.fn().mockResolvedValue(undefined);
 
       vi.mocked(serverManager.getConnections).mockReturnValue([mockConnection]);
       vi.mocked(serverManager.getServer).mockReturnValue(MOCK_SERVER_RUNNING);

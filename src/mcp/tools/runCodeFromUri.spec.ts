@@ -390,6 +390,7 @@ describe('runCodeFromUri tool', () => {
   describe('code execution', () => {
     const mockConnection: IDhcService = Object.assign(Object.create(DhcService.prototype), {
       serverUrl: new URL('http://localhost:10000'),
+      getPsk: vi.fn().mockResolvedValue(undefined),
     });
 
     beforeEach(() => {

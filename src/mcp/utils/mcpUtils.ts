@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { IServerManager, IDhcService } from '../../types';
+import type { IServerManager, IDhcService, Psk } from '../../types';
 import { execConnectToServer } from '../../common/commands';
 import { DhcService } from '../../services';
 import { isInstanceOf } from '../../util';
@@ -264,10 +264,12 @@ export class McpToolResponse {
  * DHC servers use iframe format.
  *
  * @param serverUrl The server URL to use for the panel URL origin.
+ * @param psk Optional pre-shared key to include in the URL.
  * @returns The panel URL format for DHC servers.
  */
-export function getDhcPanelUrlFormat(serverUrl: URL): string {
-  return `${serverUrl.origin}/iframe/widget/?name=<variableTitle>`;
+export function getDhcPanelUrlFormat(serverUrl: URL, psk?: Psk): string {
+  const url = `${serverUrl.origin}/iframe/widget/?name=<variableTitle>`;
+  return psk ? `${url}&psk=${psk}` : url;
 }
 
 /**
@@ -432,7 +434,7 @@ export async function getFirstConnectionOrCreate(params: {
     server.type === 'DHE'
       ? await getDhePanelUrlFormat(server.url, connectionUrl, serverManager)
       : server.type === 'DHC'
-        ? getDhcPanelUrlFormat(server.url)
+        ? getDhcPanelUrlFormat(server.url, await connection.getPsk())
         : undefined;
 
   return {

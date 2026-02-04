@@ -319,6 +319,7 @@ describe('getFirstConnectionOrCreate', () => {
     Object.create(DhcService.prototype),
     {
       serverUrl: mockUrl,
+      getPsk: vi.fn().mockResolvedValue(undefined),
     }
   );
 
@@ -518,6 +519,7 @@ describe('getFirstConnectionOrCreate', () => {
         connection: mockConnection,
         panelUrlFormat: `${mockUrl.origin}/iframe/widget/?name=<variableTitle>`,
       });
+      expect(mockConnection.getPsk).toHaveBeenCalled();
     });
 
     it('should auto-connect and return connection for DHC server with no connection', async () => {
@@ -547,128 +549,160 @@ describe('getFirstConnectionOrCreate', () => {
         type: 'DHC',
         url: mockUrl,
       });
+      expect(mockConnection.getPsk).toHaveBeenCalled();
     });
 
-    it('should return connection for DHE server with embedDashboardsAndWidgets feature', async () => {
+    it('should return connection for DHC server with psk', async () => {
+      const mockConnectionWithPsk: IDhcService = Object.assign(
+        Object.create(DhcService.prototype),
+        {
+          serverUrl: mockUrl,
+          getPsk: vi.fn().mockResolvedValue('test-psk-123'),
+        }
+      );
+
       const mockServer: ServerState = {
         url: mockUrl,
-        type: 'DHE',
+        type: 'DHC',
         isRunning: true,
       } as ServerState;
 
-      const mockDheService = {
-        getServerFeatures: vi.fn().mockReturnValue({
+      vi.mocked(serverManager.getServer).mockReturnValue(mockServer);
+      vi.mocked(serverManager.getConnections).mockReturnValue([
+        mockConnectionWithPsk,
+      ]);
+
+      const result = await getFirstConnectionOrCreate({
+        serverManager,
+        connectionUrl: mockUrl,
+      });
+
+      expect(result).toEqual({
+        success: true,
+        connection: mockConnectionWithPsk,
+        panelUrlFormat: `${mockUrl.origin}/iframe/widget/?name=<variableTitle>&psk=test-psk-123`,
+      });
+      expect(mockConnectionWithPsk.getPsk).toHaveBeenCalled();
+    });
+
+    it.each([
+      {
+        name: 'with embedDashboardsAndWidgets feature',
+        serverFeatures: {
           features: {
             embedDashboardsAndWidgets: true,
           },
-        }),
-      };
-
-      const mockWorkerInfo = {
-        serial: 'test-serial-123',
-      };
-
-      vi.mocked(serverManager.getServer).mockReturnValue(mockServer);
-      vi.mocked(serverManager.getConnections).mockReturnValue([mockConnection]);
-      vi.mocked(serverManager.getDheServiceForWorker).mockResolvedValue(
-        mockDheService as never
-      );
-      vi.mocked(serverManager.getWorkerInfo).mockResolvedValue(
-        mockWorkerInfo as never
-      );
-
-      const result = await getFirstConnectionOrCreate({
-        serverManager,
-        connectionUrl: mockUrl,
-      });
-
-      expect(result).toEqual({
-        success: true,
-        connection: mockConnection,
-        panelUrlFormat: `${mockUrl.origin}/iriside/embed/widget/serial/test-serial-123/<variableTitle>`,
-      });
-    });
-
-    it('should return connection for DHE server without embedDashboardsAndWidgets feature', async () => {
-      const mockServer: ServerState = {
-        url: mockUrl,
-        type: 'DHE',
-        isRunning: true,
-      } as ServerState;
-
-      const mockDheService = {
-        getServerFeatures: vi.fn().mockReturnValue({
+        },
+        workerInfo: {
+          serial: 'test-serial-123',
+        },
+        expectedPanelUrlFormat: `${mockUrl.origin}/iriside/embed/widget/serial/test-serial-123/<variableTitle>`,
+        expectWorkerInfoCalled: true,
+      },
+      {
+        name: 'without embedDashboardsAndWidgets feature',
+        serverFeatures: {
           features: {
             embedDashboardsAndWidgets: false,
           },
-        }),
-      };
+        },
+        workerInfo: undefined,
+        expectedPanelUrlFormat: undefined,
+        expectWorkerInfoCalled: false,
+      },
+      {
+        name: 'when getServerFeatures returns undefined',
+        serverFeatures: undefined,
+        workerInfo: undefined,
+        expectedPanelUrlFormat: undefined,
+        expectWorkerInfoCalled: false,
+      },
+    ])(
+      'should return connection for DHE server $name',
+      async ({
+        serverFeatures,
+        workerInfo,
+        expectedPanelUrlFormat,
+        expectWorkerInfoCalled,
+      }) => {
+        const mockServer: ServerState = {
+          url: mockUrl,
+          type: 'DHE',
+          isRunning: true,
+        } as ServerState;
 
-      vi.mocked(serverManager.getServer).mockReturnValue(mockServer);
-      vi.mocked(serverManager.getConnections).mockReturnValue([mockConnection]);
-      vi.mocked(serverManager.getDheServiceForWorker).mockResolvedValue(
-        mockDheService as never
-      );
+        const mockDheService = {
+          getServerFeatures: vi.fn().mockReturnValue(serverFeatures),
+        };
 
-      const result = await getFirstConnectionOrCreate({
-        serverManager,
-        connectionUrl: mockUrl,
-      });
+        vi.mocked(serverManager.getServer).mockReturnValue(mockServer);
+        vi.mocked(serverManager.getConnections).mockReturnValue([
+          mockConnection,
+        ]);
+        vi.mocked(serverManager.getDheServiceForWorker).mockResolvedValue(
+          mockDheService as never
+        );
+        vi.mocked(serverManager.getWorkerInfo).mockResolvedValue(
+          workerInfo as never
+        );
 
-      expect(result).toEqual({
-        success: true,
-        connection: mockConnection,
-        panelUrlFormat: undefined,
-      });
-      expect(serverManager.getWorkerInfo).not.toHaveBeenCalled();
-    });
+        const result = await getFirstConnectionOrCreate({
+          serverManager,
+          connectionUrl: mockUrl,
+        });
 
-    it('should return connection for DHE server when getServerFeatures returns undefined', async () => {
-      const mockServer: ServerState = {
-        url: mockUrl,
-        type: 'DHE',
-        isRunning: true,
-      } as ServerState;
+        expect(result).toEqual({
+          success: true,
+          connection: mockConnection,
+          panelUrlFormat: expectedPanelUrlFormat,
+        });
 
-      const mockDheService = {
-        getServerFeatures: vi.fn().mockReturnValue(undefined),
-      };
-
-      vi.mocked(serverManager.getServer).mockReturnValue(mockServer);
-      vi.mocked(serverManager.getConnections).mockReturnValue([mockConnection]);
-      vi.mocked(serverManager.getDheServiceForWorker).mockResolvedValue(
-        mockDheService as never
-      );
-
-      const result = await getFirstConnectionOrCreate({
-        serverManager,
-        connectionUrl: mockUrl,
-      });
-
-      expect(result).toEqual({
-        success: true,
-        connection: mockConnection,
-        panelUrlFormat: undefined,
-      });
-    });
+        if (expectWorkerInfoCalled) {
+          expect(serverManager.getWorkerInfo).toHaveBeenCalled();
+        } else {
+          expect(serverManager.getWorkerInfo).not.toHaveBeenCalled();
+        }
+      }
+    );
   });
 });
 
 describe('getDhcPanelUrlFormat', () => {
   it.each([
     {
+      name: 'without psk',
       url: 'http://localhost:10000',
+      psk: undefined,
       expected: 'http://localhost:10000/iframe/widget/?name=<variableTitle>',
     },
     {
+      name: 'with psk',
+      url: 'http://localhost:10000',
+      psk: 'test-psk-123',
+      expected:
+        'http://localhost:10000/iframe/widget/?name=<variableTitle>&psk=test-psk-123',
+    },
+    {
+      name: 'different URL without psk',
       url: 'https://example.com:8080/some/path',
+      psk: undefined,
       expected: 'https://example.com:8080/iframe/widget/?name=<variableTitle>',
     },
-  ])('should return correct panel URL format for $url', ({ url, expected }) => {
-    const serverUrl = new URL(url);
-    const result = getDhcPanelUrlFormat(serverUrl);
-    expect(result).toBe(expected);
-  });
+    {
+      name: 'different URL with psk',
+      url: 'https://example.com:8080/some/path',
+      psk: 'another-psk',
+      expected:
+        'https://example.com:8080/iframe/widget/?name=<variableTitle>&psk=another-psk',
+    },
+  ])(
+    'should return correct panel URL format $name',
+    ({ url, psk, expected }) => {
+      const serverUrl = new URL(url);
+      const result = getDhcPanelUrlFormat(serverUrl, psk as any);
+      expect(result).toBe(expected);
+    }
+  );
 });
 
 describe('getDhePanelUrlFormat', () => {
