@@ -1,22 +1,16 @@
 import * as vscode from 'vscode';
-import { beforeEach, describe, expect, it, Mock, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConfigService } from './ConfigService';
 import { CONFIG_KEY } from '../common';
 
 // See __mocks__/vscode.ts for the mock implementation
 vi.mock('vscode');
 
-let configMap: Map<string, unknown>;
+let configMap: vscode.WorkspaceConfiguration;
 
 beforeEach(() => {
-  configMap = new Map();
-
   vi.clearAllMocks();
-  (
-    vscode.workspace.getConfiguration as Mock<
-      typeof vscode.workspace.getConfiguration
-    >
-  ).mockReturnValue(configMap as unknown as vscode.WorkspaceConfiguration);
+  configMap = vscode.workspace.getConfiguration();
 });
 
 const urlA = 'http://someUrl';
@@ -72,4 +66,36 @@ describe('getEnterpriseServers', () => {
 
     expect(config).toEqual(expected);
   });
+});
+
+describe('toggleMcp', () => {
+  it.each([
+    { current: false, input: true, expected: true },
+    { current: true, input: true, expected: true },
+    { current: false, input: false, expected: false },
+    { current: true, input: false, expected: false },
+    { current: false, input: undefined, expected: true },
+    { current: true, input: undefined, expected: false },
+  ])(
+    'should handle enable=$input, current=$current → expected=$expected',
+    async ({ current, input, expected }) => {
+      configMap.set(CONFIG_KEY.mcpEnabled, current);
+
+      await ConfigService.toggleMcp(input);
+
+      const shouldUpdate = current !== expected;
+
+      expect(configMap.get(CONFIG_KEY.mcpEnabled)).toBe(expected);
+
+      if (shouldUpdate) {
+        expect(configMap.update).toHaveBeenCalledWith(
+          CONFIG_KEY.mcpEnabled,
+          expected,
+          false
+        );
+      } else {
+        expect(configMap.update).not.toHaveBeenCalled();
+      }
+    }
+  );
 });

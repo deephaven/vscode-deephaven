@@ -313,7 +313,24 @@ export const workspace = {
   getConfiguration: vi
     .fn()
     .mockName('getConfiguration')
-    .mockReturnValue(new Map()),
+    .mockReturnValue(
+      // Mock implementation of vscode.WorkspaceConfiguration. Note that it's
+      // a thin wrapper around a Map and only implements a portion of the update
+      // args for now. If we need to test additional args, will need to make the
+      // state more robust.
+      new (class extends Map {
+        inspect = vi.fn().mockName('inspect');
+        update = vi
+          .fn()
+          .mockName('update')
+          .mockImplementation(
+            (section: string, value: unknown): Thenable<void> => {
+              this.set(section, value);
+              return Promise.resolve();
+            }
+          );
+      })()
+    ),
   openTextDocument: vi.fn().mockName('openTextDocument'),
   onDidChangeTextDocument: vi.fn().mockName('onDidChangeTextDocument'),
   onDidCloseTextDocument: vi.fn().mockName('onDidCloseTextDocument'),
