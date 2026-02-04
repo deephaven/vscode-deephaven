@@ -70,6 +70,21 @@ function hasValidURL({ url }: { url: string }): boolean {
   }
 }
 
+async function toggleMcp(enable?: boolean): Promise<void> {
+  const currentState = isMcpEnabled();
+  const targetState = enable ?? !currentState;
+
+  if (currentState === targetState) {
+    return;
+  }
+
+  await getConfig().update(
+    CONFIG_KEY.mcpEnabled,
+    targetState,
+    false // workspace scope
+  );
+}
+
 function getMcpAutoUpdateConfig(): boolean {
   return getConfig().get<boolean>(CONFIG_KEY.mcpAutoUpdateConfig, false);
 }
@@ -189,5 +204,6 @@ export const ConfigService: IConfigService = {
   isMcpEnabled,
   getMcpAutoUpdateConfig,
   setMcpAutoUpdateConfig,
+  toggleMcp,
   updateWindsurfMcpConfig,
 };

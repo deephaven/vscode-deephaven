@@ -314,7 +314,12 @@ export const workspace = {
   getConfiguration: vi
     .fn()
     .mockName('getConfiguration')
-    .mockReturnValue(new Map()),
+    .mockReturnValue(
+      new (class extends Map {
+        inspect = vi.fn().mockName('inspect');
+        update = vi.fn().mockName('update');
+      })()
+    ),
   openTextDocument: vi.fn().mockName('openTextDocument'),
   onDidChangeTextDocument: vi.fn().mockName('onDidChangeTextDocument'),
   onDidCloseTextDocument: vi.fn().mockName('onDidCloseTextDocument'),

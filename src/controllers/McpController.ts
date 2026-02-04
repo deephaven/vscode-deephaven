@@ -9,9 +9,15 @@ import {
   COPY_MCP_URL_CMD,
   MCP_SERVER_NAME,
   MCP_SERVER_PORT_STORAGE_KEY,
+  SHOW_MCP_QUICK_PICK_CMD,
+  TOGGLE_MCP_CMD,
 } from '../common';
 
 const logger = new Logger('McpController');
+
+interface McpQuickPickItem extends vscode.QuickPickItem {
+  action: 'enable' | 'disable' | 'copy';
+}
 
 /**
  * Controller for managing the MCP (Model Context Protocol) server.
@@ -56,6 +62,12 @@ export class McpController extends ControllerBase {
     // Register copy MCP URL command
     this.registerCommand(COPY_MCP_URL_CMD, this.copyUrl, this);
 
+    // Register toggle MCP command
+    this.registerCommand(TOGGLE_MCP_CMD, () => this._config.toggleMcp(), this);
+
+    // Register show MCP quick pick command
+    this.registerCommand(SHOW_MCP_QUICK_PICK_CMD, this.showMcpQuickPick, this);
+
     // Register configuration change handler
     let isMcpEnabledPrev = this._config.isMcpEnabled();
     vscode.workspace.onDidChangeConfiguration(
@@ -99,6 +111,8 @@ export class McpController extends ControllerBase {
     }
 
     if (!this._config.isMcpEnabled()) {
+      // Update status bar to show disabled state
+      this.updateStatusBar(null);
       return;
     }
 
@@ -175,35 +189,13 @@ export class McpController extends ControllerBase {
       this._mcpStatusBarItem = null;
     }
 
-    if (!this._config.isMcpEnabled()) {
-      return;
-    }
-
     this._mcpStatusBarItem = vscode.window.createStatusBarItem(
       vscode.StatusBarAlignment.Right,
       200
     );
-    this._mcpStatusBarItem.command = COPY_MCP_URL_CMD;
+
+    this._mcpStatusBarItem.command = SHOW_MCP_QUICK_PICK_CMD;
     this.disposables.push(this._mcpStatusBarItem);
-  }
-
-  /**
-   * Update MCP status bar with current port.
-   * @param port The port the MCP server is running on, or null to hide the status bar
-   */
-  private updateStatusBar(port: number | null): void {
-    if (this._mcpStatusBarItem == null) {
-      return;
-    }
-
-    if (port == null) {
-      this._mcpStatusBarItem.hide();
-      return;
-    }
-
-    this._mcpStatusBarItem.text = `$(dh-ext-logo) MCP: ${port}`;
-    this._mcpStatusBarItem.tooltip = `Deephaven MCP Server running on port ${port}. Click to copy URL.`;
-    this._mcpStatusBarItem.show();
   }
 
   /**
@@ -250,5 +242,74 @@ export class McpController extends ControllerBase {
     }
 
     await this._config.updateWindsurfMcpConfig(port);
+  }
+
+  /**
+   * Show quick pick menu for MCP server management.
+   */
+  private async showMcpQuickPick(): Promise<void> {
+    const port = this._mcpServer?.getPort();
+    const isMcpEnabled = this._config.isMcpEnabled();
+
+    const items: McpQuickPickItem[] = [];
+
+    // Always show enable or disable based on current state
+    if (isMcpEnabled) {
+      items.push({
+        label: '$(circle-slash) Disable Deephaven MCP Server',
+        action: 'disable',
+      });
+    } else {
+      items.push({
+        label: '$(circle-large-filled) Enable Deephaven MCP Server',
+        action: 'enable',
+      });
+    }
+
+    // If server is running, also show copy URL option
+    if (port != null) {
+      items.push({
+        label: '$(copy) Copy Server URL',
+        description: `http://localhost:${port}/mcp`,
+        action: 'copy',
+      });
+    }
+
+    const selected = await vscode.window.showQuickPick(items, {
+      placeHolder: 'Select MCP server action',
+    });
+
+    if (selected == null) {
+      return;
+    }
+
+    switch (selected.action) {
+      case 'enable':
+        await this._config.toggleMcp(true);
+        break;
+      case 'disable':
+        await this._config.toggleMcp(false);
+        break;
+      case 'copy':
+        await this.copyUrl();
+        break;
+    }
+  }
+
+  /**
+   * Update MCP status bar with current port.
+   * @param port The port the MCP server is running on, or null if not running
+   */
+  private updateStatusBar(port: number | null): void {
+    if (this._mcpStatusBarItem == null) {
+      return;
+    }
+
+    this._mcpStatusBarItem.text = `$(dh-ext-logo) MCP: ${port ?? 'Disabled'}`;
+    this._mcpStatusBarItem.tooltip = `Deephaven MCP server is ${
+      port == null ? 'disabled' : `running on port ${port}`
+    }. Click to manage.`;
+
+    this._mcpStatusBarItem.show();
   }
 }

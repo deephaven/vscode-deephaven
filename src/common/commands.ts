@@ -97,8 +97,10 @@ export const RUN_SELECTION_COMMAND = cmd('runSelection');
 export const SEARCH_CONNECTIONS_CMD = cmd('searchConnections');
 export const SEARCH_PANELS_CMD = cmd('searchPanels');
 export const SELECT_CONNECTION_COMMAND = cmd('selectConnection');
+export const SHOW_MCP_QUICK_PICK_CMD = cmd('showMcpQuickPick');
 export const START_SERVER_CMD = cmd('startServer');
 export const STOP_SERVER_CMD = cmd('stopServer');
+export const TOGGLE_MCP_CMD = cmd('toggleMcp');
 export const ADD_REMOTE_FILE_SOURCE_CMD = cmd('addRemoteFileSource');
 export const REMOVE_REMOTE_FILE_SOURCE_CMD = cmd('removeRemoteFileSource');
 

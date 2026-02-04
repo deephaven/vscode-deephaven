@@ -44,6 +44,7 @@ export interface IConfigService {
   getEnterpriseServers: () => EnterpriseConnectionConfig[];
   getMcpAutoUpdateConfig: () => boolean;
   setMcpAutoUpdateConfig: (value: boolean) => Promise<void>;
+  toggleMcp: (enable?: boolean) => Promise<void>;
   updateWindsurfMcpConfig(port: number): Promise<boolean>;
 }
 
