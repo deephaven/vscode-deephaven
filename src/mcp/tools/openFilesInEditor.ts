@@ -34,6 +34,11 @@ type HandlerArg = McpToolHandlerArg<Spec>;
 type HandlerResult = McpToolHandlerResult<Spec>;
 type OpenFilesInEditorTool = McpTool<Spec>;
 
+/**
+ * For whatever reason, VS Code does not provide a built-in MCP tool to open
+ * files in the editor. This tool fills that gap until such a tool is provided
+ * natively.
+ */
 export function createOpenFilesInEditorTool(): OpenFilesInEditorTool {
   return {
     name: 'openFilesInEditor',
