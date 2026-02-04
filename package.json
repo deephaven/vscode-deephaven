@@ -203,6 +203,14 @@
         "title": "Deephaven: Copy MCP Server URL"
       },
       {
+        "command": "vscode-deephaven.showMcpQuickPick",
+        "title": "Deephaven: Manage MCP Server"
+      },
+      {
+        "command": "vscode-deephaven.toggleMcp",
+        "title": "Deephaven: Toggle MCP Server"
+      },
+      {
         "command": "vscode-deephaven.connectToServer",
         "title": "Connect to Server",
         "icon": "$(plug)"
@@ -757,6 +765,14 @@
         },
         {
           "command": "vscode-deephaven.downloadLogs",
+          "when": "true"
+        },
+        {
+          "command": "vscode-deephaven.showMcpQuickPick",
+          "when": "false"
+        },
+        {
+          "command": "vscode-deephaven.toggleMcp",
           "when": "true"
         },
         {
