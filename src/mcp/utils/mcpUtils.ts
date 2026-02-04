@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 /**
  * MCP tool result with standardized structure following Model Context Protocol.
  * Includes both text content (JSON stringified) and structured content for AI assistants.
@@ -22,6 +24,55 @@ export type McpToolResult<TSuccess extends boolean, TDetails = unknown> = {
     details?: TDetails;
   };
 };
+
+/**
+ * Creates a standardized MCP tool output schema.
+ *
+ * All MCP tools return a consistent structure with success status, message,
+ * execution time, optional hint, and optional tool-specific details.
+ *
+ * @param detailsSchema Optional Zod schema for tool-specific details.
+ * @returns Output schema object for use in tool spec.
+ *
+ * @example
+ * ```typescript
+ * // Simple tool with no details
+ * const spec = {
+ *   title: 'My Tool',
+ *   description: 'Does something',
+ *   inputSchema: { ... },
+ *   outputSchema: createMcpToolOutputSchema(),
+ * };
+ *
+ * // Tool with typed details
+ * const spec = {
+ *   title: 'My Tool',
+ *   description: 'Does something',
+ *   inputSchema: { ... },
+ *   outputSchema: createMcpToolOutputSchema({
+ *     count: z.number(),
+ *     items: z.array(z.string()),
+ *   }),
+ * };
+ * ```
+ */
+export function createMcpToolOutputSchema<TDetailsShape extends z.ZodRawShape>(
+  detailsShape?: TDetailsShape
+): {
+  success: z.ZodBoolean;
+  message: z.ZodString;
+  executionTimeMs: z.ZodNumber;
+  hint: z.ZodOptional<z.ZodString>;
+  details?: z.ZodOptional<z.ZodObject<TDetailsShape>>;
+} {
+  return {
+    success: z.boolean(),
+    message: z.string(),
+    executionTimeMs: z.number().describe('Execution time in milliseconds'),
+    hint: z.string().optional(),
+    ...(detailsShape ? { details: z.object(detailsShape).optional() } : {}),
+  };
+}
 
 /**
  * Formats an error message by optionally appending error details.

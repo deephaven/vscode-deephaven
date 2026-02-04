@@ -23,7 +23,10 @@ vi.mock('../utils/runCodeUtils', async () => {
 });
 
 const MOCK_EXECUTION_TIME_MS = 100;
-const MOCK_HINT = 'mock.hint';
+const MOCK_HINT = {
+  hint: 'mock.hint',
+  foundMatchingFolderUris: ['file:///workspace/mockmodule'],
+};
 
 const MOCK_URI_STRING = 'file:///path/to/file.py';
 
@@ -110,10 +113,11 @@ const EXPECTED_CODE_EXECUTION_FAILED = {
   success: false,
   message:
     "Code execution failed: file:///path/to/file.py: name 'undefined_var' is not defined [5:0]",
-  hint: MOCK_HINT,
+  hint: MOCK_HINT.hint,
   details: {
     languageId: 'python',
     variables: [{ id: 'y', title: 'y', type: 'str', isNew: true }],
+    foundMatchingFolderUris: MOCK_HINT.foundMatchingFolderUris,
   },
   executionTimeMs: MOCK_EXECUTION_TIME_MS,
 } as const;
