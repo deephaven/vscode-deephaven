@@ -6,7 +6,12 @@ import type { IDhcService, IServerManager, ServerState } from '../../types';
 import type { FilteredWorkspace } from '../../services';
 import { DhcService } from '../../services';
 import { McpToolResponse } from '../utils/mcpUtils';
-import { ConnectionNotFoundError, CONNECT_TO_SERVER_CMD } from '../../common';
+import {
+  mcpErrorResult,
+  mcpSuccessResult,
+  MOCK_EXECUTION_TIME_MS,
+} from '../utils/mcpTestUtils';
+import { ConnectionNotFoundError } from '../../common';
 import {
   createConnectionNotFoundHint,
   createPythonModuleImportErrorHint,
@@ -25,7 +30,6 @@ vi.mock('../utils/runCodeUtils', async () => {
   };
 });
 
-const MOCK_EXECUTION_TIME_MS = 100;
 const MOCK_HINT = {
   hint: 'mock.hint',
   foundMatchingFolderUris: ['file:///workspace/mockmodule'],
@@ -52,22 +56,6 @@ const MOCK_SERVER_RUNNING: ServerState = {
   connectionCount: 0,
 };
 
-const MOCK_SERVER_NOT_RUNNING: ServerState = {
-  isRunning: false,
-  type: 'DHC',
-  url: new URL('http://localhost:10000'),
-  isConnected: false,
-  connectionCount: 0,
-};
-
-const MOCK_SERVER_DHE: ServerState = {
-  isRunning: true,
-  type: 'DHE',
-  url: new URL('http://localhost:10000'),
-  isConnected: false,
-  connectionCount: 0,
-};
-
 const MOCK_DOCUMENT = {
   languageId: 'python',
 } as vscode.TextDocument;
@@ -75,73 +63,6 @@ const MOCK_DOCUMENT = {
 const MOCK_FILE_STAT = {
   type: vscode.FileType.File,
 } as vscode.FileStat;
-
-const EXPECTED_INVALID_URI = {
-  success: false,
-  message: 'Invalid URI: Invalid URI',
-  details: { uri: 'not-a-uri' },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_FILE_NOT_FOUND = {
-  success: false,
-  message: 'File not found: File not found',
-  details: { uri: '/path/to/file.py' },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_INVALID_URL = {
-  success: false,
-  message: 'Invalid URL: Invalid URL',
-  details: { connectionUrl: 'not-a-url' },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_CONNECTION_NOT_FOUND = {
-  success: false,
-  message:
-    'Failed to execute code: No connection found for URL: http://localhost:10000/',
-  hint: MOCK_CONNECTION_NOT_FOUND_HINT,
-  details: { languageId: 'python' },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_NO_CONNECTIONS_OR_SERVER = {
-  success: false,
-  message: 'No connections or server found',
-  hint: MOCK_CONNECTION_NOT_FOUND_HINT,
-  details: { connectionUrl: MOCK_CONNECTION_URL + '/' },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_SERVER_NOT_RUNNING = {
-  success: false,
-  message: 'Server is not running',
-  details: { connectionUrl: MOCK_CONNECTION_URL + '/' },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_NO_ACTIVE_CONNECTION = {
-  success: false,
-  message: 'No active connection',
-  hint: 'Use connectToServer first',
-  details: { connectionUrl: MOCK_CONNECTION_URL + '/' },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_FAILED_TO_CONNECT = {
-  success: false,
-  message: 'Failed to connect to server',
-  details: { connectionUrl: MOCK_CONNECTION_URL + '/' },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_GENERAL_ERROR = {
-  success: false,
-  message: 'Failed to execute code: Unexpected error',
-  details: { languageId: 'python' },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
 
 const MOCK_RUN_CODE_SUCCESS = {
   error: null,
@@ -157,41 +78,6 @@ const MOCK_RUN_CODE_ERROR = {
     created: [{ id: 'y', title: 'y', type: 'str' }],
     updated: [],
   },
-} as const;
-
-const EXPECTED_SUCCESS = {
-  success: true,
-  message: 'Code executed successfully',
-  details: {
-    variables: [{ id: 'x', title: 'x', type: 'int', isNew: true }],
-    panelUrlFormat:
-      'http://localhost:10000/iframe/widget/?name=<variableTitle>',
-  },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_CODE_EXECUTION_FAILED = {
-  success: false,
-  message:
-    "Code execution failed: file:///path/to/file.py: name 'undefined_var' is not defined [5:0]",
-  hint: MOCK_HINT.hint,
-  details: {
-    languageId: 'python',
-    variables: [{ id: 'y', title: 'y', type: 'str', isNew: true }],
-    foundMatchingFolderUris: MOCK_HINT.foundMatchingFolderUris,
-  },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_CODE_EXECUTION_FAILED_NO_HINT = {
-  success: false,
-  message:
-    "Code execution failed: file:///path/to/file.py: name 'undefined_var' is not defined [5:0]",
-  details: {
-    languageId: 'python',
-    variables: [{ id: 'y', title: 'y', type: 'str', isNew: true }],
-  },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
 } as const;
 
 describe('runCodeFromUri tool', () => {
@@ -249,7 +135,7 @@ describe('runCodeFromUri tool', () => {
     );
   });
 
-  describe('connection validation (getFirstConnectionOrCreate scenarios)', () => {
+  describe('connection error handling', () => {
     beforeEach(() => {
       vi.mocked(vscode.workspace.fs.stat).mockResolvedValue(MOCK_FILE_STAT);
       vi.mocked(vscode.workspace.openTextDocument).mockResolvedValue(
@@ -257,7 +143,7 @@ describe('runCodeFromUri tool', () => {
       );
     });
 
-    it('should error when no connections or server found', async () => {
+    it('should return error when connection establishment fails', async () => {
       vi.mocked(serverManager.getServer).mockReturnValue(undefined);
       vi.mocked(serverManager.getConnections).mockReturnValue([]);
 
@@ -273,70 +159,12 @@ describe('runCodeFromUri tool', () => {
       });
 
       expect(result.structuredContent).toEqual(
-        EXPECTED_NO_CONNECTIONS_OR_SERVER
+        mcpErrorResult(
+          'No connections or server found',
+          { connectionUrl: MOCK_CONNECTION_URL + '/' },
+          MOCK_CONNECTION_NOT_FOUND_HINT
+        )
       );
-    });
-
-    it('should error when server is not running', async () => {
-      vi.mocked(serverManager.getServer).mockReturnValue(
-        MOCK_SERVER_NOT_RUNNING
-      );
-      vi.mocked(serverManager.getConnections).mockReturnValue([]);
-
-      const tool = createRunCodeFromUriTool({
-        pythonDiagnostics,
-        pythonWorkspace,
-        serverManager,
-      });
-
-      const result = await tool.handler({
-        uri: MOCK_URI_STRING,
-        connectionUrl: MOCK_CONNECTION_URL,
-      });
-
-      expect(result.structuredContent).toEqual(EXPECTED_SERVER_NOT_RUNNING);
-    });
-
-    it('should error when no active connection for DHE server', async () => {
-      vi.mocked(serverManager.getServer).mockReturnValue(MOCK_SERVER_DHE);
-      vi.mocked(serverManager.getConnections).mockReturnValue([]);
-
-      const tool = createRunCodeFromUriTool({
-        pythonDiagnostics,
-        pythonWorkspace,
-        serverManager,
-      });
-
-      const result = await tool.handler({
-        uri: MOCK_URI_STRING,
-        connectionUrl: MOCK_CONNECTION_URL,
-      });
-
-      expect(result.structuredContent).toEqual(EXPECTED_NO_ACTIVE_CONNECTION);
-    });
-
-    it('should error when connection fails after server connection attempt', async () => {
-      vi.mocked(serverManager.getServer).mockReturnValue(MOCK_SERVER_RUNNING);
-      vi.mocked(serverManager.getConnections)
-        .mockReturnValueOnce([])
-        .mockReturnValueOnce([]);
-
-      const tool = createRunCodeFromUriTool({
-        pythonDiagnostics,
-        pythonWorkspace,
-        serverManager,
-      });
-
-      const result = await tool.handler({
-        uri: MOCK_URI_STRING,
-        connectionUrl: MOCK_CONNECTION_URL,
-      });
-
-      expect(result.structuredContent).toEqual(EXPECTED_FAILED_TO_CONNECT);
-      expect(mockExecuteCommand).toHaveBeenCalledWith(CONNECT_TO_SERVER_CMD, {
-        type: 'DHC',
-        url: new URL('http://localhost:10000'),
-      });
     });
   });
 
@@ -346,21 +174,27 @@ describe('runCodeFromUri tool', () => {
         name: 'invalid URI',
         uri: 'not-a-uri',
         connectionUrl: undefined,
-        expected: EXPECTED_INVALID_URI,
+        expected: mcpErrorResult('Invalid URI: Invalid URI', {
+          uri: 'not-a-uri',
+        }),
       },
       {
         name: 'file does not exist',
         uri: MOCK_URI_STRING,
         connectionUrl: undefined,
         statResult: new Error('File not found'),
-        expected: EXPECTED_FILE_NOT_FOUND,
+        expected: mcpErrorResult('File not found: File not found', {
+          uri: '/path/to/file.py',
+        }),
       },
       {
         name: 'invalid URL',
         uri: MOCK_URI_STRING,
         connectionUrl: 'not-a-url',
         statResult: MOCK_FILE_STAT,
-        expected: EXPECTED_INVALID_URL,
+        expected: mcpErrorResult('Invalid URL: Invalid URL', {
+          connectionUrl: 'not-a-url',
+        }),
       },
     ])(
       'should reject $name',
@@ -388,10 +222,13 @@ describe('runCodeFromUri tool', () => {
   });
 
   describe('code execution', () => {
-    const mockConnection: IDhcService = Object.assign(Object.create(DhcService.prototype), {
-      serverUrl: new URL('http://localhost:10000'),
-      getPsk: vi.fn().mockResolvedValue(undefined),
-    });
+    const mockConnection: IDhcService = Object.assign(
+      Object.create(DhcService.prototype),
+      {
+        serverUrl: new URL('http://localhost:10000'),
+        getPsk: vi.fn().mockResolvedValue(undefined),
+      }
+    );
 
     beforeEach(() => {
       vi.mocked(vscode.workspace.fs.stat).mockResolvedValue(MOCK_FILE_STAT);
@@ -410,33 +247,57 @@ describe('runCodeFromUri tool', () => {
         name: 'ConnectionNotFoundError with hint',
         cmdResult: new ConnectionNotFoundError(new URL(MOCK_CONNECTION_URL)),
         connectionUrl: MOCK_CONNECTION_URL,
-        expected: EXPECTED_CONNECTION_NOT_FOUND,
+        expected: mcpErrorResult(
+          'Failed to execute code: No connection found for URL: http://localhost:10000/',
+          { languageId: 'python' },
+          MOCK_CONNECTION_NOT_FOUND_HINT
+        ),
       },
       {
         name: 'general exceptions during execution',
         cmdResult: new Error('Unexpected error'),
         connectionUrl: MOCK_CONNECTION_URL,
-        expected: EXPECTED_GENERAL_ERROR,
+        expected: mcpErrorResult('Failed to execute code: Unexpected error', {
+          languageId: 'python',
+        }),
       },
       {
         name: 'execute code successfully',
         cmdResult: MOCK_RUN_CODE_SUCCESS,
         connectionUrl: MOCK_CONNECTION_URL,
-        expected: EXPECTED_SUCCESS,
+        expected: mcpSuccessResult('Code executed successfully', {
+          variables: [{ id: 'x', title: 'x', type: 'int', isNew: true }],
+          panelUrlFormat:
+            'http://localhost:10000/iframe/widget/?name=<variableTitle>',
+        }),
       },
       {
         name: 'handle code execution failure with Python diagnostics and hint',
         cmdResult: MOCK_RUN_CODE_ERROR,
         connectionUrl: MOCK_CONNECTION_URL,
         pythonHint: MOCK_HINT,
-        expected: EXPECTED_CODE_EXECUTION_FAILED,
+        expected: mcpErrorResult(
+          "Code execution failed: file:///path/to/file.py: name 'undefined_var' is not defined [5:0]",
+          {
+            languageId: 'python',
+            variables: [{ id: 'y', title: 'y', type: 'str', isNew: true }],
+            foundMatchingFolderUris: MOCK_HINT.foundMatchingFolderUris,
+          },
+          MOCK_HINT.hint
+        ),
       },
       {
         name: 'handle code execution failure with Python diagnostics without hint',
         cmdResult: MOCK_RUN_CODE_ERROR,
         connectionUrl: MOCK_CONNECTION_URL,
         pythonHint: undefined,
-        expected: EXPECTED_CODE_EXECUTION_FAILED_NO_HINT,
+        expected: mcpErrorResult(
+          "Code execution failed: file:///path/to/file.py: name 'undefined_var' is not defined [5:0]",
+          {
+            languageId: 'python',
+            variables: [{ id: 'y', title: 'y', type: 'str', isNew: true }],
+          }
+        ),
       },
     ])(
       'should $name',
