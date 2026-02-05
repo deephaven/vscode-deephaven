@@ -12,6 +12,7 @@ import {
   MOCK_EXECUTION_TIME_MS,
 } from '../utils/mcpTestUtils';
 import { ConnectionNotFoundError } from '../../common';
+import { execRunCode } from '../../common/commands';
 import {
   createConnectionNotFoundHint,
   createPythonModuleImportErrorHint,
@@ -20,6 +21,13 @@ import {
 } from '../utils/runCodeUtils';
 
 vi.mock('vscode');
+vi.mock('../../common/commands', async () => {
+  const actual = await vi.importActual('../../common/commands');
+  return {
+    ...actual,
+    execRunCode: vi.fn(),
+  };
+});
 vi.mock('../utils/mcpUtils', async () => {
   const actual = await vi.importActual('../utils/mcpUtils');
   return {
@@ -91,8 +99,6 @@ describe('runCodeFromUri tool', () => {
     getUriConnection: vi.fn(),
   } as unknown as IServerManager;
 
-  const mockExecuteCommand = vi.fn();
-
   beforeEach(() => {
     // clear diagnostics before `clearAllMocks` since `clear` is actually a mock
     // and we also want to reset its call count
@@ -103,11 +109,6 @@ describe('runCodeFromUri tool', () => {
     // Mock getElapsedTimeMs to return a fixed value
     vi.spyOn(McpToolResponse.prototype, 'getElapsedTimeMs').mockReturnValue(
       MOCK_EXECUTION_TIME_MS
-    );
-
-    mockExecuteCommand.mockResolvedValue(undefined);
-    vi.mocked(vscode.commands.executeCommand).mockImplementation(
-      mockExecuteCommand
     );
   });
 
@@ -244,6 +245,9 @@ describe('runCodeFromUri tool', () => {
         connection: mockConnection,
         panelUrlFormat: MOCK_PANEL_URL_FORMAT,
       });
+
+      // Default mock for execRunCode (will be overridden per test)
+      vi.mocked(execRunCode).mockResolvedValue(null);
     });
 
     it.each([
@@ -314,18 +318,14 @@ describe('runCodeFromUri tool', () => {
         expected,
       }) => {
         if (cmdResult instanceof Error) {
-          vi.mocked(vscode.commands.executeCommand).mockRejectedValue(
-            cmdResult
-          );
+          vi.mocked(execRunCode).mockRejectedValue(cmdResult);
           if (connectionNotFoundHint) {
             vi.mocked(createConnectionNotFoundHint).mockResolvedValue(
               connectionNotFoundHint
             );
           }
         } else {
-          vi.mocked(vscode.commands.executeCommand).mockResolvedValue(
-            cmdResult
-          );
+          vi.mocked(execRunCode).mockResolvedValue(cmdResult);
         }
 
         vi.mocked(createPythonModuleImportErrorHint).mockReturnValue(
