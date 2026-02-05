@@ -1,8 +1,5 @@
 import { z } from 'zod';
-import {
-  execConnectToServer,
-  execOpenVariablePanels,
-} from '../../common/commands';
+import { execOpenVariablePanels } from '../../common/commands';
 import type {
   IServerManager,
   McpTool,
@@ -12,7 +9,11 @@ import type {
   VariableDefintion,
 } from '../../types';
 import { parseUrl } from '../../util';
-import { createMcpToolOutputSchema, McpToolResponse } from '../utils';
+import {
+  createMcpToolOutputSchema,
+  getFirstConnectionOrCreate,
+  McpToolResponse,
+} from '../utils';
 
 const spec = {
   title: 'Open Variable Panels',
@@ -64,42 +65,21 @@ export function createOpenVariablePanelsTool({
         });
       }
 
+      const firstConnectionResult = await getFirstConnectionOrCreate({
+        serverManager,
+        connectionUrl: parsedUrl.value,
+      });
+
+      if (!firstConnectionResult.success) {
+        return response.errorWithHint(
+          firstConnectionResult.errorMessage,
+          firstConnectionResult.error,
+          firstConnectionResult.hint,
+          firstConnectionResult.details
+        );
+      }
+
       try {
-        let connections = serverManager.getConnections(parsedUrl.value);
-
-        if (!connections.length) {
-          const server = serverManager.getServer(parsedUrl.value);
-
-          if (!server) {
-            return response.errorWithHint(
-              'Server not found',
-              null,
-              'Use listServers to see available servers',
-              { connectionUrl }
-            );
-          }
-
-          if (server.type === 'DHC') {
-            const serverState = { type: server.type, url: server.url };
-            await execConnectToServer(serverState);
-
-            connections = serverManager.getConnections(parsedUrl.value);
-
-            if (!connections.length) {
-              return response.error('Failed to connect to server', null, {
-                connectionUrl,
-              });
-            }
-          } else {
-            return response.errorWithHint(
-              'No active connection',
-              null,
-              'Use connectToServer first',
-              { connectionUrl }
-            );
-          }
-        }
-
         await execOpenVariablePanels(
           parsedUrl.value,
           variables as unknown as NonEmptyArray<VariableDefintion>
