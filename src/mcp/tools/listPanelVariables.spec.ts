@@ -6,15 +6,24 @@ import type {
   IServerManager,
   VariableDefintion,
 } from '../../types';
-import { McpToolResponse } from '../utils/mcpUtils';
+import {
+  getFirstConnectionOrCreate,
+  McpToolResponse,
+} from '../utils/mcpUtils';
 import {
   mcpErrorResult,
   mcpSuccessResult,
   MOCK_EXECUTION_TIME_MS,
 } from '../utils/mcpTestUtils';
-import * as mcpUtils from '../utils/mcpUtils';
 
 vi.mock('vscode');
+vi.mock('../utils/mcpUtils', async () => {
+  const actual = await vi.importActual('../utils/mcpUtils');
+  return {
+    ...actual,
+    getFirstConnectionOrCreate: vi.fn(),
+  };
+});
 
 const MOCK_URL = 'http://localhost:10000';
 const MOCK_PARSED_URL = new URL(MOCK_URL);
@@ -72,13 +81,11 @@ describe('listPanelVariables', () => {
       variables: [],
     },
   ])('should list panel variables: $label', async ({ variables }) => {
-    const getFirstConnectionOrCreateSpy = vi
-      .spyOn(mcpUtils, 'getFirstConnectionOrCreate')
-      .mockResolvedValue({
-        success: true,
-        connection: {} as IDhcService,
-        panelUrlFormat: MOCK_PANEL_URL_FORMAT,
-      });
+    vi.mocked(getFirstConnectionOrCreate).mockResolvedValue({
+      success: true,
+      connection: {} as IDhcService,
+      panelUrlFormat: MOCK_PANEL_URL_FORMAT,
+    });
     vi.mocked(panelService.getVariables).mockReturnValue(variables);
 
     const tool = createListPanelVariablesTool({
@@ -87,7 +94,7 @@ describe('listPanelVariables', () => {
     });
     const result = await tool.handler({ connectionUrl: MOCK_URL });
 
-    expect(getFirstConnectionOrCreateSpy).toHaveBeenCalledWith({
+    expect(getFirstConnectionOrCreate).toHaveBeenCalledWith({
       connectionUrl: MOCK_PARSED_URL,
       serverManager,
     });
@@ -117,14 +124,12 @@ describe('listPanelVariables', () => {
   ])(
     'should return error when getFirstConnectionOrCreate fails $label',
     async ({ errorMessage, hint }) => {
-      const getFirstConnectionOrCreateSpy = vi
-        .spyOn(mcpUtils, 'getFirstConnectionOrCreate')
-        .mockResolvedValue({
-          success: false,
-          errorMessage,
-          hint,
-          details: { connectionUrl: MOCK_URL },
-        });
+      vi.mocked(getFirstConnectionOrCreate).mockResolvedValue({
+        success: false,
+        errorMessage,
+        hint,
+        details: { connectionUrl: MOCK_URL },
+      });
 
       const tool = createListPanelVariablesTool({
         panelService,
@@ -132,7 +137,7 @@ describe('listPanelVariables', () => {
       });
       const result = await tool.handler({ connectionUrl: MOCK_URL });
 
-      expect(getFirstConnectionOrCreateSpy).toHaveBeenCalledWith({
+      expect(getFirstConnectionOrCreate).toHaveBeenCalledWith({
         connectionUrl: MOCK_PARSED_URL,
         serverManager,
       });
@@ -156,7 +161,7 @@ describe('listPanelVariables', () => {
   });
 
   it('should handle errors from panelService', async () => {
-    vi.spyOn(mcpUtils, 'getFirstConnectionOrCreate').mockResolvedValue({
+    vi.mocked(getFirstConnectionOrCreate).mockResolvedValue({
       success: true,
       connection: {} as IDhcService,
       panelUrlFormat: MOCK_PANEL_URL_FORMAT,
