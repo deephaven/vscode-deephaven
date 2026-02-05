@@ -1,10 +1,16 @@
 import * as vscode from 'vscode';
+import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createRunCodeTool } from './runCode';
-import type { IServerManager, ServerState } from '../../types';
+import type {
+  IServerManager,
+  ServerState,
+  VariableDefintion,
+} from '../../types';
 import { McpToolResponse } from '../utils/mcpUtils';
 import {
+  createMockDhcService,
   mcpErrorResult,
   mcpSuccessResult,
   MOCK_EXECUTION_TIME_MS,
@@ -41,30 +47,38 @@ const MOCK_SERVER_NOT_RUNNING: ServerState = {
   connectionCount: 0,
 };
 
+const MOCK_INT_VARIABLE = {
+  id: 'x',
+  title: 'x',
+  type: 'int',
+} as VariableDefintion;
+
+const MOCK_STR_VARIABLE = {
+  id: 'y',
+  title: 'y',
+  type: 'str',
+} as VariableDefintion;
+
 const MOCK_RUN_CODE_ERROR = {
   error: 'NameError: name "undefined_var" is not defined',
   changes: {
-    created: [{ id: 'y', title: 'y', type: 'str' }],
+    created: [MOCK_STR_VARIABLE],
     updated: [],
+    removed: [],
   },
-} as const;
+} as DhcType.ide.CommandResult;
 
 const MOCK_RUN_CODE_SUCCESS_WITH_VARIABLES = {
-  error: null,
+  error: '',
   changes: {
-    created: [{ id: 'x', title: 'x', type: 'int' }],
+    created: [MOCK_INT_VARIABLE],
     updated: [],
+    removed: [],
   },
-} as const;
+} as DhcType.ide.CommandResult;
 
-const MOCK_DHC_SERVICE_CONNECTION_WITH_VARIABLES: DhcService = Object.assign(
-  Object.create(DhcService.prototype),
-  {
-    runCode: vi.fn().mockResolvedValue(MOCK_RUN_CODE_SUCCESS_WITH_VARIABLES),
-    supportsConsoleType: vi.fn().mockReturnValue(true),
-    getPsk: vi.fn().mockResolvedValue(undefined),
-  }
-);
+const MOCK_DHC_SERVICE_CONNECTION_WITH_VARIABLES: DhcService =
+  createMockDhcService({ runCode: MOCK_RUN_CODE_SUCCESS_WITH_VARIABLES });
 
 const EXPECTED_SUCCESS_WITH_VARIABLES = mcpSuccessResult(
   'Code executed successfully',
@@ -222,10 +236,9 @@ describe('runCode tool', () => {
 
   describe('error handling', () => {
     it('should error when code execution fails with error', async () => {
-      const mockConnection = Object.create(DhcService.prototype);
-      mockConnection.runCode = vi.fn().mockResolvedValue(MOCK_RUN_CODE_ERROR);
-      mockConnection.supportsConsoleType = vi.fn().mockReturnValue(true);
-      mockConnection.getPsk = vi.fn().mockResolvedValue(undefined);
+      const mockConnection = createMockDhcService({
+        runCode: MOCK_RUN_CODE_ERROR,
+      });
 
       vi.mocked(serverManager.getConnections).mockReturnValue([mockConnection]);
       vi.mocked(serverManager.getServer).mockReturnValue(MOCK_SERVER_RUNNING);

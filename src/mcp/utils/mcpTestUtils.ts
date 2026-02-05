@@ -1,4 +1,8 @@
+import type { dh as DhcType } from '@deephaven/jsapi-types';
+import { vi } from 'vitest';
 import type { McpToolResult } from './mcpUtils';
+import { DhcService } from '../../services';
+import type { Psk } from '../../types';
 
 export const MOCK_EXECUTION_TIME_MS = 100;
 
@@ -41,4 +45,24 @@ export function mcpSuccessResult<TDetails = unknown>(
     ...(details && { details }),
     executionTimeMs: MOCK_EXECUTION_TIME_MS,
   };
+}
+
+/**
+ * Creates a mock DhcService for testing.
+ *
+ * @param results Optional map of method names to their return values
+ * @returns Mock DhcService instance with mocked methods
+ */
+export function createMockDhcService(results?: {
+  runCode?: DhcType.ide.CommandResult | null;
+  supportsConsoleType?: boolean;
+  getPsk?: Psk | undefined;
+}): DhcService {
+  return Object.assign(Object.create(DhcService.prototype), {
+    runCode: vi.fn().mockResolvedValue(results?.runCode ?? null),
+    supportsConsoleType: vi
+      .fn()
+      .mockReturnValue(results?.supportsConsoleType ?? true),
+    getPsk: vi.fn().mockResolvedValue(results?.getPsk ?? undefined),
+  });
 }
