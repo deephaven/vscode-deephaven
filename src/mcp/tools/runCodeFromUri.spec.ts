@@ -134,11 +134,11 @@ describe('runCodeFromUri tool', () => {
     });
 
     it('should return error when connection establishment fails', async () => {
-      const errorMsg = 'No connections or server found';
+      const errorMessage = 'No connections or server found';
       const hint = 'No available connections supporting languageId python.';
       vi.mocked(getFirstConnectionOrCreate).mockResolvedValue({
         success: false,
-        errorMessage: errorMsg,
+        errorMessage,
         hint,
         details: { connectionUrl: MOCK_CONNECTION_URL + '/' },
       });
@@ -161,7 +161,7 @@ describe('runCodeFromUri tool', () => {
       });
       expect(result.structuredContent).toEqual(
         mcpErrorResult(
-          errorMsg,
+          errorMessage,
           { connectionUrl: MOCK_CONNECTION_URL + '/' },
           hint
         )
