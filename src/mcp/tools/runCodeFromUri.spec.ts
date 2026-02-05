@@ -2,10 +2,10 @@ import * as vscode from 'vscode';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createRunCodeFromUriTool } from './runCodeFromUri';
-import type { IDhcService, IServerManager, ServerState } from '../../types';
+import type { IDhcService, IServerManager } from '../../types';
 import type { FilteredWorkspace } from '../../services';
 import { DhcService } from '../../services';
-import { McpToolResponse } from '../utils/mcpUtils';
+import { getFirstConnectionOrCreate, McpToolResponse } from '../utils/mcpUtils';
 import {
   mcpErrorResult,
   mcpSuccessResult,
@@ -20,6 +20,13 @@ import {
 } from '../utils/runCodeUtils';
 
 vi.mock('vscode');
+vi.mock('../utils/mcpUtils', async () => {
+  const actual = await vi.importActual('../utils/mcpUtils');
+  return {
+    ...actual,
+    getFirstConnectionOrCreate: vi.fn(),
+  };
+});
 vi.mock('../utils/runCodeUtils', async () => {
   const actual = await vi.importActual('../utils/runCodeUtils');
   return {
@@ -34,8 +41,6 @@ const MOCK_HINT = {
   hint: 'mock.hint',
   foundMatchingFolderUris: ['file:///workspace/mockmodule'],
 };
-const MOCK_CONNECTION_NOT_FOUND_HINT =
-  'No available connections supporting languageId python.';
 
 const MOCK_URI_STRING = 'file:///path/to/file.py';
 
@@ -47,14 +52,8 @@ const MOCK_DIAGNOSTIC_ERRORS: DiagnosticsError[] = [
   },
 ];
 const MOCK_CONNECTION_URL = 'http://localhost:10000';
-
-const MOCK_SERVER_RUNNING: ServerState = {
-  isRunning: true,
-  type: 'DHC',
-  url: new URL('http://localhost:10000'),
-  isConnected: false,
-  connectionCount: 0,
-};
+const MOCK_PARSED_CONNECTION_URL = new URL(MOCK_CONNECTION_URL);
+const MOCK_PANEL_URL_FORMAT = `${MOCK_CONNECTION_URL}/iframe/widget/?name=<variableTitle>`;
 
 const MOCK_DOCUMENT = {
   languageId: 'python',
@@ -89,8 +88,6 @@ describe('runCodeFromUri tool', () => {
   } as unknown as FilteredWorkspace;
 
   const serverManager = {
-    getConnections: vi.fn(),
-    getServer: vi.fn(),
     getUriConnection: vi.fn(),
   } as unknown as IServerManager;
 
@@ -112,13 +109,6 @@ describe('runCodeFromUri tool', () => {
     vi.mocked(vscode.commands.executeCommand).mockImplementation(
       mockExecuteCommand
     );
-
-    vi.mocked(createConnectionNotFoundHint).mockResolvedValue(
-      MOCK_CONNECTION_NOT_FOUND_HINT
-    );
-
-    vi.mocked(serverManager.getConnections).mockReturnValue([]);
-    vi.mocked(serverManager.getServer).mockReturnValue(undefined);
   });
 
   it('should have correct spec', () => {
@@ -144,8 +134,14 @@ describe('runCodeFromUri tool', () => {
     });
 
     it('should return error when connection establishment fails', async () => {
-      vi.mocked(serverManager.getServer).mockReturnValue(undefined);
-      vi.mocked(serverManager.getConnections).mockReturnValue([]);
+      const errorMsg = 'No connections or server found';
+      const hint = 'No available connections supporting languageId python.';
+      vi.mocked(getFirstConnectionOrCreate).mockResolvedValue({
+        success: false,
+        errorMessage: errorMsg,
+        hint,
+        details: { connectionUrl: MOCK_CONNECTION_URL + '/' },
+      });
 
       const tool = createRunCodeFromUriTool({
         pythonDiagnostics,
@@ -158,11 +154,16 @@ describe('runCodeFromUri tool', () => {
         connectionUrl: MOCK_CONNECTION_URL,
       });
 
+      expect(getFirstConnectionOrCreate).toHaveBeenCalledWith({
+        serverManager,
+        connectionUrl: MOCK_PARSED_CONNECTION_URL,
+        languageId: 'python',
+      });
       expect(result.structuredContent).toEqual(
         mcpErrorResult(
-          'No connections or server found',
+          errorMsg,
           { connectionUrl: MOCK_CONNECTION_URL + '/' },
-          MOCK_CONNECTION_NOT_FOUND_HINT
+          hint
         )
       );
     });
@@ -235,40 +236,24 @@ describe('runCodeFromUri tool', () => {
       vi.mocked(vscode.workspace.openTextDocument).mockResolvedValue(
         MOCK_DOCUMENT
       );
-      vi.mocked(serverManager.getConnections).mockReturnValue([mockConnection]);
-      vi.mocked(serverManager.getServer).mockReturnValue(MOCK_SERVER_RUNNING);
       vi.mocked(serverManager.getUriConnection).mockReturnValue(mockConnection);
-
       vi.mocked(getDiagnosticsErrors).mockReturnValue(MOCK_DIAGNOSTIC_ERRORS);
+
+      vi.mocked(getFirstConnectionOrCreate).mockResolvedValue({
+        success: true,
+        connection: mockConnection,
+        panelUrlFormat: MOCK_PANEL_URL_FORMAT,
+      });
     });
 
     it.each([
-      {
-        name: 'ConnectionNotFoundError with hint',
-        cmdResult: new ConnectionNotFoundError(new URL(MOCK_CONNECTION_URL)),
-        connectionUrl: MOCK_CONNECTION_URL,
-        expected: mcpErrorResult(
-          'Failed to execute code: No connection found for URL: http://localhost:10000/',
-          { languageId: 'python' },
-          MOCK_CONNECTION_NOT_FOUND_HINT
-        ),
-      },
-      {
-        name: 'general exceptions during execution',
-        cmdResult: new Error('Unexpected error'),
-        connectionUrl: MOCK_CONNECTION_URL,
-        expected: mcpErrorResult('Failed to execute code: Unexpected error', {
-          languageId: 'python',
-        }),
-      },
       {
         name: 'execute code successfully',
         cmdResult: MOCK_RUN_CODE_SUCCESS,
         connectionUrl: MOCK_CONNECTION_URL,
         expected: mcpSuccessResult('Code executed successfully', {
           variables: [{ id: 'x', title: 'x', type: 'int', isNew: true }],
-          panelUrlFormat:
-            'http://localhost:10000/iframe/widget/?name=<variableTitle>',
+          panelUrlFormat: MOCK_PANEL_URL_FORMAT,
         }),
       },
       {
@@ -299,13 +284,44 @@ describe('runCodeFromUri tool', () => {
           }
         ),
       },
+      {
+        name: 'handle ConnectionNotFoundError during code execution',
+        cmdResult: new ConnectionNotFoundError(new URL(MOCK_CONNECTION_URL)),
+        connectionUrl: MOCK_CONNECTION_URL,
+        connectionNotFoundHint:
+          'No available connections supporting languageId python.',
+        expected: mcpErrorResult(
+          'Failed to execute code: No connection found for URL: http://localhost:10000/',
+          { languageId: 'python' },
+          'No available connections supporting languageId python.'
+        ),
+      },
+      {
+        name: 'handle general exceptions during execution',
+        cmdResult: new Error('Unexpected error'),
+        connectionUrl: MOCK_CONNECTION_URL,
+        expected: mcpErrorResult('Failed to execute code: Unexpected error', {
+          languageId: 'python',
+        }),
+      },
     ])(
       'should $name',
-      async ({ cmdResult, connectionUrl, pythonHint, expected }) => {
+      async ({
+        cmdResult,
+        connectionUrl,
+        pythonHint,
+        connectionNotFoundHint,
+        expected,
+      }) => {
         if (cmdResult instanceof Error) {
           vi.mocked(vscode.commands.executeCommand).mockRejectedValue(
             cmdResult
           );
+          if (connectionNotFoundHint) {
+            vi.mocked(createConnectionNotFoundHint).mockResolvedValue(
+              connectionNotFoundHint
+            );
+          }
         } else {
           vi.mocked(vscode.commands.executeCommand).mockResolvedValue(
             cmdResult
@@ -327,6 +343,11 @@ describe('runCodeFromUri tool', () => {
           connectionUrl,
         });
 
+        expect(getFirstConnectionOrCreate).toHaveBeenCalledWith({
+          serverManager,
+          connectionUrl: MOCK_PARSED_CONNECTION_URL,
+          languageId: 'python',
+        });
         expect(result.structuredContent).toEqual(expected);
       }
     );
