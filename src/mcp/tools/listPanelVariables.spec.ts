@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createListPanelVariablesTool } from './listPanelVariables';
 import type {
+  IDhcService,
   IPanelService,
   IServerManager,
   VariableDefintion,
 } from '../../types';
-import { McpToolResponse } from '../utils/mcpUtils';
+import { McpToolResponse, type McpToolResult } from '../utils/mcpUtils';
 import * as mcpUtils from '../utils/mcpUtils';
 
 vi.mock('vscode');
@@ -28,98 +29,36 @@ const MOCK_VARIABLES: VariableDefintion[] = [
   } as unknown as VariableDefintion,
 ];
 
-const DHC_PANEL_URL_FORMAT = `${MOCK_PARSED_URL.origin}/iframe/widget/?name=<variableTitle>`;
-const DHE_PANEL_URL_FORMAT = `${MOCK_PARSED_URL.origin}/ide/widgets/?worker=<worker>&name=<variableTitle>`;
+const expectedError = (
+  message: string,
+  details?: Record<string, any>,
+  hint?: string
+): McpToolResult<false>['structuredContent'] => ({
+  success: false,
+  message,
+  ...(hint && { hint }),
+  ...(details && { details }),
+  executionTimeMs: MOCK_EXECUTION_TIME_MS,
+});
 
-const EXPECTED_SUCCESS_DHC = {
+const expectedSuccess = (
+  variables: VariableDefintion[],
+  panelUrlFormat: string
+): McpToolResult<true>['structuredContent'] => ({
   success: true,
-  message: 'Found 2 panel variable(s)',
+  message: `Found ${variables.length} panel variable(s)`,
   details: {
-    panelUrlFormat: DHC_PANEL_URL_FORMAT,
-    variables: MOCK_VARIABLES.map(({ id, title, type }) => ({
+    panelUrlFormat,
+    variables: variables.map(({ id, title, type }) => ({
       id,
       title,
       type,
     })),
   },
   executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
+});
 
-const EXPECTED_SUCCESS_DHE = {
-  success: true,
-  message: 'Found 2 panel variable(s)',
-  details: {
-    panelUrlFormat: DHE_PANEL_URL_FORMAT,
-    variables: MOCK_VARIABLES.map(({ id, title, type }) => ({
-      id,
-      title,
-      type,
-    })),
-  },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_NO_VARIABLES_DHC = {
-  success: true,
-  message: 'Found 0 panel variable(s)',
-  details: {
-    panelUrlFormat: DHC_PANEL_URL_FORMAT,
-    variables: [],
-  },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_NO_VARIABLES_DHE = {
-  success: true,
-  message: 'Found 0 panel variable(s)',
-  details: {
-    panelUrlFormat: DHE_PANEL_URL_FORMAT,
-    variables: [],
-  },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_INVALID_URL = {
-  success: false,
-  message: 'Invalid URL: Invalid URL',
-  details: { connectionUrl: 'invalid-url' },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_SERVER_NOT_FOUND = {
-  success: false,
-  message: 'No connections or server found',
-  details: { connectionUrl: MOCK_URL },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_SERVER_NOT_RUNNING = {
-  success: false,
-  message: 'Server is not running',
-  details: { connectionUrl: MOCK_URL },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_NO_CONNECTION_DHE = {
-  success: false,
-  message: 'No active connection',
-  hint: 'Use connectToServer first',
-  details: { connectionUrl: MOCK_URL },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_FAILED_TO_CONNECT = {
-  success: false,
-  message: 'Failed to connect to server',
-  details: { connectionUrl: MOCK_URL },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_ERROR = {
-  success: false,
-  message: 'Failed to list panel variables: Test error',
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
+const MOCK_PANEL_URL_FORMAT = 'mock.panelUrlFormat';
 
 describe('listPanelVariables', () => {
   const panelService = {
@@ -151,110 +90,58 @@ describe('listPanelVariables', () => {
 
   it.each([
     {
-      serverType: 'DHC',
-      panelUrlFormat: DHC_PANEL_URL_FORMAT,
-      expected: EXPECTED_SUCCESS_DHC,
+      label: 'with variables',
+      variables: MOCK_VARIABLES,
     },
     {
-      serverType: 'DHE',
-      panelUrlFormat: DHE_PANEL_URL_FORMAT,
-      expected: EXPECTED_SUCCESS_DHE,
+      label: 'with no variables',
+      variables: [],
     },
-  ])(
-    'should list panel variables for $serverType server with connection',
-    async ({ panelUrlFormat, expected }) => {
-      const getFirstConnectionOrCreateSpy = vi
-        .spyOn(mcpUtils, 'getFirstConnectionOrCreate')
-        .mockResolvedValue({
-          success: true,
-          connection: {} as any,
-          panelUrlFormat,
-        });
-      vi.mocked(panelService.getVariables).mockReturnValue(MOCK_VARIABLES);
-
-      const tool = createListPanelVariablesTool({
-        panelService,
-        serverManager,
+  ])('should list panel variables: $label', async ({ variables }) => {
+    const getFirstConnectionOrCreateSpy = vi
+      .spyOn(mcpUtils, 'getFirstConnectionOrCreate')
+      .mockResolvedValue({
+        success: true,
+        connection: {} as IDhcService,
+        panelUrlFormat: MOCK_PANEL_URL_FORMAT,
       });
-      const result = await tool.handler({ connectionUrl: MOCK_URL });
+    vi.mocked(panelService.getVariables).mockReturnValue(variables);
 
-      expect(getFirstConnectionOrCreateSpy).toHaveBeenCalledWith({
-        connectionUrl: MOCK_PARSED_URL,
-        serverManager,
-      });
-      expect(panelService.getVariables).toHaveBeenCalledWith(MOCK_PARSED_URL);
-      expect(result.structuredContent).toEqual(expected);
-    }
-  );
+    const tool = createListPanelVariablesTool({
+      panelService,
+      serverManager,
+    });
+    const result = await tool.handler({ connectionUrl: MOCK_URL });
+
+    expect(getFirstConnectionOrCreateSpy).toHaveBeenCalledWith({
+      connectionUrl: MOCK_PARSED_URL,
+      serverManager,
+    });
+    expect(panelService.getVariables).toHaveBeenCalledWith(MOCK_PARSED_URL);
+    expect(result.structuredContent).toEqual(
+      expectedSuccess(variables, MOCK_PANEL_URL_FORMAT)
+    );
+  });
 
   it.each([
     {
-      serverType: 'DHC',
-      panelUrlFormat: DHC_PANEL_URL_FORMAT,
-      expected: EXPECTED_NO_VARIABLES_DHC,
+      label: 'without hint',
+      errorMessage: 'Failed to connect to server',
     },
     {
-      serverType: 'DHE',
-      panelUrlFormat: DHE_PANEL_URL_FORMAT,
-      expected: EXPECTED_NO_VARIABLES_DHE,
-    },
-  ])(
-    'should return empty list for $serverType server when no variables exist',
-    async ({ panelUrlFormat, expected }) => {
-      const getFirstConnectionOrCreateSpy = vi
-        .spyOn(mcpUtils, 'getFirstConnectionOrCreate')
-        .mockResolvedValue({
-          success: true,
-          connection: {} as any,
-          panelUrlFormat,
-        });
-      vi.mocked(panelService.getVariables).mockReturnValue([]);
-
-      const tool = createListPanelVariablesTool({
-        panelService,
-        serverManager,
-      });
-      const result = await tool.handler({ connectionUrl: MOCK_URL });
-
-      expect(getFirstConnectionOrCreateSpy).toHaveBeenCalledWith({
-        connectionUrl: MOCK_PARSED_URL,
-        serverManager,
-      });
-      expect(result.structuredContent).toEqual(expected);
-    }
-  );
-
-  it.each([
-    {
-      scenario: 'server not found',
-      errorMessage: 'No connections or server found',
-      expected: EXPECTED_SERVER_NOT_FOUND,
-    },
-    {
-      scenario: 'server is not running',
-      errorMessage: 'Server is not running',
-      expected: EXPECTED_SERVER_NOT_RUNNING,
-    },
-    {
-      scenario: 'DHE server when no connection exists',
+      label: 'with hint',
       errorMessage: 'No active connection',
       hint: 'Use connectToServer first',
-      expected: EXPECTED_NO_CONNECTION_DHE,
-    },
-    {
-      scenario: 'DHC auto-connect fails',
-      errorMessage: 'Failed to connect to server',
-      expected: EXPECTED_FAILED_TO_CONNECT,
     },
   ])(
-    'should return error when $scenario',
-    async ({ errorMessage, hint, expected }) => {
+    'should return error when getFirstConnectionOrCreate fails $label',
+    async ({ errorMessage, hint }) => {
       const getFirstConnectionOrCreateSpy = vi
         .spyOn(mcpUtils, 'getFirstConnectionOrCreate')
         .mockResolvedValue({
           success: false,
           errorMessage,
-          ...(hint && { hint }),
+          hint,
           details: { connectionUrl: MOCK_URL },
         });
 
@@ -268,7 +155,9 @@ describe('listPanelVariables', () => {
         connectionUrl: MOCK_PARSED_URL,
         serverManager,
       });
-      expect(result.structuredContent).toEqual(expected);
+      expect(result.structuredContent).toEqual(
+        expectedError(errorMessage, { connectionUrl: MOCK_URL }, hint)
+      );
       expect(panelService.getVariables).not.toHaveBeenCalled();
     }
   );
@@ -277,15 +166,19 @@ describe('listPanelVariables', () => {
     const tool = createListPanelVariablesTool({ panelService, serverManager });
     const result = await tool.handler({ connectionUrl: 'invalid-url' });
 
-    expect(result.structuredContent).toEqual(EXPECTED_INVALID_URL);
+    expect(result.structuredContent).toEqual(
+      expectedError('Invalid URL: Invalid URL', {
+        connectionUrl: 'invalid-url',
+      })
+    );
     expect(panelService.getVariables).not.toHaveBeenCalled();
   });
 
   it('should handle errors from panelService', async () => {
     vi.spyOn(mcpUtils, 'getFirstConnectionOrCreate').mockResolvedValue({
       success: true,
-      connection: {} as any,
-      panelUrlFormat: DHC_PANEL_URL_FORMAT,
+      connection: {} as IDhcService,
+      panelUrlFormat: MOCK_PANEL_URL_FORMAT,
     });
     vi.mocked(panelService.getVariables).mockImplementation(() => {
       throw new Error('Test error');
@@ -294,6 +187,8 @@ describe('listPanelVariables', () => {
     const tool = createListPanelVariablesTool({ panelService, serverManager });
     const result = await tool.handler({ connectionUrl: MOCK_URL });
 
-    expect(result.structuredContent).toEqual(EXPECTED_ERROR);
+    expect(result.structuredContent).toEqual(
+      expectedError('Failed to list panel variables: Test error')
+    );
   });
 });

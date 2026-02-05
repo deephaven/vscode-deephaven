@@ -7,7 +7,11 @@ import type {
   McpToolHandlerResult,
 } from '../../types';
 import { parseUrl } from '../../util';
-import { McpToolResponse, getFirstConnectionOrCreate } from '../utils';
+import {
+  createMcpToolOutputSchema,
+  McpToolResponse,
+  getFirstConnectionOrCreate,
+} from '../utils';
 
 const spec = {
   title: 'List Panel Variables',
@@ -20,31 +24,24 @@ const spec = {
         'The Deephaven Core / Core+ connection URL (e.g., "http://localhost:10000")'
       ),
   },
-  outputSchema: {
-    success: z.boolean(),
-    message: z.string(),
-    executionTimeMs: z.number().describe('Execution time in milliseconds'),
-    hint: z.string().optional(),
-    details: z
-      .object({
-        variables: z
-          .array(
-            z.object({
-              id: z.string(),
-              title: z.string(),
-              type: z.string(),
-            })
-          )
-          .optional(),
-        panelUrlFormat: z
-          .string()
-          .optional()
-          .describe(
-            'URL format for accessing panel variables. Replace <variableTitle> with the variable title.'
-          ),
-      })
-      .optional(),
-  },
+  outputSchema: createMcpToolOutputSchema({
+    variables: z
+      .array(
+        z.object({
+          id: z.string(),
+          title: z.string(),
+          type: z.string(),
+        })
+      )
+      .optional()
+      .describe('List of panel variables available in the connection'),
+    panelUrlFormat: z
+      .string()
+      .optional()
+      .describe(
+        'URL format for accessing panel variables. Replace <variableTitle> with the variable title.'
+      ),
+  }),
 } as const;
 
 type Spec = typeof spec;
