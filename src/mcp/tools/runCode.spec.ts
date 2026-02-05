@@ -2,17 +2,23 @@ import * as vscode from 'vscode';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createRunCodeTool } from './runCode';
-import type { ConnectionState, IServerManager, ServerState } from '../../types';
+import type { IServerManager, ServerState } from '../../types';
 import { McpToolResponse } from '../utils/mcpUtils';
+import {
+  mcpErrorResult,
+  mcpSuccessResult,
+  MOCK_EXECUTION_TIME_MS,
+} from '../utils/mcpTestUtils';
 import { createConnectionNotFoundHint } from '../utils';
 import { DhcService } from '../../services';
 import { CONNECT_TO_SERVER_CMD } from '../../common';
 
 vi.mock('vscode');
 
-const MOCK_EXECUTION_TIME_MS = 100;
 const MOCK_CODE = 'mock.code';
 const MOCK_CONNECTION_URL = new URL('http://localhost:10000/');
+const MOCK_PANEL_URL_FORMAT =
+  MOCK_CONNECTION_URL.origin + '/iframe/widget/?name=<variableTitle>';
 const MOCK_HANDLER_ARGS = {
   code: MOCK_CODE,
   languageId: 'python',
@@ -60,70 +66,13 @@ const MOCK_DHC_SERVICE_CONNECTION_WITH_VARIABLES: DhcService = Object.assign(
   }
 );
 
-const EXPECTED_INVALID_LANGUAGE = {
-  success: false,
-  message: `Invalid languageId: 'javascript'. Must be "python" or "groovy".`,
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-};
-
-const EXPECTED_INVALID_URL = {
-  success: false,
-  message: 'Invalid URL: Invalid URL',
-  details: { connectionUrl: 'not-a-url' },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_NO_CONNECTION_OR_SERVER = {
-  success: false,
-  message: 'No connections or server found',
-  details: { connectionUrl: MOCK_CONNECTION_URL.href },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_SERVER_NOT_RUNNING = {
-  success: false,
-  message: 'Server is not running',
-  details: { connectionUrl: MOCK_CONNECTION_URL.href },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_SUCCESS_WITH_VARIABLES = {
-  success: true,
-  message: 'Code executed successfully',
-  details: {
-    panelUrlFormat:
-      MOCK_CONNECTION_URL.origin + '/iframe/widget/?name=<variableTitle>',
+const EXPECTED_SUCCESS_WITH_VARIABLES = mcpSuccessResult(
+  'Code executed successfully',
+  {
+    panelUrlFormat: MOCK_PANEL_URL_FORMAT,
     variables: [{ id: 'x', title: 'x', type: 'int', isNew: true }],
-  },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_FAILED_TO_CONNECT = {
-  success: false,
-  message: 'Failed to connect to server',
-  details: { connectionUrl: MOCK_CONNECTION_URL.href },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_CODE_EXECUTION_FAILED = {
-  success: false,
-  message:
-    'Code execution failed: NameError: name "undefined_var" is not defined',
-  details: {
-    languageId: 'python',
-    panelUrlFormat:
-      MOCK_CONNECTION_URL.origin + '/iframe/widget/?name=<variableTitle>',
-    variables: [{ id: 'y', title: 'y', type: 'str', isNew: true }],
-  },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_EXCEPTION_DURING_EXECUTION = {
-  success: false,
-  message: 'Failed to execute code: Unexpected error',
-  details: { languageId: 'python' },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
+  }
+);
 
 describe('runCode tool', () => {
   const serverManager: IServerManager = {
@@ -170,7 +119,9 @@ describe('runCode tool', () => {
       connectionUrl: MOCK_CONNECTION_URL.href,
       connections: [],
       server: undefined,
-      expected: EXPECTED_INVALID_LANGUAGE,
+      expected: mcpErrorResult(
+        `Invalid languageId: 'javascript'. Must be "python" or "groovy".`
+      ),
       expectHint: false,
     },
     {
@@ -179,7 +130,9 @@ describe('runCode tool', () => {
       connectionUrl: 'not-a-url',
       connections: [],
       server: undefined,
-      expected: EXPECTED_INVALID_URL,
+      expected: mcpErrorResult('Invalid URL: Invalid URL', {
+        connectionUrl: 'not-a-url',
+      }),
       expectHint: false,
     },
     {
@@ -188,7 +141,9 @@ describe('runCode tool', () => {
       connectionUrl: MOCK_CONNECTION_URL.href,
       connections: [],
       server: undefined,
-      expected: EXPECTED_NO_CONNECTION_OR_SERVER,
+      expected: mcpErrorResult('No connections or server found', {
+        connectionUrl: MOCK_CONNECTION_URL.href,
+      }),
       expectHint: true,
     },
     {
@@ -197,7 +152,9 @@ describe('runCode tool', () => {
       connectionUrl: MOCK_CONNECTION_URL.href,
       connections: [],
       server: MOCK_SERVER_NOT_RUNNING,
-      expected: EXPECTED_SERVER_NOT_RUNNING,
+      expected: mcpErrorResult('Server is not running', {
+        connectionUrl: MOCK_CONNECTION_URL.href,
+      }),
       expectHint: false,
     },
     {
@@ -276,7 +233,16 @@ describe('runCode tool', () => {
       const tool = createRunCodeTool({ serverManager });
       const result = await tool.handler(MOCK_HANDLER_ARGS);
 
-      expect(result.structuredContent).toEqual(EXPECTED_CODE_EXECUTION_FAILED);
+      expect(result.structuredContent).toEqual(
+        mcpErrorResult(
+          'Code execution failed: NameError: name "undefined_var" is not defined',
+          {
+            languageId: 'python',
+            panelUrlFormat: MOCK_PANEL_URL_FORMAT,
+            variables: [{ id: 'y', title: 'y', type: 'str', isNew: true }],
+          }
+        )
+      );
     });
 
     it('should handle exceptions during execution', async () => {
@@ -289,7 +255,9 @@ describe('runCode tool', () => {
       const result = await tool.handler(MOCK_HANDLER_ARGS);
 
       expect(result.structuredContent).toEqual(
-        EXPECTED_EXCEPTION_DURING_EXECUTION
+        mcpErrorResult('Failed to execute code: Unexpected error', {
+          languageId: 'python',
+        })
       );
     });
 
@@ -302,7 +270,11 @@ describe('runCode tool', () => {
       const tool = createRunCodeTool({ serverManager });
       const result = await tool.handler(MOCK_HANDLER_ARGS);
 
-      expect(result.structuredContent).toEqual(EXPECTED_FAILED_TO_CONNECT);
+      expect(result.structuredContent).toEqual(
+        mcpErrorResult('Failed to connect to server', {
+          connectionUrl: MOCK_CONNECTION_URL.href,
+        })
+      );
       expect(mockExecuteCommand).toHaveBeenCalledWith(CONNECT_TO_SERVER_CMD, {
         type: 'DHC',
         url: MOCK_CONNECTION_URL,

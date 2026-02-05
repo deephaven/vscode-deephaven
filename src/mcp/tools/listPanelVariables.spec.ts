@@ -6,12 +6,15 @@ import type {
   IServerManager,
   VariableDefintion,
 } from '../../types';
-import { McpToolResponse, type McpToolResult } from '../utils/mcpUtils';
+import { McpToolResponse } from '../utils/mcpUtils';
+import {
+  mcpErrorResult,
+  mcpSuccessResult,
+  MOCK_EXECUTION_TIME_MS,
+} from '../utils/mcpTestUtils';
 import * as mcpUtils from '../utils/mcpUtils';
 
 vi.mock('vscode');
-
-const MOCK_EXECUTION_TIME_MS = 100;
 
 const MOCK_URL = 'http://localhost:10000';
 const MOCK_PARSED_URL = new URL(MOCK_URL);
@@ -28,35 +31,6 @@ const MOCK_VARIABLES: VariableDefintion[] = [
     type: 'Table',
   } as unknown as VariableDefintion,
 ];
-
-const expectedError = (
-  message: string,
-  details?: Record<string, any>,
-  hint?: string
-): McpToolResult<false>['structuredContent'] => ({
-  success: false,
-  message,
-  ...(hint && { hint }),
-  ...(details && { details }),
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-});
-
-const expectedSuccess = (
-  variables: VariableDefintion[],
-  panelUrlFormat: string
-): McpToolResult<true>['structuredContent'] => ({
-  success: true,
-  message: `Found ${variables.length} panel variable(s)`,
-  details: {
-    panelUrlFormat,
-    variables: variables.map(({ id, title, type }) => ({
-      id,
-      title,
-      type,
-    })),
-  },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-});
 
 const MOCK_PANEL_URL_FORMAT = 'mock.panelUrlFormat';
 
@@ -119,7 +93,14 @@ describe('listPanelVariables', () => {
     });
     expect(panelService.getVariables).toHaveBeenCalledWith(MOCK_PARSED_URL);
     expect(result.structuredContent).toEqual(
-      expectedSuccess(variables, MOCK_PANEL_URL_FORMAT)
+      mcpSuccessResult(`Found ${variables.length} panel variable(s)`, {
+        panelUrlFormat: MOCK_PANEL_URL_FORMAT,
+        variables: variables.map(({ id, title, type }) => ({
+          id,
+          title,
+          type,
+        })),
+      })
     );
   });
 
@@ -156,7 +137,7 @@ describe('listPanelVariables', () => {
         serverManager,
       });
       expect(result.structuredContent).toEqual(
-        expectedError(errorMessage, { connectionUrl: MOCK_URL }, hint)
+        mcpErrorResult(errorMessage, { connectionUrl: MOCK_URL }, hint)
       );
       expect(panelService.getVariables).not.toHaveBeenCalled();
     }
@@ -167,7 +148,7 @@ describe('listPanelVariables', () => {
     const result = await tool.handler({ connectionUrl: 'invalid-url' });
 
     expect(result.structuredContent).toEqual(
-      expectedError('Invalid URL: Invalid URL', {
+      mcpErrorResult('Invalid URL: Invalid URL', {
         connectionUrl: 'invalid-url',
       })
     );
@@ -188,7 +169,7 @@ describe('listPanelVariables', () => {
     const result = await tool.handler({ connectionUrl: MOCK_URL });
 
     expect(result.structuredContent).toEqual(
-      expectedError('Failed to list panel variables: Test error')
+      mcpErrorResult('Failed to list panel variables: Test error')
     );
   });
 });

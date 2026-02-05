@@ -12,7 +12,7 @@ import type {
   VariableDefintion,
 } from '../../types';
 import { parseUrl } from '../../util';
-import { McpToolResponse } from '../utils';
+import { createMcpToolOutputSchema, McpToolResponse } from '../utils';
 
 const spec = {
   title: 'Open Variable Panels',
@@ -29,12 +29,7 @@ const spec = {
       )
       .describe('List of variable definitions to open panels for.'),
   },
-  outputSchema: {
-    success: z.boolean(),
-    message: z.string(),
-    executionTimeMs: z.number().describe('Execution time in milliseconds'),
-    hint: z.string().optional(),
-  },
+  outputSchema: createMcpToolOutputSchema(),
 } as const;
 
 type Spec = typeof spec;
