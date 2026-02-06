@@ -6,10 +6,8 @@ import type {
   IServerManager,
   VariableDefintion,
 } from '../../types';
-import {
-  getFirstConnectionOrCreate,
-  McpToolResponse,
-} from '../utils/mcpUtils';
+import { getFirstConnectionOrCreate } from '../utils/serverUtils';
+import { McpToolResponse } from '../utils/mcpUtils';
 import {
   mcpErrorResult,
   mcpSuccessResult,
@@ -17,8 +15,8 @@ import {
 } from '../utils/mcpTestUtils';
 
 vi.mock('vscode');
-vi.mock('../utils/mcpUtils', async () => {
-  const actual = await vi.importActual('../utils/mcpUtils');
+vi.mock('../utils/serverUtils', async () => {
+  const actual = await vi.importActual('../utils/serverUtils');
   return {
     ...actual,
     getFirstConnectionOrCreate: vi.fn(),

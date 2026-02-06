@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createOpenVariablePanelsTool } from './openVariablePanels';
 import type { IDhcService, IServerManager } from '../../types';
-import { getFirstConnectionOrCreate, McpToolResponse } from '../utils/mcpUtils';
+import { getFirstConnectionOrCreate } from '../utils/serverUtils';
+import { McpToolResponse } from '../utils/mcpUtils';
 import {
   mcpErrorResult,
   mcpSuccessResult,
@@ -11,8 +12,8 @@ import { execOpenVariablePanels } from '../../common/commands';
 
 vi.mock('vscode');
 vi.mock('../../common/commands');
-vi.mock('../utils/mcpUtils', async () => {
-  const actual = await vi.importActual('../utils/mcpUtils');
+vi.mock('../utils/serverUtils', async () => {
+  const actual = await vi.importActual('../utils/serverUtils');
   return {
     ...actual,
     getFirstConnectionOrCreate: vi.fn(),
