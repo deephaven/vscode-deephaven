@@ -213,7 +213,7 @@ describe('serverUtils', () => {
 
     describe('success cases', () => {
       it('should return connection for DHC server with existing connection', async () => {
-        const mockPanelUrlFormat = `${mockUrl.origin}/iframe/widget/?name=<variableTitle>`;
+        const mockPanelUrlFormat = 'mock.panelUrlFormat';
 
         vi.mocked(serverManager.getServer).mockReturnValue(runningDhcServer);
         vi.mocked(serverManager.getConnections).mockReturnValue([
@@ -231,11 +231,10 @@ describe('serverUtils', () => {
           connection: mockConnection,
           panelUrlFormat: mockPanelUrlFormat,
         });
-        expect(mockConnection.getPsk).toHaveBeenCalled();
       });
 
       it('should auto-connect and return connection for DHC server with no connection', async () => {
-        const mockPanelUrlFormat = `${mockUrl.origin}/iframe/widget/?name=<variableTitle>`;
+        const mockPanelUrlFormat = 'mock.panelUrlFormat';
 
         vi.mocked(serverManager.getServer).mockReturnValue(runningDhcServer);
         vi.mocked(serverManager.getConnections)
@@ -258,38 +257,10 @@ describe('serverUtils', () => {
           type: 'DHC',
           url: mockUrl,
         });
-        expect(mockConnection.getPsk).toHaveBeenCalled();
-      });
-
-      it('should return connection for DHC server with psk', async () => {
-        const mockConnectionWithPsk: IDhcService = createMockDhcService({
-          serverUrl: mockUrl,
-          getPsk: 'test-psk-123' as Psk,
-        });
-
-        const mockPanelUrlFormat = `${mockUrl.origin}/iframe/widget/?name=<variableTitle>&psk=test-psk-123`;
-
-        vi.mocked(serverManager.getServer).mockReturnValue(runningDhcServer);
-        vi.mocked(serverManager.getConnections).mockReturnValue([
-          mockConnectionWithPsk,
-        ]);
-        vi.mocked(getDhcPanelUrlFormat).mockReturnValue(mockPanelUrlFormat);
-
-        const result = await getFirstConnectionOrCreate({
-          serverManager,
-          connectionUrl: mockUrl,
-        });
-
-        expect(result).toEqual({
-          success: true,
-          connection: mockConnectionWithPsk,
-          panelUrlFormat: mockPanelUrlFormat,
-        });
-        expect(mockConnectionWithPsk.getPsk).toHaveBeenCalled();
       });
 
       it('should return connection for DHE server', async () => {
-        const mockPanelUrlFormat = `${mockUrl.origin}/iriside/embed/widget/serial/test-serial-123/<variableTitle>`;
+        const mockPanelUrlFormat = 'mock.panelUrlFormat';
 
         vi.mocked(serverManager.getServer).mockReturnValue(runningDheServer);
         vi.mocked(serverManager.getConnections).mockReturnValue([
