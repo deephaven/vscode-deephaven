@@ -63,6 +63,6 @@ export function createMockDhcService(results?: {
     supportsConsoleType: vi
       .fn()
       .mockReturnValue(results?.supportsConsoleType ?? true),
-    getPsk: vi.fn().mockResolvedValue(results?.getPsk ?? undefined),
+    getPsk: vi.fn().mockResolvedValue(results?.getPsk),
   });
 }
