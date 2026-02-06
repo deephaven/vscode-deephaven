@@ -50,19 +50,25 @@ export function mcpSuccessResult<TDetails = unknown>(
 /**
  * Creates a mock DhcService for testing.
  *
- * @param results Optional map of method names to their return values
+ * @param values Optional map of method names to their values, return values, or
+ * resolved values
  * @returns Mock DhcService instance with mocked methods
  */
-export function createMockDhcService(results?: {
+export function createMockDhcService({
+  serverUrl,
+  runCode,
+  supportsConsoleType,
+  getPsk,
+}: {
+  serverUrl?: URL;
   runCode?: DhcType.ide.CommandResult | null;
   supportsConsoleType?: boolean;
   getPsk?: Psk | undefined;
 }): DhcService {
   return Object.assign(Object.create(DhcService.prototype), {
-    runCode: vi.fn().mockResolvedValue(results?.runCode ?? null),
-    supportsConsoleType: vi
-      .fn()
-      .mockReturnValue(results?.supportsConsoleType ?? true),
-    getPsk: vi.fn().mockResolvedValue(results?.getPsk),
+    serverUrl: serverUrl ?? new URL('http://localhost:10000'),
+    runCode: vi.fn().mockResolvedValue(runCode ?? null),
+    supportsConsoleType: vi.fn().mockReturnValue(supportsConsoleType ?? true),
+    getPsk: vi.fn().mockResolvedValue(getPsk),
   });
 }

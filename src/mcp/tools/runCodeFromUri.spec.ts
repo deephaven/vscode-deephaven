@@ -4,9 +4,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createRunCodeFromUriTool } from './runCodeFromUri';
 import type { IDhcService, IServerManager } from '../../types';
 import type { FilteredWorkspace } from '../../services';
-import { DhcService } from '../../services';
 import { getFirstConnectionOrCreate, McpToolResponse } from '../utils/mcpUtils';
 import {
+  createMockDhcService,
   mcpErrorResult,
   mcpSuccessResult,
   MOCK_EXECUTION_TIME_MS,
@@ -224,13 +224,9 @@ describe('runCodeFromUri tool', () => {
   });
 
   describe('code execution', () => {
-    const mockConnection: IDhcService = Object.assign(
-      Object.create(DhcService.prototype),
-      {
-        serverUrl: new URL('http://localhost:10000'),
-        getPsk: vi.fn().mockResolvedValue(undefined),
-      }
-    );
+    const mockConnection: IDhcService = createMockDhcService({
+      serverUrl: new URL('http://localhost:10000'),
+    });
 
     beforeEach(() => {
       vi.mocked(vscode.workspace.fs.stat).mockResolvedValue(MOCK_FILE_STAT);

@@ -7,7 +7,6 @@ import type {
   ServerState,
   WorkerInfo,
 } from '../../types';
-import { DhcService } from '../../services';
 import {
   formatErrorMessage,
   getDhcPanelUrlFormat,
@@ -18,6 +17,7 @@ import {
 } from './mcpUtils';
 import { execConnectToServer } from '../../common/commands';
 import { createConnectionNotFoundHint } from './runCodeUtils';
+import { createMockDhcService } from './mcpTestUtils';
 
 vi.mock('vscode');
 vi.mock('../../common/commands');
@@ -317,13 +317,9 @@ describe('McpToolResponse', () => {
 
 describe('getFirstConnectionOrCreate', () => {
   const mockUrl = new URL('http://localhost:10000');
-  const mockConnection: IDhcService = Object.assign(
-    Object.create(DhcService.prototype),
-    {
-      serverUrl: mockUrl,
-      getPsk: vi.fn().mockResolvedValue(undefined),
-    }
-  );
+  const mockConnection: IDhcService = createMockDhcService({
+    serverUrl: mockUrl,
+  });
 
   const serverManager: IServerManager = {
     getServer: vi.fn(),
@@ -547,13 +543,10 @@ describe('getFirstConnectionOrCreate', () => {
     });
 
     it('should return connection for DHC server with psk', async () => {
-      const mockConnectionWithPsk: IDhcService = Object.assign(
-        Object.create(DhcService.prototype),
-        {
-          serverUrl: mockUrl,
-          getPsk: vi.fn().mockResolvedValue('test-psk-123'),
-        }
-      );
+      const mockConnectionWithPsk: IDhcService = createMockDhcService({
+        serverUrl: mockUrl,
+        getPsk: 'test-psk-123',
+      });
 
       const mockServer: ServerState = {
         url: mockUrl,
