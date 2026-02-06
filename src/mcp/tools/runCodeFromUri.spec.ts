@@ -9,7 +9,8 @@ import type {
   VariableDefintion,
 } from '../../types';
 import type { FilteredWorkspace } from '../../services';
-import { getFirstConnectionOrCreate, McpToolResponse } from '../utils/mcpUtils';
+import { McpToolResponse } from '../utils/mcpUtils';
+import { getFirstConnectionOrCreate } from '../utils/serverUtils';
 import {
   createMockDhcService,
   mcpErrorResult,
@@ -33,8 +34,8 @@ vi.mock('../../common/commands', async () => {
     execRunCode: vi.fn(),
   };
 });
-vi.mock('../utils/mcpUtils', async () => {
-  const actual = await vi.importActual('../utils/mcpUtils');
+vi.mock('../utils/serverUtils', async () => {
+  const actual = await vi.importActual('../utils/serverUtils');
   return {
     ...actual,
     getFirstConnectionOrCreate: vi.fn(),
