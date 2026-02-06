@@ -22,8 +22,8 @@ export function mcpErrorResult<TDetails = unknown>(
   return {
     success: false,
     message,
-    ...(hint && { hint }),
-    ...(details && { details }),
+    hint,
+    details,
     executionTimeMs: MOCK_EXECUTION_TIME_MS,
   };
 }
@@ -42,7 +42,7 @@ export function mcpSuccessResult<TDetails = unknown>(
   return {
     success: true,
     message,
-    ...(details && { details }),
+    details,
     executionTimeMs: MOCK_EXECUTION_TIME_MS,
   };
 }
