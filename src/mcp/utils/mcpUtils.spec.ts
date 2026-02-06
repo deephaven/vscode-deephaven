@@ -4,6 +4,7 @@ import type {
   IDhcService,
   IDheService,
   IServerManager,
+  Psk,
   ServerState,
   WorkerInfo,
 } from '../../types';
@@ -545,7 +546,7 @@ describe('getFirstConnectionOrCreate', () => {
     it('should return connection for DHC server with psk', async () => {
       const mockConnectionWithPsk: IDhcService = createMockDhcService({
         serverUrl: mockUrl,
-        getPsk: 'test-psk-123',
+        getPsk: 'test-psk-123' as Psk,
       });
 
       const mockServer: ServerState = {

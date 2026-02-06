@@ -1,8 +1,13 @@
 import * as vscode from 'vscode';
+import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createRunCodeFromUriTool } from './runCodeFromUri';
-import type { IDhcService, IServerManager } from '../../types';
+import type {
+  IDhcService,
+  IServerManager,
+  VariableDefintion,
+} from '../../types';
 import type { FilteredWorkspace } from '../../services';
 import { getFirstConnectionOrCreate, McpToolResponse } from '../utils/mcpUtils';
 import {
@@ -71,21 +76,35 @@ const MOCK_FILE_STAT = {
   type: vscode.FileType.File,
 } as vscode.FileStat;
 
+const MOCK_INT_VARIABLE = {
+  id: 'x',
+  title: 'x',
+  type: 'int',
+} as VariableDefintion;
+
+const MOCK_STR_VARIABLE = {
+  id: 'y',
+  title: 'y',
+  type: 'str',
+} as VariableDefintion;
+
 const MOCK_RUN_CODE_SUCCESS = {
-  error: null,
+  error: '',
   changes: {
-    created: [{ id: 'x', title: 'x', type: 'int' }],
+    created: [MOCK_INT_VARIABLE],
     updated: [],
+    removed: [],
   },
-} as const;
+} as DhcType.ide.CommandResult;
 
 const MOCK_RUN_CODE_ERROR = {
   error: 'NameError: name "undefined_var" is not defined',
   changes: {
-    created: [{ id: 'y', title: 'y', type: 'str' }],
+    created: [MOCK_STR_VARIABLE],
     updated: [],
+    removed: [],
   },
-} as const;
+} as DhcType.ide.CommandResult;
 
 describe('runCodeFromUri tool', () => {
   const pythonDiagnostics: vscode.DiagnosticCollection =

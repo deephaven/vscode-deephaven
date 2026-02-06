@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createOpenVariablePanelsTool } from './openVariablePanels';
-import type { IServerManager } from '../../types';
+import type { IDhcService, IServerManager } from '../../types';
 import { getFirstConnectionOrCreate, McpToolResponse } from '../utils/mcpUtils';
 import {
   mcpErrorResult,
@@ -51,8 +51,8 @@ describe('openVariablePanels', () => {
   it('should open variable panels successfully', async () => {
     vi.mocked(getFirstConnectionOrCreate).mockResolvedValue({
       success: true,
-      connection: {} as any,
-      panelUrlFormat: undefined,
+      connection: {} as IDhcService,
+      panelUrlFormat: 'mock.panelUrlFormat',
     });
 
     const tool = createOpenVariablePanelsTool({ serverManager });
@@ -130,8 +130,8 @@ describe('openVariablePanels', () => {
   it('should handle errors from execOpenVariablePanels', async () => {
     vi.mocked(getFirstConnectionOrCreate).mockResolvedValue({
       success: true,
-      connection: {} as any,
-      panelUrlFormat: undefined,
+      connection: {} as IDhcService,
+      panelUrlFormat: 'mock.panelUrlFormat',
     });
     vi.mocked(execOpenVariablePanels).mockRejectedValue(
       new Error('Test error')
