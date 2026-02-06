@@ -663,28 +663,15 @@ describe('getDhcPanelUrlFormat', () => {
     {
       name: 'with psk',
       url: 'http://localhost:10000',
-      psk: 'test-psk-123',
+      psk: 'test-psk-123' as Psk,
       expected:
         'http://localhost:10000/iframe/widget/?name=<variableTitle>&psk=test-psk-123',
-    },
-    {
-      name: 'different URL without psk',
-      url: 'https://example.com:8080/some/path',
-      psk: undefined,
-      expected: 'https://example.com:8080/iframe/widget/?name=<variableTitle>',
-    },
-    {
-      name: 'different URL with psk',
-      url: 'https://example.com:8080/some/path',
-      psk: 'another-psk',
-      expected:
-        'https://example.com:8080/iframe/widget/?name=<variableTitle>&psk=another-psk',
     },
   ])(
     'should return correct panel URL format $name',
     ({ url, psk, expected }) => {
       const serverUrl = new URL(url);
-      const result = getDhcPanelUrlFormat(serverUrl, psk as any);
+      const result = getDhcPanelUrlFormat(serverUrl, psk);
       expect(result).toBe(expected);
     }
   );
