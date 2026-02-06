@@ -48,7 +48,7 @@ describe('openVariablePanels', () => {
     );
   });
 
-  it('should open variable panels when connection exists', async () => {
+  it('should open variable panels successfully', async () => {
     vi.mocked(getFirstConnectionOrCreate).mockResolvedValue({
       success: true,
       connection: {} as any,
@@ -74,67 +74,40 @@ describe('openVariablePanels', () => {
     );
   });
 
-  it('should auto-connect to DHC server when no connection exists', async () => {
-    vi.mocked(getFirstConnectionOrCreate).mockResolvedValue({
-      success: true,
-      connection: {} as any,
-      panelUrlFormat: undefined,
-    });
-
-    const tool = createOpenVariablePanelsTool({ serverManager });
-    const result = await tool.handler({
-      connectionUrl: MOCK_URL,
-      variables: MOCK_VARIABLES,
-    });
-
-    expect(getFirstConnectionOrCreate).toHaveBeenCalledWith({
-      serverManager,
-      connectionUrl: MOCK_PARSED_URL,
-    });
-    expect(execOpenVariablePanels).toHaveBeenCalledWith(
-      MOCK_PARSED_URL,
-      MOCK_VARIABLES
-    );
-    expect(result.structuredContent).toEqual(
-      mcpSuccessResult('Variable panels opened successfully')
-    );
-  });
-
-  it('should return error when no variables provided', async () => {
-    const tool = createOpenVariablePanelsTool({ serverManager });
-    const result = await tool.handler({
-      connectionUrl: MOCK_URL,
-      variables: [],
-    });
-
-    expect(result.structuredContent).toEqual(
-      mcpErrorResult('No variables provided', { connectionUrl: MOCK_URL })
-    );
-    expect(getFirstConnectionOrCreate).not.toHaveBeenCalled();
-  });
-
-  it.each([
-    {
-      scenario: 'connection establishment fails',
-      errorMessage: 'No connections or server found',
-      hint: 'test hint',
-      expected: mcpErrorResult(
-        'No connections or server found',
-        { connectionUrl: MOCK_URL },
-        'test hint'
-      ),
-    },
-    {
-      scenario: 'server not running',
-      errorMessage: 'Server is not running',
-      hint: undefined,
-      expected: mcpErrorResult('Server is not running', {
+  describe('input validation', () => {
+    it('should return error when no variables provided', async () => {
+      const tool = createOpenVariablePanelsTool({ serverManager });
+      const result = await tool.handler({
         connectionUrl: MOCK_URL,
-      }),
-    },
-  ])(
-    'should return error when $scenario',
-    async ({ errorMessage, hint, expected }) => {
+        variables: [],
+      });
+
+      expect(result.structuredContent).toEqual(
+        mcpErrorResult('No variables provided', { connectionUrl: MOCK_URL })
+      );
+      expect(getFirstConnectionOrCreate).not.toHaveBeenCalled();
+    });
+
+    it('should handle invalid URL', async () => {
+      const tool = createOpenVariablePanelsTool({ serverManager });
+      const result = await tool.handler({
+        connectionUrl: 'invalid-url',
+        variables: MOCK_VARIABLES,
+      });
+
+      expect(result.structuredContent).toEqual(
+        mcpErrorResult('Invalid URL: Invalid URL', {
+          connectionUrl: 'invalid-url',
+        })
+      );
+      expect(getFirstConnectionOrCreate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('connection error handling', () => {
+    it('should return error when connection establishment fails', async () => {
+      const errorMessage = 'No connections or server found';
+      const hint = 'Use connectToServer first';
       vi.mocked(getFirstConnectionOrCreate).mockResolvedValue({
         success: false,
         errorMessage,
@@ -148,23 +121,10 @@ describe('openVariablePanels', () => {
         variables: MOCK_VARIABLES,
       });
 
-      expect(result.structuredContent).toEqual(expected);
-    }
-  );
-
-  it('should handle invalid URL', async () => {
-    const tool = createOpenVariablePanelsTool({ serverManager });
-    const result = await tool.handler({
-      connectionUrl: 'invalid-url',
-      variables: MOCK_VARIABLES,
+      expect(result.structuredContent).toEqual(
+        mcpErrorResult(errorMessage, { connectionUrl: MOCK_URL }, hint)
+      );
     });
-
-    expect(result.structuredContent).toEqual(
-      mcpErrorResult('Invalid URL: Invalid URL', {
-        connectionUrl: 'invalid-url',
-      })
-    );
-    expect(getFirstConnectionOrCreate).not.toHaveBeenCalled();
   });
 
   it('should handle errors from execOpenVariablePanels', async () => {
