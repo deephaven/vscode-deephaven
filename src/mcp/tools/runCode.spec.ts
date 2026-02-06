@@ -23,7 +23,8 @@ vi.mock('vscode');
 
 const MOCK_CODE = 'mock.code' as const;
 const MOCK_CONNECTION_URL = new URL('http://localhost:10000/');
-const MOCK_PANEL_URL_FORMAT = 'mock.panelUrlFormat' as const;
+const MOCK_PANEL_URL_FORMAT =
+  MOCK_CONNECTION_URL.origin + '/iframe/widget/?name=<variableTitle>';
 const MOCK_HANDLER_ARGS = {
   code: MOCK_CODE,
   languageId: 'python',
