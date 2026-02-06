@@ -4,9 +4,9 @@
 
 ### Running Tests
 
-- **ALWAYS** use `vitest run` in the terminal for running tests
-- When user says "run tests" or "run the tests", use: `vitest run`
-- When user says "run [filename].spec", use: `vitest run src/path/to/[filename].spec.ts`
+- **ALWAYS** use `npx vitest run` in the terminal for running tests
+- When user says "run tests" or "run the tests", use: `npx vitest run`
+- When user says "run [filename].spec", use: `npx vitest run src/path/to/[filename].spec.ts`
 - **NEVER** use `npm test` or `npm run test` - these start watch mode
 - **NEVER** use watch mode for tests - watch mode will hang and prevent the AI agent from continuing
 - **AVOID** using the `runTests` tool - it has issues with workspace selection and requires manual UI refresh
@@ -21,7 +21,7 @@
 ### Test Discovery Issues
 
 - If tests fail to run or show unexpected results, verify you're in the correct workspace directory
-- Check that vitest can find the test files by running `vitest run --reporter=verbose` if needed
+- Check that vitest can find the test files by running `npx vitest run --reporter=verbose` if needed
 
 ### Using VS Code API Mocks
 
