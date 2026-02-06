@@ -339,11 +339,11 @@ describe('getFirstConnectionOrCreate', () => {
         scenario: 'no server found with languageId',
         serverExists: false,
         languageId: 'python',
-        expectedHint: 'Try connecting to a server first',
+        expectedHint: 'Mock hint',
         expected: {
           success: false,
           errorMessage: 'No connections or server found',
-          hint: 'Try connecting to a server first',
+          hint: 'Mock hint',
           details: { connectionUrl: mockUrl.href },
         },
       },
@@ -351,7 +351,7 @@ describe('getFirstConnectionOrCreate', () => {
         scenario: 'no server found without languageId',
         serverExists: false,
         languageId: undefined,
-        expectedHint: undefined,
+        expectedHint: 'Mock hint',
         expected: {
           success: false,
           errorMessage: 'No connections or server found',
@@ -364,11 +364,8 @@ describe('getFirstConnectionOrCreate', () => {
         vi.mocked(serverManager.getServer).mockReturnValue(
           serverExists ? ({} as ServerState) : undefined
         );
-        if (expectedHint) {
-          vi.mocked(createConnectionNotFoundHint).mockResolvedValue(
-            expectedHint
-          );
-        }
+
+        vi.mocked(createConnectionNotFoundHint).mockResolvedValue(expectedHint);
 
         const result = await getFirstConnectionOrCreate({
           serverManager,
