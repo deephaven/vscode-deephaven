@@ -8,8 +8,9 @@
   },
   "include": [
     "src/**/*.spec.ts",
-    // Include `testUtils.ts` with unit tests build
+    // Include `testUtils.ts` and `mcpTestUtils.ts` with unit tests build
     "src/testUtils.ts",
+    "src/mcp/utils/mcpTestUtils.ts",
     "src/dh/modules.d.ts"
   ],
   // Override ./tsconfig `exclude` so that *.spec.ts files are included
