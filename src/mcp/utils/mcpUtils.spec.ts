@@ -16,6 +16,8 @@ import {
   getServerMatchPortIfLocalHost,
   McpToolResponse,
 } from './mcpUtils';
+import { execConnectToServer } from '../../common/commands';
+import { createConnectionNotFoundHint } from './runCodeUtils';
 
 vi.mock('vscode');
 vi.mock('../../common/commands');
@@ -323,25 +325,15 @@ describe('getFirstConnectionOrCreate', () => {
     }
   );
 
-  let serverManager: IServerManager;
-  let execConnectToServerMock: ReturnType<typeof vi.fn>;
-  let createConnectionNotFoundHintMock: ReturnType<typeof vi.fn>;
+  const serverManager: IServerManager = {
+    getServer: vi.fn(),
+    getConnections: vi.fn(),
+    getDheServiceForWorker: vi.fn(),
+    getWorkerInfo: vi.fn(),
+  } as unknown as IServerManager;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks();
-
-    const { execConnectToServer } = await import('../../common/commands');
-    const { createConnectionNotFoundHint } = await import('./runCodeUtils');
-
-    execConnectToServerMock = vi.mocked(execConnectToServer);
-    createConnectionNotFoundHintMock = vi.mocked(createConnectionNotFoundHint);
-
-    serverManager = {
-      getServer: vi.fn(),
-      getConnections: vi.fn(),
-      getDheServiceForWorker: vi.fn(),
-      getWorkerInfo: vi.fn(),
-    } as unknown as IServerManager;
   });
 
   describe('error cases', () => {
@@ -376,7 +368,9 @@ describe('getFirstConnectionOrCreate', () => {
           serverExists ? ({} as ServerState) : undefined
         );
         if (expectedHint) {
-          createConnectionNotFoundHintMock.mockResolvedValue(expectedHint);
+          vi.mocked(createConnectionNotFoundHint).mockResolvedValue(
+            expectedHint
+          );
         }
 
         const result = await getFirstConnectionOrCreate({
@@ -387,7 +381,7 @@ describe('getFirstConnectionOrCreate', () => {
 
         expect(result).toEqual(expected);
         if (languageId) {
-          expect(createConnectionNotFoundHintMock).toHaveBeenCalledWith(
+          expect(createConnectionNotFoundHint).toHaveBeenCalledWith(
             serverManager,
             mockUrl.href,
             languageId
@@ -449,7 +443,7 @@ describe('getFirstConnectionOrCreate', () => {
 
       vi.mocked(serverManager.getServer).mockReturnValue(mockServer);
       vi.mocked(serverManager.getConnections).mockReturnValue([]);
-      execConnectToServerMock.mockResolvedValue(undefined);
+      vi.mocked(execConnectToServer).mockResolvedValue(undefined);
 
       const result = await getFirstConnectionOrCreate({
         serverManager,
@@ -461,7 +455,7 @@ describe('getFirstConnectionOrCreate', () => {
         errorMessage: 'Failed to connect to server',
         details: { connectionUrl: mockUrl.href },
       });
-      expect(execConnectToServerMock).toHaveBeenCalledWith({
+      expect(execConnectToServer).toHaveBeenCalledWith({
         type: 'DHC',
         url: mockUrl,
       });
@@ -533,7 +527,7 @@ describe('getFirstConnectionOrCreate', () => {
       vi.mocked(serverManager.getConnections)
         .mockReturnValueOnce([]) // First call returns no connections
         .mockReturnValueOnce([mockConnection]); // After auto-connect
-      execConnectToServerMock.mockResolvedValue(undefined);
+      vi.mocked(execConnectToServer).mockResolvedValue(undefined);
 
       const result = await getFirstConnectionOrCreate({
         serverManager,
@@ -545,7 +539,7 @@ describe('getFirstConnectionOrCreate', () => {
         connection: mockConnection,
         panelUrlFormat: `${mockUrl.origin}/iframe/widget/?name=<variableTitle>`,
       });
-      expect(execConnectToServerMock).toHaveBeenCalledWith({
+      expect(execConnectToServer).toHaveBeenCalledWith({
         type: 'DHC',
         url: mockUrl,
       });
