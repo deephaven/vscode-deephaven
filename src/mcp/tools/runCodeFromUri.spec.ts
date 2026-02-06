@@ -55,7 +55,7 @@ const MOCK_HINT = {
   foundMatchingFolderUris: ['file:///workspace/mockmodule'],
 };
 
-const MOCK_URI_STRING = 'file:///path/to/file.py';
+const MOCK_URI_STRING = 'file:///path/to/file.py' as const;
 
 const MOCK_DIAGNOSTIC_ERRORS: DiagnosticsError[] = [
   {
@@ -64,9 +64,8 @@ const MOCK_DIAGNOSTIC_ERRORS: DiagnosticsError[] = [
     range: new vscode.Range(5, 0, 5, 13),
   },
 ];
-const MOCK_CONNECTION_URL = 'http://localhost:10000';
-const MOCK_PARSED_CONNECTION_URL = new URL(MOCK_CONNECTION_URL);
-const MOCK_PANEL_URL_FORMAT = `${MOCK_CONNECTION_URL}/iframe/widget/?name=<variableTitle>`;
+const MOCK_CONNECTION_URL = new URL('http://localhost:10000');
+const MOCK_PANEL_URL_FORMAT = 'mock.panelUrlFormat' as const;
 
 const MOCK_DOCUMENT = {
   languageId: 'python',
@@ -160,7 +159,7 @@ describe('runCodeFromUri tool', () => {
         success: false,
         errorMessage,
         hint,
-        details: { connectionUrl: MOCK_CONNECTION_URL + '/' },
+        details: { connectionUrl: MOCK_CONNECTION_URL.href },
       });
 
       const tool = createRunCodeFromUriTool({
@@ -171,18 +170,18 @@ describe('runCodeFromUri tool', () => {
 
       const result = await tool.handler({
         uri: MOCK_URI_STRING,
-        connectionUrl: MOCK_CONNECTION_URL,
+        connectionUrl: MOCK_CONNECTION_URL.href,
       });
 
       expect(getFirstConnectionOrCreate).toHaveBeenCalledWith({
         serverManager,
-        connectionUrl: MOCK_PARSED_CONNECTION_URL,
+        connectionUrl: MOCK_CONNECTION_URL,
         languageId: 'python',
       });
       expect(result.structuredContent).toEqual(
         mcpErrorResult(
           errorMessage,
-          { connectionUrl: MOCK_CONNECTION_URL + '/' },
+          { connectionUrl: MOCK_CONNECTION_URL.href },
           hint
         )
       );
@@ -269,7 +268,7 @@ describe('runCodeFromUri tool', () => {
       {
         name: 'execute code successfully',
         cmdResult: MOCK_RUN_CODE_SUCCESS,
-        connectionUrl: MOCK_CONNECTION_URL,
+        connectionUrl: MOCK_CONNECTION_URL.href,
         expected: mcpSuccessResult('Code executed successfully', {
           variables: [{ id: 'x', title: 'x', type: 'int', isNew: true }],
           panelUrlFormat: MOCK_PANEL_URL_FORMAT,
@@ -278,7 +277,7 @@ describe('runCodeFromUri tool', () => {
       {
         name: 'handle code execution failure with Python diagnostics and hint',
         cmdResult: MOCK_RUN_CODE_ERROR,
-        connectionUrl: MOCK_CONNECTION_URL,
+        connectionUrl: MOCK_CONNECTION_URL.href,
         pythonHint: MOCK_HINT,
         expected: mcpErrorResult(
           "Code execution failed: file:///path/to/file.py: name 'undefined_var' is not defined [5:0]",
@@ -293,7 +292,7 @@ describe('runCodeFromUri tool', () => {
       {
         name: 'handle code execution failure with Python diagnostics without hint',
         cmdResult: MOCK_RUN_CODE_ERROR,
-        connectionUrl: MOCK_CONNECTION_URL,
+        connectionUrl: MOCK_CONNECTION_URL.href,
         pythonHint: undefined,
         expected: mcpErrorResult(
           "Code execution failed: file:///path/to/file.py: name 'undefined_var' is not defined [5:0]",
@@ -305,8 +304,8 @@ describe('runCodeFromUri tool', () => {
       },
       {
         name: 'handle ConnectionNotFoundError during code execution',
-        cmdResult: new ConnectionNotFoundError(new URL(MOCK_CONNECTION_URL)),
-        connectionUrl: MOCK_CONNECTION_URL,
+        cmdResult: new ConnectionNotFoundError(MOCK_CONNECTION_URL),
+        connectionUrl: MOCK_CONNECTION_URL.href,
         connectionNotFoundHint:
           'No available connections supporting languageId python.',
         expected: mcpErrorResult(
@@ -318,7 +317,7 @@ describe('runCodeFromUri tool', () => {
       {
         name: 'handle general exceptions during execution',
         cmdResult: new Error('Unexpected error'),
-        connectionUrl: MOCK_CONNECTION_URL,
+        connectionUrl: MOCK_CONNECTION_URL.href,
         expected: mcpErrorResult('Failed to execute code: Unexpected error', {
           languageId: 'python',
         }),
@@ -360,7 +359,7 @@ describe('runCodeFromUri tool', () => {
 
         expect(getFirstConnectionOrCreate).toHaveBeenCalledWith({
           serverManager,
-          connectionUrl: MOCK_PARSED_CONNECTION_URL,
+          connectionUrl: MOCK_CONNECTION_URL,
           languageId: 'python',
         });
         expect(result.structuredContent).toEqual(expected);
