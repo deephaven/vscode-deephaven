@@ -43,6 +43,14 @@
       {
         "label": "Python Remote File Sourcing",
         "path": "python-remote-file-sourcing.md"
+      },
+      {
+        "label": "Model Context Protocol (MCP)",
+        "path": "mcp.md"
+      },
+      {
+        "label": "MCP Tool Reference",
+        "path": "mcp-tools.md"
       }
     ]
   }
