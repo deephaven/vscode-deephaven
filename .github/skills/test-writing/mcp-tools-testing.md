@@ -80,7 +80,6 @@ it('should return correct tool spec', () => {
   expect(tool.name).toBe('toolName');
   expect(tool.spec.title).toBe('Tool Title');
   expect(tool.spec.description).toBe('Description');
-  expect(tool.spec.inputSchema.properties).toHaveProperty('paramName');
 });
 ```
 
