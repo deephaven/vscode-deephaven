@@ -69,7 +69,9 @@ const result = await tool.handler({ connectionUrl: MOCK_DHC_URL.href });
 
 ## MCP Tool Structure
 
-### Test Tool Spec
+### Tool Spec Test Naming
+
+Use consistent naming for tool spec tests:
 
 ```typescript
 it('should return correct tool spec', () => {

@@ -81,22 +81,6 @@ it.each(
 );
 ```
 
-Use `mockSetup` pattern only when mock configuration is complex:
-
-```typescript
-it.each([
-  {
-    scenario: 'network error',
-    mockSetup: () => vi.mocked(service).mockRejectedValue(new Error('Network')),
-    expected: mcpErrorResult('Failed: Network'),
-  },
-])('should handle $scenario', async ({ mockSetup, expected }) => {
-  mockSetup();
-  const result = await handler();
-  expect(result.structuredContent).toEqual(expected);
-});
-```
-
 ### 5. Test Organization with describe Blocks
 
 **Top-level `describe` must match the exported function name being tested.**
@@ -167,67 +151,18 @@ const createMockServer = (overrides = {}) => ({
 });
 ```
 
-### Spec Test Naming
-
-Use consistent naming for tool spec tests:
-
-```typescript
-it('should return correct tool spec', () => {
-  const tool = createMyTool({ dependencies });
-
-  expect(tool.name).toBe('toolName');
-  expect(tool.spec.title).toBe('Tool Title');
-  expect(tool.spec.description).toBe('Description');
-});
-```
-
-## MCP Test Utilities (for MCP Tools)
-
-When testing MCP tools in `src/mcp/tools/`:
-
-```typescript
-import {
-  fakeMcpToolTimings,
-  mcpSuccessResult,
-  mcpErrorResult,
-  MOCK_DHC_URL,
-} from '../utils/mcpTestUtils';
-
-beforeEach(() => {
-  vi.clearAllMocks();
-  fakeMcpToolTimings(); // Sets up execution time mocking
-});
-
-// Always use result helpers
-expect(result.structuredContent).toEqual(
-  mcpSuccessResult('Success', { data: 'value' })
-);
-
-expect(result.structuredContent).toEqual(
-  mcpErrorResult('Error message', { detail: 'info' })
-);
-
-// Use shared URL constant
-const result = await tool.handler({ connectionUrl: MOCK_DHC_URL.href });
-```
-
-**Never:**
-- Manually mock `McpToolResponse.prototype.getElapsedTimeMs`
-- Import or reference `MOCK_EXECUTION_TIME_MS`
-- Build raw result objects with `{ success: true, executionTimeMs: ... }`
-
 ## Examples
 
 Study these for patterns:
 
 - `src/mcp/tools/listPanelVariables.spec.ts` - Parameterized tests with `it.each`
 - `src/mcp/tools/openVariablePanels.spec.ts` - Input validation patterns
-- `src/mcp/tools/connectToServer.spec.ts` - Complex error handling
 
-## Context Files
+## MCP Tools Testing
 
-For domain-specific testing patterns:
-
-- MCP Tools: See `mcp-tools-testing.md`
-
+**For testing MCP tools** (`src/mcp/tools/`), see **[mcp-tools-testing.md](mcp-tools-testing.md)** for:
+- MCP test utilities (`fakeMcpToolTimings`, `mcpSuccessResult`, `mcpErrorResult`)
+- URL mocking patterns
+- Tool spec and handler testing
+- Server connection and error propagation patterns
 ````
