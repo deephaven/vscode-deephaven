@@ -7,14 +7,17 @@ import type {
   UniqueID,
   WorkerInfo,
 } from '../../types';
-import { McpToolResponse } from '../utils/mcpUtils';
+import {
+  fakeMcpToolTimings,
+  mcpErrorResult,
+  mcpSuccessResult,
+  MOCK_DHC_URL,
+} from '../utils/mcpTestUtils';
 
 vi.mock('vscode');
 
-const MOCK_EXECUTION_TIME_MS = 100;
-
 const MOCK_CONNECTION_1: ConnectionState = {
-  serverUrl: new URL('http://localhost:10000'),
+  serverUrl: MOCK_DHC_URL,
   isConnected: true,
   isRunningCode: false,
   tagId: 'conn1' as UniqueID,
@@ -45,11 +48,7 @@ describe('listConnections', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-
-    // Mock getElapsedTimeMs to return a fixed value
-    vi.spyOn(McpToolResponse.prototype, 'getElapsedTimeMs').mockReturnValue(
-      MOCK_EXECUTION_TIME_MS
-    );
+    fakeMcpToolTimings();
   });
 
   it('should return correct tool spec', () => {
@@ -72,16 +71,16 @@ describe('listConnections', () => {
     },
     {
       name: 'filter by serverUrl',
-      serverUrl: 'http://localhost:10000',
+      serverUrl: MOCK_DHC_URL.href,
       connections: [MOCK_CONNECTION_1],
-      expectedGetConnectionsArg: new URL('http://localhost:10000'),
+      expectedGetConnectionsArg: MOCK_DHC_URL,
       expectedConnections: [EXPECTED_CONNECTION_1],
     },
     {
       name: 'include querySerial when workerInfo available',
-      serverUrl: 'http://localhost:10000',
+      serverUrl: MOCK_DHC_URL.href,
       connections: [MOCK_CONNECTION_1],
-      expectedGetConnectionsArg: new URL('http://localhost:10000'),
+      expectedGetConnectionsArg: MOCK_DHC_URL,
       expectedConnections: [
         { ...EXPECTED_CONNECTION_1, querySerial: 'test-serial-123' },
       ],
@@ -119,14 +118,11 @@ describe('listConnections', () => {
       expect(serverManager.getConnections).toHaveBeenCalledWith(
         expectedGetConnectionsArg
       );
-      expect(result.structuredContent).toEqual({
-        success: true,
-        message: `Found ${expectedConnections.length} connection(s)`,
-        details: {
+      expect(result.structuredContent).toEqual(
+        mcpSuccessResult(`Found ${expectedConnections.length} connection(s)`, {
           connections: expectedConnections,
-        },
-        executionTimeMs: MOCK_EXECUTION_TIME_MS,
-      });
+        })
+      );
     }
   );
 
@@ -134,12 +130,9 @@ describe('listConnections', () => {
     const tool = createListConnectionsTool({ serverManager });
     const result = await tool.handler({ serverUrl: 'invalid-url' });
 
-    expect(result.structuredContent).toEqual({
-      success: false,
-      message: 'Invalid URL: Invalid URL',
-      details: { serverUrl: 'invalid-url' },
-      executionTimeMs: MOCK_EXECUTION_TIME_MS,
-    });
+    expect(result.structuredContent).toEqual(
+      mcpErrorResult('Invalid URL: Invalid URL', { serverUrl: 'invalid-url' })
+    );
     expect(serverManager.getConnections).not.toHaveBeenCalled();
   });
 
@@ -150,7 +143,7 @@ describe('listConnections', () => {
     },
     {
       name: 'with valid serverUrl',
-      serverUrl: 'http://localhost:10000',
+      serverUrl: MOCK_DHC_URL.href,
     },
   ])('should handle errors from serverManager $name', async ({ serverUrl }) => {
     const error = new Error('getConnections error');
@@ -161,10 +154,8 @@ describe('listConnections', () => {
     const tool = createListConnectionsTool({ serverManager });
     const result = await tool.handler({ serverUrl });
 
-    expect(result.structuredContent).toEqual({
-      success: false,
-      message: 'Failed to list connections: getConnections error',
-      executionTimeMs: MOCK_EXECUTION_TIME_MS,
-    });
+    expect(result.structuredContent).toEqual(
+      mcpErrorResult('Failed to list connections: getConnections error')
+    );
   });
 });

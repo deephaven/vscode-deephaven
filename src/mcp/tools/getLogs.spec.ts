@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { OutputChannelWithHistory } from '../../util';
 import { createGetLogsTool } from './getLogs';
-import { McpToolResponse } from '../utils/mcpUtils';
+import {
+  fakeMcpToolTimings,
+  mcpErrorResult,
+  mcpSuccessResult,
+} from '../utils/mcpTestUtils';
 
 vi.mock('vscode');
-
-const MOCK_EXECUTION_TIME_MS = 100;
 
 const MOCK_LOG_HISTORY = [
   '2024-01-01 10:00:00 [INFO] Server started',
@@ -24,10 +26,7 @@ describe('getLogs', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-
-    vi.spyOn(McpToolResponse.prototype, 'getElapsedTimeMs').mockReturnValue(
-      MOCK_EXECUTION_TIME_MS
-    );
+    fakeMcpToolTimings();
   });
 
   it('should return correct tool spec', () => {
@@ -50,15 +49,12 @@ describe('getLogs', () => {
       const result = await tool.handler({ logType });
 
       expect(channel.getHistory).toHaveBeenCalledOnce();
-      expect(result.structuredContent).toEqual({
-        success: true,
-        message: 'Retrieved log history',
-        details: {
+      expect(result.structuredContent).toEqual(
+        mcpSuccessResult('Retrieved log history', {
           logs: MOCK_LOG_HISTORY,
           logType,
-        },
-        executionTimeMs: MOCK_EXECUTION_TIME_MS,
-      });
+        })
+      );
     }
   );
 
@@ -72,15 +68,12 @@ describe('getLogs', () => {
       const result = await tool.handler({ logType });
 
       expect(channel.getHistory).toHaveBeenCalledOnce();
-      expect(result.structuredContent).toEqual({
-        success: true,
-        message: 'Retrieved log history',
-        details: {
+      expect(result.structuredContent).toEqual(
+        mcpSuccessResult('Retrieved log history', {
           logs: [],
           logType,
-        },
-        executionTimeMs: MOCK_EXECUTION_TIME_MS,
-      });
+        })
+      );
     }
   );
 
@@ -96,14 +89,11 @@ describe('getLogs', () => {
       const tool = createGetLogsTool({ outputChannel, outputChannelDebug });
       const result = await tool.handler({ logType });
 
-      expect(result.structuredContent).toEqual({
-        success: false,
-        message: 'Failed to retrieve logs: getHistory error',
-        details: {
+      expect(result.structuredContent).toEqual(
+        mcpErrorResult('Failed to retrieve logs: getHistory error', {
           logType,
-        },
-        executionTimeMs: MOCK_EXECUTION_TIME_MS,
-      });
+        })
+      );
     }
   );
 });
