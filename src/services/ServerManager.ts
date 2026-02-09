@@ -550,6 +550,12 @@ export class ServerManager implements IServerManager {
 
   /**
    * Get the DHE service associated with the given worker URL.
+   * There are a couple of scenarios where this might return null:
+   * 1. The worker URL is for a DHC connection, which won't have a DHE service.
+   * 2. The worker URL is for a DHE connection, but the DHE service hasn't been
+   *    initialized yet (e.g., the worker is still being created).
+   * We might eventually want to refactor this at some point to throw exceptions
+   * and handle them explicitly upstream.
    * @param maybeWorkerUrl The worker URL to get the DHE service for.
    */
   getDheServiceForWorker = async (
