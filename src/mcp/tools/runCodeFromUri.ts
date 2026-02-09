@@ -18,6 +18,7 @@ import {
   formatDiagnosticError,
   createConnectionNotFoundHint,
   McpToolResponse,
+  getFirstConnectionOrCreate,
 } from '../utils';
 import { assertDefined } from '../../shared';
 import { ConnectionNotFoundError } from '../../common';
@@ -36,7 +37,6 @@ const spec = {
       ),
     connectionUrl: z
       .string()
-      .optional()
       .describe('The Deephaven connection URL to use for execution.'),
   },
   outputSchema: runCodeOutputSchema,
@@ -96,12 +96,25 @@ export function createRunCodeFromUriTool({
       const languageId = document.languageId;
 
       try {
+        const firstConnectionResult = await getFirstConnectionOrCreate({
+          serverManager,
+          connectionUrl: parsedURLResult.value,
+          languageId,
+        });
+
+        if (!firstConnectionResult.success) {
+          const { details, error, errorMessage, hint } = firstConnectionResult;
+          return response.errorWithHint(errorMessage, error, hint, details);
+        }
+
+        const { panelUrlFormat } = firstConnectionResult;
+
         const result = await execRunCode(
           parsedUriResult.value,
           undefined,
           constrainTo,
           languageId,
-          parsedURLResult.value ?? undefined
+          parsedURLResult.value
         );
 
         // Extract variables from result
@@ -149,6 +162,7 @@ export function createRunCodeFromUriTool({
 
         return response.success('Code executed successfully', {
           variables,
+          panelUrlFormat,
         });
       } catch (error) {
         let hint: string | undefined;

@@ -183,13 +183,26 @@ export class McpToolResponse {
     message: string,
     details?: TDetails
   ): McpToolResult<true, TDetails> {
-    return mcpToolResult(
-      true,
-      message,
-      this.getElapsedTimeMs(),
-      undefined,
-      details
-    );
+    return this.successWithHint(message, undefined, details);
+  }
+
+  /**
+   * Creates a successful MCP tool result with guidance hint.
+   *
+   * Automatically calculates and includes execution time from when the
+   * McpToolResponse instance was created.
+   *
+   * @param message Success message describing what was accomplished.
+   * @param hint Optional guidance for next steps or additional context.
+   * @param details Optional tool-specific result data.
+   * @returns MCP tool result with success=true, hint, and measured execution time.
+   */
+  successWithHint<TDetails = unknown>(
+    message: string,
+    hint?: string,
+    details?: TDetails
+  ): McpToolResult<true, TDetails> {
+    return mcpToolResult(true, message, this.getElapsedTimeMs(), hint, details);
   }
 
   /**

@@ -3,7 +3,6 @@ import type {
   ConnectionState,
   IPanelService,
   IServerManager,
-  NonEmptyArray,
   VariableDefintion,
   WorkerInfo,
   WorkerURL,
@@ -24,6 +23,8 @@ import {
   DH_PANEL_VIEW_TYPE,
   OPEN_VARIABLE_PANELS_CMD,
   REFRESH_VARIABLE_PANELS_CMD,
+  type OpenVariablePanelsCmdArgs,
+  type RefreshVariablePanelsCmdArgs,
 } from '../common';
 import { waitFor } from '../util/promiseUtils';
 import { getEmbedWidgetUrl } from '../dh/dhc';
@@ -213,9 +214,9 @@ export class PanelController extends ControllerBase {
    * @param variables
    */
   private _onOpenPanels = async (
-    serverUrl: URL,
-    variables: NonEmptyArray<VariableDefintion>
+    ...args: OpenVariablePanelsCmdArgs
   ): Promise<void> => {
+    const [serverUrl, variables] = args;
     logger.debug(
       '[_onOpenPanels]',
       serverUrl.href,
@@ -292,9 +293,9 @@ export class PanelController extends ControllerBase {
    * @param variables Variables identifying the panels to refresh.
    */
   private _onRefreshPanelsContent = async (
-    serverUrl: URL | WorkerURL,
-    variables: NonEmptyArray<VariableDefintion>
+    ...args: RefreshVariablePanelsCmdArgs
   ): Promise<void> => {
+    const [serverUrl, variables] = args;
     logger.debug2(
       '[_onRefreshPanelsContent]:',
       serverUrl.href,

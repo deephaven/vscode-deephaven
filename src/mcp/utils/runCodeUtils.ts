@@ -48,16 +48,22 @@ export const runCodeOutputSchema = {
         .string()
         .optional()
         .describe('The language ID used for execution (python or groovy)'),
-      variables: z
-        .array(variableResultSchema)
-        .optional()
-        .describe('Variables created or updated by the code execution'),
       foundMatchingFolderUris: z
         .array(z.string())
         .optional()
         .describe(
           'Folder URIs in the workspace that match missing Python module names. Use these exact URIs with addRemoteFileSources to resolve import errors.'
         ),
+      panelUrlFormat: z
+        .string()
+        .optional()
+        .describe(
+          'URL format for accessing panel variables. Replace <variableTitle> with the variable title.'
+        ),
+      variables: z
+        .array(variableResultSchema)
+        .optional()
+        .describe('Variables created or updated by the code execution'),
     })
     .optional(),
 };

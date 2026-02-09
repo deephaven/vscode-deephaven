@@ -1,34 +1,62 @@
 import * as vscode from 'vscode';
+import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createRunCodeFromUriTool } from './runCodeFromUri';
-import type { ConnectionState, IServerManager } from '../../types';
+import type {
+  IDhcService,
+  IServerManager,
+  VariableDefintion,
+} from '../../types';
 import type { FilteredWorkspace } from '../../services';
 import { McpToolResponse } from '../utils/mcpUtils';
-import { ConnectionNotFoundError } from '../../common';
+import { getFirstConnectionOrCreate } from '../utils/serverUtils';
 import {
+  createMockDhcService,
+  mcpErrorResult,
+  mcpSuccessResult,
+  MOCK_EXECUTION_TIME_MS,
+} from '../utils/mcpTestUtils';
+import { ConnectionNotFoundError } from '../../common';
+import { execRunCode } from '../../common/commands';
+import {
+  createConnectionNotFoundHint,
   createPythonModuleImportErrorHint,
   getDiagnosticsErrors,
   type DiagnosticsError,
 } from '../utils/runCodeUtils';
 
 vi.mock('vscode');
+vi.mock('../../common/commands', async () => {
+  const actual = await vi.importActual('../../common/commands');
+  return {
+    ...actual,
+    execRunCode: vi.fn(),
+  };
+});
+vi.mock('../utils/serverUtils', async () => {
+  const actual = await vi.importActual('../utils/serverUtils');
+  return {
+    ...actual,
+    getFirstConnectionOrCreate: vi.fn(),
+  };
+});
 vi.mock('../utils/runCodeUtils', async () => {
   const actual = await vi.importActual('../utils/runCodeUtils');
   return {
     ...actual,
+    createConnectionNotFoundHint: vi.fn(),
     createPythonModuleImportErrorHint: vi.fn(),
     getDiagnosticsErrors: vi.fn(),
   };
 });
 
-const MOCK_EXECUTION_TIME_MS = 100;
 const MOCK_HINT = {
   hint: 'mock.hint',
   foundMatchingFolderUris: ['file:///workspace/mockmodule'],
 };
 
-const MOCK_URI_STRING = 'file:///path/to/file.py';
+const MOCK_URI_STRING = 'file:///path/to/file.py' as const;
 
 const MOCK_DIAGNOSTIC_ERRORS: DiagnosticsError[] = [
   {
@@ -37,7 +65,8 @@ const MOCK_DIAGNOSTIC_ERRORS: DiagnosticsError[] = [
     range: new vscode.Range(5, 0, 5, 13),
   },
 ];
-const MOCK_CONNECTION_URL = 'http://localhost:10000';
+const MOCK_CONNECTION_URL = new URL('http://localhost:10000');
+const MOCK_PANEL_URL_FORMAT = 'mock.panelUrlFormat' as const;
 
 const MOCK_DOCUMENT = {
   languageId: 'python',
@@ -47,91 +76,35 @@ const MOCK_FILE_STAT = {
   type: vscode.FileType.File,
 } as vscode.FileStat;
 
-const EXPECTED_INVALID_URI = {
-  success: false,
-  message: 'Invalid URI: Invalid URI',
-  details: { uri: 'not-a-uri' },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
+const MOCK_INT_VARIABLE = {
+  id: 'x',
+  title: 'x',
+  type: 'int',
+} as VariableDefintion;
 
-const EXPECTED_FILE_NOT_FOUND = {
-  success: false,
-  message: 'File not found: File not found',
-  details: { uri: '/path/to/file.py' },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_INVALID_URL = {
-  success: false,
-  message: 'Invalid URL: Invalid URL',
-  details: { connectionUrl: 'not-a-url' },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_CONNECTION_NOT_FOUND = {
-  success: false,
-  message:
-    'Failed to execute code: No connection found for URL: http://localhost:10000/',
-  hint: 'No available connections supporting languageId python.',
-  details: { languageId: 'python' },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_GENERAL_ERROR = {
-  success: false,
-  message: 'Failed to execute code: Unexpected error',
-  details: { languageId: 'python' },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
+const MOCK_STR_VARIABLE = {
+  id: 'y',
+  title: 'y',
+  type: 'str',
+} as VariableDefintion;
 
 const MOCK_RUN_CODE_SUCCESS = {
-  error: null,
+  error: '',
   changes: {
-    created: [{ id: 'x', title: 'x', type: 'int' }],
+    created: [MOCK_INT_VARIABLE],
     updated: [],
+    removed: [],
   },
-} as const;
+} as DhcType.ide.CommandResult;
 
 const MOCK_RUN_CODE_ERROR = {
   error: 'NameError: name "undefined_var" is not defined',
   changes: {
-    created: [{ id: 'y', title: 'y', type: 'str' }],
+    created: [MOCK_STR_VARIABLE],
     updated: [],
+    removed: [],
   },
-} as const;
-
-const EXPECTED_SUCCESS = {
-  success: true,
-  message: 'Code executed successfully',
-  details: {
-    variables: [{ id: 'x', title: 'x', type: 'int', isNew: true }],
-  },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_CODE_EXECUTION_FAILED = {
-  success: false,
-  message:
-    "Code execution failed: file:///path/to/file.py: name 'undefined_var' is not defined [5:0]",
-  hint: MOCK_HINT.hint,
-  details: {
-    languageId: 'python',
-    variables: [{ id: 'y', title: 'y', type: 'str', isNew: true }],
-    foundMatchingFolderUris: MOCK_HINT.foundMatchingFolderUris,
-  },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_CODE_EXECUTION_FAILED_NO_HINT = {
-  success: false,
-  message:
-    "Code execution failed: file:///path/to/file.py: name 'undefined_var' is not defined [5:0]",
-  details: {
-    languageId: 'python',
-    variables: [{ id: 'y', title: 'y', type: 'str', isNew: true }],
-  },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
+} as DhcType.ide.CommandResult;
 
 describe('runCodeFromUri tool', () => {
   const pythonDiagnostics: vscode.DiagnosticCollection =
@@ -142,8 +115,6 @@ describe('runCodeFromUri tool', () => {
   } as unknown as FilteredWorkspace;
 
   const serverManager = {
-    getConnections: vi.fn(),
-    getServer: vi.fn(),
     getUriConnection: vi.fn(),
   } as unknown as IServerManager;
 
@@ -174,27 +145,77 @@ describe('runCodeFromUri tool', () => {
     );
   });
 
+  describe('connection error handling', () => {
+    beforeEach(() => {
+      vi.mocked(vscode.workspace.fs.stat).mockResolvedValue(MOCK_FILE_STAT);
+      vi.mocked(vscode.workspace.openTextDocument).mockResolvedValue(
+        MOCK_DOCUMENT
+      );
+    });
+
+    it('should return error when connection establishment fails', async () => {
+      const errorMessage = 'No connections or server found';
+      const hint = 'No available connections supporting languageId python.';
+      vi.mocked(getFirstConnectionOrCreate).mockResolvedValue({
+        success: false,
+        errorMessage,
+        hint,
+        details: { connectionUrl: MOCK_CONNECTION_URL.href },
+      });
+
+      const tool = createRunCodeFromUriTool({
+        pythonDiagnostics,
+        pythonWorkspace,
+        serverManager,
+      });
+
+      const result = await tool.handler({
+        uri: MOCK_URI_STRING,
+        connectionUrl: MOCK_CONNECTION_URL.href,
+      });
+
+      expect(getFirstConnectionOrCreate).toHaveBeenCalledWith({
+        serverManager,
+        connectionUrl: MOCK_CONNECTION_URL,
+        languageId: 'python',
+      });
+      expect(result.structuredContent).toEqual(
+        mcpErrorResult(
+          errorMessage,
+          { connectionUrl: MOCK_CONNECTION_URL.href },
+          hint
+        )
+      );
+    });
+  });
+
   describe('input validation', () => {
     it.each([
       {
         name: 'invalid URI',
         uri: 'not-a-uri',
         connectionUrl: undefined,
-        expected: EXPECTED_INVALID_URI,
+        expected: mcpErrorResult('Invalid URI: Invalid URI', {
+          uri: 'not-a-uri',
+        }),
       },
       {
         name: 'file does not exist',
         uri: MOCK_URI_STRING,
         connectionUrl: undefined,
         statResult: new Error('File not found'),
-        expected: EXPECTED_FILE_NOT_FOUND,
+        expected: mcpErrorResult('File not found: File not found', {
+          uri: '/path/to/file.py',
+        }),
       },
       {
         name: 'invalid URL',
         uri: MOCK_URI_STRING,
         connectionUrl: 'not-a-url',
         statResult: MOCK_FILE_STAT,
-        expected: EXPECTED_INVALID_URL,
+        expected: mcpErrorResult('Invalid URL: Invalid URL', {
+          connectionUrl: 'not-a-url',
+        }),
       },
     ])(
       'should reject $name',
@@ -222,75 +243,104 @@ describe('runCodeFromUri tool', () => {
   });
 
   describe('code execution', () => {
+    const mockConnection: IDhcService = createMockDhcService({
+      serverUrl: new URL('http://localhost:10000'),
+    });
+
     beforeEach(() => {
       vi.mocked(vscode.workspace.fs.stat).mockResolvedValue(MOCK_FILE_STAT);
       vi.mocked(vscode.workspace.openTextDocument).mockResolvedValue(
         MOCK_DOCUMENT
       );
-      vi.mocked(serverManager.getConnections).mockReturnValue([]);
-      vi.mocked(serverManager.getServer).mockReturnValue(undefined);
-
+      vi.mocked(serverManager.getUriConnection).mockReturnValue(mockConnection);
       vi.mocked(getDiagnosticsErrors).mockReturnValue(MOCK_DIAGNOSTIC_ERRORS);
+
+      vi.mocked(getFirstConnectionOrCreate).mockResolvedValue({
+        success: true,
+        connection: mockConnection,
+        panelUrlFormat: MOCK_PANEL_URL_FORMAT,
+      });
+
+      // Default mock for execRunCode (will be overridden per test)
+      vi.mocked(execRunCode).mockResolvedValue(null);
     });
 
     it.each([
       {
-        name: 'ConnectionNotFoundError with hint',
-        cmdResult: new ConnectionNotFoundError(new URL(MOCK_CONNECTION_URL)),
-        connectionUrl: MOCK_CONNECTION_URL,
-        expected: EXPECTED_CONNECTION_NOT_FOUND,
-      },
-      {
-        name: 'general exceptions during execution',
-        cmdResult: new Error('Unexpected error'),
-        connectionUrl: undefined,
-        expected: EXPECTED_GENERAL_ERROR,
-      },
-      {
         name: 'execute code successfully',
         cmdResult: MOCK_RUN_CODE_SUCCESS,
-        connectionUrl: undefined,
-        expected: EXPECTED_SUCCESS,
+        connectionUrl: MOCK_CONNECTION_URL.href,
+        expected: mcpSuccessResult('Code executed successfully', {
+          variables: [{ id: 'x', title: 'x', type: 'int', isNew: true }],
+          panelUrlFormat: MOCK_PANEL_URL_FORMAT,
+        }),
       },
       {
         name: 'handle code execution failure with Python diagnostics and hint',
         cmdResult: MOCK_RUN_CODE_ERROR,
-        connectionUrl: undefined,
-        uriConnection: {} as ConnectionState,
+        connectionUrl: MOCK_CONNECTION_URL.href,
         pythonHint: MOCK_HINT,
-        expected: EXPECTED_CODE_EXECUTION_FAILED,
+        expected: mcpErrorResult(
+          "Code execution failed: file:///path/to/file.py: name 'undefined_var' is not defined [5:0]",
+          {
+            languageId: 'python',
+            variables: [{ id: 'y', title: 'y', type: 'str', isNew: true }],
+            foundMatchingFolderUris: MOCK_HINT.foundMatchingFolderUris,
+          },
+          MOCK_HINT.hint
+        ),
       },
       {
         name: 'handle code execution failure with Python diagnostics without hint',
         cmdResult: MOCK_RUN_CODE_ERROR,
-        connectionUrl: undefined,
-        uriConnection: {} as ConnectionState,
+        connectionUrl: MOCK_CONNECTION_URL.href,
         pythonHint: undefined,
-        expected: EXPECTED_CODE_EXECUTION_FAILED_NO_HINT,
+        expected: mcpErrorResult(
+          "Code execution failed: file:///path/to/file.py: name 'undefined_var' is not defined [5:0]",
+          {
+            languageId: 'python',
+            variables: [{ id: 'y', title: 'y', type: 'str', isNew: true }],
+          }
+        ),
+      },
+      {
+        name: 'handle ConnectionNotFoundError during code execution',
+        cmdResult: new ConnectionNotFoundError(MOCK_CONNECTION_URL),
+        connectionUrl: MOCK_CONNECTION_URL.href,
+        connectionNotFoundHint:
+          'No available connections supporting languageId python.',
+        expected: mcpErrorResult(
+          'Failed to execute code: No connection found for URL: http://localhost:10000/',
+          { languageId: 'python' },
+          'No available connections supporting languageId python.'
+        ),
+      },
+      {
+        name: 'handle general exceptions during execution',
+        cmdResult: new Error('Unexpected error'),
+        connectionUrl: MOCK_CONNECTION_URL.href,
+        expected: mcpErrorResult('Failed to execute code: Unexpected error', {
+          languageId: 'python',
+        }),
       },
     ])(
       'should $name',
       async ({
         cmdResult,
         connectionUrl,
-        uriConnection,
         pythonHint,
+        connectionNotFoundHint,
         expected,
       }) => {
         if (cmdResult instanceof Error) {
-          vi.mocked(vscode.commands.executeCommand).mockRejectedValue(
-            cmdResult
-          );
+          vi.mocked(execRunCode).mockRejectedValue(cmdResult);
+          if (connectionNotFoundHint) {
+            vi.mocked(createConnectionNotFoundHint).mockResolvedValue(
+              connectionNotFoundHint
+            );
+          }
         } else {
-          vi.mocked(vscode.commands.executeCommand).mockResolvedValue(
-            cmdResult
-          );
-        }
-
-        if (uriConnection) {
-          vi.mocked(serverManager.getUriConnection).mockReturnValue(
-            uriConnection
-          );
+          vi.mocked(execRunCode).mockResolvedValue(cmdResult);
         }
 
         vi.mocked(createPythonModuleImportErrorHint).mockReturnValue(
@@ -308,6 +358,11 @@ describe('runCodeFromUri tool', () => {
           connectionUrl,
         });
 
+        expect(getFirstConnectionOrCreate).toHaveBeenCalledWith({
+          serverManager,
+          connectionUrl: MOCK_CONNECTION_URL,
+          languageId: 'python',
+        });
         expect(result.structuredContent).toEqual(expected);
       }
     );

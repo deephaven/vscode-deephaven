@@ -2,15 +2,22 @@ import * as vscode from 'vscode';
 import { McpServer as SdkMcpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import * as http from 'http';
-import type { IServerManager, McpTool, McpToolSpec } from '../types';
+import type {
+  IPanelService,
+  IServerManager,
+  McpTool,
+  McpToolSpec,
+} from '../types';
 import { MCP_SERVER_NAME } from '../common';
 import {
   createAddRemoteFileSourcesTool,
   createGetLogsTool,
   createListConnectionsTool,
+  createListPanelVariablesTool,
   createListRemoteFileSourcesTool,
   createListServersTool,
   createOpenFilesInEditorTool,
+  createOpenVariablePanelsTool,
   createRemoveRemoteFileSourcesTool,
   createRunCodeFromUriTool,
   createRunCodeTool,
@@ -35,13 +42,15 @@ export class McpServer extends DisposableBase {
   readonly serverManager: IServerManager;
   readonly outputChannel: OutputChannelWithHistory;
   readonly outputChannelDebug: OutputChannelWithHistory;
+  readonly panelService: IPanelService;
 
   constructor(
     pythonDiagnostics: vscode.DiagnosticCollection,
     pythonWorkspace: FilteredWorkspace,
     serverManager: IServerManager,
     outputChannel: OutputChannelWithHistory,
-    outputChannelDebug: OutputChannelWithHistory
+    outputChannelDebug: OutputChannelWithHistory,
+    panelService: IPanelService
   ) {
     super();
 
@@ -50,6 +59,7 @@ export class McpServer extends DisposableBase {
     this.serverManager = serverManager;
     this.outputChannel = outputChannel;
     this.outputChannelDebug = outputChannelDebug;
+    this.panelService = panelService;
 
     // Create an MCP server
     this.server = new SdkMcpServer({
@@ -61,9 +71,11 @@ export class McpServer extends DisposableBase {
     this.registerTool(createConnectToServerTool(this));
     this.registerTool(createGetLogsTool(this));
     this.registerTool(createListConnectionsTool(this));
+    this.registerTool(createListPanelVariablesTool(this));
     this.registerTool(createListRemoteFileSourcesTool(this));
     this.registerTool(createListServersTool(this));
     this.registerTool(createOpenFilesInEditorTool());
+    this.registerTool(createOpenVariablePanelsTool(this));
     this.registerTool(createRemoveRemoteFileSourcesTool());
     this.registerTool(createRunCodeFromUriTool(this));
     this.registerTool(createRunCodeTool(this));

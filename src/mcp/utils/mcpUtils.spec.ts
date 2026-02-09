@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { formatErrorMessage, McpToolResponse } from './mcpUtils';
 
+vi.mock('vscode');
+
 const MOCK_EXECUTION_TIME_MS = 100;
 
 describe('formatErrorMessage', () => {

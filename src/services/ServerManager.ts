@@ -156,7 +156,7 @@ export class ServerManager implements IServerManager {
         newState.isConnected = existingState.isConnected;
         newState.isRunning = existingState.isRunning;
         newState.connectionCount = existingState.connectionCount;
-        
+
         if (newState.isManaged && existingState.isManaged) {
           newState.psk = existingState.psk;
         }
@@ -549,6 +549,36 @@ export class ServerManager implements IServerManager {
   };
 
   /**
+   * Get the DHE service associated with the given worker URL.
+   * There are a couple of scenarios where this might return null:
+   * 1. The worker URL is for a DHC connection, which won't have a DHE service.
+   * 2. The worker URL is for a DHE connection, but the DHE service hasn't been
+   *    initialized yet (e.g., the worker is still being created).
+   * We might eventually want to refactor this at some point to throw exceptions
+   * and handle them explicitly upstream.
+   * @param maybeWorkerUrl The worker URL to get the DHE service for.
+   */
+  getDheServiceForWorker = async (
+    maybeWorkerUrl: URL
+  ): Promise<IDheService | null> => {
+    const dheServerUrl = this._workerURLToServerURLMap.get(maybeWorkerUrl);
+
+    if (dheServerUrl == null) {
+      return null;
+    }
+
+    // `dheServerUrl` could be for a placeholder, so check for DheService before
+    // retrieving it from the cache below. This is important since the cache
+    // will attempt to create a new DheService if it doesn't exist when calling
+    // `this._dheServiceCache.get`.
+    if (!this._dheServiceCache.has(dheServerUrl)) {
+      return null;
+    }
+
+    return this._dheServiceCache.get(dheServerUrl);
+  };
+
+  /**
    * Get the connection associated with the given URI.
    * @param uri
    */
@@ -591,21 +621,16 @@ export class ServerManager implements IServerManager {
 
   /** Get worker info associated with the given server URL. */
   getWorkerInfo = async (
-    workerUrl: WorkerURL
+    maybeWorkerUrl: URL
   ): Promise<WorkerInfo | undefined> => {
-    const dheServerUrl = this._workerURLToServerURLMap.get(workerUrl);
+    const dheService = await this.getDheServiceForWorker(maybeWorkerUrl);
 
-    // `dheServerUrl` could be for a placeholder, so check for DheService before
-    // retrieving it from the cache below. This is important since the cache
-    // will attempt to create a new DheService if it doesn't exist when calling
-    // `this._dheServiceCache.get`.
-    if (dheServerUrl == null || !this._dheServiceCache.has(dheServerUrl)) {
+    if (dheService == null) {
       return;
     }
 
-    const dheService = await this._dheServiceCache.get(dheServerUrl);
-
-    return dheService.getWorkerInfo(workerUrl);
+    // If we've gotten this far, maybeWorkerUrl is definitely a WorkerURL
+    return dheService.getWorkerInfo(maybeWorkerUrl as WorkerURL);
   };
 
   setEditorConnection = async (

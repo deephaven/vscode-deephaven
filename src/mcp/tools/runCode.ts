@@ -1,4 +1,3 @@
-import { execConnectToServer } from '../../common/commands';
 import { z } from 'zod';
 import type {
   McpTool,
@@ -6,13 +5,12 @@ import type {
   McpToolHandlerResult,
 } from '../../types';
 import type { IServerManager } from '../../types';
-import { DhcService } from '../../services';
-import { isInstanceOf, parseUrl } from '../../util';
+import { parseUrl } from '../../util';
 import {
   runCodeOutputSchema,
   extractVariables,
   McpToolResponse,
-  createConnectionNotFoundHint,
+  getFirstConnectionOrCreate,
 } from '../utils';
 
 const spec = {
@@ -66,63 +64,18 @@ export function createRunCodeTool({
       }
 
       try {
-        let connections = serverManager.getConnections(
-          parsedConnectionURL.value
-        );
+        const firstConnectionResult = await getFirstConnectionOrCreate({
+          connectionUrl: parsedConnectionURL.value,
+          serverManager,
+          languageId,
+        });
 
-        if (connections.length === 0) {
-          // If we don't already have a connection, see if there is a running
-          // server matching the connection URL
-          const server = serverManager.getServer(parsedConnectionURL.value);
-
-          if (server == null) {
-            const hint = await createConnectionNotFoundHint(
-              serverManager,
-              connectionUrl,
-              languageId
-            );
-
-            return response.errorWithHint(
-              'No connections or server found',
-              null,
-              hint,
-              {
-                connectionUrl,
-              }
-            );
-          }
-
-          if (!server.isRunning) {
-            return response.error('Server is not running', null, {
-              connectionUrl,
-            });
-          }
-
-          const serverState = { type: server.type, url: server.url };
-
-          await execConnectToServer(serverState);
-
-          connections = serverManager.getConnections(parsedConnectionURL.value);
-
-          if (connections.length === 0) {
-            return response.error('Failed to connect to server', null, {
-              connectionUrl,
-            });
-          }
+        if (!firstConnectionResult.success) {
+          const { details, error, errorMessage, hint } = firstConnectionResult;
+          return response.errorWithHint(errorMessage, error, hint, details);
         }
 
-        const [connection] = connections;
-
-        // There shouldn't really be a case where the connection is not a
-        // DhcService, but this is consistent with how we check connections
-        // elsewhere
-        if (!isInstanceOf(connection, DhcService)) {
-          return response.error(
-            'Code execution is only supported for Core / Core+ connections.',
-            null,
-            { connectionUrl }
-          );
-        }
+        const { connection, panelUrlFormat } = firstConnectionResult;
 
         // Execute the code
         const result = await connection.runCode(code, languageId);
@@ -133,11 +86,13 @@ export function createRunCodeTool({
         if (result?.error) {
           return response.error('Code execution failed', result.error, {
             languageId,
+            panelUrlFormat,
             variables,
           });
         }
 
         return response.success('Code executed successfully', {
+          panelUrlFormat,
           variables,
         });
       } catch (error) {

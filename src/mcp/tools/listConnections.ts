@@ -4,6 +4,7 @@ import type {
   McpTool,
   McpToolHandlerArg,
   McpToolHandlerResult,
+  WorkerURL,
 } from '../../types';
 import { createMcpToolOutputSchema, McpToolResponse } from '../utils';
 import { parseUrl } from '../../util';
@@ -26,6 +27,7 @@ const spec = {
         serverUrl: z.string(),
         isConnected: z.boolean(),
         isRunningCode: z.boolean().optional(),
+        querySerial: z.string().optional(),
         tagId: z.string().optional(),
       })
     ),
@@ -60,13 +62,23 @@ export function createListConnectionsTool({
           parsedURLResult.value ?? undefined
         );
 
-        const connections = rawConnections.map(
-          ({ serverUrl, isConnected, isRunningCode, tagId }) => ({
-            serverUrl: serverUrl.toString(),
-            isConnected,
-            isRunningCode,
-            tagId,
-          })
+        const connections = await Promise.all(
+          rawConnections.map(
+            async ({ serverUrl, isConnected, isRunningCode, tagId }) => {
+              // Get worker info to retrieve querySerial for DHE connections
+              const workerInfo = await serverManager.getWorkerInfo(
+                serverUrl as WorkerURL
+              );
+
+              return {
+                serverUrl: serverUrl.toString(),
+                isConnected,
+                isRunningCode,
+                tagId,
+                querySerial: workerInfo?.serial,
+              };
+            }
+          )
         );
 
         return response.success(`Found ${connections.length} connection(s)`, {
