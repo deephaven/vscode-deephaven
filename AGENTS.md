@@ -30,6 +30,14 @@ For detailed instructions on writing tests (mocking patterns, test structure, MC
 - **Main skill**: `.github/skills/test-writing/SKILL.md`
 - **MCP-specific patterns**: `.github/skills/test-writing/mcp-tools-testing.md`
 
+## MCP Tools
+
+### Writing MCP Tools
+
+For detailed instructions on writing MCP tools (tool structure, type safety, response formatting, error handling, testing, etc.), consult the **mcp-tool-writing skill**:
+
+- **Main skill**: `.github/skills/mcp-tool-writing/SKILL.md`
+
 ## Code Style
 
 ### Import Order
