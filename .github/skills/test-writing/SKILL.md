@@ -5,6 +5,23 @@ description: Writes unit tests for `vscode-deephaven` using Vitest and TypeScrip
 
 # Test Writing for vscode-deephaven
 
+## Running Tests
+
+Run tests using vitest:
+
+```bash
+# Run all tests
+npx vitest run
+
+# Run specific test file
+npx vitest run src/path/to/file.spec.ts
+
+# Run multiple specific files
+npx vitest run src/mcp/tools/getColumnStats.spec.ts src/mcp/tools/getTableStats.spec.ts
+```
+
+**Important:** Always use `npx vitest run`, not `npm test` or `npm run test` (those start watch mode).
+
 ## Codebase-Specific Conventions
 
 ### 1. Shared VS Code Mocks
@@ -196,6 +213,14 @@ describe('createComplexTool', () => {
 beforeEach(() => {
   vi.clearAllMocks();
 });
+```
+
+### 7. Linting
+
+After making changes to test files, run the linter and fix any errors:
+
+```bash
+npm run test:lint
 ```
 
 ## Common Patterns
