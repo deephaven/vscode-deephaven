@@ -12,7 +12,7 @@ const spec = {
   description: 'List all remote file source folders in the workspace.',
   inputSchema: {},
   outputSchema: createMcpToolOutputSchema({
-    folderUris: z.array(z.string()),
+    folderUris: z.array(z.string()).optional(),
   }),
 } as const;
 

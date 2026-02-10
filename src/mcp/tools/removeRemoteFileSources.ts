@@ -19,7 +19,8 @@ const spec = {
       .describe('List of folder URIs to remove as remote file sources.'),
   },
   outputSchema: createMcpToolOutputSchema({
-    foldersRemoved: z.number(),
+    foldersRemoved: z.number().optional(),
+    folderUris: z.array(z.string()).optional(),
   }),
 } as const;
 
@@ -39,10 +40,10 @@ export function createRemoveRemoteFileSourcesTool(): RemoveRemoteFileSourcesTool
         const uris = folderUris.map(uri =>
           vscode.Uri.parse(uri.replace(/\/$/, ''))
         );
-        
+
         // Deduplicate URIs using URISet
         const uniqueUris = Array.from(new URISet(uris).values());
-        
+
         await execRemoveRemoteFileSource(uniqueUris);
 
         return response.success('Remote file sources removed successfully', {
