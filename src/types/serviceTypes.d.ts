@@ -40,6 +40,7 @@ export interface IAsyncCacheService<TKey, TValue> extends IDisposable {
  */
 export interface IConfigService {
   isElectronFetchEnabled: () => boolean;
+  isMcpDocsEnabled: () => boolean;
   isMcpEnabled: () => boolean;
   getCoreServers: () => CoreConnectionConfig[];
   getEnterpriseServers: () => EnterpriseConnectionConfig[];

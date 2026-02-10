@@ -89,6 +89,10 @@ function getMcpAutoUpdateConfig(): boolean {
   return getConfig().get<boolean>(CONFIG_KEY.mcpAutoUpdateConfig, false);
 }
 
+function isMcpDocsEnabled(): boolean {
+  return getConfig().get<boolean>(CONFIG_KEY.mcpDocsEnabled, true);
+}
+
 function isMcpEnabled(): boolean {
   return getConfig().get<boolean>(CONFIG_KEY.mcpEnabled, false);
 }
@@ -201,6 +205,7 @@ export const ConfigService: IConfigService = {
   getCoreServers,
   getEnterpriseServers,
   isElectronFetchEnabled,
+  isMcpDocsEnabled,
   isMcpEnabled,
   getMcpAutoUpdateConfig,
   setMcpAutoUpdateConfig,

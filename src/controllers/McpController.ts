@@ -12,6 +12,7 @@ import type { FilteredWorkspace } from '../services';
 import { isWindsurf, Logger, OutputChannelWithHistory } from '../util';
 import {
   COPY_MCP_URL_CMD,
+  MCP_SERVER_KEY,
   MCP_SERVER_NAME,
   MCP_SERVER_PORT_STORAGE_KEY,
   SHOW_MCP_QUICK_PICK_CMD,
@@ -77,18 +78,25 @@ export class McpController extends ControllerBase {
     this.registerCommand(SHOW_MCP_QUICK_PICK_CMD, this.showMcpQuickPick, this);
 
     // Register configuration change handler
+    let isMcpDocsEnabledPrev = this._config.isMcpDocsEnabled();
     let isMcpEnabledPrev = this._config.isMcpEnabled();
     vscode.workspace.onDidChangeConfiguration(
       () => {
+        const isMcpDocsEnabledCur = this._config.isMcpDocsEnabled();
         const isMcpEnabledCur = this._config.isMcpEnabled();
 
-        if (isMcpEnabledCur === isMcpEnabledPrev) {
-          return;
+        // Re-initialize if MCP enabled state changed
+        if (isMcpEnabledCur !== isMcpEnabledPrev) {
+          this.initializeStatusBar();
+          this.initializeMcpServer();
+        }
+        // Refresh provider if docs enabled state changed
+        else if (isMcpDocsEnabledCur !== isMcpDocsEnabledPrev) {
+          this._mcpServerDefinitionProvider?.refresh();
         }
 
         isMcpEnabledPrev = isMcpEnabledCur;
-        this.initializeStatusBar();
-        this.initializeMcpServer();
+        isMcpDocsEnabledPrev = isMcpDocsEnabledCur;
       },
       null,
       this.disposables
@@ -116,6 +124,12 @@ export class McpController extends ControllerBase {
 
       logger.info('MCP Server stopped.');
       vscode.window.showInformationMessage('Deephaven MCP Server stopped.');
+    }
+
+    // Clean up existing provider if present
+    if (this._mcpServerDefinitionProvider != null) {
+      this._mcpServerDefinitionProvider.dispose();
+      this._mcpServerDefinitionProvider = null;
     }
 
     if (!this._config.isMcpEnabled()) {
@@ -170,13 +184,14 @@ export class McpController extends ControllerBase {
       // Register provider for VS Code Copilot
       this._mcpServerDefinitionProvider = new McpServerDefinitionProvider(
         this._mcpVersion,
-        this._mcpServer
+        this._mcpServer,
+        this._config
       );
       this.disposables.push(this._mcpServerDefinitionProvider);
 
       this.disposables.push(
         vscode.lm.registerMcpServerDefinitionProvider(
-          'deephaven-vscode.mcpServer',
+          MCP_SERVER_KEY,
           this._mcpServerDefinitionProvider
         )
       );
