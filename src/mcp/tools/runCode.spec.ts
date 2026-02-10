@@ -8,12 +8,11 @@ import type {
   ServerState,
   VariableDefintion,
 } from '../../types';
-import { McpToolResponse } from '../utils/mcpUtils';
 import {
   createMockDhcService,
+  fakeMcpToolTimings,
   mcpErrorResult,
   mcpSuccessResult,
-  MOCK_EXECUTION_TIME_MS,
 } from '../utils/mcpTestUtils';
 import { createConnectionNotFoundHint } from '../utils';
 import { DhcService } from '../../services';
@@ -101,10 +100,7 @@ describe('runCode tool', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Mock getElapsedTimeMs to return a fixed value
-    vi.spyOn(McpToolResponse.prototype, 'getElapsedTimeMs').mockReturnValue(
-      MOCK_EXECUTION_TIME_MS
-    );
+    fakeMcpToolTimings();
 
     mockExecuteCommand.mockResolvedValue(undefined);
     vi.mocked(vscode.commands.executeCommand).mockImplementation(
@@ -117,7 +113,7 @@ describe('runCode tool', () => {
     vi.mocked(serverManager.getWorkerInfo).mockResolvedValue(undefined);
   });
 
-  it('should have correct spec', () => {
+  it('should return correct tool spec', () => {
     const tool = createRunCodeTool({ serverManager });
     expect(tool.name).toBe('runCode');
     expect(tool.spec.title).toBe('Run Deephaven Code');

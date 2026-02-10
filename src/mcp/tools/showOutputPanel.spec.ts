@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { OutputChannelWithHistory } from '../../util';
 import { createShowOutputPanelTool } from './showOutputPanel';
-import { McpToolResponse } from '../utils/mcpUtils';
+import {
+  fakeMcpToolTimings,
+  mcpErrorResult,
+  mcpSuccessResult,
+} from '../utils/mcpTestUtils';
 
 vi.mock('vscode');
-
-const MOCK_EXECUTION_TIME_MS = 100;
 
 describe('showOutputPanel', () => {
   const outputChannel = {
@@ -18,10 +20,7 @@ describe('showOutputPanel', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-
-    vi.spyOn(McpToolResponse.prototype, 'getElapsedTimeMs').mockReturnValue(
-      MOCK_EXECUTION_TIME_MS
-    );
+    fakeMcpToolTimings();
   });
 
   it('should return correct tool spec', () => {
@@ -56,14 +55,9 @@ describe('showOutputPanel', () => {
 
       expect(channelToShow.show).toHaveBeenCalledWith(true);
       expect(channelNotToShow.show).not.toHaveBeenCalled();
-      expect(result.structuredContent).toEqual({
-        success: true,
-        message: 'Output panel shown',
-        details: {
-          outputType,
-        },
-        executionTimeMs: MOCK_EXECUTION_TIME_MS,
-      });
+      expect(result.structuredContent).toEqual(
+        mcpSuccessResult('Output panel shown', { outputType })
+      );
     }
   );
 
@@ -87,14 +81,11 @@ describe('showOutputPanel', () => {
       });
       const result = await tool.handler({ outputType });
 
-      expect(result.structuredContent).toEqual({
-        success: false,
-        message: 'Failed to show output panel: show error',
-        details: {
+      expect(result.structuredContent).toEqual(
+        mcpErrorResult('Failed to show output panel: show error', {
           outputType,
-        },
-        executionTimeMs: MOCK_EXECUTION_TIME_MS,
-      });
+        })
+      );
     }
   );
 });

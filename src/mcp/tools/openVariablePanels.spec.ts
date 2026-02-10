@@ -2,11 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createOpenVariablePanelsTool } from './openVariablePanels';
 import type { IDhcService, IServerManager } from '../../types';
 import { getFirstConnectionOrCreate } from '../utils/serverUtils';
-import { McpToolResponse } from '../utils/mcpUtils';
 import {
+  fakeMcpToolTimings,
   mcpErrorResult,
   mcpSuccessResult,
-  MOCK_EXECUTION_TIME_MS,
 } from '../utils/mcpTestUtils';
 import { execOpenVariablePanels } from '../../common/commands';
 
@@ -34,9 +33,7 @@ describe('openVariablePanels', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    vi.spyOn(McpToolResponse.prototype, 'getElapsedTimeMs').mockReturnValue(
-      MOCK_EXECUTION_TIME_MS
-    );
+    fakeMcpToolTimings();
   });
 
   it('should return correct tool spec', () => {
@@ -106,26 +103,38 @@ describe('openVariablePanels', () => {
   });
 
   describe('connection error handling', () => {
-    it('should return error when connection establishment fails', async () => {
-      const errorMessage = 'No connections or server found';
-      const hint = 'Use connectToServer first';
-      vi.mocked(getFirstConnectionOrCreate).mockResolvedValue({
-        success: false,
-        errorMessage,
-        hint,
-        details: { connectionUrl: MOCK_URL },
-      });
+    it.each([
+      {
+        label: 'without hint',
+        errorMessage: 'No connections or server found',
+        hint: undefined,
+      },
+      {
+        label: 'with hint',
+        errorMessage: 'No connections or server found',
+        hint: 'Use connectToServer first',
+      },
+    ])(
+      'should return error when connection establishment fails $label',
+      async ({ errorMessage, hint }) => {
+        vi.mocked(getFirstConnectionOrCreate).mockResolvedValue({
+          success: false,
+          errorMessage,
+          hint,
+          details: { connectionUrl: MOCK_URL },
+        });
 
-      const tool = createOpenVariablePanelsTool({ serverManager });
-      const result = await tool.handler({
-        connectionUrl: MOCK_URL,
-        variables: MOCK_VARIABLES,
-      });
+        const tool = createOpenVariablePanelsTool({ serverManager });
+        const result = await tool.handler({
+          connectionUrl: MOCK_URL,
+          variables: MOCK_VARIABLES,
+        });
 
-      expect(result.structuredContent).toEqual(
-        mcpErrorResult(errorMessage, { connectionUrl: MOCK_URL }, hint)
-      );
-    });
+        expect(result.structuredContent).toEqual(
+          mcpErrorResult(errorMessage, { connectionUrl: MOCK_URL }, hint)
+        );
+      }
+    );
   });
 
   it('should handle errors from execOpenVariablePanels', async () => {

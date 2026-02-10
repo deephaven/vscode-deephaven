@@ -1,12 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as vscode from 'vscode';
 import { createListRemoteFileSourcesTool } from './listRemoteFileSources';
-import { McpToolResponse } from '../utils/mcpUtils';
 import type { FilteredWorkspace } from '../../services';
+import {
+  fakeMcpToolTimings,
+  mcpErrorResult,
+  mcpSuccessResult,
+} from '../utils/mcpTestUtils';
 
 vi.mock('vscode');
-
-const MOCK_EXECUTION_TIME_MS = 100;
 
 const createMockWorkspace = (
   folderUris: vscode.Uri[] | Error
@@ -27,10 +29,7 @@ const createMockWorkspace = (
 describe('listRemoteFileSources', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-
-    vi.spyOn(McpToolResponse.prototype, 'getElapsedTimeMs').mockReturnValue(
-      MOCK_EXECUTION_TIME_MS
-    );
+    fakeMcpToolTimings();
   });
 
   it('should return correct tool spec', () => {
@@ -83,12 +82,9 @@ describe('listRemoteFileSources', () => {
     const result = await tool.handler({});
 
     expect(mockWorkspace.getTopLevelMarkedFolders).toHaveBeenCalledOnce();
-    expect(result.structuredContent).toEqual({
-      success: true,
-      message: expectedMessage,
-      details: { folderUris },
-      executionTimeMs: MOCK_EXECUTION_TIME_MS,
-    });
+    expect(result.structuredContent).toEqual(
+      mcpSuccessResult(expectedMessage, { folderUris })
+    );
   });
 
   it('should handle error from getTopLevelMarkedFolders', async () => {
@@ -99,10 +95,8 @@ describe('listRemoteFileSources', () => {
     });
     const result = await tool.handler({});
 
-    expect(result.structuredContent).toEqual({
-      success: false,
-      message: 'Failed to list remote file sources: Test error',
-      executionTimeMs: MOCK_EXECUTION_TIME_MS,
-    });
+    expect(result.structuredContent).toEqual(
+      mcpErrorResult('Failed to list remote file sources: Test error')
+    );
   });
 });

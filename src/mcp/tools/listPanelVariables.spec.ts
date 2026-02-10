@@ -7,11 +7,10 @@ import type {
   VariableDefintion,
 } from '../../types';
 import { getFirstConnectionOrCreate } from '../utils/serverUtils';
-import { McpToolResponse } from '../utils/mcpUtils';
 import {
+  fakeMcpToolTimings,
   mcpErrorResult,
   mcpSuccessResult,
-  MOCK_EXECUTION_TIME_MS,
 } from '../utils/mcpTestUtils';
 
 vi.mock('vscode');
@@ -54,9 +53,7 @@ describe('listPanelVariables', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    vi.spyOn(McpToolResponse.prototype, 'getElapsedTimeMs').mockReturnValue(
-      MOCK_EXECUTION_TIME_MS
-    );
+    fakeMcpToolTimings();
   });
 
   it('should return correct tool spec', () => {

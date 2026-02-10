@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as vscode from 'vscode';
 import { createOpenFilesInEditorTool } from './openFilesInEditor';
-import { McpToolResponse } from '../utils/mcpUtils';
+import {
+  fakeMcpToolTimings,
+  mcpErrorResult,
+  mcpSuccessResult,
+} from '../utils/mcpTestUtils';
 
 vi.mock('vscode');
-
-const MOCK_EXECUTION_TIME_MS = 100;
 
 const MOCK_FILE_URIS = [
   'file:///path/to/file1.py',
@@ -13,30 +15,10 @@ const MOCK_FILE_URIS = [
   'file:///path/to/file3.txt',
 ];
 
-const EXPECTED_SUCCESS = {
-  success: true,
-  message: 'Files opened in editor successfully',
-  details: { filesOpened: 3 },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_ERROR = {
-  success: false,
-  message: 'Failed to open some files',
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-  details: {
-    filesOpened: 0,
-    failedUris: MOCK_FILE_URIS,
-  },
-} as const;
-
 describe('openFilesInEditor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-
-    vi.spyOn(McpToolResponse.prototype, 'getElapsedTimeMs').mockReturnValue(
-      MOCK_EXECUTION_TIME_MS
-    );
+    fakeMcpToolTimings();
 
     vi.mocked(vscode.window.showTextDocument).mockResolvedValue(
       {} as vscode.TextEditor
@@ -64,7 +46,11 @@ describe('openFilesInEditor', () => {
       { preview: true, preserveFocus: false }
     );
 
-    expect(result.structuredContent).toEqual(EXPECTED_SUCCESS);
+    expect(result.structuredContent).toEqual(
+      mcpSuccessResult('Files opened in editor successfully', {
+        filesOpened: 3,
+      })
+    );
   });
 
   it('should open files with preview disabled', async () => {
@@ -79,7 +65,11 @@ describe('openFilesInEditor', () => {
       { preview: false, preserveFocus: false }
     );
 
-    expect(result.structuredContent).toEqual(EXPECTED_SUCCESS);
+    expect(result.structuredContent).toEqual(
+      mcpSuccessResult('Files opened in editor successfully', {
+        filesOpened: 3,
+      })
+    );
   });
 
   it('should open files with preserveFocus enabled', async () => {
@@ -94,7 +84,11 @@ describe('openFilesInEditor', () => {
       { preview: true, preserveFocus: true }
     );
 
-    expect(result.structuredContent).toEqual(EXPECTED_SUCCESS);
+    expect(result.structuredContent).toEqual(
+      mcpSuccessResult('Files opened in editor successfully', {
+        filesOpened: 3,
+      })
+    );
   });
 
   it('should open files with custom options', async () => {
@@ -110,7 +104,11 @@ describe('openFilesInEditor', () => {
       { preview: false, preserveFocus: true }
     );
 
-    expect(result.structuredContent).toEqual(EXPECTED_SUCCESS);
+    expect(result.structuredContent).toEqual(
+      mcpSuccessResult('Files opened in editor successfully', {
+        filesOpened: 3,
+      })
+    );
   });
 
   it('should handle single file', async () => {
@@ -118,12 +116,11 @@ describe('openFilesInEditor', () => {
     const result = await tool.handler({ uris: ['file:///path/to/file.py'] });
 
     expect(vscode.window.showTextDocument).toHaveBeenCalledTimes(1);
-    expect(result.structuredContent).toEqual({
-      success: true,
-      message: 'Files opened in editor successfully',
-      details: { filesOpened: 1 },
-      executionTimeMs: MOCK_EXECUTION_TIME_MS,
-    });
+    expect(result.structuredContent).toEqual(
+      mcpSuccessResult('Files opened in editor successfully', {
+        filesOpened: 1,
+      })
+    );
   });
 
   it('should handle empty array', async () => {
@@ -131,12 +128,11 @@ describe('openFilesInEditor', () => {
     const result = await tool.handler({ uris: [] });
 
     expect(vscode.window.showTextDocument).not.toHaveBeenCalled();
-    expect(result.structuredContent).toEqual({
-      success: true,
-      message: 'Files opened in editor successfully',
-      details: { filesOpened: 0 },
-      executionTimeMs: MOCK_EXECUTION_TIME_MS,
-    });
+    expect(result.structuredContent).toEqual(
+      mcpSuccessResult('Files opened in editor successfully', {
+        filesOpened: 0,
+      })
+    );
   });
 
   it('should handle showTextDocument error', async () => {
@@ -146,7 +142,12 @@ describe('openFilesInEditor', () => {
     const tool = createOpenFilesInEditorTool();
     const result = await tool.handler({ uris: MOCK_FILE_URIS });
 
-    expect(result.structuredContent).toEqual(EXPECTED_ERROR);
+    expect(result.structuredContent).toEqual(
+      mcpErrorResult('Failed to open some files', {
+        filesOpened: 0,
+        failedUris: MOCK_FILE_URIS,
+      })
+    );
   });
 
   it('should handle URI parsing error', async () => {
@@ -158,14 +159,11 @@ describe('openFilesInEditor', () => {
     const tool = createOpenFilesInEditorTool();
     const result = await tool.handler({ uris: MOCK_FILE_URIS });
 
-    expect(result.structuredContent).toEqual({
-      success: false,
-      message: 'Failed to open some files',
-      executionTimeMs: MOCK_EXECUTION_TIME_MS,
-      details: {
+    expect(result.structuredContent).toEqual(
+      mcpErrorResult('Failed to open some files', {
         filesOpened: 0,
         failedUris: MOCK_FILE_URIS,
-      },
-    });
+      })
+    );
   });
 });

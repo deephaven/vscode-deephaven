@@ -9,13 +9,12 @@ import type {
   VariableDefintion,
 } from '../../types';
 import type { FilteredWorkspace } from '../../services';
-import { McpToolResponse } from '../utils/mcpUtils';
 import { getFirstConnectionOrCreate } from '../utils/serverUtils';
 import {
   createMockDhcService,
+  fakeMcpToolTimings,
   mcpErrorResult,
   mcpSuccessResult,
-  MOCK_EXECUTION_TIME_MS,
 } from '../utils/mcpTestUtils';
 import { ConnectionNotFoundError } from '../../common';
 import { execRunCode } from '../../common/commands';
@@ -124,14 +123,10 @@ describe('runCodeFromUri tool', () => {
     pythonDiagnostics.clear();
 
     vi.clearAllMocks();
-
-    // Mock getElapsedTimeMs to return a fixed value
-    vi.spyOn(McpToolResponse.prototype, 'getElapsedTimeMs').mockReturnValue(
-      MOCK_EXECUTION_TIME_MS
-    );
+    fakeMcpToolTimings();
   });
 
-  it('should have correct spec', () => {
+  it('should return correct tool spec', () => {
     const tool = createRunCodeFromUriTool({
       pythonDiagnostics,
       pythonWorkspace,

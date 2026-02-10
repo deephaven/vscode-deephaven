@@ -3,8 +3,37 @@ import { vi } from 'vitest';
 import type { McpToolResult } from './mcpUtils';
 import { DhcService } from '../../services';
 import type { Psk } from '../../types';
+import { McpToolResponse } from './mcpUtils';
 
-export const MOCK_EXECUTION_TIME_MS = 100;
+const MOCK_EXECUTION_TIME_MS = 100;
+
+/**
+ * Standard mock Deephaven server URL for testing.
+ * Use `MOCK_DHC_URL.href` when a string URL is needed.
+ */
+export const MOCK_DHC_URL = new URL('http://localhost:10000');
+
+/**
+ * Sets up standard MCP response timing mocks for testing.
+ * Call this in beforeEach() after vi.clearAllMocks().
+ *
+ * This function mocks the McpToolResponse.prototype.getElapsedTimeMs method to
+ * return a consistent value for all tests, ensuring predictable execution time
+ * measurements in test assertions.
+ *
+ * @example
+ * ```typescript
+ * beforeEach(() => {
+ *   vi.clearAllMocks();
+ *   fakeMcpToolTimings();
+ * });
+ * ```
+ */
+export function fakeMcpToolTimings(): void {
+  vi.spyOn(McpToolResponse.prototype, 'getElapsedTimeMs').mockReturnValue(
+    MOCK_EXECUTION_TIME_MS
+  );
+}
 
 /**
  * Creates an MCP error result for testing.
@@ -66,7 +95,7 @@ export function createMockDhcService({
   getPsk?: Psk | undefined;
 }): DhcService {
   return Object.assign(Object.create(DhcService.prototype), {
-    serverUrl: serverUrl ?? new URL('http://localhost:10000'),
+    serverUrl: serverUrl ?? MOCK_DHC_URL,
     runCode: vi.fn().mockResolvedValue(runCode ?? null),
     supportsConsoleType: vi.fn().mockReturnValue(supportsConsoleType ?? true),
     getPsk: vi.fn().mockResolvedValue(getPsk),

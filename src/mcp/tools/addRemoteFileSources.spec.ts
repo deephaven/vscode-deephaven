@@ -1,8 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as vscode from 'vscode';
 import { createAddRemoteFileSourcesTool } from './addRemoteFileSources';
-import { McpToolResponse } from '../utils/mcpUtils';
 import * as commands from '../../common/commands';
+import {
+  fakeMcpToolTimings,
+  mcpErrorResult,
+  mcpSuccessResult,
+} from '../utils/mcpTestUtils';
 
 vi.mock('vscode');
 vi.mock('../../common/commands', async () => {
@@ -13,15 +17,10 @@ vi.mock('../../common/commands', async () => {
   };
 });
 
-const MOCK_EXECUTION_TIME_MS = 100;
-
 describe('addRemoteFileSources', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-
-    vi.spyOn(McpToolResponse.prototype, 'getElapsedTimeMs').mockReturnValue(
-      MOCK_EXECUTION_TIME_MS
-    );
+    fakeMcpToolTimings();
   });
 
   it('should return correct tool spec', () => {
@@ -75,12 +74,11 @@ describe('addRemoteFileSources', () => {
       expectedParsedUris.map(uri => vscode.Uri.parse(uri))
     );
 
-    expect(result.structuredContent).toEqual({
-      success: true,
-      message: 'Remote file sources added successfully',
-      details: { foldersAdded: expectedParsedUris.length },
-      executionTimeMs: MOCK_EXECUTION_TIME_MS,
-    });
+    expect(result.structuredContent).toEqual(
+      mcpSuccessResult('Remote file sources added successfully', {
+        foldersAdded: expectedParsedUris.length,
+      })
+    );
   });
 
   it.each([
@@ -112,12 +110,9 @@ describe('addRemoteFileSources', () => {
       const tool = createAddRemoteFileSourcesTool();
       const result = await tool.handler({ folderUris });
 
-      expect(result.structuredContent).toEqual({
-        success: false,
-        message: expectedMessage,
-        executionTimeMs: MOCK_EXECUTION_TIME_MS,
-        details: { folderUris },
-      });
+      expect(result.structuredContent).toEqual(
+        mcpErrorResult(expectedMessage, { folderUris })
+      );
     }
   );
 });

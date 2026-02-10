@@ -1,12 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as vscode from 'vscode';
 import { createSetEditorConnectionTool } from './setEditorConnection';
-import { McpToolResponse } from '../utils/mcpUtils';
 import type { IServerManager, ConnectionState, UniqueID } from '../../types';
+import {
+  fakeMcpToolTimings,
+  mcpErrorResult,
+  mcpSuccessResult,
+} from '../utils/mcpTestUtils';
 
 vi.mock('vscode');
-
-const MOCK_EXECUTION_TIME_MS = 100;
 
 const MOCK_CONNECTION: ConnectionState = {
   serverUrl: new URL('http://localhost:10000'),
@@ -17,41 +19,6 @@ const MOCK_CONNECTION: ConnectionState = {
 
 const MOCK_URI = 'file:///path/to/file.py';
 const MOCK_CONNECTION_URL = 'http://localhost:10000';
-
-const EXPECTED_SUCCESS = {
-  success: true,
-  message: 'Editor connection set successfully',
-  details: {
-    uri: MOCK_URI,
-    connectionUrl: MOCK_CONNECTION_URL,
-  },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_INVALID_URL = {
-  success: false,
-  message: 'Invalid URL: Invalid URL',
-  details: { connectionUrl: 'invalid-url' },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_NO_CONNECTION = {
-  success: false,
-  message: 'No active connection for the given URL',
-  hint: 'Use connectToServer to establish a connection first',
-  details: { connectionUrl: MOCK_CONNECTION_URL },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
-
-const EXPECTED_ERROR = {
-  success: false,
-  message: 'Failed to set editor connection: Failed to open document',
-  details: {
-    uri: MOCK_URI,
-    connectionUrl: MOCK_CONNECTION_URL,
-  },
-  executionTimeMs: MOCK_EXECUTION_TIME_MS,
-} as const;
 
 describe('setEditorConnection', () => {
   const serverManager = {
@@ -65,10 +32,7 @@ describe('setEditorConnection', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-
-    vi.spyOn(McpToolResponse.prototype, 'getElapsedTimeMs').mockReturnValue(
-      MOCK_EXECUTION_TIME_MS
-    );
+    fakeMcpToolTimings();
 
     vi.mocked(vscode.workspace.openTextDocument).mockResolvedValue(
       mockTextDocument
@@ -106,7 +70,12 @@ describe('setEditorConnection', () => {
       MOCK_CONNECTION
     );
 
-    expect(result.structuredContent).toEqual(EXPECTED_SUCCESS);
+    expect(result.structuredContent).toEqual(
+      mcpSuccessResult('Editor connection set successfully', {
+        uri: MOCK_URI,
+        connectionUrl: MOCK_CONNECTION_URL,
+      })
+    );
   });
 
   it('should handle groovy language', async () => {
@@ -157,7 +126,11 @@ describe('setEditorConnection', () => {
       connectionUrl: 'invalid-url',
     });
 
-    expect(result.structuredContent).toEqual(EXPECTED_INVALID_URL);
+    expect(result.structuredContent).toEqual(
+      mcpErrorResult('Invalid URL: Invalid URL', {
+        connectionUrl: 'invalid-url',
+      })
+    );
     expect(serverManager.getConnections).not.toHaveBeenCalled();
   });
 
@@ -170,7 +143,13 @@ describe('setEditorConnection', () => {
       connectionUrl: MOCK_CONNECTION_URL,
     });
 
-    expect(result.structuredContent).toEqual(EXPECTED_NO_CONNECTION);
+    expect(result.structuredContent).toEqual(
+      mcpErrorResult(
+        'No active connection for the given URL',
+        { connectionUrl: MOCK_CONNECTION_URL },
+        'Use connectToServer to establish a connection first'
+      )
+    );
     expect(vscode.workspace.openTextDocument).not.toHaveBeenCalled();
   });
 
@@ -185,7 +164,15 @@ describe('setEditorConnection', () => {
       connectionUrl: MOCK_CONNECTION_URL,
     });
 
-    expect(result.structuredContent).toEqual(EXPECTED_ERROR);
+    expect(result.structuredContent).toEqual(
+      mcpErrorResult(
+        'Failed to set editor connection: Failed to open document',
+        {
+          uri: MOCK_URI,
+          connectionUrl: MOCK_CONNECTION_URL,
+        }
+      )
+    );
   });
 
   it('should handle setEditorConnection error', async () => {
@@ -199,15 +186,12 @@ describe('setEditorConnection', () => {
       connectionUrl: MOCK_CONNECTION_URL,
     });
 
-    expect(result.structuredContent).toEqual({
-      success: false,
-      message: 'Failed to set editor connection: Connection failed',
-      details: {
+    expect(result.structuredContent).toEqual(
+      mcpErrorResult('Failed to set editor connection: Connection failed', {
         uri: MOCK_URI,
         connectionUrl: MOCK_CONNECTION_URL,
-      },
-      executionTimeMs: MOCK_EXECUTION_TIME_MS,
-    });
+      })
+    );
   });
 
   it('should handle URI parse error', async () => {
@@ -223,14 +207,11 @@ describe('setEditorConnection', () => {
       connectionUrl: MOCK_CONNECTION_URL,
     });
 
-    expect(result.structuredContent).toEqual({
-      success: false,
-      message: 'Failed to set editor connection: Invalid URI',
-      details: {
+    expect(result.structuredContent).toEqual(
+      mcpErrorResult('Failed to set editor connection: Invalid URI', {
         uri: 'invalid-uri',
         connectionUrl: MOCK_CONNECTION_URL,
-      },
-      executionTimeMs: MOCK_EXECUTION_TIME_MS,
-    });
+      })
+    );
   });
 });
