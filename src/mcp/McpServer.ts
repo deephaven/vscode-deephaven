@@ -13,13 +13,16 @@ import type {
 import { MCP_SERVER_NAME } from '../common';
 import {
   createAddRemoteFileSourcesTool,
+  createGetColumnStatsTool,
   createGetLogsTool,
+  createGetTableStatsTool,
   createListConnectionsTool,
   createListPanelVariablesTool,
   createListRemoteFileSourcesTool,
   createListServersTool,
   createOpenFilesInEditorTool,
   createOpenVariablePanelsTool,
+  createQueryTableDataTool,
   createRemoveRemoteFileSourcesTool,
   createRunCodeFromUriTool,
   createRunCodeTool,
@@ -58,13 +61,16 @@ export class McpServer extends DisposableBase {
 
     this.registerTool(createAddRemoteFileSourcesTool());
     this.registerTool(createConnectToServerTool(this));
+    this.registerTool(createGetColumnStatsTool(this));
     this.registerTool(createGetLogsTool(this));
+    this.registerTool(createGetTableStatsTool(this));
     this.registerTool(createListConnectionsTool(this));
     this.registerTool(createListPanelVariablesTool(this));
     this.registerTool(createListRemoteFileSourcesTool(this));
     this.registerTool(createListServersTool(this));
     this.registerTool(createOpenFilesInEditorTool());
     this.registerTool(createOpenVariablePanelsTool(this));
+    this.registerTool(createQueryTableDataTool(this));
     this.registerTool(createRemoveRemoteFileSourcesTool());
     this.registerTool(createRunCodeFromUriTool(this));
     this.registerTool(createRunCodeTool(this));

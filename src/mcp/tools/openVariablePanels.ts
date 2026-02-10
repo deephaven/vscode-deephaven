@@ -30,7 +30,9 @@ const spec = {
       )
       .describe('List of variable definitions to open panels for.'),
   },
-  outputSchema: createMcpToolOutputSchema(),
+  outputSchema: createMcpToolOutputSchema({
+    connectionUrl: z.string().optional(),
+  }),
 } as const;
 
 type Spec = typeof spec;
