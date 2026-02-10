@@ -1,11 +1,13 @@
 import * as vscode from 'vscode';
+import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { ControllerBase } from './ControllerBase';
 import { McpServer } from '../mcp';
 import { McpServerDefinitionProvider } from '../providers';
 import type {
+  IAsyncCacheService,
+  IConfigService,
   IPanelService,
   IServerManager,
-  IConfigService,
   McpVersion,
 } from '../types';
 import type { FilteredWorkspace } from '../services';
@@ -30,43 +32,24 @@ interface McpQuickPickItem extends vscode.QuickPickItem {
  * Handles server lifecycle, status bar updates, and configuration.
  */
 export class McpController extends ControllerBase {
-  private _context: vscode.ExtensionContext;
-  private _config: IConfigService;
-  private _mcpVersion: McpVersion;
-  private _serverManager: IServerManager;
-  private _pythonDiagnostics: vscode.DiagnosticCollection;
-  private _pythonWorkspace: FilteredWorkspace;
-  private _outputChannel: OutputChannelWithHistory;
-  private _outputChannelDebug: OutputChannelWithHistory;
-  private _panelService: IPanelService;
-
   private _mcpServer: McpServer | null = null;
   private _mcpServerDefinitionProvider: McpServerDefinitionProvider | null =
     null;
   private _mcpStatusBarItem: vscode.StatusBarItem | null = null;
 
   constructor(
-    context: vscode.ExtensionContext,
-    config: IConfigService,
-    mcpVersion: McpVersion,
-    serverManager: IServerManager,
-    pythonDiagnostics: vscode.DiagnosticCollection,
-    pythonWorkspace: FilteredWorkspace,
-    outputChannel: OutputChannelWithHistory,
-    outputChannelDebug: OutputChannelWithHistory,
-    panelService: IPanelService
+    private readonly _config: IConfigService,
+    private readonly _context: vscode.ExtensionContext,
+    private readonly _coreJsApiCache: IAsyncCacheService<URL, typeof DhcType>,
+    private readonly _mcpVersion: McpVersion,
+    private readonly _outputChannel: OutputChannelWithHistory,
+    private readonly _outputChannelDebug: OutputChannelWithHistory,
+    private readonly _panelService: IPanelService,
+    private readonly _pythonDiagnostics: vscode.DiagnosticCollection,
+    private readonly _pythonWorkspace: FilteredWorkspace,
+    private readonly _serverManager: IServerManager
   ) {
     super();
-
-    this._context = context;
-    this._config = config;
-    this._mcpVersion = mcpVersion;
-    this._serverManager = serverManager;
-    this._pythonDiagnostics = pythonDiagnostics;
-    this._pythonWorkspace = pythonWorkspace;
-    this._outputChannel = outputChannel;
-    this._outputChannelDebug = outputChannelDebug;
-    this._panelService = panelService;
 
     // Register copy MCP URL command
     this.registerCommand(COPY_MCP_URL_CMD, this.copyUrl, this);
@@ -168,12 +151,13 @@ export class McpController extends ControllerBase {
     try {
       // Create and start MCP server
       this._mcpServer = new McpServer(
-        this._pythonDiagnostics,
-        this._pythonWorkspace,
-        this._serverManager,
+        this._coreJsApiCache,
         this._outputChannel,
         this._outputChannelDebug,
-        this._panelService
+        this._panelService,
+        this._pythonDiagnostics,
+        this._pythonWorkspace,
+        this._serverManager
       );
       this.disposables.push(this._mcpServer);
 

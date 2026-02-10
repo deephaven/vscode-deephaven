@@ -1,8 +1,10 @@
 import * as vscode from 'vscode';
+import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { McpServer as SdkMcpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import * as http from 'http';
 import type {
+  IAsyncCacheService,
   IPanelService,
   IServerManager,
   McpTool,
@@ -37,29 +39,16 @@ export class McpServer extends DisposableBase {
   private httpServer: http.Server | null = null;
   private port: number | null = null;
 
-  readonly pythonDiagnostics: vscode.DiagnosticCollection;
-  readonly pythonWorkspace: FilteredWorkspace;
-  readonly serverManager: IServerManager;
-  readonly outputChannel: OutputChannelWithHistory;
-  readonly outputChannelDebug: OutputChannelWithHistory;
-  readonly panelService: IPanelService;
-
   constructor(
-    pythonDiagnostics: vscode.DiagnosticCollection,
-    pythonWorkspace: FilteredWorkspace,
-    serverManager: IServerManager,
-    outputChannel: OutputChannelWithHistory,
-    outputChannelDebug: OutputChannelWithHistory,
-    panelService: IPanelService
+    readonly coreJsApiCache: IAsyncCacheService<URL, typeof DhcType>,
+    readonly outputChannel: OutputChannelWithHistory,
+    readonly outputChannelDebug: OutputChannelWithHistory,
+    readonly panelService: IPanelService,
+    readonly pythonDiagnostics: vscode.DiagnosticCollection,
+    readonly pythonWorkspace: FilteredWorkspace,
+    readonly serverManager: IServerManager
   ) {
     super();
-
-    this.pythonDiagnostics = pythonDiagnostics;
-    this.pythonWorkspace = pythonWorkspace;
-    this.serverManager = serverManager;
-    this.outputChannel = outputChannel;
-    this.outputChannelDebug = outputChannelDebug;
-    this.panelService = panelService;
 
     // Create an MCP server
     this.server = new SdkMcpServer({

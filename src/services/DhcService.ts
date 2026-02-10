@@ -404,6 +404,14 @@ export class DhcService extends DisposableBase implements IDhcService {
     await saveRequirementsTxt(dependencies);
   }
 
+  async getSession(): Promise<DhcType.IdeSession | null> {
+    if (this.session == null) {
+      await this.initSession();
+    }
+
+    return this.session;
+  }
+
   async deleteVariable(variableDefinition: VariableDefintion): Promise<void> {
     if (this.session == null) {
       throw new Error('No session found to delete variable.');
