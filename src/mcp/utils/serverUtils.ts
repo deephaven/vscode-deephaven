@@ -61,7 +61,7 @@ type GetFirstConnectionOrCreateError = {
   errorMessage: string;
   error?: unknown;
   hint?: string;
-  details?: Record<string, unknown>;
+  details: { connectionUrl: string };
 };
 
 type GetFirstConnectionOrCreateResult =

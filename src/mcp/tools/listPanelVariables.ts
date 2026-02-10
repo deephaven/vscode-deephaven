@@ -25,6 +25,13 @@ const spec = {
       ),
   },
   outputSchema: createMcpToolOutputSchema({
+    connectionUrl: z.string().optional(),
+    panelUrlFormat: z
+      .string()
+      .optional()
+      .describe(
+        'URL format for accessing panel variables. Replace <variableTitle> with the variable title.'
+      ),
     variables: z
       .array(
         z.object({
@@ -35,12 +42,6 @@ const spec = {
       )
       .optional()
       .describe('List of panel variables available in the connection'),
-    panelUrlFormat: z
-      .string()
-      .optional()
-      .describe(
-        'URL format for accessing panel variables. Replace <variableTitle> with the variable title.'
-      ),
   }),
 } as const;
 

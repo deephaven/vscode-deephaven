@@ -44,22 +44,24 @@ export const runCodeOutputSchema = {
     ),
   details: z
     .object({
-      languageId: z
-        .string()
-        .optional()
-        .describe('The language ID used for execution (python or groovy)'),
+      connectionUrl: z.string().optional(),
       foundMatchingFolderUris: z
         .array(z.string())
         .optional()
         .describe(
           'Folder URIs in the workspace that match missing Python module names. Use these exact URIs with addRemoteFileSources to resolve import errors.'
         ),
+      languageId: z
+        .string()
+        .optional()
+        .describe('The language ID used for execution (python or groovy)'),
       panelUrlFormat: z
         .string()
         .optional()
         .describe(
           'URL format for accessing panel variables. Replace <variableTitle> with the variable title.'
         ),
+      uri: z.string().optional(),
       variables: z
         .array(variableResultSchema)
         .optional()
