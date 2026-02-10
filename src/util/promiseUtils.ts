@@ -46,6 +46,27 @@ export function waitFor(waitMs: number): Promise<void> {
 }
 
 /**
+ * Wait for an event to fire once on a target object.
+ * @param target Object with addEventListener/removeEventListener methods
+ * @param eventName Name of the event to wait for
+ * @returns Promise that resolves when the event fires
+ */
+export function waitForEvent<
+  T extends { addEventListener: Function; removeEventListener: Function },
+>(target: T, eventName: string): Promise<void> {
+  const { promise, resolve } = withResolvers<void>();
+
+  const handler = (): void => {
+    target.removeEventListener(eventName, handler);
+    resolve();
+  };
+
+  target.addEventListener(eventName, handler);
+
+  return promise;
+}
+
+/**
  * Polyfill for `Promise.withResolvers`. Should be able to replace once we
  * upgrade to Node 22.
  * @returns
