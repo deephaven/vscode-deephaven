@@ -88,9 +88,11 @@ export class McpController extends ControllerBase {
         // Re-initialize if MCP enabled state changed
         if (isMcpEnabledCur !== isMcpEnabledPrev) {
           this.initializeStatusBar();
+
+          // This will also refresh the provider, so no need to call refresh separately
           this.initializeMcpServer();
         }
-        // Refresh provider if docs enabled state changed
+        // Refresh provider if only docs enabled state changed
         else if (isMcpDocsEnabledCur !== isMcpDocsEnabledPrev) {
           this._mcpServerDefinitionProvider?.refresh();
         }

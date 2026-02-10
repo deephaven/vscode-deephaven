@@ -52,23 +52,25 @@ export class McpServerDefinitionProvider
   async provideMcpServerDefinitions(): Promise<
     vscode.McpHttpServerDefinition[]
   > {
-    const servers: vscode.McpHttpServerDefinition[] = [];
-
-    // Add main MCP server if running
     const port = this.mcpServer.getPort();
-    if (port != null) {
-      servers.push(
-        new vscode.McpHttpServerDefinition(
-          MCP_SERVER_NAME,
-          vscode.Uri.parse(`http://localhost:${port}/mcp`),
-          undefined,
-          this.mcpVersion // Important to tell VS Code when MCP tools may have changed
-        )
-      );
+
+    if (!this.config.isMcpEnabled() || port == null) {
+      return [];
     }
 
+    const servers: vscode.McpHttpServerDefinition[] = [];
+
+    servers.push(
+      new vscode.McpHttpServerDefinition(
+        MCP_SERVER_NAME,
+        vscode.Uri.parse(`http://localhost:${port}/mcp`),
+        undefined,
+        this.mcpVersion // Important to tell VS Code when MCP tools may have changed
+      )
+    );
+
     // Add documentation server if both MCP and docs are enabled
-    if (this.config.isMcpEnabled() && this.config.isMcpDocsEnabled()) {
+    if (this.config.isMcpDocsEnabled()) {
       servers.push(
         new vscode.McpHttpServerDefinition(
           MCP_DOCS_SERVER_NAME,
