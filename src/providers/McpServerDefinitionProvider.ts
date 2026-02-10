@@ -72,9 +72,7 @@ export class McpServerDefinitionProvider
       servers.push(
         new vscode.McpHttpServerDefinition(
           MCP_DOCS_SERVER_NAME,
-          vscode.Uri.parse(MCP_DOCS_SERVER_URL),
-          undefined,
-          undefined // No version tracking needed for external server
+          vscode.Uri.parse(MCP_DOCS_SERVER_URL)
         )
       );
     }

@@ -166,7 +166,6 @@
           "type": "boolean",
           "default": true,
           "markdownDescription": "Enable registration of the Deephaven Documentation MCP server for AI-assisted documentation queries. Only applies when `deephaven.mcp.enabled` is also enabled."
-        },
         }
       }
     },

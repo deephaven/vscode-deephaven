@@ -43,7 +43,8 @@ export const MCP_SERVER_PORT_STORAGE_KEY =
   `${EXTENSION_ID}.mcpServerPort` as const;
 
 export const MCP_DOCS_SERVER_NAME = 'Deephaven Documentation' as const;
-export const MCP_DOCS_SERVER_URL = 'https://mcp-docs.deephaven.io/mcp' as const;
+export const MCP_DOCS_SERVER_URL =
+  'https://deephaven-mcp-docs-prod.dhc-demo.deephaven.io/mcp' as const;
 
 export const PIP_SERVER_STATUS_CHECK_INTERVAL = 3000;
 export const PIP_SERVER_STATUS_CHECK_TIMEOUT = 30000;
