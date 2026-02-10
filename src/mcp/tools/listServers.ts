@@ -29,7 +29,7 @@ const spec = {
       .describe('Filter by server type (DHC = Community, DHE = Enterprise)'),
   },
   outputSchema: createMcpToolOutputSchema({
-    servers: z.array(serverResultSchema),
+    servers: z.array(serverResultSchema).optional(),
   }),
 } as const;
 
