@@ -1,4 +1,3 @@
-````skill
 ---
 name: test-writing
 description: Writes unit tests for `vscode-deephaven` using Vitest and TypeScript.
@@ -67,7 +66,7 @@ import { matrixObject, boolValues } from '../../testUtils';
 
 it.each(
   matrixObject({
-    isConnected: boolValues,        // [true, false]
+    isConnected: boolValues, // [true, false]
     isRunning: boolValues,
     status: ['active', 'inactive'],
   })
@@ -88,7 +87,8 @@ it.each(
 ```typescript
 import { createMyTool } from './myTool';
 
-describe('createMyTool', () => {  // ← Always matches the export
+describe('createMyTool', () => {
+  // ← Always matches the export
   it('should return correct tool spec', () => {});
   it('should handle valid input', () => {});
 });
@@ -161,8 +161,8 @@ Study these for patterns:
 ## MCP Tools Testing
 
 **For testing MCP tools** (`src/mcp/tools/`), see **[mcp-tools-testing.md](mcp-tools-testing.md)** for:
+
 - MCP test utilities (`fakeMcpToolTimings`, `mcpSuccessResult`, `mcpErrorResult`)
 - URL mocking patterns
 - Tool spec and handler testing
 - Server connection and error propagation patterns
-````

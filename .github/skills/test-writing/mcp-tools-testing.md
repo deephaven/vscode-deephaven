@@ -1,4 +1,3 @@
-````markdown
 # MCP Tools Testing Context
 
 Use this context when writing tests for MCP tools in `src/mcp/tools/`.
@@ -169,4 +168,3 @@ See these for MCP-specific patterns:
 - `openVariablePanels.spec.ts` - Command execution
 - `connectToServer.spec.ts` - Server manager integration
 - `runCode.spec.ts` - Code execution validation
-````
