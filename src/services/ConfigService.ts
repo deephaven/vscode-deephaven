@@ -105,6 +105,35 @@ function isMcpEnabled(): boolean {
   return getConfig().get<boolean>(CONFIG_KEY.mcpEnabled, false);
 }
 
+/**
+ * Prompt user for MCP config update.
+ * @param configUri The URI of the MCP config file
+ * @param configExists Whether the config entry already exists (vs adding new)
+ * @returns true if user approved the update, false otherwise
+ */
+async function promptForMcpConfigUpdate(
+  configUri: vscode.Uri,
+  configExists: boolean
+): Promise<boolean> {
+  const action = configExists ? 'Update' : 'Add';
+  const message = `${action} Deephaven MCP servers ${configExists ? 'in' : 'to'} your Windsurf MCP config?`;
+  const buttons = configExists ? ['Yes', 'Always', 'No'] : ['Yes', 'No'];
+
+  const response = await vscode.window.showInformationMessage(
+    message,
+    ...buttons
+  );
+
+  if (response === 'Always') {
+    await setMcpAutoUpdateConfig(true);
+  } else if (response !== 'Yes') {
+    return false;
+  }
+
+  await vscode.window.showTextDocument(configUri);
+  return true;
+}
+
 async function setMcpAutoUpdateConfig(value: boolean): Promise<void> {
   await getConfig().update(
     CONFIG_KEY.mcpAutoUpdateConfig,
@@ -186,27 +215,15 @@ export async function updateWindsurfMcpConfig(
       return false;
     }
 
-    // Check autoUpdate logic and prompt if needed
-    const autoUpdate = getMcpAutoUpdateConfig();
+    const configExists = config.mcpServers?.[MCP_SERVER_NAME] != null;
 
-    if (!autoUpdate) {
-      const isAdding = config.mcpServers?.[MCP_SERVER_NAME] == null;
-      const action = isAdding ? 'Add' : 'Update';
-      const message = `${action} Deephaven MCP servers ${isAdding ? 'to' : 'in'} your Windsurf MCP config?`;
-      const buttons = isAdding ? ['Yes', 'No'] : ['Yes', 'Always', 'No'];
+    // Should update if auto update enabled or user approves the update via prompt
+    const shouldUpdate =
+      getMcpAutoUpdateConfig() ||
+      (await promptForMcpConfigUpdate(configUri, configExists));
 
-      const response = await vscode.window.showInformationMessage(
-        message,
-        ...buttons
-      );
-
-      if (response === 'Always') {
-        await setMcpAutoUpdateConfig(true);
-      } else if (response !== 'Yes') {
-        return false;
-      }
-
-      await vscode.window.showTextDocument(configUri);
+    if (!shouldUpdate) {
+      return false;
     }
 
     return await saveMcpConfigIfChanged();
