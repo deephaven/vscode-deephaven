@@ -117,6 +117,7 @@ export async function updateWindsurfMcpConfig(port: number): Promise<boolean> {
 
   const mcpUrl = `http://localhost:${port}/mcp`;
   const homeDir = process.env.HOME ?? process.env.USERPROFILE ?? '';
+  const configDir = vscode.Uri.file(`${homeDir}/.codeium/windsurf`);
   const windsurfMcpConfigPath = `${homeDir}/.codeium/windsurf/mcp_config.json`;
   const configUri = vscode.Uri.file(windsurfMcpConfigPath);
 
@@ -168,8 +169,6 @@ export async function updateWindsurfMcpConfig(port: number): Promise<boolean> {
       } else if (response !== 'Yes') {
         return false;
       }
-
-      await vscode.window.showTextDocument(configUri);
     }
 
     // Add/update the Deephaven MCP server entry
@@ -178,7 +177,6 @@ export async function updateWindsurfMcpConfig(port: number): Promise<boolean> {
     };
 
     // Ensure parent directory exists
-    const configDir = vscode.Uri.file(`${homeDir}/.codeium/windsurf`);
     try {
       await vscode.workspace.fs.createDirectory(configDir);
     } catch {
@@ -190,6 +188,11 @@ export async function updateWindsurfMcpConfig(port: number): Promise<boolean> {
       configUri,
       Buffer.from(JSON.stringify(config, null, 2))
     );
+
+    // Show the config file to the user if they manually confirmed the update
+    if (!autoUpdate) {
+      await vscode.window.showTextDocument(configUri);
+    }
 
     return true;
   } catch (error) {
