@@ -241,48 +241,38 @@ describe('updateWindsurfMcpConfig', () => {
 
   it.each([
     {
-      label: 'user accepts adding server',
-      existingServers: {},
+      label: 'user accepts update (Yes)',
       userResponse: 'Yes',
       expectedResult: true,
-      expectedPromptMessage:
-        'Add Deephaven MCP servers to your Windsurf MCP config?',
-      expectedPromptOptions: ['Yes', 'No'],
       shouldShowDocument: true,
       shouldUpdateAutoConfig: false,
     },
     {
-      label: 'user chooses Always when updating',
-      existingServers: {
-        [MCP_SERVER_NAME]: { serverUrl: 'http://localhost:3000/mcp' },
-      },
+      label: 'user chooses Always',
       userResponse: 'Always',
       expectedResult: true,
-      expectedPromptMessage:
-        'Update Deephaven MCP servers in your Windsurf MCP config?',
-      expectedPromptOptions: ['Yes', 'Always', 'No'],
       shouldShowDocument: true,
       shouldUpdateAutoConfig: true,
     },
     {
-      label: 'user declines prompt',
-      existingServers: {},
+      label: 'user declines update (No)',
       userResponse: 'No',
       expectedResult: false,
-      expectedPromptMessage:
-        'Add Deephaven MCP servers to your Windsurf MCP config?',
-      expectedPromptOptions: ['Yes', 'No'],
+      shouldShowDocument: false,
+      shouldUpdateAutoConfig: false,
+    },
+    {
+      label: 'user dismisses prompt (undefined)',
+      userResponse: undefined,
+      expectedResult: false,
       shouldShowDocument: false,
       shouldUpdateAutoConfig: false,
     },
   ])(
-    'should handle prompts when $label',
+    'should handle prompt response: $label',
     async ({
-      existingServers,
       userResponse,
       expectedResult,
-      expectedPromptMessage,
-      expectedPromptOptions,
       shouldShowDocument,
       shouldUpdateAutoConfig,
     }) => {
@@ -291,7 +281,7 @@ describe('updateWindsurfMcpConfig', () => {
       configMap.set(CONFIG_KEY.mcpDocsEnabled, true);
       configMap.set(CONFIG_KEY.mcpAutoUpdateConfig, false);
 
-      const existingConfig = { mcpServers: existingServers };
+      const existingConfig = { mcpServers: {} };
       vi.mocked(getEnsuredContent).mockResolvedValue(
         JSON.stringify(existingConfig)
       );
@@ -304,8 +294,10 @@ describe('updateWindsurfMcpConfig', () => {
 
       expect(result).toBe(expectedResult);
       expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
-        expectedPromptMessage,
-        ...expectedPromptOptions
+        'Update Deephaven MCP servers in your Windsurf MCP config?',
+        'Yes',
+        'Always',
+        'No'
       );
 
       if (shouldShowDocument) {

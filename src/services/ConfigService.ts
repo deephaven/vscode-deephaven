@@ -108,16 +108,13 @@ function isMcpEnabled(): boolean {
 /**
  * Prompt user for MCP config update.
  * @param configUri The URI of the MCP config file
- * @param configExists Whether the config entry already exists (vs adding new)
  * @returns true if user approved the update, false otherwise
  */
 async function promptForMcpConfigUpdate(
-  configUri: vscode.Uri,
-  configExists: boolean
+  configUri: vscode.Uri
 ): Promise<boolean> {
-  const action = configExists ? 'Update' : 'Add';
-  const message = `${action} Deephaven MCP servers ${configExists ? 'in' : 'to'} your Windsurf MCP config?`;
-  const buttons = configExists ? ['Yes', 'Always', 'No'] : ['Yes', 'No'];
+  const message = 'Update Deephaven MCP servers in your Windsurf MCP config?';
+  const buttons = ['Yes', 'Always', 'No'];
 
   const response = await vscode.window.showInformationMessage(
     message,
@@ -215,12 +212,9 @@ export async function updateWindsurfMcpConfig(
       return false;
     }
 
-    const configExists = config.mcpServers?.[MCP_SERVER_NAME] != null;
-
     // Should update if auto update enabled or user approves the update via prompt
     const shouldUpdate =
-      getMcpAutoUpdateConfig() ||
-      (await promptForMcpConfigUpdate(configUri, configExists));
+      getMcpAutoUpdateConfig() || (await promptForMcpConfigUpdate(configUri));
 
     if (!shouldUpdate) {
       return false;
