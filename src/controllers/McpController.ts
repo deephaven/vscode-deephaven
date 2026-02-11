@@ -115,7 +115,32 @@ export class McpController extends ControllerBase {
     );
 
     this.initializeStatusBar();
+    this.initializeDefinitionProvider();
     this.initializeMcpServer();
+  }
+
+  /**
+   * Initialize the MCP server definition provider for VS Code.
+   * This should be called once during controller construction.
+   */
+  private initializeDefinitionProvider(): void {
+    // Only register provider in VS Code (not Windsurf)
+    if (isWindsurf()) {
+      return;
+    }
+
+    this._mcpServerDefinitionProvider = new McpServerDefinitionProvider(
+      this._mcpVersion,
+      this._config
+    );
+    this.disposables.push(this._mcpServerDefinitionProvider);
+
+    this.disposables.push(
+      vscode.lm.registerMcpServerDefinitionProvider(
+        MCP_SERVER_KEY,
+        this._mcpServerDefinitionProvider
+      )
+    );
   }
 
   /**
@@ -126,21 +151,17 @@ export class McpController extends ControllerBase {
     if (this._mcpServer != null) {
       this._mcpServer.stop();
       this._mcpServer = null;
+      this._mcpServerDefinitionProvider?.setMcpServer(null);
 
       logger.info('MCP Server stopped.');
       vscode.window.showInformationMessage('Deephaven MCP Server stopped.');
-    }
-
-    // Clean up existing provider if present
-    if (this._mcpServerDefinitionProvider != null) {
-      this._mcpServerDefinitionProvider.dispose();
-      this._mcpServerDefinitionProvider = null;
     }
 
     if (!this._config.isMcpEnabled()) {
       // Update status bar to show disabled state
       this.updateStatusBar(null);
       await this._config.updateWindsurfMcpConfig(null);
+      this._mcpServerDefinitionProvider?.refresh();
       return;
     }
 
@@ -187,20 +208,9 @@ export class McpController extends ControllerBase {
         return;
       }
 
-      // Register provider for VS Code Copilot
-      this._mcpServerDefinitionProvider = new McpServerDefinitionProvider(
-        this._mcpVersion,
-        this._mcpServer,
-        this._config
-      );
-      this.disposables.push(this._mcpServerDefinitionProvider);
-
-      this.disposables.push(
-        vscode.lm.registerMcpServerDefinitionProvider(
-          MCP_SERVER_KEY,
-          this._mcpServerDefinitionProvider
-        )
-      );
+      // Update provider with new server reference and refresh
+      this._mcpServerDefinitionProvider?.setMcpServer(this._mcpServer);
+      this._mcpServerDefinitionProvider?.refresh();
     } catch (error) {
       // Don't fail extension activation if MCP server fails
       logger.error('Failed to initialize MCP server:', error);

@@ -22,13 +22,21 @@ export class McpServerDefinitionProvider
   readonly onDidChangeMcpServerDefinitions =
     this._onDidChangeMcpServerDefinitions.event;
 
+  private mcpServer: McpServer | null = null;
+
   constructor(
     private readonly mcpVersion: McpVersion,
-    private readonly mcpServer: McpServer,
     private readonly config: IConfigService
   ) {
     super();
     this.disposables.add(this._onDidChangeMcpServerDefinitions);
+  }
+
+  /**
+   * Set the MCP server reference.
+   */
+  setMcpServer(server: McpServer | null): void {
+    this.mcpServer = server;
   }
 
   /**
@@ -52,9 +60,8 @@ export class McpServerDefinitionProvider
   async provideMcpServerDefinitions(): Promise<
     vscode.McpHttpServerDefinition[]
   > {
-    const port = this.mcpServer.getPort();
-
-    if (!this.config.isMcpEnabled() || port == null) {
+    const port = this.mcpServer?.getPort();
+    if (port == null) {
       return [];
     }
 
