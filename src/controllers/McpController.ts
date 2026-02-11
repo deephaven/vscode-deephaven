@@ -95,6 +95,9 @@ export class McpController extends ControllerBase {
         // Refresh provider if only docs enabled state changed
         else if (isMcpDocsEnabledCur !== isMcpDocsEnabledPrev) {
           this._mcpServerDefinitionProvider?.refresh();
+          this._config.updateWindsurfMcpConfig(
+            this._mcpServer?.getPort() ?? null
+          );
         }
 
         isMcpEnabledPrev = isMcpEnabledCur;
@@ -137,6 +140,7 @@ export class McpController extends ControllerBase {
     if (!this._config.isMcpEnabled()) {
       // Update status bar to show disabled state
       this.updateStatusBar(null);
+      await this._config.updateWindsurfMcpConfig(null);
       return;
     }
 

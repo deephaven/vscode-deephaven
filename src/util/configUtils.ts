@@ -5,78 +5,87 @@ import {
 } from '../common';
 
 /**
- * Returns a new mcpServers object with the main Deephaven MCP server entry updated
- * based on enabled state, or the same object if no changes are needed.
+ * Returns a new mcpServers object with the main Deephaven MCP server entry added
+ * or updated, or the same object if no changes are needed.
  * @param mcpServersConfig The current mcpServers object (or undefined)
  * @param mcpUrl The MCP server URL to set for the main MCP server
- * @param mcpEnabled Whether MCP is enabled
  * @returns The same object if no changes needed, or a new object with changes
  */
 export function updateWindsurfMcpServerConfig(
   mcpServersConfig: Record<string, { serverUrl?: string }> | undefined,
-  mcpUrl: string,
-  mcpEnabled: boolean
+  mcpUrl: string
 ): Record<string, { serverUrl?: string }> | undefined {
-  if (mcpEnabled) {
-    // Already has correct URL, no changes needed
-    if (mcpServersConfig?.[MCP_SERVER_NAME]?.serverUrl === mcpUrl) {
-      return mcpServersConfig;
-    }
-
-    // Add or update mcp server config with correct URL
-    return {
-      ...mcpServersConfig,
-      [MCP_SERVER_NAME]: { serverUrl: mcpUrl },
-    };
+  // Already has correct URL, no changes needed
+  if (mcpServersConfig?.[MCP_SERVER_NAME]?.serverUrl === mcpUrl) {
+    return mcpServersConfig;
   }
 
-  // MCP disabled - remove entry if it exists
-  if (mcpServersConfig != null && MCP_SERVER_NAME in mcpServersConfig) {
-    mcpServersConfig = { ...mcpServersConfig };
-    delete mcpServersConfig[MCP_SERVER_NAME];
-  }
-
-  return mcpServersConfig;
+  // Add or update mcp server config with correct URL
+  return {
+    ...mcpServersConfig,
+    [MCP_SERVER_NAME]: { serverUrl: mcpUrl },
+  };
 }
 
 /**
- * Returns a new mcpServers object with the Deephaven docs MCP server entry updated
- * based on enabled state, or the same object if no changes are needed.
+ * Returns a new mcpServers object with the Deephaven docs MCP server entry added
+ * or updated, or the same object if no changes are needed.
  * @param mcpServersConfig The current mcpServers object (or undefined)
- * @param docsMcpEnabled Whether the docs MCP server is enabled
  * @returns The same object if no changes needed, or a new object with changes
  */
 export function updateWindsurfDocsMcpServerConfig(
-  mcpServersConfig: Record<string, { serverUrl?: string }> | undefined,
-  docsMcpEnabled: boolean
+  mcpServersConfig: Record<string, { serverUrl?: string }> | undefined
 ): Record<string, { serverUrl?: string }> | undefined {
-  if (docsMcpEnabled) {
-    // Docs server lives outside of the extension, so it's possible a user may
-    // have already added it manually, so we check for any matching URL instead
-    // of by name.
-    const hasDocsUrl = Object.values(mcpServersConfig ?? {}).some(
-      entry => entry.serverUrl === MCP_DOCS_SERVER_URL
-    );
+  // Docs server lives outside of the extension, so it's possible a user may
+  // have already added it manually, so we check for any matching URL instead
+  // of by name.
+  const hasDocsUrl = Object.values(mcpServersConfig ?? {}).some(
+    entry => entry.serverUrl === MCP_DOCS_SERVER_URL
+  );
 
-    // If docs URL already exists somewhere, no changes needed
-    if (hasDocsUrl) {
-      return mcpServersConfig;
-    }
-
-    // Add docs entry
-    return {
-      ...mcpServersConfig,
-      [MCP_DOCS_SERVER_NAME]: {
-        serverUrl: MCP_DOCS_SERVER_URL,
-      },
-    };
+  // If docs URL already exists somewhere, no changes needed
+  if (hasDocsUrl) {
+    return mcpServersConfig;
   }
 
-  // Docs disabled - remove named entry if it exists
-  if (mcpServersConfig != null && MCP_DOCS_SERVER_NAME in mcpServersConfig) {
-    mcpServersConfig = { ...mcpServersConfig };
-    delete mcpServersConfig[MCP_DOCS_SERVER_NAME];
+  // Add docs entry
+  return {
+    ...mcpServersConfig,
+    [MCP_DOCS_SERVER_NAME]: {
+      serverUrl: MCP_DOCS_SERVER_URL,
+    },
+  };
+}
+
+/**
+ * Returns a new config object with the specified keys deleted,
+ * or the same object if no changes are needed.
+ * @param config The current config object (or undefined)
+ * @param keys Array of keys to delete from the config
+ * @returns The same object if no changes needed, or a new object with deletions applied
+ */
+export function deleteConfigKeys<T extends Record<string, unknown>>(
+  config: T | undefined,
+  keys: string[]
+): T | undefined {
+  // Nothing to delete
+  if (config == null || keys.length === 0) {
+    return config;
   }
 
-  return mcpServersConfig;
+  // Check if any keys exist that need to be deleted
+  const keysToDelete = keys.filter(key => key in config);
+
+  if (keysToDelete.length === 0) {
+    return config;
+  }
+
+  // Create a new object and delete entries
+  const newConfig = { ...config };
+
+  for (const key of keysToDelete) {
+    delete newConfig[key];
+  }
+
+  return newConfig;
 }

@@ -296,6 +296,8 @@ export const window = {
     .mockName('registerFileDecorationProvider'),
   showInputBox: vi.fn().mockName('showInputBox'),
   showTextDocument: vi.fn().mockName('showTextDocument'),
+  showInformationMessage: vi.fn().mockName('showInformationMessage'),
+  showErrorMessage: vi.fn().mockName('showErrorMessage'),
 };
 
 export const workspace = {
@@ -310,6 +312,8 @@ export const workspace = {
   fs: {
     stat: vi.fn().mockName('stat'),
     readFile: vi.fn().mockName('readFile'),
+    writeFile: vi.fn().mockName('writeFile'),
+    createDirectory: vi.fn().mockName('createDirectory'),
   },
   getConfiguration: vi
     .fn()
@@ -327,6 +331,13 @@ export const workspace = {
 };
 
 export class Uri {
+  static file = vi
+    .fn()
+    .mockName('file')
+    .mockImplementation((path: string) => {
+      return Uri.parse(`file://${path}`);
+    });
+
   static joinPath = vi
     .fn()
     .mockName('joinPath')

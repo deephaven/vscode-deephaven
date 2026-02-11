@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
-import { CONFIG_KEY, MCP_SERVER_NAME } from '../common';
+import { CONFIG_KEY, MCP_DOCS_SERVER_NAME, MCP_SERVER_NAME } from '../common';
 import {
+  deleteConfigKeys,
+  getEnsuredContent,
+  getWindsurfMcpConfigUri,
   isWindsurf,
   Logger,
   updateWindsurfDocsMcpServerConfig,
@@ -112,52 +115,73 @@ async function setMcpAutoUpdateConfig(value: boolean): Promise<void> {
 
 /**
  * Update Windsurf MCP config with the Deephaven server entry.
- * @param port The port the MCP server is running on
+ * @param port The port the MCP server is running on (or null to remove entry)
  * @returns true if the config was updated, false otherwise
  */
-export async function updateWindsurfMcpConfig(port: number): Promise<boolean> {
+export async function updateWindsurfMcpConfig(
+  port: number | null
+): Promise<boolean> {
   if (!isWindsurf()) {
     return false;
   }
 
-  const mcpUrl = `http://localhost:${port}/mcp`;
-  const homeDir = process.env.HOME ?? process.env.USERPROFILE ?? '';
-  const configDir = vscode.Uri.file(`${homeDir}/.codeium/windsurf`);
-  const configUri = vscode.Uri.joinPath(configDir, 'mcp_config.json');
+  const configUri = getWindsurfMcpConfigUri();
 
   try {
-    // Ensure MCP config file exists
-    try {
-      await vscode.workspace.fs.stat(configUri);
-    } catch {
-      // File doesn't exist - create it with empty structure
-      await vscode.workspace.fs.createDirectory(configDir);
+    // Ensure MCP config file exists and load content
+    const existingContent = await getEnsuredContent(configUri, '{}\n');
+    const config: { mcpServers?: Record<string, { serverUrl?: string }> } =
+      JSON.parse(existingContent);
+
+    let updatedMcpServers = config.mcpServers;
+
+    // Helper to save the config file if changes were made
+    const saveMcpConfigIfChanged = async (): Promise<boolean> => {
+      if (updatedMcpServers === config.mcpServers) {
+        return false;
+      }
+
+      // Set config.mcpServers to new reference and write
+      config.mcpServers = updatedMcpServers;
+
       await vscode.workspace.fs.writeFile(
         configUri,
-        Buffer.from(JSON.stringify({}, null, 2))
+        Buffer.from(JSON.stringify(config, null, 2))
       );
+
+      return true;
+    };
+
+    // Remove any configured mcp servers if MCP is disabled
+    if (!isMcpEnabled()) {
+      updatedMcpServers = deleteConfigKeys(config.mcpServers, [
+        MCP_SERVER_NAME,
+        MCP_DOCS_SERVER_NAME,
+      ]);
+
+      return await saveMcpConfigIfChanged();
     }
 
-    // Load config file content
-    const existingContent = await vscode.workspace.fs.readFile(configUri);
-    const config: { mcpServers?: Record<string, { serverUrl?: string }> } =
-      JSON.parse(existingContent.toString());
+    if (port == null) {
+      updatedMcpServers = deleteConfigKeys(config.mcpServers, [
+        MCP_SERVER_NAME,
+      ]);
 
-    const mcpEnabled = isMcpEnabled();
+      return await saveMcpConfigIfChanged();
+    }
 
-    // Get updated mcpServers object (or same reference if no changes)
-    let updatedMcpServers = updateWindsurfMcpServerConfig(
+    // Add or update MCP server config with correct URL
+    updatedMcpServers = updateWindsurfMcpServerConfig(
       config.mcpServers,
-      mcpUrl,
-      mcpEnabled
+      `http://localhost:${port}/mcp`
     );
 
-    updatedMcpServers = updateWindsurfDocsMcpServerConfig(
-      updatedMcpServers,
-      mcpEnabled && isMcpDocsEnabled()
-    );
+    // Add or remove docs server config based on mcp docs enabled state
+    updatedMcpServers = isMcpDocsEnabled()
+      ? updateWindsurfDocsMcpServerConfig(updatedMcpServers)
+      : deleteConfigKeys(updatedMcpServers, [MCP_DOCS_SERVER_NAME]);
 
-    // If same reference, no changes needed - bail
+    // If config hasn't changed, no need to write or prompt user
     if (updatedMcpServers === config.mcpServers) {
       return false;
     }
@@ -185,15 +209,7 @@ export async function updateWindsurfMcpConfig(port: number): Promise<boolean> {
       await vscode.window.showTextDocument(configUri);
     }
 
-    // Set config.mcpServers to new reference and write
-    config.mcpServers = updatedMcpServers;
-
-    await vscode.workspace.fs.writeFile(
-      configUri,
-      Buffer.from(JSON.stringify(config, null, 2))
-    );
-
-    return true;
+    return await saveMcpConfigIfChanged();
   } catch (error) {
     vscode.window.showErrorMessage(
       `Failed to update Windsurf MCP config: ${error instanceof Error ? error.message : String(error)}`

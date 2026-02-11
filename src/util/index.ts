@@ -3,6 +3,7 @@ export * from './configUtils';
 export * from './documentUtils';
 export * from './envUtils';
 export * from './extensionApiUtils';
+export * from './fsUtils';
 export * from './hoverUtils';
 export * from './idUtils';
 export * from './isInstanceOf';
