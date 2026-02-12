@@ -196,7 +196,6 @@ describe('createGetColumnStatsTool', () => {
         connectionUrl: 'invalid-url',
         server: undefined,
         connections: [],
-        sessionReturnValue: undefined,
         expected: mcpErrorResult('Invalid URL: Invalid URL', {
           connectionUrl: 'invalid-url',
         }),
@@ -207,7 +206,6 @@ describe('createGetColumnStatsTool', () => {
         connectionUrl: MOCK_DHC_URL.href,
         server: undefined,
         connections: [],
-        sessionReturnValue: undefined,
         expected: mcpErrorResult('No connections or server found', {
           connectionUrl: MOCK_DHC_URL.href,
         }),
@@ -218,7 +216,6 @@ describe('createGetColumnStatsTool', () => {
         connectionUrl: MOCK_DHC_URL.href,
         server: MOCK_SERVER_RUNNING,
         connections: [mockConnection],
-        sessionReturnValue: null,
         expected: mcpErrorResult('Unable to access session', {
           connectionUrl: MOCK_DHC_URL.href,
         }),
@@ -230,17 +227,12 @@ describe('createGetColumnStatsTool', () => {
         connectionUrl,
         server,
         connections,
-        sessionReturnValue,
         expected,
         shouldCallGetServer,
       }) => {
         vi.mocked(serverManager.getServer).mockReturnValue(server);
         vi.mocked(serverManager.getConnections).mockReturnValue(connections);
-        if (sessionReturnValue !== undefined) {
-          vi.mocked(mockConnection.getSession).mockResolvedValue(
-            sessionReturnValue
-          );
-        }
+        vi.mocked(mockConnection.getSession).mockResolvedValue(null);
 
         const tool = createGetColumnStatsTool({ serverManager });
         const result = await tool.handler({
