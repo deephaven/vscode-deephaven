@@ -37,13 +37,13 @@ const spec = {
       )
       .optional()
       .describe('Array of column definitions'),
-    connectionUrl: z.string().optional(),
+    connectionUrl: z.string().optional().describe('Connection URL'),
     isRefreshing: z
       .boolean()
       .optional()
       .describe('Whether the table is refreshing (ticking)'),
     size: z.number().optional().describe('Number of rows in the table'),
-    tableName: z.string().optional(),
+    tableName: z.string().optional().describe('Name of the table'),
   }),
 } as const;
 
