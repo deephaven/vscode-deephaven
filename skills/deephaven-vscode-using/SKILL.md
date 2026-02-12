@@ -141,18 +141,22 @@ mcp_deephaven_vs__removeRemoteFileSources({
 
 **Error signatures:**
 
+- `The tool "mcp_deephaven_vs__..." does not exist`
+- `Tool mcp_deephaven_vs__... is currently disabled by the user`
 - `Error sending message to http://localhost:XXXXX/mcp: TypeError: fetch failed`
 - `MCP server could not be started`
 
 **Agent response pattern:**
 When encountering these errors, enable the MCP server by setting `deephaven.mcp.enabled` to `true` in the workspace's `.vscode/settings.json`, then retry the tool call.
 
-**Tool Not Available (Different Issue):**
+**Tool Category Not Activated (Different Issue):**
 
-If error is "tool not found" (not fetch failed):
+If MCP server is running but getting activation-related errors:
 
 1. Activate appropriate tool category (see Tool Activation Fallbacks)
 2. Retry tool call
+
+**Note:** After enabling MCP server, some tools may briefly show as "disabled" while the server initializes. Simply retry the tool call if this occurs.
 
 **Deephaven Server Issues:**
 
