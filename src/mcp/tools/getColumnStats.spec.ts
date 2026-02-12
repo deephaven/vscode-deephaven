@@ -187,7 +187,6 @@ describe('createGetColumnStatsTool', () => {
         columnName: 'Price',
       });
 
-      // getSession() now handles session initialization internally
       expect(mockConnection.getSession).toHaveBeenCalled();
     });
 
@@ -195,8 +194,6 @@ describe('createGetColumnStatsTool', () => {
       {
         name: 'invalid URL',
         connectionUrl: 'invalid-url',
-        tableName: 'myTable',
-        columnName: 'Price',
         server: undefined,
         connections: [],
         sessionReturnValue: undefined,
@@ -208,8 +205,6 @@ describe('createGetColumnStatsTool', () => {
       {
         name: 'missing connection',
         connectionUrl: MOCK_DHC_URL.href,
-        tableName: 'myTable',
-        columnName: 'Price',
         server: undefined,
         connections: [],
         sessionReturnValue: undefined,
@@ -221,8 +216,6 @@ describe('createGetColumnStatsTool', () => {
       {
         name: 'missing session',
         connectionUrl: MOCK_DHC_URL.href,
-        tableName: 'myTable',
-        columnName: 'Price',
         server: MOCK_SERVER_RUNNING,
         connections: [mockConnection],
         sessionReturnValue: null,
@@ -235,8 +228,6 @@ describe('createGetColumnStatsTool', () => {
       'should handle $name',
       async ({
         connectionUrl,
-        tableName,
-        columnName,
         server,
         connections,
         sessionReturnValue,
@@ -254,8 +245,8 @@ describe('createGetColumnStatsTool', () => {
         const tool = createGetColumnStatsTool({ serverManager });
         const result = await tool.handler({
           connectionUrl,
-          tableName,
-          columnName,
+          tableName: 'myTable',
+          columnName: 'Price',
         });
 
         expect(result.structuredContent).toEqual(expected);
