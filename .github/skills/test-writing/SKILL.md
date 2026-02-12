@@ -1,13 +1,13 @@
 ---
 name: test-writing
-description: Writes unit tests for `vscode-deephaven` using Vitest and TypeScript.
+description: Writes unit tests for vscode-deephaven using Vitest and TypeScript. Use when writing tests, adding unit tests for new features, or verifying service/component behavior. Covers test structure, mocking patterns, parameterized tests, and vscode-deephaven-specific conventions.
 ---
 
 # Test Writing for vscode-deephaven
 
 ## Running Tests
 
-Run tests using vitest:
+Use `npx vitest run` for all test execution. Avoid `npm test` (starts watch mode).
 
 ```bash
 # Run all tests
@@ -19,8 +19,6 @@ npx vitest run src/path/to/file.spec.ts
 # Run multiple specific files
 npx vitest run src/mcp/tools/getColumnStats.spec.ts src/mcp/tools/getTableStats.spec.ts
 ```
-
-**Important:** Always use `npx vitest run`, not `npm test` or `npm run test` (those start watch mode).
 
 ## Codebase-Specific Conventions
 
@@ -50,40 +48,16 @@ vi.mock('../../services');
 
 ### 3. Import Order
 
+vscode and 3rd party imports before relative imports:
+
 ```typescript
-// 1. vscode and 3rd party
 import * as vscode from 'vscode';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-// 2. Types
 import type { IDhcService } from '../../types';
-
-// 3. Relative imports
 import { myFunction } from './myFunction';
 ```
 
-**Import modules at the top of the file, not in tests.** Avoid `await import()` within test functions.
-
-```typescript
-// ✅ Import at top of file
-import { myUtil } from '../util';
-
-describe('myFunction', () => {
-  it('should work', () => {
-    const result = myUtil();
-    expect(result).toBe(true);
-  });
-});
-
-// ❌ Avoid importing in tests
-describe('myFunction', () => {
-  it('should work', async () => {
-    const { myUtil } = await import('../util'); // Unnecessary
-    const result = myUtil();
-    expect(result).toBe(true);
-  });
-});
-```
+Import modules at top of file, not within tests using `await import()`.
 
 ### 4. Prefer it.each for Test Variations
 
@@ -215,13 +189,7 @@ beforeEach(() => {
 });
 ```
 
-### 7. Linting
-
-After making changes to test files, run the linter and fix any errors:
-
-```bash
-npm run test:lint
-```
+After making test changes, run linting: `npm run test:lint`
 
 ## Common Patterns
 

@@ -1,6 +1,6 @@
 ---
 name: mcp-tool-writing
-description: Guide for writing MCP tools in the vscode-deephaven extension. Use when adding new tools to the existing TypeScript MCP server, implementing tool handlers, or creating tests for MCP tools. Covers tool structure, type safety patterns, response formatting, error handling, and testing conventions specific to this codebase.
+description: Write MCP tools for the vscode-deephaven TypeScript MCP server. Use when adding new tools, implementing tool handlers, or creating tests for MCP tools.
 license: Complete terms in LICENSE.txt
 ---
 
@@ -42,7 +42,11 @@ See existing tools in `src/mcp/tools/` for complete examples. Key structure:
 
 ```typescript
 import { z } from 'zod';
-import type { McpTool, McpToolHandlerArg, McpToolHandlerResult } from '../../types';
+import type {
+  McpTool,
+  McpToolHandlerArg,
+  McpToolHandlerResult,
+} from '../../types';
 import { createMcpToolOutputSchema, McpToolResponse } from '../utils';
 
 const spec = {
@@ -61,13 +65,16 @@ type HandlerArg = McpToolHandlerArg<Spec>;
 type HandlerResult = McpToolHandlerResult<Spec>;
 type ToolNameTool = McpTool<Spec>;
 
-export function createToolNameTool({ serverManager }: { serverManager: IServerManager }): ToolNameTool {
+export function createToolNameTool({
+  serverManager,
+}: {
+  serverManager: IServerManager;
+}): ToolNameTool {
   return {
     name: 'toolName',
     spec,
     handler: async ({ param }: HandlerArg): Promise<HandlerResult> => {
       const response = new McpToolResponse();
-      // Implementation
       return response.success('Done', { result });
     },
   };
@@ -77,39 +84,50 @@ export function createToolNameTool({ serverManager }: { serverManager: IServerMa
 ### 3. Spec Definition Rules
 
 **Input Schema:**
+
 - Use Zod schemas directly as object properties (NOT `z.object()`)
 - Add descriptive `.describe()` to every parameter
 - Document expected formats (e.g., URLs, language IDs)
 
 **Output Schema:**
-- Always use `createMcpToolOutputSchema()` helper for consistency
+
+- Always use `createMcpToolOutputSchema()` helper
 - Pass optional details shape as object of Zod schemas
-- Include ALL detail properties from every `response.success()`, `response.error()`, and `response.errorWithHint()` call
-- Make properties **required** only if present in ALL code paths (success AND error); otherwise **optional**
+- Include ALL detail properties from every response call (success, error, errorWithHint)
+- Make properties **required** only if present in ALL code paths; otherwise **optional** (missing required fields in error responses cause schema errors)
 - Sort detail properties alphabetically
 - Add descriptions for all fields
-
-**Critical:** Missing required fields in error responses cause schema errors instead of returning your error message. Audit all response calls during implementation.
 
 **Example:**
 
 ```typescript
 const spec = {
   title: 'Get Table Stats',
-  description: 'Get schema information and basic statistics for a Deephaven table',
+  description:
+    'Get schema information and basic statistics for a Deephaven table',
   inputSchema: {
-    connectionUrl: z.string().describe('Connection URL (e.g., "http://localhost:10000")'),
+    connectionUrl: z
+      .string()
+      .describe('Connection URL (e.g., "http://localhost:10000")'),
     tableName: z.string().describe('Name of the table to describe'),
   },
   outputSchema: createMcpToolOutputSchema({
     // Properties sorted alphabetically
-    columns: z.array(z.object({
-      name: z.string(),
-      type: z.string(),
-      description: z.string().optional(),
-    })).optional().describe('Array of column definitions'),
+    columns: z
+      .array(
+        z.object({
+          name: z.string(),
+          type: z.string(),
+          description: z.string().optional(),
+        })
+      )
+      .optional()
+      .describe('Array of column definitions'),
     connectionUrl: z.string().optional(), // In error responses
-    isRefreshing: z.boolean().optional().describe('Whether the table is refreshing (ticking)'),
+    isRefreshing: z
+      .boolean()
+      .optional()
+      .describe('Whether the table is refreshing (ticking)'),
     size: z.number().optional().describe('Number of rows in the table'),
     tableName: z.string().optional(),
   }),
@@ -142,6 +160,7 @@ export function createGetTableStatsTool({
 ```
 
 **Dependency sources:**
+
 - Check `McpServer.ts` constructor for available services to inject
 - VS Code APIs can be used directly via `import * as vscode from 'vscode'`
 - Commands available via `import { execXxx } from '../../common/commands'`
@@ -163,7 +182,9 @@ return response.successWithHint('Created', 'Next: use runCode', { url });
 return response.error('Failed');
 return response.error('Connection failed', error);
 return response.error('Not found', null, { available: ['a', 'b'] });
-return response.errorWithHint('Invalid', error, 'Use format: http://...', { url });
+return response.errorWithHint('Invalid', error, 'Use format: http://...', {
+  url,
+});
 ```
 
 All responses include: `success`, `message`, `executionTimeMs`, optional `hint`, optional `details`.
@@ -207,6 +228,7 @@ const { connection, panelUrlFormat } = firstConnectionResult;
 ```
 
 This helper:
+
 - Finds or creates a connection
 - Handles server validation
 - Provides actionable error hints
@@ -227,7 +249,9 @@ const table: DhcType.Table = await session.getObject({
 
 try {
   // Work with table
-  return response.success('Success', { /* data */ });
+  return response.success('Success', {
+    /* data */
+  });
 } finally {
   table.close(); // Always close tables
 }
@@ -252,7 +276,11 @@ See `test-writing` skill for comprehensive patterns. MCP-specific essentials:
 
 ```typescript
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fakeMcpToolTimings, mcpSuccessResult, mcpErrorResult } from '../utils/mcpTestUtils';
+import {
+  fakeMcpToolTimings,
+  mcpSuccessResult,
+  mcpErrorResult,
+} from '../utils/mcpTestUtils';
 
 vi.mock('vscode');
 
