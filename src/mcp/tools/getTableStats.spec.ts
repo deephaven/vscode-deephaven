@@ -25,34 +25,6 @@ const MOCK_TABLE = {
   close: vi.fn(),
 } as unknown as DhcType.Table;
 
-const EXPECTED_SUCCESS = mcpSuccessResult('Table stats retrieved', {
-  tableName: 'myTable',
-  size: 1000,
-  columns: [
-    {
-      name: 'Symbol',
-      type: 'java.lang.String',
-      description: 'Stock symbol',
-    },
-    { name: 'Price', type: 'double' },
-    { name: 'Volume', type: 'long', description: 'Trading volume' },
-  ],
-  isRefreshing: true,
-});
-
-const EXPECTED_INVALID_URL = mcpErrorResult('Invalid URL: Invalid URL', {
-  connectionUrl: 'invalid-url',
-});
-
-const EXPECTED_NO_CONNECTION = mcpErrorResult(
-  'No connections or server found',
-  { connectionUrl: MOCK_DHC_URL.href }
-);
-
-const EXPECTED_NO_SESSION = mcpErrorResult('Unable to access session', {
-  connectionUrl: MOCK_DHC_URL.href,
-});
-
 const MOCK_SERVER_RUNNING: ServerState = {
   isRunning: true,
   type: 'DHC',
@@ -114,7 +86,22 @@ describe('getTableStats', () => {
       name: 'myTable',
     });
     expect(MOCK_TABLE.close).toHaveBeenCalled();
-    expect(result.structuredContent).toEqual(EXPECTED_SUCCESS);
+    expect(result.structuredContent).toEqual(
+      mcpSuccessResult('Table stats retrieved', {
+        tableName: 'myTable',
+        size: 1000,
+        columns: [
+          {
+            name: 'Symbol',
+            type: 'java.lang.String',
+            description: 'Stock symbol',
+          },
+          { name: 'Price', type: 'double' },
+          { name: 'Volume', type: 'long', description: 'Trading volume' },
+        ],
+        isRefreshing: true,
+      })
+    );
   });
 
   it('should initialize session if not initialized', async () => {
@@ -143,7 +130,9 @@ describe('getTableStats', () => {
       serverReturnValue: undefined,
       connectionReturnValue: undefined,
       sessionReturnValue: undefined,
-      expected: EXPECTED_INVALID_URL,
+      expected: mcpErrorResult('Invalid URL: Invalid URL', {
+        connectionUrl: 'invalid-url',
+      }),
       shouldCallGetServer: false,
     },
     {
@@ -153,7 +142,9 @@ describe('getTableStats', () => {
       serverReturnValue: undefined,
       connectionReturnValue: undefined,
       sessionReturnValue: undefined,
-      expected: EXPECTED_NO_CONNECTION,
+      expected: mcpErrorResult('No connections or server found', {
+        connectionUrl: MOCK_DHC_URL.href,
+      }),
       shouldCallGetServer: true,
     },
     {
@@ -163,7 +154,9 @@ describe('getTableStats', () => {
       serverReturnValue: 'server',
       connectionReturnValue: 'mockConnection',
       sessionReturnValue: null,
-      expected: EXPECTED_NO_SESSION,
+      expected: mcpErrorResult('Unable to access session', {
+        connectionUrl: MOCK_DHC_URL.href,
+      }),
       shouldCallGetServer: true,
     },
   ])(

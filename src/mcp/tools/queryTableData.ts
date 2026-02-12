@@ -120,13 +120,13 @@ const spec = {
       )
       .optional()
       .describe('Column metadata (name and type)'),
-    connectionUrl: z.string().optional(),
+    connectionUrl: z.string().optional().describe('Connection URL'),
     data: z
       .array(z.record(z.unknown()))
       .optional()
       .describe('Array of row objects with column values'),
     rowCount: z.number().optional().describe('Number of rows returned'),
-    tableName: z.string().optional(),
+    tableName: z.string().optional().describe('Name of the table'),
     totalRows: z
       .number()
       .optional()

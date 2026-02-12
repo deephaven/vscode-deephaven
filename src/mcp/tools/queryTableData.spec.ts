@@ -79,34 +79,6 @@ const MOCK_TABLE = {
   getTotalsTable: vi.fn(),
 } as unknown as DhcType.Table;
 
-/* eslint-disable @typescript-eslint/naming-convention */
-const EXPECTED_SUCCESS = mcpSuccessResult('Showing all 2 rows', {
-  data: [
-    { Symbol: 'AAPL', Price: 150.25 },
-    { Symbol: 'GOOGL', Price: 2800.5 },
-  ],
-  columns: [
-    { name: 'Symbol', type: 'java.lang.String' },
-    { name: 'Price', type: 'double' },
-  ],
-  rowCount: 2,
-  totalRows: 2,
-});
-/* eslint-enable @typescript-eslint/naming-convention */
-
-const EXPECTED_INVALID_URL = mcpErrorResult('Invalid URL: Invalid URL', {
-  connectionUrl: 'invalid-url',
-});
-
-const EXPECTED_NO_CONNECTION = mcpErrorResult(
-  'No connections or server found',
-  { connectionUrl: MOCK_DHC_URL.href }
-);
-
-const EXPECTED_NO_SESSION = mcpErrorResult('Unable to access session', {
-  connectionUrl: MOCK_DHC_URL.href,
-});
-
 const MOCK_SERVER_RUNNING: ServerState = {
   isRunning: true,
   type: 'DHC',
@@ -184,7 +156,20 @@ describe('queryTableData', () => {
     });
     expect(MOCK_TABLE.setViewport).toHaveBeenCalledWith(0, 1);
     expect(MOCK_TABLE.close).toHaveBeenCalled();
-    expect(result.structuredContent).toEqual(EXPECTED_SUCCESS);
+    expect(result.structuredContent).toEqual(
+      mcpSuccessResult('Showing all 2 rows', {
+        data: [
+          { Symbol: 'AAPL', Price: 150.25 },
+          { Symbol: 'GOOGL', Price: 2800.5 },
+        ],
+        columns: [
+          { name: 'Symbol', type: 'java.lang.String' },
+          { name: 'Price', type: 'double' },
+        ],
+        rowCount: 2,
+        totalRows: 2,
+      })
+    );
   });
 
   it('should apply maxRows limit', async () => {
@@ -241,7 +226,11 @@ describe('queryTableData', () => {
       tableName: 'myTable',
     });
 
-    expect(result.structuredContent).toEqual(EXPECTED_INVALID_URL);
+    expect(result.structuredContent).toEqual(
+      mcpErrorResult('Invalid URL: Invalid URL', {
+        connectionUrl: 'invalid-url',
+      })
+    );
     expect(serverManager.getServer).not.toHaveBeenCalled();
   });
 
@@ -254,7 +243,11 @@ describe('queryTableData', () => {
       tableName: 'myTable',
     });
 
-    expect(result.structuredContent).toEqual(EXPECTED_NO_CONNECTION);
+    expect(result.structuredContent).toEqual(
+      mcpErrorResult('No connections or server found', {
+        connectionUrl: MOCK_DHC_URL.href,
+      })
+    );
   });
 
   it('should handle errors and close table', async () => {
@@ -319,7 +312,11 @@ describe('queryTableData', () => {
       tableName: 'myTable',
     });
 
-    expect(result.structuredContent).toEqual(EXPECTED_NO_SESSION);
+    expect(result.structuredContent).toEqual(
+      mcpErrorResult('Unable to access session', {
+        connectionUrl: MOCK_DHC_URL.href,
+      })
+    );
   });
 
   describe('filter operations', () => {
