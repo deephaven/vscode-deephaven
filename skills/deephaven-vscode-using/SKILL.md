@@ -27,7 +27,7 @@ Guide for working with Deephaven through VS Code MCP tools.
    - List available servers: `mcp_deephaven_vs__listServers`
    - Select appropriate server (see Server Selection below)
    - Connect: `mcp_deephaven_vs__connectToServer` with exact URL from list
-3. Verify connection: Call `listConnections` to confirm `isConnected: true`
+   - Connection success confirmed by response's `success: true`
 
 **Skip step 1 if connections recently checked and remembered.**
 
@@ -140,18 +140,17 @@ mcp_deephaven_vs__removeRemoteFileSources({
 **MCP Server Not Running:**
 
 **Error signatures:**
+
 - `Error sending message to http://localhost:XXXXX/mcp: TypeError: fetch failed`
 - `MCP server could not be started`
 
 **Agent response pattern:**
-When encountering these errors, prompt the user:
-> "The Deephaven MCP server isn't running. Please click the Deephaven status bar item to start it, then I can retry."
-
-After user confirms, retry the tool call.
+When encountering these errors, enable the MCP server by setting `deephaven.mcp.enabled` to `true` in the workspace's `.vscode/settings.json`, then retry the tool call.
 
 **Tool Not Available (Different Issue):**
 
 If error is "tool not found" (not fetch failed):
+
 1. Activate appropriate tool category (see Tool Activation Fallbacks)
 2. Retry tool call
 
@@ -212,7 +211,7 @@ mcp_deephaven_doc_docs_chat({
 
 - Check connections first (unless recently done)
 - Only list servers if no connection exists
-- Verify connection succeeded after `connectToServer` by calling `listConnections`
+- Connection success confirmed by `connectToServer` response's `success: true`
 - Use full connection URL (with trailing slash) in all execution calls
 
 ## Tool Activation Fallbacks
@@ -235,14 +234,13 @@ After activation, retry the original tool call.
 ```
 1. listConnections → No active connections
 2. listServers → Find running server at http://localhost:10000/ (isRunning: true)
-3. connectToServer({ url: "http://localhost:10000/" })
-4. listConnections → Verify isConnected: true
-5. runCode({
+3. connectToServer({ url: "http://localhost:10000/" }) → success: true
+4. runCode({
      code: "t = time_table('PT1S').head(100)",
      languageId: "python",
      connectionUrl: "http://localhost:10000/"
    })
-6. Variables auto-displayed → Report success with variable names
+5. Variables auto-displayed → Report success with variable names
 ```
 
 **Connect and execute (multiple servers - need selection):**
@@ -254,9 +252,8 @@ After activation, retry the original tool call.
    - Production (DHE, https://prod.company.com:8000/, isRunning: true)
    - Old Dev (DHC, http://localhost:10011/, isRunning: false)
 3. Select based on user intent ("my running server" → Local Dev)
-4. connectToServer({ url: "http://localhost:10000/" })
-5. listConnections → Verify connection
-6. Proceed with execution...
+4. connectToServer({ url: "http://localhost:10000/" }) → success: true
+5. Proceed with execution...
 ```
 
 **Execute workspace file:**
@@ -281,12 +278,11 @@ After activation, retry the original tool call.
 
 ## What NOT to Do
 
-❌ Don't provide pydeephaven Session code for manual connections  
-❌ Don't run `python script.py` for Deephaven code  
-❌ Don't guess server URLs  
-❌ Don't manually manage auth/credentials  
-❌ Don't edit server configuration files manually  
-❌ Don't skip connection verification after `connectToServer`
+- Don't provide pydeephaven Session code for manual connections
+- Don't run `python script.py` for Deephaven code
+- Don't guess server URLs
+- Don't manually manage auth/credentials
+- Don't edit server configuration files manually
 
 ## Progress Reporting
 
@@ -294,8 +290,8 @@ Keep users informed:
 
 - **Starting**: "Connecting to Local Dev..."
 - **During**: "Executing Python code..."
-- **Success**: "✅ Code executed (234ms). Created variables: my_table, result_df"
-- **Failure**: "❌ Execution failed: [error]. Check logs?"
+- **Success**: "Code executed (234ms). Created variables: my_table, result_df"
+- **Failure**: "Execution failed: [error]. Check logs?"
 
 ## When to Ask
 
