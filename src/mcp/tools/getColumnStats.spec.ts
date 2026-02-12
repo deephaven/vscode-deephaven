@@ -128,6 +128,9 @@ describe('createGetColumnStatsTool', () => {
 
     expect(tool.name).toBe('getColumnStats');
     expect(tool.spec.title).toBe('Get Column Statistics');
+    expect(tool.spec.description).toBe(
+      'Get statistical information for a column in a Deephaven table. Returns statistics like min, max, average, and unique value counts. Useful for understanding data distribution and column characteristics.'
+    );
   });
 
   describe('success cases', () => {
