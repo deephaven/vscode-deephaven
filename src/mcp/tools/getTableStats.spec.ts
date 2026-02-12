@@ -72,6 +72,9 @@ describe('getTableStats', () => {
 
     expect(tool.name).toBe('getTableStats');
     expect(tool.spec.title).toBe('Get Table Schema and Statistics');
+    expect(tool.spec.description).toBe(
+      'Get schema information and basic statistics for a Deephaven table. Returns column names, types, descriptions, row count, and other table metadata. Useful for understanding table structure and planning queries.'
+    );
   });
 
   it('should successfully retrieve table stats', async () => {
@@ -118,7 +121,6 @@ describe('getTableStats', () => {
       tableName: 'myTable',
     });
 
-    // getSession() now handles session initialization internally
     expect(mockConnection.getSession).toHaveBeenCalled();
   });
 
@@ -126,7 +128,6 @@ describe('getTableStats', () => {
     {
       name: 'invalid URL',
       connectionUrl: 'invalid-url',
-      tableName: 'myTable',
       serverReturnValue: undefined,
       connectionReturnValue: undefined,
       sessionReturnValue: undefined,
@@ -138,7 +139,6 @@ describe('getTableStats', () => {
     {
       name: 'missing connection',
       connectionUrl: MOCK_DHC_URL.href,
-      tableName: 'myTable',
       serverReturnValue: undefined,
       connectionReturnValue: undefined,
       sessionReturnValue: undefined,
@@ -150,7 +150,6 @@ describe('getTableStats', () => {
     {
       name: 'missing session',
       connectionUrl: MOCK_DHC_URL.href,
-      tableName: 'myTable',
       serverReturnValue: 'server',
       connectionReturnValue: 'mockConnection',
       sessionReturnValue: null,
@@ -163,7 +162,6 @@ describe('getTableStats', () => {
     'should handle $name',
     async ({
       connectionUrl,
-      tableName,
       serverReturnValue,
       connectionReturnValue,
       sessionReturnValue,
@@ -191,7 +189,10 @@ describe('getTableStats', () => {
       }
 
       const tool = createGetTableStatsTool({ serverManager });
-      const result = await tool.handler({ connectionUrl, tableName });
+      const result = await tool.handler({
+        connectionUrl,
+        tableName: 'mock.table',
+      });
 
       expect(result.structuredContent).toEqual(expected);
       if (!shouldCallGetServer) {
