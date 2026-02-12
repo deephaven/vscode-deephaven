@@ -89,20 +89,15 @@ describe('getTableStats', () => {
       name: 'myTable',
     });
     expect(MOCK_TABLE.close).toHaveBeenCalled();
+
+    const { size, columns, isRefreshing } = MOCK_TABLE;
+
     expect(result.structuredContent).toEqual(
       mcpSuccessResult('Table stats retrieved', {
         tableName: 'myTable',
-        size: 1000,
-        columns: [
-          {
-            name: 'Symbol',
-            type: 'java.lang.String',
-            description: 'Stock symbol',
-          },
-          { name: 'Price', type: 'double' },
-          { name: 'Volume', type: 'long', description: 'Trading volume' },
-        ],
-        isRefreshing: true,
+        columns,
+        isRefreshing,
+        size,
       })
     );
   });
@@ -128,9 +123,9 @@ describe('getTableStats', () => {
     {
       name: 'invalid URL',
       connectionUrl: 'invalid-url',
-      serverReturnValue: undefined,
-      connectionReturnValue: undefined,
-      sessionReturnValue: undefined,
+      server: undefined,
+      connections: [],
+      session: null,
       expected: mcpErrorResult('Invalid URL: Invalid URL', {
         connectionUrl: 'invalid-url',
       }),
@@ -139,9 +134,9 @@ describe('getTableStats', () => {
     {
       name: 'missing connection',
       connectionUrl: MOCK_DHC_URL.href,
-      serverReturnValue: undefined,
-      connectionReturnValue: undefined,
-      sessionReturnValue: undefined,
+      server: undefined,
+      connections: [],
+      session: null,
       expected: mcpErrorResult('No connections or server found', {
         connectionUrl: MOCK_DHC_URL.href,
       }),
@@ -150,9 +145,9 @@ describe('getTableStats', () => {
     {
       name: 'missing session',
       connectionUrl: MOCK_DHC_URL.href,
-      serverReturnValue: 'server',
-      connectionReturnValue: 'mockConnection',
-      sessionReturnValue: null,
+      server: MOCK_SERVER_RUNNING,
+      connections: [mockConnection],
+      session: null,
       expected: mcpErrorResult('Unable to access session', {
         connectionUrl: MOCK_DHC_URL.href,
       }),
@@ -162,31 +157,15 @@ describe('getTableStats', () => {
     'should handle $name',
     async ({
       connectionUrl,
-      serverReturnValue,
-      connectionReturnValue,
-      sessionReturnValue,
+      server,
+      connections,
+      session,
       expected,
       shouldCallGetServer,
     }) => {
-      if (serverReturnValue === 'server') {
-        vi.mocked(serverManager.getServer).mockReturnValue(MOCK_SERVER_RUNNING);
-      } else if (serverReturnValue === undefined) {
-        vi.mocked(serverManager.getServer).mockReturnValue(undefined);
-      }
-
-      if (connectionReturnValue === 'mockConnection') {
-        vi.mocked(serverManager.getConnections).mockReturnValue([
-          mockConnection,
-        ]);
-      } else if (connectionReturnValue === undefined) {
-        vi.mocked(serverManager.getConnections).mockReturnValue([]);
-      }
-
-      if (sessionReturnValue !== undefined) {
-        vi.mocked(mockConnection.getSession).mockResolvedValue(
-          sessionReturnValue
-        );
-      }
+      vi.mocked(serverManager.getServer).mockReturnValue(server);
+      vi.mocked(serverManager.getConnections).mockReturnValue(connections);
+      vi.mocked(mockConnection.getSession).mockResolvedValue(session);
 
       const tool = createGetTableStatsTool({ serverManager });
       const result = await tool.handler({
