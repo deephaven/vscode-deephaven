@@ -104,7 +104,7 @@ const MOCK_SERVER_RUNNING: ServerState = {
   connectionCount: 0,
 };
 
-describe('getColumnStats', () => {
+describe('createGetColumnStatsTool', () => {
   const mockSession = {
     getObject: vi.fn(),
   } as unknown as DhcType.IdeSession;
@@ -149,185 +149,194 @@ describe('getColumnStats', () => {
     expect(tool.spec.title).toBe('Get Column Statistics');
   });
 
-  it('should successfully retrieve column stats with unique values', async () => {
-    const tool = createGetColumnStatsTool({ serverManager });
-    const result = await tool.handler({
-      connectionUrl: MOCK_DHC_URL.href,
-      tableName: 'myTable',
-      columnName: 'Price',
-    });
+  describe('success cases', () => {
+    it.each([
+      {
+        label: 'with unique values',
+        mockStats: MOCK_COLUMN_STATS,
+        expected: EXPECTED_SUCCESS,
+      },
+      {
+        label: 'without unique values',
+        mockStats: MOCK_COLUMN_STATS_NO_UNIQUE,
+        expected: EXPECTED_SUCCESS_NO_UNIQUE,
+      },
+    ])(
+      'should successfully retrieve column stats $label',
+      async ({ mockStats, expected }) => {
+        vi.mocked(MOCK_TABLE.getColumnStatistics).mockResolvedValue(mockStats);
 
-    expect(mockSession.getObject).toHaveBeenCalledWith({
-      type: 'Table',
-      name: 'myTable',
-    });
-    expect(MOCK_TABLE.findColumn).toHaveBeenCalledWith('Price');
-    expect(MOCK_TABLE.getColumnStatistics).toHaveBeenCalledWith(MOCK_COLUMN);
-    expect(MOCK_TABLE.close).toHaveBeenCalled();
-    expect(result.structuredContent).toEqual(EXPECTED_SUCCESS);
-  });
+        const tool = createGetColumnStatsTool({ serverManager });
+        const result = await tool.handler({
+          connectionUrl: MOCK_DHC_URL.href,
+          tableName: 'myTable',
+          columnName: 'Price',
+        });
 
-  it('should successfully retrieve column stats without unique values', async () => {
-    vi.mocked(MOCK_TABLE.getColumnStatistics).mockResolvedValue(
-      MOCK_COLUMN_STATS_NO_UNIQUE
-    );
-
-    const tool = createGetColumnStatsTool({ serverManager });
-    const result = await tool.handler({
-      connectionUrl: MOCK_DHC_URL.href,
-      tableName: 'myTable',
-      columnName: 'Price',
-    });
-
-    expect(result.structuredContent).toEqual(EXPECTED_SUCCESS_NO_UNIQUE);
-  });
-
-  it('should handle column not found', async () => {
-    vi.mocked(MOCK_TABLE.findColumn).mockReturnValue(
-      undefined as unknown as DhcType.Column
-    );
-
-    const tool = createGetColumnStatsTool({ serverManager });
-    const result = await tool.handler({
-      connectionUrl: MOCK_DHC_URL.href,
-      tableName: 'myTable',
-      columnName: 'InvalidColumn',
-    });
-
-    expect(MOCK_TABLE.close).toHaveBeenCalled();
-    expect(result.structuredContent).toEqual(EXPECTED_COLUMN_NOT_FOUND);
-  });
-
-  it('should initialize session if not initialized', async () => {
-    Object.defineProperty(mockConnection, 'isInitialized', {
-      get: vi.fn(() => false),
-      configurable: true,
-    });
-
-    vi.mocked(serverManager.getConnections).mockReturnValue([mockConnection]);
-
-    const tool = createGetColumnStatsTool({ serverManager });
-    await tool.handler({
-      connectionUrl: MOCK_DHC_URL.href,
-      tableName: 'myTable',
-      columnName: 'Price',
-    });
-
-    // getSession() now handles session initialization internally
-    expect(mockConnection.getSession).toHaveBeenCalled();
-  });
-
-  it.each([
-    {
-      name: 'invalid URL',
-      connectionUrl: 'invalid-url',
-      tableName: 'myTable',
-      columnName: 'Price',
-      serverReturnValue: undefined,
-      connectionReturnValue: undefined,
-      sessionReturnValue: undefined,
-      expected: EXPECTED_INVALID_URL,
-      shouldCallGetServer: false,
-    },
-    {
-      name: 'missing connection',
-      connectionUrl: MOCK_DHC_URL.href,
-      tableName: 'myTable',
-      columnName: 'Price',
-      serverReturnValue: undefined,
-      connectionReturnValue: undefined,
-      sessionReturnValue: undefined,
-      expected: EXPECTED_NO_CONNECTION,
-      shouldCallGetServer: true,
-    },
-    {
-      name: 'missing session',
-      connectionUrl: MOCK_DHC_URL.href,
-      tableName: 'myTable',
-      columnName: 'Price',
-      serverReturnValue: 'server',
-      connectionReturnValue: 'mockConnection',
-      sessionReturnValue: null,
-      expected: EXPECTED_NO_SESSION,
-      shouldCallGetServer: true,
-    },
-  ])(
-    'should handle $name',
-    async ({
-      connectionUrl,
-      tableName,
-      columnName,
-      serverReturnValue,
-      connectionReturnValue,
-      sessionReturnValue,
-      expected,
-      shouldCallGetServer,
-    }) => {
-      if (serverReturnValue === 'server') {
-        vi.mocked(serverManager.getServer).mockReturnValue(MOCK_SERVER_RUNNING);
-      } else if (serverReturnValue === undefined) {
-        vi.mocked(serverManager.getServer).mockReturnValue(undefined);
-      }
-
-      if (connectionReturnValue === 'mockConnection') {
-        vi.mocked(serverManager.getConnections).mockReturnValue([
-          mockConnection,
-        ]);
-      } else if (connectionReturnValue === undefined) {
-        vi.mocked(serverManager.getConnections).mockReturnValue([]);
-      }
-
-      if (sessionReturnValue !== undefined) {
-        vi.mocked(mockConnection.getSession).mockResolvedValue(
-          sessionReturnValue
+        expect(mockSession.getObject).toHaveBeenCalledWith({
+          type: 'Table',
+          name: 'myTable',
+        });
+        expect(MOCK_TABLE.findColumn).toHaveBeenCalledWith('Price');
+        expect(MOCK_TABLE.getColumnStatistics).toHaveBeenCalledWith(
+          MOCK_COLUMN
         );
+        expect(MOCK_TABLE.close).toHaveBeenCalled();
+        expect(result.structuredContent).toEqual(expected);
       }
+    );
+  });
+
+  describe('error handling', () => {
+    it('should handle column not found', async () => {
+      vi.mocked(MOCK_TABLE.findColumn).mockReturnValue(
+        undefined as unknown as DhcType.Column
+      );
 
       const tool = createGetColumnStatsTool({ serverManager });
       const result = await tool.handler({
-        connectionUrl,
-        tableName,
-        columnName,
+        connectionUrl: MOCK_DHC_URL.href,
+        tableName: 'myTable',
+        columnName: 'InvalidColumn',
       });
 
-      expect(result.structuredContent).toEqual(expected);
-      if (!shouldCallGetServer) {
-        expect(serverManager.getServer).not.toHaveBeenCalled();
-      }
-    }
-  );
-
-  it('should handle errors and close table', async () => {
-    const error = new Error('Failed to get stats');
-    vi.mocked(MOCK_TABLE.getColumnStatistics).mockRejectedValue(error);
-
-    const tool = createGetColumnStatsTool({ serverManager });
-    const result = await tool.handler({
-      connectionUrl: MOCK_DHC_URL.href,
-      tableName: 'myTable',
-      columnName: 'Price',
+      expect(MOCK_TABLE.close).toHaveBeenCalled();
+      expect(result.structuredContent).toEqual(EXPECTED_COLUMN_NOT_FOUND);
     });
 
-    expect(MOCK_TABLE.close).toHaveBeenCalled();
-    expect(result.structuredContent).toMatchObject({
-      success: false,
-      message: 'Failed to get column stats: Failed to get stats',
-      details: {
+    it('should initialize session if not initialized', async () => {
+      Object.defineProperty(mockConnection, 'isInitialized', {
+        get: vi.fn(() => false),
+        configurable: true,
+      });
+
+      vi.mocked(serverManager.getConnections).mockReturnValue([mockConnection]);
+
+      const tool = createGetColumnStatsTool({ serverManager });
+      await tool.handler({
         connectionUrl: MOCK_DHC_URL.href,
         tableName: 'myTable',
         columnName: 'Price',
+      });
+
+      // getSession() now handles session initialization internally
+      expect(mockConnection.getSession).toHaveBeenCalled();
+    });
+
+    it.each([
+      {
+        name: 'invalid URL',
+        connectionUrl: 'invalid-url',
+        tableName: 'myTable',
+        columnName: 'Price',
+        serverReturnValue: undefined,
+        connectionReturnValue: undefined,
+        sessionReturnValue: undefined,
+        expected: EXPECTED_INVALID_URL,
+        shouldCallGetServer: false,
       },
-    });
-  });
+      {
+        name: 'missing connection',
+        connectionUrl: MOCK_DHC_URL.href,
+        tableName: 'myTable',
+        columnName: 'Price',
+        serverReturnValue: undefined,
+        connectionReturnValue: undefined,
+        sessionReturnValue: undefined,
+        expected: EXPECTED_NO_CONNECTION,
+        shouldCallGetServer: true,
+      },
+      {
+        name: 'missing session',
+        connectionUrl: MOCK_DHC_URL.href,
+        tableName: 'myTable',
+        columnName: 'Price',
+        serverReturnValue: 'server',
+        connectionReturnValue: 'mockConnection',
+        sessionReturnValue: null,
+        expected: EXPECTED_NO_SESSION,
+        shouldCallGetServer: true,
+      },
+    ])(
+      'should handle $name',
+      async ({
+        connectionUrl,
+        tableName,
+        columnName,
+        serverReturnValue,
+        connectionReturnValue,
+        sessionReturnValue,
+        expected,
+        shouldCallGetServer,
+      }) => {
+        if (serverReturnValue === 'server') {
+          vi.mocked(serverManager.getServer).mockReturnValue(
+            MOCK_SERVER_RUNNING
+          );
+        } else if (serverReturnValue === undefined) {
+          vi.mocked(serverManager.getServer).mockReturnValue(undefined);
+        }
 
-  it('should close table even on success', async () => {
-    const tool = createGetColumnStatsTool({ serverManager });
-    await tool.handler({
-      connectionUrl: MOCK_DHC_URL.href,
-      tableName: 'myTable',
-      columnName: 'Price',
+        if (connectionReturnValue === 'mockConnection') {
+          vi.mocked(serverManager.getConnections).mockReturnValue([
+            mockConnection,
+          ]);
+        } else if (connectionReturnValue === undefined) {
+          vi.mocked(serverManager.getConnections).mockReturnValue([]);
+        }
+
+        if (sessionReturnValue !== undefined) {
+          vi.mocked(mockConnection.getSession).mockResolvedValue(
+            sessionReturnValue
+          );
+        }
+
+        const tool = createGetColumnStatsTool({ serverManager });
+        const result = await tool.handler({
+          connectionUrl,
+          tableName,
+          columnName,
+        });
+
+        expect(result.structuredContent).toEqual(expected);
+        if (!shouldCallGetServer) {
+          expect(serverManager.getServer).not.toHaveBeenCalled();
+        }
+      }
+    );
+
+    it('should handle errors and close table', async () => {
+      const error = new Error('Failed to get stats');
+      vi.mocked(MOCK_TABLE.getColumnStatistics).mockRejectedValue(error);
+
+      const tool = createGetColumnStatsTool({ serverManager });
+      const result = await tool.handler({
+        connectionUrl: MOCK_DHC_URL.href,
+        tableName: 'myTable',
+        columnName: 'Price',
+      });
+
+      expect(MOCK_TABLE.close).toHaveBeenCalled();
+      expect(result.structuredContent).toMatchObject({
+        success: false,
+        message: 'Failed to get column stats: Failed to get stats',
+        details: {
+          connectionUrl: MOCK_DHC_URL.href,
+          tableName: 'myTable',
+          columnName: 'Price',
+        },
+      });
     });
 
-    expect(MOCK_TABLE.close).toHaveBeenCalled();
+    it('should close table even on success', async () => {
+      const tool = createGetColumnStatsTool({ serverManager });
+      await tool.handler({
+        connectionUrl: MOCK_DHC_URL.href,
+        tableName: 'myTable',
+        columnName: 'Price',
+      });
+
+      expect(MOCK_TABLE.close).toHaveBeenCalled();
+    });
   });
 });
