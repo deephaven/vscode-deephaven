@@ -141,6 +141,9 @@ describe('queryTableData', () => {
 
     expect(tool.name).toBe('queryTableData');
     expect(tool.spec.title).toBe('Query Table Data');
+    expect(tool.spec.description).toBe(
+      'Query data from a Deephaven table with support for filtering, sorting, aggregations, and row limiting. Returns data in a format easily represented as a table or values in chat.'
+    );
   });
 
   it('should successfully query table data without filters', async () => {
@@ -158,10 +161,12 @@ describe('queryTableData', () => {
     expect(MOCK_TABLE.close).toHaveBeenCalled();
     expect(result.structuredContent).toEqual(
       mcpSuccessResult('Showing all 2 rows', {
+        /* eslint-disable @typescript-eslint/naming-convention */
         data: [
           { Symbol: 'AAPL', Price: 150.25 },
           { Symbol: 'GOOGL', Price: 2800.5 },
         ],
+        /* eslint-enable @typescript-eslint/naming-convention */
         columns: [
           { name: 'Symbol', type: 'java.lang.String' },
           { name: 'Price', type: 'double' },
@@ -215,7 +220,6 @@ describe('queryTableData', () => {
       tableName: 'myTable',
     });
 
-    // getSession() now handles session initialization internally
     expect(mockConnection.getSession).toHaveBeenCalled();
   });
 
