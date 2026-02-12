@@ -12,6 +12,7 @@ import type { FilteredWorkspace } from '../services';
 import { isWindsurf, Logger, OutputChannelWithHistory } from '../util';
 import {
   COPY_MCP_URL_CMD,
+  MCP_SERVER_KEY,
   MCP_SERVER_NAME,
   MCP_SERVER_PORT_STORAGE_KEY,
   SHOW_MCP_QUICK_PICK_CMD,
@@ -77,18 +78,30 @@ export class McpController extends ControllerBase {
     this.registerCommand(SHOW_MCP_QUICK_PICK_CMD, this.showMcpQuickPick, this);
 
     // Register configuration change handler
+    let isMcpDocsEnabledPrev = this._config.isMcpDocsEnabled();
     let isMcpEnabledPrev = this._config.isMcpEnabled();
     vscode.workspace.onDidChangeConfiguration(
       () => {
+        const isMcpDocsEnabledCur = this._config.isMcpDocsEnabled();
         const isMcpEnabledCur = this._config.isMcpEnabled();
 
-        if (isMcpEnabledCur === isMcpEnabledPrev) {
-          return;
+        // Re-initialize if MCP enabled state changed
+        if (isMcpEnabledCur !== isMcpEnabledPrev) {
+          this.initializeStatusBar();
+
+          // This will also refresh the provider, so no need to call refresh separately
+          this.initializeMcpServer();
+        }
+        // Refresh provider if only docs enabled state changed
+        else if (isMcpDocsEnabledCur !== isMcpDocsEnabledPrev) {
+          this._mcpServerDefinitionProvider?.refresh();
+          this._config.updateWindsurfMcpConfig(
+            this._mcpServer?.getPort() ?? null
+          );
         }
 
         isMcpEnabledPrev = isMcpEnabledCur;
-        this.initializeStatusBar();
-        this.initializeMcpServer();
+        isMcpDocsEnabledPrev = isMcpDocsEnabledCur;
       },
       null,
       this.disposables
@@ -102,7 +115,32 @@ export class McpController extends ControllerBase {
     );
 
     this.initializeStatusBar();
+    this.initializeDefinitionProvider();
     this.initializeMcpServer();
+  }
+
+  /**
+   * Initialize the MCP server definition provider for VS Code.
+   * This should be called once during controller construction.
+   */
+  private initializeDefinitionProvider(): void {
+    // Only register provider in VS Code (not Windsurf)
+    if (isWindsurf()) {
+      return;
+    }
+
+    this._mcpServerDefinitionProvider = new McpServerDefinitionProvider(
+      this._mcpVersion,
+      this._config
+    );
+    this.disposables.push(this._mcpServerDefinitionProvider);
+
+    this.disposables.push(
+      vscode.lm.registerMcpServerDefinitionProvider(
+        MCP_SERVER_KEY,
+        this._mcpServerDefinitionProvider
+      )
+    );
   }
 
   /**
@@ -113,6 +151,7 @@ export class McpController extends ControllerBase {
     if (this._mcpServer != null) {
       this._mcpServer.stop();
       this._mcpServer = null;
+      this._mcpServerDefinitionProvider?.setMcpServer(null);
 
       logger.info('MCP Server stopped.');
       vscode.window.showInformationMessage('Deephaven MCP Server stopped.');
@@ -121,6 +160,8 @@ export class McpController extends ControllerBase {
     if (!this._config.isMcpEnabled()) {
       // Update status bar to show disabled state
       this.updateStatusBar(null);
+      await this._config.updateWindsurfMcpConfig(null);
+      this._mcpServerDefinitionProvider?.refresh();
       return;
     }
 
@@ -167,19 +208,9 @@ export class McpController extends ControllerBase {
         return;
       }
 
-      // Register provider for VS Code Copilot
-      this._mcpServerDefinitionProvider = new McpServerDefinitionProvider(
-        this._mcpVersion,
-        this._mcpServer
-      );
-      this.disposables.push(this._mcpServerDefinitionProvider);
-
-      this.disposables.push(
-        vscode.lm.registerMcpServerDefinitionProvider(
-          'deephaven-vscode.mcpServer',
-          this._mcpServerDefinitionProvider
-        )
-      );
+      // Update provider with new server reference and refresh
+      this._mcpServerDefinitionProvider?.setMcpServer(this._mcpServer);
+      this._mcpServerDefinitionProvider?.refresh();
     } catch (error) {
       // Don't fail extension activation if MCP server fails
       logger.error('Failed to initialize MCP server:', error);

@@ -161,6 +161,11 @@
           "type": "boolean",
           "default": false,
           "markdownDescription": "Automatically update MCP config without prompting when the extension's MCP server port changes. Applies to supported editors (e.g., Windsurf)."
+        },
+        "deephaven.mcp.docsEnabled": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Enable registration of the Deephaven Documentation MCP server for AI-assisted documentation queries. Only applies when `deephaven.mcp.enabled` is also enabled."
         }
       }
     },
@@ -745,7 +750,7 @@
     },
     "mcpServerDefinitionProviders": [
       {
-        "id": "deephaven-vscode.mcpServer",
+        "id": "vscode-deephaven.mcpServer",
         "label": "Deephaven VS Code MCP Server"
       }
     ],

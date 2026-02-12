@@ -45,9 +45,46 @@ import type { IDhcService } from '../../types';
 import { myFunction } from './myFunction';
 ```
 
-### 4. Use it.each for Multiple Scenarios
+**Import modules at the top of the file, not in tests.** Avoid `await import()` within test functions.
 
-**Prefer `it.each` with inline test data** for parameterized tests:
+```typescript
+// ✅ Import at top of file
+import { myUtil } from '../util';
+
+describe('myFunction', () => {
+  it('should work', () => {
+    const result = myUtil();
+    expect(result).toBe(true);
+  });
+});
+
+// ❌ Avoid importing in tests
+describe('myFunction', () => {
+  it('should work', async () => {
+    const { myUtil } = await import('../util'); // Unnecessary
+    const result = myUtil();
+    expect(result).toBe(true);
+  });
+});
+```
+
+### 4. Prefer it.each for Test Variations
+
+**Default to `it.each` for testing multiple scenarios.** This includes cases with different inputs, outputs, mock configurations, or state variations.
+
+#### When to Use it.each
+
+**Use `it.each` whenever you test the same code path with:**
+
+- Different input/output pairs
+- Different mock return values representing state scenarios
+- Different configuration states (enabled/disabled, connected/disconnected)
+- Edge cases and boundary conditions
+- Reference quality checks (same vs different object references)
+
+**Key principle:** If mocks represent state scenarios that can be expressed as values, use `it.each`. Don't avoid it just because mocks differ - different mock _values_ are perfect for parameterization.
+
+#### Basic Parameterized Tests
 
 ```typescript
 it.each([
@@ -59,7 +96,44 @@ it.each([
 });
 ```
 
-**For exhaustive combinations of parameters, use `matrixObject`** from `testUtils`:
+#### Parameterizing Mock State
+
+```typescript
+it.each([
+  {
+    label: 'MCP enabled',
+    mcpEnabled: true,
+    mcpDocsEnabled: true,
+    expectedServers: 2,
+  },
+  {
+    label: 'MCP disabled',
+    mcpEnabled: false,
+    mcpDocsEnabled: true,
+    expectedServers: 0,
+  },
+  {
+    label: 'docs disabled',
+    mcpEnabled: true,
+    mcpDocsEnabled: false,
+    expectedServers: 1,
+  },
+])(
+  'should handle $label',
+  ({ mcpEnabled, mcpDocsEnabled, expectedServers }) => {
+    configMap.set(CONFIG_KEY.mcpEnabled, mcpEnabled);
+    configMap.set(CONFIG_KEY.mcpDocsEnabled, mcpDocsEnabled);
+
+    const result = updateServers();
+
+    expect(result.servers).toHaveLength(expectedServers);
+  }
+);
+```
+
+#### Exhaustive State Combinations with matrixObject
+
+For testing all combinations of boolean flags or enums, use `matrixObject` from `testUtils`:
 
 ```typescript
 import { matrixObject, boolValues } from '../../testUtils';
@@ -74,7 +148,11 @@ it.each(
   'isConnected=$isConnected, isRunning=$isRunning, status=$status',
   ({ isConnected, isRunning, status }) => {
     // Test all 8 combinations (2 × 2 × 2)
-    const result = processState({ isConnected, isRunning, status });
+    vi.mocked(service.isConnected).mockReturnValue(isConnected);
+    vi.mocked(service.isRunning).mockReturnValue(isRunning);
+    configMap.set(CONFIG_KEY.status, status);
+
+    const result = processState();
     expect(result).toBeDefined();
   }
 );

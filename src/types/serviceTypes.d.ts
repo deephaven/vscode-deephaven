@@ -40,13 +40,14 @@ export interface IAsyncCacheService<TKey, TValue> extends IDisposable {
  */
 export interface IConfigService {
   isElectronFetchEnabled: () => boolean;
+  isMcpDocsEnabled: () => boolean;
   isMcpEnabled: () => boolean;
   getCoreServers: () => CoreConnectionConfig[];
   getEnterpriseServers: () => EnterpriseConnectionConfig[];
   getMcpAutoUpdateConfig: () => boolean;
   setMcpAutoUpdateConfig: (value: boolean) => Promise<void>;
   toggleMcp: (enable?: boolean) => Promise<void>;
-  updateWindsurfMcpConfig(port: number): Promise<boolean>;
+  updateWindsurfMcpConfig(port: number | null): Promise<boolean>;
 }
 
 /**
