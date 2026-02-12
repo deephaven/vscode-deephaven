@@ -59,6 +59,9 @@
     "chatSkills": [
       {
         "path": "./skills/deephaven-vscode-using/SKILL.md"
+      },
+      {
+        "path": "./skills/deephaven-docs-searching/SKILL.md"
       }
     ],
     "configuration": {
