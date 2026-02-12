@@ -63,7 +63,7 @@ export function createConnectToServerTool({
           url: parsedUrlResult.value,
         });
 
-        return response.success('Connecting to server', {
+        return response.success('Connected to server', {
           type: server.type,
           url,
         });
