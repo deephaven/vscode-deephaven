@@ -172,28 +172,6 @@ describe('createGetColumnStatsTool', () => {
   });
 
   describe('error handling', () => {
-    it('should handle column not found', async () => {
-      vi.mocked(MOCK_TABLE.findColumn).mockReturnValue(
-        undefined as unknown as DhcType.Column
-      );
-
-      const tool = createGetColumnStatsTool({ serverManager });
-      const result = await tool.handler({
-        connectionUrl: MOCK_DHC_URL.href,
-        tableName: 'myTable',
-        columnName: 'InvalidColumn',
-      });
-
-      expect(MOCK_TABLE.close).toHaveBeenCalled();
-      expect(result.structuredContent).toEqual(
-        mcpErrorResult('Column not found', {
-          columnName: 'InvalidColumn',
-          tableName: 'myTable',
-          availableColumns: ['Symbol', 'Price', 'Volume'],
-        })
-      );
-    });
-
     it('should initialize session if not initialized', async () => {
       Object.defineProperty(mockConnection, 'isInitialized', {
         get: vi.fn(() => false),

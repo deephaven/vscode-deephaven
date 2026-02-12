@@ -28,7 +28,6 @@ const spec = {
     columnName: z.string().describe('Name of the column to get statistics for'),
   },
   outputSchema: createMcpToolOutputSchema({
-    availableColumns: z.array(z.string()).optional(),
     columnName: z.string().optional(),
     connectionUrl: z.string().optional(),
     statistics: z
@@ -101,15 +100,6 @@ export function createGetColumnStatsTool({
 
         try {
           const column = table.findColumn(columnName);
-
-          if (!column) {
-            return response.error('Column not found', null, {
-              columnName,
-              tableName,
-              availableColumns: table.columns.map(c => c.name),
-            });
-          }
-
           const columnStats: DhcType.ColumnStatistics =
             await table.getColumnStatistics(column);
 
