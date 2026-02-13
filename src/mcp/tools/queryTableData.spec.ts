@@ -329,86 +329,64 @@ describe('queryTableData', () => {
         operation: 'isNull' as const,
         value: undefined,
         valueType: undefined,
-        mockMethod: 'isNull',
-        mockReturnValue: { type: 'isNull' },
       },
       {
         operation: 'isTrue' as const,
         value: undefined,
         valueType: undefined,
-        mockMethod: 'isTrue',
-        mockReturnValue: { type: 'isTrue' },
       },
       {
         operation: 'isFalse' as const,
         value: undefined,
         valueType: undefined,
-        mockMethod: 'isFalse',
-        mockReturnValue: { type: 'isFalse' },
       },
       {
         operation: 'eq' as const,
         value: 'AAPL',
         valueType: 'string' as const,
-        mockMethod: 'eq',
-        mockReturnValue: { type: 'eq' },
       },
       {
         operation: 'notEq' as const,
         value: 'AAPL',
         valueType: 'string' as const,
-        mockMethod: 'notEq',
-        mockReturnValue: { type: 'notEq' },
       },
       {
         operation: 'greaterThan' as const,
         value: 100,
         valueType: 'number' as const,
-        mockMethod: 'greaterThan',
-        mockReturnValue: { type: 'greaterThan' },
       },
       {
         operation: 'lessThan' as const,
         value: 100,
         valueType: 'number' as const,
-        mockMethod: 'lessThan',
-        mockReturnValue: { type: 'lessThan' },
       },
       {
         operation: 'greaterThanOrEqualTo' as const,
         value: 100,
         valueType: 'number' as const,
-        mockMethod: 'greaterThanOrEqualTo',
-        mockReturnValue: { type: 'greaterThanOrEqualTo' },
       },
       {
         operation: 'lessThanOrEqualTo' as const,
         value: 100,
         valueType: 'number' as const,
-        mockMethod: 'lessThanOrEqualTo',
-        mockReturnValue: { type: 'lessThanOrEqualTo' },
       },
       {
         operation: 'contains' as const,
         value: 'apple',
         valueType: 'string' as const,
-        mockMethod: 'contains',
-        mockReturnValue: { type: 'contains' },
       },
       {
         operation: 'matches' as const,
         value: '^A.*',
         valueType: 'string' as const,
-        mockMethod: 'matches',
-        mockReturnValue: { type: 'matches' },
       },
     ])(
       'should apply $operation filter',
-      async ({ operation, value, valueType, mockMethod, mockReturnValue }) => {
+      async ({ operation, value, valueType }) => {
         vi.mocked(serverManager.getConnection).mockReturnValue(mockConnection);
 
         const mockColumnFilter = {
-          [mockMethod]: vi.fn().mockReturnValue(mockReturnValue),
+          [operation]: vi.fn().mockReturnValue({ type: operation }),
         };
         vi.mocked(MOCK_COLUMN.filter).mockReturnValue(
           mockColumnFilter as unknown as any
@@ -435,7 +413,7 @@ describe('queryTableData', () => {
 
         expect(MOCK_TABLE.findColumn).toHaveBeenCalledWith('Symbol');
         expect(MOCK_COLUMN.filter).toHaveBeenCalled();
-        expect(mockColumnFilter[mockMethod]).toHaveBeenCalled();
+        expect(mockColumnFilter[operation]).toHaveBeenCalled();
         expect(MOCK_TABLE.applyFilter).toHaveBeenCalled();
       }
     );
@@ -445,33 +423,29 @@ describe('queryTableData', () => {
         operation: 'in' as const,
         value: ['AAPL', 'GOOGL'],
         valueType: 'string' as const,
-        mockMethod: 'in',
       },
       {
         operation: 'notIn' as const,
         value: ['AAPL', 'GOOGL'],
         valueType: 'string' as const,
-        mockMethod: 'notIn',
       },
       {
         operation: 'inIgnoreCase' as const,
         value: ['aapl', 'googl'],
         valueType: 'string' as const,
-        mockMethod: 'inIgnoreCase',
       },
       {
         operation: 'notInIgnoreCase' as const,
         value: ['aapl', 'googl'],
         valueType: 'string' as const,
-        mockMethod: 'notInIgnoreCase',
       },
     ])(
       'should apply $operation filter with array value',
-      async ({ operation, value, valueType, mockMethod }) => {
+      async ({ operation, value, valueType }) => {
         vi.mocked(serverManager.getConnection).mockReturnValue(mockConnection);
 
         const mockColumnFilter = {
-          [mockMethod]: vi.fn().mockReturnValue({ type: operation }),
+          [operation]: vi.fn().mockReturnValue({ type: operation }),
         };
         vi.mocked(MOCK_COLUMN.filter).mockReturnValue(
           mockColumnFilter as unknown as any
@@ -496,7 +470,7 @@ describe('queryTableData', () => {
           },
         });
 
-        expect(mockColumnFilter[mockMethod]).toHaveBeenCalled();
+        expect(mockColumnFilter[operation]).toHaveBeenCalled();
         expect(MOCK_DH.FilterValue.ofString).toHaveBeenCalledTimes(
           value.length
         );
