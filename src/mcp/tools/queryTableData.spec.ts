@@ -412,11 +412,12 @@ describe('queryTableData', () => {
     vi.mocked(serverManager.getConnection).mockReturnValue(mockConnection);
 
     const tool = createQueryTableDataTool({ serverManager, coreJsApiCache });
-    await tool.handler({
+    const result = await tool.handler({
       connectionUrl: 'http://localhost:10000',
       tableName: 'myTable',
     });
 
+    expect(result.structuredContent.success).toBe(true);
     expect(MOCK_TABLE.close).toHaveBeenCalled();
   });
 });
