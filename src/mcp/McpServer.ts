@@ -87,11 +87,14 @@ export class McpServer extends DisposableBase {
      * Register UI resource for Deephaven panel widget.
      * This enables MCP hosts (like GitHub Copilot) to render interactive Deephaven panels.
      *
+     * Resource URIs include variable title as path segment for uniqueness:
+     * ui://deephaven/panel/{variableTitle}
+     *
      * The panelUrl is extracted from structuredContent.details.panelUrl in the tool result
      * notification.
      *
-     * CSP configuration: Uses frameDomains to allow loading Deephaven panels in nested iframes.
-     * Per MCP Apps spec, frameDomains maps to CSP frame-src directive.
+     * CSP configuration: Uses frameDomains to allow loading panels from all configured
+     * Deephaven servers. Per MCP Apps spec, frameDomains maps to CSP frame-src directive.
      */
     this.server.registerResource(
       'deephaven-panel-ui',
@@ -101,16 +104,24 @@ export class McpServer extends DisposableBase {
         mimeType: 'text/html;profile=mcp-app',
       },
       async uri => {
-        // Allow loading Deephaven panels from localhost in nested iframes
+        this.outputChannelDebug.appendLine(
+          `[MCP] Resource request for URI: ${uri.href}`
+        );
+
+        // Get origins from all configured servers for CSP
+        const serverOrigins = this.serverManager
+          .getServers()
+          .map(server => server.url.origin);
+
+        this.outputChannelDebug.appendLine(
+          `[MCP] Allowing origins in CSP: ${serverOrigins.join(', ')}`
+        );
+
+        // Allow loading Deephaven panels from all configured servers
         // Using frameDomains (not frameSrc) per MCP Apps spec
         const csp = {
-          frameDomains: ['*'],
+          frameDomains: serverOrigins,
         };
-
-        console.log(
-          '[McpServer] Registering resource with CSP:',
-          JSON.stringify({ csp }, null, 2)
-        );
 
         return {
           contents: [
