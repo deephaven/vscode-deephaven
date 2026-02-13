@@ -41,7 +41,7 @@ const spec = {
       .record(z.number())
       .optional()
       .describe(
-        'Map of unique values to their counts (only for columns with 19 or fewer unique values)'
+        'Map of unique values to their counts (only included for low-cardinality columns)'
       ),
   }),
 } as const;
