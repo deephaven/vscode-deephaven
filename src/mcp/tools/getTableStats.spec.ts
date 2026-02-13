@@ -205,11 +205,12 @@ describe('getTableStats', () => {
     vi.mocked(serverManager.getConnection).mockReturnValue(mockConnection);
 
     const tool = createGetTableStatsTool({ serverManager });
-    await tool.handler({
+    const result = await tool.handler({
       connectionUrl: MOCK_DHC_URL.href,
       tableName: 'myTable',
     });
 
+    expect(result.structuredContent.success).toBe(true);
     expect(MOCK_TABLE.close).toHaveBeenCalled();
   });
 });
