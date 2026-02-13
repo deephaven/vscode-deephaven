@@ -301,10 +301,10 @@ expect(result.structuredContent).toEqual(mcpErrorResult('Failed', { url }));
 - [ ] Exported from `src/mcp/tools/index.ts`
 - [ ] Registered in `src/mcp/McpServer.ts` constructor
 - [ ] Spec follows naming conventions (title, description, schemas)
-- [ ] Input schema has descriptions for all parameters
+- [ ] Input and output schema properties alphabetically sorted
+- [ ] Input and output schema properties all have `.describe()` calls
 - [ ] Output schema uses `createMcpToolOutputSchema()`
 - [ ] Output schema includes ALL detail properties from success and error responses
-- [ ] Output detail properties sorted alphabetically
 - [ ] Type aliases defined (Spec, HandlerArg, HandlerResult, Tool)
 - [ ] Dependencies injected via constructor parameters
 - [ ] McpToolResponse instantiated at handler start
