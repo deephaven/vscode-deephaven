@@ -41,7 +41,7 @@ const spec = {
     isRefreshing: z
       .boolean()
       .optional()
-      .describe('Whether the table is refreshing (ticking)'),
+      .describe('Whether the table is actively receiving real-time updates'),
     size: z.number().optional().describe('Number of rows in the table'),
     tableName: z.string().optional().describe('Name of the table'),
   }),

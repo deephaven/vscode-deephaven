@@ -42,7 +42,7 @@ const filterSpecSchema = z.object({
   valueType: filterValueTypeSchema
     .optional()
     .describe(
-      'Type of the filter value (string, number, boolean, datetime). Required if value is provided. Note: datetime uses ofNumber() with timestamp as ofDateTime() is not yet supported.'
+      'Type of the filter value (string, number, boolean, datetime). Required if value is provided. For datetime filters, provide Unix timestamps in milliseconds.'
     ),
 });
 
@@ -105,9 +105,9 @@ const spec = {
       .positive()
       .max(10000)
       .optional()
-      .default(100)
+      .default(10)
       .describe(
-        'Maximum number of rows to return (default: 100, hard limit: 10000). Set lower for large tables to avoid overwhelming responses.'
+        'Maximum number of rows to return (default: 10, hard limit: 10000). Set lower for large tables to avoid overwhelming responses.'
       ),
   },
   outputSchema: createMcpToolOutputSchema({
@@ -153,7 +153,7 @@ export function createQueryTableDataTool({
       connectionUrl,
       tableName,
       query,
-      maxRows = 100,
+      maxRows = 10,
     }: HandlerArg): Promise<HandlerResult> => {
       const response = new McpToolResponse();
 
