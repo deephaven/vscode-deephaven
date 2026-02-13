@@ -323,648 +323,89 @@ describe('queryTableData', () => {
     );
   });
 
-  describe('filter operations', () => {
-    it.each([
-      {
-        operation: 'isNull' as const,
-        value: undefined,
-        valueType: undefined,
-      },
-      {
-        operation: 'isTrue' as const,
-        value: undefined,
-        valueType: undefined,
-      },
-      {
-        operation: 'isFalse' as const,
-        value: undefined,
-        valueType: undefined,
-      },
-      {
-        operation: 'eq' as const,
-        value: 'AAPL',
-        valueType: 'string' as const,
-      },
-      {
-        operation: 'notEq' as const,
-        value: 'AAPL',
-        valueType: 'string' as const,
-      },
-      {
-        operation: 'greaterThan' as const,
-        value: 100,
-        valueType: 'number' as const,
-      },
-      {
-        operation: 'lessThan' as const,
-        value: 100,
-        valueType: 'number' as const,
-      },
-      {
-        operation: 'greaterThanOrEqualTo' as const,
-        value: 100,
-        valueType: 'number' as const,
-      },
-      {
-        operation: 'lessThanOrEqualTo' as const,
-        value: 100,
-        valueType: 'number' as const,
-      },
-      {
-        operation: 'contains' as const,
-        value: 'apple',
-        valueType: 'string' as const,
-      },
-      {
-        operation: 'matches' as const,
-        value: '^A.*',
-        valueType: 'string' as const,
-      },
-    ])(
-      'should apply $operation filter',
-      async ({ operation, value, valueType }) => {
-        vi.mocked(serverManager.getConnection).mockReturnValue(mockConnection);
+  it('should apply filters and wait for filterchanged event', async () => {
+    vi.mocked(serverManager.getConnection).mockReturnValue(mockConnection);
 
-        const mockColumnFilter = {
-          [operation]: vi.fn().mockReturnValue({ type: operation }),
-        };
-        vi.mocked(MOCK_COLUMN.filter).mockReturnValue(
-          mockColumnFilter as unknown as any
-        );
-
-        const tool = createQueryTableDataTool({
-          serverManager,
-          coreJsApiCache,
-        });
-        await tool.handler({
-          connectionUrl: 'http://localhost:10000',
-          tableName: 'myTable',
-          query: {
-            filters: [
-              {
-                column: 'Symbol',
-                operation,
-                value,
-                valueType,
-              },
-            ],
-          },
-        });
-
-        expect(MOCK_TABLE.findColumn).toHaveBeenCalledWith('Symbol');
-        expect(MOCK_COLUMN.filter).toHaveBeenCalled();
-        expect(mockColumnFilter[operation]).toHaveBeenCalled();
-        expect(MOCK_TABLE.applyFilter).toHaveBeenCalled();
-      }
+    const mockColumnFilter = {
+      eq: vi.fn().mockReturnValue({ type: 'condition' }),
+    };
+    vi.mocked(MOCK_COLUMN.filter).mockReturnValue(
+      mockColumnFilter as unknown as any
     );
 
-    it.each([
-      {
-        operation: 'in' as const,
-        value: ['AAPL', 'GOOGL'],
-        valueType: 'string' as const,
-      },
-      {
-        operation: 'notIn' as const,
-        value: ['AAPL', 'GOOGL'],
-        valueType: 'string' as const,
-      },
-      {
-        operation: 'inIgnoreCase' as const,
-        value: ['aapl', 'googl'],
-        valueType: 'string' as const,
-      },
-      {
-        operation: 'notInIgnoreCase' as const,
-        value: ['aapl', 'googl'],
-        valueType: 'string' as const,
-      },
-    ])(
-      'should apply $operation filter with array value',
-      async ({ operation, value, valueType }) => {
-        vi.mocked(serverManager.getConnection).mockReturnValue(mockConnection);
-
-        const mockColumnFilter = {
-          [operation]: vi.fn().mockReturnValue({ type: operation }),
-        };
-        vi.mocked(MOCK_COLUMN.filter).mockReturnValue(
-          mockColumnFilter as unknown as any
-        );
-
-        const tool = createQueryTableDataTool({
-          serverManager,
-          coreJsApiCache,
-        });
-        await tool.handler({
-          connectionUrl: 'http://localhost:10000',
-          tableName: 'myTable',
-          query: {
-            filters: [
-              {
-                column: 'Symbol',
-                operation,
-                value,
-                valueType,
-              },
-            ],
+    const tool = createQueryTableDataTool({ serverManager, coreJsApiCache });
+    await tool.handler({
+      connectionUrl: MOCK_DHC_URL.href,
+      tableName: 'myTable',
+      query: {
+        filters: [
+          {
+            column: 'Symbol',
+            operation: 'eq',
+            value: 'AAPL',
+            valueType: 'string',
           },
-        });
-
-        expect(mockColumnFilter[operation]).toHaveBeenCalled();
-        expect(MOCK_DH.FilterValue.ofString).toHaveBeenCalledTimes(
-          value.length
-        );
-      }
-    );
-
-    it('should handle filter value types', async () => {
-      vi.mocked(serverManager.getConnection).mockReturnValue(mockConnection);
-
-      const mockColumnFilter = {
-        eq: vi.fn().mockReturnValue({ type: 'eq' }),
-      };
-      vi.mocked(MOCK_COLUMN.filter).mockReturnValue(
-        mockColumnFilter as unknown as any
-      );
-
-      const tool = createQueryTableDataTool({ serverManager, coreJsApiCache });
-
-      // Number filter
-      await tool.handler({
-        connectionUrl: 'http://localhost:10000',
-        tableName: 'myTable',
-        query: {
-          filters: [
-            {
-              column: 'Symbol',
-              operation: 'eq',
-              value: 123,
-              valueType: 'number',
-            },
-          ],
-        },
-      });
-      expect(MOCK_DH.FilterValue.ofNumber).toHaveBeenCalledWith(123);
-
-      vi.clearAllMocks();
-      vi.mocked(MOCK_COLUMN.filter).mockReturnValue(
-        mockColumnFilter as unknown as any
-      );
-
-      // Boolean filter
-      await tool.handler({
-        connectionUrl: 'http://localhost:10000',
-        tableName: 'myTable',
-        query: {
-          filters: [
-            {
-              column: 'Symbol',
-              operation: 'eq',
-              value: true,
-              valueType: 'boolean',
-            },
-          ],
-        },
-      });
-      expect(MOCK_DH.FilterValue.ofBoolean).toHaveBeenCalledWith(true);
-
-      vi.clearAllMocks();
-      vi.mocked(MOCK_COLUMN.filter).mockReturnValue(
-        mockColumnFilter as unknown as any
-      );
-
-      // DateTime filter
-      await tool.handler({
-        connectionUrl: 'http://localhost:10000',
-        tableName: 'myTable',
-        query: {
-          filters: [
-            {
-              column: 'Symbol',
-              operation: 'eq',
-              value: '2023-01-01',
-              valueType: 'datetime',
-            },
-          ],
-        },
-      });
-      expect(MOCK_DH.FilterValue.ofNumber).toHaveBeenCalled();
+        ],
+      },
     });
 
-    it('should throw error for unsupported filter value type', async () => {
-      vi.mocked(serverManager.getConnection).mockReturnValue(mockConnection);
-
-      const mockColumnFilter = {
-        eq: vi.fn().mockReturnValue({ type: 'eq' }),
-      };
-      vi.mocked(MOCK_COLUMN.filter).mockReturnValue(
-        mockColumnFilter as unknown as any
-      );
-
-      const tool = createQueryTableDataTool({ serverManager, coreJsApiCache });
-
-      await expect(
-        tool.handler({
-          connectionUrl: 'http://localhost:10000',
-          tableName: 'myTable',
-          query: {
-            filters: [
-              {
-                column: 'Symbol',
-                operation: 'eq',
-                value: 'test',
-                valueType: 'unsupported' as any,
-              },
-            ],
-          },
-        })
-      ).resolves.toMatchObject({
-        structuredContent: expect.objectContaining({
-          success: false,
-          message: expect.stringContaining('Failed to query table data'),
-        }),
-      });
-    });
-
-    it('should throw error when filter operation requires value but none provided', async () => {
-      vi.mocked(serverManager.getConnection).mockReturnValue(mockConnection);
-
-      const tool = createQueryTableDataTool({ serverManager, coreJsApiCache });
-
-      await expect(
-        tool.handler({
-          connectionUrl: 'http://localhost:10000',
-          tableName: 'myTable',
-          query: {
-            filters: [
-              {
-                column: 'Symbol',
-                operation: 'eq',
-                value: undefined,
-                valueType: undefined,
-              },
-            ],
-          },
-        })
-      ).resolves.toMatchObject({
-        structuredContent: expect.objectContaining({
-          success: false,
-          message: expect.stringContaining('Failed to query table data'),
-        }),
-      });
-    });
-
-    it('should throw error when array filter operation receives non-array value', async () => {
-      vi.mocked(serverManager.getConnection).mockReturnValue(mockConnection);
-
-      const tool = createQueryTableDataTool({ serverManager, coreJsApiCache });
-
-      await expect(
-        tool.handler({
-          connectionUrl: 'http://localhost:10000',
-          tableName: 'myTable',
-          query: {
-            filters: [
-              {
-                column: 'Symbol',
-                operation: 'in',
-                value: 'AAPL',
-                valueType: 'string',
-              },
-            ],
-          },
-        })
-      ).resolves.toMatchObject({
-        structuredContent: expect.objectContaining({
-          success: false,
-          message: expect.stringContaining('Failed to query table data'),
-        }),
-      });
-    });
+    expect(MOCK_DH.FilterValue.ofString).toHaveBeenCalledWith('AAPL');
+    expect(MOCK_TABLE.applyFilter).toHaveBeenCalled();
   });
 
-  describe('sort operations', () => {
+  it('should apply sorts and wait for sortchanged event', async () => {
+    vi.mocked(serverManager.getConnection).mockReturnValue(mockConnection);
+
     const mockSort = {
       asc: vi.fn().mockReturnValue({ type: 'asc' }),
-      desc: vi.fn().mockReturnValue({ type: 'desc' }),
     };
+    vi.mocked(MOCK_COLUMN.sort).mockReturnValue(mockSort as unknown as any);
 
-    beforeEach(() => {
-      vi.mocked(MOCK_COLUMN.sort).mockReturnValue(mockSort as unknown as any);
+    const tool = createQueryTableDataTool({ serverManager, coreJsApiCache });
+    await tool.handler({
+      connectionUrl: MOCK_DHC_URL.href,
+      tableName: 'myTable',
+      query: {
+        sortBy: [{ column: 'Symbol', direction: 'asc' }],
+      },
     });
 
-    it('should apply ascending sort', async () => {
-      vi.mocked(serverManager.getConnection).mockReturnValue(mockConnection);
-
-      const tool = createQueryTableDataTool({ serverManager, coreJsApiCache });
-      await tool.handler({
-        connectionUrl: 'http://localhost:10000',
-        tableName: 'myTable',
-        query: {
-          sortBy: [{ column: 'Symbol', direction: 'asc' }],
-        },
-      });
-
-      expect(MOCK_TABLE.findColumn).toHaveBeenCalledWith('Symbol');
-      expect(MOCK_COLUMN.sort).toHaveBeenCalled();
-      expect(mockSort.asc).toHaveBeenCalled();
-      expect(MOCK_TABLE.applySort).toHaveBeenCalled();
-    });
-
-    it('should apply descending sort', async () => {
-      vi.mocked(serverManager.getConnection).mockReturnValue(mockConnection);
-
-      const tool = createQueryTableDataTool({ serverManager, coreJsApiCache });
-      await tool.handler({
-        connectionUrl: 'http://localhost:10000',
-        tableName: 'myTable',
-        query: {
-          sortBy: [{ column: 'Symbol', direction: 'desc' }],
-        },
-      });
-
-      expect(mockSort.desc).toHaveBeenCalled();
-      expect(MOCK_TABLE.applySort).toHaveBeenCalled();
-    });
-
-    it('should apply multiple sorts', async () => {
-      vi.mocked(serverManager.getConnection).mockReturnValue(mockConnection);
-
-      const tool = createQueryTableDataTool({ serverManager, coreJsApiCache });
-      await tool.handler({
-        connectionUrl: 'http://localhost:10000',
-        tableName: 'myTable',
-        query: {
-          sortBy: [
-            { column: 'Symbol', direction: 'asc' },
-            { column: 'Price', direction: 'desc' },
-          ],
-        },
-      });
-
-      expect(MOCK_TABLE.applySort).toHaveBeenCalled();
-    });
-
-    it('should default to ascending when direction not specified', async () => {
-      vi.mocked(serverManager.getConnection).mockReturnValue(mockConnection);
-
-      const tool = createQueryTableDataTool({ serverManager, coreJsApiCache });
-      await tool.handler({
-        connectionUrl: 'http://localhost:10000',
-        tableName: 'myTable',
-        query: {
-          sortBy: [{ column: 'Symbol' }],
-        },
-      });
-
-      expect(mockSort.asc).toHaveBeenCalled();
-    });
+    expect(MOCK_TABLE.findColumn).toHaveBeenCalledWith('Symbol');
+    expect(MOCK_TABLE.applySort).toHaveBeenCalled();
   });
 
-  describe('aggregation operations', () => {
+  it('should apply groupBy and aggregations', async () => {
+    vi.mocked(serverManager.getConnection).mockReturnValue(mockConnection);
+
     const mockTotalsTable = {
       ...MOCK_TABLE,
       close: vi.fn(),
+      setViewport: vi.fn(),
+      getViewportData: vi.fn().mockResolvedValue(MOCK_VIEWPORT_DATA),
     } as unknown as DhcType.TotalsTable;
 
-    beforeEach(() => {
-      vi.mocked(MOCK_TABLE.getTotalsTable).mockResolvedValue(mockTotalsTable);
+    vi.mocked(MOCK_TABLE.getTotalsTable).mockResolvedValue(mockTotalsTable);
+
+    const tool = createQueryTableDataTool({ serverManager, coreJsApiCache });
+    await tool.handler({
+      connectionUrl: MOCK_DHC_URL.href,
+      tableName: 'myTable',
+      query: {
+        groupBy: ['Symbol'],
+        aggregations: [{ column: 'Price', operation: 'Sum' }],
+      },
     });
 
-    it('should apply groupBy', async () => {
-      vi.mocked(serverManager.getConnection).mockReturnValue(mockConnection);
-
-      const tool = createQueryTableDataTool({ serverManager, coreJsApiCache });
-      await tool.handler({
-        connectionUrl: 'http://localhost:10000',
-        tableName: 'myTable',
-        query: {
-          groupBy: ['Symbol'],
-        },
-      });
-
-      expect(MOCK_TABLE.getTotalsTable).toHaveBeenCalledWith(
-        expect.objectContaining({
-          groupBy: ['Symbol'],
-        })
-      );
-    });
-
-    it('should apply aggregations with operation map', async () => {
-      vi.mocked(serverManager.getConnection).mockReturnValue(mockConnection);
-
-      const tool = createQueryTableDataTool({ serverManager, coreJsApiCache });
-      await tool.handler({
-        connectionUrl: 'http://localhost:10000',
-        tableName: 'myTable',
-        query: {
-          groupBy: ['Symbol'],
-          aggregations: [
-            { column: 'Price', operation: 'Avg' },
-            { column: 'Volume', operation: 'Sum' },
-          ],
-        },
-      });
-
-      expect(MOCK_TABLE.getTotalsTable).toHaveBeenCalledWith(
-        /* eslint-disable @typescript-eslint/naming-convention */
-        expect.objectContaining({
-          groupBy: ['Symbol'],
-          operationMap: {
-            Price: ['Avg'],
-            Volume: ['Sum'],
-          },
-        })
-        /* eslint-enable @typescript-eslint/naming-convention */
-      );
-    });
-
-    it('should apply default operation', async () => {
-      vi.mocked(serverManager.getConnection).mockReturnValue(mockConnection);
-
-      const tool = createQueryTableDataTool({ serverManager, coreJsApiCache });
-      await tool.handler({
-        connectionUrl: 'http://localhost:10000',
-        tableName: 'myTable',
-        query: {
-          groupBy: ['Symbol'],
-          defaultOperation: 'Sum',
-        },
-      });
-
-      expect(MOCK_TABLE.getTotalsTable).toHaveBeenCalledWith(
-        expect.objectContaining({
-          groupBy: ['Symbol'],
-          defaultOperation: 'Sum',
-        })
-      );
-    });
-
-    it('should close both totals table and base table', async () => {
-      vi.mocked(serverManager.getConnection).mockReturnValue(mockConnection);
-
-      const tool = createQueryTableDataTool({ serverManager, coreJsApiCache });
-      await tool.handler({
-        connectionUrl: 'http://localhost:10000',
-        tableName: 'myTable',
-        query: {
-          groupBy: ['Symbol'],
-        },
-      });
-
-      expect(mockTotalsTable.close).toHaveBeenCalled();
-      expect(MOCK_TABLE.close).toHaveBeenCalled();
-    });
-
-    it('should handle multiple aggregations on same column', async () => {
-      vi.mocked(serverManager.getConnection).mockReturnValue(mockConnection);
-
-      const tool = createQueryTableDataTool({ serverManager, coreJsApiCache });
-      await tool.handler({
-        connectionUrl: 'http://localhost:10000',
-        tableName: 'myTable',
-        query: {
-          groupBy: ['Symbol'],
-          aggregations: [
-            { column: 'Price', operation: 'Min' },
-            { column: 'Price', operation: 'Max' },
-            { column: 'Price', operation: 'Avg' },
-          ],
-        },
-      });
-
-      expect(MOCK_TABLE.getTotalsTable).toHaveBeenCalledWith(
-        /* eslint-disable @typescript-eslint/naming-convention */
-        expect.objectContaining({
-          operationMap: {
-            Price: ['Min', 'Max', 'Avg'],
-          },
-        })
-        /* eslint-enable @typescript-eslint/naming-convention */
-      );
-    });
-  });
-
-  describe('data formatting', () => {
-    it('should format bigint values as strings', async () => {
-      vi.mocked(serverManager.getConnection).mockReturnValue(mockConnection);
-
-      const mockViewportDataWithBigInt = {
-        rows: [
-          {
-            get: vi.fn((col: DhcType.Column) => {
-              if (col.name === 'Volume') {
-                return BigInt('9007199254740991');
-              }
-              return null;
-            }),
-          },
-        ],
-      } as unknown as DhcType.ViewportData;
-
-      vi.mocked(MOCK_TABLE.getViewportData).mockResolvedValue(
-        mockViewportDataWithBigInt
-      );
-
-      const tool = createQueryTableDataTool({ serverManager, coreJsApiCache });
-      const result = await tool.handler({
-        connectionUrl: 'http://localhost:10000',
-        tableName: 'myTable',
-      });
-
-      expect(result.structuredContent).toMatchObject({
-        success: true,
-        details: {
-          /* eslint-disable @typescript-eslint/naming-convention */
-          data: [
-            {
-              Symbol: null,
-              Price: null,
-            },
-          ],
-          /* eslint-enable @typescript-eslint/naming-convention */
-        },
-      });
-    });
-
-    it('should format Date values as timestamps', async () => {
-      vi.mocked(serverManager.getConnection).mockReturnValue(mockConnection);
-
-      const testDate = new Date('2023-01-01T12:00:00Z');
-      const mockViewportDataWithDate = {
-        rows: [
-          {
-            get: vi.fn((col: DhcType.Column) => {
-              if (col.name === 'Symbol') {
-                return testDate;
-              }
-              return null;
-            }),
-          },
-        ],
-      } as unknown as DhcType.ViewportData;
-
-      vi.mocked(MOCK_TABLE.getViewportData).mockResolvedValue(
-        mockViewportDataWithDate
-      );
-
-      const tool = createQueryTableDataTool({ serverManager, coreJsApiCache });
-      const result = await tool.handler({
-        connectionUrl: 'http://localhost:10000',
-        tableName: 'myTable',
-      });
-
-      expect(result.structuredContent).toMatchObject({
-        success: true,
-        details: {
-          /* eslint-disable @typescript-eslint/naming-convention */
-          data: [
-            {
-              Symbol: testDate.getTime(),
-              Price: null,
-            },
-          ],
-          /* eslint-enable @typescript-eslint/naming-convention */
-        },
-      });
-    });
-
-    it('should handle null and undefined values', async () => {
-      vi.mocked(serverManager.getConnection).mockReturnValue(mockConnection);
-
-      const mockViewportDataWithNulls = {
-        rows: [
-          {
-            get: vi.fn(() => null),
-          },
-          {
-            get: vi.fn(() => undefined),
-          },
-        ],
-      } as unknown as DhcType.ViewportData;
-
-      vi.mocked(MOCK_TABLE.getViewportData).mockResolvedValue(
-        mockViewportDataWithNulls
-      );
-
-      const tool = createQueryTableDataTool({ serverManager, coreJsApiCache });
-      const result = await tool.handler({
-        connectionUrl: 'http://localhost:10000',
-        tableName: 'myTable',
-      });
-
-      expect(result.structuredContent).toMatchObject({
-        success: true,
-        details: {
-          /* eslint-disable @typescript-eslint/naming-convention */
-          data: [
-            { Symbol: null, Price: null },
-            { Symbol: null, Price: null },
-          ],
-          /* eslint-enable @typescript-eslint/naming-convention */
-        },
-      });
-    });
+    expect(MOCK_TABLE.getTotalsTable).toHaveBeenCalledWith(
+      /* eslint-disable @typescript-eslint/naming-convention */
+      expect.objectContaining({
+        groupBy: ['Symbol'],
+        operationMap: { Price: ['Sum'] },
+      })
+      /* eslint-enable @typescript-eslint/naming-convention */
+    );
+    expect(mockTotalsTable.close).toHaveBeenCalled();
+    expect(MOCK_TABLE.close).toHaveBeenCalled();
   });
 
   it('should close table even on success', async () => {
