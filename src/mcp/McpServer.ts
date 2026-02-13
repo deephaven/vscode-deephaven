@@ -1,8 +1,10 @@
 import * as vscode from 'vscode';
+import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { McpServer as SdkMcpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import * as http from 'http';
 import type {
+  IAsyncCacheService,
   IPanelService,
   IServerManager,
   McpTool,
@@ -11,13 +13,16 @@ import type {
 import { MCP_SERVER_NAME } from '../common';
 import {
   createAddRemoteFileSourcesTool,
+  createGetColumnStatsTool,
   createGetLogsTool,
+  createGetTableStatsTool,
   createListConnectionsTool,
   createListPanelVariablesTool,
   createListRemoteFileSourcesTool,
   createListServersTool,
   createOpenFilesInEditorTool,
   createOpenVariablePanelsTool,
+  createQueryTableDataTool,
   createRemoveRemoteFileSourcesTool,
   createRunCodeFromUriTool,
   createRunCodeTool,
@@ -37,29 +42,16 @@ export class McpServer extends DisposableBase {
   private httpServer: http.Server | null = null;
   private port: number | null = null;
 
-  readonly pythonDiagnostics: vscode.DiagnosticCollection;
-  readonly pythonWorkspace: FilteredWorkspace;
-  readonly serverManager: IServerManager;
-  readonly outputChannel: OutputChannelWithHistory;
-  readonly outputChannelDebug: OutputChannelWithHistory;
-  readonly panelService: IPanelService;
-
   constructor(
-    pythonDiagnostics: vscode.DiagnosticCollection,
-    pythonWorkspace: FilteredWorkspace,
-    serverManager: IServerManager,
-    outputChannel: OutputChannelWithHistory,
-    outputChannelDebug: OutputChannelWithHistory,
-    panelService: IPanelService
+    readonly coreJsApiCache: IAsyncCacheService<URL, typeof DhcType>,
+    readonly outputChannel: OutputChannelWithHistory,
+    readonly outputChannelDebug: OutputChannelWithHistory,
+    readonly panelService: IPanelService,
+    readonly pythonDiagnostics: vscode.DiagnosticCollection,
+    readonly pythonWorkspace: FilteredWorkspace,
+    readonly serverManager: IServerManager
   ) {
     super();
-
-    this.pythonDiagnostics = pythonDiagnostics;
-    this.pythonWorkspace = pythonWorkspace;
-    this.serverManager = serverManager;
-    this.outputChannel = outputChannel;
-    this.outputChannelDebug = outputChannelDebug;
-    this.panelService = panelService;
 
     // Create an MCP server
     this.server = new SdkMcpServer({
@@ -69,13 +61,16 @@ export class McpServer extends DisposableBase {
 
     this.registerTool(createAddRemoteFileSourcesTool());
     this.registerTool(createConnectToServerTool(this));
+    this.registerTool(createGetColumnStatsTool(this));
     this.registerTool(createGetLogsTool(this));
+    this.registerTool(createGetTableStatsTool(this));
     this.registerTool(createListConnectionsTool(this));
     this.registerTool(createListPanelVariablesTool(this));
     this.registerTool(createListRemoteFileSourcesTool(this));
     this.registerTool(createListServersTool(this));
     this.registerTool(createOpenFilesInEditorTool());
     this.registerTool(createOpenVariablePanelsTool(this));
+    this.registerTool(createQueryTableDataTool(this));
     this.registerTool(createRemoveRemoteFileSourcesTool());
     this.registerTool(createRunCodeFromUriTool(this));
     this.registerTool(createRunCodeTool(this));
