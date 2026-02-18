@@ -68,7 +68,7 @@ describe('createConnectToServerTool', () => {
       });
 
       expect(result.structuredContent).toEqual(
-        mcpSuccessResult('Connecting to server', {
+        mcpSuccessResult('Connected to server', {
           type: 'DHC',
           url: MOCK_URL,
         })

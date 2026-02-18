@@ -12,4 +12,5 @@
 !images/**/*
 !out/**/*.js
 !out/**/*.css
+!skills/**/*
 !snippets.code-snippets

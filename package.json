@@ -56,6 +56,14 @@
     "watch": "npm-run-all -p watch:*"
   },
   "contributes": {
+    "chatSkills": [
+      {
+        "path": "./skills/deephaven-vscode-using/SKILL.md"
+      },
+      {
+        "path": "./skills/deephaven-docs-searching/SKILL.md"
+      }
+    ],
     "configuration": {
       "title": "Deephaven",
       "properties": {
