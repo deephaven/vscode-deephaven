@@ -165,12 +165,19 @@ export async function hasInteractivePermission(
  * Check if a given server is running by checking if the `irisapi/irisapi.nocache.js`
  * file is accessible.
  * @param serverUrl
+ * @param logger Logger to use for logging errors.
  */
-export async function isDheServerRunning(serverUrl: URL): Promise<boolean> {
+export async function isDheServerRunning(
+  serverUrl: URL,
+  logger: {
+    error: (...args: unknown[]) => void;
+  }
+): Promise<boolean> {
   try {
     return await hasStatusCode(
       new URL('irisapi/irisapi.nocache.js', serverUrl.toString()),
-      [200, 204]
+      [200, 204],
+      logger
     );
   } catch {
     return false;

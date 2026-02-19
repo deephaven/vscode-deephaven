@@ -219,7 +219,7 @@ export class PipServerController implements IDisposable {
     const { promise, cancel } = pollUntilTrue(
       () => {
         logger.debug(`Polling Pip server: '${serverUrl}'`);
-        return isDhcServerRunning(serverUrl);
+        return isDhcServerRunning(serverUrl, logger);
       },
       PIP_SERVER_STATUS_CHECK_INTERVAL,
       PIP_SERVER_STATUS_CHECK_TIMEOUT

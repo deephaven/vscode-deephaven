@@ -99,6 +99,7 @@ export class ServerManager implements IServerManager {
   private readonly _onDidUpdate = new vscode.EventEmitter<void>();
   readonly onDidUpdate = this._onDidUpdate.event;
 
+  private _lastServerRunningStatus = new URLMap<boolean>();
   private _hasEverUpdatedStatus = false;
 
   canStartServer: boolean;
@@ -174,6 +175,16 @@ export class ServerManager implements IServerManager {
         this.disconnectFromServer(connectionUrl);
       }
     }
+
+    // Filter our last status tracking to servers that are still configured.
+    this._lastServerRunningStatus = new URLMap<boolean>(
+      this.getServers()
+        .filter(server => this._lastServerRunningStatus.has(server.url))
+        .map(server => [
+          server.url,
+          this._lastServerRunningStatus.getOrThrow(server.url),
+        ])
+    );
 
     await this.updateStatus();
 
@@ -750,28 +761,47 @@ export class ServerManager implements IServerManager {
       servers = servers.filter(server => filterSet.has(server.url.toString()));
     }
 
-    const promises = servers.map(async server => {
-      const isRunning = await (server.type === 'DHC'
-        ? isDhcServerRunning(server.url)
-        : isDheServerRunning(server.url));
+    const promises = servers.map(async ({ type, url }) => {
+      const isRunning = await (type === 'DHC'
+        ? isDhcServerRunning(url, logger)
+        : isDheServerRunning(url, logger));
 
-      if (server.isRunning !== isRunning) {
-        const newServerState = {
-          ...server,
-          isRunning,
-        };
-
-        this._serverMap.set(server.url, newServerState);
-
-        // If server goes from running to stopped, get rid of any active
-        // connections to it.
-        if (!newServerState.isRunning) {
-          void this.disconnectFromServer(server.url);
-        }
-
-        this._onDidUpdate.fire();
-        this._onDidServerStatusChange.fire(newServerState);
+      // In case configured servers have changed since the `getServers` call
+      const server = this.getServer(url);
+      if (server == null) {
+        return;
       }
+
+      // First time inspecting this server state or if running state has changed
+      if (
+        !this._lastServerRunningStatus.has(url) ||
+        server.isRunning !== isRunning
+      ) {
+        logger.debug(`Server '${server.url}' isRunning:`, isRunning);
+      }
+
+      this._lastServerRunningStatus.set(url, isRunning);
+
+      // Status hasn't changed, nothing to do
+      if (server.isRunning === isRunning) {
+        return;
+      }
+
+      const newServerState = {
+        ...server,
+        isRunning,
+      };
+
+      this._serverMap.set(server.url, newServerState);
+
+      // If server goes from running to stopped, get rid of any active
+      // connections to it.
+      if (!newServerState.isRunning) {
+        void this.disconnectFromServer(server.url);
+      }
+
+      this._onDidUpdate.fire();
+      this._onDidServerStatusChange.fire(newServerState);
     });
 
     await Promise.all(promises);

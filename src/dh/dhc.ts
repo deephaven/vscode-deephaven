@@ -162,12 +162,19 @@ export async function initDhcSession(
  * Check if a given server is running by checking if the `dh-core.js` file is
  * accessible.
  * @param serverUrl
+ * @param logger Logger to use for logging errors.
  */
-export async function isDhcServerRunning(serverUrl: URL): Promise<boolean> {
+export async function isDhcServerRunning(
+  serverUrl: URL,
+  logger: {
+    error: (...args: unknown[]) => void;
+  }
+): Promise<boolean> {
   try {
     return await hasStatusCode(
       new URL('jsapi/dh-core.js', serverUrl.toString()),
-      [200, 204]
+      [200, 204],
+      logger
     );
   } catch {
     return false;
