@@ -33,6 +33,25 @@ export const serverResultSchema = z.object({
 export type ConnectionResult = z.infer<typeof connectionResultSchema>;
 export type ServerResult = z.infer<typeof serverResultSchema>;
 
+type GetFirstConnectionOrCreateSuccess = {
+  success: true;
+  connection: IDhcService;
+  panelUrlFormat: string | undefined;
+};
+
+type GetFirstConnectionOrCreateError = {
+  success: false;
+  errorMessage: string;
+  error?: unknown;
+  hint?: string;
+  details: { connectionUrl: string };
+};
+
+export type GetFirstConnectionOrCreateResult =
+  | GetFirstConnectionOrCreateSuccess
+  | GetFirstConnectionOrCreateError;
+
+
 /**
  * Maps a ConnectionState to a connection result object.
  */
@@ -49,24 +68,6 @@ export function connectionToResult({
     tagId,
   };
 }
-
-type GetFirstConnectionOrCreateSuccess = {
-  success: true;
-  connection: IDhcService;
-  panelUrlFormat: string | undefined;
-};
-
-type GetFirstConnectionOrCreateError = {
-  success: false;
-  errorMessage: string;
-  error?: unknown;
-  hint?: string;
-  details: { connectionUrl: string };
-};
-
-type GetFirstConnectionOrCreateResult =
-  | GetFirstConnectionOrCreateSuccess
-  | GetFirstConnectionOrCreateError;
 
 /**
  * Gets the first connection for a given URL, handling server retrieval,
