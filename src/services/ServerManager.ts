@@ -645,7 +645,8 @@ export class ServerManager implements IServerManager {
 
     if (!isConsoleTypeSupported) {
       throw new UnsupportedConsoleTypeError(
-        `Connection '${connectionState.serverUrl}' does not support '${languageId}'.`
+        connectionState.serverUrl,
+        languageId
       );
     }
 
