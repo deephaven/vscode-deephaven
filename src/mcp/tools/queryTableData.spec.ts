@@ -233,6 +233,7 @@ describe('queryTableData', () => {
     expect(result.structuredContent).toEqual(
       mcpErrorResult('Invalid URL: Invalid URL', {
         connectionUrl: 'invalid-url',
+        tableName: 'myTable',
       })
     );
     expect(serverManager.getServer).not.toHaveBeenCalled();
@@ -250,6 +251,7 @@ describe('queryTableData', () => {
     expect(result.structuredContent).toEqual(
       mcpErrorResult('No connections or server found', {
         connectionUrl: MOCK_DHC_URL.href,
+        tableName: 'myTable',
       })
     );
   });
@@ -319,6 +321,7 @@ describe('queryTableData', () => {
     expect(result.structuredContent).toEqual(
       mcpErrorResult('Unable to access session', {
         connectionUrl: MOCK_DHC_URL.href,
+        tableName: 'myTable',
       })
     );
   });

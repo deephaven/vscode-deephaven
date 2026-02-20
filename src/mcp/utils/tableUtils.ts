@@ -7,6 +7,7 @@ import { getFirstConnectionOrCreate } from './serverUtils';
 type GetTableOrErrorSuccess = {
   success: true;
   table: DhType.Table;
+  connectionUrl: URL
 };
 
 type GetTableOrErrorError = {
@@ -20,78 +21,6 @@ type GetTableOrErrorError = {
 export type GetTableOrErrorResult =
   | GetTableOrErrorSuccess
   | GetTableOrErrorError;
-
-/**
- * Gets a table from a Deephaven server connection, handling URL parsing,
- * connection retrieval, session validation, and table fetching.
- *
- * This function encapsulates the common pattern of:
- * 1. Parsing the connection URL string
- * 2. Getting the first connection with getFirstConnectionOrCreate
- * 3. Handling connection errors
- * 4. Getting the session from the connection
- * 5. Validating the session exists
- * 6. Fetching the table by name
- *
- * @param params Configuration for getting the table
- * @param params.serverManager The server manager to query
- * @param params.connectionUrl The connection URL string
- * @param params.tableName The name of the table to fetch
- * @param params.languageId Optional language ID for creating connection hints
- * @returns Success with table, or error with message, hint, and details
- */
-export async function getTableOrError(params: {
-  serverManager: IServerManager;
-  connectionUrl: string;
-  tableName: string;
-  languageId?: string;
-}): Promise<GetTableOrErrorResult> {
-  const { serverManager, connectionUrl, tableName, languageId } = params;
-
-  const parsedUrl = parseUrl(connectionUrl);
-  if (!parsedUrl.success) {
-    return {
-      success: false,
-      errorMessage: 'Invalid URL',
-      error: parsedUrl.error,
-      details: { connectionUrl, tableName },
-    };
-  }
-
-  const firstConnectionResult = await getFirstConnectionOrCreate({
-    connectionUrl: parsedUrl.value,
-    serverManager,
-    languageId,
-  });
-
-  if (!firstConnectionResult.success) {
-    return {
-      ...firstConnectionResult,
-      details: { ...firstConnectionResult.details, tableName },
-    };
-  }
-
-  const { connection } = firstConnectionResult;
-  const session = await connection.getSession();
-
-  if (session == null) {
-    return {
-      success: false,
-      errorMessage: 'Unable to access session',
-      details: { connectionUrl, tableName },
-    };
-  }
-
-  const table = await session.getObject({
-    type: 'Table',
-    name: tableName,
-  });
-
-  return {
-    success: true,
-    table,
-  };
-}
 
 export const sortDirectionSchema = z.enum(['asc', 'desc']);
 
@@ -358,4 +287,74 @@ export function formatValue(value: unknown): unknown {
   }
 
   return value;
+}
+
+/**
+ * Gets a table from a Deephaven server connection, handling URL parsing,
+ * connection retrieval, session validation, and table fetching.
+ *
+ * This function encapsulates the common pattern of:
+ * 1. Parsing the connection URL string
+ * 2. Getting the first connection with getFirstConnectionOrCreate
+ * 3. Handling connection errors
+ * 4. Getting the session from the connection
+ * 5. Validating the session exists
+ * 6. Fetching the table by name
+ *
+ * @param params Configuration for getting the table
+ * @param params.serverManager The server manager to query
+ * @param params.connectionUrlStr The connection URL string
+ * @param params.tableName The name of the table to fetch
+ * @returns Success with table, or error with message, hint, and details
+ */
+export async function getTableOrError(params: {
+  serverManager: IServerManager;
+  connectionUrlStr: string;
+  tableName: string;
+}): Promise<GetTableOrErrorResult> {
+  const { serverManager, connectionUrlStr, tableName } = params;
+
+  const parsedUrl = parseUrl(connectionUrlStr);
+  if (!parsedUrl.success) {
+    return {
+      success: false,
+      errorMessage: 'Invalid URL',
+      error: parsedUrl.error,
+      details: { connectionUrl: connectionUrlStr, tableName },
+    };
+  }
+
+  const firstConnectionResult = await getFirstConnectionOrCreate({
+    connectionUrl: parsedUrl.value,
+    serverManager,
+  });
+
+  if (!firstConnectionResult.success) {
+    return {
+      ...firstConnectionResult,
+      details: { ...firstConnectionResult.details, tableName },
+    };
+  }
+
+  const { connection } = firstConnectionResult;
+  const session = await connection.getSession();
+
+  if (session == null) {
+    return {
+      success: false,
+      errorMessage: 'Unable to access session',
+      details: { connectionUrl: connectionUrlStr, tableName },
+    };
+  }
+
+  const table = await session.getObject({
+    type: 'Table',
+    name: tableName,
+  });
+
+  return {
+    success: true,
+    connectionUrl: parsedUrl.value,
+    table,
+  };
 }

@@ -59,7 +59,7 @@ export function createGetColumnStatsTool({
     name: 'getColumnStats',
     spec,
     handler: async ({
-      connectionUrl,
+      connectionUrl: connectionUrlStr,
       tableName,
       columnName,
     }: HandlerArg): Promise<HandlerResult> => {
@@ -67,7 +67,7 @@ export function createGetColumnStatsTool({
 
       try {
         const tableResult = await getTableOrError({
-          connectionUrl,
+          connectionUrlStr,
           tableName,
           serverManager,
         });
@@ -96,7 +96,7 @@ export function createGetColumnStatsTool({
         }
       } catch (error) {
         return response.error('Failed to get column stats', error, {
-          connectionUrl,
+          connectionUrl: connectionUrlStr,
           tableName,
           columnName,
         });

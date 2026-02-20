@@ -59,14 +59,14 @@ export function createGetTableStatsTool({
     name: 'getTableStats',
     spec,
     handler: async ({
-      connectionUrl,
+      connectionUrl: connectionUrlStr,
       tableName,
     }: HandlerArg): Promise<HandlerResult> => {
       const response = new McpToolResponse();
 
       try {
         const tableResult = await getTableOrError({
-          connectionUrl,
+          connectionUrlStr,
           tableName,
           serverManager,
         });
@@ -92,7 +92,7 @@ export function createGetTableStatsTool({
         }
       } catch (error) {
         return response.error('Failed to get table stats', error, {
-          connectionUrl,
+          connectionUrl: connectionUrlStr,
           tableName,
         });
       }

@@ -60,7 +60,7 @@ describe('tableUtils', () => {
       it('should return error when URL is invalid', async () => {
         const result = await getTableOrError({
           serverManager,
-          connectionUrl: 'not-a-valid-url',
+          connectionUrlStr: 'not-a-valid-url',
           tableName: 'my_table',
         });
 
@@ -81,7 +81,7 @@ describe('tableUtils', () => {
 
         const result = await getTableOrError({
           serverManager,
-          connectionUrl: MOCK_DHC_URL.href,
+          connectionUrlStr: MOCK_DHC_URL.href,
           tableName: 'my_table',
         });
 
@@ -106,7 +106,7 @@ describe('tableUtils', () => {
 
         const result = await getTableOrError({
           serverManager,
-          connectionUrl: MOCK_DHC_URL.href,
+          connectionUrlStr: MOCK_DHC_URL.href,
           tableName: 'my_table',
         });
 
@@ -119,41 +119,33 @@ describe('tableUtils', () => {
     });
 
     describe('success cases', () => {
-      it.each([
-        { label: 'without languageId', languageId: undefined },
-        { label: 'with languageId', languageId: 'python' },
-      ])(
-        'should return table when connection and session are available ($label)',
-        async ({ languageId }) => {
-          const mockConnection = createMockDhcService({
-            serverUrl: MOCK_DHC_URL,
-          });
-          const mockSession = {
-            getObject: vi.fn().mockResolvedValue(mockTable),
-          } as unknown as DhcType.IdeSession;
-          vi.spyOn(mockConnection, 'getSession').mockResolvedValue(
-            mockSession
-          );
+      it('should return table when connection and session are available', async () => {
+        const mockConnection = createMockDhcService({
+          serverUrl: MOCK_DHC_URL,
+        });
+        const mockSession = {
+          getObject: vi.fn().mockResolvedValue(mockTable),
+        } as unknown as DhcType.IdeSession;
+        vi.spyOn(mockConnection, 'getSession').mockResolvedValue(mockSession);
 
-          vi.mocked(getFirstConnectionOrCreate).mockResolvedValue({
-            success: true,
-            connection: mockConnection,
-            panelUrlFormat: 'mock.panelUrlFormat',
-          });
+        vi.mocked(getFirstConnectionOrCreate).mockResolvedValue({
+          success: true,
+          connection: mockConnection,
+          panelUrlFormat: 'mock.panelUrlFormat',
+        });
 
-          const result = await getTableOrError({
-            serverManager,
-            connectionUrl: MOCK_DHC_URL.href,
-            tableName: 'my_table',
-            languageId,
-          });
+        const result = await getTableOrError({
+          serverManager,
+          connectionUrlStr: MOCK_DHC_URL.href,
+          tableName: 'my_table',
+        });
 
-          expect(result).toEqual({
-            success: true,
-            table: mockTable,
-          });
-        }
-      );
+        expect(result).toEqual({
+          success: true,
+          table: mockTable,
+          connectionUrl: MOCK_DHC_URL,
+        });
+      });
     });
   });
 
