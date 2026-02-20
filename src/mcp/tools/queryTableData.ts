@@ -7,10 +7,9 @@ import type {
   IServerManager,
   IAsyncCacheService,
 } from '../../types';
-import { parseUrl, waitForEvent } from '../../util';
+import { waitForEvent } from '../../util';
 import {
   createMcpToolOutputSchema,
-  getFirstConnectionOrCreate,
   McpToolResponse,
 } from '../utils';
 import {
@@ -21,6 +20,7 @@ import {
   filterOperationSchema,
   filterValueTypeSchema,
   formatTableRow,
+  getTableOrError,
   sortDirectionSchema,
 } from '../utils/tableUtils';
 
@@ -150,49 +150,30 @@ export function createQueryTableDataTool({
     name: 'queryTableData',
     spec,
     handler: async ({
-      connectionUrl,
+      connectionUrl: connectionUrlStr,
       tableName,
       query,
       maxRows = 10,
     }: HandlerArg): Promise<HandlerResult> => {
       const response = new McpToolResponse();
 
-      const parsedUrl = parseUrl(connectionUrl);
-      if (!parsedUrl.success) {
-        return response.error('Invalid URL', parsedUrl.error, {
-          connectionUrl,
-        });
-      }
-
       try {
-        const firstConnectionResult = await getFirstConnectionOrCreate({
-          connectionUrl: parsedUrl.value,
+        const tableResult = await getTableOrError({
+          connectionUrlStr,
+          tableName,
           serverManager,
         });
 
-        if (!firstConnectionResult.success) {
-          const { details, error, errorMessage, hint } = firstConnectionResult;
+        if (!tableResult.success) {
+          const { details, error, errorMessage, hint } = tableResult;
           return response.errorWithHint(errorMessage, error, hint, details);
         }
 
-        const { connection } = firstConnectionResult;
-        const session = await connection.getSession();
-
-        if (!session) {
-          return response.error('Unable to access session', null, {
-            connectionUrl,
-          });
-        }
-
-        const baseTable: DhcType.Table = await session.getObject({
-          type: 'Table',
-          name: tableName,
-        });
-
+        const { table: baseTable, connectionUrl } = tableResult;
         let workingTable: DhcType.Table | DhcType.TotalsTable = baseTable;
 
         try {
-          const dh = await coreJsApiCache.get(parsedUrl.value);
+          const dh = await coreJsApiCache.get(connectionUrl);
 
           if (query?.filters && query.filters.length > 0) {
             const filterConditions = createFilterConditions(
@@ -264,7 +245,7 @@ export function createQueryTableDataTool({
         }
       } catch (error) {
         return response.error('Failed to query table data', error, {
-          connectionUrl,
+          connectionUrl: connectionUrlStr,
           tableName,
         });
       }
