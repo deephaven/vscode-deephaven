@@ -88,16 +88,19 @@ export function createMockDhcService({
   runCode,
   supportsConsoleType,
   getPsk,
+  getSession,
 }: {
   serverUrl?: URL;
   runCode?: DhcType.ide.CommandResult | null;
   supportsConsoleType?: boolean;
   getPsk?: Psk | undefined;
+  getSession?: DhcType.IdeSession | null;
 }): DhcService {
   return Object.assign(Object.create(DhcService.prototype), {
     serverUrl: serverUrl ?? MOCK_DHC_URL,
     runCode: vi.fn().mockResolvedValue(runCode ?? null),
     supportsConsoleType: vi.fn().mockReturnValue(supportsConsoleType ?? true),
     getPsk: vi.fn().mockResolvedValue(getPsk),
+    getSession: vi.fn().mockResolvedValue(getSession ?? null),
   });
 }

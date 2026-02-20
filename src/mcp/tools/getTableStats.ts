@@ -1,15 +1,13 @@
 import { z } from 'zod';
-import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type {
   McpTool,
   McpToolHandlerArg,
   McpToolHandlerResult,
   IServerManager,
 } from '../../types';
-import { parseUrl } from '../../util';
 import {
   createMcpToolOutputSchema,
-  getFirstConnectionOrCreate,
+  getTableOrError,
   McpToolResponse,
 } from '../utils';
 import { formatTableColumns } from '../utils/tableUtils';
@@ -66,37 +64,19 @@ export function createGetTableStatsTool({
     }: HandlerArg): Promise<HandlerResult> => {
       const response = new McpToolResponse();
 
-      const parsedUrl = parseUrl(connectionUrl);
-      if (!parsedUrl.success) {
-        return response.error('Invalid URL', parsedUrl.error, {
-          connectionUrl,
-        });
-      }
-
       try {
-        const firstConnectionResult = await getFirstConnectionOrCreate({
-          connectionUrl: parsedUrl.value,
+        const tableResult = await getTableOrError({
+          connectionUrl,
+          tableName,
           serverManager,
         });
 
-        if (!firstConnectionResult.success) {
-          const { details, error, errorMessage, hint } = firstConnectionResult;
+        if (!tableResult.success) {
+          const { details, error, errorMessage, hint } = tableResult;
           return response.errorWithHint(errorMessage, error, hint, details);
         }
 
-        const { connection } = firstConnectionResult;
-        const session = await connection.getSession();
-
-        if (session == null) {
-          return response.error('Unable to access session', null, {
-            connectionUrl,
-          });
-        }
-
-        const table: DhcType.Table = await session.getObject({
-          type: 'Table',
-          name: tableName,
-        });
+        const { table } = tableResult;
 
         try {
           const columns = formatTableColumns(table.columns);

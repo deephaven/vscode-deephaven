@@ -6,10 +6,9 @@ import type {
   McpToolHandlerResult,
   IServerManager,
 } from '../../types';
-import { parseUrl } from '../../util';
 import {
   createMcpToolOutputSchema,
-  getFirstConnectionOrCreate,
+  getTableOrError,
   McpToolResponse,
 } from '../utils';
 import { convertColumnStatsToRecords } from '../utils/tableUtils';
@@ -66,37 +65,19 @@ export function createGetColumnStatsTool({
     }: HandlerArg): Promise<HandlerResult> => {
       const response = new McpToolResponse();
 
-      const parsedUrl = parseUrl(connectionUrl);
-      if (!parsedUrl.success) {
-        return response.error('Invalid URL', parsedUrl.error, {
-          connectionUrl,
-        });
-      }
-
       try {
-        const firstConnectionResult = await getFirstConnectionOrCreate({
-          connectionUrl: parsedUrl.value,
+        const tableResult = await getTableOrError({
+          connectionUrl,
+          tableName,
           serverManager,
         });
 
-        if (!firstConnectionResult.success) {
-          const { details, error, errorMessage, hint } = firstConnectionResult;
+        if (!tableResult.success) {
+          const { details, error, errorMessage, hint } = tableResult;
           return response.errorWithHint(errorMessage, error, hint, details);
         }
 
-        const { connection } = firstConnectionResult;
-        const session = await connection.getSession();
-
-        if (session == null) {
-          return response.error('Unable to access session', null, {
-            connectionUrl,
-          });
-        }
-
-        const table: DhcType.Table = await session.getObject({
-          type: 'Table',
-          name: tableName,
-        });
+        const { table } = tableResult;
 
         try {
           const column = table.findColumn(columnName);

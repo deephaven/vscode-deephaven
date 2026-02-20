@@ -128,6 +128,7 @@ describe('getTableStats', () => {
       session: null,
       expected: mcpErrorResult('Invalid URL: Invalid URL', {
         connectionUrl: 'invalid-url',
+        tableName: 'mock.table',
       }),
       shouldCallGetServer: false,
     },
@@ -139,6 +140,7 @@ describe('getTableStats', () => {
       session: null,
       expected: mcpErrorResult('No connections or server found', {
         connectionUrl: MOCK_DHC_URL.href,
+        tableName: 'mock.table',
       }),
       shouldCallGetServer: true,
     },
@@ -150,6 +152,7 @@ describe('getTableStats', () => {
       session: null,
       expected: mcpErrorResult('Unable to access session', {
         connectionUrl: MOCK_DHC_URL.href,
+        tableName: 'mock.table',
       }),
       shouldCallGetServer: true,
     },

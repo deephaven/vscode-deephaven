@@ -198,6 +198,7 @@ describe('createGetColumnStatsTool', () => {
         connections: [],
         expected: mcpErrorResult('Invalid URL: Invalid URL', {
           connectionUrl: 'invalid-url',
+          tableName: 'myTable',
         }),
         shouldCallGetServer: false,
       },
@@ -208,6 +209,7 @@ describe('createGetColumnStatsTool', () => {
         connections: [],
         expected: mcpErrorResult('No connections or server found', {
           connectionUrl: MOCK_DHC_URL.href,
+          tableName: 'myTable',
         }),
         shouldCallGetServer: true,
       },
@@ -218,6 +220,7 @@ describe('createGetColumnStatsTool', () => {
         connections: [mockConnection],
         expected: mcpErrorResult('Unable to access session', {
           connectionUrl: MOCK_DHC_URL.href,
+          tableName: 'myTable',
         }),
         shouldCallGetServer: true,
       },
