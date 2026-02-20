@@ -22,7 +22,6 @@ import type {
   GrpcURL,
   IdeURL,
   JsapiURL,
-  TerminalQueryStatus,
   UniqueID,
   WorkerConfig,
   WorkerInfo,
@@ -38,8 +37,8 @@ import {
   DHE_FEATURES_URL_PATH,
   INTERACTIVE_CONSOLE_QUERY_TYPE,
   INTERACTIVE_CONSOLE_TEMPORARY_QUEUE_NAME,
+  isTerminalQueryStatus,
   PROTOCOL,
-  TERMINAL_QUERY_STATUSES,
   UnsupportedFeatureQueryError,
 } from '../common';
 import { withResolvers } from '../util';
@@ -446,10 +445,7 @@ export async function getWorkerInfoFromQuery(
       return queryInfo;
     }
 
-    if (
-      status != null &&
-      TERMINAL_QUERY_STATUSES.has(status as TerminalQueryStatus)
-    ) {
+    if (isTerminalQueryStatus(status)) {
       deleteQueries(dheClient, [querySerial]);
       throw new Error('Query failed to start');
     }

@@ -30,12 +30,11 @@ import {
 import {
   CLOSE_CREATE_QUERY_VIEW_CMD,
   CREATE_DHE_AUTHENTICATED_CLIENT_CMD,
+  isTerminalQueryStatus,
   QueryCreationCancelledError,
   QueryStartupFailureError,
-  TERMINAL_QUERY_STATUSES,
   UnsupportedFeatureQueryError,
 } from '../common';
-import { TerminalQueryStatus } from '../types';
 import { assertDefined, type QuerySerial } from '../shared';
 
 const logger = new Logger('DheService');
@@ -198,10 +197,7 @@ export class DheService implements IDheService {
       dhe.Client.EVENT_CONFIG_UPDATED,
       ({ detail: queryInfo }: CustomEvent<QueryInfo>) => {
         const status = queryInfo.designated?.status;
-        if (
-          status == null ||
-          !TERMINAL_QUERY_STATUSES.has(status as TerminalQueryStatus)
-        ) {
+        if (!isTerminalQueryStatus(status)) {
           return;
         }
 
@@ -309,8 +305,7 @@ export class DheService implements IDheService {
       ({ detail: queryInfo }: CustomEvent<QueryInfo>) => {
         const status = queryInfo.designated?.status;
         if (
-          status != null &&
-          TERMINAL_QUERY_STATUSES.has(status as TerminalQueryStatus) &&
+          isTerminalQueryStatus(status) &&
           queryInfo.name.startsWith(queryName)
         ) {
           logger.info(
