@@ -12,6 +12,7 @@ import type {
 
 /** Arguments passed to `ADD_REMOTE_FILE_SOURCE_CMD` handler */
 export type AddRemoteFileSourceCmdArgs = [
+  languageId: 'groovy' | 'python',
   folderElementOrUri:
     | RemoteImportSourceTreeFolderElement
     | vscode.Uri
@@ -39,6 +40,7 @@ export type RefreshVariablePanelsCmdArgs = [
 
 /** Arguments passed to `REMOVE_REMOTE_FILE_SOURCE_CMD` handler */
 export type RemoveRemoteFileSourceCmdArgs = [
+  languageId: 'groovy' | 'python',
   folderElementOrUri:
     | RemoteImportSourceTreeFolderElement
     | vscode.Uri
@@ -76,6 +78,19 @@ export type RunSelectionCmdArgs = [
 function cmd<T extends string>(cmd: T): `${typeof EXTENSION_ID}.${T}` {
   return `${EXTENSION_ID}.${cmd}`;
 }
+
+export const ADD_GROOVY_REMOTE_FILE_SOURCE_CMD = cmd(
+  'addGroovyRemoteFileSource'
+);
+export const REMOVE_GROOVY_REMOTE_FILE_SOURCE_CMD = cmd(
+  'removeGroovyRemoteFileSource'
+);
+export const ADD_PYTHON_REMOTE_FILE_SOURCE_CMD = cmd(
+  'addPythonRemoteFileSource'
+);
+export const REMOVE_PYTHON_REMOTE_FILE_SOURCE_CMD = cmd(
+  'removePythonRemoteFileSource'
+);
 
 export const CLEAR_SECRET_STORAGE_CMD = cmd('clearSecretStorage');
 export const CLOSE_CREATE_QUERY_VIEW_CMD = cmd('view.createQuery.close');
