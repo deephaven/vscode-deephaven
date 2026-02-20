@@ -62,6 +62,7 @@ export class FilteredWorkspace<
 {
   constructor(
     readonly filePattern: FilePattern,
+    readonly languageId: 'groovy' | 'python',
     private readonly _getTopLevelModuleName: (
       folderUri: vscode.Uri
     ) => TModuleName,
@@ -244,6 +245,7 @@ export class FilteredWorkspace<
     return topLeveMarkedlUris.map(([name, uri]) => ({
       name,
       type: 'topLevelMarkedFolder',
+      languageId: this.languageId,
       isMarked: true,
       uri,
     }));
@@ -412,6 +414,7 @@ export class FilteredWorkspace<
       this._updateNodeMaps(null, {
         name: ws.name,
         type: 'workspaceRootFolder',
+        languageId: this.languageId,
         uri: wsUri,
       });
 
@@ -429,6 +432,7 @@ export class FilteredWorkspace<
           this._updateNodeMaps(parentUri, {
             uri,
             type: uri.fsPath === fileUri.fsPath ? 'file' : 'folder',
+            languageId: this.languageId,
             isMarked: false,
             name: token,
           });
