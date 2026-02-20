@@ -32,6 +32,7 @@ import {
   CREATE_CORE_AUTHENTICATED_CLIENT_CMD,
   OPEN_VARIABLE_PANELS_CMD,
   REFRESH_VARIABLE_PANELS_CMD,
+  UnsupportedConsoleTypeError,
   VARIABLE_UNICODE_ICONS,
 } from '../common';
 import { NoConsoleTypesError, parseServerError } from '../dh/errorUtils';
@@ -442,7 +443,7 @@ export class DhcService extends DisposableBase implements IDhcService {
 
     if (consoleType !== languageId) {
       this.toaster.error(`This connection does not support '${languageId}'.`);
-      return null;
+      throw new UnsupportedConsoleTypeError(this.serverUrl, languageId);
     }
 
     const text =
