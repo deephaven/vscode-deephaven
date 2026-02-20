@@ -1,5 +1,8 @@
 import * as vscode from 'vscode';
-import type { EnterpriseDhType as DheType, QueryInfo } from '@deephaven-enterprise/jsapi-types';
+import type {
+  EnterpriseDhType as DheType,
+  QueryInfo,
+} from '@deephaven-enterprise/jsapi-types';
 import {
   type ConsoleType,
   type DheAuthenticatedClientWrapper,
@@ -18,14 +21,17 @@ import {
 import { Logger, URLMap } from '../util';
 import {
   createInteractiveConsoleQuery,
+  createQueryName,
   deleteQueries,
   getDheFeatures,
   getSerialFromTagId,
   getWorkerInfoFromQuery,
 } from '../dh/dhe';
 import {
+  CLOSE_CREATE_QUERY_VIEW_CMD,
   CREATE_DHE_AUTHENTICATED_CLIENT_CMD,
   QueryCreationCancelledError,
+  QueryStartupFailureError,
   TERMINAL_QUERY_STATUSES,
   UnsupportedFeatureQueryError,
 } from '../common';
@@ -192,7 +198,10 @@ export class DheService implements IDheService {
       dhe.Client.EVENT_CONFIG_UPDATED,
       ({ detail: queryInfo }: CustomEvent<QueryInfo>) => {
         const status = queryInfo.designated?.status;
-        if (status == null || !TERMINAL_QUERY_STATUSES.has(status as TerminalQueryStatus)) {
+        if (
+          status == null ||
+          !TERMINAL_QUERY_STATUSES.has(status as TerminalQueryStatus)
+        ) {
           return;
         }
 
@@ -292,6 +301,29 @@ export class DheService implements IDheService {
       this._dheServerFeaturesCache.get(this.serverUrl)?.features
         .createQueryIframe ?? false;
 
+    let startupFailureStatus: string | null = null;
+
+    const queryName = createQueryName(tagId);
+    const removeStartupFailureListener = dheClient.client.addEventListener(
+      dhe.Client.EVENT_CONFIG_UPDATED,
+      ({ detail: queryInfo }: CustomEvent<QueryInfo>) => {
+        const status = queryInfo.designated?.status;
+        if (
+          status != null &&
+          TERMINAL_QUERY_STATUSES.has(status as TerminalQueryStatus) &&
+          queryInfo.name.startsWith(queryName)
+        ) {
+          logger.info(
+            'Query entered terminal state during creation:',
+            queryInfo.name,
+            status
+          );
+          startupFailureStatus = status;
+          vscode.commands.executeCommand(CLOSE_CREATE_QUERY_VIEW_CMD);
+        }
+      }
+    );
+
     let querySerial: QuerySerial | null = null;
 
     try {
@@ -313,9 +345,14 @@ export class DheService implements IDheService {
         if (querySerial != null) {
           deleteQueries(dheClient.client, [querySerial]);
         }
+        if (startupFailureStatus != null) {
+          throw new QueryStartupFailureError(startupFailureStatus);
+        }
       }
 
       throw err;
+    } finally {
+      removeStartupFailureListener();
     }
 
     if (querySerial == null) {

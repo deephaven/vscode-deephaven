@@ -22,6 +22,7 @@ import type {
   GrpcURL,
   IdeURL,
   JsapiURL,
+  TerminalQueryStatus,
   UniqueID,
   WorkerConfig,
   WorkerInfo,
@@ -38,6 +39,7 @@ import {
   INTERACTIVE_CONSOLE_QUERY_TYPE,
   INTERACTIVE_CONSOLE_TEMPORARY_QUEUE_NAME,
   PROTOCOL,
+  TERMINAL_QUERY_STATUSES,
   UnsupportedFeatureQueryError,
 } from '../common';
 import { withResolvers } from '../util';
@@ -438,18 +440,21 @@ export async function getWorkerInfoFromQuery(
    * @throws An error if the query is in an error state.
    */
   function handleQueryInfo(queryInfo: QueryInfo): QueryInfo | undefined {
-    switch (queryInfo.designated?.status) {
-      case 'Running':
-        return queryInfo;
+    const status = queryInfo.designated?.status;
 
-      case 'Error':
-      case 'Failed':
-        deleteQueries(dheClient, [querySerial]);
-        throw new Error('Query failed to start');
-
-      default:
-        return undefined;
+    if (status === 'Running') {
+      return queryInfo;
     }
+
+    if (
+      status != null &&
+      TERMINAL_QUERY_STATUSES.has(status as TerminalQueryStatus)
+    ) {
+      deleteQueries(dheClient, [querySerial]);
+      throw new Error('Query failed to start');
+    }
+
+    return undefined;
   }
 
   let queryInfo = dheClient

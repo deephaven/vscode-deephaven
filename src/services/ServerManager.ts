@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import {
   QueryCreationCancelledError,
+  QueryStartupFailureError,
   UnsupportedConsoleTypeError,
 } from '../common';
 import type {
@@ -259,6 +260,11 @@ export class ServerManager implements IServerManager {
           const msg = 'Connection cancelled.';
           this._outputChannel.appendLine(msg);
           this._toaster.info(msg);
+        } else if (err instanceof QueryStartupFailureError) {
+          logger.error(err);
+          const msg = err.message;
+          this._outputChannel.appendLine(msg);
+          this._toaster.error(msg);
         } else {
           logger.error(err);
           const msg = 'Failed to create worker.';
