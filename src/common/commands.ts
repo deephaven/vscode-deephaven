@@ -79,19 +79,6 @@ function cmd<T extends string>(cmd: T): `${typeof EXTENSION_ID}.${T}` {
   return `${EXTENSION_ID}.${cmd}`;
 }
 
-export const ADD_GROOVY_REMOTE_FILE_SOURCE_CMD = cmd(
-  'addGroovyRemoteFileSource'
-);
-export const REMOVE_GROOVY_REMOTE_FILE_SOURCE_CMD = cmd(
-  'removeGroovyRemoteFileSource'
-);
-export const ADD_PYTHON_REMOTE_FILE_SOURCE_CMD = cmd(
-  'addPythonRemoteFileSource'
-);
-export const REMOVE_PYTHON_REMOTE_FILE_SOURCE_CMD = cmd(
-  'removePythonRemoteFileSource'
-);
-
 export const CLEAR_SECRET_STORAGE_CMD = cmd('clearSecretStorage');
 export const CLOSE_CREATE_QUERY_VIEW_CMD = cmd('view.createQuery.close');
 export const CONNECT_TO_SERVER_CMD = cmd('connectToServer');
@@ -133,6 +120,20 @@ export const STOP_SERVER_CMD = cmd('stopServer');
 export const TOGGLE_MCP_CMD = cmd('toggleMcp');
 export const ADD_REMOTE_FILE_SOURCE_CMD = cmd('addRemoteFileSource');
 export const REMOVE_REMOTE_FILE_SOURCE_CMD = cmd('removeRemoteFileSource');
+export const REVEAL_IN_EXPLORER_CMD = cmd('revealInExplorer');
+
+export const ADD_GROOVY_REMOTE_FILE_SOURCE_CMD = cmd(
+  'addGroovyRemoteFileSource'
+);
+export const REMOVE_GROOVY_REMOTE_FILE_SOURCE_CMD = cmd(
+  'removeGroovyRemoteFileSource'
+);
+export const ADD_PYTHON_REMOTE_FILE_SOURCE_CMD = cmd(
+  'addPythonRemoteFileSource'
+);
+export const REMOVE_PYTHON_REMOTE_FILE_SOURCE_CMD = cmd(
+  'removePythonRemoteFileSource'
+);
 
 /**
  * Execute the add remote file source command with type safety.
