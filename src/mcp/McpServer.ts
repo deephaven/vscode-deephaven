@@ -15,6 +15,7 @@ import {
   createAddRemoteFileSourcesTool,
   createGetColumnStatsTool,
   createGetLogsTool,
+  createGetTableDataTool,
   createGetTableStatsTool,
   createListConnectionsTool,
   createListPanelVariablesTool,
@@ -22,7 +23,6 @@ import {
   createListServersTool,
   createOpenFilesInEditorTool,
   createOpenVariablePanelsTool,
-  createQueryTableDataTool,
   createRemoveRemoteFileSourcesTool,
   createRunCodeFromUriTool,
   createRunCodeTool,
@@ -63,6 +63,7 @@ export class McpServer extends DisposableBase {
     this.registerTool(createConnectToServerTool(this));
     this.registerTool(createGetColumnStatsTool(this));
     this.registerTool(createGetLogsTool(this));
+    this.registerTool(createGetTableDataTool(this));
     this.registerTool(createGetTableStatsTool(this));
     this.registerTool(createListConnectionsTool(this));
     this.registerTool(createListPanelVariablesTool(this));
@@ -70,7 +71,6 @@ export class McpServer extends DisposableBase {
     this.registerTool(createListServersTool(this));
     this.registerTool(createOpenFilesInEditorTool());
     this.registerTool(createOpenVariablePanelsTool(this));
-    this.registerTool(createQueryTableDataTool(this));
     this.registerTool(createRemoveRemoteFileSourcesTool());
     this.registerTool(createRunCodeFromUriTool(this));
     this.registerTool(createRunCodeTool(this));

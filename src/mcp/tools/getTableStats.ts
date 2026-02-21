@@ -22,7 +22,18 @@ const spec = {
       .describe(
         'Connection URL of the Deephaven server (e.g., "http://localhost:10000")'
       ),
-    tableName: z.string().describe('Name of the table to describe'),
+    tableId: z
+      .string()
+      .optional()
+      .describe(
+        'ID of the table to describe (takes precedence over tableName if provided)'
+      ),
+    tableName: z
+      .string()
+      .optional()
+      .describe(
+        'Name of the table to describe (used if tableId is not provided)'
+      ),
   },
   outputSchema: createMcpToolOutputSchema({
     columns: z
@@ -41,6 +52,7 @@ const spec = {
       .optional()
       .describe('Whether the table is actively receiving real-time updates'),
     size: z.number().optional().describe('Number of rows in the table'),
+    tableId: z.string().optional().describe('ID of the table'),
     tableName: z.string().optional().describe('Name of the table'),
   }),
 } as const;
@@ -60,6 +72,7 @@ export function createGetTableStatsTool({
     spec,
     handler: async ({
       connectionUrl: connectionUrlStr,
+      tableId,
       tableName,
     }: HandlerArg): Promise<HandlerResult> => {
       const response = new McpToolResponse();
@@ -67,6 +80,7 @@ export function createGetTableStatsTool({
       try {
         const tableResult = await getTableOrError({
           connectionUrlStr,
+          tableId,
           tableName,
           serverManager,
         });

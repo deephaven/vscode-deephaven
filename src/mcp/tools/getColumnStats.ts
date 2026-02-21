@@ -23,7 +23,18 @@ const spec = {
       .describe(
         'Connection URL of the Deephaven server (e.g., "http://localhost:10000")'
       ),
-    tableName: z.string().describe('Name of the table containing the column'),
+    tableId: z
+      .string()
+      .optional()
+      .describe(
+        'ID of the table containing the column (takes precedence over tableName if provided)'
+      ),
+    tableName: z
+      .string()
+      .optional()
+      .describe(
+        'Name of the table containing the column (used if tableId is not provided)'
+      ),
     columnName: z.string().describe('Name of the column to get statistics for'),
   },
   outputSchema: createMcpToolOutputSchema({
@@ -35,6 +46,7 @@ const spec = {
       .describe(
         'Map of statistic names to their values (e.g., MIN, MAX, AVG, SUM, etc.)'
       ),
+    tableId: z.string().optional(),
     tableName: z.string().optional(),
     uniqueValues: z
       .record(z.number())
@@ -60,6 +72,7 @@ export function createGetColumnStatsTool({
     spec,
     handler: async ({
       connectionUrl: connectionUrlStr,
+      tableId,
       tableName,
       columnName,
     }: HandlerArg): Promise<HandlerResult> => {
@@ -68,6 +81,7 @@ export function createGetColumnStatsTool({
       try {
         const tableResult = await getTableOrError({
           connectionUrlStr,
+          tableId,
           tableName,
           serverManager,
         });
