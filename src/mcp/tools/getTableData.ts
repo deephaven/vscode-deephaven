@@ -37,9 +37,16 @@ const spec = {
       .describe(
         'Number of rows to skip before returning data (default: 0). Use for pagination (e.g., offset=10, limit=10 returns rows 10-19).'
       ),
+    tableId: z
+      .string()
+      .optional()
+      .describe(
+        'ID of the table to query (takes precedence over tableName if provided)'
+      ),
     tableName: z
       .string()
-      .describe('Name of the table to query (must exist in the session)'),
+      .optional()
+      .describe('Name of the table to query (used if tableId is not provided)'),
   },
   outputSchema: createMcpToolOutputSchema({
     columns: z
@@ -63,6 +70,7 @@ const spec = {
     limit: z.number().optional().describe('Limit used for this query'),
     offset: z.number().optional().describe('Offset used for this query'),
     rowCount: z.number().optional().describe('Number of rows returned'),
+    tableId: z.string().optional().describe('ID of the table queried'),
     tableName: z.string().optional().describe('Name of the table'),
     totalRows: z.number().optional().describe('Total rows in table'),
   }),
@@ -71,20 +79,21 @@ const spec = {
 type Spec = typeof spec;
 type HandlerArg = McpToolHandlerArg<Spec>;
 type HandlerResult = McpToolHandlerResult<Spec>;
-type QueryTableDataTool = McpTool<Spec>;
+type GetTableDataTool = McpTool<Spec>;
 
-export function createQueryTableDataTool({
+export function createGetTableDataTool({
   serverManager,
 }: {
   serverManager: IServerManager;
-}): QueryTableDataTool {
+}): GetTableDataTool {
   return {
-    name: 'queryTableData',
+    name: 'getTableData',
     spec,
     handler: async ({
       connectionUrl: connectionUrlStr,
       limit = 10,
       offset = 0,
+      tableId,
       tableName,
     }: HandlerArg): Promise<HandlerResult> => {
       const response = new McpToolResponse();
@@ -92,6 +101,7 @@ export function createQueryTableDataTool({
       try {
         const tableResult = await getTableOrError({
           connectionUrlStr,
+          tableId,
           tableName,
           serverManager,
         });

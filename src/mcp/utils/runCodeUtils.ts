@@ -22,7 +22,13 @@ export type VariableResult = z.infer<typeof variableResultSchema>;
  */
 export const variableResultSchema = z.object({
   id: z.string(),
-  title: z.string(),
+  title: z
+    .string()
+    .optional()
+    .describe(
+      'The display title of the variable. May be the same as name if title is not provided.'
+    ),
+  name: z.string().optional().describe('The name of the variable.'),
   type: z.string(),
   isNew: z
     .boolean()
@@ -178,14 +184,16 @@ export function extractVariables(
 
   return [
     ...result.changes.created.map(v => ({
-      id: String(v.id),
-      title: v.title ?? v.id,
+      id: v.id,
+      name: v.name,
+      title: v.title,
       type: v.type,
       isNew: true,
     })),
     ...result.changes.updated.map(v => ({
-      id: String(v.id),
-      title: v.title ?? v.id,
+      id: v.id,
+      name: v.name,
+      title: v.title,
       type: v.type,
       isNew: false,
     })),

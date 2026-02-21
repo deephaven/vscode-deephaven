@@ -22,7 +22,7 @@ type GetTableOrErrorError = {
   errorMessage: string;
   error?: unknown;
   hint?: string;
-  details: { connectionUrl: string; tableName?: string };
+  details: { connectionUrl: string; tableId?: string; tableName?: string };
 };
 
 export type GetTableOrErrorResult =
@@ -114,15 +114,25 @@ export function formatValue(value: unknown): unknown {
  * @param params Configuration for getting the table
  * @param params.serverManager The server manager to query
  * @param params.connectionUrlStr The connection URL string
- * @param params.tableName The name of the table to fetch
+ * @param params.tableId Optional table ID to fetch (takes precedence over tableName if provided)
+ * @param params.tableName Optional name of the table to fetch (if tableId is not provided)
  * @returns Success with table, or error with message, hint, and details
  */
 export async function getTableOrError(params: {
   serverManager: IServerManager;
   connectionUrlStr: string;
-  tableName: string;
+  tableId?: string;
+  tableName?: string;
 }): Promise<GetTableOrErrorResult> {
-  const { serverManager, connectionUrlStr, tableName } = params;
+  const { serverManager, connectionUrlStr, tableId, tableName } = params;
+
+  if (tableId == null && tableName == null) {
+    return {
+      success: false,
+      errorMessage: 'Either tableId or tableName must be provided',
+      details: { connectionUrl: connectionUrlStr },
+    };
+  }
 
   const parsedUrl = parseUrl(connectionUrlStr);
   if (!parsedUrl.success) {
@@ -130,7 +140,7 @@ export async function getTableOrError(params: {
       success: false,
       errorMessage: 'Invalid URL',
       error: parsedUrl.error,
-      details: { connectionUrl: connectionUrlStr, tableName },
+      details: { connectionUrl: connectionUrlStr, tableId, tableName },
     };
   }
 
@@ -157,10 +167,17 @@ export async function getTableOrError(params: {
     };
   }
 
-  const table = await session.getObject({
-    type: 'Table',
-    name: tableName,
-  });
+  const table = await session.getObject(
+    tableId == null
+      ? {
+          type: 'Table',
+          name: tableName,
+        }
+      : {
+          type: 'Table',
+          id: tableId,
+        }
+  );
 
   return {
     success: true,

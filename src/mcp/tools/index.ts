@@ -8,7 +8,7 @@ export * from './listRemoteFileSources';
 export * from './listServers';
 export * from './openFilesInEditor';
 export * from './openVariablePanels';
-export * from './queryTableData';
+export * from './getTableData';
 export * from './removeRemoteFileSources';
 export * from './runCode';
 export * from './runCodeFromUri';

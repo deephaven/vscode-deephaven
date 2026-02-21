@@ -259,8 +259,14 @@ describe('extractVariables', () => {
         updated: [],
       },
       expected: [
-        { id: 'x', title: 'x', type: 'int', isNew: true },
-        { id: 'y', title: 'Y Variable', type: 'str', isNew: true },
+        { id: 'x', name: undefined, title: 'x', type: 'int', isNew: true },
+        {
+          id: 'y',
+          name: undefined,
+          title: 'Y Variable',
+          type: 'str',
+          isNew: true,
+        },
       ],
     },
     {
@@ -273,8 +279,8 @@ describe('extractVariables', () => {
         ],
       },
       expected: [
-        { id: 'x', title: 'x', type: 'int', isNew: false },
-        { id: 'y', title: 'y', type: 'str', isNew: false },
+        { id: 'x', name: undefined, title: 'x', type: 'int', isNew: false },
+        { id: 'y', name: undefined, title: null, type: 'str', isNew: false },
       ],
     },
     {
@@ -283,7 +289,15 @@ describe('extractVariables', () => {
         created: [{ id: 'my_var', title: null, type: 'float' }],
         updated: [],
       },
-      expected: [{ id: 'my_var', title: 'my_var', type: 'float', isNew: true }],
+      expected: [
+        {
+          id: 'my_var',
+          name: undefined,
+          title: null,
+          type: 'float',
+          isNew: true,
+        },
+      ],
     },
     {
       name: 'combine created and updated variables',
@@ -292,8 +306,8 @@ describe('extractVariables', () => {
         updated: [{ id: 'b', title: 'b', type: 'str' }],
       },
       expected: [
-        { id: 'a', title: 'a', type: 'int', isNew: true },
-        { id: 'b', title: 'b', type: 'str', isNew: false },
+        { id: 'a', name: undefined, title: 'a', type: 'int', isNew: true },
+        { id: 'b', name: undefined, title: 'b', type: 'str', isNew: false },
       ],
     },
     {
@@ -313,6 +327,66 @@ describe('extractVariables', () => {
         updated: [],
       },
       expected: [],
+    },
+    {
+      name: 'extract variables with name field populated',
+      changes: {
+        created: [{ id: 'x', name: 'x_var', title: 'X Variable', type: 'int' }],
+        updated: [{ id: 'y', name: 'y_var', title: 'Y Variable', type: 'str' }],
+      },
+      expected: [
+        {
+          id: 'x',
+          name: 'x_var',
+          title: 'X Variable',
+          type: 'int',
+          isNew: true,
+        },
+        {
+          id: 'y',
+          name: 'y_var',
+          title: 'Y Variable',
+          type: 'str',
+          isNew: false,
+        },
+      ],
+    },
+    {
+      name: 'handle mix of variables with and without name field',
+      changes: {
+        created: [
+          { id: 'a', name: 'a_name', title: 'A', type: 'int' },
+          { id: 'b', title: 'B', type: 'float' },
+        ],
+        updated: [],
+      },
+      expected: [
+        { id: 'a', name: 'a_name', title: 'A', type: 'int', isNew: true },
+        { id: 'b', name: undefined, title: 'B', type: 'float', isNew: true },
+      ],
+    },
+    {
+      name: 'preserve all fields when name, title, and id differ',
+      changes: {
+        created: [
+          {
+            id: 'var_id_123',
+            name: 'my_variable',
+            title: 'My Custom Variable',
+            type: 'Table',
+          },
+        ],
+        updated: [],
+      },
+      expected: [
+        {
+          id: 'var_id_123',
+          name: 'my_variable',
+          title: 'My Custom Variable',
+          type: 'Table',
+          isNew: true,
+        },
+      ],
     },
   ])('should $name', ({ changes, expected }) => {
     const cmdResult =

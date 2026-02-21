@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 
-import { createQueryTableDataTool } from './queryTableData';
+import { createGetTableDataTool } from './getTableData';
 import type { IServerManager, ServerState } from '../../types';
 import { DhcService } from '../../services';
 import {
@@ -60,7 +60,7 @@ const MOCK_SERVER_RUNNING: ServerState = {
   connectionCount: 0,
 };
 
-describe('queryTableData', () => {
+describe('getTableData', () => {
   const mockSession = {
     getObject: vi.fn(),
   } as unknown as DhcType.IdeSession;
@@ -96,9 +96,9 @@ describe('queryTableData', () => {
   });
 
   it('should return correct tool spec', () => {
-    const tool = createQueryTableDataTool({ serverManager });
+    const tool = createGetTableDataTool({ serverManager });
 
-    expect(tool.name).toBe('queryTableData');
+    expect(tool.name).toBe('getTableData');
     expect(tool.spec.title).toBe('Query Table Data');
     expect(tool.spec.description).toBe(
       'Fetch data from a Deephaven table with pagination support. Returns a subset of rows based on offset and limit parameters.'
@@ -106,7 +106,7 @@ describe('queryTableData', () => {
   });
 
   it('should successfully query table data with defaults', async () => {
-    const tool = createQueryTableDataTool({ serverManager });
+    const tool = createGetTableDataTool({ serverManager });
     const result = await tool.handler({
       connectionUrl: MOCK_DHC_URL.href,
       tableName: 'myTable',
@@ -151,7 +151,7 @@ describe('queryTableData', () => {
 
     vi.mocked(mockSession.getObject).mockResolvedValue(largeTable);
 
-    const tool = createQueryTableDataTool({ serverManager });
+    const tool = createGetTableDataTool({ serverManager });
     const result = await tool.handler({
       connectionUrl: MOCK_DHC_URL.href,
       tableName: 'largeTable',
@@ -182,7 +182,7 @@ describe('queryTableData', () => {
 
     vi.mocked(mockSession.getObject).mockResolvedValue(largeTable);
 
-    const tool = createQueryTableDataTool({ serverManager });
+    const tool = createGetTableDataTool({ serverManager });
     const result = await tool.handler({
       connectionUrl: MOCK_DHC_URL.href,
       tableName: 'largeTable',
@@ -214,7 +214,7 @@ describe('queryTableData', () => {
 
     vi.mocked(mockSession.getObject).mockResolvedValue(table);
 
-    const tool = createQueryTableDataTool({ serverManager });
+    const tool = createGetTableDataTool({ serverManager });
     const result = await tool.handler({
       connectionUrl: MOCK_DHC_URL.href,
       tableName: 'table',
@@ -238,7 +238,7 @@ describe('queryTableData', () => {
   });
 
   it('should handle offset exceeding table size', async () => {
-    const tool = createQueryTableDataTool({ serverManager });
+    const tool = createGetTableDataTool({ serverManager });
     const result = await tool.handler({
       connectionUrl: MOCK_DHC_URL.href,
       tableName: 'myTable',
@@ -265,7 +265,7 @@ describe('queryTableData', () => {
 
     vi.mocked(serverManager.getConnections).mockReturnValue([mockConnection]);
 
-    const tool = createQueryTableDataTool({ serverManager });
+    const tool = createGetTableDataTool({ serverManager });
     await tool.handler({
       connectionUrl: MOCK_DHC_URL.href,
       tableName: 'myTable',
@@ -275,7 +275,7 @@ describe('queryTableData', () => {
   });
 
   it('should handle invalid URL', async () => {
-    const tool = createQueryTableDataTool({ serverManager });
+    const tool = createGetTableDataTool({ serverManager });
     const result = await tool.handler({
       connectionUrl: 'invalid-url',
       tableName: 'myTable',
@@ -293,7 +293,7 @@ describe('queryTableData', () => {
   it('should handle missing connection', async () => {
     vi.mocked(serverManager.getServer).mockReturnValue(undefined);
 
-    const tool = createQueryTableDataTool({ serverManager });
+    const tool = createGetTableDataTool({ serverManager });
     const result = await tool.handler({
       connectionUrl: MOCK_DHC_URL.href,
       tableName: 'myTable',
@@ -311,7 +311,7 @@ describe('queryTableData', () => {
     vi.mocked(serverManager.getConnections).mockReturnValue([mockConnection]);
     vi.mocked(mockConnection.getSession).mockResolvedValue(null);
 
-    const tool = createQueryTableDataTool({ serverManager });
+    const tool = createGetTableDataTool({ serverManager });
     const result = await tool.handler({
       connectionUrl: MOCK_DHC_URL.href,
       tableName: 'myTable',
@@ -330,7 +330,7 @@ describe('queryTableData', () => {
     vi.mocked(serverManager.getConnection).mockReturnValue(mockConnection);
     vi.mocked(MOCK_TABLE.getViewportData).mockRejectedValue(error);
 
-    const tool = createQueryTableDataTool({ serverManager });
+    const tool = createGetTableDataTool({ serverManager });
     const result = await tool.handler({
       connectionUrl: MOCK_DHC_URL.href,
       tableName: 'myTable',
@@ -350,7 +350,7 @@ describe('queryTableData', () => {
   it('should close table on success', async () => {
     vi.mocked(serverManager.getConnection).mockReturnValue(mockConnection);
 
-    const tool = createQueryTableDataTool({ serverManager });
+    const tool = createGetTableDataTool({ serverManager });
     const result = await tool.handler({
       connectionUrl: 'http://localhost:10000',
       tableName: 'myTable',
