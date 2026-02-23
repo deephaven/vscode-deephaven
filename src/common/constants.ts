@@ -74,6 +74,19 @@ export const TERMINAL_QUERY_STATUSES = new Set([
   'Completed',
 ]) as ReadonlySet<TerminalQueryStatus>;
 
+/**
+ * Type guard to check if a status is a terminal query status.
+ * @param status The status to check.
+ * @returns True if the status is a terminal query status.
+ */
+export function isTerminalQueryStatus(
+  status: string | null | undefined
+): status is TerminalQueryStatus {
+  return (
+    status != null && TERMINAL_QUERY_STATUSES.has(status as TerminalQueryStatus)
+  );
+}
+
 export const PIP_SERVER_SUPPORTED_PLATFORMS = new Set<NodeJS.Platform>([
   'darwin',
   'linux',

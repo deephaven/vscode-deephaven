@@ -12,6 +12,13 @@ export class QueryCreationCancelledError extends Error {
   }
 }
 
+export class QueryStartupFailureError extends Error {
+  constructor(public readonly status: string) {
+    super(`Query start failed with status: ${status}`);
+    this.name = 'QueryStartupFailureError';
+  }
+}
+
 export class UnsupportedConsoleTypeError extends Error {
   constructor(message: string) {
     super(message);
