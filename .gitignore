@@ -11,3 +11,4 @@ test-reports/
 coverage/
 tsconfig.tsbuildinfo
 .env*.local
+*.local.code-workspace
