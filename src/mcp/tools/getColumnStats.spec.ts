@@ -55,12 +55,16 @@ const MOCK_TABLE = {
 
 /* eslint-disable @typescript-eslint/naming-convention */
 const EXPECTED_SUCCESS = mcpSuccessResult('Column stats retrieved', {
+  columnName: 'Price',
+  connectionUrl: MOCK_DHC_URL.href,
   statistics: {
     MIN: 10.5,
     MAX: 150.75,
     AVG: 75.25,
     SUM: 7525.0,
   },
+  tableId: undefined,
+  tableName: 'myTable',
   uniqueValues: {
     '10.5': 5,
     '75.25': 10,
@@ -69,11 +73,15 @@ const EXPECTED_SUCCESS = mcpSuccessResult('Column stats retrieved', {
 });
 
 const EXPECTED_SUCCESS_NO_UNIQUE = mcpSuccessResult('Column stats retrieved', {
+  columnName: 'Price',
+  connectionUrl: MOCK_DHC_URL.href,
   statistics: {
     MIN: 1,
     MAX: 1000,
     AVG: 500,
   },
+  tableId: undefined,
+  tableName: 'myTable',
 });
 /* eslint-enable @typescript-eslint/naming-convention */
 

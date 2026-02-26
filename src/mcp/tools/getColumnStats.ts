@@ -102,7 +102,11 @@ export function createGetColumnStatsTool({
             convertColumnStatsToRecords(columnStats);
 
           return response.success('Column stats retrieved', {
+            columnName,
+            connectionUrl: connectionUrlStr,
             statistics,
+            tableId,
+            tableName,
             ...(Object.keys(uniqueValues).length > 0 && { uniqueValues }),
           });
         } finally {
