@@ -96,10 +96,12 @@ export function createGetTableStatsTool({
           const columns = formatTableColumns(table.columns);
 
           return response.success('Table stats retrieved', {
-            tableName,
-            size: table.size,
             columns,
+            connectionUrl: connectionUrlStr,
             isRefreshing: table.isRefreshing,
+            size: table.size,
+            tableId,
+            tableName,
           });
         } finally {
           table.close();

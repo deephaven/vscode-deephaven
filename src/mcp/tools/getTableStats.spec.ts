@@ -94,10 +94,12 @@ describe('getTableStats', () => {
 
     expect(result.structuredContent).toEqual(
       mcpSuccessResult('Table stats retrieved', {
-        tableName: 'myTable',
         columns,
+        connectionUrl: MOCK_DHC_URL.href,
         isRefreshing,
         size,
+        tableId: undefined,
+        tableName: 'myTable',
       })
     );
   });
