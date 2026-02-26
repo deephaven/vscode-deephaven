@@ -25,13 +25,19 @@ describe('getDheAuthConfig', () => {
 
   const givenSamlConfig = {
     full: [given.samlLoginClass, given.samlProviderName, given.samlLoginUrl],
-    partial: [given.samlLoginClass, given.samlProviderName],
+    missingLoginUrl: [given.samlLoginClass, given.samlProviderName],
+    missingName: [given.samlLoginClass, '', given.samlLoginUrl],
   } as const;
 
   const expected = {
     samlConfigFull: {
       loginClass: given.samlLoginClass[1],
       providerName: given.samlProviderName[1],
+      loginUrl: given.samlLoginUrl[1],
+    },
+    samlConfigDefaultName: {
+      loginClass: given.samlLoginClass[1],
+      providerName: 'SAML',
       loginUrl: given.samlLoginUrl[1],
     },
   } as const;
@@ -44,14 +50,25 @@ describe('getDheAuthConfig', () => {
         isPasswordEnabled: true,
         samlConfig: expected.samlConfigFull,
       },
+      false,
     ],
     [
-      'Undefined password config, Partial SAML config',
-      givenSamlConfig.partial,
+      'Undefined password config, missing name config',
+      givenSamlConfig.missingName,
+      {
+        isPasswordEnabled: true,
+        samlConfig: expected.samlConfigDefaultName,
+      },
+      false,
+    ],
+    [
+      'Undefined password config, missing login URL config',
+      givenSamlConfig.missingLoginUrl,
       {
         isPasswordEnabled: true,
         samlConfig: null,
       },
+      true,
     ],
     [
       'Passwords enabled config, Full SAML config',
@@ -60,6 +77,7 @@ describe('getDheAuthConfig', () => {
         isPasswordEnabled: true,
         samlConfig: expected.samlConfigFull,
       },
+      false,
     ],
     [
       'Passwords disabled config, Full SAML config',
@@ -68,20 +86,43 @@ describe('getDheAuthConfig', () => {
         isPasswordEnabled: false,
         samlConfig: expected.samlConfigFull,
       },
+      false,
     ],
     [
-      'Passwords disabled config, Partial SAML config',
-      [given.passwordsDisabled, ...givenSamlConfig.partial],
+      'Passwords disabled config, missing name config',
+      [given.passwordsDisabled, ...givenSamlConfig.missingName],
+      {
+        isPasswordEnabled: false,
+        samlConfig: expected.samlConfigDefaultName,
+      },
+      false,
+    ],
+    [
+      'Passwords disabled config, missing login URL config',
+      [given.passwordsDisabled, ...givenSamlConfig.missingLoginUrl],
       {
         isPasswordEnabled: false,
         samlConfig: null,
       },
+      true,
     ],
-  ])('should return auth config: %s', async (_label, given, expected) => {
-    const getAuthConfigValues = vi.fn().mockResolvedValue(given);
-    const dheClient = { getAuthConfigValues } as unknown as EnterpriseClient;
+  ])(
+    'should return auth config: %s',
+    async (_label, given, expected, shouldLogError) => {
+      const getAuthConfigValues = vi.fn().mockResolvedValue(given);
+      const dheClient = { getAuthConfigValues } as unknown as EnterpriseClient;
 
-    const actual = await getDheAuthConfig(dheClient);
-    expect(actual).toEqual(expected);
-  });
+      const error = vi.fn();
+      const actual = await getDheAuthConfig(dheClient, { error });
+      expect(actual).toEqual(expected);
+
+      if (shouldLogError) {
+        expect(error).toHaveBeenCalledWith(
+          `SAML authentication is enabled but 'authentication.client.samlauth.login.url' is not set. Check your Deephaven server settings.`
+        );
+      } else {
+        expect(error).not.toHaveBeenCalled();
+      }
+    }
+  );
 });

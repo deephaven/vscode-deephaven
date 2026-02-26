@@ -297,7 +297,7 @@ export class UserLoginController extends ControllerBase {
     operateAsAnotherUser: boolean
   ): Promise<void> => {
     const dheClient = await this.dheClientFactory(serverUrl);
-    const authConfig = await getDheAuthConfig(dheClient.client);
+    const authConfig = await getDheAuthConfig(dheClient.client, logger);
 
     if (isNoAuthConfig(authConfig)) {
       this.toast.info('No authentication methods configured.');
