@@ -9,7 +9,7 @@ import { createMcpToolOutputSchema, McpToolResponse } from '../utils';
 import { getTablePage, getTableOrError } from '../utils/tableUtils';
 
 const spec = {
-  title: 'Query Table Data',
+  title: 'Get Table Data',
   description:
     'Fetch data from a Deephaven table with pagination support. Returns a subset of rows based on offset and limit parameters.',
   inputSchema: {

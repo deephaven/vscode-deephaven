@@ -99,7 +99,7 @@ describe('getTableData', () => {
     const tool = createGetTableDataTool({ serverManager });
 
     expect(tool.name).toBe('getTableData');
-    expect(tool.spec.title).toBe('Query Table Data');
+    expect(tool.spec.title).toBe('Get Table Data');
     expect(tool.spec.description).toBe(
       'Fetch data from a Deephaven table with pagination support. Returns a subset of rows based on offset and limit parameters.'
     );
