@@ -18,15 +18,27 @@ describe('getDheAuthConfig', () => {
       'mock.loginClass',
     ],
     samlProviderName: [AUTH_CONFIG_SAML_PROVIDER_NAME, 'mock.providerName'],
+    samlProviderNameEmpty: [AUTH_CONFIG_SAML_PROVIDER_NAME, ''],
     samlLoginUrl: [AUTH_CONFIG_SAML_LOGIN_URL, 'mock.loginUrl'],
+    samlLoginUrlEmpty: [AUTH_CONFIG_SAML_LOGIN_URL, ''],
     passwordsEnabled: [AUTH_CONFIG_PASSWORDS_ENABLED, 'true'],
     passwordsDisabled: [AUTH_CONFIG_PASSWORDS_ENABLED, 'false'],
   } as const;
 
   const givenSamlConfig = {
     full: [given.samlLoginClass, given.samlProviderName, given.samlLoginUrl],
-    missingLoginUrl: [given.samlLoginClass, given.samlProviderName],
-    missingName: [given.samlLoginClass, '', given.samlLoginUrl],
+    loginUrlEmpty: [
+      given.samlLoginClass,
+      given.samlProviderName,
+      given.samlLoginUrlEmpty,
+    ],
+    loginUrlUndefined: [given.samlLoginClass, given.samlProviderName],
+    nameEmpty: [
+      given.samlLoginClass,
+      given.samlProviderNameEmpty,
+      given.samlLoginUrl,
+    ],
+    nameUndefined: [given.samlLoginClass, given.samlLoginUrl],
   } as const;
 
   const expected = {
@@ -53,8 +65,8 @@ describe('getDheAuthConfig', () => {
       false,
     ],
     [
-      'Undefined password config, missing name config',
-      givenSamlConfig.missingName,
+      'Undefined password config, empty name config',
+      givenSamlConfig.nameEmpty,
       {
         isPasswordEnabled: true,
         samlConfig: expected.samlConfigDefaultName,
@@ -62,8 +74,26 @@ describe('getDheAuthConfig', () => {
       false,
     ],
     [
-      'Undefined password config, missing login URL config',
-      givenSamlConfig.missingLoginUrl,
+      'Undefined password config, undefined name config',
+      givenSamlConfig.nameUndefined,
+      {
+        isPasswordEnabled: true,
+        samlConfig: expected.samlConfigDefaultName,
+      },
+      false,
+    ],
+    [
+      'Undefined password config, empty login URL config',
+      givenSamlConfig.loginUrlEmpty,
+      {
+        isPasswordEnabled: true,
+        samlConfig: null,
+      },
+      true,
+    ],
+    [
+      'Undefined password config, undefined login URL config',
+      givenSamlConfig.loginUrlUndefined,
       {
         isPasswordEnabled: true,
         samlConfig: null,
@@ -89,8 +119,8 @@ describe('getDheAuthConfig', () => {
       false,
     ],
     [
-      'Passwords disabled config, missing name config',
-      [given.passwordsDisabled, ...givenSamlConfig.missingName],
+      'Passwords disabled config, empty name config',
+      [given.passwordsDisabled, ...givenSamlConfig.nameEmpty],
       {
         isPasswordEnabled: false,
         samlConfig: expected.samlConfigDefaultName,
@@ -98,8 +128,26 @@ describe('getDheAuthConfig', () => {
       false,
     ],
     [
-      'Passwords disabled config, missing login URL config',
-      [given.passwordsDisabled, ...givenSamlConfig.missingLoginUrl],
+      'Passwords disabled config, undefined name config',
+      [given.passwordsDisabled, ...givenSamlConfig.nameUndefined],
+      {
+        isPasswordEnabled: false,
+        samlConfig: expected.samlConfigDefaultName,
+      },
+      false,
+    ],
+    [
+      'Passwords disabled config, empty login URL config',
+      [given.passwordsDisabled, ...givenSamlConfig.loginUrlEmpty],
+      {
+        isPasswordEnabled: false,
+        samlConfig: null,
+      },
+      true,
+    ],
+    [
+      'Passwords disabled config, undefined login URL config',
+      [given.passwordsDisabled, ...givenSamlConfig.loginUrlUndefined],
       {
         isPasswordEnabled: false,
         samlConfig: null,

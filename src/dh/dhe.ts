@@ -374,8 +374,9 @@ export async function getDheAuthConfig(
     (await dheClient.getAuthConfigValues()).map(([key, value]) => [key, value])
   );
 
-  const isSamlEnabled = authConfigMap[AUTH_CONFIG_CUSTOM_LOGIN_CLASS_SAML_AUTH];
-  const isSamlLoginUrlSet = authConfigMap[AUTH_CONFIG_SAML_LOGIN_URL] != null;
+  const isSamlEnabled =
+    !!authConfigMap[AUTH_CONFIG_CUSTOM_LOGIN_CLASS_SAML_AUTH];
+  const isSamlLoginUrlSet = !!authConfigMap[AUTH_CONFIG_SAML_LOGIN_URL];
 
   if (isSamlEnabled && !isSamlLoginUrlSet) {
     logger.error(
