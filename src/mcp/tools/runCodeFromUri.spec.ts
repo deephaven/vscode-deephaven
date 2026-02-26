@@ -94,7 +94,7 @@ const MOCK_RUN_CODE_SUCCESS = {
     updated: [],
     removed: [],
   },
-} as DhcType.ide.CommandResult;
+} as unknown as DhcType.ide.CommandResult;
 
 const MOCK_RUN_CODE_ERROR = {
   error: 'NameError: name "undefined_var" is not defined',
@@ -103,7 +103,7 @@ const MOCK_RUN_CODE_ERROR = {
     updated: [],
     removed: [],
   },
-} as DhcType.ide.CommandResult;
+} as unknown as DhcType.ide.CommandResult;
 
 describe('runCodeFromUri tool', () => {
   const pythonDiagnostics: vscode.DiagnosticCollection =

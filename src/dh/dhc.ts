@@ -167,6 +167,7 @@ export async function initDhcSession(
 export async function isDhcServerRunning(
   serverUrl: URL,
   logger: {
+    debug: (...args: unknown[]) => void;
     error: (...args: unknown[]) => void;
   }
 ): Promise<boolean> {

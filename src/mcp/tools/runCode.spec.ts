@@ -65,7 +65,7 @@ const MOCK_RUN_CODE_ERROR = {
     updated: [],
     removed: [],
   },
-} as DhcType.ide.CommandResult;
+} as unknown as DhcType.ide.CommandResult;
 
 const MOCK_RUN_CODE_SUCCESS_WITH_VARIABLES = {
   error: '',
@@ -74,7 +74,7 @@ const MOCK_RUN_CODE_SUCCESS_WITH_VARIABLES = {
     updated: [],
     removed: [],
   },
-} as DhcType.ide.CommandResult;
+} as unknown as DhcType.ide.CommandResult;
 
 const MOCK_DHC_SERVICE_CONNECTION_WITH_VARIABLES: DhcService =
   createMockDhcService({ runCode: MOCK_RUN_CODE_SUCCESS_WITH_VARIABLES });
