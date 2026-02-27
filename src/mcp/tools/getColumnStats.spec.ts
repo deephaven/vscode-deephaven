@@ -137,7 +137,7 @@ describe('createGetColumnStatsTool', () => {
     expect(tool.name).toBe('getColumnStats');
     expect(tool.spec.title).toBe('Get Column Statistics');
     expect(tool.spec.description).toBe(
-      'Get statistical information for a column in a Deephaven table. Use tableName for persistent tables, or variableId for variables from runCode or listVariables. Returns statistics like min, max, average, and unique value counts.'
+      'Get statistical information for a column in a Deephaven table. Prefer variableId if available (from runCode or listVariables, must have type "Table"); use tableName when the user specifies a table by name and you have no variableId. Returns statistics like min, max, average, and unique value counts.'
     );
   });
 

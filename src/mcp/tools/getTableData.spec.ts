@@ -101,7 +101,7 @@ describe('getTableData', () => {
     expect(tool.name).toBe('getTableData');
     expect(tool.spec.title).toBe('Get Table Data');
     expect(tool.spec.description).toBe(
-      'Fetch paginated data from a Deephaven table. Use tableName for persistent named tables, or variableId for variables from runCode or listVariables.'
+      'Fetch paginated data from a Deephaven table. Prefer variableId if available (from runCode or listVariables, must have type "Table"); use tableName when the user specifies a table by name and you have no variableId.'
     );
   });
 

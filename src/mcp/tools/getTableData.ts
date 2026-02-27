@@ -11,7 +11,7 @@ import { getTablePage, getTableOrError } from '../utils/tableUtils';
 const spec = {
   title: 'Get Table Data',
   description:
-    'Fetch paginated data from a Deephaven table. Use tableName for persistent named tables, or variableId for variables from runCode or listVariables.',
+    'Fetch paginated data from a Deephaven table. Prefer variableId if available (from runCode or listVariables, must have type "Table"); use tableName when the user specifies a table by name and you have no variableId.',
   inputSchema: {
     connectionUrl: z
       .string()
@@ -41,13 +41,13 @@ const spec = {
       .string()
       .optional()
       .describe(
-        'Variable ID from runCode or listVariables (must be a Table). Takes precedence over tableName.'
+        'Variable ID from runCode or listVariables. Must have type "Table"; takes precedence over tableName.'
       ),
     tableName: z
       .string()
       .optional()
       .describe(
-        'Name of a persistent table (used if variableId is not provided)'
+        'Table name specified by the user. Only use when variableId is not available.'
       ),
   },
   outputSchema: createMcpToolOutputSchema({
