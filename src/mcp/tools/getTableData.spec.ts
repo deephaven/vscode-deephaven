@@ -101,7 +101,7 @@ describe('getTableData', () => {
     expect(tool.name).toBe('getTableData');
     expect(tool.spec.title).toBe('Get Table Data');
     expect(tool.spec.description).toBe(
-      'Fetch data from a Deephaven table with pagination support. Returns a subset of rows based on offset and limit parameters.'
+      'Fetch paginated data from a Deephaven table. Use tableName for persistent named tables, or variableId for variables from runCode or listVariables.'
     );
   });
 
