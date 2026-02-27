@@ -22,7 +22,7 @@ type GetTableOrErrorError = {
   errorMessage: string;
   error?: unknown;
   hint?: string;
-  details: { connectionUrl: string; tableId?: string; tableName?: string };
+  details: { connectionUrl: string; variableId?: string; tableName?: string };
 };
 
 export type GetTableOrErrorResult =
@@ -114,22 +114,22 @@ export function formatValue(value: unknown): unknown {
  * @param params Configuration for getting the table
  * @param params.serverManager The server manager to query
  * @param params.connectionUrlStr The connection URL string
- * @param params.tableId Optional table ID to fetch (takes precedence over tableName if provided)
- * @param params.tableName Optional name of the table to fetch (if tableId is not provided)
+ * @param params.variableId Optional variable ID to fetch (takes precedence over tableName if provided)
+ * @param params.tableName Optional name of the table to fetch (if variableId is not provided)
  * @returns Success with table, or error with message, hint, and details
  */
 export async function getTableOrError(params: {
   serverManager: IServerManager;
   connectionUrlStr: string;
-  tableId?: string;
+  variableId?: string;
   tableName?: string;
 }): Promise<GetTableOrErrorResult> {
-  const { serverManager, connectionUrlStr, tableId, tableName } = params;
+  const { serverManager, connectionUrlStr, variableId, tableName } = params;
 
-  if (tableId == null && tableName == null) {
+  if (variableId == null && tableName == null) {
     return {
       success: false,
-      errorMessage: 'Either tableId or tableName must be provided',
+      errorMessage: 'Either variableId or tableName must be provided',
       details: { connectionUrl: connectionUrlStr },
     };
   }
@@ -140,7 +140,7 @@ export async function getTableOrError(params: {
       success: false,
       errorMessage: 'Invalid URL',
       error: parsedUrl.error,
-      details: { connectionUrl: connectionUrlStr, tableId, tableName },
+      details: { connectionUrl: connectionUrlStr, variableId, tableName },
     };
   }
 
@@ -168,14 +168,14 @@ export async function getTableOrError(params: {
   }
 
   const table = await session.getObject(
-    tableId == null
+    variableId == null
       ? {
           type: 'Table',
           name: tableName,
         }
       : {
           type: 'Table',
-          id: tableId,
+          id: variableId,
         }
   );
 
