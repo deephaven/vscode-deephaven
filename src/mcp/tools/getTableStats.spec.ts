@@ -73,7 +73,7 @@ describe('getTableStats', () => {
     expect(tool.name).toBe('getTableStats');
     expect(tool.spec.title).toBe('Get Table Schema and Statistics');
     expect(tool.spec.description).toBe(
-      'Get schema information and basic statistics for a Deephaven table. Returns column names, types, descriptions, row count, and other table metadata. Useful for understanding table structure and planning queries.'
+      'Get schema information and basic statistics for a Deephaven table. Use tableName for persistent tables, or variableId for variables from runCode or listVariables. Returns column names, types, descriptions, row count, and other table metadata.'
     );
   });
 
@@ -98,7 +98,7 @@ describe('getTableStats', () => {
         connectionUrl: MOCK_DHC_URL.href,
         isRefreshing,
         size,
-        tableId: undefined,
+        variableId: undefined,
         tableName: 'myTable',
       })
     );

@@ -15,24 +15,24 @@ import { formatTableColumns } from '../utils/tableUtils';
 const spec = {
   title: 'Get Table Schema and Statistics',
   description:
-    'Get schema information and basic statistics for a Deephaven table. Returns column names, types, descriptions, row count, and other table metadata. Useful for understanding table structure and planning queries.',
+    'Get schema information and basic statistics for a Deephaven table. Use tableName for persistent tables, or variableId for variables from runCode or listVariables. Returns column names, types, descriptions, row count, and other table metadata.',
   inputSchema: {
     connectionUrl: z
       .string()
       .describe(
         'Connection URL of the Deephaven server (e.g., "http://localhost:10000")'
       ),
-    tableId: z
+    variableId: z
       .string()
       .optional()
       .describe(
-        'ID of the table to describe (takes precedence over tableName if provided)'
+        'Variable ID from runCode or listVariables (must be a Table). Takes precedence over tableName.'
       ),
     tableName: z
       .string()
       .optional()
       .describe(
-        'Name of the table to describe (used if tableId is not provided)'
+        'Name of a persistent table (used if variableId is not provided)'
       ),
   },
   outputSchema: createMcpToolOutputSchema({
@@ -52,7 +52,7 @@ const spec = {
       .optional()
       .describe('Whether the table is actively receiving real-time updates'),
     size: z.number().optional().describe('Number of rows in the table'),
-    tableId: z.string().optional().describe('ID of the table'),
+    variableId: z.string().optional().describe('Variable ID'),
     tableName: z.string().optional().describe('Name of the table'),
   }),
 } as const;
@@ -72,7 +72,7 @@ export function createGetTableStatsTool({
     spec,
     handler: async ({
       connectionUrl: connectionUrlStr,
-      tableId,
+      variableId,
       tableName,
     }: HandlerArg): Promise<HandlerResult> => {
       const response = new McpToolResponse();
@@ -80,7 +80,7 @@ export function createGetTableStatsTool({
       try {
         const tableResult = await getTableOrError({
           connectionUrlStr,
-          tableId,
+          variableId,
           tableName,
           serverManager,
         });
@@ -100,7 +100,7 @@ export function createGetTableStatsTool({
             connectionUrl: connectionUrlStr,
             isRefreshing: table.isRefreshing,
             size: table.size,
-            tableId,
+            variableId,
             tableName,
           });
         } finally {
