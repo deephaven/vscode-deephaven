@@ -11,7 +11,7 @@ import { getTablePage, getTableOrError } from '../utils/tableUtils';
 const spec = {
   title: 'Get Table Data',
   description:
-    'Fetch data from a Deephaven table with pagination support. Returns a subset of rows based on offset and limit parameters.',
+    'Fetch paginated data from a Deephaven table. Use tableName for persistent named tables, or variableId for variables from runCode or listVariables.',
   inputSchema: {
     connectionUrl: z
       .string()
@@ -37,16 +37,18 @@ const spec = {
       .describe(
         'Number of rows to skip before returning data (default: 0). Use for pagination (e.g., offset=10, limit=10 returns rows 10-19).'
       ),
-    tableId: z
+    variableId: z
       .string()
       .optional()
       .describe(
-        'ID of the table to query (takes precedence over tableName if provided)'
+        'Variable ID from runCode or listVariables (must be a Table). Takes precedence over tableName.'
       ),
     tableName: z
       .string()
       .optional()
-      .describe('Name of the table to query (used if tableId is not provided)'),
+      .describe(
+        'Name of a persistent table (used if variableId is not provided)'
+      ),
   },
   outputSchema: createMcpToolOutputSchema({
     columns: z
@@ -70,7 +72,7 @@ const spec = {
     limit: z.number().optional().describe('Limit used for this query'),
     offset: z.number().optional().describe('Offset used for this query'),
     rowCount: z.number().optional().describe('Number of rows returned'),
-    tableId: z.string().optional().describe('ID of the table queried'),
+    variableId: z.string().optional().describe('Variable ID'),
     tableName: z.string().optional().describe('Name of the table'),
     totalRows: z.number().optional().describe('Total rows in table'),
   }),
@@ -93,7 +95,7 @@ export function createGetTableDataTool({
       connectionUrl: connectionUrlStr,
       limit = 10,
       offset = 0,
-      tableId,
+      variableId,
       tableName,
     }: HandlerArg): Promise<HandlerResult> => {
       const response = new McpToolResponse();
@@ -101,7 +103,7 @@ export function createGetTableDataTool({
       try {
         const tableResult = await getTableOrError({
           connectionUrlStr,
-          tableId,
+          variableId,
           tableName,
           serverManager,
         });
@@ -138,6 +140,7 @@ export function createGetTableDataTool({
             limit,
             offset,
             tableName,
+            ...(variableId != null ? { variableId } : {}),
           });
         } finally {
           table.close();
