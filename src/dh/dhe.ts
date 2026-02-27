@@ -171,6 +171,7 @@ export async function hasInteractivePermission(
 export async function isDheServerRunning(
   serverUrl: URL,
   logger: {
+    debug: (...args: unknown[]) => void;
     error: (...args: unknown[]) => void;
   }
 ): Promise<boolean> {
