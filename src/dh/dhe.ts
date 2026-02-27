@@ -366,25 +366,33 @@ export async function deleteQueries(
  * @returns A promise that resolves to the auth config values.
  */
 export async function getDheAuthConfig(
-  dheClient: EnterpriseClient
+  dheClient: EnterpriseClient,
+  logger: {
+    error: (...args: unknown[]) => void;
+  }
 ): Promise<AuthConfig> {
   const authConfigMap = Object.fromEntries(
     (await dheClient.getAuthConfigValues()).map(([key, value]) => [key, value])
   );
 
-  // Only consider SAML config if it is complete
   const isSamlEnabled =
-    authConfigMap[AUTH_CONFIG_CUSTOM_LOGIN_CLASS_SAML_AUTH] &&
-    authConfigMap[AUTH_CONFIG_SAML_PROVIDER_NAME] &&
-    authConfigMap[AUTH_CONFIG_SAML_LOGIN_URL];
+    !!authConfigMap[AUTH_CONFIG_CUSTOM_LOGIN_CLASS_SAML_AUTH];
+  const isSamlLoginUrlSet = !!authConfigMap[AUTH_CONFIG_SAML_LOGIN_URL];
 
-  const samlConfig = isSamlEnabled
-    ? {
-        loginClass: authConfigMap[AUTH_CONFIG_CUSTOM_LOGIN_CLASS_SAML_AUTH],
-        providerName: authConfigMap[AUTH_CONFIG_SAML_PROVIDER_NAME],
-        loginUrl: authConfigMap[AUTH_CONFIG_SAML_LOGIN_URL],
-      }
-    : null;
+  if (isSamlEnabled && !isSamlLoginUrlSet) {
+    logger.error(
+      `SAML authentication is enabled but '${AUTH_CONFIG_SAML_LOGIN_URL}' is not set. Check your Deephaven server settings.`
+    );
+  }
+
+  const samlConfig =
+    isSamlEnabled && isSamlLoginUrlSet
+      ? {
+          loginClass: authConfigMap[AUTH_CONFIG_CUSTOM_LOGIN_CLASS_SAML_AUTH],
+          providerName: authConfigMap[AUTH_CONFIG_SAML_PROVIDER_NAME] || 'SAML',
+          loginUrl: authConfigMap[AUTH_CONFIG_SAML_LOGIN_URL],
+        }
+      : null;
 
   const authConfig: AuthConfig = {
     // DH-16352 will be adding support to DH Web for disabling passwords. We
