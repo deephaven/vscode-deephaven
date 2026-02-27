@@ -164,7 +164,7 @@ it('should handle errors from dependencies', async () => {
 
 See these for MCP-specific patterns:
 
-- `listPanelVariables.spec.ts` - Panel service integration
+- `listVariables.spec.ts` - Panel service integration
 - `openVariablePanels.spec.ts` - Command execution
 - `connectToServer.spec.ts` - Server manager integration
 - `runCode.spec.ts` - Code execution validation

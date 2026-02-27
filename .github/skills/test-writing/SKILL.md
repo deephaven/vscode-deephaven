@@ -226,7 +226,7 @@ const createMockServer = (overrides = {}) => ({
 
 Study these for patterns:
 
-- `src/mcp/tools/listPanelVariables.spec.ts` - Parameterized tests with `it.each`
+- `src/mcp/tools/listVariables.spec.ts` - Parameterized tests with `it.each`
 - `src/mcp/tools/openVariablePanels.spec.ts` - Input validation patterns
 
 ## MCP Tools Testing

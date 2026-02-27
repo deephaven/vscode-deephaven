@@ -64,7 +64,7 @@ When choosing from multiple servers in `listServers` response, look for:
 
 **Manual:**
 
-- List all variables on a connection (`listPanelVariables`)
+- List all variables on a connection (`listVariables`)
 - Open specific variables by name (`openVariablePanels`)
 
 **Panel URLs (for UI verification):**
@@ -156,6 +156,17 @@ If a Deephaven MCP tool isn't available:
 2. Execute code (ad-hoc or file-based)
 3. Review response for variables and errors
 4. Panels auto-open for created variables
+
+**Working with table data:**
+
+Data tools (`getTableData`, `getTableStats`, `getColumnStats`) accept two ways to identify a table:
+
+- Use `tableName` for persistent named tables (tables defined in server startup scripts or persistent query scripts)
+- Use `variableId` for variables returned by `runCode` or `listVariables` — pass the `id` field from the variable result
+
+Typical flow:
+1. Execute code with `runCode` → response includes `variables[].id`
+2. Pass that `id` as `variableId` to data tools
 
 **Troubleshooting workflow:**
 
