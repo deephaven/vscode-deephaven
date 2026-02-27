@@ -15,7 +15,7 @@ import { formatTableColumns } from '../utils/tableUtils';
 const spec = {
   title: 'Get Table Schema and Statistics',
   description:
-    'Get schema information and basic statistics for a Deephaven table. Use tableName for persistent tables, or variableId for variables from runCode or listVariables. Returns column names, types, descriptions, row count, and other table metadata.',
+    'Get schema information and basic statistics for a Deephaven table. Prefer variableId if available (from runCode or listVariables, must have type "Table"); use tableName when the user specifies a table by name and you have no variableId. Returns column names, types, descriptions, row count, and other table metadata.',
   inputSchema: {
     connectionUrl: z
       .string()
@@ -26,13 +26,13 @@ const spec = {
       .string()
       .optional()
       .describe(
-        'Variable ID from runCode or listVariables (must be a Table). Takes precedence over tableName.'
+        'Variable ID from runCode or listVariables. Must have type "Table"; takes precedence over tableName.'
       ),
     tableName: z
       .string()
       .optional()
       .describe(
-        'Name of a persistent table (used if variableId is not provided)'
+        'Table name specified by the user. Only use when variableId is not available.'
       ),
   },
   outputSchema: createMcpToolOutputSchema({

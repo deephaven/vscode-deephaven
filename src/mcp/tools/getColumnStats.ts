@@ -16,7 +16,7 @@ import { convertColumnStatsToRecords } from '../utils/tableUtils';
 const spec = {
   title: 'Get Column Statistics',
   description:
-    'Get statistical information for a column in a Deephaven table. Use tableName for persistent tables, or variableId for variables from runCode or listVariables. Returns statistics like min, max, average, and unique value counts.',
+    'Get statistical information for a column in a Deephaven table. Prefer variableId if available (from runCode or listVariables, must have type "Table"); use tableName when the user specifies a table by name and you have no variableId. Returns statistics like min, max, average, and unique value counts.',
   inputSchema: {
     connectionUrl: z
       .string()
@@ -27,13 +27,13 @@ const spec = {
       .string()
       .optional()
       .describe(
-        'Variable ID from runCode or listVariables (must be a Table). Takes precedence over tableName.'
+        'Variable ID from runCode or listVariables. Must have type "Table"; takes precedence over tableName.'
       ),
     tableName: z
       .string()
       .optional()
       .describe(
-        'Name of a persistent table (used if variableId is not provided)'
+        'Table name specified by the user. Only use when variableId is not available.'
       ),
     columnName: z.string().describe('Name of the column to get statistics for'),
   },

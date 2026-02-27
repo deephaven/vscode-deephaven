@@ -21,7 +21,7 @@ export type VariableResult = z.infer<typeof variableResultSchema>;
  * Schema for variable results returned after code execution.
  */
 export const variableResultSchema = z.object({
-  id: z.string().describe('Variable ID. Use with variableId parameter in getTableData, getTableStats, getColumnStats.'),
+  id: z.string().describe('Variable ID. Pass as variableId to data tools. Only valid for variables with type "Table".'),
   title: z
     .string()
     .optional()

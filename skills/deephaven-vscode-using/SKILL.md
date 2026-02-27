@@ -161,8 +161,8 @@ If a Deephaven MCP tool isn't available:
 
 Data tools (`getTableData`, `getTableStats`, `getColumnStats`) accept two ways to identify a table:
 
-- Use `tableName` for persistent named tables (tables defined in server startup scripts or persistent query scripts)
-- Use `variableId` for variables returned by `runCode` or `listVariables` — pass the `id` field from the variable result
+- Use `tableName` when you know the name of a table directly (e.g., the user asked for a table by name)
+- Use `variableId` for variables returned by `runCode` or `listVariables` — pass the `id` field from the variable result. Only variables with `type === "Table"` are valid; passing a non-Table variable will result in an error
 
 Typical flow:
 1. Execute code with `runCode` → response includes `variables[].id`

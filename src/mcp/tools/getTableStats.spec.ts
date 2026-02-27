@@ -73,7 +73,7 @@ describe('getTableStats', () => {
     expect(tool.name).toBe('getTableStats');
     expect(tool.spec.title).toBe('Get Table Schema and Statistics');
     expect(tool.spec.description).toBe(
-      'Get schema information and basic statistics for a Deephaven table. Use tableName for persistent tables, or variableId for variables from runCode or listVariables. Returns column names, types, descriptions, row count, and other table metadata.'
+      'Get schema information and basic statistics for a Deephaven table. Prefer variableId if available (from runCode or listVariables, must have type "Table"); use tableName when the user specifies a table by name and you have no variableId. Returns column names, types, descriptions, row count, and other table metadata.'
     );
   });
 
