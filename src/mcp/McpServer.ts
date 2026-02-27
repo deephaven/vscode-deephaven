@@ -18,7 +18,7 @@ import {
   createGetTableDataTool,
   createGetTableStatsTool,
   createListConnectionsTool,
-  createListPanelVariablesTool,
+  createListVariablesTool,
   createListRemoteFileSourcesTool,
   createListServersTool,
   createOpenFilesInEditorTool,
@@ -66,7 +66,7 @@ export class McpServer extends DisposableBase {
     this.registerTool(createGetTableDataTool(this));
     this.registerTool(createGetTableStatsTool(this));
     this.registerTool(createListConnectionsTool(this));
-    this.registerTool(createListPanelVariablesTool(this));
+    this.registerTool(createListVariablesTool(this));
     this.registerTool(createListRemoteFileSourcesTool(this));
     this.registerTool(createListServersTool(this));
     this.registerTool(createOpenFilesInEditorTool());
