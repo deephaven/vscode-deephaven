@@ -3,7 +3,7 @@ export * from './getColumnStats';
 export * from './getLogs';
 export * from './getTableStats';
 export * from './listConnections';
-export * from './listPanelVariables';
+export * from './listVariables';
 export * from './listRemoteFileSources';
 export * from './listServers';
 export * from './openFilesInEditor';

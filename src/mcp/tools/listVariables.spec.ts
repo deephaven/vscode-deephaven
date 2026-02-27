@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createListPanelVariablesTool } from './listPanelVariables';
+import { createListVariablesTool } from './listVariables';
 import type {
   IDhcService,
   IPanelService,
@@ -40,7 +40,7 @@ const MOCK_VARIABLES: VariableDefintion[] = [
 
 const MOCK_PANEL_URL_FORMAT = 'mock.panelUrlFormat';
 
-describe('listPanelVariables', () => {
+describe('listVariables', () => {
   const panelService = {
     getVariables: vi.fn(),
   } as unknown as IPanelService;
@@ -57,9 +57,9 @@ describe('listPanelVariables', () => {
   });
 
   it('should return correct tool spec', () => {
-    const tool = createListPanelVariablesTool({ panelService, serverManager });
+    const tool = createListVariablesTool({ panelService, serverManager });
 
-    expect(tool.name).toBe('listPanelVariables');
+    expect(tool.name).toBe('listVariables');
     expect(tool.spec.title).toBe('List Panel Variables');
     expect(tool.spec.description).toBe(
       'List all panel variables for a given Deephaven connection URL. The response includes a panelUrlFormat in the details to construct panel URLs.'
@@ -83,7 +83,7 @@ describe('listPanelVariables', () => {
     });
     vi.mocked(panelService.getVariables).mockReturnValue(variables);
 
-    const tool = createListPanelVariablesTool({
+    const tool = createListVariablesTool({
       panelService,
       serverManager,
     });
@@ -126,7 +126,7 @@ describe('listPanelVariables', () => {
         details: { connectionUrl: MOCK_URL },
       });
 
-      const tool = createListPanelVariablesTool({
+      const tool = createListVariablesTool({
         panelService,
         serverManager,
       });
@@ -144,7 +144,7 @@ describe('listPanelVariables', () => {
   );
 
   it('should handle invalid URL', async () => {
-    const tool = createListPanelVariablesTool({ panelService, serverManager });
+    const tool = createListVariablesTool({ panelService, serverManager });
     const result = await tool.handler({ connectionUrl: 'invalid-url' });
 
     expect(result.structuredContent).toEqual(
@@ -165,7 +165,7 @@ describe('listPanelVariables', () => {
       throw new Error('Test error');
     });
 
-    const tool = createListPanelVariablesTool({ panelService, serverManager });
+    const tool = createListVariablesTool({ panelService, serverManager });
     const result = await tool.handler({ connectionUrl: MOCK_URL });
 
     expect(result.structuredContent).toEqual(

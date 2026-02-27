@@ -48,17 +48,17 @@ const spec = {
 type Spec = typeof spec;
 type HandlerArg = McpToolHandlerArg<Spec>;
 type HandlerResult = McpToolHandlerResult<Spec>;
-type ListPanelVariablesTool = McpTool<Spec>;
+type ListVariablesTool = McpTool<Spec>;
 
-export function createListPanelVariablesTool({
+export function createListVariablesTool({
   panelService,
   serverManager,
 }: {
   panelService: IPanelService;
   serverManager: IServerManager;
-}): ListPanelVariablesTool {
+}): ListVariablesTool {
   return {
-    name: 'listPanelVariables',
+    name: 'listVariables',
     spec,
     handler: async ({ connectionUrl }: HandlerArg): Promise<HandlerResult> => {
       const response = new McpToolResponse();
