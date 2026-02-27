@@ -162,9 +162,9 @@ it('should handle errors from dependencies', async () => {
 
 ## Example Tests
 
-See these for MCP-specific patterns:
+Reference these for MCP-specific patterns:
 
-- `listVariables.spec.ts` - Panel service integration
-- `openVariablePanels.spec.ts` - Command execution
-- `connectToServer.spec.ts` - Server manager integration
-- `runCode.spec.ts` - Code execution validation
+- `listVariables.spec.ts` - `getFirstConnectionOrCreate` utility, parameterized tests with `it.each`, error hints
+- `connectToServer.spec.ts` - URL validation patterns, complex parameterized error handling
+- `runCode.spec.ts` - DHC service mocking, connection state management, complex parameterized tests
+- `getTableData.spec.ts` - Table data pagination (offset/limit), session initialization, resource cleanup (table.close())
