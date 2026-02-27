@@ -16,24 +16,24 @@ import { convertColumnStatsToRecords } from '../utils/tableUtils';
 const spec = {
   title: 'Get Column Statistics',
   description:
-    'Get statistical information for a column in a Deephaven table. Returns statistics like min, max, average, and unique value counts. Useful for understanding data distribution and column characteristics.',
+    'Get statistical information for a column in a Deephaven table. Use tableName for persistent tables, or variableId for variables from runCode or listVariables. Returns statistics like min, max, average, and unique value counts.',
   inputSchema: {
     connectionUrl: z
       .string()
       .describe(
         'Connection URL of the Deephaven server (e.g., "http://localhost:10000")'
       ),
-    tableId: z
+    variableId: z
       .string()
       .optional()
       .describe(
-        'ID of the table containing the column (takes precedence over tableName if provided)'
+        'Variable ID from runCode or listVariables (must be a Table). Takes precedence over tableName.'
       ),
     tableName: z
       .string()
       .optional()
       .describe(
-        'Name of the table containing the column (used if tableId is not provided)'
+        'Name of a persistent table (used if variableId is not provided)'
       ),
     columnName: z.string().describe('Name of the column to get statistics for'),
   },
@@ -46,7 +46,7 @@ const spec = {
       .describe(
         'Map of statistic names to their values (e.g., MIN, MAX, AVG, SUM, etc.)'
       ),
-    tableId: z.string().optional(),
+    variableId: z.string().optional().describe('Variable ID'),
     tableName: z.string().optional(),
     uniqueValues: z
       .record(z.number())
@@ -72,7 +72,7 @@ export function createGetColumnStatsTool({
     spec,
     handler: async ({
       connectionUrl: connectionUrlStr,
-      tableId,
+      variableId,
       tableName,
       columnName,
     }: HandlerArg): Promise<HandlerResult> => {
@@ -81,7 +81,7 @@ export function createGetColumnStatsTool({
       try {
         const tableResult = await getTableOrError({
           connectionUrlStr,
-          tableId,
+          variableId,
           tableName,
           serverManager,
         });
@@ -105,7 +105,7 @@ export function createGetColumnStatsTool({
             columnName,
             connectionUrl: connectionUrlStr,
             statistics,
-            tableId,
+            variableId,
             tableName,
             ...(Object.keys(uniqueValues).length > 0 && { uniqueValues }),
           });
