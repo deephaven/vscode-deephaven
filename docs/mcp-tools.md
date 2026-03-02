@@ -6,12 +6,15 @@ This guide helps you understand what the Deephaven MCP tools can do and how to u
 
 ## Quick Reference
 
-| Category              | Tools                            | Purpose                                |
-| --------------------- | -------------------------------- | -------------------------------------- |
-| **Server Management** | `connectToServer`, `listServers` | Connect to and list configured servers |
-| **Connections**       | `listConnections`                | Check active connections               |
-| **Code Execution**    | `runCode`, `runCodeFromUri`      | Execute Python/Groovy code             |
-| **Logging**           | `getLogs`, `showOutputPanel`     | Access and view logs                   |
+| Category                | Tools                                                                      | Purpose                                |
+| ----------------------- | -------------------------------------------------------------------------- | -------------------------------------- |
+| **Server Management**   | `connectToServer`, `listServers`                                           | Connect to and list configured servers |
+| **Connections**         | `listConnections`                                                          | Check active connections               |
+| **Code Execution**      | `runCode`, `runCodeFromUri`                                                | Execute Python/Groovy code             |
+| **Variables**           | `listVariables`, `openVariablePanels`                                      | Query and interact with variables      |
+| **Table Data & Stats**  | `getTableData`, `getTableStats`, `getColumnStats`                          | Fetch and analyze table data           |
+| **Remote File Sources** | `addRemoteFileSources`, `listRemoteFileSources`, `removeRemoteFileSources` | Manage server file source paths        |
+| **Logging**             | `getLogs`, `showOutputPanel`                                               | Access and view logs                   |
 
 ## Server Management
 
@@ -80,6 +83,89 @@ This guide helps you understand what the Deephaven MCP tools can do and how to u
 - Debugging connection issues.
 - Checking if code is currently running.
 - Resolving connection names to URLs.
+
+## Working with Variables
+
+### List and Open Variable Panels
+
+**Use `listVariables`** to see all panel variables available on a connection. This returns variable metadata including IDs, titles, and types.
+
+**Use `openVariablePanels`** to open UI panels for specific variables (tables, plots, etc.). Requires variable objects with both `id` and `title` from `listVariables` or code execution responses.
+
+**Common patterns:**
+
+```
+"What variables are available?" → AI uses listVariables
+"Show me all the tables" → AI uses listVariables, filters by type "Table"
+"Open the sales_data table" → AI uses listVariables to find it, then openVariablePanels
+"Reopen the panels I closed earlier" → AI uses listVariables to find variables, then openVariablePanels
+```
+
+**Important notes:**
+
+- Variables are automatically opened as panels after code execution, so `openVariablePanels` is typically used to reopen panels that were closed or for variables that weren't initially opened.
+- `listVariables` only returns variables that support panels (tables, plots, etc.), not scalar values or functions.
+- Panel URLs are included in responses for UI verification.
+
+## Table Data & Statistics
+
+### Fetch and Analyze Table Data
+
+**Use `getTableData`** to fetch paginated data from a table. Returns actual row data with configurable limit and offset for pagination.
+
+**Use `getTableStats`** to get schema information and basic statistics like row count, column names, types, and descriptions.
+
+**Use `getColumnStats`** to get detailed statistics for a specific column (min, max, average, unique values, etc.).
+
+**Common patterns:**
+
+```
+"Show me the first 10 rows" → AI uses getTableData with limit=10
+"What columns are in this table?" → AI uses getTableStats
+"Get statistics for the price column" → AI uses getColumnStats with columnName="price"
+"How many rows are in my table?" → AI uses getTableStats (includes rowCount)
+"What's the average value in the sales column?" → AI uses getColumnStats
+```
+
+**Important notes:**
+
+- Prefer `variableId` (from `runCode` or `listVariables`) over `tableName` when available.
+- `getTableData` supports pagination via `limit` and `offset` parameters (max 10,000 rows per request).
+- Statistics are computed on-demand and may take time for large tables.
+- All tools work with both static and ticking (real-time) tables.
+
+## Remote File Sources
+
+### Manage Server File Paths
+
+Remote file sources allow the Deephaven server to access source files during code execution (e.g., for Python imports or file reading).
+
+**Use `addRemoteFileSources`** to add workspace folders as remote file sources on a connection.
+
+**Use `listRemoteFileSources`** to see which folders are currently registered as remote file sources.
+
+**Use `removeRemoteFileSources`** to unregister folders when they're no longer needed.
+
+**Common patterns:**
+
+```
+"Add my workspace folder as a remote source" → AI uses addRemoteFileSources
+"What remote file sources are configured?" → AI uses listRemoteFileSources
+"Remove the old data folder from sources" → AI uses removeRemoteFileSources
+"Let the server access my local Python modules" → AI uses addRemoteFileSources
+```
+
+**Useful for:**
+
+- Enabling server-side Python imports from local files.
+- Allowing Deephaven to read data files from your workspace.
+- Setting up development workflows with local code.
+
+**Important notes:**
+
+- Only works with Enterprise (DHE) servers.
+- Folders must be within the workspace.
+- Files are synced to the server when registered.
 
 ## Accessing Logs
 
