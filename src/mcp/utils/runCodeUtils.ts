@@ -7,7 +7,12 @@ import {
   type FilteredWorkspace,
 } from '../../services';
 import { isInstanceOf } from '../../util';
-import type { ConnectionState, ConsoleType, IServerManager } from '../../types';
+import type {
+  ConnectionState,
+  ConsoleType,
+  IServerManager,
+  PythonModuleFullname,
+} from '../../types';
 
 export interface DiagnosticsError {
   uri: string;
@@ -120,7 +125,7 @@ export async function createConnectionNotFoundHint(
 export function createPythonModuleImportErrorHint(
   errors: Array<{ message: string; uri: string; range: vscode.Range }>,
   connection: ConnectionState,
-  pythonWorkspace: FilteredWorkspace
+  pythonWorkspace: FilteredWorkspace<PythonModuleFullname>
 ): { hint: string; foundMatchingFolderUris: string[] } | undefined {
   // Look for 'No module named' errors and extract the module names
   const noModuleErrors = new Set(
@@ -165,7 +170,7 @@ export function createPythonModuleImportErrorHint(
 function hasPythonRemoteFileSourcePlugin(connection: ConnectionState): boolean {
   return (
     isInstanceOf(connection, DhcService) &&
-    connection.hasRemoteFileSourcePlugin()
+    connection.hasPythonRemoteFileSourcePlugin()
   );
 }
 

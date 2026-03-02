@@ -44,7 +44,7 @@ export function createRemoveRemoteFileSourcesTool(): RemoveRemoteFileSourcesTool
         // Deduplicate URIs using URISet
         const uniqueUris = Array.from(new URISet(uris).values());
 
-        await execRemoveRemoteFileSource(uniqueUris);
+        await execRemoveRemoteFileSource('python', uniqueUris);
 
         return response.success('Remote file sources removed successfully', {
           foldersRemoved: uniqueUris.length,

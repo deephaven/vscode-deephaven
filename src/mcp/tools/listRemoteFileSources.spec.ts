@@ -7,12 +7,13 @@ import {
   mcpErrorResult,
   mcpSuccessResult,
 } from '../utils/mcpTestUtils';
+import type { PythonModuleFullname } from '../../types';
 
 vi.mock('vscode');
 
 const createMockWorkspace = (
   folderUris: vscode.Uri[] | Error
-): FilteredWorkspace => {
+): FilteredWorkspace<PythonModuleFullname> => {
   const folders =
     folderUris instanceof Error ? folderUris : folderUris.map(uri => ({ uri }));
 
@@ -23,7 +24,7 @@ const createMockWorkspace = (
             throw folders;
           })
         : vi.fn().mockReturnValue(folders),
-  } as unknown as FilteredWorkspace;
+  } as unknown as FilteredWorkspace<PythonModuleFullname>;
 };
 
 describe('listRemoteFileSources', () => {
