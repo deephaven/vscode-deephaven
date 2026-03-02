@@ -25,6 +25,13 @@ const spec = {
       ),
   },
   outputSchema: createMcpToolOutputSchema({
+    connectionUrl: z.string().optional(),
+    panelUrlFormat: z
+      .string()
+      .optional()
+      .describe(
+        'URL format for accessing panel variables. Replace <variableTitle> with the variable title.'
+      ),
     variables: z
       .array(
         z.object({
@@ -35,29 +42,23 @@ const spec = {
       )
       .optional()
       .describe('List of panel variables available in the connection'),
-    panelUrlFormat: z
-      .string()
-      .optional()
-      .describe(
-        'URL format for accessing panel variables. Replace <variableTitle> with the variable title.'
-      ),
   }),
 } as const;
 
 type Spec = typeof spec;
 type HandlerArg = McpToolHandlerArg<Spec>;
 type HandlerResult = McpToolHandlerResult<Spec>;
-type ListPanelVariablesTool = McpTool<Spec>;
+type ListVariablesTool = McpTool<Spec>;
 
-export function createListPanelVariablesTool({
+export function createListVariablesTool({
   panelService,
   serverManager,
 }: {
   panelService: IPanelService;
   serverManager: IServerManager;
-}): ListPanelVariablesTool {
+}): ListVariablesTool {
   return {
-    name: 'listPanelVariables',
+    name: 'listVariables',
     spec,
     handler: async ({ connectionUrl }: HandlerArg): Promise<HandlerResult> => {
       const response = new McpToolResponse();

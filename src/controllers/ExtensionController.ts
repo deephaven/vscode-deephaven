@@ -417,24 +417,26 @@ export class ExtensionController implements IDisposable {
    * Initialize MCP server for AI assistant integration.
    */
   initializeMcpController = (): void => {
-    assertDefined(this._serverManager, 'serverManager');
-    assertDefined(this._pythonDiagnostics, 'pythonDiagnostics');
-    assertDefined(this._pythonWorkspace, 'pythonWorkspace');
     assertDefined(this._config, 'config');
+    assertDefined(this._coreJsApiCache, 'coreJsApiCache');
     assertDefined(this._outputChannel, 'outputChannel');
     assertDefined(this._outputChannelDebug, 'outputChannelDebug');
     assertDefined(this._panelService, 'panelService');
+    assertDefined(this._pythonDiagnostics, 'pythonDiagnostics');
+    assertDefined(this._pythonWorkspace, 'pythonWorkspace');
+    assertDefined(this._serverManager, 'serverManager');
 
     this._mcpController = new McpController(
-      this._context,
       this._config,
+      this._context,
+      this._coreJsApiCache,
       this._extensionInfo.mcpVersion,
-      this._serverManager,
-      this._pythonDiagnostics,
-      this._pythonWorkspace,
       this._outputChannel,
       this._outputChannelDebug,
-      this._panelService
+      this._panelService,
+      this._pythonDiagnostics,
+      this._pythonWorkspace,
+      this._serverManager
     );
 
     this._context.subscriptions.push(this._mcpController);

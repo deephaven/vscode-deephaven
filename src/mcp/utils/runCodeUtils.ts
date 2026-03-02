@@ -21,8 +21,14 @@ export type VariableResult = z.infer<typeof variableResultSchema>;
  * Schema for variable results returned after code execution.
  */
 export const variableResultSchema = z.object({
-  id: z.string(),
-  title: z.string(),
+  id: z.string().describe('Variable ID. Pass as variableId to data tools. Only valid for variables with type "Table".'),
+  title: z
+    .string()
+    .optional()
+    .describe(
+      'The display title of the variable. May be the same as name if title is not provided.'
+    ),
+  name: z.string().optional().describe('The name of the variable.'),
   type: z.string(),
   isNew: z
     .boolean()
@@ -44,22 +50,24 @@ export const runCodeOutputSchema = {
     ),
   details: z
     .object({
-      languageId: z
-        .string()
-        .optional()
-        .describe('The language ID used for execution (python or groovy)'),
+      connectionUrl: z.string().optional(),
       foundMatchingFolderUris: z
         .array(z.string())
         .optional()
         .describe(
           'Folder URIs in the workspace that match missing Python module names. Use these exact URIs with addRemoteFileSources to resolve import errors.'
         ),
+      languageId: z
+        .string()
+        .optional()
+        .describe('The language ID used for execution (python or groovy)'),
       panelUrlFormat: z
         .string()
         .optional()
         .describe(
           'URL format for accessing panel variables. Replace <variableTitle> with the variable title.'
         ),
+      uri: z.string().optional(),
       variables: z
         .array(variableResultSchema)
         .optional()
@@ -176,14 +184,16 @@ export function extractVariables(
 
   return [
     ...result.changes.created.map(v => ({
-      id: String(v.id),
-      title: v.title ?? v.id,
+      id: v.id,
+      name: v.name,
+      title: v.title,
       type: v.type,
       isNew: true,
     })),
     ...result.changes.updated.map(v => ({
-      id: String(v.id),
-      title: v.title ?? v.id,
+      id: v.id,
+      name: v.name,
+      title: v.title,
       type: v.type,
       isNew: false,
     })),

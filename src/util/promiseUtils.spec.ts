@@ -1,5 +1,10 @@
 import { beforeEach, describe, it, expect, vi, afterAll } from 'vitest';
-import { rejectAfterTimeout, waitFor, withResolvers } from './promiseUtils';
+import {
+  rejectAfterTimeout,
+  waitFor,
+  waitForEvent,
+  withResolvers,
+} from './promiseUtils';
 
 // See __mocks__/vscode.ts for the mock implementation
 vi.mock('vscode');
@@ -54,6 +59,36 @@ describe('waitFor', () => {
 
     await vi.advanceTimersByTimeAsync(1);
     expect(resolved).toHaveBeenCalled();
+  });
+});
+
+describe('waitForEvent', () => {
+  it('should return a Promise that resolves when event fires', async () => {
+    const target = {
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    };
+
+    const promise = waitForEvent(target, 'testEvent');
+    promise.then(resolved);
+
+    expect(target.addEventListener).toHaveBeenCalledWith(
+      'testEvent',
+      expect.any(Function)
+    );
+
+    // Get the handler that was registered
+    const handler = target.addEventListener.mock.calls[0][1];
+
+    // Fire the event by calling the handler
+    handler();
+
+    await vi.advanceTimersToNextTimerAsync();
+    expect(resolved).toHaveBeenCalled();
+    expect(target.removeEventListener).toHaveBeenCalledWith(
+      'testEvent',
+      handler
+    );
   });
 });
 

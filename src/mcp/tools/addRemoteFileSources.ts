@@ -19,7 +19,8 @@ const spec = {
       .describe('List of folder URIs to add as remote file sources.'),
   },
   outputSchema: createMcpToolOutputSchema({
-    foldersAdded: z.number(),
+    foldersAdded: z.number().optional(),
+    folderUris: z.array(z.string()).optional(),
   }),
 } as const;
 

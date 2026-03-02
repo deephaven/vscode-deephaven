@@ -22,15 +22,17 @@ const spec = {
       ),
   },
   outputSchema: createMcpToolOutputSchema({
-    connections: z.array(
-      z.object({
-        serverUrl: z.string(),
-        isConnected: z.boolean(),
-        isRunningCode: z.boolean().optional(),
-        querySerial: z.string().optional(),
-        tagId: z.string().optional(),
-      })
-    ),
+    connections: z
+      .array(
+        z.object({
+          serverUrl: z.string(),
+          isConnected: z.boolean(),
+          isRunningCode: z.boolean().optional(),
+          querySerial: z.string().optional(),
+          tagId: z.string().optional(),
+        })
+      )
+      .optional(),
   }),
 } as const;
 

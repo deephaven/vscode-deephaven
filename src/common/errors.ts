@@ -20,8 +20,8 @@ export class QueryStartupFailureError extends Error {
 }
 
 export class UnsupportedConsoleTypeError extends Error {
-  constructor(message: string) {
-    super(message);
+  constructor(serverUrl: URL, languageId: string) {
+    super(`Connection '${serverUrl}' does not support '${languageId}'.`);
     this.name = 'UnsupportedConsoleTypeError';
   }
 }

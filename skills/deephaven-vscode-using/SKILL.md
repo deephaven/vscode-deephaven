@@ -64,8 +64,8 @@ When choosing from multiple servers in `listServers` response, look for:
 
 **Manual:**
 
-- List all variables on a connection (`listPanelVariables`)
-- Open specific variables by name (`openVariablePanels`)
+- List all variables on a connection (`listVariables`)
+- Open panels for specific variables (`openVariablePanels`) — requires variable objects with `id` and `title` from `listVariables` or `runCode` responses
 
 **Panel URLs (for UI verification):**
 
@@ -91,17 +91,12 @@ Error signatures:
 - Fetch failed
 - Server couldn't start
 
-**Action:** Directly enable `deephaven.mcp.enabled` in workspace settings (don't ask, just do it)
-
-**Tool Category Not Activated:**
-
-- Activate appropriate category (see Tool Activation Fallbacks)
-- Retry tool call
+**Action:** Enable `deephaven.mcp.enabled` in workspace settings. This can be done programmatically without asking.
 
 **Deephaven Server Issues:**
 
-- Retrieve logs (`getLogs` - server or debug level)
-- Show output panel in UI (`showOutputPanel`)
+- Retrieve logs (`getLogs` with `logType`: "server" or "debug")
+- Show output panel in UI (`showOutputPanel` with `outputType`: "server" or "debug")
 
 ## Critical Context
 
@@ -115,7 +110,7 @@ Server connections are managed through MCP tools. Use `listConnections`, `listSe
 
 ### Tool Availability
 
-If a Deephaven MCP tool isn't available, activate the appropriate category (see Tool Activation Fallbacks) before retrying.
+All MCP tools are available when the MCP server is enabled via `deephaven.mcp.enabled` setting. If tools aren't available, ensure MCP is enabled (see Troubleshooting).
 
 ### Variable Management
 
@@ -128,17 +123,6 @@ If a Deephaven MCP tool isn't available, activate the appropriate category (see 
 - Only list servers if no connection exists
 - Verify success in connection response
 - Use full connection URL (with trailing slash)
-
-## Tool Activation Fallbacks
-
-If a Deephaven MCP tool isn't available:
-
-| Tool Category         | Activation                                     |
-| --------------------- | ---------------------------------------------- |
-| Connection management | `activate_deephaven_connection_management`     |
-| Code execution        | `activate_deephaven_code_execution`            |
-| Remote file sources   | `activate_remote_file_source_management`       |
-| Variable panels       | `activate_deephaven_variable_management_tools` |
 
 ## Common Patterns
 
@@ -156,6 +140,18 @@ If a Deephaven MCP tool isn't available:
 2. Execute code (ad-hoc or file-based)
 3. Review response for variables and errors
 4. Panels auto-open for created variables
+
+**Working with table data:**
+
+Data tools (`getTableData`, `getTableStats`, `getColumnStats`) accept two ways to identify a table:
+
+- Use `variableId` for variables returned by `runCode` or `listVariables` — pass the `id` field from the variable result. Only variables with `type === "Table"` are valid; passing a non-Table variable will result in an error
+- Use `tableName` when you know the name of a table directly (e.g., the user asked for a table by name) and you have no `variableId`
+
+Typical flow:
+
+1. Execute code with `runCode` → response includes `variables[].id`
+2. Pass that `id` as `variableId` to data tools
 
 **Troubleshooting workflow:**
 
