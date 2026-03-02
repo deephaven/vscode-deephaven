@@ -116,19 +116,6 @@ export function createGetTableDataTool({
         const { table, connectionUrl } = tableResult;
 
         try {
-          const totalRows = table.size;
-
-          // Validate offset
-          if (offset >= totalRows) {
-            return response.error('Offset exceeds table size', null, {
-              connectionUrl: connectionUrl.toString(),
-              limit,
-              offset,
-              tableName,
-              totalRows,
-            });
-          }
-
           // Fetch paginated data
           const pageData = await getTablePage(table, offset, limit);
 

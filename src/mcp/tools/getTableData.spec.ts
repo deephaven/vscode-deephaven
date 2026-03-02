@@ -116,7 +116,7 @@ describe('getTableData', () => {
       type: 'Table',
       name: 'myTable',
     });
-    expect(MOCK_TABLE.setViewport).toHaveBeenCalledWith(0, 1);
+    expect(MOCK_TABLE.setViewport).toHaveBeenCalledWith(0, 9);
     expect(MOCK_TABLE.close).toHaveBeenCalled();
     expect(result.structuredContent).toEqual(
       mcpSuccessResult('Fetched 2 rows', {
@@ -222,8 +222,8 @@ describe('getTableData', () => {
       offset: 20,
     });
 
-    // Should fetch rows 20-24 (5 rows)
-    expect(table.setViewport).toHaveBeenCalledWith(20, 24);
+    // Should fetch rows 20-29 (no constraint by table size)
+    expect(table.setViewport).toHaveBeenCalledWith(20, 29);
     expect(result.structuredContent).toMatchObject({
       success: true,
       message: 'Fetched 2 rows',
@@ -246,13 +246,26 @@ describe('getTableData', () => {
       offset: 100,
     });
 
+    // No longer returns an error - just fetches what's available
     expect(result.structuredContent).toEqual(
-      mcpErrorResult('Offset exceeds table size', {
+      mcpSuccessResult('Fetched 2 rows', {
+        /* eslint-disable @typescript-eslint/naming-convention */
+        columns: [
+          { name: 'Symbol', type: 'java.lang.String' },
+          { name: 'Price', type: 'double' },
+        ],
         connectionUrl: MOCK_DHC_URL.href,
+        data: [
+          { Symbol: 'AAPL', Price: 150.25 },
+          { Symbol: 'GOOGL', Price: 2800.5 },
+        ],
+        hasMore: false,
         limit: 10,
         offset: 100,
+        rowCount: 2,
         tableName: 'myTable',
         totalRows: 2,
+        /* eslint-enable @typescript-eslint/naming-convention */
       })
     );
   });

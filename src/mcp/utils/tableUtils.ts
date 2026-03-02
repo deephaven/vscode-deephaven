@@ -200,7 +200,7 @@ export async function getTablePage(
 ): Promise<FetchTablePageResult> {
   const totalRows = table.size;
   const startRow = offset;
-  const endRow = Math.min(offset + limit - 1, totalRows - 1);
+  const endRow = offset + limit - 1;
 
   table.setViewport(startRow, endRow);
   const viewportData = await table.getViewportData();
