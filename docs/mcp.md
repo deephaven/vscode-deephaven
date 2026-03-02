@@ -107,26 +107,32 @@ Replace `45678` with the actual port shown in the `MCP:<port>` status bar item.
 The MCP server provides tools for:
 
 - **Server Management** - Connect to and list configured Deephaven servers.
+
   - `connectToServer` - Create a connection to a server.
   - `listServers` - List all configured servers.
 
 - **Connection Management** - Query active connections.
+
   - `listConnections` - List active connections, optionally filtered by URL.
 
 - **Code Execution** - Run Python and Groovy code.
+
   - `runCode` - Execute arbitrary code text.
   - `runCodeFromUri` - Execute code from workspace files.
 
 - **Variables** - Query and interact with Deephaven variables.
+
   - `listVariables` - List all variables on a connection.
   - `openVariablePanels` - Open variable panels for specific variables.
 
 - **Table Data & Statistics** - Fetch and analyze table data.
+
   - `getTableData` - Fetch paginated data from a table.
   - `getTableStats` - Get schema information and basic statistics.
   - `getColumnStats` - Get statistical information for a column.
 
 - **Remote File Sources** - Manage server file source paths.
+
   - `addRemoteFileSources` - Add folders as remote file sources.
   - `listRemoteFileSources` - List current remote file sources.
   - `removeRemoteFileSources` - Remove remote file sources.
@@ -144,6 +150,7 @@ In addition to MCP tools, the extension provides Chat Skills that can be registe
 ### Available Chat Skills
 
 1. **Deephaven VS Code Usage** (`deephaven-vscode-using`)
+
    - Manages Deephaven server connections and code execution through VS Code MCP tools
    - Handles connecting to DHC/DHE servers, executing Python/Groovy code
    - Provides workflows for opening variable panels and troubleshooting connection issues
@@ -159,7 +166,9 @@ In addition to MCP tools, the extension provides Chat Skills that can be registe
 
 Chat Skills are automatically registered when the extension loads. They are available in supported AI assistants like GitHub Copilot and Windsurf.
 
-The Deephaven Documentation Searching skill connects to a separate MCP server that hosts Deephaven documentation. This server can be independently enabled/disabled via the `deephaven.mcp.docsEnabled` setting:
+The Deephaven Documentation Searching skill connects to the [Deephaven Docs MCP server](https://deephaven.io/enterprise/docs/clients/mcp/#docs-server), which is automatically configured by the extension when enabled. The extension provides the auto-configuration and the chat skill to make AI assistants aware of the documentation capabilities. For more information about the Deephaven Docs MCP server itself, see the [official documentation](https://deephaven.io/enterprise/docs/clients/mcp/#docs-server).
+
+The documentation server can be independently enabled/disabled via the `deephaven.mcp.docsEnabled` setting:
 
 **Setting**: `deephaven.mcp.docsEnabled` (default: `true`)
 
