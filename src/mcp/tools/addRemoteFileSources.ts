@@ -44,7 +44,7 @@ export function createAddRemoteFileSourcesTool(): AddRemoteFileSourcesTool {
         // Deduplicate URIs using URISet
         const uniqueUris = Array.from(new URISet(uris).values());
 
-        await execAddRemoteFileSource(uniqueUris);
+        await execAddRemoteFileSource('python', uniqueUris);
 
         return response.success('Remote file sources added successfully', {
           foldersAdded: uniqueUris.length,

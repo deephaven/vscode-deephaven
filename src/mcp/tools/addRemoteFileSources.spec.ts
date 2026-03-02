@@ -71,6 +71,7 @@ describe('addRemoteFileSources', () => {
     const result = await tool.handler({ folderUris });
 
     expect(commands.execAddRemoteFileSource).toHaveBeenCalledWith(
+      'python',
       expectedParsedUris.map(uri => vscode.Uri.parse(uri))
     );
 

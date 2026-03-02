@@ -6,6 +6,7 @@ import { createRunCodeFromUriTool } from './runCodeFromUri';
 import type {
   IDhcService,
   IServerManager,
+  PythonModuleFullname,
   VariableDefintion,
 } from '../../types';
 import type { FilteredWorkspace } from '../../services';
@@ -111,7 +112,7 @@ describe('runCodeFromUri tool', () => {
 
   const pythonWorkspace = {
     getUserFiles: vi.fn(),
-  } as unknown as FilteredWorkspace;
+  } as unknown as FilteredWorkspace<PythonModuleFullname>;
 
   const serverManager = {
     getUriConnection: vi.fn(),

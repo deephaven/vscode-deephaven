@@ -5,6 +5,7 @@ import type {
   McpTool,
   McpToolHandlerArg,
   McpToolHandlerResult,
+  PythonModuleFullname,
 } from '../../types';
 
 import type { IServerManager } from '../../types';
@@ -53,7 +54,7 @@ export function createRunCodeFromUriTool({
   serverManager,
 }: {
   pythonDiagnostics: vscode.DiagnosticCollection;
-  pythonWorkspace: FilteredWorkspace;
+  pythonWorkspace: FilteredWorkspace<PythonModuleFullname>;
   serverManager: IServerManager;
 }): RunCodeFromUriTool {
   return {

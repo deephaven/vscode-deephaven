@@ -71,6 +71,7 @@ describe('removeRemoteFileSources', () => {
     const result = await tool.handler({ folderUris });
 
     expect(commands.execRemoveRemoteFileSource).toHaveBeenCalledWith(
+      'python',
       expectedParsedUris.map(uri => vscode.Uri.parse(uri))
     );
 

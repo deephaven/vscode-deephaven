@@ -12,6 +12,7 @@ import {
 import type {
   ConnectionState,
   IServerManager,
+  PythonModuleFullname,
   RemoteImportSourceTreeFileElement,
   RemoteImportSourceTreeFolderElement,
 } from '../../types';
@@ -93,15 +94,15 @@ function createDiagnosticCollection(
  */
 function createPythonWorkspace(
   ...workspaces: Array<(FilteredWorkspaceRootNode | FilteredWorkspaceNode)[]>
-): FilteredWorkspace {
+): FilteredWorkspace<PythonModuleFullname> {
   const roots = workspaces.map(nodes => nodes[0] as FilteredWorkspaceRootNode);
 
   const nodeMap = new URIMap(workspaces.map(nodes => [nodes[0].uri, nodes]));
 
-  const workspace: FilteredWorkspace = {
+  const workspace: FilteredWorkspace<PythonModuleFullname> = {
     getChildNodes: vi.fn(),
     iterateNodeTree: vi.fn(),
-  } as unknown as FilteredWorkspace;
+  } as unknown as FilteredWorkspace<PythonModuleFullname>;
 
   vi.mocked(workspace.getChildNodes).mockImplementation(
     (parentUri: vscode.Uri | null) => (parentUri == null ? roots : [])
@@ -442,6 +443,7 @@ describe('createPythonModuleImportErrorHint', () => {
   const wkspRoot: RemoteImportSourceTreeFolderElement = {
     uri: vscode.Uri.parse('file:///workspace'),
     name: 'workspace',
+    languageId: 'python',
     type: 'folder',
     isMarked: false,
   };
@@ -449,6 +451,7 @@ describe('createPythonModuleImportErrorHint', () => {
   const pandasFolder: RemoteImportSourceTreeFolderElement = {
     uri: vscode.Uri.parse('file:///workspace/pandas'),
     name: 'pandas',
+    languageId: 'python',
     type: 'folder',
     isMarked: false,
   };
@@ -456,6 +459,7 @@ describe('createPythonModuleImportErrorHint', () => {
   const pandasFile: RemoteImportSourceTreeFileElement = {
     uri: vscode.Uri.parse('file:///workspace/pandas.py'),
     name: 'pandas',
+    languageId: 'python',
     type: 'file',
     isMarked: false,
   };
@@ -463,6 +467,7 @@ describe('createPythonModuleImportErrorHint', () => {
   const numpyFolder: RemoteImportSourceTreeFolderElement = {
     uri: vscode.Uri.parse('file:///workspace/numpy'),
     name: 'numpy',
+    languageId: 'python',
     type: 'folder',
     isMarked: false,
   };
@@ -470,6 +475,7 @@ describe('createPythonModuleImportErrorHint', () => {
   const wksp2Root: RemoteImportSourceTreeFolderElement = {
     uri: vscode.Uri.parse('file:///workspace2'),
     name: 'workspace2',
+    languageId: 'python',
     type: 'folder',
     isMarked: false,
   };
@@ -477,6 +483,7 @@ describe('createPythonModuleImportErrorHint', () => {
   const wksp2NumpyFolder: RemoteImportSourceTreeFolderElement = {
     uri: vscode.Uri.parse('file:///workspace2/numpy'),
     name: 'numpy',
+    languageId: 'python',
     type: 'folder',
     isMarked: false,
   };
@@ -562,6 +569,7 @@ describe('createPythonModuleImportErrorHint', () => {
 
     const connection = {
       hasRemoteFileSourcePlugin: vi.fn().mockReturnValue(hasPlugin),
+      hasPythonRemoteFileSourcePlugin: vi.fn().mockReturnValue(hasPlugin),
     } as unknown as ConnectionState;
     const hint = createPythonModuleImportErrorHint(
       errors,
