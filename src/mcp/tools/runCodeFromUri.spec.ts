@@ -6,6 +6,7 @@ import { createRunCodeFromUriTool } from './runCodeFromUri';
 import type {
   IDhcService,
   IServerManager,
+  GroovyPackageName,
   PythonModuleFullname,
   VariableDefintion,
 } from '../../types';
@@ -21,6 +22,7 @@ import { ConnectionNotFoundError } from '../../common';
 import { execRunCode } from '../../common/commands';
 import {
   createConnectionNotFoundHint,
+  createGroovyImportErrorHint,
   createPythonModuleImportErrorHint,
   getDiagnosticsErrors,
   type DiagnosticsError,
@@ -46,6 +48,7 @@ vi.mock('../utils/runCodeUtils', async () => {
   return {
     ...actual,
     createConnectionNotFoundHint: vi.fn(),
+    createGroovyImportErrorHint: vi.fn(),
     createPythonModuleImportErrorHint: vi.fn(),
     getDiagnosticsErrors: vi.fn(),
   };
@@ -57,6 +60,7 @@ const MOCK_HINT = {
 };
 
 const MOCK_URI_STRING = 'file:///path/to/file.py' as const;
+const MOCK_GROOVY_URI_STRING = 'file:///path/to/file.groovy' as const;
 
 const MOCK_DIAGNOSTIC_ERRORS: DiagnosticsError[] = [
   {
@@ -71,6 +75,19 @@ const MOCK_PANEL_URL_FORMAT = 'mock.panelUrlFormat' as const;
 const MOCK_DOCUMENT = {
   languageId: 'python',
 } as vscode.TextDocument;
+
+const MOCK_GROOVY_DOCUMENT = {
+  languageId: 'groovy',
+} as vscode.TextDocument;
+
+const MOCK_GROOVY_DIAGNOSTIC_ERRORS: DiagnosticsError[] = [
+  {
+    uri: MOCK_GROOVY_URI_STRING,
+    message:
+      'Attempting to import a path that does not exist: import package3.subpackage1.MultiClassTest;',
+    range: new vscode.Range(0, 0, 0, 0),
+  },
+];
 
 const MOCK_FILE_STAT = {
   type: vscode.FileType.File,
@@ -106,13 +123,30 @@ const MOCK_RUN_CODE_ERROR = {
   },
 } as unknown as DhcType.ide.CommandResult;
 
+const MOCK_GROOVY_RUN_CODE_ERROR = {
+  error: 'RuntimeException: Attempting to import a path that does not exist: import package3.subpackage1.MultiClassTest;',
+  changes: {
+    created: [MOCK_STR_VARIABLE],
+    updated: [],
+    removed: [],
+  },
+} as unknown as DhcType.ide.CommandResult;
+
 describe('runCodeFromUri tool', () => {
   const pythonDiagnostics: vscode.DiagnosticCollection =
     vscode.languages.createDiagnosticCollection('python');
 
+  const groovyDiagnostics: vscode.DiagnosticCollection =
+    vscode.languages.createDiagnosticCollection('groovy');
+
   const pythonWorkspace = {
     getUserFiles: vi.fn(),
   } as unknown as FilteredWorkspace<PythonModuleFullname>;
+
+  const groovyWorkspace = {
+    getChildNodes: vi.fn(),
+    iterateNodeTree: vi.fn(),
+  } as unknown as FilteredWorkspace<GroovyPackageName>;
 
   const serverManager = {
     getUriConnection: vi.fn(),
@@ -122,6 +156,7 @@ describe('runCodeFromUri tool', () => {
     // clear diagnostics before `clearAllMocks` since `clear` is actually a mock
     // and we also want to reset its call count
     pythonDiagnostics.clear();
+    groovyDiagnostics.clear();
 
     vi.clearAllMocks();
     fakeMcpToolTimings();
@@ -129,6 +164,8 @@ describe('runCodeFromUri tool', () => {
 
   it('should return correct tool spec', () => {
     const tool = createRunCodeFromUriTool({
+      groovyDiagnostics,
+      groovyWorkspace,
       pythonDiagnostics,
       pythonWorkspace,
       serverManager,
@@ -160,6 +197,8 @@ describe('runCodeFromUri tool', () => {
       });
 
       const tool = createRunCodeFromUriTool({
+        groovyDiagnostics,
+        groovyWorkspace,
         pythonDiagnostics,
         pythonWorkspace,
         serverManager,
@@ -223,6 +262,8 @@ describe('runCodeFromUri tool', () => {
         }
 
         const tool = createRunCodeFromUriTool({
+          groovyDiagnostics,
+          groovyWorkspace,
           pythonDiagnostics,
           pythonWorkspace,
           serverManager,
@@ -344,6 +385,8 @@ describe('runCodeFromUri tool', () => {
         );
 
         const tool = createRunCodeFromUriTool({
+          groovyDiagnostics,
+          groovyWorkspace,
           pythonDiagnostics,
           pythonWorkspace,
           serverManager,
@@ -358,6 +401,136 @@ describe('runCodeFromUri tool', () => {
           serverManager,
           connectionUrl: MOCK_CONNECTION_URL,
           languageId: 'python',
+        });
+        expect(result.structuredContent).toEqual(expected);
+      }
+    );
+  });
+
+  describe('groovy code execution', () => {
+    const mockGroovyConnection: IDhcService = createMockDhcService({
+      serverUrl: new URL('http://localhost:10000'),
+    });
+
+    beforeEach(() => {
+      vi.mocked(vscode.workspace.fs.stat).mockResolvedValue(MOCK_FILE_STAT);
+      vi.mocked(vscode.workspace.openTextDocument).mockResolvedValue(
+        MOCK_GROOVY_DOCUMENT
+      );
+      vi.mocked(serverManager.getUriConnection).mockReturnValue(
+        mockGroovyConnection
+      );
+      vi.mocked(getDiagnosticsErrors).mockReturnValue(
+        MOCK_GROOVY_DIAGNOSTIC_ERRORS
+      );
+
+      vi.mocked(getFirstConnectionOrCreate).mockResolvedValue({
+        success: true,
+        connection: mockGroovyConnection,
+        panelUrlFormat: MOCK_PANEL_URL_FORMAT,
+      });
+
+      vi.mocked(execRunCode).mockResolvedValue(null);
+    });
+
+    it.each([
+      {
+        name: 'execute Groovy code successfully',
+        cmdResult: MOCK_RUN_CODE_SUCCESS,
+        connectionUrl: MOCK_CONNECTION_URL.href,
+        expected: mcpSuccessResult('Code executed successfully', {
+          variables: [{ id: 'x', title: 'x', type: 'int', isNew: true }],
+          panelUrlFormat: MOCK_PANEL_URL_FORMAT,
+        }),
+      },
+      {
+        name: 'handle code execution failure with Groovy diagnostics and hint',
+        cmdResult: MOCK_GROOVY_RUN_CODE_ERROR,
+        connectionUrl: MOCK_CONNECTION_URL.href,
+        groovyHint: MOCK_HINT,
+        expected: mcpErrorResult(
+          `Code execution failed: ${MOCK_GROOVY_URI_STRING}: Attempting to import a path that does not exist: import package3.subpackage1.MultiClassTest; [0:0]`,
+          {
+            languageId: 'groovy',
+            variables: [{ id: 'y', title: 'y', type: 'str', isNew: true }],
+            foundMatchingFolderUris: MOCK_HINT.foundMatchingFolderUris,
+          },
+          MOCK_HINT.hint
+        ),
+      },
+      {
+        name: 'handle code execution failure with Groovy diagnostics without hint',
+        cmdResult: MOCK_GROOVY_RUN_CODE_ERROR,
+        connectionUrl: MOCK_CONNECTION_URL.href,
+        groovyHint: undefined,
+        expected: mcpErrorResult(
+          `Code execution failed: ${MOCK_GROOVY_URI_STRING}: Attempting to import a path that does not exist: import package3.subpackage1.MultiClassTest; [0:0]`,
+          {
+            languageId: 'groovy',
+            variables: [{ id: 'y', title: 'y', type: 'str', isNew: true }],
+          }
+        ),
+      },
+      {
+        name: 'handle ConnectionNotFoundError during Groovy code execution',
+        cmdResult: new ConnectionNotFoundError(MOCK_CONNECTION_URL),
+        connectionUrl: MOCK_CONNECTION_URL.href,
+        connectionNotFoundHint:
+          'No available connections supporting languageId groovy.',
+        expected: mcpErrorResult(
+          'Failed to execute code: No connection found for URL: http://localhost:10000/',
+          { languageId: 'groovy' },
+          'No available connections supporting languageId groovy.'
+        ),
+      },
+      {
+        name: 'handle general exceptions during Groovy execution',
+        cmdResult: new Error('Unexpected Groovy error'),
+        connectionUrl: MOCK_CONNECTION_URL.href,
+        expected: mcpErrorResult(
+          'Failed to execute code: Unexpected Groovy error',
+          { languageId: 'groovy' }
+        ),
+      },
+    ])(
+      'should $name',
+      async ({
+        cmdResult,
+        connectionUrl,
+        groovyHint,
+        connectionNotFoundHint,
+        expected,
+      }) => {
+        if (cmdResult instanceof Error) {
+          vi.mocked(execRunCode).mockRejectedValue(cmdResult);
+          if (connectionNotFoundHint) {
+            vi.mocked(createConnectionNotFoundHint).mockResolvedValue(
+              connectionNotFoundHint
+            );
+          }
+        } else {
+          vi.mocked(execRunCode).mockResolvedValue(cmdResult);
+        }
+
+        vi.mocked(createGroovyImportErrorHint).mockReturnValue(groovyHint);
+
+        const tool = createRunCodeFromUriTool({
+          groovyDiagnostics,
+          groovyWorkspace,
+          pythonDiagnostics,
+          pythonWorkspace,
+          serverManager,
+        });
+
+        const result = await tool.handler({
+          uri: MOCK_GROOVY_URI_STRING,
+          connectionUrl,
+        });
+
+        expect(getFirstConnectionOrCreate).toHaveBeenCalledWith({
+          serverManager,
+          connectionUrl: MOCK_CONNECTION_URL,
+          languageId: 'groovy',
         });
         expect(result.structuredContent).toEqual(expected);
       }

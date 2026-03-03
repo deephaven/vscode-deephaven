@@ -59,6 +59,36 @@ describe('parseGroovyServerError', () => {
     });
   });
 
+  it('should parse a simple single-level import path', () => {
+    const error =
+      'RuntimeException: Attempting to import a path that does not exist: import MyClass;';
+    const parsed = parseGroovyServerError(error);
+    expect(parsed).toHaveLength(1);
+
+    const [errorObj] = parsed;
+    expect(errorObj).toEqual({
+      type: 'RuntimeException',
+      value:
+        'Attempting to import a path that does not exist: import MyClass;',
+      importPath: 'MyClass',
+    });
+  });
+
+  it('should parse a deep nested import path', () => {
+    const error =
+      'RuntimeException: Attempting to import a path that does not exist: import com.example.subpackage.deep.MyClass;';
+    const parsed = parseGroovyServerError(error);
+    expect(parsed).toHaveLength(1);
+
+    const [errorObj] = parsed;
+    expect(errorObj).toEqual({
+      type: 'RuntimeException',
+      value:
+        'Attempting to import a path that does not exist: import com.example.subpackage.deep.MyClass;',
+      importPath: 'com.example.subpackage.deep.MyClass',
+    });
+  });
+
   it('should return empty array for unrecognized error format', () => {
     const parsed = parseGroovyServerError('Some other error');
     expect(parsed).toHaveLength(0);
@@ -66,6 +96,20 @@ describe('parseGroovyServerError', () => {
 
   it('should return empty array for empty string', () => {
     const parsed = parseGroovyServerError('');
+    expect(parsed).toHaveLength(0);
+  });
+
+  it('should return empty array when error has extra text after semicolon', () => {
+    const error =
+      'RuntimeException: Attempting to import a path that does not exist: import package.MyClass; extra text';
+    const parsed = parseGroovyServerError(error);
+    expect(parsed).toHaveLength(0);
+  });
+
+  it('should return empty array when error has a different prefix', () => {
+    const error =
+      'io.deephaven.RuntimeException: Attempting to import a path that does not exist: import package.MyClass;';
+    const parsed = parseGroovyServerError(error);
     expect(parsed).toHaveLength(0);
   });
 });
