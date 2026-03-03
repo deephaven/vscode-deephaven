@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseServerError } from './errorUtils';
+import { parseGroovyServerError, parseServerError } from './errorUtils';
 
 const mockErrorFromCurrentFile = [
   'java.lang.RuntimeException: Error in Python interpreter:',
@@ -41,6 +41,34 @@ const mockErrorFromAnotherFile = [
   '\tbleh',
   '',
 ].join('\n');
+
+const mockGroovyImportError =
+  'RuntimeException: Attempting to import a path that does not exist: import package3.subpackage1.MultiClassTest;';
+
+describe('parseGroovyServerError', () => {
+  it('should parse a Groovy import error', () => {
+    const parsed = parseGroovyServerError(mockGroovyImportError);
+    expect(parsed).toHaveLength(1);
+
+    const [error] = parsed;
+    expect(error).toEqual({
+      type: 'RuntimeException',
+      value:
+        'Attempting to import a path that does not exist: import package3.subpackage1.MultiClassTest;',
+      importPath: 'package3.subpackage1.MultiClassTest',
+    });
+  });
+
+  it('should return empty array for unrecognized error format', () => {
+    const parsed = parseGroovyServerError('Some other error');
+    expect(parsed).toHaveLength(0);
+  });
+
+  it('should return empty array for empty string', () => {
+    const parsed = parseGroovyServerError('');
+    expect(parsed).toHaveLength(0);
+  });
+});
 
 describe('parseServerError', () => {
   it('should parse an error originating from the current file', () => {
