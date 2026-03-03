@@ -5,6 +5,7 @@ import type {
   McpTool,
   McpToolHandlerArg,
   McpToolHandlerResult,
+  GroovyPackageName,
   PythonModuleFullname,
 } from '../../types';
 
@@ -49,10 +50,14 @@ type HandlerResult = McpToolHandlerResult<Spec>;
 type RunCodeFromUriTool = McpTool<Spec>;
 
 export function createRunCodeFromUriTool({
+  groovyDiagnostics,
+  groovyWorkspace,
   pythonDiagnostics,
   pythonWorkspace,
   serverManager,
 }: {
+  groovyDiagnostics: vscode.DiagnosticCollection;
+  groovyWorkspace: FilteredWorkspace<GroovyPackageName>;
   pythonDiagnostics: vscode.DiagnosticCollection;
   pythonWorkspace: FilteredWorkspace<PythonModuleFullname>;
   serverManager: IServerManager;

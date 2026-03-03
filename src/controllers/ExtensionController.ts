@@ -450,6 +450,7 @@ export class ExtensionController implements IDisposable {
     assertDefined(this._outputChannelDebug, 'outputChannelDebug');
     assertDefined(this._panelService, 'panelService');
     assertDefined(this._groovyDiagnostics, 'groovyDiagnostics');
+    assertDefined(this._groovyWorkspace, 'groovyWorkspace');
     assertDefined(this._pythonDiagnostics, 'pythonDiagnostics');
     assertDefined(this._pythonWorkspace, 'pythonWorkspace');
     assertDefined(this._serverManager, 'serverManager');
@@ -463,6 +464,7 @@ export class ExtensionController implements IDisposable {
       this._outputChannelDebug,
       this._panelService,
       this._groovyDiagnostics,
+      this._groovyWorkspace,
       this._pythonDiagnostics,
       this._pythonWorkspace,
       this._serverManager
