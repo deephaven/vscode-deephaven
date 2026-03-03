@@ -57,6 +57,7 @@ export class DhcService extends DisposableBase implements IDhcService {
    */
   static factory = (
     coreClientCache: URLMap<CoreAuthenticatedClient>,
+    groovyDiagnosticsCollection: vscode.DiagnosticCollection,
     diagnosticsCollection: vscode.DiagnosticCollection,
     remoteFileSourceService: RemoteFileSourceService,
     outputChannel: vscode.OutputChannel,
@@ -69,6 +70,7 @@ export class DhcService extends DisposableBase implements IDhcService {
         return new DhcService(
           serverUrl,
           coreClientCache,
+          groovyDiagnosticsCollection,
           diagnosticsCollection,
           remoteFileSourceService,
           outputChannel,
@@ -88,6 +90,7 @@ export class DhcService extends DisposableBase implements IDhcService {
   private constructor(
     serverUrl: URL,
     coreClientCache: URLMap<CoreAuthenticatedClient>,
+    groovyDiagnosticsCollection: vscode.DiagnosticCollection,
     diagnosticsCollection: vscode.DiagnosticCollection,
     remoteFileSourceService: RemoteFileSourceService,
     outputChannel: vscode.OutputChannel,
@@ -99,6 +102,7 @@ export class DhcService extends DisposableBase implements IDhcService {
     super();
 
     this.coreClientCache = coreClientCache;
+    this.groovyDiagnosticsCollection = groovyDiagnosticsCollection;
     this.diagnosticsCollection = diagnosticsCollection;
     this.remoteFileSourceService = remoteFileSourceService;
     this.outputChannel = outputChannel;
@@ -131,6 +135,7 @@ export class DhcService extends DisposableBase implements IDhcService {
   private readonly secretService: ISecretService;
   private readonly toaster: IToastService;
   private readonly panelService: IPanelService;
+  private readonly groovyDiagnosticsCollection: vscode.DiagnosticCollection;
   private readonly diagnosticsCollection: vscode.DiagnosticCollection;
   private clientPromise: Promise<CoreAuthenticatedClient | null> | null = null;
   private initSessionPromise: Promise<
