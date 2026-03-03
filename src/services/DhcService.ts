@@ -35,7 +35,11 @@ import {
   UnsupportedConsoleTypeError,
   VARIABLE_UNICODE_ICONS,
 } from '../common';
-import { NoConsoleTypesError, parseServerError } from '../dh/errorUtils';
+import {
+  NoConsoleTypesError,
+  parseGroovyServerError,
+  parseServerError,
+} from '../dh/errorUtils';
 import { hasErrorCode } from '../util/typeUtils';
 import { DisposableBase } from './DisposableBase';
 import { assertDefined } from '../shared';
@@ -474,6 +478,7 @@ export class DhcService extends DisposableBase implements IDhcService {
     if (typeof documentOrText !== 'string') {
       // Clear previous diagnostics when cmd starts running
       this.diagnosticsCollection.set(documentOrText.uri, []);
+      this.groovyDiagnosticsCollection.set(documentOrText.uri, []);
     }
 
     if (this.session == null) {
@@ -582,6 +587,27 @@ export class DhcService extends DisposableBase implements IDhcService {
               [diagnostic]
             );
           }
+        }
+      } else if (
+        languageId === 'groovy' &&
+        typeof documentOrText !== 'string'
+      ) {
+        const errors = parseGroovyServerError(error);
+
+        for (const { type, value } of errors) {
+          // Flag the first token on the first line since Groovy import errors
+          // don't include a specific line number
+          const diagnostic: vscode.Diagnostic = {
+            code: type,
+            message: value == null ? error : `${value}\n${error}`,
+            severity: vscode.DiagnosticSeverity.Error,
+            range: new vscode.Range(0, 0, 0, 0),
+            source: 'deephaven',
+          };
+
+          this.groovyDiagnosticsCollection.set(documentOrText.uri, [
+            diagnostic,
+          ]);
         }
       }
     }
