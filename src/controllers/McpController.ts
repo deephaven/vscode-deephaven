@@ -9,6 +9,7 @@ import type {
   IPanelService,
   IServerManager,
   McpVersion,
+  GroovyPackageName,
   PythonModuleFullname,
 } from '../types';
 import type { FilteredWorkspace } from '../services';
@@ -47,6 +48,7 @@ export class McpController extends ControllerBase {
     private readonly _outputChannelDebug: OutputChannelWithHistory,
     private readonly _panelService: IPanelService,
     private readonly _groovyDiagnostics: vscode.DiagnosticCollection,
+    private readonly _groovyWorkspace: FilteredWorkspace<GroovyPackageName>,
     private readonly _pythonDiagnostics: vscode.DiagnosticCollection,
     private readonly _pythonWorkspace: FilteredWorkspace<PythonModuleFullname>,
     private readonly _serverManager: IServerManager
@@ -157,6 +159,8 @@ export class McpController extends ControllerBase {
         this._outputChannel,
         this._outputChannelDebug,
         this._panelService,
+        this._groovyDiagnostics,
+        this._groovyWorkspace,
         this._pythonDiagnostics,
         this._pythonWorkspace,
         this._serverManager
