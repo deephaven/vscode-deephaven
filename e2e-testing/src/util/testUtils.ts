@@ -507,8 +507,9 @@ export async function switchToFrame(
 
 /**
  * Wait for Deephaven server connection to complete, handling username/password
- * input if prompted. Closes the "Created Deephaven session" notification when
- * connection is established.
+ * input if prompted. Also handles authentication method selection if the server
+ * supports both SAML and Basic authentication. Closes the "Created Deephaven
+ * session" notification when connection is established.
  */
 export async function waitForServerConnection(): Promise<void> {
   let firstInputBox: InputBox | null = null;
@@ -517,6 +518,38 @@ export async function waitForServerConnection(): Promise<void> {
   } catch {}
 
   if (firstInputBox != null) {
+    // Check if this is an authentication method selection prompt
+    // (appears when server has both SAML and Basic auth configured)
+    const quickPicks = await firstInputBox.getQuickPicks();
+
+    if (quickPicks.length > 0) {
+      // Authentication method selection - find and select "Basic Login"
+      let basicLoginIndex = -1;
+      for (let i = 0; i < quickPicks.length; i++) {
+        const label = await quickPicks[i].getLabel();
+        if (label === 'Basic Login') {
+          basicLoginIndex = i;
+          break;
+        }
+      }
+
+      if (basicLoginIndex === -1) {
+        const availableOptions = await Promise.all(
+          quickPicks.map(pick => pick.getLabel())
+        );
+        throw new Error(
+          `Expected "Basic Login" option not found in authentication methods. ` +
+            `Available options: ${availableOptions.join(', ')}`
+        );
+      }
+
+      await firstInputBox.selectQuickPick(basicLoginIndex);
+
+      // Wait for the next input box (username prompt)
+      firstInputBox = await InputBox.create();
+    }
+
+    // Handle username/password prompts
     const username = process.env.DH_USERNAME ?? 'vscode_testuser';
     const password = process.env.DH_PASSWORD ?? username;
 
