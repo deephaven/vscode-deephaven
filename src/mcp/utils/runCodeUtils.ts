@@ -10,6 +10,7 @@ import { isInstanceOf } from '../../util';
 import type {
   ConnectionState,
   ConsoleType,
+  GroovyPackageName,
   IServerManager,
   PythonModuleFullname,
 } from '../../types';
@@ -172,6 +173,109 @@ function hasPythonRemoteFileSourcePlugin(connection: ConnectionState): boolean {
     isInstanceOf(connection, DhcService) &&
     connection.hasPythonRemoteFileSourcePlugin()
   );
+}
+
+/**
+ * Checks if the Groovy remote file source plugin is installed for the given connection.
+ * @param connection The connection state to check.
+ * @returns True if the Groovy remote file source plugin is installed, false otherwise.
+ */
+export function hasGroovyRemoteFileSourcePlugin(
+  connection: ConnectionState
+): boolean {
+  return (
+    isInstanceOf(connection, DhcService) &&
+    connection.hasGroovyRemoteFileSourcePlugin()
+  );
+}
+
+/**
+ * Creates a hint for Groovy import errors.
+ * - If no import errors are found, returns undefined.
+ * - If import errors are found, and remote file source plugin is not installed,
+ * suggests installing it.
+ * - If import errors are found, and remote file source plugin is installed,
+ * determines a list of folder URIs in the workspace that may satisfy the missing
+ * imports by verifying the subpackage folder structure.
+ * @param errors The list of diagnostic errors.
+ * @param connection The connection state to check for Groovy remote file source plugin.
+ * @param groovyWorkspace The filtered Groovy workspace.
+ * @returns An object with hint and foundMatchingFolderUris, or undefined if no hint is applicable.
+ */
+export function createGroovyImportErrorHint(
+  errors: Array<{ message: string; uri: string; range: vscode.Range }>,
+  connection: ConnectionState,
+  groovyWorkspace: FilteredWorkspace<GroovyPackageName>
+): { hint: string; foundMatchingFolderUris: string[] } | undefined {
+  // Look for 'Attempting to import a path that does not exist' errors and
+  // extract the top-level package and required subpackage (if any)
+  const importErrors = new Map<string, Set<string>>();
+
+  for (const e of errors) {
+    const match =
+      /Attempting to import a path that does not exist: import ([^;]+);/.exec(
+        e.message
+      );
+    if (match) {
+      const importPath = match[1].trim();
+      const parts = importPath.split('.');
+      const topLevelPackage = parts[0];
+
+      if (!importErrors.has(topLevelPackage)) {
+        importErrors.set(topLevelPackage, new Set());
+      }
+
+      // If there are 3+ parts (package.subpackage.ClassName), the second part
+      // is a subpackage that must exist as a child folder
+      if (parts.length >= 3) {
+        importErrors.get(topLevelPackage)!.add(parts[1]);
+      }
+    }
+  }
+
+  if (importErrors.size === 0) {
+    return;
+  }
+
+  if (!hasGroovyRemoteFileSourcePlugin(connection)) {
+    return {
+      hint: `The Groovy remote file source plugin is not installed. Install it to enable importing workspace packages.`,
+      foundMatchingFolderUris: [],
+    };
+  }
+
+  const foundUris: string[] = [];
+  const rootNodes = groovyWorkspace.getChildNodes(null);
+
+  for (const rootNode of rootNodes) {
+    for (const node of groovyWorkspace.iterateNodeTree(rootNode.uri)) {
+      if (node.type === 'folder' && importErrors.has(node.name) && node.uri) {
+        const requiredSubpackages = importErrors.get(node.name)!;
+
+        if (requiredSubpackages.size === 0) {
+          // No subpackage verification needed
+          foundUris.push(node.uri.toString());
+        } else {
+          // Verify at least one required subpackage exists as a child folder
+          const childNodes = groovyWorkspace.getChildNodes(node.uri);
+          const hasMatchingSubpackage = [...requiredSubpackages].some(sub =>
+            childNodes.some(
+              child => child.type === 'folder' && child.name === sub
+            )
+          );
+
+          if (hasMatchingSubpackage) {
+            foundUris.push(node.uri.toString());
+          }
+        }
+      }
+    }
+  }
+
+  return {
+    hint: 'If this is a package in your workspace, add its folder as a remote file source using addRemoteFileSources. DO NOT guess folder URIs - use the exact URIs provided in details.foundMatchingFolderUris.',
+    foundMatchingFolderUris: foundUris,
+  };
 }
 
 /**

@@ -61,6 +61,7 @@ export interface IDhcService extends IDisposable, ConnectionState {
   readonly onDidDisconnect: vscode.Event<URL>;
   readonly onDidChangeRunningCodeStatus: vscode.Event<boolean>;
 
+  hasGroovyRemoteFileSourcePlugin(): boolean;
   hasPythonRemoteFileSourcePlugin(): boolean;
   initSession(): Promise<boolean>;
   getClient(): Promise<CoreAuthenticatedClient | null>;

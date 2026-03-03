@@ -410,6 +410,14 @@ export class DhcService extends DisposableBase implements IDhcService {
   }
 
   /**
+   * Check if the Groovy remote file source plugin is installed.
+   * @returns true if the plugin is installed, false otherwise
+   */
+  hasGroovyRemoteFileSourcePlugin = (): boolean => {
+    return this.groovyRemoteFileSourcePluginSubscription != null;
+  };
+
+  /**
    * Check if the remote file source plugin is installed.
    * @returns true if the plugin is installed, false otherwise
    */
