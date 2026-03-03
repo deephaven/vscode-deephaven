@@ -46,6 +46,7 @@ export class McpController extends ControllerBase {
     private readonly _outputChannel: OutputChannelWithHistory,
     private readonly _outputChannelDebug: OutputChannelWithHistory,
     private readonly _panelService: IPanelService,
+    private readonly _groovyDiagnostics: vscode.DiagnosticCollection,
     private readonly _pythonDiagnostics: vscode.DiagnosticCollection,
     private readonly _pythonWorkspace: FilteredWorkspace<PythonModuleFullname>,
     private readonly _serverManager: IServerManager

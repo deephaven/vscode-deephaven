@@ -227,6 +227,7 @@ export class ExtensionController implements IDisposable {
   // Web views
   private _createQueryViewProvider: CreateQueryViewProvider | null = null;
 
+  private _groovyDiagnostics: vscode.DiagnosticCollection | null = null;
   private _pythonDiagnostics: vscode.DiagnosticCollection | null = null;
   private _outputChannel: OutputChannelWithHistory | null = null;
   private _outputChannelDebug: OutputChannelWithHistory | null = null;
@@ -448,6 +449,7 @@ export class ExtensionController implements IDisposable {
     assertDefined(this._outputChannel, 'outputChannel');
     assertDefined(this._outputChannelDebug, 'outputChannelDebug');
     assertDefined(this._panelService, 'panelService');
+    assertDefined(this._groovyDiagnostics, 'groovyDiagnostics');
     assertDefined(this._pythonDiagnostics, 'pythonDiagnostics');
     assertDefined(this._pythonWorkspace, 'pythonWorkspace');
     assertDefined(this._serverManager, 'serverManager');
@@ -460,6 +462,7 @@ export class ExtensionController implements IDisposable {
       this._outputChannel,
       this._outputChannelDebug,
       this._panelService,
+      this._groovyDiagnostics,
       this._pythonDiagnostics,
       this._pythonWorkspace,
       this._serverManager
@@ -472,12 +475,18 @@ export class ExtensionController implements IDisposable {
    * Initialize diagnostics collections.
    */
   initializeDiagnostics = (): void => {
+    this._groovyDiagnostics =
+      vscode.languages.createDiagnosticCollection('groovy');
+
     this._pythonDiagnostics =
       vscode.languages.createDiagnosticCollection('python');
 
     // Clear diagnostics on save
     vscode.workspace.onDidSaveTextDocument(
       doc => {
+        if (doc.languageId === 'groovy') {
+          this._groovyDiagnostics?.set(doc.uri, []);
+        }
         this._pythonDiagnostics?.set(doc.uri, []);
       },
       null,
@@ -547,6 +556,7 @@ export class ExtensionController implements IDisposable {
   };
 
   initializeServerManager = (): void => {
+    assertDefined(this._groovyDiagnostics, 'groovyDiagnostics');
     assertDefined(this._pythonDiagnostics, 'pythonDiagnostics');
     assertDefined(this._outputChannel, 'outputChannel');
     assertDefined(this._remoteFileSourceService, 'remoteFileSourceService');
@@ -682,6 +692,7 @@ export class ExtensionController implements IDisposable {
 
     this._dhcServiceFactory = DhcService.factory(
       this._coreClientCache,
+      this._groovyDiagnostics,
       this._pythonDiagnostics,
       this._remoteFileSourceService,
       this._outputChannel,
