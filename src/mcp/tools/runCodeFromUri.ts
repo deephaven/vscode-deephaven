@@ -16,6 +16,7 @@ import {
   runCodeOutputSchema,
   extractVariables,
   getDiagnosticsErrors,
+  createGroovyImportErrorHint,
   createPythonModuleImportErrorHint,
   formatDiagnosticError,
   createConnectionNotFoundHint,
@@ -132,9 +133,6 @@ export function createRunCodeFromUriTool({
             | { hint: string; foundMatchingFolderUris: string[] }
             | undefined;
 
-          // TODO: We currently only parse Python errors into a
-          // `vscode.DiagnosticsCollection`, but we should be able to improve
-          // error hints for Groovy once DH-21363 is implemented.
           if (languageId === 'python') {
             const executedConnection = serverManager.getUriConnection(
               parsedUriResult.value
@@ -149,6 +147,21 @@ export function createRunCodeFromUriTool({
               pythonErrors,
               executedConnection,
               pythonWorkspace
+            );
+          } else if (languageId === 'groovy') {
+            const executedConnection = serverManager.getUriConnection(
+              parsedUriResult.value
+            );
+            assertDefined(executedConnection, 'executedConnection');
+
+            const groovyErrors = getDiagnosticsErrors(groovyDiagnostics);
+
+            errorMsg = groovyErrors.map(formatDiagnosticError).join('\n');
+
+            hintResult = createGroovyImportErrorHint(
+              groovyErrors,
+              executedConnection,
+              groovyWorkspace
             );
           }
 
