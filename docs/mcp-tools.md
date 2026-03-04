@@ -33,7 +33,7 @@ This guide helps you understand what the Deephaven MCP tools can do and how to u
 "Is my Deephaven server running?" → AI uses listServers to check status
 ```
 
-**Important notes:**
+**Notes:**
 
 - Servers must be configured in VS Code settings first (see [Configuration](configuration.md)).
 - Community servers auto-start if they're pip-managed.
@@ -59,7 +59,7 @@ This guide helps you understand what the Deephaven MCP tools can do and how to u
 "Execute just the data loading part" → AI uses runCodeFromUri with selection
 ```
 
-**Important notes:**
+**Notes:**
 
 - Language is detected from the file extension or specified explicitly.
 - Variables created by the code are returned in the response.
@@ -101,7 +101,7 @@ This guide helps you understand what the Deephaven MCP tools can do and how to u
 "Reopen the panels I closed earlier" → AI uses listVariables to find variables, then openVariablePanels
 ```
 
-**Important notes:**
+**Notes:**
 
 - Variables are automatically opened as panels after code execution, so `openVariablePanels` is typically used to reopen panels that were closed or for variables that weren't initially opened.
 - `listVariables` only returns variables that support panels (tables, plots, etc.), not scalar values or functions.
@@ -127,7 +127,7 @@ This guide helps you understand what the Deephaven MCP tools can do and how to u
 "What's the average value in the sales column?" → AI uses getColumnStats
 ```
 
-**Important notes:**
+**Notes:**
 
 - Prefer `variableId` (from `runCode` or `listVariables`) over `tableName` when available.
 - `getTableData` supports pagination via `limit` and `offset` parameters (max 10,000 rows per request).
@@ -161,7 +161,7 @@ Remote file sources allow the Deephaven server to access source files during cod
 - Allowing Deephaven to read data files from your workspace.
 - Setting up development workflows with local code.
 
-**Important notes:**
+**Notes:**
 
 - Only works with Enterprise (DHE) servers.
 - Folders must be within the workspace.
