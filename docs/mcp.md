@@ -151,16 +151,16 @@ In addition to MCP tools, the extension provides Chat Skills that can be registe
 
 1. **Deephaven VS Code Usage** (`deephaven-vscode-using`)
 
-   - Manages Deephaven server connections and code execution through VS Code MCP tools
-   - Handles connecting to DHC/DHE servers, executing Python/Groovy code
-   - Provides workflows for opening variable panels and troubleshooting connection issues
-   - Use when working with the vscode-deephaven extension's MCP tools
+   - Manages Deephaven server connections and code execution through VS Code MCP tools.
+   - Handles connecting to DHC/DHE servers, executing Python/Groovy code.
+   - Provides workflows for opening variable panels and troubleshooting connection issues.
+   - Use when working with the vscode-deephaven extension's MCP tools.
 
 2. **Deephaven Documentation Searching** (`deephaven-docs-searching`)
-   - Queries Deephaven documentation for API help, syntax guidance, and best practices
-   - Provides answers about table operations, filtering, joining, aggregations, plotting, and other Deephaven features
-   - Supports both Python and Groovy
-   - Does NOT require a running server or connection - purely documentation queries
+   - Queries Deephaven documentation for API help, syntax guidance, and best practices.
+   - Provides answers about table operations, filtering, joining, aggregations, plotting, and other Deephaven features.
+   - Supports both Python and Groovy.
+   - Does NOT require a running server or connection - purely documentation queries.
 
 ### Chat Skills Configuration
 
