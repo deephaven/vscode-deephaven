@@ -3,6 +3,7 @@ import type {
   McpTool,
   McpToolHandlerArg,
   McpToolHandlerResult,
+  PythonModuleFullname,
 } from '../../types';
 import { createMcpToolOutputSchema, McpToolResponse } from '../utils';
 import type { FilteredWorkspace } from '../../services';
@@ -24,7 +25,7 @@ type ListRemoteFileSourcesTool = McpTool<Spec>;
 export function createListRemoteFileSourcesTool({
   pythonWorkspace,
 }: {
-  pythonWorkspace: FilteredWorkspace;
+  pythonWorkspace: FilteredWorkspace<PythonModuleFullname>;
 }): ListRemoteFileSourcesTool {
   return {
     name: 'listRemoteFileSources',

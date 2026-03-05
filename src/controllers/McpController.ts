@@ -9,6 +9,7 @@ import type {
   IPanelService,
   IServerManager,
   McpVersion,
+  PythonModuleFullname,
 } from '../types';
 import type { FilteredWorkspace } from '../services';
 import { isWindsurf, Logger, OutputChannelWithHistory } from '../util';
@@ -46,7 +47,7 @@ export class McpController extends ControllerBase {
     private readonly _outputChannelDebug: OutputChannelWithHistory,
     private readonly _panelService: IPanelService,
     private readonly _pythonDiagnostics: vscode.DiagnosticCollection,
-    private readonly _pythonWorkspace: FilteredWorkspace,
+    private readonly _pythonWorkspace: FilteredWorkspace<PythonModuleFullname>,
     private readonly _serverManager: IServerManager
   ) {
     super();

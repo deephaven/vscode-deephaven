@@ -9,6 +9,7 @@ import type {
   IServerManager,
   McpTool,
   McpToolSpec,
+  PythonModuleFullname,
 } from '../types';
 import { MCP_SERVER_NAME } from '../common';
 import {
@@ -48,7 +49,7 @@ export class McpServer extends DisposableBase {
     readonly outputChannelDebug: OutputChannelWithHistory,
     readonly panelService: IPanelService,
     readonly pythonDiagnostics: vscode.DiagnosticCollection,
-    readonly pythonWorkspace: FilteredWorkspace,
+    readonly pythonWorkspace: FilteredWorkspace<PythonModuleFullname>,
     readonly serverManager: IServerManager
   ) {
     super();
