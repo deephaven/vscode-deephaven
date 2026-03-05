@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import {
   ActivityBar,
   By,
@@ -49,10 +50,9 @@ export async function closeActivityBarView(name: string): Promise<void> {
  * requires the "Create Connection" form (DHE with createQueryIframe), the
  * hook timeout is extended to 120 s to accommodate the worker creation.
  */
-export async function connectToServer(
-  mochaCtx?: { timeout(ms: number): unknown }
-): Promise<void> {
-  // eslint-disable-next-line no-console
+export async function connectToServer(mochaCtx?: {
+  timeout(ms: number): unknown;
+}): Promise<void> {
   console.log('Connecting to Deephaven server...');
 
   await executeCommandWithRetry('Deephaven: Select Connection');
@@ -174,7 +174,6 @@ export async function executeWithRetry<T>(
       );
 
       if (!isRetryableError) {
-        // eslint-disable-next-line no-console
         console.error('Non-retryable error encountered:', error);
         throw error;
       }
@@ -182,7 +181,6 @@ export async function executeWithRetry<T>(
       const hasRetryAttemptsRemaining = retryAttempt < maxRetries;
 
       if (!hasRetryAttemptsRemaining) {
-        // eslint-disable-next-line no-console
         console.error('Max retry attempts reached. Last error:', error);
         throw error;
       }
@@ -384,7 +382,6 @@ export async function openFileResources(
     return;
   }
 
-  // eslint-disable-next-line no-console
   console.log('Opening filePaths:', filePaths);
 
   // In CI environment, openResources doesn't work on Linux. Using the quick open
@@ -427,7 +424,6 @@ export async function step<TResult>(
   fn: (stepLabel: string) => Promise<TResult>
 ): Promise<TResult> {
   const stepLabel = `Step ${n}: ${label}`;
-  // eslint-disable-next-line no-console
   console.log(stepLabel);
   return fn(stepLabel);
 }
@@ -490,7 +486,6 @@ export async function switchToFrame(
         throw err;
       }
 
-      // eslint-disable-next-line no-console
       console.log(`Retrying after '${errorType}' error`);
 
       // Try retrieving the iframe and switching again
@@ -502,7 +497,6 @@ export async function switchToFrame(
       try {
         await driver.switchTo().frame(iframe);
       } catch (err) {
-        // eslint-disable-next-line no-console
         console.log(`Failed to switch to frame: ${iframeOrIdentifier}`, err);
         throw err;
       }
@@ -541,24 +535,24 @@ async function handleCreateQueryForm(): Promise<void> {
   // Navigate: outer sidebar iframe → #active-frame → #content-iframe.
   // The Create Connection panel is a VS Code WebviewView rendered as an iframe
   // with class "webview ready" and src containing "purpose=webviewView".
-  // eslint-disable-next-line no-console
   console.log('[handleCreateQueryForm] Waiting for outer sidebar iframe...');
   await switchToFrame(['iframe[src*="purpose=webviewView"]'], TIMEOUT);
-  // eslint-disable-next-line no-console
+
   console.log('[handleCreateQueryForm] Waiting for #active-frame...');
   await switchToFrame(['#active-frame'], TIMEOUT);
-  // eslint-disable-next-line no-console
+
   console.log('[handleCreateQueryForm] Waiting for #content-iframe...');
   await switchToFrame(['#content-iframe'], TIMEOUT);
 
-  // eslint-disable-next-line no-console
   console.log('[handleCreateQueryForm] Waiting for form to load...');
   // Wait for the form to finish loading (blank panel / spinner may appear first)
   const heapInput = await driver.wait<WebElement>(async () => {
-    const [el] = await driver.findElements(By.css('.form-control.inputHeapSize'));
+    const [el] = await driver.findElements(
+      By.css('.form-control.inputHeapSize')
+    );
     return el;
   }, TIMEOUT);
-  // eslint-disable-next-line no-console
+
   console.log('[handleCreateQueryForm] Form loaded. Setting heap size...');
   await heapInput.clear();
   await heapInput.sendKeys('0.5');
@@ -572,17 +566,17 @@ async function handleCreateQueryForm(): Promise<void> {
       break;
     }
   }
-  // eslint-disable-next-line no-console
-  console.log('[handleCreateQueryForm] Language set. Clicking Connect...');
 
+  console.log('[handleCreateQueryForm] Language set. Clicking Connect...');
   const connectBtn = await driver.findElement(
     By.css('button[type="submit"].btn-primary')
   );
   await connectBtn.click();
-  // eslint-disable-next-line no-console
-  console.log('[handleCreateQueryForm] Connect clicked. Waiting for panel to finish...');
 
-  // eslint-disable-next-line no-console
+  console.log(
+    '[handleCreateQueryForm] Connect clicked. Waiting for panel to finish...'
+  );
+
   console.log('[handleCreateQueryForm] Returning to default content.');
   await driver.switchTo().defaultContent();
 
@@ -590,14 +584,13 @@ async function handleCreateQueryForm(): Promise<void> {
   // in the DOM when a WebviewView panel closes but hides it via CSS — so check
   // isDisplayed() rather than DOM presence. The panel hides once the worker is
   // fully created, which is the tightest signal before the notification fires.
-  // eslint-disable-next-line no-console
   console.log('[handleCreateQueryForm] Waiting for panel to close...');
   try {
     await driver.wait(async () => {
       const [frame] = await driver.findElements(
         By.css('iframe[src*="purpose=webviewView"]')
       );
-      if (!frame) return true; // removed from DOM (shouldn't happen, but safe)
+
       try {
         return !(await frame.isDisplayed());
       } catch {
@@ -605,9 +598,11 @@ async function handleCreateQueryForm(): Promise<void> {
       }
     }, 90_000);
   } catch (err) {
-    throw new Error(`[handleCreateQueryForm] TIMEOUT waiting for panel to close: ${err}`);
+    throw new Error(
+      `[handleCreateQueryForm] TIMEOUT waiting for panel to close: ${err}`
+    );
   }
-  // eslint-disable-next-line no-console
+
   console.log('[handleCreateQueryForm] Panel closed.');
 }
 
@@ -617,9 +612,9 @@ async function handleCreateQueryForm(): Promise<void> {
  * supports both SAML and Basic authentication. Closes the "Created Deephaven
  * session" notification when connection is established.
  */
-export async function waitForServerConnection(
-  mochaCtx?: { timeout(ms: number): unknown }
-): Promise<void> {
+export async function waitForServerConnection(mochaCtx?: {
+  timeout(ms: number): unknown;
+}): Promise<void> {
   let firstInputBox: InputBox | null = null;
   try {
     firstInputBox = await InputBox.create();
@@ -671,20 +666,27 @@ export async function waitForServerConnection(
 
   // Handle "Create Connection" form for servers with the createQueryIframe feature
   const serverUrl = process.env.DH_SERVER_URL;
-  // eslint-disable-next-line no-console
   console.log('[waitForServerConnection] DH_SERVER_URL:', serverUrl);
+
   if (serverUrl != null) {
-    const needsForm = await checkCreateQueryIframe(serverUrl);
-    // eslint-disable-next-line no-console
-    console.log('[waitForServerConnection] checkCreateQueryIframe:', needsForm);
-    if (needsForm) {
-      // Worker creation can take well over 30 s — extend the Mocha hook timeout
-      // before entering the long waits so the hook doesn't time out prematurely.
+    const isCreateQueryIframeSupported =
+      await checkCreateQueryIframe(serverUrl);
+
+    console.log(
+      '[waitForServerConnection] checkCreateQueryIframe:',
+      isCreateQueryIframeSupported
+    );
+
+    if (isCreateQueryIframeSupported) {
+      // Worker creation using the iframe can can extend total test time to well
+      // over 30s, so extend the default Mocha hook timeout.
       if (mochaCtx != null) {
-        // eslint-disable-next-line no-console
-        console.log('[waitForServerConnection] DHE createQueryIframe detected — extending Mocha timeout to 120 s');
+        console.log(
+          '[waitForServerConnection] DHE createQueryIframe detected — extending Mocha timeout to 120 s'
+        );
         mochaCtx.timeout(120_000);
       }
+
       await handleCreateQueryForm();
     }
   }
@@ -705,15 +707,15 @@ export async function waitForServerConnection(
           if (msg.startsWith('Created Deephaven session:')) {
             return n;
           }
-          // eslint-disable-next-line no-console
-          console.log('[waitForServerConnection] Unmatched notification:', msg);
         }
         return null;
       },
       120_000
     );
   } catch (err) {
-    throw new Error(`[waitForServerConnection] TIMEOUT waiting for "Created Deephaven session" notification: ${err}`);
+    throw new Error(
+      `[waitForServerConnection] TIMEOUT waiting for "Created Deephaven session" notification: ${err}`
+    );
   }
 
   await notification?.dismiss();
