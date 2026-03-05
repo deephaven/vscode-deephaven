@@ -85,6 +85,7 @@ export function getEmbedWidgetUrl({
 
   url.searchParams.set('name', title);
   url.searchParams.set('theme', themeKey);
+  url.searchParams.set('errorNotifications', 'true');
 
   if (authProvider) {
     url.searchParams.set('authProvider', authProvider);

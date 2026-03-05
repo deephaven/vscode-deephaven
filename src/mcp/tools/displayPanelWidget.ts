@@ -120,23 +120,27 @@ export function createDisplayPanelWidgetTool({
       );
 
       // Handle no match
-      if (matchingVariable == null) {
-        return response.error(
-          `No variable found with title: ${variableTitle}`,
-          null,
-          {
-            connectionUrl,
-            variableTitle,
-            variables: allVariables.map(({ id, title, type }) => ({
-              id,
-              title,
-              type,
-            })),
-          }
-        );
-      }
+      // if (matchingVariable == null) {
+      //   return response.error(
+      //     `No variable found with title: ${variableTitle}`,
+      //     null,
+      //     {
+      //       connectionUrl,
+      //       variableTitle,
+      //       variables: allVariables.map(({ id, title, type }) => ({
+      //         id,
+      //         title,
+      //         type,
+      //       })),
+      //     }
+      //   );
+      // }
 
-      const { id: variableId, title, type: variableType } = matchingVariable;
+      const {
+        id: variableId,
+        title,
+        type: variableType,
+      } = matchingVariable ?? {};
 
       // Compute panel URL by replacing placeholder with variable title
       const panelUrl = firstConnectionResult.panelUrlFormat.replace(

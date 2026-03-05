@@ -191,7 +191,7 @@ export function DEEPHAVEN_PANEL_UI(): string {
 
   <!-- Panel container with iframe -->
   <div class="panel-container">
-    <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-overlay hidden" id="loadingOverlay">
       <div class="spinner"></div>
       <div id="loadingMessage">Connecting to Deephaven...</div>
     </div>
@@ -229,6 +229,7 @@ export function DEEPHAVEN_PANEL_UI(): string {
         params: params || {}
       };
 
+      console.log('Sending request to parent:', method);
       return new Promise((resolve, reject) => {
         pendingRequests.set(id, { resolve, reject });
         window.parent.postMessage(request, '*');
@@ -242,13 +243,59 @@ export function DEEPHAVEN_PANEL_UI(): string {
         method: method,
         params: params || {}
       };
+      console.log('Sending notification to parent:', method);
       window.parent.postMessage(notification, '*');
     }
 
-    // Listen for messages from host
+    // Listen for messages from host and iframe
     window.addEventListener('message', (event) => {
       try {
         const message = event.data;
+        const iframe = document.getElementById('panelIframe');
+
+        // Check if message is from the nested iframe (Deephaven widget)
+        if (event.source === iframe?.contentWindow) {
+          console.log('Message received from Deephaven iframe:', JSON.stringify(message, null, 2));
+          
+          // Handle JSON-RPC error responses
+          if (message.jsonrpc === '2.0' && message.error) {
+            console.log('Forwarding JSON-RPC error response from iframe to chat via ui/message');
+            const { code, message: errorMsg, data } = message.error;
+            
+            let errorText = errorMsg || 'Unknown error';
+            
+            // If error.data is an array with nested errors, format them
+            if (Array.isArray(data) && data.length > 0) {
+              const nestedErrors = data
+                .map(err => err.message || JSON.stringify(err))
+                .join('\\n');
+              errorText = \`\${errorText}\\n\${nestedErrors}\`;
+            } else if (data) {
+              errorText = \`\${errorText}\\n\${JSON.stringify(data)}\`;
+            }
+            
+            // Send to chat as ui/message request (per SEP-1865 spec)
+            sendRequest('ui/message', {
+              role: 'user',
+              content: {
+                type: 'text',
+                text: \`**Error** (Code \${code}): \${errorText}\`
+              }
+            }).catch(error => {
+              console.error('Failed to send error to chat:', error instanceof Error ? error.message : String(error));
+            });
+            return;
+          }
+          
+          // Forward error notifications from Deephaven iframe to chat via ui/message request
+          if (message.jsonrpc === '2.0' && message.method === 'notifications/message') {
+            console.log('Forwarding notification from iframe to parent');
+            window.parent.postMessage(message, '*');
+          }
+          return;
+        }
+
+        console.log('Message received from parent:', JSON.stringify(message, null, 2));
 
         // Handle responses to our requests
         if (message.id && (message.result || message.error)) {
@@ -290,7 +337,7 @@ export function DEEPHAVEN_PANEL_UI(): string {
           if (params?.arguments) {
             panelConfig = params.arguments;
             updatePanelConfig(params.arguments, false);
-            loadPanel(params.arguments);
+            // Don't call loadPanel yet - wait for tool-result with panelUrl
           }
           updateStatus('Loading panel...', false);
           break;
@@ -301,20 +348,25 @@ export function DEEPHAVEN_PANEL_UI(): string {
           if (params?.isError) {
             showError('Panel loading failed', params.result?.toString());
           } else {
-            // Extract panelUrl from structuredContent.details if available
+            // Extract panelUrl and other details from structuredContent
             const structuredContent = params.structuredContent;
             console.log('structuredContent:', JSON.stringify(structuredContent, null, 2));
-            if (structuredContent?.details?.panelUrl) {
-              console.log('Extracted panelUrl from tool result:', structuredContent.details.panelUrl);
+            if (structuredContent?.details) {
+              console.log('Extracted details from tool result:', structuredContent.details);
               if (panelConfig) {
-                panelConfig.panelUrl = structuredContent.details.panelUrl;
-                console.log('Updated panelConfig with panelUrl, calling loadPanel...');
+                // Merge all details from tool result into panelConfig
+                panelConfig = {
+                  ...panelConfig,
+                  ...structuredContent.details
+                };
+                console.log('Updated panelConfig with tool result details, calling loadPanel...');
+                updatePanelConfig(panelConfig, false);
                 loadPanel(panelConfig);
               } else {
                 console.error('panelConfig is null, cannot load panel');
               }
             } else {
-              console.error('No panelUrl found in structuredContent.details:', structuredContent);
+              console.error('No details found in structuredContent:', structuredContent);
             }
             updateStatus('Panel loaded', true);
           }
@@ -355,10 +407,10 @@ export function DEEPHAVEN_PANEL_UI(): string {
         document.getElementById('panelTitle').textContent = config.variableTitle;
       }
       if (config.variableType) {
-        document.getElementById('panelSubtitle').textContent = \`(\${config.variableType})\`;
+        document.getElementById('panelSubtitle').textContent = '(' + config.variableType + ')';
       }
       if (!isPartial && config.connectionUrl) {
-        document.title = \`\${config.variableTitle || 'Panel'} - Deephaven\`;
+        document.title = (config.variableTitle || 'Panel') + ' - Deephaven';
       }
     }
 
@@ -377,8 +429,13 @@ export function DEEPHAVEN_PANEL_UI(): string {
       const iframe = document.getElementById('panelIframe');
       const loadingOverlay = document.getElementById('loadingOverlay');
 
+      // Update loading message and show overlay
+      document.getElementById('loadingMessage').textContent = \`Loading \${variableTitle || 'panel'}...\`;
+      loadingOverlay.classList.remove('hidden');
+
       // Set up iframe load handlers
-      iframe.onload = () => {
+      iframe.onload = async () => {
+        console.log('iframe onload fired');
         loadingOverlay.classList.add('hidden');
         iframe.style.display = 'block';
         updateStatus('Connected', true);
@@ -393,12 +450,13 @@ export function DEEPHAVEN_PANEL_UI(): string {
       };
 
       iframe.onerror = () => {
+        console.log('iframe onerror fired');
         showError('Failed to load panel', 'Could not connect to Deephaven server');
       };
 
       // Load the panel URL
+      console.log('Setting iframe.src to:', panelUrl);
       iframe.src = panelUrl;
-      document.getElementById('loadingMessage').textContent = \`Loading \${variableTitle || 'panel'}...\`;
     }
 
     // Show error message

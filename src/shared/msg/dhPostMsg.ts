@@ -26,6 +26,14 @@ export const DH_POST_MSG = {
   requestSetTheme: `${DEEPHAVEN_POST_MSG_PREFIX}ThemeModel.requestSetTheme`,
 } as const;
 
+/**
+ * JSON-RPC 2.0 method names for MCP Apps compatibility.
+ * These use the standard JSON-RPC format with `method` field, not the legacy `message` field.
+ */
+export const DH_JSON_RPC_METHOD = {
+  errorNotification: 'notifications/message',
+} as const;
+
 /** Base postMessage data for DH messages. */
 export type DhPostMsgData<
   TMessage extends DhPostMsgType,
@@ -83,6 +91,45 @@ export type DhLoginOptionsRequestMsg = DhPostMsgData<
 export type DhSessionDetailsRequestMsg = DhPostMsgData<
   typeof DH_POST_MSG.sessionDetailsRequest
 >;
+
+/**
+ * MCP logging levels as defined in the specification.
+ * Maps to syslog message severities (RFC-5424).
+ */
+export type LoggingLevel =
+  | 'debug'
+  | 'info'
+  | 'notice'
+  | 'warning'
+  | 'error'
+  | 'critical'
+  | 'alert'
+  | 'emergency';
+
+/**
+ * Logging message notification params as defined in MCP spec.
+ * The `data` field can be any JSON-serializable value.
+ */
+export interface LoggingMessageNotificationParams {
+  /** The severity of this log message */
+  level: LoggingLevel;
+  /** An optional name of the logger issuing this message */
+  logger?: string;
+  /** The data to be logged - any JSON serializable type */
+  data: unknown;
+}
+
+/**
+ * Deephaven error notification message (JSON-RPC 2.0 format).
+ * Follows MCP specification for notifications/message.
+ */
+export interface DhErrorNotificationMsg {
+  jsonrpc: '2.0';
+  method: typeof DH_JSON_RPC_METHOD.errorNotification;
+  params: LoggingMessageNotificationParams;
+}
+
 export type DhVariablePanelMsg =
   | DhLoginOptionsRequestMsg
-  | DhSessionDetailsRequestMsg;
+  | DhSessionDetailsRequestMsg
+  | DhErrorNotificationMsg;
