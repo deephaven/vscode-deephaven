@@ -49,9 +49,9 @@ const expectedTabs = {
 };
 
 describe('Panels Tests', () => {
-  before(async () => {
+  before(async function () {
     await setup(SIMPLE_TICKING3_PY.path);
-    await connectToServer();
+    await connectToServer(this);
     await executeCommandWithRetry('View: Split Editor Down');
   });
 

@@ -45,8 +45,13 @@ export async function closeActivityBarView(name: string): Promise<void> {
  * this more flexible in the future. Also, there needs to be an active editor
  * for the command to work, so ensure a file is opened before calling this
  * function.
+ * @param mochaCtx Optional Mocha context. When provided and the server
+ * requires the "Create Connection" form (DHE with createQueryIframe), the
+ * hook timeout is extended to 120 s to accommodate the worker creation.
  */
-export async function connectToServer(): Promise<void> {
+export async function connectToServer(
+  mochaCtx?: { timeout(ms: number): unknown }
+): Promise<void> {
   // eslint-disable-next-line no-console
   console.log('Connecting to Deephaven server...');
 
@@ -58,7 +63,7 @@ export async function connectToServer(): Promise<void> {
   const input = await InputBox.create();
   await input.selectQuickPick(0);
 
-  await waitForServerConnection();
+  await waitForServerConnection(mochaCtx);
 }
 
 /**
@@ -506,12 +511,115 @@ export async function switchToFrame(
 }
 
 /**
+ * Check if the server at the given URL requires the "Create Connection"
+ * webview form to create a worker. Mirrors the getDheFeatures() check in
+ * src/dh/dhe.ts using the same endpoint and response validation.
+ */
+async function checkCreateQueryIframe(serverUrl: string): Promise<boolean> {
+  try {
+    const res = await fetch(new URL('/iriside/features.json', serverUrl));
+    if (!res.ok || res.headers.get('content-type') !== 'application/json') {
+      return false;
+    }
+    const json = await res.json();
+    return json?.features?.createQueryIframe === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Fill in and submit the "Create Connection" webview form that appears for
+ * servers with the `createQueryIframe` feature. Sets Heap Size to 0.5 GB and
+ * Language to Python, then clicks Connect.
+ */
+async function handleCreateQueryForm(): Promise<void> {
+  const { driver } = VSBrowser.instance;
+  // The webview panel and the DH form inside it can take several seconds to load
+  const TIMEOUT = 30_000;
+
+  // Navigate: outer sidebar iframe → #active-frame → #content-iframe.
+  // The Create Connection panel is a VS Code WebviewView rendered as an iframe
+  // with class "webview ready" and src containing "purpose=webviewView".
+  // eslint-disable-next-line no-console
+  console.log('[handleCreateQueryForm] Waiting for outer sidebar iframe...');
+  await switchToFrame(['iframe[src*="purpose=webviewView"]'], TIMEOUT);
+  // eslint-disable-next-line no-console
+  console.log('[handleCreateQueryForm] Waiting for #active-frame...');
+  await switchToFrame(['#active-frame'], TIMEOUT);
+  // eslint-disable-next-line no-console
+  console.log('[handleCreateQueryForm] Waiting for #content-iframe...');
+  await switchToFrame(['#content-iframe'], TIMEOUT);
+
+  // eslint-disable-next-line no-console
+  console.log('[handleCreateQueryForm] Waiting for form to load...');
+  // Wait for the form to finish loading (blank panel / spinner may appear first)
+  const heapInput = await driver.wait<WebElement>(async () => {
+    const [el] = await driver.findElements(By.css('.form-control.inputHeapSize'));
+    return el;
+  }, TIMEOUT);
+  // eslint-disable-next-line no-console
+  console.log('[handleCreateQueryForm] Form loaded. Setting heap size...');
+  await heapInput.clear();
+  await heapInput.sendKeys('0.5');
+
+  const langSelect = await driver.findElement(
+    By.css('.custom-select.inputLanguage')
+  );
+  for (const option of await langSelect.findElements(By.css('option'))) {
+    if ((await option.getText()) === 'Python') {
+      await option.click();
+      break;
+    }
+  }
+  // eslint-disable-next-line no-console
+  console.log('[handleCreateQueryForm] Language set. Clicking Connect...');
+
+  const connectBtn = await driver.findElement(
+    By.css('button[type="submit"].btn-primary')
+  );
+  await connectBtn.click();
+  // eslint-disable-next-line no-console
+  console.log('[handleCreateQueryForm] Connect clicked. Waiting for panel to finish...');
+
+  // eslint-disable-next-line no-console
+  console.log('[handleCreateQueryForm] Returning to default content.');
+  await driver.switchTo().defaultContent();
+
+  // Wait for the outer sidebar iframe to become hidden. VS Code keeps the iframe
+  // in the DOM when a WebviewView panel closes but hides it via CSS — so check
+  // isDisplayed() rather than DOM presence. The panel hides once the worker is
+  // fully created, which is the tightest signal before the notification fires.
+  // eslint-disable-next-line no-console
+  console.log('[handleCreateQueryForm] Waiting for panel to close...');
+  try {
+    await driver.wait(async () => {
+      const [frame] = await driver.findElements(
+        By.css('iframe[src*="purpose=webviewView"]')
+      );
+      if (!frame) return true; // removed from DOM (shouldn't happen, but safe)
+      try {
+        return !(await frame.isDisplayed());
+      } catch {
+        return true; // stale
+      }
+    }, 90_000);
+  } catch (err) {
+    throw new Error(`[handleCreateQueryForm] TIMEOUT waiting for panel to close: ${err}`);
+  }
+  // eslint-disable-next-line no-console
+  console.log('[handleCreateQueryForm] Panel closed.');
+}
+
+/**
  * Wait for Deephaven server connection to complete, handling username/password
  * input if prompted. Also handles authentication method selection if the server
  * supports both SAML and Basic authentication. Closes the "Created Deephaven
  * session" notification when connection is established.
  */
-export async function waitForServerConnection(): Promise<void> {
+export async function waitForServerConnection(
+  mochaCtx?: { timeout(ms: number): unknown }
+): Promise<void> {
   let firstInputBox: InputBox | null = null;
   try {
     firstInputBox = await InputBox.create();
@@ -561,10 +669,52 @@ export async function waitForServerConnection(): Promise<void> {
     await passwordInputBox.confirm();
   }
 
-  // Wait for connection to be active
-  const notification = await VSBrowser.instance.driver.wait<Notification>(
-    getServerConnectedNotification
-  );
+  // Handle "Create Connection" form for servers with the createQueryIframe feature
+  const serverUrl = process.env.DH_SERVER_URL;
+  // eslint-disable-next-line no-console
+  console.log('[waitForServerConnection] DH_SERVER_URL:', serverUrl);
+  if (serverUrl != null) {
+    const needsForm = await checkCreateQueryIframe(serverUrl);
+    // eslint-disable-next-line no-console
+    console.log('[waitForServerConnection] checkCreateQueryIframe:', needsForm);
+    if (needsForm) {
+      // Worker creation can take well over 30 s — extend the Mocha hook timeout
+      // before entering the long waits so the hook doesn't time out prematurely.
+      if (mochaCtx != null) {
+        // eslint-disable-next-line no-console
+        console.log('[waitForServerConnection] DHE createQueryIframe detected — extending Mocha timeout to 120 s');
+        mochaCtx.timeout(120_000);
+      }
+      await handleCreateQueryForm();
+    }
+  }
+
+  // Wait for connection to be active.
+  let notification: Notification | null = null;
+  try {
+    notification = await VSBrowser.instance.driver.wait<Notification>(
+      async () => {
+        const notifications = await new Workbench().getNotifications();
+        for (const n of notifications) {
+          let msg = '';
+          try {
+            msg = await n.getMessage();
+          } catch {
+            continue;
+          }
+          if (msg.startsWith('Created Deephaven session:')) {
+            return n;
+          }
+          // eslint-disable-next-line no-console
+          console.log('[waitForServerConnection] Unmatched notification:', msg);
+        }
+        return null;
+      },
+      120_000
+    );
+  } catch (err) {
+    throw new Error(`[waitForServerConnection] TIMEOUT waiting for "Created Deephaven session" notification: ${err}`);
+  }
 
   await notification?.dismiss();
 }

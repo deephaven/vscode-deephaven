@@ -82,6 +82,8 @@ else
     node scripts/generate-test-settings.mjs --coreplus "${SERVER_URL}"
 fi
 
+export DH_SERVER_URL="${SERVER_URL}"
+
 # Run e2e tests
 echo "Running E2E tests..."
 node e2e-testing/out/runner.mjs --setup
