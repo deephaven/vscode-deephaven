@@ -46,13 +46,12 @@ export async function closeActivityBarView(name: string): Promise<void> {
  * this more flexible in the future. Also, there needs to be an active editor
  * for the command to work, so ensure a file is opened before calling this
  * function.
- * @param mochaCtx Optional Mocha context. When provided and the server
- * requires the "Create Connection" form (DHE with createQueryIframe), the
- * hook timeout is extended to 120 s to accommodate the worker creation.
+ * @param isCreateQueryIframeSupported Whether the server requires the "Create
+ * Connection" webview form. Pass the result of `isCreateQueryIframeServer()`.
  */
-export async function connectToServer(mochaCtx?: {
-  timeout(ms: number): unknown;
-}): Promise<void> {
+export async function connectToServer(
+  isCreateQueryIframeSupported = false
+): Promise<void> {
   console.log('Connecting to Deephaven server...');
 
   await executeCommandWithRetry('Deephaven: Select Connection');
@@ -63,7 +62,7 @@ export async function connectToServer(mochaCtx?: {
   const input = await InputBox.create();
   await input.selectQuickPick(0);
 
-  await waitForServerConnection(mochaCtx);
+  await waitForServerConnection(isCreateQueryIframeSupported);
 }
 
 /**
@@ -505,23 +504,30 @@ export async function switchToFrame(
 }
 
 /**
- * Check if the server at the given URL requires the "Create Connection"
- * webview form to create a worker. Mirrors the getDheFeatures() check in
- * src/dh/dhe.ts using the same endpoint and response validation.
+ * Check if the server configured via `DH_SERVER_URL` requires the "Create
+ * Connection" webview form to create a worker. Mirrors the getDheFeatures()
+ * check in src/dh/dhe.ts using the same endpoint and response validation.
+ * Returns false if `DH_SERVER_URL` is not set.
  */
-async function checkCreateQueryIframe(serverUrl: string): Promise<boolean> {
+export async function getIsCreateQueryIframe(
+  serverUrl: string | undefined
+): Promise<boolean> {
+  if (serverUrl == null) {
+    return false;
+  }
+
   try {
     const res = await fetch(new URL('/iriside/features.json', serverUrl));
     if (!res.ok || res.headers.get('content-type') !== 'application/json') {
       console.log(
-        `[checkCreateQueryIframe] Unsupported. Status: ${res.status}, Content-Type: ${res.headers.get('content-type')}`
+        `[getIsCreateQueryIframe] Unsupported. Status: ${res.status}, Content-Type: ${res.headers.get('content-type')}`
       );
       return false;
     }
     const json = await res.json();
     return json?.features?.createQueryIframe === true;
   } catch (err) {
-    console.error(`[checkCreateQueryIframe] Error at ${serverUrl}:`, err);
+    console.error(`[getIsCreateQueryIframe] Error at ${serverUrl}:`, err);
     return false;
   }
 }
@@ -611,9 +617,9 @@ async function handleCreateQueryForm(): Promise<void> {
  * supports both SAML and Basic authentication. Closes the "Created Deephaven
  * session" notification when connection is established.
  */
-export async function waitForServerConnection(mochaCtx?: {
-  timeout(ms: number): unknown;
-}): Promise<void> {
+export async function waitForServerConnection(
+  isCreateQueryIframeSupported = false
+): Promise<void> {
   let firstInputBox: InputBox | null = null;
   try {
     firstInputBox = await InputBox.create();
@@ -664,30 +670,8 @@ export async function waitForServerConnection(mochaCtx?: {
   }
 
   // Handle "Create Connection" form for servers with the createQueryIframe feature
-  const serverUrl = process.env.DH_SERVER_URL;
-  console.log('[waitForServerConnection] DH_SERVER_URL:', serverUrl);
-
-  if (serverUrl != null) {
-    const isCreateQueryIframeSupported =
-      await checkCreateQueryIframe(serverUrl);
-
-    console.log(
-      '[waitForServerConnection] isCreateQueryIframeSupported:',
-      isCreateQueryIframeSupported
-    );
-
-    if (isCreateQueryIframeSupported) {
-      // Worker creation using the iframe can can extend total test time to well
-      // over 30s, so extend the default Mocha hook timeout.
-      if (mochaCtx != null) {
-        console.log(
-          '[waitForServerConnection] DHE createQueryIframe detected — extending Mocha timeout to 120 s'
-        );
-        mochaCtx.timeout(120_000);
-      }
-
-      await handleCreateQueryForm();
-    }
+  if (isCreateQueryIframeSupported) {
+    await handleCreateQueryForm();
   }
 
   // Wait for connection to be active
