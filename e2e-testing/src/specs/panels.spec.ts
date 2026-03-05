@@ -3,6 +3,7 @@ import {
   connectToServer,
   executeCommandWithRetry,
   expectDeepEqualArray,
+  getIsCreateQueryIframeSupported,
   runDhFileCodeLens,
   setup,
   SIMPLE_TICKING3_PY,
@@ -49,9 +50,17 @@ const expectedTabs = {
 };
 
 describe('Panels Tests', () => {
-  before(async () => {
+  before(async function () {
+    const isCreateQueryIframeSupported = await getIsCreateQueryIframeSupported(
+      process.env.DH_SERVER_URL
+    );
+
+    if (isCreateQueryIframeSupported) {
+      this.timeout(120_000);
+    }
+
     await setup(SIMPLE_TICKING3_PY.path);
-    await connectToServer();
+    await connectToServer(isCreateQueryIframeSupported);
     await executeCommandWithRetry('View: Split Editor Down');
   });
 
