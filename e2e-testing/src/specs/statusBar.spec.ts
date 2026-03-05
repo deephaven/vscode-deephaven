@@ -1,7 +1,7 @@
 import { InputBox } from 'vscode-extension-tester';
 import {
   getDhStatusBarItem,
-  getIsCreateQueryIframe,
+  getIsCreateQueryIframeSupported,
   getServerItems,
   getSidebarViewItem,
   setup,
@@ -22,7 +22,7 @@ describe('Status Bar Tests', () => {
   let isCreateQueryIframeSupported: boolean;
 
   before(async function () {
-    isCreateQueryIframeSupported = await getIsCreateQueryIframe(
+    isCreateQueryIframeSupported = await getIsCreateQueryIframeSupported(
       process.env.DH_SERVER_URL
     );
 

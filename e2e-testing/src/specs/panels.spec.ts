@@ -3,7 +3,7 @@ import {
   connectToServer,
   executeCommandWithRetry,
   expectDeepEqualArray,
-  getIsCreateQueryIframe,
+  getIsCreateQueryIframeSupported,
   runDhFileCodeLens,
   setup,
   SIMPLE_TICKING3_PY,
@@ -51,7 +51,7 @@ const expectedTabs = {
 
 describe('Panels Tests', () => {
   before(async function () {
-    const isCreateQueryIframeSupported = await getIsCreateQueryIframe(
+    const isCreateQueryIframeSupported = await getIsCreateQueryIframeSupported(
       process.env.DH_SERVER_URL
     );
 

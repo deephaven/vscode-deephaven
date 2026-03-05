@@ -504,12 +504,11 @@ export async function switchToFrame(
 }
 
 /**
- * Check if the server configured via `DH_SERVER_URL` requires the "Create
- * Connection" webview form to create a worker. Mirrors the getDheFeatures()
- * check in src/dh/dhe.ts using the same endpoint and response validation.
- * Returns false if `DH_SERVER_URL` is not set.
+ * Check if the given server URL requires the "Create Connection" webview form
+ * to create a worker. Mirrors the getDheFeatures() check in src/dh/dhe.ts using
+ * the same endpoint and response validation.
  */
-export async function getIsCreateQueryIframe(
+export async function getIsCreateQueryIframeSupported(
   serverUrl: string | undefined
 ): Promise<boolean> {
   if (serverUrl == null) {
