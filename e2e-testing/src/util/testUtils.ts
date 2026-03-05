@@ -400,8 +400,10 @@ export async function openFileResources(
  * @param editor Editor to execute code lens in
  */
 export async function runDhFileCodeLens(editor: TextEditor): Promise<void> {
-  const runDhFileCodeLens = await getCodeLens(editor, 'Run Deephaven File');
-  await runDhFileCodeLens.click();
+  await executeWithRetry(async () => {
+    const runDhFileCodeLens = await getCodeLens(editor, 'Run Deephaven File');
+    await runDhFileCodeLens.click();
+  });
 }
 
 /**
