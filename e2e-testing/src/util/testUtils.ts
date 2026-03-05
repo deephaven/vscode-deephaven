@@ -672,7 +672,7 @@ export async function waitForServerConnection(mochaCtx?: {
       await checkCreateQueryIframe(serverUrl);
 
     console.log(
-      '[waitForServerConnection] checkCreateQueryIframe:',
+      '[waitForServerConnection] isCreateQueryIframeSupported:',
       isCreateQueryIframeSupported
     );
 
