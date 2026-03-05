@@ -23,6 +23,7 @@ export type McpToolResult<TSuccess extends boolean, TDetails = unknown> = {
     hint?: string;
     details?: TDetails;
   };
+  isError: boolean;
 };
 
 /**
@@ -130,6 +131,8 @@ function mcpToolResult<TSuccess extends boolean, TDetails = unknown>(
       },
     ],
     structuredContent,
+    // Per MCP spec: errors SHOULD include isError: true so LLM can see and self-correct
+    isError: !success,
   };
 }
 
