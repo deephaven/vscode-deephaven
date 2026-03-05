@@ -513,11 +513,15 @@ async function checkCreateQueryIframe(serverUrl: string): Promise<boolean> {
   try {
     const res = await fetch(new URL('/iriside/features.json', serverUrl));
     if (!res.ok || res.headers.get('content-type') !== 'application/json') {
+      console.log(
+        `[checkCreateQueryIframe] Unsupported. Status: ${res.status}, Content-Type: ${res.headers.get('content-type')}`
+      );
       return false;
     }
     const json = await res.json();
     return json?.features?.createQueryIframe === true;
-  } catch {
+  } catch (err) {
+    console.error(`[checkCreateQueryIframe] Error at ${serverUrl}:`, err);
     return false;
   }
 }
@@ -529,20 +533,15 @@ async function checkCreateQueryIframe(serverUrl: string): Promise<boolean> {
  */
 async function handleCreateQueryForm(): Promise<void> {
   const { driver } = VSBrowser.instance;
-  // The webview panel and the DH form inside it can take several seconds to load
-  const TIMEOUT = 30_000;
 
-  // Navigate: outer sidebar iframe → #active-frame → #content-iframe.
   // The Create Connection panel is a VS Code WebviewView rendered as an iframe
-  // with class "webview ready" and src containing "purpose=webviewView".
-  console.log('[handleCreateQueryForm] Waiting for outer sidebar iframe...');
-  await switchToFrame(['iframe[src*="purpose=webviewView"]'], TIMEOUT);
-
-  console.log('[handleCreateQueryForm] Waiting for #active-frame...');
-  await switchToFrame(['#active-frame'], TIMEOUT);
-
-  console.log('[handleCreateQueryForm] Waiting for #content-iframe...');
-  await switchToFrame(['#content-iframe'], TIMEOUT);
+  // with src containing "purpose=webviewView".
+  // Navigate: outer sidebar iframe → #active-frame → #content-iframe.
+  await switchToFrame([
+    'iframe[src*="purpose=webviewView"]',
+    '#active-frame',
+    '#content-iframe',
+  ]);
 
   console.log('[handleCreateQueryForm] Waiting for form to load...');
   // Wait for the form to finish loading (blank panel / spinner may appear first)
@@ -551,7 +550,7 @@ async function handleCreateQueryForm(): Promise<void> {
       By.css('.form-control.inputHeapSize')
     );
     return el;
-  }, TIMEOUT);
+  });
 
   console.log('[handleCreateQueryForm] Form loaded. Setting heap size...');
   await heapInput.clear();
@@ -596,7 +595,7 @@ async function handleCreateQueryForm(): Promise<void> {
       } catch {
         return true; // stale
       }
-    }, 90_000);
+    });
   } catch (err) {
     throw new Error(
       `[handleCreateQueryForm] TIMEOUT waiting for panel to close: ${err}`
