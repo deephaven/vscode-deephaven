@@ -690,32 +690,10 @@ export async function waitForServerConnection(mochaCtx?: {
     }
   }
 
-  // Wait for connection to be active.
-  let notification: Notification | null = null;
-  try {
-    notification = await VSBrowser.instance.driver.wait<Notification>(
-      async () => {
-        const notifications = await new Workbench().getNotifications();
-        for (const n of notifications) {
-          let msg = '';
-          try {
-            msg = await n.getMessage();
-          } catch {
-            continue;
-          }
-          if (msg.startsWith('Created Deephaven session:')) {
-            return n;
-          }
-        }
-        return null;
-      },
-      120_000
-    );
-  } catch (err) {
-    throw new Error(
-      `[waitForServerConnection] TIMEOUT waiting for "Created Deephaven session" notification: ${err}`
-    );
-  }
+  // Wait for connection to be active
+  const notification = await VSBrowser.instance.driver.wait<Notification>(
+    getServerConnectedNotification
+  );
 
   await notification?.dismiss();
 }
