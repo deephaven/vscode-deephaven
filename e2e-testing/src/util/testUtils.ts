@@ -616,9 +616,11 @@ async function handleCreateQueryForm(): Promise<void> {
  * input if prompted. Also handles authentication method selection if the server
  * supports both SAML and Basic authentication. Closes the "Created Deephaven
  * session" notification when connection is established.
+ * @param isCreateQueryIframeSupported Whether the server requires the "Create
+ * Connection" webview form
  */
 export async function waitForServerConnection(
-  isCreateQueryIframeSupported = false
+  isCreateQueryIframeSupported: boolean
 ): Promise<void> {
   let firstInputBox: InputBox | null = null;
   try {

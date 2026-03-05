@@ -1,6 +1,7 @@
 import { InputBox } from 'vscode-extension-tester';
 import {
   getDhStatusBarItem,
+  getIsCreateQueryIframe,
   getServerItems,
   getSidebarViewItem,
   setup,
@@ -18,8 +19,13 @@ import { VIEW_NAME } from '../util/constants';
 
 describe('Status Bar Tests', () => {
   let editorView: EditorViewExtended;
+  let isCreateQueryIframeSupported: boolean;
 
-  before(async () => {
+  before(async function () {
+    isCreateQueryIframeSupported = await getIsCreateQueryIframe(
+      process.env.DH_SERVER_URL
+    );
+
     await setup(
       SIMPLE_TICKING_MD.path,
       SIMPLE_TICKING3_PY.path,
@@ -57,7 +63,10 @@ describe('Status Bar Tests', () => {
     }
   });
 
-  it('should connect to server on click', async () => {
+  it('should connect to server on click', async function () {
+    if (isCreateQueryIframeSupported) {
+      this.timeout(120_000);
+    }
     await editorView.openTextEditor(SIMPLE_TICKING3_PY.name);
 
     await step(1, 'Click Deephaven status bar item', async stepLabel => {
@@ -70,7 +79,7 @@ describe('Status Bar Tests', () => {
       const input = await InputBox.create();
       await input.selectQuickPick(0);
 
-      await waitForServerConnection();
+      await waitForServerConnection(isCreateQueryIframeSupported);
     });
 
     await step(3, 'Verify server node', async stepLabel => {

@@ -7,6 +7,14 @@
 #   --docker:    Start DH Community via Docker (optional)
 #   SERVER_URL:  Deephaven server URL (required for --coreplus, optional for --core)
 
+# Ensure correct Node version via nvm
+if [ ! -s "$HOME/.nvm/nvm.sh" ]; then
+    echo "Error: nvm not found at $HOME/.nvm/nvm.sh"
+    exit 1
+fi
+source "$HOME/.nvm/nvm.sh"
+nvm use
+
 # Parse arguments
 if [ $# -eq 0 ]; then
     echo "Error: Missing required argument --core or --coreplus"
