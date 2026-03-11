@@ -81,9 +81,11 @@ export function createOpenVariablePanelsTool({
         );
       }
 
+      const { connection } = firstConnectionResult;
+
       try {
         await execOpenVariablePanels(
-          parsedUrl.value,
+          connection.serverUrl,
           variables as unknown as NonEmptyArray<VariableDefintion>
         );
 
