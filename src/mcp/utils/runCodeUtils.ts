@@ -226,7 +226,7 @@ export function createGroovyImportErrorHint(
   const importErrors = new Map<string, Set<string>>();
 
   // Helper function to parse import errors
-  const parseImportError = (message: string) => {
+  const parseImportError = (message: string): void => {
     // Match either:
     // 1. "Attempting to import a path that does not exist: import package3.subpackage1.MultiClassTest;"
     // 2. "unable to resolve class package3.subpackage1.MultiClassTest"
