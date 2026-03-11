@@ -103,7 +103,7 @@ export function parseGroovyServerError(
   logger: { debug: (...args: unknown[]) => void } = console
 ): [] | [ParsedError] {
   const importErrorPattern =
-    /^RuntimeException: Attempting to import a path that does not exist: import (.+);$/;
+    /^RuntimeException: Attempting to import a path that does not exist: import (.+);$/m;
   const match = importErrorPattern.exec(error);
 
   if (!match) {

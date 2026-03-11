@@ -14,6 +14,11 @@ const spec = {
   description:
     'Remove one or more remote file source folders from the workspace.',
   inputSchema: {
+    languageId: z
+      .string()
+      .describe(
+        'The language of the remote file sources to remove: "python" or "groovy".'
+      ),
     folderUris: z
       .array(z.string())
       .describe('List of folder URIs to remove as remote file sources.'),
@@ -33,8 +38,18 @@ export function createRemoveRemoteFileSourcesTool(): RemoveRemoteFileSourcesTool
   return {
     name: 'removeRemoteFileSources',
     spec,
-    handler: async ({ folderUris }: HandlerArg): Promise<HandlerResult> => {
+    handler: async ({
+      folderUris,
+      languageId,
+    }: HandlerArg): Promise<HandlerResult> => {
       const response = new McpToolResponse();
+
+      // Validate languageId
+      if (languageId !== 'python' && languageId !== 'groovy') {
+        return response.error(
+          `Invalid languageId: '${languageId}'. Must be "python" or "groovy".`
+        );
+      }
 
       try {
         const uris = folderUris.map(uri =>
@@ -44,7 +59,7 @@ export function createRemoveRemoteFileSourcesTool(): RemoveRemoteFileSourcesTool
         // Deduplicate URIs using URISet
         const uniqueUris = Array.from(new URISet(uris).values());
 
-        await execRemoveRemoteFileSource('python', uniqueUris);
+        await execRemoveRemoteFileSource(languageId, uniqueUris);
 
         return response.success('Remote file sources removed successfully', {
           foldersRemoved: uniqueUris.length,
