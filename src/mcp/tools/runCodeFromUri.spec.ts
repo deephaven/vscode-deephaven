@@ -123,8 +123,18 @@ const MOCK_RUN_CODE_ERROR = {
   },
 } as unknown as DhcType.ide.CommandResult;
 
+const MOCK_PYTHON_IMPORT_ERROR = {
+  error: "ModuleNotFoundError: No module named 'mypackage'",
+  changes: {
+    created: [MOCK_STR_VARIABLE],
+    updated: [],
+    removed: [],
+  },
+} as unknown as DhcType.ide.CommandResult;
+
 const MOCK_GROOVY_RUN_CODE_ERROR = {
-  error: 'RuntimeException: Attempting to import a path that does not exist: import package3.subpackage1.MultiClassTest;',
+  error:
+    'RuntimeException: Attempting to import a path that does not exist: import package3.subpackage1.MultiClassTest;',
   changes: {
     created: [MOCK_STR_VARIABLE],
     updated: [],
@@ -341,6 +351,22 @@ describe('runCodeFromUri tool', () => {
         ),
       },
       {
+        name: 'handle code execution failure without Python diagnostics',
+        cmdResult: MOCK_PYTHON_IMPORT_ERROR,
+        connectionUrl: MOCK_CONNECTION_URL.href,
+        emptyDiagnostics: true,
+        pythonHint: MOCK_HINT,
+        expected: mcpErrorResult(
+          "Code execution failed: ModuleNotFoundError: No module named 'mypackage'",
+          {
+            languageId: 'python',
+            variables: [{ id: 'y', title: 'y', type: 'str', isNew: true }],
+            foundMatchingFolderUris: MOCK_HINT.foundMatchingFolderUris,
+          },
+          MOCK_HINT.hint
+        ),
+      },
+      {
         name: 'handle ConnectionNotFoundError during code execution',
         cmdResult: new ConnectionNotFoundError(MOCK_CONNECTION_URL),
         connectionUrl: MOCK_CONNECTION_URL.href,
@@ -366,6 +392,7 @@ describe('runCodeFromUri tool', () => {
         cmdResult,
         connectionUrl,
         pythonHint,
+        emptyDiagnostics,
         connectionNotFoundHint,
         expected,
       }) => {
@@ -378,6 +405,10 @@ describe('runCodeFromUri tool', () => {
           }
         } else {
           vi.mocked(execRunCode).mockResolvedValue(cmdResult);
+        }
+
+        if (emptyDiagnostics) {
+          vi.mocked(getDiagnosticsErrors).mockReturnValue([]);
         }
 
         vi.mocked(createPythonModuleImportErrorHint).mockReturnValue(
@@ -472,6 +503,22 @@ describe('runCodeFromUri tool', () => {
         ),
       },
       {
+        name: 'handle code execution failure without Groovy diagnostics',
+        cmdResult: MOCK_GROOVY_RUN_CODE_ERROR,
+        connectionUrl: MOCK_CONNECTION_URL.href,
+        emptyDiagnostics: true,
+        groovyHint: MOCK_HINT,
+        expected: mcpErrorResult(
+          'Code execution failed: RuntimeException: Attempting to import a path that does not exist: import package3.subpackage1.MultiClassTest;',
+          {
+            languageId: 'groovy',
+            variables: [{ id: 'y', title: 'y', type: 'str', isNew: true }],
+            foundMatchingFolderUris: MOCK_HINT.foundMatchingFolderUris,
+          },
+          MOCK_HINT.hint
+        ),
+      },
+      {
         name: 'handle ConnectionNotFoundError during Groovy code execution',
         cmdResult: new ConnectionNotFoundError(MOCK_CONNECTION_URL),
         connectionUrl: MOCK_CONNECTION_URL.href,
@@ -498,6 +545,7 @@ describe('runCodeFromUri tool', () => {
         cmdResult,
         connectionUrl,
         groovyHint,
+        emptyDiagnostics,
         connectionNotFoundHint,
         expected,
       }) => {
@@ -510,6 +558,10 @@ describe('runCodeFromUri tool', () => {
           }
         } else {
           vi.mocked(execRunCode).mockResolvedValue(cmdResult);
+        }
+
+        if (emptyDiagnostics) {
+          vi.mocked(getDiagnosticsErrors).mockReturnValue([]);
         }
 
         vi.mocked(createGroovyImportErrorHint).mockReturnValue(groovyHint);

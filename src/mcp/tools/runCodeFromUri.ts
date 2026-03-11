@@ -141,12 +141,15 @@ export function createRunCodeFromUriTool({
 
             const pythonErrors = getDiagnosticsErrors(pythonDiagnostics);
 
-            errorMsg = pythonErrors.map(formatDiagnosticError).join('\n');
+            if (pythonErrors.length > 0) {
+              errorMsg = pythonErrors.map(formatDiagnosticError).join('\n');
+            }
 
             hintResult = createPythonModuleImportErrorHint(
               pythonErrors,
               executedConnection,
-              pythonWorkspace
+              pythonWorkspace,
+              result.error
             );
           } else if (languageId === 'groovy') {
             const executedConnection = serverManager.getUriConnection(
@@ -156,12 +159,15 @@ export function createRunCodeFromUriTool({
 
             const groovyErrors = getDiagnosticsErrors(groovyDiagnostics);
 
-            errorMsg = groovyErrors.map(formatDiagnosticError).join('\n');
+            if (groovyErrors.length > 0) {
+              errorMsg = groovyErrors.map(formatDiagnosticError).join('\n');
+            }
 
             hintResult = createGroovyImportErrorHint(
               groovyErrors,
               executedConnection,
-              groovyWorkspace
+              groovyWorkspace,
+              result.error
             );
           }
 

@@ -27,7 +27,11 @@ export type VariableResult = z.infer<typeof variableResultSchema>;
  * Schema for variable results returned after code execution.
  */
 export const variableResultSchema = z.object({
-  id: z.string().describe('Variable ID. Pass as variableId to data tools. Only valid for variables with type "Table".'),
+  id: z
+    .string()
+    .describe(
+      'Variable ID. Pass as variableId to data tools. Only valid for variables with type "Table".'
+    ),
   title: z
     .string()
     .optional()
@@ -126,7 +130,8 @@ export async function createConnectionNotFoundHint(
 export function createPythonModuleImportErrorHint(
   errors: Array<{ message: string; uri: string; range: vscode.Range }>,
   connection: ConnectionState,
-  pythonWorkspace: FilteredWorkspace<PythonModuleFullname>
+  pythonWorkspace: FilteredWorkspace<PythonModuleFullname>,
+  rawErrorMessage?: string
 ): { hint: string; foundMatchingFolderUris: string[] } | undefined {
   // Look for 'No module named' errors and extract the module names
   const noModuleErrors = new Set(
@@ -134,6 +139,14 @@ export function createPythonModuleImportErrorHint(
       .map(e => /^No module named '([^']+)'/.exec(e.message)?.[1])
       .filter(e => e != null)
   );
+
+  // If no diagnostic errors but we have a raw error message, parse it
+  if (noModuleErrors.size === 0 && rawErrorMessage) {
+    const match = /No module named '([^']+)'/.exec(rawErrorMessage);
+    if (match?.[1]) {
+      noModuleErrors.add(match[1]);
+    }
+  }
 
   if (noModuleErrors.size === 0) {
     return;
@@ -205,17 +218,23 @@ export function hasGroovyRemoteFileSourcePlugin(
 export function createGroovyImportErrorHint(
   errors: Array<{ message: string; uri: string; range: vscode.Range }>,
   connection: ConnectionState,
-  groovyWorkspace: FilteredWorkspace<GroovyPackageName>
+  groovyWorkspace: FilteredWorkspace<GroovyPackageName>,
+  rawErrorMessage?: string
 ): { hint: string; foundMatchingFolderUris: string[] } | undefined {
   // Look for 'Attempting to import a path that does not exist' errors and
   // extract the top-level package and required subpackage (if any)
   const importErrors = new Map<string, Set<string>>();
 
-  for (const e of errors) {
+  // Helper function to parse import errors
+  const parseImportError = (message: string) => {
+    // Match either:
+    // 1. "Attempting to import a path that does not exist: import package3.subpackage1.MultiClassTest;"
+    // 2. "unable to resolve class package3.subpackage1.MultiClassTest"
     const match =
       /Attempting to import a path that does not exist: import ([^;]+);/.exec(
-        e.message
-      );
+        message
+      ) || /unable to resolve class ([^\s\n]+)/.exec(message);
+
     if (match) {
       const importPath = match[1].trim();
       const parts = importPath.split('.');
@@ -231,6 +250,16 @@ export function createGroovyImportErrorHint(
         importErrors.get(topLevelPackage)!.add(parts[1]);
       }
     }
+  };
+
+  // Parse diagnostic errors
+  for (const e of errors) {
+    parseImportError(e.message);
+  }
+
+  // If no diagnostic errors but we have a raw error message, parse it
+  if (importErrors.size === 0 && rawErrorMessage) {
+    parseImportError(rawErrorMessage);
   }
 
   if (importErrors.size === 0) {
@@ -273,7 +302,7 @@ export function createGroovyImportErrorHint(
   }
 
   return {
-    hint: 'If this is a package in your workspace, add its folder as a remote file source using addRemoteFileSources. DO NOT guess folder URIs - use the exact URIs provided in details.foundMatchingFolderUris.',
+    hint: 'If this is a package in your workspace, add its folder as a remote file source using addRemoteFileSources with languageId "groovy". DO NOT guess folder URIs - use the exact URIs provided in details.foundMatchingFolderUris.',
     foundMatchingFolderUris: foundUris,
   };
 }
