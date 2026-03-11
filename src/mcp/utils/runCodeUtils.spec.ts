@@ -126,7 +126,9 @@ function createGroovyWorkspace(
 
   vi.mocked(workspace.getChildNodes).mockImplementation(
     (parentUri: vscode.Uri | null) => {
-      if (parentUri == null) return roots;
+      if (parentUri == null) {
+        return roots;
+      }
       return childMap.get(parentUri) ?? [];
     }
   );
