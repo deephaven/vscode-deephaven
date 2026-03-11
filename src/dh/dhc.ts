@@ -55,6 +55,7 @@ export async function getDhc(
     targetModuleType: 'cjs',
   });
 
+  // @ts-ignore TODO: once we update to proper jsapi-types can remove this
   return coreModule;
 }
 

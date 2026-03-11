@@ -35,7 +35,10 @@ declare module '@deephaven/jsapi-types' {
         callback: (e: dh.Event<T>) => void
       ): () => void;
 
-      setExecutionContext(resourcePaths?: string[]): Promise<boolean>;
+      setExecutionContext(
+        isDirty: boolean,
+        resourcePaths?: string[]
+      ): Promise<boolean>;
       close(): void;
     }
   }

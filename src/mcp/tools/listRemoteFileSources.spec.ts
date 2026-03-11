@@ -11,9 +11,9 @@ import type { GroovyPackageName, PythonModuleFullname } from '../../types';
 
 vi.mock('vscode');
 
-function createMockWorkspace<T>(
-  folderUris: vscode.Uri[] | Error
-): FilteredWorkspace<T> {
+function createMockWorkspace<
+  T extends GroovyPackageName | PythonModuleFullname,
+>(folderUris: vscode.Uri[] | Error): FilteredWorkspace<T> {
   const folders =
     folderUris instanceof Error ? folderUris : folderUris.map(uri => ({ uri }));
 
@@ -76,21 +76,24 @@ describe('listRemoteFileSources', () => {
       ),
       expectedMessage: 'Found 50 remote file sources',
     },
-  ])('should handle $scenario (python only)', async ({ folderUris, expectedMessage }) => {
-    const mockWorkspace = createMockWorkspace<PythonModuleFullname>(
-      folderUris.map(uri => vscode.Uri.parse(uri))
-    );
-    const tool = createListRemoteFileSourcesTool({
-      groovyWorkspace: emptyGroovyWorkspace,
-      pythonWorkspace: mockWorkspace,
-    });
-    const result = await tool.handler({});
+  ])(
+    'should handle $scenario (python only)',
+    async ({ folderUris, expectedMessage }) => {
+      const mockWorkspace = createMockWorkspace<PythonModuleFullname>(
+        folderUris.map(uri => vscode.Uri.parse(uri))
+      );
+      const tool = createListRemoteFileSourcesTool({
+        groovyWorkspace: emptyGroovyWorkspace,
+        pythonWorkspace: mockWorkspace,
+      });
+      const result = await tool.handler({});
 
-    expect(mockWorkspace.getTopLevelMarkedFolders).toHaveBeenCalledOnce();
-    expect(result.structuredContent).toEqual(
-      mcpSuccessResult(expectedMessage, { folderUris })
-    );
-  });
+      expect(mockWorkspace.getTopLevelMarkedFolders).toHaveBeenCalledOnce();
+      expect(result.structuredContent).toEqual(
+        mcpSuccessResult(expectedMessage, { folderUris })
+      );
+    }
+  );
 
   it('should include Groovy and Python sources together', async () => {
     const groovyUris = ['file:///workspace/package3'].map(uri =>

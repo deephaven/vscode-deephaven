@@ -30,7 +30,7 @@ export class RemoteFileSourceService extends DisposableBase {
 
     this.disposables.add(
       this._groovyWorkspace.onDidUpdate(() => {
-        this._onDidUpdateGroovyModuleMeta.fire();
+        this._isGroovyWorkspaceDirty = true;
       })
     );
 
@@ -41,9 +41,7 @@ export class RemoteFileSourceService extends DisposableBase {
     );
   }
 
-  private _onDidUpdateGroovyModuleMeta = new vscode.EventEmitter<void>();
-  readonly onDidUpdateGroovyModuleMeta =
-    this._onDidUpdateGroovyModuleMeta.event;
+  private _isGroovyWorkspaceDirty = false;
 
   private _onDidUpdatePythonModuleMeta = new vscode.EventEmitter<void>();
   readonly onDidUpdatePythonModuleMeta =
@@ -183,22 +181,10 @@ export class RemoteFileSourceService extends DisposableBase {
         getGroovyResourceData
       );
 
-    const setServerExecutionContext = this.setGroovyServerExecutionContext.bind(
-      this,
-      pluginService
-    );
-
-    // Set initial top-level module names and subscribe to update on meta changes
-    await setServerExecutionContext();
-    const metaSubscription = this.onDidUpdateGroovyModuleMeta(
-      setServerExecutionContext
-    );
-
     this.disposables.add(messageSubscription);
 
     return () => {
       messageSubscription();
-      metaSubscription.dispose();
     };
   }
 
@@ -247,7 +233,10 @@ export class RemoteFileSourceService extends DisposableBase {
   async setGroovyServerExecutionContext(
     pluginService: DhcType.remotefilesource.RemoteFileSourceService
   ): Promise<void> {
-    await pluginService.setExecutionContext([
+    const isDirty = this._isGroovyWorkspaceDirty;
+    this._isGroovyWorkspaceDirty = false;
+
+    await pluginService.setExecutionContext(isDirty, [
       ...this._groovyWorkspace.getMarkedRelativeFilePaths(),
     ]);
   }
