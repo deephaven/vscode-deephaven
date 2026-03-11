@@ -77,6 +77,9 @@ export class FilteredWorkspace<
 
     const watcher = vscode.workspace.createFileSystemWatcher(filePattern);
     this.disposables.add(watcher.onDidCreate(() => this.refresh()));
+    this.disposables.add(
+      watcher.onDidChange(uri => this._handleFileContentChange(uri))
+    );
     this.disposables.add(watcher.onDidDelete(() => this.refresh()));
     this.disposables.add(watcher);
 
@@ -494,6 +497,31 @@ export class FilteredWorkspace<
       this._onDidChangeFileDecorations.fire(undefined);
       this._onDidUpdate.fire();
     }
+  }
+
+  /**
+   * Handle file content changes and fire update events if the file is under
+   * a marked folder.
+   * @param uri The URI of the file that changed.
+   */
+  private _handleFileContentChange(uri: vscode.Uri): void {
+    if (this._isUnderMarkedFolder(uri)) {
+      this._onDidUpdate.fire();
+    }
+  }
+
+  /**
+   * Check if a URI is under any marked folder.
+   * @param uri The URI to check.
+   * @returns true if the URI is under a marked folder, false otherwise.
+   */
+  private _isUnderMarkedFolder(uri: vscode.Uri): boolean {
+    for (const markedFolderUri of this._topLevelMarkedUriMap.values()) {
+      if (uri.fsPath.startsWith(markedFolderUri.fsPath)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
