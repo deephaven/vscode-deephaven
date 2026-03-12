@@ -7,155 +7,84 @@ description: Manages Deephaven server connections and code execution through VS 
 
 Guide for working with Deephaven through VS Code MCP tools.
 
+## Key Concepts
+
+**Execution:** Code runs server-side on Deephaven, not locally. Cannot use terminal execution.
+
+**Connections:** `connectionUrl` is optional for `runCode`/`runCodeFromUri`. Omit unless user specifies a server.
+
+**Variables:** Execution responses include variable details. Only call `listVariables` when explicitly requested.
+
+**MCP Tools:** Require `deephaven.mcp.enabled` setting. Enable programmatically if unavailable.
+
 ## Core Workflows
-
-### Connecting to Servers
-
-**Server Types:**
-
-- **DHC (Community)**: Local servers, typically `localhost:10000`
-- **DHE (Enterprise)**: Remote servers, creates worker per connection
-
-**Connection workflow:**
-
-1. Check existing connections (`listConnections`)
-2. If no connection exists:
-   - List available servers (`listServers`)
-   - Select appropriate server (see Server Selection below)
-   - Connect using exact URL (`connectToServer`)
-   - Verify success in response
-
-**Server Selection:**
-
-When choosing from multiple servers in `listServers` response, look for:
-
-- **`isRunning: true`** - Server process is active (required)
-- **`isRunning: false`** - Configured but not running (can't connect)
-- **`isConnected`** - Whether active connections exist
-- **`type`** - "DHC" for Community, "DHE" for Enterprise
-- **`label`** - User-friendly name
-
-**Selection priority:**
-
-1. Match user's intent (local dev vs remote/production)
-2. Prefer running servers
-3. For DHC: Usually `localhost:10000`
-4. For DHE: Look for environment names in URL or label
 
 ### Code Execution
 
-**Ad-hoc code (`runCode`):**
+Execute code via:
 
-- Provide code string, language ID (python/groovy), and connection URL
-- Response includes created variables, execution time, errors
+- `runCode` - ad-hoc code string (Python/Groovy)
+- `runCodeFromUri` - workspace file content
 
-**Workspace files (`runCodeFromUri`):**
+**Parameter `connectionUrl` (optional):**
 
-- Provide file URI and connection URL
-- Optional: constrain to selection for partial execution
-- Response includes variable details and panel URLs
+- Omit: Uses default connection
+- Specify: When user requests specific server - get URL from `listConnections` or `listServers`
+
+**Response:** Variables (`id`, `title`, `type`), execution time, errors, panel URLs
+
+### Connecting to Servers
+
+**Types:** DHC (Community, local, `localhost:10000`) | DHE (Enterprise, remote)
+
+**Workflow:**
+
+1. `listConnections` - check existing
+2. `listServers` - if needed
+3. Select server with `isRunning: true`
+4. `connectToServer` with exact URL
+
+**Server selection criteria:**
+
+- `isRunning: true` required (false = configured but not started)
+- `isConnected` - whether connections exist
+- `type` - "DHC" or "DHE"
+- `label` - user-friendly name
+- Match user intent (local dev vs production)
+- DHC: usually `localhost:10000`
+- DHE: check environment names in URL/label
 
 ### Variable Panels
 
-**Automatic:**
+Panels auto-open after execution. Manual control:
 
-- Panels auto-open after code execution
-- Execution responses include variable details
+- `listVariables` - list variables on connection
+- `openVariablePanels` - open panels (needs `id` and `title` from `listVariables`/`runCode`)
 
-**Manual:**
-
-- List all variables on a connection (`listVariables`)
-- Open panels for specific variables (`openVariablePanels`) — requires variable objects with `id` and `title` from `listVariables` or `runCode` responses
-
-**Panel URLs (for UI verification):**
-
-- **DHC**: `{origin}/iframe/widget/?name={variableTitle}`
-- **DHE**: `{origin}/iriside/embed/widget/serial/{serial}/{variableTitle}`
+Panel URLs: DHC = `{origin}/iframe/widget/?name={variableTitle}` | DHE = `{origin}/iriside/embed/widget/serial/{serial}/{variableTitle}`
 
 ### Remote File Sources
 
 Enable server to fetch source files during execution:
 
-- Add folder URIs as remote sources (`addRemoteFileSources`)
-- List current sources (`listRemoteFileSources`)
-- Remove sources when done (`removeRemoteFileSources`)
+- `addRemoteFileSources` - add folder URIs
+- `listRemoteFileSources` - list current sources
+- `removeRemoteFileSources` - remove sources
 
 ### Troubleshooting
 
-**MCP Server Not Running:**
-
-Error signatures:
-
-- Tool doesn't exist
-- Tool disabled by user
-- Fetch failed
-- Server couldn't start
-
-**Action:** Enable `deephaven.mcp.enabled` in workspace settings. This can be done programmatically without asking.
+**MCP Server Not Running** (tool doesn't exist, disabled, fetch failed):
+Enable `deephaven.mcp.enabled` in workspace settings programmatically.
 
 **Deephaven Server Issues:**
-
-- Retrieve logs (`getLogs` with `logType`: "server" or "debug")
-- Show output panel in UI (`showOutputPanel` with `outputType`: "server" or "debug")
-
-## Critical Context
-
-### Execution Model
-
-Python/Groovy scripts execute on Deephaven servers, not locally. Use MCP execution tools (`runCode`, `runCodeFromUri`) - scripts cannot run in terminal since they require server-side Deephaven table operations and APIs. Errors are server-side issues, not local execution problems.
-
-### Connection Model
-
-Server connections are managed through MCP tools. Use `listConnections`, `listServers`, and `connectToServer` rather than manual pydeephaven Session code. Always use exact URLs from `listServers` response - don't construct or guess URLs.
-
-### Tool Availability
-
-All MCP tools are available when the MCP server is enabled via `deephaven.mcp.enabled` setting. If tools aren't available, ensure MCP is enabled (see Troubleshooting).
-
-### Variable Management
-
-- Only list panel variables when explicitly asked
-- Otherwise rely on execution response (already includes variable details)
-
-### Connection Management
-
-- Check connections first (unless recently verified)
-- Only list servers if no connection exists
-- Verify success in connection response
-- Use full connection URL (with trailing slash)
+Use `getLogs` (`logType`: "server"/"debug") or `showOutputPanel` (`outputType`: "server"/"debug").
 
 ## Common Patterns
 
-**Connection workflow:**
+**Execute code:** Run `runCode`/`runCodeFromUri` without `connectionUrl` parameter.
 
-1. Check/list connections
-2. List servers if needed
-3. Select running server matching user intent
-4. Connect with exact URL
-5. Verify success
+**Execute on specific server:** Check `listConnections`, then `listServers` if needed. Pass URL to `connectionUrl`.
 
-**Execution workflow:**
+**Table data:** Use `variableId` (from `runCode` response) or `tableName` with `getTableData`/`getTableStats`/`getColumnStats`. Only `type === "Table"` variables are valid for `variableId`.
 
-1. Ensure connection exists
-2. Execute code (ad-hoc or file-based)
-3. Review response for variables and errors
-4. Panels auto-open for created variables
-
-**Working with table data:**
-
-Data tools (`getTableData`, `getTableStats`, `getColumnStats`) accept two ways to identify a table:
-
-- Use `variableId` for variables returned by `runCode` or `listVariables` — pass the `id` field from the variable result. Only variables with `type === "Table"` are valid; passing a non-Table variable will result in an error
-- Use `tableName` when you know the name of a table directly (e.g., the user asked for a table by name) and you have no `variableId`
-
-Typical flow:
-
-1. Execute code with `runCode` → response includes `variables[].id`
-2. Pass that `id` as `variableId` to data tools
-
-**Troubleshooting workflow:**
-
-1. Issue occurs
-2. Retrieve logs
-3. Analyze error messages
-4. Suggest fix
+**Troubleshooting:** Check logs with `getLogs` or show output panel with `showOutputPanel`.
