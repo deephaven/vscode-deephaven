@@ -27,6 +27,7 @@ import type {
   Username,
 } from '@deephaven-enterprise/auth-nodejs';
 import type { QuerySerial } from '../shared';
+import type { SelectConnectionCommandArgs } from '../common';
 
 export interface IAsyncCacheService<TKey, TValue> extends IDisposable {
   get: (key: TKey) => Promise<TValue>;
@@ -138,6 +139,15 @@ export interface IPanelService extends IDisposable {
   ) => void;
   getVariables: (url: URL) => Iterable<VariableDefintion>;
   updateVariables: (url: URL, changes: VariableChanges) => void;
+}
+
+/**
+ * Service for prompting user to select a connection URL.
+ */
+export interface IPromptUserToSelectConnection {
+  onPromptUserToSelectConnection(
+    ...args: SelectConnectionCommandArgs
+  ): Promise<URL | null>;
 }
 
 /**

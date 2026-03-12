@@ -69,6 +69,12 @@ export type RunSelectionCmdArgs = [
   languageId?: string,
 ];
 
+/** Arguments passed to `SELECT_CONNECTION_COMMAND` handler */
+export type SelectConnectionCommandArgs = [
+  document?: vscode.TextDocument,
+  languageId?: string,
+];
+
 /**
  * Create a command string prefixed with the extension id.
  * @param cmd The command string suffix.

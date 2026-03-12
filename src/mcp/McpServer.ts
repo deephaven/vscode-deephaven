@@ -6,6 +6,7 @@ import * as http from 'http';
 import type {
   IAsyncCacheService,
   IPanelService,
+  IPromptUserToSelectConnection,
   IServerManager,
   McpTool,
   McpToolSpec,
@@ -43,6 +44,7 @@ export class McpServer extends DisposableBase {
   private port: number | null = null;
 
   constructor(
+    readonly connectionController: IPromptUserToSelectConnection,
     readonly coreJsApiCache: IAsyncCacheService<URL, typeof DhcType>,
     readonly outputChannel: OutputChannelWithHistory,
     readonly outputChannelDebug: OutputChannelWithHistory,

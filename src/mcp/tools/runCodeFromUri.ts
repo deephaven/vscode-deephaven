@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { execRunCode } from '../../common/commands';
 import { z } from 'zod';
 import type {
+  IPromptUserToSelectConnection,
   McpTool,
   McpToolHandlerArg,
   McpToolHandlerResult,
@@ -37,6 +38,7 @@ const spec = {
       ),
     connectionUrl: z
       .string()
+      .optional()
       .describe('The Deephaven connection URL to use for execution.'),
   },
   outputSchema: runCodeOutputSchema,
@@ -48,10 +50,12 @@ type HandlerResult = McpToolHandlerResult<Spec>;
 type RunCodeFromUriTool = McpTool<Spec>;
 
 export function createRunCodeFromUriTool({
+  connectionController,
   pythonDiagnostics,
   pythonWorkspace,
   serverManager,
 }: {
+  connectionController: IPromptUserToSelectConnection;
   pythonDiagnostics: vscode.DiagnosticCollection;
   pythonWorkspace: FilteredWorkspace;
   serverManager: IServerManager;
@@ -62,7 +66,7 @@ export function createRunCodeFromUriTool({
     handler: async ({
       uri,
       constrainTo,
-      connectionUrl,
+      connectionUrl: connectionUrlStr,
     }: HandlerArg): Promise<HandlerResult> => {
       const response = new McpToolResponse();
 
@@ -82,12 +86,14 @@ export function createRunCodeFromUriTool({
         });
       }
 
-      const parsedURLResult = parseUrl(connectionUrl);
+      const parsedURLResult = parseUrl(connectionUrlStr);
       if (!parsedURLResult.success) {
         return response.error('Invalid URL', parsedURLResult.error, {
-          connectionUrl,
+          connectionUrl: connectionUrlStr,
         });
       }
+
+      let connectionUrl = parsedURLResult.value;
 
       // Infer languageId from file
       const document = await vscode.workspace.openTextDocument(
@@ -96,10 +102,21 @@ export function createRunCodeFromUriTool({
       const languageId = document.languageId;
 
       try {
+        if (connectionUrl == null) {
+          // See if we already have a connection associated with the document URI
+          connectionUrl =
+            serverManager.getUriConnection(document.uri)?.serverUrl ?? null;
+        }
+
         const firstConnectionResult = await getFirstConnectionOrCreate({
           serverManager,
-          connectionUrl: parsedURLResult.value,
+          connectionUrl,
           languageId,
+          promptUserToSelectConnection: () =>
+            connectionController.onPromptUserToSelectConnection(
+              document,
+              languageId
+            ),
         });
 
         if (!firstConnectionResult.success) {
@@ -114,7 +131,7 @@ export function createRunCodeFromUriTool({
           undefined,
           constrainTo,
           languageId,
-          parsedURLResult.value
+          firstConnectionResult.connection.serverUrl
         );
 
         // Extract variables from result
@@ -170,7 +187,7 @@ export function createRunCodeFromUriTool({
         if (error instanceof ConnectionNotFoundError) {
           hint = await createConnectionNotFoundHint(
             serverManager,
-            connectionUrl,
+            connectionUrlStr,
             languageId
           );
         }

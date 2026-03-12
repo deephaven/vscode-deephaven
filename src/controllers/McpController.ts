@@ -7,6 +7,7 @@ import type {
   IAsyncCacheService,
   IConfigService,
   IPanelService,
+  IPromptUserToSelectConnection,
   IServerManager,
   McpVersion,
 } from '../types';
@@ -39,6 +40,7 @@ export class McpController extends ControllerBase {
 
   constructor(
     private readonly _config: IConfigService,
+    private readonly _connectionController: IPromptUserToSelectConnection,
     private readonly _context: vscode.ExtensionContext,
     private readonly _coreJsApiCache: IAsyncCacheService<URL, typeof DhcType>,
     private readonly _mcpVersion: McpVersion,
@@ -151,6 +153,7 @@ export class McpController extends ControllerBase {
     try {
       // Create and start MCP server
       this._mcpServer = new McpServer(
+        this._connectionController,
         this._coreJsApiCache,
         this._outputChannel,
         this._outputChannelDebug,

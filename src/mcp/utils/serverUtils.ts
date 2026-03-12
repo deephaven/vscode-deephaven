@@ -51,7 +51,6 @@ export type GetFirstConnectionOrCreateResult =
   | GetFirstConnectionOrCreateSuccess
   | GetFirstConnectionOrCreateError;
 
-
 /**
  * Maps a ConnectionState to a connection result object.
  */
@@ -83,14 +82,40 @@ export function connectionToResult({
  * @param params.serverManager The server manager to query
  * @param params.connectionUrl The connection URL
  * @param params.languageId Optional language ID for creating connection hints
+ * @param params.promptUserToSelectConnection Optional callback to prompt user to
+ * select connection if needed
  * @returns Success with connection and panelUrlFormat, or error with message and hint
  */
 export async function getFirstConnectionOrCreate(params: {
   serverManager: IServerManager;
-  connectionUrl: URL;
+  connectionUrl: URL | null;
   languageId?: string;
+  promptUserToSelectConnection?: () => Promise<URL | null>;
 }): Promise<GetFirstConnectionOrCreateResult> {
-  const { serverManager, connectionUrl, languageId } = params;
+  let {
+    serverManager,
+    connectionUrl,
+    languageId,
+    promptUserToSelectConnection,
+  } = params;
+
+  if (connectionUrl == null) {
+    const connections = serverManager.getConnections();
+
+    // If exactly 1 connection, use it, otherwise prompt user to select connection.
+    connectionUrl =
+      connections.length === 1
+        ? connections[0].serverUrl
+        : ((await promptUserToSelectConnection?.()) ?? null);
+  }
+
+  if (connectionUrl == null) {
+    return {
+      success: false,
+      errorMessage: 'No connection selected',
+      details: { connectionUrl: 'null' },
+    };
+  }
 
   // Get server with matchPort logic
   const server = getServerMatchPortIfLocalHost(serverManager, connectionUrl);

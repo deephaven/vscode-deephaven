@@ -418,6 +418,7 @@ export class ExtensionController implements IDisposable {
    */
   initializeMcpController = (): void => {
     assertDefined(this._config, 'config');
+    assertDefined(this._connectionController, 'connectionController');
     assertDefined(this._coreJsApiCache, 'coreJsApiCache');
     assertDefined(this._outputChannel, 'outputChannel');
     assertDefined(this._outputChannelDebug, 'outputChannelDebug');
@@ -428,6 +429,7 @@ export class ExtensionController implements IDisposable {
 
     this._mcpController = new McpController(
       this._config,
+      this._connectionController,
       this._context,
       this._coreJsApiCache,
       this._extensionInfo.mcpVersion,

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type {
+  IPromptUserToSelectConnection,
   McpTool,
   McpToolHandlerArg,
   McpToolHandlerResult,
@@ -24,6 +25,7 @@ const spec = {
       .describe('The language ID for the code. Must be "python" or "groovy".'),
     connectionUrl: z
       .string()
+      .optional()
       .describe('The Deephaven connection URL to use for execution.'),
   },
   outputSchema: runCodeOutputSchema,
@@ -36,7 +38,9 @@ type RunCodeTool = McpTool<Spec>;
 
 export function createRunCodeTool({
   serverManager,
+  connectionController,
 }: {
+  connectionController: IPromptUserToSelectConnection;
   serverManager: IServerManager;
 }): RunCodeTool {
   return {
@@ -68,6 +72,11 @@ export function createRunCodeTool({
           connectionUrl: parsedConnectionURL.value,
           serverManager,
           languageId,
+          promptUserToSelectConnection: () =>
+            connectionController.onPromptUserToSelectConnection(
+              undefined,
+              languageId
+            ),
         });
 
         if (!firstConnectionResult.success) {

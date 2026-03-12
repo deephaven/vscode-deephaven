@@ -6,6 +6,7 @@ import type {
   IToastService,
   ConnectionState,
   ServerState,
+  IPromptUserToSelectConnection,
 } from '../types';
 import {
   createConnectionOption,
@@ -28,6 +29,7 @@ import {
   DISCONNECT_FROM_SERVER_CMD,
   SELECT_CONNECTION_COMMAND,
   UnsupportedConsoleTypeError,
+  type SelectConnectionCommandArgs,
 } from '../common';
 import { ControllerBase } from './ControllerBase';
 import { assertDefined } from '../shared';
@@ -37,7 +39,7 @@ const logger = new Logger('ConnectionController');
 
 export class ConnectionController
   extends ControllerBase
-  implements IDisposable
+  implements IDisposable, IPromptUserToSelectConnection
 {
   constructor(
     context: vscode.ExtensionContext,
@@ -78,7 +80,9 @@ export class ConnectionController
     /** Select connection to run scripts against */
     this.registerCommand(
       SELECT_CONNECTION_COMMAND,
-      this.onPromptUserToSelectConnection
+      this.onPromptUserToSelectConnection.bind(
+        vscode.window.activeTextEditor?.document
+      )
     );
   }
 
@@ -171,7 +175,7 @@ export class ConnectionController
 
   connectEditor = async (
     connectionOrServer: ConnectionState | ServerState,
-    uri: vscode.Uri,
+    uri: vscode.Uri | undefined,
     languageId: string
   ): Promise<void> => {
     updateConnectionStatusBarItem(this._connectStatusBarItem, 'connecting');
@@ -193,11 +197,12 @@ export class ConnectionController
     }
 
     try {
-      await this._serverManager.setEditorConnection(
-        uri,
-        languageId,
-        connectionOrServer
-      );
+      uri &&
+        (await this._serverManager.setEditorConnection(
+          uri,
+          languageId,
+          connectionOrServer
+        ));
     } catch (err) {
       updateConnectionStatusBarItem(this._connectStatusBarItem, 'disconnected');
 
@@ -294,7 +299,10 @@ export class ConnectionController
       await this.connectEditor(availableServers[0], uri, languageId);
     } else {
       // If there are multiple options to select, prompt the user to select one.
-      const isSelected = await this.onPromptUserToSelectConnection(languageId);
+      const isSelected = await this.onPromptUserToSelectConnection(
+        vscode.window.activeTextEditor?.document,
+        languageId
+      );
 
       // User cancelled the selection or an error occurred
       if (!isSelected) {
@@ -414,20 +422,30 @@ export class ConnectionController
    * 2. A list of running servers composed of:
    *   - DHC servers that don't yet have a connection
    *   - All running DHE servers
+   * @param document Optional document to use for determining the active editor's
+   * language id and URI. One of document or languageId must be provided.
    * @param languageId Optional language id to use for the connection. Defaults
-   * to the language id of the active editor.
+   * to the language id of the active editor. One of document or languageId must
+   * be provided.
    */
   onPromptUserToSelectConnection = async (
-    languageId?: string
-  ): Promise<boolean> => {
-    assertDefined(vscode.window.activeTextEditor, 'activeTextEditor');
+    ...args: SelectConnectionCommandArgs
+  ): Promise<URL | null> => {
     assertDefined(this._serverManager, 'serverManager');
 
-    const editor = vscode.window.activeTextEditor;
-    const uri = editor.document.uri;
+    let [document, languageId] = args;
+
     if (languageId == null) {
-      languageId = editor.document.languageId;
+      if (document == null) {
+        throw new Error(
+          'No document or languageId provided for connection selection'
+        );
+      }
+
+      languageId = document.languageId;
     }
+
+    const uri = document?.uri;
 
     const updateStatusPromise = this._serverManager.updateStatus();
 
@@ -467,7 +485,7 @@ export class ConnectionController
       );
 
     const editorActiveConnectionUrl =
-      this._serverManager.getUriConnection(uri)?.serverUrl;
+      uri && this._serverManager.getUriConnection(uri)?.serverUrl;
 
     let selectedCnResult: ConnectionState | ServerState | null = null;
 
@@ -482,15 +500,17 @@ export class ConnectionController
       );
 
       if (selectedCnResult == null) {
-        return false;
+        return null;
       }
 
       await this.connectEditor(selectedCnResult, uri, languageId);
 
-      return true;
+      return 'serverUrl' in selectedCnResult
+        ? selectedCnResult.serverUrl
+        : selectedCnResult.url;
     } catch (err) {
       this._toaster.error(err instanceof Error ? err.message : String(err));
-      return false;
+      return null;
     }
   };
 }
