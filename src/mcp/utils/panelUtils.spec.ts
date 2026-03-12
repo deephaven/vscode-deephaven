@@ -64,21 +64,24 @@ describe('getDhePanelUrlFormat', () => {
         embedDashboardsAndWidgets: false,
       },
       workerInfo: undefined,
-      expected: undefined,
+      expected:
+        'Panel URLs are not supported by this Enterprise server version (requires Grizzly+ or later)',
     },
     {
       scenario: 'embedDashboardsAndWidgets feature is not defined',
       dheService: mockDheService,
       features: { createQueryIframe: true },
       workerInfo: undefined,
-      expected: undefined,
+      expected:
+        'Panel URLs are not supported by this Enterprise server version (requires Grizzly+ or later)',
     },
     {
       scenario: 'getServerFeatures returns undefined',
       dheService: mockDheService,
       features: undefined,
       workerInfo: undefined,
-      expected: undefined,
+      expected:
+        'Panel URLs are not supported by this Enterprise server version (requires Grizzly+ or later)',
     },
     {
       scenario: 'worker info is not available',

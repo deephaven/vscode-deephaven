@@ -69,8 +69,10 @@ When choosing from multiple servers in `listServers` response, look for:
 
 **Panel URLs (for UI verification):**
 
-- **DHC**: `{origin}/iframe/widget/?name={variableTitle}`
-- **DHE**: `{origin}/iriside/embed/widget/serial/{serial}/{variableTitle}`
+Community servers always support panel URLs. Enterprise servers require Grizzly+ or later.
+
+- **DHC (Community)**: `{origin}/iframe/widget/?name={variableTitle}`
+- **DHE (Enterprise)**: `{origin}/iriside/embed/widget/serial/{serial}/{variableTitle}` (Grizzly+ or later only)
 
 ### Remote File Sources
 
