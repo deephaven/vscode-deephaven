@@ -117,6 +117,10 @@ describe('runCodeFromUri tool', () => {
     getUriConnection: vi.fn(),
   } as unknown as IServerManager;
 
+  const connectionController = {
+    onPromptUserToSelectConnection: vi.fn(),
+  };
+
   beforeEach(() => {
     // clear diagnostics before `clearAllMocks` since `clear` is actually a mock
     // and we also want to reset its call count
@@ -128,6 +132,7 @@ describe('runCodeFromUri tool', () => {
 
   it('should return correct tool spec', () => {
     const tool = createRunCodeFromUriTool({
+      connectionController,
       pythonDiagnostics,
       pythonWorkspace,
       serverManager,
@@ -159,6 +164,7 @@ describe('runCodeFromUri tool', () => {
       });
 
       const tool = createRunCodeFromUriTool({
+        connectionController,
         pythonDiagnostics,
         pythonWorkspace,
         serverManager,
@@ -173,6 +179,7 @@ describe('runCodeFromUri tool', () => {
         serverManager,
         connectionUrl: MOCK_CONNECTION_URL,
         languageId: 'python',
+        promptUserToSelectConnection: expect.any(Function),
       });
       expect(result.structuredContent).toEqual(
         mcpErrorResult(
@@ -222,6 +229,7 @@ describe('runCodeFromUri tool', () => {
         }
 
         const tool = createRunCodeFromUriTool({
+          connectionController,
           pythonDiagnostics,
           pythonWorkspace,
           serverManager,
@@ -343,6 +351,7 @@ describe('runCodeFromUri tool', () => {
         );
 
         const tool = createRunCodeFromUriTool({
+          connectionController,
           pythonDiagnostics,
           pythonWorkspace,
           serverManager,
@@ -357,6 +366,7 @@ describe('runCodeFromUri tool', () => {
           serverManager,
           connectionUrl: MOCK_CONNECTION_URL,
           languageId: 'python',
+          promptUserToSelectConnection: expect.any(Function),
         });
         expect(result.structuredContent).toEqual(expected);
       }

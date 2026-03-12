@@ -56,8 +56,12 @@ describe('serverUtils', () => {
 
   describe('getFirstConnectionOrCreate', () => {
     const mockUrl = new URL('http://localhost:10000');
+    const mockUrl2 = new URL('http://localhost:10001');
     const mockConnection: IDhcService = createMockDhcService({
       serverUrl: mockUrl,
+    });
+    const mockConnection2: IDhcService = createMockDhcService({
+      serverUrl: mockUrl2,
     });
 
     const runningDhcServer = {
@@ -90,6 +94,8 @@ describe('serverUtils', () => {
       getDheServiceForWorker: vi.fn(),
       getWorkerInfo: vi.fn(),
     } as unknown as IServerManager;
+
+    const mockPromptUserToSelectConnection = vi.fn();
 
     beforeEach(() => {
       vi.clearAllMocks();
@@ -207,6 +213,123 @@ describe('serverUtils', () => {
           success: false,
           errorMessage: 'Connection is not a Core / Core+ connection.',
           details: { connectionUrl: mockUrl.href },
+        });
+      });
+    });
+
+    describe('null connectionUrl handling', () => {
+      it('should use single connection when connectionUrl is null and exactly 1 connection exists', async () => {
+        const mockPanelUrlFormat = 'mock.panelUrlFormat';
+
+        vi.mocked(serverManager.getConnections)
+          .mockReturnValueOnce([mockConnection]) // First call to check connection count
+          .mockReturnValueOnce([mockConnection]); // Second call after getting server
+        vi.mocked(serverManager.getServer).mockReturnValue(runningDhcServer);
+        vi.mocked(getDhcPanelUrlFormat).mockReturnValue(mockPanelUrlFormat);
+
+        const result = await getFirstConnectionOrCreate({
+          serverManager,
+          connectionUrl: null,
+        });
+
+        expect(result).toEqual({
+          success: true,
+          connection: mockConnection,
+          panelUrlFormat: mockPanelUrlFormat,
+        });
+        expect(mockPromptUserToSelectConnection).not.toHaveBeenCalled();
+      });
+
+      it('should prompt user when connectionUrl is null and multiple connections exist', async () => {
+        const mockPanelUrlFormat = 'mock.panelUrlFormat';
+
+        vi.mocked(serverManager.getConnections)
+          .mockReturnValueOnce([mockConnection, mockConnection2]) // Multiple connections
+          .mockReturnValueOnce([mockConnection2]); // After prompt selects mockUrl2
+        vi.mocked(serverManager.getServer).mockReturnValue(runningDhcServer);
+        vi.mocked(getDhcPanelUrlFormat).mockReturnValue(mockPanelUrlFormat);
+        mockPromptUserToSelectConnection.mockResolvedValue(mockUrl2);
+
+        const result = await getFirstConnectionOrCreate({
+          serverManager,
+          connectionUrl: null,
+          promptUserToSelectConnection: mockPromptUserToSelectConnection,
+        });
+
+        expect(result).toEqual({
+          success: true,
+          connection: mockConnection2,
+          panelUrlFormat: mockPanelUrlFormat,
+        });
+        expect(mockPromptUserToSelectConnection).toHaveBeenCalledOnce();
+      });
+
+      it('should return error when connectionUrl is null, multiple connections, and no prompt provided', async () => {
+        vi.mocked(serverManager.getConnections).mockReturnValue([
+          mockConnection,
+          mockConnection2,
+        ]);
+
+        const result = await getFirstConnectionOrCreate({
+          serverManager,
+          connectionUrl: null,
+        });
+
+        expect(result).toEqual({
+          success: false,
+          errorMessage: 'No connection selected',
+          details: { connectionUrl: 'null' },
+        });
+      });
+
+      it('should return error when connectionUrl is null and prompt returns null', async () => {
+        vi.mocked(serverManager.getConnections).mockReturnValue([
+          mockConnection,
+          mockConnection2,
+        ]);
+        mockPromptUserToSelectConnection.mockResolvedValue(null);
+
+        const result = await getFirstConnectionOrCreate({
+          serverManager,
+          connectionUrl: null,
+          promptUserToSelectConnection: mockPromptUserToSelectConnection,
+        });
+
+        expect(result).toEqual({
+          success: false,
+          errorMessage: 'No connection selected',
+          details: { connectionUrl: 'null' },
+        });
+        expect(mockPromptUserToSelectConnection).toHaveBeenCalledOnce();
+      });
+
+      it('should prompt user when connectionUrl is null and no connections exist', async () => {
+        const mockPanelUrlFormat = 'mock.panelUrlFormat';
+
+        vi.mocked(serverManager.getConnections)
+          .mockReturnValueOnce([]) // No connections initially
+          .mockReturnValueOnce([]) // Still no connections after prompt, will auto-connect
+          .mockReturnValueOnce([mockConnection]); // After auto-connect
+        vi.mocked(serverManager.getServer).mockReturnValue(runningDhcServer);
+        vi.mocked(execConnectToServer).mockResolvedValue(undefined);
+        vi.mocked(getDhcPanelUrlFormat).mockReturnValue(mockPanelUrlFormat);
+        mockPromptUserToSelectConnection.mockResolvedValue(mockUrl);
+
+        const result = await getFirstConnectionOrCreate({
+          serverManager,
+          connectionUrl: null,
+          promptUserToSelectConnection: mockPromptUserToSelectConnection,
+        });
+
+        expect(result).toEqual({
+          success: true,
+          connection: mockConnection,
+          panelUrlFormat: mockPanelUrlFormat,
+        });
+        expect(mockPromptUserToSelectConnection).toHaveBeenCalledOnce();
+        expect(execConnectToServer).toHaveBeenCalledWith({
+          type: 'DHC',
+          url: mockUrl,
         });
       });
     });
