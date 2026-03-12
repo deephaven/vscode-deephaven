@@ -29,9 +29,13 @@ export async function getDhePanelUrlFormat(
 ): Promise<string | undefined> {
   const dheService = await serverManager.getDheServiceForWorker(connectionUrl);
 
-  const features = dheService?.getServerFeatures()?.features;
-  if (features?.embedDashboardsAndWidgets !== true) {
+  if (dheService == null) {
     return undefined;
+  }
+
+  const features = dheService.getServerFeatures()?.features;
+  if (features?.embedDashboardsAndWidgets !== true) {
+    return 'Panel URLs are not supported by this Enterprise server version (requires Grizzly+ or later)';
   }
 
   // Get worker info for DHE servers to include serial ID in panel URLs
