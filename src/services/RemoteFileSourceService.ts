@@ -236,9 +236,18 @@ export class RemoteFileSourceService extends DisposableBase {
     const isDirty = this._isGroovyWorkspaceDirty;
     this._isGroovyWorkspaceDirty = false;
 
-    await pluginService.setExecutionContext(isDirty, [
+    const resourcePaths = [
       ...this._groovyWorkspace.getMarkedRelativeFilePaths(),
-    ]);
+    ];
+
+    logger.debug(
+      'Setting Groovy server execution context. isDirty:',
+      isDirty,
+      'resourcePaths:',
+      resourcePaths
+    );
+
+    await pluginService.setExecutionContext(isDirty, resourcePaths);
   }
 
   /**
