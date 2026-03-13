@@ -8,6 +8,7 @@ import type {
 } from '../types';
 import { isInstanceOf, sortByStringProp } from '../util';
 import { DhcService } from '../services';
+import { getServerMatchPortIfLocalHost } from '../mcp/utils';
 
 /**
  * Provider for the server connection tree view.
@@ -48,9 +49,9 @@ export class ServerConnectionTreeProvider extends ServerTreeProviderBase<ServerC
 
     const hasUris = this.serverManager.hasConnectionUris(connectionOrUri);
 
-    const serverLabel = this.serverManager.getServer(
-      connectionOrUri.serverUrl,
-      false
+    const serverLabel = getServerMatchPortIfLocalHost(
+      this.serverManager,
+      connectionOrUri.serverUrl
     )?.label;
 
     const label = serverLabel ?? connectionOrUri.serverUrl.host;
