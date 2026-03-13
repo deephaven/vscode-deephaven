@@ -14,6 +14,11 @@ const spec = {
   description:
     'Add folder(s) as remote file sources (allows server to fetch source files on-demand during script execution).',
   inputSchema: {
+    languageId: z
+      .string()
+      .describe(
+        'The language of the remote file sources to add: "python" or "groovy". Use "groovy" when adding Groovy package folders.'
+      ),
     folderUris: z
       .array(z.string())
       .describe('List of folder URIs to add as remote file sources.'),
@@ -33,8 +38,18 @@ export function createAddRemoteFileSourcesTool(): AddRemoteFileSourcesTool {
   return {
     name: 'addRemoteFileSources',
     spec,
-    handler: async ({ folderUris }: HandlerArg): Promise<HandlerResult> => {
+    handler: async ({
+      folderUris,
+      languageId,
+    }: HandlerArg): Promise<HandlerResult> => {
       const response = new McpToolResponse();
+
+      // Validate languageId
+      if (languageId !== 'python' && languageId !== 'groovy') {
+        return response.error(
+          `Invalid languageId: '${languageId}'. Must be "python" or "groovy".`
+        );
+      }
 
       try {
         const uris = folderUris.map(uri =>
@@ -44,7 +59,7 @@ export function createAddRemoteFileSourcesTool(): AddRemoteFileSourcesTool {
         // Deduplicate URIs using URISet
         const uniqueUris = Array.from(new URISet(uris).values());
 
-        await execAddRemoteFileSource(uniqueUris);
+        await execAddRemoteFileSource(languageId, uniqueUris);
 
         return response.success('Remote file sources added successfully', {
           foldersAdded: uniqueUris.length,

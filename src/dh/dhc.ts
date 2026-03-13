@@ -28,7 +28,8 @@ export const AUTH_HANDLER_TYPE_DHE =
 export type ConnectionAndSession<TConnection, TSession> = {
   cn: TConnection;
   cnId: UniqueID;
-  remoteFileSourcePlugin: DhType.Widget | null;
+  groovyRemoteFileSourcePlugin: DhType.remotefilesource.RemoteFileSourceService | null;
+  pythonRemoteFileSourcePlugin: DhType.Widget | null;
   session: TSession;
 };
 
@@ -54,6 +55,7 @@ export async function getDhc(
     targetModuleType: 'cjs',
   });
 
+  // @ts-ignore TODO: once we update to proper jsapi-types can remove this
   return coreModule;
 }
 
@@ -152,10 +154,21 @@ export async function initDhcSession(
 
   const session = await cn.startSession(type);
 
-  const remoteFileSourcePlugin =
+  const pythonRemoteFileSourcePlugin =
     type === 'python' ? await getRemoteFileSourcePlugin(cnId, session) : null;
 
-  return { cn, cnId, remoteFileSourcePlugin, session };
+  const groovyRemoteFileSourcePlugin: DhType.remotefilesource.RemoteFileSourceService | null =
+    type === 'groovy' && 'getRemoteFileSourceService' in client
+      ? await client.getRemoteFileSourceService()
+      : null;
+
+  return {
+    cn,
+    cnId,
+    groovyRemoteFileSourcePlugin,
+    pythonRemoteFileSourcePlugin,
+    session,
+  };
 }
 
 /**

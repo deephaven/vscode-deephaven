@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseServerError } from './errorUtils';
+import { parseGroovyServerError, parseServerError } from './errorUtils';
 
 const mockErrorFromCurrentFile = [
   'java.lang.RuntimeException: Error in Python interpreter:',
@@ -41,6 +41,78 @@ const mockErrorFromAnotherFile = [
   '\tbleh',
   '',
 ].join('\n');
+
+const mockGroovyImportError =
+  'RuntimeException: Attempting to import a path that does not exist: import package3.subpackage1.MultiClassTest;';
+
+describe('parseGroovyServerError', () => {
+  it('should parse a Groovy import error', () => {
+    const parsed = parseGroovyServerError(mockGroovyImportError);
+    expect(parsed).toHaveLength(1);
+
+    const [error] = parsed;
+    expect(error).toEqual({
+      type: 'RuntimeException',
+      value:
+        'Attempting to import a path that does not exist: import package3.subpackage1.MultiClassTest;',
+      importPath: 'package3.subpackage1.MultiClassTest',
+    });
+  });
+
+  it('should parse a simple single-level import path', () => {
+    const error =
+      'RuntimeException: Attempting to import a path that does not exist: import MyClass;';
+    const parsed = parseGroovyServerError(error);
+    expect(parsed).toHaveLength(1);
+
+    const [errorObj] = parsed;
+    expect(errorObj).toEqual({
+      type: 'RuntimeException',
+      value:
+        'Attempting to import a path that does not exist: import MyClass;',
+      importPath: 'MyClass',
+    });
+  });
+
+  it('should parse a deep nested import path', () => {
+    const error =
+      'RuntimeException: Attempting to import a path that does not exist: import com.example.subpackage.deep.MyClass;';
+    const parsed = parseGroovyServerError(error);
+    expect(parsed).toHaveLength(1);
+
+    const [errorObj] = parsed;
+    expect(errorObj).toEqual({
+      type: 'RuntimeException',
+      value:
+        'Attempting to import a path that does not exist: import com.example.subpackage.deep.MyClass;',
+      importPath: 'com.example.subpackage.deep.MyClass',
+    });
+  });
+
+  it('should return empty array for unrecognized error format', () => {
+    const parsed = parseGroovyServerError('Some other error');
+    expect(parsed).toHaveLength(0);
+  });
+
+  it('should return empty array for empty string', () => {
+    const parsed = parseGroovyServerError('');
+    expect(parsed).toHaveLength(0);
+  });
+
+  it('should return empty array when error has extra text after semicolon', () => {
+    const error =
+      'RuntimeException: Attempting to import a path that does not exist: import package.MyClass; extra text';
+    const parsed = parseGroovyServerError(error);
+    expect(parsed).toHaveLength(0);
+  });
+
+  it('should return empty array when error has a different prefix', () => {
+    const error =
+      'io.deephaven.RuntimeException: Attempting to import a path that does not exist: import package.MyClass;';
+    const parsed = parseGroovyServerError(error);
+    expect(parsed).toHaveLength(0);
+  });
+});
 
 describe('parseServerError', () => {
   it('should parse an error originating from the current file', () => {

@@ -35,7 +35,11 @@ import {
   UnsupportedConsoleTypeError,
   VARIABLE_UNICODE_ICONS,
 } from '../common';
-import { NoConsoleTypesError, parseServerError } from '../dh/errorUtils';
+import {
+  NoConsoleTypesError,
+  parseGroovyServerError,
+  parseServerError,
+} from '../dh/errorUtils';
 import { hasErrorCode } from '../util/typeUtils';
 import { DisposableBase } from './DisposableBase';
 import { assertDefined } from '../shared';
@@ -57,6 +61,7 @@ export class DhcService extends DisposableBase implements IDhcService {
    */
   static factory = (
     coreClientCache: URLMap<CoreAuthenticatedClient>,
+    groovyDiagnosticsCollection: vscode.DiagnosticCollection,
     diagnosticsCollection: vscode.DiagnosticCollection,
     remoteFileSourceService: RemoteFileSourceService,
     outputChannel: vscode.OutputChannel,
@@ -69,6 +74,7 @@ export class DhcService extends DisposableBase implements IDhcService {
         return new DhcService(
           serverUrl,
           coreClientCache,
+          groovyDiagnosticsCollection,
           diagnosticsCollection,
           remoteFileSourceService,
           outputChannel,
@@ -88,6 +94,7 @@ export class DhcService extends DisposableBase implements IDhcService {
   private constructor(
     serverUrl: URL,
     coreClientCache: URLMap<CoreAuthenticatedClient>,
+    groovyDiagnosticsCollection: vscode.DiagnosticCollection,
     diagnosticsCollection: vscode.DiagnosticCollection,
     remoteFileSourceService: RemoteFileSourceService,
     outputChannel: vscode.OutputChannel,
@@ -99,6 +106,7 @@ export class DhcService extends DisposableBase implements IDhcService {
     super();
 
     this.coreClientCache = coreClientCache;
+    this.groovyDiagnosticsCollection = groovyDiagnosticsCollection;
     this.diagnosticsCollection = diagnosticsCollection;
     this.remoteFileSourceService = remoteFileSourceService;
     this.outputChannel = outputChannel;
@@ -131,6 +139,7 @@ export class DhcService extends DisposableBase implements IDhcService {
   private readonly secretService: ISecretService;
   private readonly toaster: IToastService;
   private readonly panelService: IPanelService;
+  private readonly groovyDiagnosticsCollection: vscode.DiagnosticCollection;
   private readonly diagnosticsCollection: vscode.DiagnosticCollection;
   private clientPromise: Promise<CoreAuthenticatedClient | null> | null = null;
   private initSessionPromise: Promise<
@@ -139,8 +148,13 @@ export class DhcService extends DisposableBase implements IDhcService {
 
   private cn: DhcType.IdeConnection | null = null;
   private cnId: UniqueID | null = null;
-  private remoteFileSourcePluginSubscription: (() => void) | null = null;
+  private groovyRemoteFileSourcePluginSubscription: (() => void) | null = null;
+  private pythonRemoteFileSourcePluginSubscription: (() => void) | null = null;
   private session: DhcType.IdeSession | null = null;
+
+  private groovyRemoteFileSourcePluginService: DhcType.remotefilesource.RemoteFileSourceService | null =
+    null;
+  private pythonRemoteFileSourcePlugin: DhcType.Widget | null = null;
 
   get isInitialized(): boolean {
     return this.initSessionPromise != null;
@@ -282,15 +296,22 @@ export class DhcService extends DisposableBase implements IDhcService {
     }
 
     try {
-      const { cn, cnId, remoteFileSourcePlugin, session } =
-        await this.initSessionPromise;
+      const {
+        cn,
+        cnId,
+        groovyRemoteFileSourcePlugin,
+        pythonRemoteFileSourcePlugin,
+        session,
+      } = await this.initSessionPromise;
       this.cn = cn;
       this.cnId = cnId;
       this.session = session;
 
-      if (remoteFileSourcePlugin != null) {
-        await this._initRemoteFileSourcePlugin(session, remoteFileSourcePlugin);
-      }
+      await this._initRemoteFileSourcePlugins(
+        session,
+        groovyRemoteFileSourcePlugin,
+        pythonRemoteFileSourcePlugin
+      );
     } catch (err) {
       logger.error(err);
       const toastMessage = this.getToastErrorMessage(
@@ -330,25 +351,49 @@ export class DhcService extends DisposableBase implements IDhcService {
   };
 
   /**
-   * Initialize the remote file source plugin.
-   * @param session the ide session to associate with the plugin
-   * @param remoteFileSourcePlugin the remote file source plugin widget
+   * Initialize the remote file source plugins.
+   * @param session the ide session to associate with the plugins
+   * @param groovyRemoteFileSourcePluginService the Groovy remote file source plugin service
+   * @param pythonRemoteFileSourcePlugin the Python remote file source plugin widget
    */
-  private _initRemoteFileSourcePlugin = async (
+  private _initRemoteFileSourcePlugins = async (
     session: DhcType.IdeSession,
-    remoteFileSourcePlugin: DhcType.Widget
+    groovyRemoteFileSourcePluginService: DhcType.remotefilesource.RemoteFileSourceService | null,
+    pythonRemoteFileSourcePlugin: DhcType.Widget | null
   ): Promise<void> => {
-    this.disposables.add(() => {
-      remoteFileSourcePlugin.close();
-    });
+    this.groovyRemoteFileSourcePluginService =
+      groovyRemoteFileSourcePluginService;
+    this.pythonRemoteFileSourcePlugin = pythonRemoteFileSourcePlugin;
 
-    this.remoteFileSourcePluginSubscription =
-      await this.remoteFileSourceService.registerPlugin(
-        session,
-        remoteFileSourcePlugin
-      );
+    // Groovy plugin
+    if (groovyRemoteFileSourcePluginService != null) {
+      this.disposables.add(() => {
+        groovyRemoteFileSourcePluginService.close();
+      });
 
-    this.disposables.add(this.remoteFileSourcePluginSubscription);
+      this.groovyRemoteFileSourcePluginSubscription =
+        await this.remoteFileSourceService.registerGroovyPlugin(
+          session,
+          groovyRemoteFileSourcePluginService
+        );
+
+      this.disposables.add(this.groovyRemoteFileSourcePluginSubscription);
+    }
+
+    // Python plugin
+    if (pythonRemoteFileSourcePlugin != null) {
+      this.disposables.add(() => {
+        pythonRemoteFileSourcePlugin.close();
+      });
+
+      this.pythonRemoteFileSourcePluginSubscription =
+        await this.remoteFileSourceService.registerPythonPlugin(
+          session,
+          pythonRemoteFileSourcePlugin
+        );
+
+      this.disposables.add(this.pythonRemoteFileSourcePluginSubscription);
+    }
   };
 
   async getClient(): Promise<CoreAuthenticatedClient | null> {
@@ -365,11 +410,19 @@ export class DhcService extends DisposableBase implements IDhcService {
   }
 
   /**
+   * Check if the Groovy remote file source plugin is installed.
+   * @returns true if the plugin is installed, false otherwise
+   */
+  hasGroovyRemoteFileSourcePlugin = (): boolean => {
+    return this.groovyRemoteFileSourcePluginSubscription != null;
+  };
+
+  /**
    * Check if the remote file source plugin is installed.
    * @returns true if the plugin is installed, false otherwise
    */
-  hasRemoteFileSourcePlugin = (): boolean => {
-    return this.remoteFileSourcePluginSubscription != null;
+  hasPythonRemoteFileSourcePlugin = (): boolean => {
+    return this.pythonRemoteFileSourcePluginSubscription != null;
   };
 
   getConsoleTypes = async (): Promise<Set<ConsoleType>> => {
@@ -429,6 +482,7 @@ export class DhcService extends DisposableBase implements IDhcService {
     if (typeof documentOrText !== 'string') {
       // Clear previous diagnostics when cmd starts running
       this.diagnosticsCollection.set(documentOrText.uri, []);
+      this.groovyDiagnosticsCollection.set(documentOrText.uri, []);
     }
 
     if (this.session == null) {
@@ -463,10 +517,16 @@ export class DhcService extends DisposableBase implements IDhcService {
 
       this.isRunningCode = true;
 
-      if (this.remoteFileSourcePluginSubscription != null) {
-        await this.remoteFileSourceService.setServerExecutionContext(
+      if (this.pythonRemoteFileSourcePlugin != null) {
+        await this.remoteFileSourceService.setPythonServerExecutionContext(
           this.cnId,
           this.session
+        );
+      }
+
+      if (this.groovyRemoteFileSourcePluginService != null) {
+        await this.remoteFileSourceService.setGroovyServerExecutionContext(
+          this.groovyRemoteFileSourcePluginService
         );
       }
 
@@ -531,6 +591,27 @@ export class DhcService extends DisposableBase implements IDhcService {
               [diagnostic]
             );
           }
+        }
+      } else if (
+        languageId === 'groovy' &&
+        typeof documentOrText !== 'string'
+      ) {
+        const errors = parseGroovyServerError(error);
+
+        for (const { type, value } of errors) {
+          // Flag the first token on the first line since Groovy import errors
+          // don't include a specific line number
+          const diagnostic: vscode.Diagnostic = {
+            code: type,
+            message: value == null ? error : `${value}\n${error}`,
+            severity: vscode.DiagnosticSeverity.Error,
+            range: new vscode.Range(0, 0, 0, 0),
+            source: 'deephaven',
+          };
+
+          this.groovyDiagnosticsCollection.set(documentOrText.uri, [
+            diagnostic,
+          ]);
         }
       }
     }

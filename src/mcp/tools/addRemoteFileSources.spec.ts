@@ -35,27 +35,33 @@ describe('addRemoteFileSources', () => {
 
   it.each([
     {
-      scenario: 'multiple URIs',
+      scenario: 'multiple URIs (python)',
       folderUris: [
         'file:///server1/path/to/folder1',
         'file:///server2/path/to/folder2/',
         'file:///local/path/',
       ],
+      languageId: 'python' as const,
       expectedParsedUris: [
         'file:///server1/path/to/folder1',
         'file:///server2/path/to/folder2',
         'file:///local/path',
       ],
+      expectedLanguageId: 'python',
     },
     {
-      scenario: 'single folder URI',
+      scenario: 'single folder URI (python)',
       folderUris: ['file:///server/folder'],
+      languageId: 'python' as const,
       expectedParsedUris: ['file:///server/folder'],
+      expectedLanguageId: 'python',
     },
     {
       scenario: 'empty array',
       folderUris: [],
+      languageId: 'python' as const,
       expectedParsedUris: [],
+      expectedLanguageId: 'python',
     },
     {
       scenario: 'duplicate URIs with mixed trailing slashes',
@@ -64,22 +70,34 @@ describe('addRemoteFileSources', () => {
         'file:///server/folder',
         'file:///server/folder/',
       ],
+      languageId: 'python' as const,
       expectedParsedUris: ['file:///server/folder'],
+      expectedLanguageId: 'python',
     },
-  ])('should handle $scenario', async ({ folderUris, expectedParsedUris }) => {
-    const tool = createAddRemoteFileSourcesTool();
-    const result = await tool.handler({ folderUris });
+    {
+      scenario: 'groovy language ID',
+      folderUris: ['file:///server/groovy/package3'],
+      languageId: 'groovy' as const,
+      expectedParsedUris: ['file:///server/groovy/package3'],
+      expectedLanguageId: 'groovy',
+    },
+  ])(
+    'should handle $scenario',
+    async ({ folderUris, languageId, expectedParsedUris, expectedLanguageId }) => {
+      const tool = createAddRemoteFileSourcesTool();
+      const result = await tool.handler({ folderUris, languageId });
 
-    expect(commands.execAddRemoteFileSource).toHaveBeenCalledWith(
-      expectedParsedUris.map(uri => vscode.Uri.parse(uri))
-    );
-
-    expect(result.structuredContent).toEqual(
-      mcpSuccessResult('Remote file sources added successfully', {
-        foldersAdded: expectedParsedUris.length,
-      })
-    );
-  });
+      expect(commands.execAddRemoteFileSource).toHaveBeenCalledWith(
+        expectedLanguageId,
+        expectedParsedUris.map(uri => vscode.Uri.parse(uri))
+      );
+      expect(result.structuredContent).toEqual(
+        mcpSuccessResult('Remote file sources added successfully', {
+          foldersAdded: expectedParsedUris.length,
+        })
+      );
+    }
+  );
 
   it.each([
     {
@@ -90,6 +108,7 @@ describe('addRemoteFileSources', () => {
         );
       },
       folderUris: ['file:///server/folder'],
+      languageId: 'python' as const,
       expectedMessage: 'Failed to add remote file sources: Command failed',
     },
     {
@@ -100,15 +119,16 @@ describe('addRemoteFileSources', () => {
         });
       },
       folderUris: ['invalid-uri'],
+      languageId: 'python' as const,
       expectedMessage: 'Failed to add remote file sources: Invalid URI',
     },
   ])(
     'should handle $scenario',
-    async ({ mockSetup, folderUris, expectedMessage }) => {
+    async ({ mockSetup, folderUris, languageId, expectedMessage }) => {
       mockSetup();
 
       const tool = createAddRemoteFileSourcesTool();
-      const result = await tool.handler({ folderUris });
+      const result = await tool.handler({ folderUris, languageId });
 
       expect(result.structuredContent).toEqual(
         mcpErrorResult(expectedMessage, { folderUris })

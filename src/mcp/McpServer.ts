@@ -9,6 +9,8 @@ import type {
   IServerManager,
   McpTool,
   McpToolSpec,
+  GroovyPackageName,
+  PythonModuleFullname,
 } from '../types';
 import { MCP_SERVER_NAME } from '../common';
 import {
@@ -47,8 +49,10 @@ export class McpServer extends DisposableBase {
     readonly outputChannel: OutputChannelWithHistory,
     readonly outputChannelDebug: OutputChannelWithHistory,
     readonly panelService: IPanelService,
+    readonly groovyDiagnostics: vscode.DiagnosticCollection,
+    readonly groovyWorkspace: FilteredWorkspace<GroovyPackageName>,
     readonly pythonDiagnostics: vscode.DiagnosticCollection,
-    readonly pythonWorkspace: FilteredWorkspace,
+    readonly pythonWorkspace: FilteredWorkspace<PythonModuleFullname>,
     readonly serverManager: IServerManager
   ) {
     super();
@@ -72,7 +76,15 @@ export class McpServer extends DisposableBase {
     this.registerTool(createOpenFilesInEditorTool());
     this.registerTool(createOpenVariablePanelsTool(this));
     this.registerTool(createRemoveRemoteFileSourcesTool());
-    this.registerTool(createRunCodeFromUriTool(this));
+    this.registerTool(
+      createRunCodeFromUriTool({
+        groovyDiagnostics: this.groovyDiagnostics,
+        groovyWorkspace: this.groovyWorkspace,
+        pythonDiagnostics: this.pythonDiagnostics,
+        pythonWorkspace: this.pythonWorkspace,
+        serverManager: this.serverManager,
+      })
+    );
     this.registerTool(createRunCodeTool(this));
     this.registerTool(createSetEditorConnectionTool(this));
     this.registerTool(createShowOutputPanelTool(this));

@@ -6,16 +6,16 @@ import {
   getFolderTreeItem,
   getSetExecutionContextScript,
   getTopLevelMarkedFolderTreeItem,
-  getTopLevelModuleFullname,
+  getPythonTopLevelModuleFullname,
   hasPythonPluginVariable,
-  registerRemoteFileSourcePluginMessageListener,
+  registerPythonRemoteFileSourcePluginMessageListener,
   sendWidgetMessageAsync,
 } from './remoteFileSourceUtils';
 import type {
   JsonRpcFetchModuleRequest,
   JsonRpcRequest,
   JsonRpcResponse,
-  ModuleFullname,
+  PythonModuleFullname,
   PythonModuleSpecData,
   RemoteImportSourceTreeFileElement,
   RemoteImportSourceTreeFolderElement,
@@ -69,6 +69,7 @@ describe('getFolderTreeItem', () => {
         name: 'mockFolder',
         isMarked,
         uri: vscode.Uri.parse('file:///mock/folder/path/'),
+        languageId: 'python',
       } as RemoteImportSourceTreeFolderElement;
 
       expect(getFolderTreeItem(element)).toMatchSnapshot();
@@ -97,6 +98,7 @@ describe('getTopLevelMarkedFolderTreeItem', () => {
   it('should return a TreeItem for a top-level marked folder element', () => {
     const element = {
       uri: vscode.Uri.parse('file:///mock/top/level/marked/folder/'),
+      languageId: 'python',
     } as RemoteImportSourceTreeTopLevelMarkedFolderElement;
 
     expect(getTopLevelMarkedFolderTreeItem(element)).toMatchSnapshot();
@@ -110,7 +112,7 @@ describe('getTopLevelModuleFullname', () => {
   ])(
     'should return the top-level module fullname for a given folder URI: %s',
     (uriPath, expectedModuleName) => {
-      const result = getTopLevelModuleFullname(vscode.Uri.parse(uriPath));
+      const result = getPythonTopLevelModuleFullname(vscode.Uri.parse(uriPath));
       expect(result).toBe(expectedModuleName);
     }
   );
@@ -155,9 +157,11 @@ describe('hasPythonPluginVariable', () => {
 
 describe('registerRemoteFileSourcePluginMessageListener', () => {
   const getPythonModuleSpecData =
-    vi.fn<(moduleFullname: ModuleFullname) => PythonModuleSpecData | null>();
+    vi.fn<
+      (moduleFullname: PythonModuleFullname) => PythonModuleSpecData | null
+    >();
 
-  const mockModuleName = 'a.b.c' as ModuleFullname;
+  const mockModuleName = 'a.b.c' as PythonModuleFullname;
 
   const mockFile = {
     exists: {
@@ -178,7 +182,7 @@ describe('registerRemoteFileSourcePluginMessageListener', () => {
       id: '1',
       method: 'fetch_module',
       // eslint-disable-next-line @typescript-eslint/naming-convention
-      params: { module_name: moduleName as ModuleFullname },
+      params: { module_name: moduleName as PythonModuleFullname },
     }),
     fetchModuleRes: ({
       source,
@@ -212,7 +216,7 @@ describe('registerRemoteFileSourcePluginMessageListener', () => {
       mockIncomingMsg(mockMsg.fetchModuleReq(mockModuleName));
       getPythonModuleSpecData.mockReturnValueOnce(spec);
 
-      registerRemoteFileSourcePluginMessageListener(
+      registerPythonRemoteFileSourcePluginMessageListener(
         mockPlugin,
         getPythonModuleSpecData
       );
