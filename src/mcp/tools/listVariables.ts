@@ -81,13 +81,15 @@ export function createListVariablesTool({
           return response.errorWithHint(errorMessage, error, hint, details);
         }
 
-        const variables = [...panelService.getVariables(parsedUrl.value)].map(
-          ({ id, title, type }) => ({
-            id,
-            title,
-            type,
-          })
-        );
+        const { connection } = firstConnectionResult;
+
+        const variables = [
+          ...panelService.getVariables(connection.serverUrl),
+        ].map(({ id, title, type }) => ({
+          id,
+          title,
+          type,
+        }));
 
         const message = `Found ${variables.length} panel variable(s)`;
 

@@ -47,9 +47,13 @@ describe('openVariablePanels', () => {
   });
 
   it('should open variable panels successfully', async () => {
+    const mockConnection = {
+      serverUrl: MOCK_PARSED_URL,
+    } as IDhcService;
+
     vi.mocked(getFirstConnectionOrCreate).mockResolvedValue({
       success: true,
-      connection: {} as IDhcService,
+      connection: mockConnection,
       panelUrlFormat: 'mock.panelUrlFormat',
     });
 
@@ -64,7 +68,7 @@ describe('openVariablePanels', () => {
       connectionUrl: MOCK_PARSED_URL,
     });
     expect(execOpenVariablePanels).toHaveBeenCalledWith(
-      MOCK_PARSED_URL,
+      mockConnection.serverUrl,
       MOCK_VARIABLES
     );
     expect(result.structuredContent).toEqual(
@@ -137,10 +141,44 @@ describe('openVariablePanels', () => {
     );
   });
 
-  it('should handle errors from execOpenVariablePanels', async () => {
+  it('should use connection serverUrl when DHE server URL is provided', async () => {
+    // Simulates DHE scenario where server URL differs from worker URL
+    const serverUrl = 'http://enterprise.deephaven.io';
+    const workerUrl = new URL('http://enterprise.deephaven.io/worker-123');
+    const mockConnection = {
+      serverUrl: workerUrl,
+    } as IDhcService;
+
     vi.mocked(getFirstConnectionOrCreate).mockResolvedValue({
       success: true,
-      connection: {} as IDhcService,
+      connection: mockConnection,
+      panelUrlFormat: 'mock.panelUrlFormat',
+    });
+
+    const tool = createOpenVariablePanelsTool({ serverManager });
+    const result = await tool.handler({
+      connectionUrl: serverUrl,
+      variables: MOCK_VARIABLES,
+    });
+
+    // Should call with the worker URL, not the server URL
+    expect(execOpenVariablePanels).toHaveBeenCalledWith(
+      workerUrl,
+      MOCK_VARIABLES
+    );
+    expect(result.structuredContent).toEqual(
+      mcpSuccessResult('Variable panels opened successfully')
+    );
+  });
+
+  it('should handle errors from execOpenVariablePanels', async () => {
+    const mockConnection = {
+      serverUrl: MOCK_PARSED_URL,
+    } as IDhcService;
+
+    vi.mocked(getFirstConnectionOrCreate).mockResolvedValue({
+      success: true,
+      connection: mockConnection,
       panelUrlFormat: 'mock.panelUrlFormat',
     });
     vi.mocked(execOpenVariablePanels).mockRejectedValue(

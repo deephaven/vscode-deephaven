@@ -76,9 +76,13 @@ describe('listVariables', () => {
       variables: [],
     },
   ])('should list panel variables: $label', async ({ variables }) => {
+    const mockConnection = {
+      serverUrl: MOCK_PARSED_URL,
+    } as IDhcService;
+
     vi.mocked(getFirstConnectionOrCreate).mockResolvedValue({
       success: true,
-      connection: {} as IDhcService,
+      connection: mockConnection,
       panelUrlFormat: MOCK_PANEL_URL_FORMAT,
     });
     vi.mocked(panelService.getVariables).mockReturnValue(variables);
@@ -93,7 +97,9 @@ describe('listVariables', () => {
       connectionUrl: MOCK_PARSED_URL,
       serverManager,
     });
-    expect(panelService.getVariables).toHaveBeenCalledWith(MOCK_PARSED_URL);
+    expect(panelService.getVariables).toHaveBeenCalledWith(
+      mockConnection.serverUrl
+    );
     expect(result.structuredContent).toEqual(
       mcpSuccessResult(`Found ${variables.length} panel variable(s)`, {
         panelUrlFormat: MOCK_PANEL_URL_FORMAT,
@@ -155,10 +161,49 @@ describe('listVariables', () => {
     expect(panelService.getVariables).not.toHaveBeenCalled();
   });
 
-  it('should handle errors from panelService', async () => {
+  it('should use connection serverUrl when DHE server URL is provided', async () => {
+    // Simulates DHE scenario where server URL differs from worker URL
+    const serverUrl = 'http://enterprise.deephaven.io';
+    const workerUrl = new URL('http://enterprise.deephaven.io/worker-123');
+    const mockConnection = {
+      serverUrl: workerUrl,
+    } as IDhcService;
+
     vi.mocked(getFirstConnectionOrCreate).mockResolvedValue({
       success: true,
-      connection: {} as IDhcService,
+      connection: mockConnection,
+      panelUrlFormat: MOCK_PANEL_URL_FORMAT,
+    });
+    vi.mocked(panelService.getVariables).mockReturnValue(MOCK_VARIABLES);
+
+    const tool = createListVariablesTool({
+      panelService,
+      serverManager,
+    });
+    const result = await tool.handler({ connectionUrl: serverUrl });
+
+    // Should call with the worker URL, not the server URL
+    expect(panelService.getVariables).toHaveBeenCalledWith(workerUrl);
+    expect(result.structuredContent).toEqual(
+      mcpSuccessResult(`Found ${MOCK_VARIABLES.length} panel variable(s)`, {
+        panelUrlFormat: MOCK_PANEL_URL_FORMAT,
+        variables: MOCK_VARIABLES.map(({ id, title, type }) => ({
+          id,
+          title,
+          type,
+        })),
+      })
+    );
+  });
+
+  it('should handle errors from panelService', async () => {
+    const mockConnection = {
+      serverUrl: MOCK_PARSED_URL,
+    } as IDhcService;
+
+    vi.mocked(getFirstConnectionOrCreate).mockResolvedValue({
+      success: true,
+      connection: mockConnection,
       panelUrlFormat: MOCK_PANEL_URL_FORMAT,
     });
     vi.mocked(panelService.getVariables).mockImplementation(() => {
