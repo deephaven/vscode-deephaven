@@ -320,6 +320,7 @@ export const workspace = {
     .mockReturnValue({
       onDidChange: vi.fn().mockName('onDidChange'),
       onDidCreate: vi.fn().mockName('onDidCreate'),
+      onDidChange: vi.fn().mockName('onDidChange'),
       onDidDelete: vi.fn().mockName('onDidDelete'),
     }),
   fs: {
