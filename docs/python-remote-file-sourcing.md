@@ -156,3 +156,57 @@ def dashboard_content(table):
 2. In your VS Code workspace, use the Deephaven extension to run `main.py`. The imports will resolve because the `stock_ticker` folder is registered as a remote file source.
 
 ![Run main.py](assets/run-main-py.gif)
+
+## Controller Import Prefix Support (Enterprise)
+
+When using **Deephaven Enterprise** with controller-scoped imports, you can configure the extension to automatically send prefixed module names to the server. This is useful when your server environment expects modules to be imported under a controller prefix (e.g., `controller.mymodule` in addition to `mymodule`).
+
+### Configuration
+
+Add the following to any Python file in your workspace to enable the default `controller` prefix:
+
+```python
+import deephaven_enterprise.controller_import
+deephaven_enterprise.controller_import.meta_import()
+```
+
+To use a custom prefix instead, pass it as an argument:
+
+```python
+import deephaven_enterprise.controller_import
+deephaven_enterprise.controller_import.meta_import("myprefix")
+```
+
+### Behavior
+
+When controller import prefix support is configured:
+
+- Both the unprefixed and prefixed module names are sent to the Deephaven server.
+- Example: If you mark a folder called `mymodule` and configure with prefix `controller`, the server will receive both `mymodule` and `controller.mymodule`.
+- Without any configuration, only the unprefixed name (`mymodule`) is sent — this is the default behavior.
+- The configuration is **auto-detected** whenever `.py` files are saved in your workspace; no manual setup is required beyond adding the `meta_import()` call.
+
+### Supported Import Patterns
+
+The extension detects the following patterns:
+
+1. **Direct import and call:**
+
+   ```python
+   import deephaven_enterprise.controller_import
+   deephaven_enterprise.controller_import.meta_import()
+   ```
+
+2. **From import and call:**
+
+   ```python
+   from deephaven_enterprise.controller_import import meta_import
+   meta_import("custom")
+   ```
+
+### Limitations
+
+- **Import aliases are not supported.** Patterns such as `import deephaven_enterprise.controller_import as ci` or `from deephaven_enterprise.controller_import import meta_import as m` will not be detected.
+- **Only one configuration per workspace is supported.** If multiple `.py` files contain a `meta_import()` call with different prefixes, the first match found will be used.
+
+If your use case requires support for additional patterns, please open an issue.
