@@ -12,6 +12,7 @@ import {
   sortByStringProp,
 } from '../util';
 import { getFirstSupportedConsoleType } from '../services';
+import { getServerMatchPortIfLocalHost } from '../mcp/utils';
 
 export class ServerConnectionPanelTreeProvider extends ServerTreeProviderBase<ServerConnectionPanelNode> {
   constructor(serverManager: IServerManager, panelService: IPanelService) {
@@ -32,9 +33,9 @@ export class ServerConnectionPanelTreeProvider extends ServerTreeProviderBase<Se
       return getPanelVariableTreeItem(connectionOrVariable);
     }
 
-    const serverLabel = this.serverManager.getServer(
-      connectionOrVariable.serverUrl,
-      false
+    const serverLabel = getServerMatchPortIfLocalHost(
+      this.serverManager,
+      connectionOrVariable.serverUrl
     )?.label;
 
     return getPanelConnectionTreeItem(
