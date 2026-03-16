@@ -126,7 +126,7 @@ export function getMsPythonExtensionApi():
 }
 
 /** Get the Python Environments extension api (ms-python.vscode-python-envs) */
-export function getPythonEnvironmentApi():
+export function getPythonEnvsExtensionApi():
   | vscode.Extension<PythonEnvironmentApi>
   | undefined {
   return vscode.extensions.getExtension<PythonEnvironmentApi>(
