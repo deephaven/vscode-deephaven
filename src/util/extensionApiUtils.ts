@@ -2,15 +2,7 @@ import * as vscode from 'vscode';
 import type { ExtensionInfo, ExtensionVersion, McpVersion } from '../types';
 import { uniqueId } from './idUtils';
 
-const MS_PYTHON_EXTENSION_ID = 'ms-python.python';
 const MS_PYTHON_ENVS_EXTENSION_ID = 'ms-python.vscode-python-envs';
-
-/** Microsoft Python extension api */
-interface MsPythonExtensionApi {
-  environments: {
-    getActiveEnvironmentPath: () => Promise<{ path: string }>;
-  };
-}
 
 /** Options for executing a Python executable */
 interface PythonCommandRunConfiguration {
@@ -114,15 +106,6 @@ export function getExtensionVersion(
   }
 
   return version as ExtensionVersion;
-}
-
-/** Get Microsoft Python extension api */
-export function getMsPythonExtensionApi():
-  | vscode.Extension<MsPythonExtensionApi>
-  | undefined {
-  return vscode.extensions.getExtension<MsPythonExtensionApi>(
-    MS_PYTHON_EXTENSION_ID
-  );
 }
 
 /** Get the Python Environments extension api (ms-python.vscode-python-envs) */
