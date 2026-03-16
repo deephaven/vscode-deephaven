@@ -14,6 +14,8 @@ A `requirements.txt` file can be generated containing all of the packages instal
 
 ## Managed pip Servers (Community only)
 
+> **Requirement:** Managed pip servers require the [Python Environments](https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-python-envs) extension (`ms-python.vscode-python-envs`) to be installed in VS Code.
+
 If you want to manage Deephaven servers from within the extension, include `deephaven-server` in the venv pip installation.
 
 Once installed, clicking the `refresh` button in the server tree panel should reveal a `Managed` servers node.

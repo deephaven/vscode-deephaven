@@ -200,7 +200,7 @@ export class PipServerController implements IDisposable {
   };
 
   /**
-   * Get Python interpreter path from the MS Python extension.
+   * Get Python interpreter path from the Python Environments extension (ms-python.vscode-python-envs).
    * @returns The Python interpreter path or `null` if not found.
    */
   getPythonInterpreterPath = async (): Promise<string | null> => {
