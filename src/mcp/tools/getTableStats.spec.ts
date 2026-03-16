@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
+import { fetchVariableDefinition } from '@deephaven/jsapi-utils';
 
 import { createGetTableStatsTool } from './getTableStats';
 import type { IServerManager, ServerState } from '../../types';
@@ -13,6 +14,16 @@ import {
 
 vi.mock('vscode');
 vi.mock('../../services/DhcService');
+vi.mock('@deephaven/jsapi-utils', () => ({
+  fetchVariableDefinition: vi.fn(),
+}));
+
+const MOCK_VARIABLE_DEF = {
+  type: 'Table',
+  id: 'mock-id',
+  name: 'myTable',
+  title: 'myTable',
+};
 
 const MOCK_TABLE = {
   size: 1000,
@@ -65,6 +76,7 @@ describe('getTableStats', () => {
 
     vi.mocked(mockConnection.getSession).mockResolvedValue(mockSession);
     vi.mocked(mockSession.getObject).mockResolvedValue(MOCK_TABLE);
+    vi.mocked(fetchVariableDefinition).mockResolvedValue(MOCK_VARIABLE_DEF);
   });
 
   it('should return correct tool spec', () => {
@@ -84,10 +96,8 @@ describe('getTableStats', () => {
       tableName: 'myTable',
     });
 
-    expect(mockSession.getObject).toHaveBeenCalledWith({
-      type: 'Table',
-      name: 'myTable',
-    });
+    expect(fetchVariableDefinition).toHaveBeenCalledWith(mockSession, 'myTable');
+    expect(mockSession.getObject).toHaveBeenCalledWith(MOCK_VARIABLE_DEF);
     expect(MOCK_TABLE.close).toHaveBeenCalled();
 
     const { size, columns, isRefreshing } = MOCK_TABLE;

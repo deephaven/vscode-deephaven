@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
+import { fetchVariableDefinition } from '@deephaven/jsapi-utils';
 
 import { createGetTableDataTool } from './getTableData';
 import type { IServerManager, ServerState } from '../../types';
@@ -13,6 +14,16 @@ import {
 
 vi.mock('vscode');
 vi.mock('../../services/DhcService');
+vi.mock('@deephaven/jsapi-utils', () => ({
+  fetchVariableDefinition: vi.fn(),
+}));
+
+const MOCK_VARIABLE_DEF = {
+  type: 'Table',
+  id: 'mock-id',
+  name: 'myTable',
+  title: 'myTable',
+};
 
 const MOCK_VIEWPORT_DATA = {
   rows: [
@@ -93,6 +104,7 @@ describe('getTableData', () => {
     vi.mocked(mockConnection.getSession).mockResolvedValue(mockSession);
     vi.mocked(mockSession.getObject).mockResolvedValue(MOCK_TABLE);
     vi.mocked(MOCK_TABLE.getViewportData).mockResolvedValue(MOCK_VIEWPORT_DATA);
+    vi.mocked(fetchVariableDefinition).mockResolvedValue(MOCK_VARIABLE_DEF);
   });
 
   it('should return correct tool spec', () => {
@@ -112,10 +124,8 @@ describe('getTableData', () => {
       tableName: 'myTable',
     });
 
-    expect(mockSession.getObject).toHaveBeenCalledWith({
-      type: 'Table',
-      name: 'myTable',
-    });
+    expect(fetchVariableDefinition).toHaveBeenCalledWith(mockSession, 'myTable');
+    expect(mockSession.getObject).toHaveBeenCalledWith(MOCK_VARIABLE_DEF);
     expect(MOCK_TABLE.setViewport).toHaveBeenCalledWith(0, 9);
     expect(MOCK_TABLE.close).toHaveBeenCalled();
     expect(result.structuredContent).toEqual(
@@ -371,5 +381,28 @@ describe('getTableData', () => {
 
     expect(result.structuredContent.success).toBe(true);
     expect(MOCK_TABLE.close).toHaveBeenCalled();
+  });
+
+  it('should fetch rollup table using actual variable type from fetchVariableDefinition', async () => {
+    const rollupVariableDef = {
+      type: 'RollupTable',
+      id: 'rollup-id',
+      name: 'myRollup',
+      title: 'myRollup',
+    };
+    vi.mocked(fetchVariableDefinition).mockResolvedValue(rollupVariableDef);
+
+    const tool = createGetTableDataTool({ serverManager });
+    const result = await tool.handler({
+      connectionUrl: MOCK_DHC_URL.href,
+      tableName: 'myRollup',
+    });
+
+    expect(fetchVariableDefinition).toHaveBeenCalledWith(
+      mockSession,
+      'myRollup'
+    );
+    expect(mockSession.getObject).toHaveBeenCalledWith(rollupVariableDef);
+    expect(result.structuredContent.success).toBe(true);
   });
 });
