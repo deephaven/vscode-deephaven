@@ -1,11 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
+import { fetchVariableDefinition } from '@deephaven/jsapi-utils';
 import type { IServerManager } from '../../types';
 import { createMockDhcService, MOCK_DHC_URL } from './mcpTestUtils';
 import { getFirstConnectionOrCreate } from './serverUtils';
 import { formatTableRow, formatValue, getTableOrError } from './tableUtils';
 
 vi.mock('vscode');
+
+vi.mock('@deephaven/jsapi-utils', () => ({
+  fetchVariableDefinition: vi.fn(),
+}));
 
 vi.mock('./serverUtils', () => ({
   getFirstConnectionOrCreate: vi.fn(),
@@ -101,9 +106,101 @@ describe('tableUtils', () => {
         };
         const mockSession = {
           getObject: vi.fn().mockResolvedValue(mockTable),
+        } as unknown as DhcType.IdeSession;
+        vi.spyOn(mockConnection, 'getSession').mockResolvedValue(mockSession);
+        vi.mocked(fetchVariableDefinition).mockResolvedValue(mockVariableDef);
+
+        vi.mocked(getFirstConnectionOrCreate).mockResolvedValue({
+          success: true,
+          connection: mockConnection,
+          panelUrlFormat: 'mock.panelUrlFormat',
+        });
+
+        const result = await getTableOrError({
+          serverManager,
+          connectionUrlStr: MOCK_DHC_URL.href,
+          tableName: 'my_table',
+        });
+
+        expect(fetchVariableDefinition).toHaveBeenCalledWith(
+          mockSession,
+          'my_table'
+        );
+        expect(result).toEqual({
+          success: true,
+          table: mockTable,
+          connectionUrl: MOCK_DHC_URL,
+        });
+      });
+
+      it('should return rollup table when tableName path resolves a RollupTable type', async () => {
+        const mockRollupTable = {
+          type: 'RollupTable',
+        } as unknown as DhcType.Table;
+        const mockConnection = createMockDhcService({
+          serverUrl: MOCK_DHC_URL,
+        });
+        const mockRollupVariableDef = {
+          type: 'RollupTable',
+          id: 'rollup-id',
+          name: 'my_rollup',
+          title: 'my_rollup',
+        };
+        const mockSession = {
+          getObject: vi.fn().mockResolvedValue(mockRollupTable),
+        } as unknown as DhcType.IdeSession;
+        vi.spyOn(mockConnection, 'getSession').mockResolvedValue(mockSession);
+        vi.mocked(fetchVariableDefinition).mockResolvedValue(mockRollupVariableDef);
+
+        vi.mocked(getFirstConnectionOrCreate).mockResolvedValue({
+          success: true,
+          connection: mockConnection,
+          panelUrlFormat: 'mock.panelUrlFormat',
+        });
+
+        const result = await getTableOrError({
+          serverManager,
+          connectionUrlStr: MOCK_DHC_URL.href,
+          tableName: 'my_rollup',
+        });
+
+        expect(fetchVariableDefinition).toHaveBeenCalledWith(
+          mockSession,
+          'my_rollup'
+        );
+        expect(mockSession.getObject).toHaveBeenCalledWith(mockRollupVariableDef);
+        expect(result).toEqual({
+          success: true,
+          table: mockRollupTable,
+          connectionUrl: MOCK_DHC_URL,
+        });
+      });
+
+      it('should return rollup table when variableId path finds a RollupTable type', async () => {
+        const mockRollupTable = {
+          type: 'RollupTable',
+        } as unknown as DhcType.Table;
+        const mockConnection = createMockDhcService({
+          serverUrl: MOCK_DHC_URL,
+        });
+        const mockRollupVariableDef = {
+          type: 'RollupTable',
+          id: 'rollup-var-id',
+          name: 'my_rollup',
+          title: 'my_rollup',
+        };
+        const mockSession = {
+          getObject: vi.fn().mockResolvedValue(mockRollupTable),
           subscribeToFieldUpdates: vi.fn(
-            (callback: (changes: { created: typeof mockVariableDef[] }) => void) => {
-              callback({ created: [mockVariableDef] });
+            (
+              callback: (changes: {
+                created: typeof mockRollupVariableDef[];
+              }) => void
+            ) => {
+              // Fire asynchronously so unsubscribe is assigned before callback runs
+              Promise.resolve().then(() =>
+                callback({ created: [mockRollupVariableDef] })
+              );
               return vi.fn(); // unsubscribe
             }
           ),
@@ -119,12 +216,14 @@ describe('tableUtils', () => {
         const result = await getTableOrError({
           serverManager,
           connectionUrlStr: MOCK_DHC_URL.href,
-          tableName: 'my_table',
+          variableId: 'rollup-var-id',
         });
 
+        expect(fetchVariableDefinition).not.toHaveBeenCalled();
+        expect(mockSession.getObject).toHaveBeenCalledWith(mockRollupVariableDef);
         expect(result).toEqual({
           success: true,
-          table: mockTable,
+          table: mockRollupTable,
           connectionUrl: MOCK_DHC_URL,
         });
       });
