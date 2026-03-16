@@ -4,6 +4,7 @@ import {
   getPythonEnvsExtensionApi,
   getPipServerUrl,
   Logger,
+  PackageChangeKind,
   parsePort,
   type PythonEnvironment,
 } from '../util';
@@ -58,6 +59,27 @@ export class PipServerController implements IDisposable {
     );
 
     this._serverManager.onDidLoadConfig(this.onDidLoadConfig);
+
+    const pythonExtension = getPythonEnvsExtensionApi();
+    if (pythonExtension != null) {
+      void pythonExtension.activate().then(() => {
+        pythonExtension.exports.onDidChangePackages(
+          ({ changes }) => {
+            const deephavenServerChanged = changes.some(
+              ({ pkg, kind }) =>
+                pkg.name === 'deephaven-server' &&
+                (kind === PackageChangeKind.add ||
+                  kind === PackageChangeKind.remove)
+            );
+            if (deephavenServerChanged) {
+              void this.syncManagedServers({ forceCheck: true });
+            }
+          },
+          undefined,
+          this._context.subscriptions
+        );
+      });
+    }
   }
 
   private readonly _context: vscode.ExtensionContext;
