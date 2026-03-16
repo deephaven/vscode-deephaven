@@ -18,13 +18,15 @@ import type {
   UniqueID,
 } from '../types';
 import type { FilteredWorkspace } from './FilteredWorkspace';
+import type { PythonControllerImportScanner } from './PythonControllerImportScanner';
 
 const logger = new Logger('RemoteFileSourceService');
 
 export class RemoteFileSourceService extends DisposableBase {
   constructor(
     private readonly _groovyWorkspace: FilteredWorkspace<GroovyPackageName>,
-    private readonly _pythonWorkspace: FilteredWorkspace<PythonModuleFullname>
+    private readonly _pythonWorkspace: FilteredWorkspace<PythonModuleFullname>,
+    private readonly _controllerImportScanner: PythonControllerImportScanner
   ) {
     super();
 
@@ -36,6 +38,12 @@ export class RemoteFileSourceService extends DisposableBase {
 
     this.disposables.add(
       this._pythonWorkspace.onDidUpdate(() => {
+        this._onDidUpdatePythonModuleMeta.fire();
+      })
+    );
+
+    this.disposables.add(
+      this._controllerImportScanner.onDidUpdatePrefix(() => {
         this._onDidUpdatePythonModuleMeta.fire();
       })
     );
@@ -161,9 +169,16 @@ export class RemoteFileSourceService extends DisposableBase {
    */
   getPythonTopLevelModuleNames(): Set<PythonModuleFullname> {
     const set = new Set<PythonModuleFullname>();
+    const prefix = this._controllerImportScanner.getControllerPrefix();
 
     this._pythonWorkspace.getTopLevelMarkedFolders().forEach(({ uri }) => {
-      set.add(getPythonTopLevelModuleFullname(uri));
+      const moduleName = getPythonTopLevelModuleFullname(uri);
+
+      set.add(moduleName);
+
+      if (prefix !== null) {
+        set.add(`${prefix}.${moduleName}` as PythonModuleFullname);
+      }
     });
 
     return set;

@@ -6,6 +6,7 @@ export * from './DheService';
 export * from './DisposableBase';
 export * from './FilteredWorkspace';
 export * from './PanelService';
+export * from './PythonControllerImportScanner';
 export * from './ParseDocumentCache';
 export * from './PollingService';
 export * from './RemoteFileSourceService';
