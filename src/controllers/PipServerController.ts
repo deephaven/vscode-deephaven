@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import {
   getPythonEnvsExtensionApi,
@@ -102,12 +101,31 @@ export class PipServerController implements IDisposable {
 
     logger.debug('Using Python interpreter:', pythonInterpreterPath);
 
-    try {
-      execFileSync(pythonInterpreterPath, ['-c', 'import deephaven_server']);
-      return { isAvailable: true, interpreterPath: pythonInterpreterPath };
-    } catch (err) {
+    const pythonExtension = getPythonEnvsExtensionApi();
+    if (pythonExtension == null) {
       return { isAvailable: false };
     }
+
+    if (!pythonExtension.isActive) {
+      await pythonExtension.activate();
+    }
+
+    const api = pythonExtension.exports;
+    const env = await api.getEnvironment(undefined);
+    if (env == null) {
+      return { isAvailable: false };
+    }
+
+    const packages = await api.getPackages(env);
+    const hasDeephavenServer = packages?.some(
+      pkg => pkg.name === 'deephaven-server'
+    );
+
+    if (!hasDeephavenServer) {
+      return { isAvailable: false };
+    }
+
+    return { isAvailable: true, interpreterPath: pythonInterpreterPath };
   };
 
   /**
