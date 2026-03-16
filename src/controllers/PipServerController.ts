@@ -5,6 +5,7 @@ import {
   getPipServerUrl,
   Logger,
   parsePort,
+  type PythonEnvironment,
 } from '../util';
 import type {
   IDisposable,
@@ -83,8 +84,8 @@ export class PipServerController implements IDisposable {
    * servers can be managed from the extension.
    */
   checkPipInstall = async (): Promise<
-    | { isAvailable: true; interpreterPath: string }
-    | { isAvailable: false; interpreterPath?: never }
+    | { isAvailable: true; interpreterPath: string; environment: PythonEnvironment }
+    | { isAvailable: false; interpreterPath?: never; environment?: never }
   > => {
     if (!PIP_SERVER_SUPPORTED_PLATFORMS.has(process.platform)) {
       logger.debug(`Pip server not supported on platform: ${process.platform}`);
@@ -125,7 +126,7 @@ export class PipServerController implements IDisposable {
       return { isAvailable: false };
     }
 
-    return { isAvailable: true, interpreterPath: pythonInterpreterPath };
+    return { isAvailable: true, interpreterPath: pythonInterpreterPath, environment: env };
   };
 
   /**
@@ -266,7 +267,7 @@ export class PipServerController implements IDisposable {
     }
 
     // In case pip env has changed since last server check
-    const { isAvailable, interpreterPath } = await this.checkPipInstall();
+    const { isAvailable, interpreterPath, environment } = await this.checkPipInstall();
     this._isPipServerInstalled = isAvailable;
 
     if (!isAvailable) {
@@ -275,7 +276,6 @@ export class PipServerController implements IDisposable {
     }
 
     const interpreterBinDirPath = path.dirname(interpreterPath);
-    const interpreterEnvPath = path.dirname(interpreterBinDirPath);
 
     const terminal = vscode.window.createTerminal({
       name: `Deephaven (${port})`,
@@ -288,7 +288,7 @@ export class PipServerController implements IDisposable {
         // the workspace.
         PYTHONPATH: './',
         // Venv activation typically sets this, so mimic that here.
-        VIRTUAL_ENV: interpreterEnvPath,
+        VIRTUAL_ENV: environment.sysPrefix,
         /* eslint-enable @typescript-eslint/naming-convention */
       },
       isTransient: true,
