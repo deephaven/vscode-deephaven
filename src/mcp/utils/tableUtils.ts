@@ -1,4 +1,5 @@
 import type { dh as DhType } from '@deephaven/jsapi-types';
+import { fetchVariableDefinition } from '@deephaven/jsapi-utils';
 import type { IServerManager } from '../../types';
 import { parseUrl } from '../../util';
 import { getFirstConnectionOrCreate } from './serverUtils';
@@ -167,17 +168,33 @@ export async function getTableOrError(params: {
     };
   }
 
-  const table = await session.getObject(
-    variableId == null
-      ? {
-          type: 'Table',
-          name: tableName,
-        }
-      : {
-          type: 'Table',
-          id: variableId,
-        }
-  );
+  // Retrieve the actual variable definition to get the correct type, avoiding
+  // hardcoded 'Table' which fails for rollup tables and other table variants.
+  let variableDef: DhType.ide.VariableDefinition;
+  if (tableName != null) {
+    // IdeSession also has subscribeToFieldUpdates used by fetchVariableDefinition
+    variableDef = await fetchVariableDefinition(
+      session as unknown as DhType.IdeConnection,
+      tableName
+    );
+  } else {
+    // Look up variable by ID from session field updates
+    variableDef = await new Promise<DhType.ide.VariableDefinition>(
+      (resolve, reject) => {
+        const unsubscribe = session.subscribeToFieldUpdates(changes => {
+          const def = changes.created.find(d => d.id === variableId);
+          unsubscribe();
+          if (def != null) {
+            resolve(def);
+          } else {
+            reject(new Error(`Variable with id ${variableId} not found`));
+          }
+        });
+      }
+    );
+  }
+
+  const table = await session.getObject(variableDef);
 
   return {
     success: true,

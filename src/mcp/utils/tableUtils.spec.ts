@@ -93,8 +93,20 @@ describe('tableUtils', () => {
         const mockConnection = createMockDhcService({
           serverUrl: MOCK_DHC_URL,
         });
+        const mockVariableDef = {
+          type: 'Table',
+          id: 'mock-id',
+          name: 'my_table',
+          title: 'my_table',
+        };
         const mockSession = {
           getObject: vi.fn().mockResolvedValue(mockTable),
+          subscribeToFieldUpdates: vi.fn(
+            (callback: (changes: { created: typeof mockVariableDef[] }) => void) => {
+              callback({ created: [mockVariableDef] });
+              return vi.fn(); // unsubscribe
+            }
+          ),
         } as unknown as DhcType.IdeSession;
         vi.spyOn(mockConnection, 'getSession').mockResolvedValue(mockSession);
 
