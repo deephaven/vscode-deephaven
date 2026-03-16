@@ -33,7 +33,7 @@ interface PythonEnvironmentId {
 }
 
 /** A Python environment from the ms-python.vscode-python-envs extension */
-interface PythonEnvironment {
+export interface PythonEnvironment {
   readonly envId: PythonEnvironmentId;
   readonly name: string;
   readonly displayName: string;
