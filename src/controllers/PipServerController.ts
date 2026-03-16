@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import {
-  getMsPythonExtensionApi,
+  getPythonEnvsExtensionApi,
   getPipServerUrl,
   Logger,
   parsePort,
@@ -163,7 +163,7 @@ export class PipServerController implements IDisposable {
    * @returns The Python interpreter path or `null` if not found.
    */
   getPythonInterpreterPath = async (): Promise<string | null> => {
-    const pythonExtension = getMsPythonExtensionApi();
+    const pythonExtension = getPythonEnvsExtensionApi();
 
     if (pythonExtension == null) {
       logger.debug('Python extension not found');
@@ -174,11 +174,11 @@ export class PipServerController implements IDisposable {
       await pythonExtension.activate();
     }
 
-    const pythonApi = pythonExtension.exports;
-    const interpreter = await pythonApi.environments.getActiveEnvironmentPath();
-    logger.debug('Python interpreter:', interpreter);
+    const api = pythonExtension.exports;
+    const env = await api.getEnvironment(undefined);
+    logger.debug('Python interpreter:', env?.execInfo.run.executable);
 
-    return interpreter?.path ?? null;
+    return env?.execInfo.run.executable ?? null;
   };
 
   /**
