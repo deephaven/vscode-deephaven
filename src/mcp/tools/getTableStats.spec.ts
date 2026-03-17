@@ -23,7 +23,7 @@ const MOCK_VARIABLE_DEF = {
   id: 'mock-id',
   name: 'myTable',
   title: 'myTable',
-};
+} as DhcType.ide.VariableDefinition;
 
 const MOCK_TABLE = {
   size: 1000,
@@ -96,7 +96,10 @@ describe('getTableStats', () => {
       tableName: 'myTable',
     });
 
-    expect(fetchVariableDefinition).toHaveBeenCalledWith(mockSession, 'myTable');
+    expect(fetchVariableDefinition).toHaveBeenCalledWith(
+      mockSession,
+      'myTable'
+    );
     expect(mockSession.getObject).toHaveBeenCalledWith(MOCK_VARIABLE_DEF);
     expect(MOCK_TABLE.close).toHaveBeenCalled();
 

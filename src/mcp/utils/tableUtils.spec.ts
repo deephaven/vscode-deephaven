@@ -103,7 +103,7 @@ describe('tableUtils', () => {
           id: 'mock-id',
           name: 'my_table',
           title: 'my_table',
-        };
+        } as DhcType.ide.VariableDefinition;
         const mockSession = {
           getObject: vi.fn().mockResolvedValue(mockTable),
         } as unknown as DhcType.IdeSession;
@@ -145,12 +145,14 @@ describe('tableUtils', () => {
           id: 'rollup-id',
           name: 'my_rollup',
           title: 'my_rollup',
-        };
+        } as DhcType.ide.VariableDefinition;
         const mockSession = {
           getObject: vi.fn().mockResolvedValue(mockRollupTable),
         } as unknown as DhcType.IdeSession;
         vi.spyOn(mockConnection, 'getSession').mockResolvedValue(mockSession);
-        vi.mocked(fetchVariableDefinition).mockResolvedValue(mockRollupVariableDef);
+        vi.mocked(fetchVariableDefinition).mockResolvedValue(
+          mockRollupVariableDef
+        );
 
         vi.mocked(getFirstConnectionOrCreate).mockResolvedValue({
           success: true,
@@ -168,7 +170,9 @@ describe('tableUtils', () => {
           mockSession,
           'my_rollup'
         );
-        expect(mockSession.getObject).toHaveBeenCalledWith(mockRollupVariableDef);
+        expect(mockSession.getObject).toHaveBeenCalledWith(
+          mockRollupVariableDef
+        );
         expect(result).toEqual({
           success: true,
           table: mockRollupTable,
@@ -194,7 +198,7 @@ describe('tableUtils', () => {
           subscribeToFieldUpdates: vi.fn(
             (
               callback: (changes: {
-                created: typeof mockRollupVariableDef[];
+                created: (typeof mockRollupVariableDef)[];
               }) => void
             ) => {
               // Fire asynchronously so unsubscribe is assigned before callback runs
@@ -220,7 +224,9 @@ describe('tableUtils', () => {
         });
 
         expect(fetchVariableDefinition).not.toHaveBeenCalled();
-        expect(mockSession.getObject).toHaveBeenCalledWith(mockRollupVariableDef);
+        expect(mockSession.getObject).toHaveBeenCalledWith(
+          mockRollupVariableDef
+        );
         expect(result).toEqual({
           success: true,
           table: mockRollupTable,

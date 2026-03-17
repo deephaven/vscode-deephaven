@@ -23,7 +23,7 @@ const MOCK_VARIABLE_DEF = {
   id: 'mock-id',
   name: 'myTable',
   title: 'myTable',
-};
+} as DhcType.ide.VariableDefinition;
 
 const MOCK_VIEWPORT_DATA = {
   rows: [
@@ -124,7 +124,10 @@ describe('getTableData', () => {
       tableName: 'myTable',
     });
 
-    expect(fetchVariableDefinition).toHaveBeenCalledWith(mockSession, 'myTable');
+    expect(fetchVariableDefinition).toHaveBeenCalledWith(
+      mockSession,
+      'myTable'
+    );
     expect(mockSession.getObject).toHaveBeenCalledWith(MOCK_VARIABLE_DEF);
     expect(MOCK_TABLE.setViewport).toHaveBeenCalledWith(0, 9);
     expect(MOCK_TABLE.close).toHaveBeenCalled();
@@ -389,7 +392,7 @@ describe('getTableData', () => {
       id: 'rollup-id',
       name: 'myRollup',
       title: 'myRollup',
-    };
+    } as DhcType.ide.VariableDefinition;
     vi.mocked(fetchVariableDefinition).mockResolvedValue(rollupVariableDef);
 
     const tool = createGetTableDataTool({ serverManager });

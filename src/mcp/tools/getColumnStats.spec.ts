@@ -23,7 +23,7 @@ const MOCK_VARIABLE_DEF = {
   id: 'mock-id',
   name: 'myTable',
   title: 'myTable',
-};
+} as DhcType.ide.VariableDefinition;
 
 const MOCK_COLUMN = {
   name: 'Price',
