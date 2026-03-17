@@ -1109,7 +1109,6 @@
     "vscode-extension-tester": "^8.21.0"
   },
   "overrides": {
-    "event-target-shim": "^6.0.2",
     "undici": "^6.24.0",
     "diff": "^8.0.3",
     "serialize-javascript": "^7.0.3"
