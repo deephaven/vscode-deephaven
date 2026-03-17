@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as vscode from 'vscode';
 import { PipServerController } from './PipServerController';
-import type { PythonEnvironment } from '../util';
+import type { PythonEnvironment, PythonEnvironmentApi } from '../util';
 import type { IServerManager, IToastService } from '../types';
 
 // See __mocks__/vscode.ts for the mock implementation
@@ -20,7 +20,9 @@ vi.mock('../services', async () => {
     await vi.importActual<typeof import('../services')>('../services');
   return {
     ...actual,
-    pollUntilTrue: vi.fn().mockReturnValue({ promise: Promise.resolve(), cancel: vi.fn() }),
+    pollUntilTrue: vi
+      .fn()
+      .mockReturnValue({ promise: Promise.resolve(), cancel: vi.fn() }),
   };
 });
 
@@ -57,7 +59,7 @@ function createMockExtension(
   isActive: boolean,
   envResult: PythonEnvironment | undefined,
   packagesResult: typeof mockPackages | undefined
-) {
+): vscode.Extension<PythonEnvironmentApi> {
   const api = {
     getEnvironment: vi.fn().mockResolvedValue(envResult),
     getPackages: vi.fn().mockResolvedValue(packagesResult),
@@ -67,7 +69,7 @@ function createMockExtension(
     isActive,
     activate: vi.fn().mockResolvedValue(undefined),
     exports: api,
-  };
+  } as unknown as vscode.Extension<PythonEnvironmentApi>;
 }
 
 function createController(): PipServerController {
@@ -182,7 +184,10 @@ describe('checkPipInstall', () => {
   it('returns isAvailable false on unsupported platform', async () => {
     vi.stubEnv('PLATFORM', 'win32');
     const originalPlatform = process.platform;
-    Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
+    Object.defineProperty(process, 'platform', {
+      value: 'win32',
+      configurable: true,
+    });
 
     const controller = createController();
     const result = await controller.checkPipInstall();
@@ -220,12 +225,18 @@ describe('checkPipInstall', () => {
   });
 
   it('returns isAvailable false when getEnvironment returns null during package check', async () => {
-    const mockExtWithEnv = createMockExtension(true, mockEnvironment, undefined);
+    const mockExtWithEnv = createMockExtension(
+      true,
+      mockEnvironment,
+      undefined
+    );
     const mockExtNoEnv = createMockExtension(true, undefined, undefined);
 
     vi.mocked(getPythonEnvsExtensionApi)
       .mockReturnValueOnce(
-        mockExtWithEnv as unknown as ReturnType<typeof getPythonEnvsExtensionApi>
+        mockExtWithEnv as unknown as ReturnType<
+          typeof getPythonEnvsExtensionApi
+        >
       )
       .mockReturnValueOnce(
         mockExtNoEnv as unknown as ReturnType<typeof getPythonEnvsExtensionApi>
@@ -246,7 +257,11 @@ describe('checkPipInstall', () => {
         version: '1.26.0',
       },
     ];
-    const mockExt = createMockExtension(true, mockEnvironment, packagesWithoutDh);
+    const mockExt = createMockExtension(
+      true,
+      mockEnvironment,
+      packagesWithoutDh
+    );
     vi.mocked(getPythonEnvsExtensionApi).mockReturnValue(
       mockExt as unknown as ReturnType<typeof getPythonEnvsExtensionApi>
     );

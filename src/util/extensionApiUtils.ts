@@ -67,8 +67,10 @@ interface DidChangePackagesEventArgs {
 export type GetEnvironmentScope = undefined | vscode.Uri;
 
 /** Python Environments extension API (ms-python.vscode-python-envs) */
-interface PythonEnvironmentApi {
-  getEnvironment(scope: GetEnvironmentScope): Promise<PythonEnvironment | undefined>;
+export interface PythonEnvironmentApi {
+  getEnvironment(
+    scope: GetEnvironmentScope
+  ): Promise<PythonEnvironment | undefined>;
   getPackages(environment: PythonEnvironment): Promise<Package[] | undefined>;
   onDidChangePackages: vscode.Event<DidChangePackagesEventArgs>;
 }
