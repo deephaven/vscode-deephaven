@@ -1,6 +1,6 @@
 import type { dh as DhType } from '@deephaven/jsapi-types';
-import { fetchVariableDefinition } from '@deephaven/jsapi-utils';
-import type { IServerManager } from '../../types';
+import { fetchVariableDefinitionByPredicate } from '@deephaven/jsapi-utils';
+import type { IAsyncCacheService, IServerManager } from '../../types';
 import { parseUrl } from '../../util';
 import { getFirstConnectionOrCreate } from './serverUtils';
 
@@ -113,19 +113,27 @@ export function formatValue(value: unknown): unknown {
  * 6. Fetching the table by name
  *
  * @param params Configuration for getting the table
- * @param params.serverManager The server manager to query
  * @param params.connectionUrlStr The connection URL string
+ * @param params.coreJsApiCache Cache for the DH JS API
+ * @param params.serverManager The server manager to query
  * @param params.variableId Optional variable ID to fetch (takes precedence over tableName if provided)
  * @param params.tableName Optional name of the table to fetch (if variableId is not provided)
  * @returns Success with table, or error with message, hint, and details
  */
 export async function getTableOrError(params: {
-  serverManager: IServerManager;
   connectionUrlStr: string;
+  coreJsApiCache: IAsyncCacheService<URL, typeof DhType>;
+  serverManager: IServerManager;
   variableId?: string;
   tableName?: string;
 }): Promise<GetTableOrErrorResult> {
-  const { serverManager, connectionUrlStr, variableId, tableName } = params;
+  const {
+    coreJsApiCache,
+    connectionUrlStr,
+    serverManager,
+    variableId,
+    tableName,
+  } = params;
 
   if (variableId == null && tableName == null) {
     return {
@@ -158,43 +166,35 @@ export async function getTableOrError(params: {
   }
 
   const { connection } = firstConnectionResult;
-  const session = await connection.getSession();
+  const cn = await connection.getConnection();
 
-  if (session == null) {
+  if (cn == null) {
     return {
       success: false,
-      errorMessage: 'Unable to access session',
+      errorMessage: 'Unable to access connection',
       details: { connectionUrl: connectionUrlStr, tableName },
     };
   }
 
-  // Retrieve the actual variable definition to get the correct type, avoiding
-  // hardcoded 'Table' which fails for rollup tables and other table variants.
-  let variableDef: DhType.ide.VariableDefinition;
-  if (tableName != null) {
-    // IdeSession also has subscribeToFieldUpdates used by fetchVariableDefinition
-    variableDef = await fetchVariableDefinition(
-      session as unknown as DhType.IdeConnection,
-      tableName
+  const variableDef: DhType.ide.VariableDefinition =
+    await fetchVariableDefinitionByPredicate(
+      cn,
+      variableId == null
+        ? (def): boolean => def.name === tableName
+        : (def): boolean => def.id === variableId
     );
-  } else {
-    // Look up variable by ID from session field updates
-    variableDef = await new Promise<DhType.ide.VariableDefinition>(
-      (resolve, reject) => {
-        const unsubscribe = session.subscribeToFieldUpdates(changes => {
-          const def = changes.created.find(d => d.id === variableId);
-          unsubscribe();
-          if (def != null) {
-            resolve(def);
-          } else {
-            reject(new Error(`Variable with id ${variableId} not found`));
-          }
-        });
-      }
-    );
+
+  const dh = await coreJsApiCache.get(connection.serverUrl);
+
+  if (!isTableType(dh, variableDef.type)) {
+    return {
+      success: false,
+      errorMessage: 'Variable is not a table',
+      details: { connectionUrl: connectionUrlStr, variableId, tableName },
+    };
   }
 
-  const table = await session.getObject(variableDef);
+  const table = await cn.getObject(variableDef);
 
   return {
     success: true,
@@ -238,4 +238,19 @@ export async function getTablePage(
     rowCount: data.length,
     totalRows,
   };
+}
+
+/**
+ * Check if a given variable type is a table type.
+ * @param dh The DH JS API instance
+ * @param type The variable type to check
+ * @returns True if the type is a table type, false otherwise
+ */
+export function isTableType(dh: typeof DhType, type: string): boolean {
+  return (
+    type === dh.VariableType.TABLE ||
+    type === dh.VariableType.TREETABLE ||
+    type === dh.VariableType.HIERARCHICALTABLE ||
+    type === dh.VariableType.PARTITIONEDTABLE
+  );
 }

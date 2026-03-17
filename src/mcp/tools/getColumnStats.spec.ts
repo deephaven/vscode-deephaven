@@ -1,29 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
-import { fetchVariableDefinition } from '@deephaven/jsapi-utils';
 
 import { createGetColumnStatsTool } from './getColumnStats';
-import type { IServerManager, ServerState } from '../../types';
-import { DhcService } from '../../services';
+import type { IAsyncCacheService, IServerManager } from '../../types';
 import {
   fakeMcpToolTimings,
   mcpSuccessResult,
-  mcpErrorResult,
   MOCK_DHC_URL,
 } from '../utils/mcpTestUtils';
+import { getTableOrError } from '../utils/tableUtils';
 
 vi.mock('vscode');
-vi.mock('../../services/DhcService');
-vi.mock('@deephaven/jsapi-utils', () => ({
-  fetchVariableDefinition: vi.fn(),
+vi.mock('../utils/tableUtils', () => ({
+  getTableOrError: vi.fn(),
+  convertColumnStatsToRecords: vi.fn(stats => ({
+    statistics: Object.fromEntries(stats.statisticsMap),
+    uniqueValues: Object.fromEntries(stats.uniqueValues),
+  })),
 }));
-
-const MOCK_VARIABLE_DEF = {
-  type: 'Table',
-  id: 'mock-id',
-  name: 'myTable',
-  title: 'myTable',
-} as DhcType.ide.VariableDefinition;
 
 const MOCK_COLUMN = {
   name: 'Price',
@@ -96,23 +90,14 @@ const EXPECTED_SUCCESS_NO_UNIQUE = mcpSuccessResult('Column stats retrieved', {
 });
 /* eslint-enable @typescript-eslint/naming-convention */
 
-const MOCK_SERVER_RUNNING: ServerState = {
-  isRunning: true,
-  type: 'DHC',
-  url: MOCK_DHC_URL,
-  isConnected: false,
-  connectionCount: 0,
-};
-
 describe('createGetColumnStatsTool', () => {
-  const mockSession = {
-    getObject: vi.fn(),
-  } as unknown as DhcType.IdeSession;
-
-  const mockConnection = Object.assign(Object.create(DhcService.prototype), {
-    initSession: vi.fn(),
-    getSession: vi.fn(),
-  }) as DhcService;
+  const coreJsApiCache = {
+    get: vi.fn(),
+    has: vi.fn(),
+    invalidate: vi.fn(),
+    dispose: vi.fn(),
+    onDidInvalidate: vi.fn(),
+  } as unknown as IAsyncCacheService<URL, typeof DhcType>;
 
   const serverManager = {
     getServer: vi.fn(),
@@ -124,27 +109,20 @@ describe('createGetColumnStatsTool', () => {
     vi.clearAllMocks();
     fakeMcpToolTimings();
 
-    // Default successful getServer mock
-    vi.mocked(serverManager.getServer).mockReturnValue(MOCK_SERVER_RUNNING);
-    vi.mocked(serverManager.getConnections).mockReturnValue([mockConnection]);
-
-    // Mock isInitialized getter
-    Object.defineProperty(mockConnection, 'isInitialized', {
-      get: vi.fn(() => true),
-      configurable: true,
+    // Default successful mocks
+    vi.mocked(getTableOrError).mockResolvedValue({
+      success: true,
+      table: MOCK_TABLE,
+      connectionUrl: MOCK_DHC_URL,
     });
-
-    vi.mocked(mockConnection.getSession).mockResolvedValue(mockSession);
-    vi.mocked(mockSession.getObject).mockResolvedValue(MOCK_TABLE);
     vi.mocked(MOCK_TABLE.findColumn).mockReturnValue(MOCK_COLUMN);
     vi.mocked(MOCK_TABLE.getColumnStatistics).mockResolvedValue(
       MOCK_COLUMN_STATS
     );
-    vi.mocked(fetchVariableDefinition).mockResolvedValue(MOCK_VARIABLE_DEF);
   });
 
   it('should return correct tool spec', () => {
-    const tool = createGetColumnStatsTool({ serverManager });
+    const tool = createGetColumnStatsTool({ coreJsApiCache, serverManager });
 
     expect(tool.name).toBe('getColumnStats');
     expect(tool.spec.title).toBe('Get Column Statistics');
@@ -170,18 +148,23 @@ describe('createGetColumnStatsTool', () => {
       async ({ mockStats, expected }) => {
         vi.mocked(MOCK_TABLE.getColumnStatistics).mockResolvedValue(mockStats);
 
-        const tool = createGetColumnStatsTool({ serverManager });
+        const tool = createGetColumnStatsTool({
+          coreJsApiCache,
+          serverManager,
+        });
         const result = await tool.handler({
           connectionUrl: MOCK_DHC_URL.href,
           tableName: 'myTable',
           columnName: 'Price',
         });
 
-        expect(fetchVariableDefinition).toHaveBeenCalledWith(
-          mockSession,
-          'myTable'
-        );
-        expect(mockSession.getObject).toHaveBeenCalledWith(MOCK_VARIABLE_DEF);
+        expect(getTableOrError).toHaveBeenCalledWith({
+          coreJsApiCache,
+          connectionUrlStr: MOCK_DHC_URL.href,
+          variableId: undefined,
+          tableName: 'myTable',
+          serverManager,
+        });
         expect(MOCK_TABLE.findColumn).toHaveBeenCalledWith('Price');
         expect(MOCK_TABLE.getColumnStatistics).toHaveBeenCalledWith(
           MOCK_COLUMN
@@ -193,116 +176,50 @@ describe('createGetColumnStatsTool', () => {
   });
 
   describe('error handling', () => {
-    it('should initialize session if not initialized', async () => {
-      Object.defineProperty(mockConnection, 'isInitialized', {
-        get: vi.fn(() => false),
-        configurable: true,
-      });
-
-      vi.mocked(serverManager.getConnections).mockReturnValue([mockConnection]);
-
-      const tool = createGetColumnStatsTool({ serverManager });
-      await tool.handler({
-        connectionUrl: MOCK_DHC_URL.href,
-        tableName: 'myTable',
-        columnName: 'Price',
-      });
-
-      expect(mockConnection.getSession).toHaveBeenCalled();
-    });
-
-    it.each([
-      {
-        name: 'invalid URL',
-        connectionUrl: 'invalid-url',
-        server: undefined,
-        connections: [],
-        expected: mcpErrorResult('Invalid URL: Invalid URL', {
-          connectionUrl: 'invalid-url',
-          tableName: 'myTable',
-        }),
-        shouldCallGetServer: false,
-      },
-      {
-        name: 'missing connection',
-        connectionUrl: MOCK_DHC_URL.href,
-        server: undefined,
-        connections: [],
-        expected: mcpErrorResult('No connections or server found', {
+    it('should handle errors when getting table fails', async () => {
+      vi.mocked(getTableOrError).mockResolvedValue({
+        success: false,
+        errorMessage: 'Connection failed',
+        details: {
           connectionUrl: MOCK_DHC_URL.href,
           tableName: 'myTable',
-        }),
-        shouldCallGetServer: true,
-      },
-      {
-        name: 'missing session',
-        connectionUrl: MOCK_DHC_URL.href,
-        server: MOCK_SERVER_RUNNING,
-        connections: [mockConnection],
-        expected: mcpErrorResult('Unable to access session', {
-          connectionUrl: MOCK_DHC_URL.href,
-          tableName: 'myTable',
-        }),
-        shouldCallGetServer: true,
-      },
-    ])(
-      'should handle $name',
-      async ({
-        connectionUrl,
-        server,
-        connections,
-        expected,
-        shouldCallGetServer,
-      }) => {
-        vi.mocked(serverManager.getServer).mockReturnValue(server);
-        vi.mocked(serverManager.getConnections).mockReturnValue(connections);
-        vi.mocked(mockConnection.getSession).mockResolvedValue(null);
+        },
+      });
 
-        const tool = createGetColumnStatsTool({ serverManager });
-        const result = await tool.handler({
-          connectionUrl,
-          tableName: 'myTable',
-          columnName: 'Price',
-        });
-
-        expect(result.structuredContent).toEqual(expected);
-        if (!shouldCallGetServer) {
-          expect(serverManager.getServer).not.toHaveBeenCalled();
-        }
-      }
-    );
-
-    it('should handle errors and close table', async () => {
-      const error = new Error('Failed to get stats');
-      vi.mocked(MOCK_TABLE.getColumnStatistics).mockRejectedValue(error);
-
-      const tool = createGetColumnStatsTool({ serverManager });
+      const tool = createGetColumnStatsTool({ coreJsApiCache, serverManager });
       const result = await tool.handler({
         connectionUrl: MOCK_DHC_URL.href,
         tableName: 'myTable',
         columnName: 'Price',
       });
 
-      expect(MOCK_TABLE.close).toHaveBeenCalled();
-      expect(result.structuredContent).toEqual(
-        mcpErrorResult('Failed to get column stats: Failed to get stats', {
+      expect(result.structuredContent).toMatchObject({
+        success: false,
+        message: 'Connection failed',
+        details: {
           connectionUrl: MOCK_DHC_URL.href,
           tableName: 'myTable',
-          columnName: 'Price',
-        })
-      );
+        },
+      });
     });
 
-    it('should close table even on success', async () => {
-      const tool = createGetColumnStatsTool({ serverManager });
+    it('should handle column not found error', async () => {
+      vi.mocked(MOCK_TABLE.findColumn).mockImplementation(() => {
+        throw new Error('Column not found');
+      });
+
+      const tool = createGetColumnStatsTool({ coreJsApiCache, serverManager });
       const result = await tool.handler({
         connectionUrl: MOCK_DHC_URL.href,
         tableName: 'myTable',
-        columnName: 'Price',
+        columnName: 'InvalidColumn',
       });
 
-      expect(result.structuredContent.success).toBe(true);
       expect(MOCK_TABLE.close).toHaveBeenCalled();
+      expect(result.structuredContent).toMatchObject({
+        success: false,
+        message: 'Failed to get column stats: Column not found',
+      });
     });
   });
 });

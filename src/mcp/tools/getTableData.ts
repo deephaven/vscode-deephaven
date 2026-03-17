@@ -1,9 +1,11 @@
 import { z } from 'zod';
+import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type {
   McpTool,
   McpToolHandlerArg,
   McpToolHandlerResult,
   IServerManager,
+  IAsyncCacheService,
 } from '../../types';
 import { createMcpToolOutputSchema, McpToolResponse } from '../utils';
 import { getTablePage, getTableOrError } from '../utils/tableUtils';
@@ -84,8 +86,10 @@ type HandlerResult = McpToolHandlerResult<Spec>;
 type GetTableDataTool = McpTool<Spec>;
 
 export function createGetTableDataTool({
+  coreJsApiCache,
   serverManager,
 }: {
+  coreJsApiCache: IAsyncCacheService<URL, typeof DhcType>;
   serverManager: IServerManager;
 }): GetTableDataTool {
   return {
@@ -102,6 +106,7 @@ export function createGetTableDataTool({
 
       try {
         const tableResult = await getTableOrError({
+          coreJsApiCache,
           connectionUrlStr,
           variableId,
           tableName,

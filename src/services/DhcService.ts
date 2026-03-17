@@ -405,6 +405,10 @@ export class DhcService extends DisposableBase implements IDhcService {
     await saveRequirementsTxt(dependencies);
   }
 
+  async getConnection(): Promise<DhcType.IdeConnection | null> {
+    return this.cn;
+  }
+
   async getSession(): Promise<DhcType.IdeSession | null> {
     if (this.session == null) {
       await this.initSession();
