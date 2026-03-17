@@ -22,19 +22,23 @@ jobs:
       - name: Publish Test Summary Results
         if: ${{ always() }}
         run: |
-          npm run report:junit2ctrf
-          npm run report:ctrfsummary
-          sed -i 's/<h3>Test Summary<\/h3>/<h3>Unit Test Summary<\/h3>/' $GITHUB_STEP_SUMMARY
-          npm run report:prcomment
+          if [ -f test-reports/vitest.junit.xml ]; then
+            npm run report:junit2ctrf
+            npm run report:ctrfsummary
+            sed -i 's/<h3>Test Summary<\/h3>/<h3>Unit Test Summary<\/h3>/' $GITHUB_STEP_SUMMARY
+            npm run report:prcomment
 
-          # The junit-to-ctrf npm package exits with a 0 status code even if 
-          # it fails to parse the JUnit report, so check for the file manually
-          # and explicilty exit with a non-zero status code if it's not found.
-          # We do this after npm run report:prcomment so that the PR number can
-          # still be associated in subsequent steps.
-          if [ ! -e test-reports/vitest.junit.xml ]; then   
-              echo "No JUnit report found at test-reports/vitest.junit.xml"
-              exit 1
+            # The junit-to-ctrf npm package exits with a 0 status code even if 
+            # it fails to parse the JUnit report, so check for the CTRF file manually
+            # and explicilty exit with a non-zero status code if it's not found.
+            if [ ! -e test-reports/ctrf-report.json ]; then   
+                echo "CTRF report not created - junit-to-ctrf may have failed to parse JUnit report"
+                exit 1
+            fi
+          else
+            echo "No JUnit report found - compilation or linting may have failed before tests could run"
+            mkdir -p pr-comment
+            exit 1
           fi
       - name: Save PR Number
         if: ${{ always() }}
