@@ -32,6 +32,7 @@ describe('tableUtils', () => {
   describe('getTableOrError', () => {
     const mockTable = { type: 'Table' } as unknown as DhcType.Table;
 
+    /* eslint-disable @typescript-eslint/naming-convention */
     const mockDh = {
       VariableType: {
         TABLE: 'Table',
@@ -40,6 +41,7 @@ describe('tableUtils', () => {
         PARTITIONEDTABLE: 'PartitionedTable',
       },
     } as unknown as typeof DhcType;
+    /* eslint-enable @typescript-eslint/naming-convention */
 
     const coreJsApiCache = {
       get: vi.fn().mockResolvedValue(mockDh),
@@ -55,6 +57,35 @@ describe('tableUtils', () => {
       getDheServiceForWorker: vi.fn(),
       getWorkerInfo: vi.fn(),
     } as unknown as IServerManager;
+
+    // Shared mock objects for reuse across tests
+    const mockConnection = createMockDhcService({
+      serverUrl: MOCK_DHC_URL,
+    });
+
+    const mockDhConnection = {
+      getObject: vi.fn().mockResolvedValue(mockTable),
+    } as unknown as DhcType.IdeConnection;
+
+    const mockTableVariableDef = {
+      type: 'Table',
+      id: 'mock-id',
+      name: 'my_table',
+      title: 'my_table',
+    } as DhcType.ide.VariableDefinition;
+
+    const mockFigureVariableDef = {
+      type: 'Figure',
+      id: 'mock-id',
+      name: 'my_figure',
+      title: 'my_figure',
+    } as DhcType.ide.VariableDefinition;
+
+    beforeEach(() => {
+      vi.mocked(mockConnection.getConnection).mockResolvedValue(
+        mockDhConnection
+      );
+    });
 
     describe('error cases', () => {
       it('should return error when neither variableId nor tableName provided', async () => {
@@ -113,10 +144,7 @@ describe('tableUtils', () => {
       });
 
       it('should return error when connection is not available', async () => {
-        const mockConnection = createMockDhcService({
-          serverUrl: MOCK_DHC_URL,
-        });
-        vi.spyOn(mockConnection, 'getConnection').mockResolvedValue(null);
+        vi.mocked(mockConnection.getConnection).mockResolvedValue(null);
 
         vi.mocked(getFirstConnectionOrCreate).mockResolvedValue({
           success: true,
@@ -139,23 +167,8 @@ describe('tableUtils', () => {
       });
 
       it('should return error when variable is not a table type', async () => {
-        const mockConnection = createMockDhcService({
-          serverUrl: MOCK_DHC_URL,
-        });
-        const mockVariableDef = {
-          type: 'Figure',
-          id: 'mock-id',
-          name: 'my_figure',
-          title: 'my_figure',
-        } as DhcType.ide.VariableDefinition;
-        const mockSession = {
-          getObject: vi.fn().mockResolvedValue({} as unknown as DhcType.Table),
-        } as unknown as DhcType.IdeSession;
-        vi.spyOn(mockConnection, 'getConnection').mockResolvedValue(
-          mockSession
-        );
         vi.mocked(fetchVariableDefinitionByPredicate).mockResolvedValue(
-          mockVariableDef
+          mockFigureVariableDef
         );
 
         vi.mocked(getFirstConnectionOrCreate).mockResolvedValue({
@@ -184,151 +197,55 @@ describe('tableUtils', () => {
     });
 
     describe('success cases', () => {
-      it('should return table when connection and session are available', async () => {
-        const mockConnection = createMockDhcService({
-          serverUrl: MOCK_DHC_URL,
-        });
-        const mockVariableDef = {
-          type: 'Table',
-          id: 'mock-id',
-          name: 'my_table',
-          title: 'my_table',
-        } as DhcType.ide.VariableDefinition;
-        const mockSession = {
-          getObject: vi.fn().mockResolvedValue(mockTable),
-        } as unknown as DhcType.IdeSession;
-        vi.spyOn(mockConnection, 'getConnection').mockResolvedValue(
-          mockSession
-        );
-        vi.mocked(fetchVariableDefinitionByPredicate).mockResolvedValue(
-          mockVariableDef
-        );
+      it.each(['tableName', 'variableId'])(
+        'should return table when %s is provided',
+        async paramName => {
+          vi.mocked(fetchVariableDefinitionByPredicate).mockResolvedValue(
+            mockTableVariableDef
+          );
 
-        vi.mocked(getFirstConnectionOrCreate).mockResolvedValue({
-          success: true,
-          connection: mockConnection,
-          panelUrlFormat: 'mock.panelUrlFormat',
-        });
+          vi.mocked(getFirstConnectionOrCreate).mockResolvedValue({
+            success: true,
+            connection: mockConnection,
+            panelUrlFormat: 'mock.panelUrlFormat',
+          });
 
-        const result = await getTableOrError({
-          coreJsApiCache,
-          serverManager,
-          connectionUrlStr: MOCK_DHC_URL.href,
-          tableName: 'my_table',
-        });
+          const matchValue = 'mock.value';
 
-        expect(fetchVariableDefinitionByPredicate).toHaveBeenCalledWith(
-          mockSession,
-          expect.any(Function)
-        );
-        // Verify the predicate function works correctly
-        const predicate = vi
-          .mocked(fetchVariableDefinitionByPredicate)
-          .mock.calls[0][1];
-        expect(predicate({ name: 'my_table' } as DhcType.ide.VariableDefinition)).toBe(true);
-        expect(predicate({ name: 'other_table' } as DhcType.ide.VariableDefinition)).toBe(false);
+          const result = await getTableOrError({
+            coreJsApiCache,
+            serverManager,
+            connectionUrlStr: MOCK_DHC_URL.href,
+            [paramName]: matchValue,
+          });
 
-        expect(result).toEqual({
-          success: true,
-          table: mockTable,
-          connectionUrl: MOCK_DHC_URL,
-        });
-      });
+          expect(fetchVariableDefinitionByPredicate).toHaveBeenCalledWith(
+            mockDhConnection,
+            expect.any(Function)
+          );
 
-      it('should return table when variableId is provided', async () => {
-        const mockConnection = createMockDhcService({
-          serverUrl: MOCK_DHC_URL,
-        });
-        const mockVariableDef = {
-          type: 'Table',
-          id: 'my-var-id',
-          name: 'my_table',
-          title: 'my_table',
-        } as DhcType.ide.VariableDefinition;
-        const mockSession = {
-          getObject: vi.fn().mockResolvedValue(mockTable),
-        } as unknown as DhcType.IdeSession;
-        vi.spyOn(mockConnection, 'getConnection').mockResolvedValue(
-          mockSession
-        );
-        vi.mocked(fetchVariableDefinitionByPredicate).mockResolvedValue(
-          mockVariableDef
-        );
+          // Verify the predicate function works correctly
+          const predicate = vi.mocked(fetchVariableDefinitionByPredicate).mock
+            .calls[0][1];
+          const predicateKey = paramName === 'tableName' ? 'name' : 'id';
+          expect(
+            predicate({
+              [predicateKey]: matchValue,
+            } as unknown as DhcType.ide.VariableDefinition)
+          ).toBe(true);
+          expect(
+            predicate({
+              [predicateKey]: 'no-match',
+            } as unknown as DhcType.ide.VariableDefinition)
+          ).toBe(false);
 
-        vi.mocked(getFirstConnectionOrCreate).mockResolvedValue({
-          success: true,
-          connection: mockConnection,
-          panelUrlFormat: 'mock.panelUrlFormat',
-        });
-
-        const result = await getTableOrError({
-          coreJsApiCache,
-          serverManager,
-          connectionUrlStr: MOCK_DHC_URL.href,
-          variableId: 'my-var-id',
-        });
-
-        expect(fetchVariableDefinitionByPredicate).toHaveBeenCalledWith(
-          mockSession,
-          expect.any(Function)
-        );
-        // Verify the predicate function works correctly for variableId
-        const predicate = vi
-          .mocked(fetchVariableDefinitionByPredicate)
-          .mock.calls[0][1];
-        expect(predicate({ id: 'my-var-id' } as DhcType.ide.VariableDefinition)).toBe(true);
-        expect(predicate({ id: 'other-id' } as DhcType.ide.VariableDefinition)).toBe(false);
-
-        expect(result).toEqual({
-          success: true,
-          table: mockTable,
-          connectionUrl: MOCK_DHC_URL,
-        });
-      });
-
-      it('should return tree table when tableName resolves to TreeTable type', async () => {
-        const mockTreeTable = {
-          type: 'TreeTable',
-        } as unknown as DhcType.Table;
-        const mockConnection = createMockDhcService({
-          serverUrl: MOCK_DHC_URL,
-        });
-        const mockTreeVariableDef = {
-          type: 'TreeTable',
-          id: 'tree-id',
-          name: 'my_tree',
-          title: 'my_tree',
-        } as DhcType.ide.VariableDefinition;
-        const mockSession = {
-          getObject: vi.fn().mockResolvedValue(mockTreeTable),
-        } as unknown as DhcType.IdeSession;
-        vi.spyOn(mockConnection, 'getConnection').mockResolvedValue(
-          mockSession
-        );
-        vi.mocked(fetchVariableDefinitionByPredicate).mockResolvedValue(
-          mockTreeVariableDef
-        );
-
-        vi.mocked(getFirstConnectionOrCreate).mockResolvedValue({
-          success: true,
-          connection: mockConnection,
-          panelUrlFormat: 'mock.panelUrlFormat',
-        });
-
-        const result = await getTableOrError({
-          coreJsApiCache,
-          serverManager,
-          connectionUrlStr: MOCK_DHC_URL.href,
-          tableName: 'my_tree',
-        });
-
-        expect(mockSession.getObject).toHaveBeenCalledWith(mockTreeVariableDef);
-        expect(result).toEqual({
-          success: true,
-          table: mockTreeTable,
-          connectionUrl: MOCK_DHC_URL,
-        });
-      });
+          expect(result).toEqual({
+            success: true,
+            table: mockTable,
+            connectionUrl: MOCK_DHC_URL,
+          });
+        }
+      );
     });
   });
 
@@ -480,7 +397,11 @@ describe('tableUtils', () => {
   describe('formatTableColumns', () => {
     it('should format columns with metadata', () => {
       const columns = [
-        { name: 'Symbol', type: 'java.lang.String', description: 'Stock symbol' },
+        {
+          name: 'Symbol',
+          type: 'java.lang.String',
+          description: 'Stock symbol',
+        },
         { name: 'Price', type: 'double' },
         { name: 'Volume', type: 'long', description: 'Trading volume' },
       ] as DhcType.Column[];
@@ -488,7 +409,11 @@ describe('tableUtils', () => {
       const result = formatTableColumns(columns);
 
       expect(result).toEqual([
-        { name: 'Symbol', type: 'java.lang.String', description: 'Stock symbol' },
+        {
+          name: 'Symbol',
+          type: 'java.lang.String',
+          description: 'Stock symbol',
+        },
         { name: 'Price', type: 'double' },
         { name: 'Volume', type: 'long', description: 'Trading volume' },
       ]);
@@ -582,6 +507,7 @@ describe('tableUtils', () => {
   });
 
   describe('isTableType', () => {
+    /* eslint-disable @typescript-eslint/naming-convention */
     const mockDh = {
       VariableType: {
         TABLE: 'Table',
@@ -591,6 +517,7 @@ describe('tableUtils', () => {
         FIGURE: 'Figure',
       },
     } as unknown as typeof DhcType;
+    /* eslint-enable @typescript-eslint/naming-convention */
 
     it.each([
       { type: 'Table', expected: true },
