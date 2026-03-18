@@ -38,7 +38,6 @@ import { createConnectToServerTool } from './tools/connectToServer';
  * Provides tools for AI assistants (like GitHub Copilot) to interact with Deephaven.
  */
 export class McpServer extends DisposableBase {
-  private server: SdkMcpServer;
   private httpServer: http.Server | null = null;
   private port: number | null = null;
 
@@ -52,38 +51,44 @@ export class McpServer extends DisposableBase {
     readonly serverManager: IServerManager
   ) {
     super();
+  }
 
-    // Create an MCP server
-    this.server = new SdkMcpServer({
+  private createServer(): SdkMcpServer {
+    const server = new SdkMcpServer({
       name: MCP_SERVER_NAME,
       version: '1.0.0',
     });
 
-    this.registerTool(createAddRemoteFileSourcesTool());
-    this.registerTool(createConnectToServerTool(this));
-    this.registerTool(createGetColumnStatsTool(this));
-    this.registerTool(createGetLogsTool(this));
-    this.registerTool(createGetTableDataTool(this));
-    this.registerTool(createGetTableStatsTool(this));
-    this.registerTool(createListConnectionsTool(this));
-    this.registerTool(createListVariablesTool(this));
-    this.registerTool(createListRemoteFileSourcesTool(this));
-    this.registerTool(createListServersTool(this));
-    this.registerTool(createOpenFilesInEditorTool());
-    this.registerTool(createOpenVariablePanelsTool(this));
-    this.registerTool(createRemoveRemoteFileSourcesTool());
-    this.registerTool(createRunCodeFromUriTool(this));
-    this.registerTool(createRunCodeTool(this));
-    this.registerTool(createSetEditorConnectionTool(this));
-    this.registerTool(createShowOutputPanelTool(this));
+    this.registerToolsOnServer(server);
+
+    return server;
   }
 
-  private registerTool<Spec extends McpToolSpec>({
-    name,
-    spec,
-    handler,
-  }: McpTool<Spec>): void {
-    this.server.registerTool(name, spec, handler);
+  private registerToolsOnServer(server: SdkMcpServer): void {
+    this.registerTool(server, createAddRemoteFileSourcesTool());
+    this.registerTool(server, createConnectToServerTool(this));
+    this.registerTool(server, createGetColumnStatsTool(this));
+    this.registerTool(server, createGetLogsTool(this));
+    this.registerTool(server, createGetTableDataTool(this));
+    this.registerTool(server, createGetTableStatsTool(this));
+    this.registerTool(server, createListConnectionsTool(this));
+    this.registerTool(server, createListVariablesTool(this));
+    this.registerTool(server, createListRemoteFileSourcesTool(this));
+    this.registerTool(server, createListServersTool(this));
+    this.registerTool(server, createOpenFilesInEditorTool());
+    this.registerTool(server, createOpenVariablePanelsTool(this));
+    this.registerTool(server, createRemoveRemoteFileSourcesTool());
+    this.registerTool(server, createRunCodeFromUriTool(this));
+    this.registerTool(server, createRunCodeTool(this));
+    this.registerTool(server, createSetEditorConnectionTool(this));
+    this.registerTool(server, createShowOutputPanelTool(this));
+  }
+
+  private registerTool<Spec extends McpToolSpec>(
+    server: SdkMcpServer,
+    { name, spec, handler }: McpTool<Spec>
+  ): void {
+    server.registerTool(name, spec, handler);
   }
 
   /**
@@ -135,7 +140,8 @@ export class McpServer extends DisposableBase {
             transport.close();
           });
 
-          await this.server.connect(transport);
+          const server = this.createServer();
+          await server.connect(transport);
           await transport.handleRequest(req, res, requestBody);
         } catch (error) {
           res.writeHead(500, { contentType: 'application/json' });
