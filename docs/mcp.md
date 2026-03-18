@@ -174,6 +174,107 @@ The documentation server can be independently enabled/disabled via the `deephave
 
 When `deephaven.mcp.enabled` is `true`, documentation queries are enabled by default. Set `deephaven.mcp.docsEnabled` to `false` to disable documentation queries while keeping the extension's MCP tools available.
 
+## Session-Based Architecture
+
+The MCP server uses a **stateful, session-based architecture** where each client connection maintains a persistent session for its lifetime.
+
+### How Sessions Work
+
+When a client first connects, it sends an `initialize` request without a session ID. The server:
+
+1. Creates a new, isolated server instance for the session
+2. Assigns a unique session ID (UUID)
+3. Returns the session ID in the response
+
+All subsequent requests from that client include an `mcp-session-id` header, which routes them to the correct server instance.
+
+```
+Client                              MCP Server
+  │                                     │
+  ├─► POST /mcp (initialize)           │
+  │   (no mcp-session-id header)       │
+  │                                     ├─ Create new server+transport pair
+  │                                     ├─ Assign session ID
+  │   ◄── Response: mcp-session-id ────┤
+  │                                     │
+  ├─► POST /mcp (list tools)           │
+  │   mcp-session-id: <session-id>     │
+  │                                     ├─ Look up existing session
+  │   ◄── Tool list ───────────────────┤
+  │                                     │
+  ├─► POST /mcp (call tool)            │
+  │   mcp-session-id: <session-id>     │
+  │                                     ├─ Reuse same session (no reconnect)
+  │   ◄── Tool result ─────────────────┤
+```
+
+### Parallel Request Safety
+
+Parallel requests are handled safely under the session model:
+
+- **Within the same session**: Requests are queued by the transport layer and processed in order — no race conditions.
+- **Across different sessions**: Each session has its own isolated server instance — no interference between clients.
+
+This resolves a critical bug in the previous stateless implementation where concurrent requests could corrupt server state or return results to the wrong client.
+
+### MCP Apps and Notifications
+
+The session-based architecture enables capabilities that require persistent connections:
+
+- **Server-to-client notifications** — the server can push progress updates and log messages to clients during long-running operations.
+- **MCP Apps** — interactive UI components that require a persistent session to function.
+
+These capabilities are available once a session is established and the client supports them.
+
+### Session Lifecycle
+
+- **Session creation**: On the first `initialize` request from a client.
+- **Session reuse**: All subsequent requests from the same client include the session ID and reuse the existing connection.
+- **Session cleanup**: When the client disconnects, the session and its resources are automatically freed.
+- **Server shutdown**: All active sessions are cleanly closed when the extension deactivates or the MCP server is stopped.
+
+### Multiple Concurrent Sessions
+
+Each IDE or AI assistant that connects gets its own isolated session. For example, VS Code Copilot and Windsurf can both be connected simultaneously without interfering with each other. Each has its own server instance and tool execution context.
+
+## Troubleshooting Sessions
+
+### Session Not Found (404)
+
+**Symptom**: The MCP server returns a `404` error with a message about the session not being found.
+
+**Causes**:
+- The session expired or was cleaned up (e.g., after extension restart or VS Code reload).
+- The client is sending a stale session ID from a previous connection.
+
+**Resolution**: Restart the AI assistant session or MCP client. Most clients will automatically re-initialize and obtain a new session ID.
+
+### Session Initialization Failures (400)
+
+**Symptom**: Requests fail with a `400 Bad Request` error.
+
+**Causes**:
+- A request was sent without a session ID but was not an `initialize` request.
+- The client is not following the MCP session protocol.
+
+**Resolution**: Ensure the client sends an `initialize` request first to establish a session before sending other requests.
+
+### Stale Sessions After Extension Restart
+
+**Symptom**: MCP tools stop responding or return errors after the Deephaven extension restarts.
+
+**Cause**: When the extension restarts, all active sessions are terminated. Clients holding old session IDs will receive errors.
+
+**Resolution**: Restart the AI assistant session or reload the MCP configuration so the client re-initializes with a fresh session.
+
+### Port Changes After Workspace Switch
+
+**Symptom**: MCP connection fails after switching VS Code workspaces.
+
+**Cause**: Each workspace uses an auto-allocated port. Switching workspaces changes the port.
+
+**Resolution**: Check the `MCP:<port>` status bar item for the current port and update your MCP configuration accordingly. You may also need to restart the AI assistant session.
+
 ## Tool Response Format
 
 All MCP tools follow a consistent response structure:
