@@ -62,6 +62,7 @@ export class PipServerController implements IDisposable {
 
     const pythonExtension = getPythonEnvsExtensionApi();
     if (pythonExtension != null) {
+      console.log('[TESTING]', pythonExtension.exports);
       void pythonExtension.activate().then(() => {
         pythonExtension.exports.onDidChangePackages(
           ({ changes }) => {
@@ -106,7 +107,11 @@ export class PipServerController implements IDisposable {
    * servers can be managed from the extension.
    */
   checkPipInstall = async (): Promise<
-    | { isAvailable: true; interpreterPath: string; environment: PythonEnvironment }
+    | {
+        isAvailable: true;
+        interpreterPath: string;
+        environment: PythonEnvironment;
+      }
     | { isAvailable: false; interpreterPath?: never; environment?: never }
   > => {
     if (!PIP_SERVER_SUPPORTED_PLATFORMS.has(process.platform)) {
@@ -148,7 +153,11 @@ export class PipServerController implements IDisposable {
       return { isAvailable: false };
     }
 
-    return { isAvailable: true, interpreterPath: pythonInterpreterPath, environment: env };
+    return {
+      isAvailable: true,
+      interpreterPath: pythonInterpreterPath,
+      environment: env,
+    };
   };
 
   /**
@@ -289,7 +298,8 @@ export class PipServerController implements IDisposable {
     }
 
     // In case pip env has changed since last server check
-    const { isAvailable, interpreterPath, environment } = await this.checkPipInstall();
+    const { isAvailable, interpreterPath, environment } =
+      await this.checkPipInstall();
     this._isPipServerInstalled = isAvailable;
 
     if (!isAvailable) {
