@@ -97,7 +97,10 @@ export class McpServer extends DisposableBase {
 
   /**
    * Start the MCP server on an HTTP endpoint.
-   * Creates a new transport for each request (stateless operation).
+   * Uses stateful session management: each initialize request creates a new
+   * isolated server+transport pair stored by session ID. Subsequent requests
+   * from the same session reuse the existing transport, eliminating race
+   * conditions from multiple concurrent requests.
    *
    * @param preferredPort Optional port to try first. If not provided or unavailable, will auto-allocate.
    * @returns The actual port the server is listening on
@@ -133,20 +136,49 @@ export class McpServer extends DisposableBase {
       req.on('end', async () => {
         try {
           const requestBody = JSON.parse(body);
+          const sessionId = req.headers['mcp-session-id'] as string | undefined;
 
-          // Create a new transport for each request
-          const transport = new StreamableHTTPServerTransport({
-            sessionIdGenerator: undefined,
-            enableJsonResponse: true,
-          });
+          if (sessionId && this.transports.has(sessionId)) {
+            // Existing session — reuse transport
+            const transport = this.transports.get(sessionId)!;
+            await transport.handleRequest(req, res, requestBody);
+          } else if (!sessionId && isInitializeRequest(requestBody)) {
+            // New session — create isolated server + transport pair
+            const server = this.createServer();
+            const transport = new StreamableHTTPServerTransport({
+              sessionIdGenerator: () => randomUUID(),
+              enableJsonResponse: true,
+              onsessioninitialized: sid => {
+                this.transports.set(sid, transport);
+                this.servers.set(sid, server);
+              },
+            });
 
-          res.on('close', () => {
-            transport.close();
-          });
+            transport.onclose = () => {
+              const sid = transport.sessionId;
+              if (sid) {
+                this.transports.delete(sid);
+                this.servers.delete(sid);
+              }
+            };
 
-          const server = this.createServer();
-          await server.connect(transport);
-          await transport.handleRequest(req, res, requestBody);
+            await server.connect(transport);
+            await transport.handleRequest(req, res, requestBody);
+          } else {
+            // Invalid combination: no session ID on a non-initialize request
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(
+              JSON.stringify({
+                jsonrpc: '2.0',
+                error: {
+                  code: -32600,
+                  message:
+                    'Bad Request: include mcp-session-id header for existing sessions, or send an initialize request to start a new session',
+                },
+                id: null,
+              })
+            );
+          }
         } catch (error) {
           res.writeHead(500, { contentType: 'application/json' });
           res.end(
