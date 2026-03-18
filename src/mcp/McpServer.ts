@@ -257,6 +257,20 @@ export class McpServer extends DisposableBase {
       return;
     }
 
+    // Close all active sessions before shutting down the HTTP server
+    for (const [sid, transport] of this.transports) {
+      try {
+        await transport.close();
+        await this.servers.get(sid)?.close();
+      } catch (error) {
+        this.outputChannelDebug.appendLine(
+          `[McpServer] Error closing session ${sid}: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+    }
+    this.transports.clear();
+    this.servers.clear();
+
     const { resolve, reject, promise } = withResolvers<void>();
 
     this.httpServer.close(err => {
