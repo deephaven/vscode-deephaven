@@ -85,6 +85,9 @@ type HandlerArg = McpToolHandlerArg<Spec>;
 type HandlerResult = McpToolHandlerResult<Spec>;
 type GetTableDataTool = McpTool<Spec>;
 
+export const DEFAULT_TABLE_PAGE_DATA_LIMIT = 10;
+export const DEFAULT_TABLE_PAGE_DATA_OFFSET = 0;
+
 export function createGetTableDataTool({
   coreJsApiCache,
   serverManager,
@@ -97,8 +100,8 @@ export function createGetTableDataTool({
     spec,
     handler: async ({
       connectionUrl: connectionUrlStr,
-      limit = 10,
-      offset = 0,
+      limit = DEFAULT_TABLE_PAGE_DATA_LIMIT,
+      offset = DEFAULT_TABLE_PAGE_DATA_OFFSET,
       variableId,
       tableName,
     }: HandlerArg): Promise<HandlerResult> => {

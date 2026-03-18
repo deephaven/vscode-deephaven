@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 
-import { createGetTableDataTool } from './getTableData';
+import {
+  createGetTableDataTool,
+  DEFAULT_TABLE_PAGE_DATA_LIMIT,
+  DEFAULT_TABLE_PAGE_DATA_OFFSET,
+} from './getTableData';
 import type { IAsyncCacheService, IServerManager } from '../../types';
 import {
   fakeMcpToolTimings,
@@ -92,192 +96,85 @@ describe('getTableData', () => {
     );
   });
 
-  it('should successfully query table data with defaults', async () => {
+  it.each([
+    {
+      label: 'defaults',
+      tableSize: 2,
+      limit: DEFAULT_TABLE_PAGE_DATA_LIMIT,
+      offset: DEFAULT_TABLE_PAGE_DATA_OFFSET,
+      hasMore: false,
+    },
+    {
+      label: 'limit with hasMore when more rows available',
+      tableSize: 100,
+      limit: DEFAULT_TABLE_PAGE_DATA_LIMIT,
+      offset: DEFAULT_TABLE_PAGE_DATA_OFFSET,
+      hasMore: true,
+    },
+    {
+      label: 'custom limit',
+      tableSize: 100,
+      limit: 5,
+      offset: DEFAULT_TABLE_PAGE_DATA_OFFSET,
+      hasMore: true,
+    },
+    {
+      label: 'offset for pagination',
+      tableSize: 100,
+      limit: DEFAULT_TABLE_PAGE_DATA_LIMIT,
+      offset: 20,
+      hasMore: true,
+    },
+    {
+      label: 'offset near end of table',
+      tableSize: 25,
+      limit: DEFAULT_TABLE_PAGE_DATA_LIMIT,
+      offset: 20,
+      hasMore: false,
+    },
+    {
+      label: 'offset exceeding table size',
+      tableSize: 2,
+      limit: DEFAULT_TABLE_PAGE_DATA_LIMIT,
+      offset: 100,
+      hasMore: false,
+    },
+  ])('should handle $label', async ({ tableSize, limit, offset, hasMore }) => {
+    const table = {
+      ...MOCK_TABLE,
+      size: tableSize,
+    } as unknown as DhcType.Table;
+
+    vi.mocked(getTableOrError).mockResolvedValue({
+      success: true,
+      table,
+      connectionUrl: MOCK_DHC_URL,
+    });
+    vi.mocked(getTablePage).mockResolvedValue({
+      ...MOCK_PAGE_DATA,
+      hasMore,
+      totalRows: table.size,
+    });
+
     const tool = createGetTableDataTool({ coreJsApiCache, serverManager });
     const result = await tool.handler({
       connectionUrl: MOCK_DHC_URL.href,
-      tableName: 'myTable',
+      tableName: 'testTable',
+      ...(limit !== DEFAULT_TABLE_PAGE_DATA_LIMIT ? { limit } : {}),
+      ...(offset !== DEFAULT_TABLE_PAGE_DATA_OFFSET ? { offset } : {}),
     });
 
-    expect(getTableOrError).toHaveBeenCalledWith({
-      coreJsApiCache,
-      connectionUrlStr: MOCK_DHC_URL.href,
-      variableId: undefined,
-      tableName: 'myTable',
-      serverManager,
-    });
-    expect(getTablePage).toHaveBeenCalledWith(MOCK_TABLE, 0, 10);
+    expect(getTablePage).toHaveBeenCalledWith(table, offset, limit);
     expect(MOCK_TABLE.close).toHaveBeenCalled();
     expect(result.structuredContent).toEqual(
       mcpSuccessResult('Fetched 2 rows', {
-        /* eslint-disable @typescript-eslint/naming-convention */
-        columns: [
-          { name: 'Symbol', type: 'java.lang.String' },
-          { name: 'Price', type: 'double' },
-        ],
+        ...MOCK_PAGE_DATA,
         connectionUrl: MOCK_DHC_URL.href,
-        data: [
-          { Symbol: 'AAPL', Price: 150.25 },
-          { Symbol: 'GOOGL', Price: 2800.5 },
-        ],
-        hasMore: false,
-        limit: 10,
-        offset: 0,
-        rowCount: 2,
-        tableName: 'myTable',
-        totalRows: 2,
-        /* eslint-enable @typescript-eslint/naming-convention */
-      })
-    );
-  });
-
-  it('should apply limit and show hasMore when more rows available', async () => {
-    const largeTable = {
-      ...MOCK_TABLE,
-      size: 100,
-    } as unknown as DhcType.Table;
-
-    vi.mocked(getTableOrError).mockResolvedValue({
-      success: true,
-      table: largeTable,
-      connectionUrl: MOCK_DHC_URL,
-    });
-    vi.mocked(getTablePage).mockResolvedValue({
-      ...MOCK_PAGE_DATA,
-      hasMore: true,
-      totalRows: 100,
-    });
-
-    const tool = createGetTableDataTool({ coreJsApiCache, serverManager });
-    const result = await tool.handler({
-      connectionUrl: MOCK_DHC_URL.href,
-      tableName: 'largeTable',
-      limit: 10,
-    });
-
-    expect(getTablePage).toHaveBeenCalledWith(largeTable, 0, 10);
-    expect(result.structuredContent).toMatchObject({
-      success: true,
-      message: 'Fetched 2 rows',
-      details: {
-        hasMore: true,
-        limit: 10,
-        offset: 0,
-        rowCount: 2,
-        totalRows: 100,
-      },
-    });
-  });
-
-  it('should apply offset for pagination', async () => {
-    const largeTable = {
-      ...MOCK_TABLE,
-      size: 100,
-    } as unknown as DhcType.Table;
-
-    vi.mocked(getTableOrError).mockResolvedValue({
-      success: true,
-      table: largeTable,
-      connectionUrl: MOCK_DHC_URL,
-    });
-    vi.mocked(getTablePage).mockResolvedValue({
-      ...MOCK_PAGE_DATA,
-      hasMore: true,
-      totalRows: 100,
-    });
-
-    const tool = createGetTableDataTool({ coreJsApiCache, serverManager });
-    const result = await tool.handler({
-      connectionUrl: MOCK_DHC_URL.href,
-      tableName: 'largeTable',
-      limit: 10,
-      offset: 20,
-    });
-
-    expect(getTablePage).toHaveBeenCalledWith(largeTable, 20, 10);
-    expect(result.structuredContent).toMatchObject({
-      success: true,
-      message: 'Fetched 2 rows',
-      details: {
-        hasMore: true,
-        limit: 10,
-        offset: 20,
-        rowCount: 2,
-        totalRows: 100,
-      },
-    });
-  });
-
-  it('should handle offset near end of table', async () => {
-    const table = {
-      ...MOCK_TABLE,
-      size: 25,
-    } as unknown as DhcType.Table;
-
-    vi.mocked(getTableOrError).mockResolvedValue({
-      success: true,
-      table: table,
-      connectionUrl: MOCK_DHC_URL,
-    });
-    vi.mocked(getTablePage).mockResolvedValue({
-      ...MOCK_PAGE_DATA,
-      hasMore: false,
-      totalRows: 25,
-    });
-
-    const tool = createGetTableDataTool({ coreJsApiCache, serverManager });
-    const result = await tool.handler({
-      connectionUrl: MOCK_DHC_URL.href,
-      tableName: 'table',
-      limit: 10,
-      offset: 20,
-    });
-
-    // Should fetch rows 20-29 (no constraint by table size)
-    expect(getTablePage).toHaveBeenCalledWith(table, 20, 10);
-    expect(result.structuredContent).toMatchObject({
-      success: true,
-      message: 'Fetched 2 rows',
-      details: {
-        hasMore: false,
-        limit: 10,
-        offset: 20,
-        rowCount: 2,
-        totalRows: 25,
-      },
-    });
-  });
-
-  it('should handle offset exceeding table size', async () => {
-    const tool = createGetTableDataTool({ coreJsApiCache, serverManager });
-    const result = await tool.handler({
-      connectionUrl: MOCK_DHC_URL.href,
-      tableName: 'myTable',
-      limit: 10,
-      offset: 100,
-    });
-
-    // No longer returns an error - just fetches what's available
-    expect(getTablePage).toHaveBeenCalledWith(MOCK_TABLE, 100, 10);
-    expect(result.structuredContent).toEqual(
-      mcpSuccessResult('Fetched 2 rows', {
-        /* eslint-disable @typescript-eslint/naming-convention */
-        columns: [
-          { name: 'Symbol', type: 'java.lang.String' },
-          { name: 'Price', type: 'double' },
-        ],
-        connectionUrl: MOCK_DHC_URL.href,
-        data: [
-          { Symbol: 'AAPL', Price: 150.25 },
-          { Symbol: 'GOOGL', Price: 2800.5 },
-        ],
-        hasMore: false,
-        limit: 10,
-        offset: 100,
-        rowCount: 2,
-        tableName: 'myTable',
-        totalRows: 2,
-        /* eslint-enable @typescript-eslint/naming-convention */
+        hasMore,
+        limit,
+        offset,
+        tableName: 'testTable',
+        totalRows: table.size,
       })
     );
   });
