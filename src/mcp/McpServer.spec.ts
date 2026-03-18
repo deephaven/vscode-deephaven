@@ -1,12 +1,18 @@
 import * as http from 'http';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { McpTool, McpToolSpec } from '../types';
+import type { OutputChannelWithHistory } from '../util';
+
+/* eslint-disable @typescript-eslint/naming-convention */
+// HTTP headers and MCP protocol headers must use their spec-defined names
 
 vi.mock('vscode');
 
 // Mock all tool creators to return minimal stub tools
 vi.mock('./tools', () => ({
-  createAddRemoteFileSourcesTool: vi.fn(() => makeStubTool('addRemoteFileSources')),
+  createAddRemoteFileSourcesTool: vi.fn(() =>
+    makeStubTool('addRemoteFileSources')
+  ),
   createConnectToServerTool: vi.fn(() => makeStubTool('connectToServer')),
   createGetColumnStatsTool: vi.fn(() => makeStubTool('getColumnStats')),
   createGetLogsTool: vi.fn(() => makeStubTool('getLogs')),
@@ -14,14 +20,20 @@ vi.mock('./tools', () => ({
   createGetTableStatsTool: vi.fn(() => makeStubTool('getTableStats')),
   createListConnectionsTool: vi.fn(() => makeStubTool('listConnections')),
   createListVariablesTool: vi.fn(() => makeStubTool('listVariables')),
-  createListRemoteFileSourcesTool: vi.fn(() => makeStubTool('listRemoteFileSources')),
+  createListRemoteFileSourcesTool: vi.fn(() =>
+    makeStubTool('listRemoteFileSources')
+  ),
   createListServersTool: vi.fn(() => makeStubTool('listServers')),
   createOpenFilesInEditorTool: vi.fn(() => makeStubTool('openFilesInEditor')),
   createOpenVariablePanelsTool: vi.fn(() => makeStubTool('openVariablePanels')),
-  createRemoveRemoteFileSourcesTool: vi.fn(() => makeStubTool('removeRemoteFileSources')),
+  createRemoveRemoteFileSourcesTool: vi.fn(() =>
+    makeStubTool('removeRemoteFileSources')
+  ),
   createRunCodeFromUriTool: vi.fn(() => makeStubTool('runCodeFromUri')),
   createRunCodeTool: vi.fn(() => makeStubTool('runCode')),
-  createSetEditorConnectionTool: vi.fn(() => makeStubTool('setEditorConnection')),
+  createSetEditorConnectionTool: vi.fn(() =>
+    makeStubTool('setEditorConnection')
+  ),
   createShowOutputPanelTool: vi.fn(() => makeStubTool('showOutputPanel')),
 }));
 
@@ -37,6 +49,7 @@ function makeStubTool(name: string): McpTool<McpToolSpec> {
       title: name,
       description: `Stub tool: ${name}`,
       inputSchema: {},
+      outputSchema: {},
     },
     handler: vi.fn().mockResolvedValue({
       content: [{ type: 'text', text: `stub result for ${name}` }],
@@ -45,7 +58,7 @@ function makeStubTool(name: string): McpTool<McpToolSpec> {
 }
 
 /** Create a minimal mock for OutputChannelWithHistory */
-function makeMockOutputChannel() {
+function makeMockOutputChannel(): OutputChannelWithHistory {
   return {
     appendLine: vi.fn(),
     append: vi.fn(),
@@ -55,7 +68,7 @@ function makeMockOutputChannel() {
     hide: vi.fn(),
     replace: vi.fn(),
     name: 'mock',
-  };
+  } as unknown as OutputChannelWithHistory;
 }
 
 // Helper: send an HTTP POST to the MCP server and collect the full response
@@ -63,7 +76,11 @@ function postToMcp(
   port: number,
   body: unknown,
   headers: Record<string, string> = {}
-): Promise<{ status: number; headers: http.IncomingMessage['headers']; body: string }> {
+): Promise<{
+  status: number;
+  headers: http.IncomingMessage['headers'];
+  body: string;
+}> {
   return new Promise((resolve, reject) => {
     const payload = JSON.stringify(body);
     const req = http.request(
@@ -85,7 +102,11 @@ function postToMcp(
         let data = '';
         res.on('data', chunk => (data += chunk));
         res.on('end', () =>
-          resolve({ status: res.statusCode ?? 0, headers: res.headers, body: data })
+          resolve({
+            status: res.statusCode ?? 0,
+            headers: res.headers,
+            body: data,
+          })
         );
       }
     );
@@ -129,7 +150,7 @@ describe('McpServer', () => {
       {} as any, // panelService
       {} as any, // pythonDiagnostics
       {} as any, // pythonWorkspace
-      {} as any  // serverManager
+      {} as any // serverManager
     );
 
     port = await server.start();
@@ -149,8 +170,8 @@ describe('McpServer', () => {
       expect(res.status).toBe(200);
       // The session ID is returned either in the response header or body
       const sessionId =
-        res.headers['mcp-session-id'] as string | undefined ??
-        (() => {
+        (res.headers['mcp-session-id'] as string | undefined) ??
+        ((): string | undefined => {
           try {
             return JSON.parse(res.body)?.sessionId as string | undefined;
           } catch {
@@ -172,10 +193,10 @@ describe('McpServer', () => {
       expect(body.error.code).toBe(-32600);
     });
 
-    it('should reject GET requests with 405', async () => {
+    it('should reject unsupported methods (PUT, DELETE, etc.) with 405', async () => {
       const res = await new Promise<{ status: number }>((resolve, reject) => {
         const req = http.request(
-          { hostname: '127.0.0.1', port, path: '/mcp', method: 'GET' },
+          { hostname: '127.0.0.1', port, path: '/mcp', method: 'PUT' },
           res => resolve({ status: res.statusCode ?? 0 })
         );
         req.on('error', reject);
@@ -301,10 +322,26 @@ describe('McpServer', () => {
 
       // Then fire requests on both sessions in parallel
       const [res1a, res1b, res2a, res2b] = await Promise.all([
-        postToMcp(port, { ...LIST_TOOLS_REQUEST, id: 21 }, { 'mcp-session-id': session1 }),
-        postToMcp(port, { ...LIST_TOOLS_REQUEST, id: 22 }, { 'mcp-session-id': session1 }),
-        postToMcp(port, { ...LIST_TOOLS_REQUEST, id: 23 }, { 'mcp-session-id': session2 }),
-        postToMcp(port, { ...LIST_TOOLS_REQUEST, id: 24 }, { 'mcp-session-id': session2 }),
+        postToMcp(
+          port,
+          { ...LIST_TOOLS_REQUEST, id: 21 },
+          { 'mcp-session-id': session1 }
+        ),
+        postToMcp(
+          port,
+          { ...LIST_TOOLS_REQUEST, id: 22 },
+          { 'mcp-session-id': session1 }
+        ),
+        postToMcp(
+          port,
+          { ...LIST_TOOLS_REQUEST, id: 23 },
+          { 'mcp-session-id': session2 }
+        ),
+        postToMcp(
+          port,
+          { ...LIST_TOOLS_REQUEST, id: 24 },
+          { 'mcp-session-id': session2 }
+        ),
       ]);
 
       for (const res of [res1a, res1b, res2a, res2b]) {
@@ -327,7 +364,8 @@ describe('McpServer', () => {
       const toolsRes = await postToMcp(port, LIST_TOOLS_REQUEST, {
         'mcp-session-id': sessionId,
       });
-      const tools: { name: string }[] = JSON.parse(toolsRes.body).result?.tools ?? [];
+      const tools: { name: string }[] =
+        JSON.parse(toolsRes.body).result?.tools ?? [];
       expect(tools.some(t => t.name === 'addRemoteFileSources')).toBe(true);
     });
 
@@ -338,7 +376,8 @@ describe('McpServer', () => {
       const toolsRes = await postToMcp(port, LIST_TOOLS_REQUEST, {
         'mcp-session-id': sessionId,
       });
-      const tools: { name: string }[] = JSON.parse(toolsRes.body).result?.tools ?? [];
+      const tools: { name: string }[] =
+        JSON.parse(toolsRes.body).result?.tools ?? [];
       expect(tools.some(t => t.name === 'listServers')).toBe(true);
     });
 
@@ -349,7 +388,8 @@ describe('McpServer', () => {
       const toolsRes = await postToMcp(port, LIST_TOOLS_REQUEST, {
         'mcp-session-id': sessionId,
       });
-      const tools: { name: string }[] = JSON.parse(toolsRes.body).result?.tools ?? [];
+      const tools: { name: string }[] =
+        JSON.parse(toolsRes.body).result?.tools ?? [];
       expect(tools.some(t => t.name === 'runCode')).toBe(true);
     });
   });
