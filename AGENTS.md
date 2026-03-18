@@ -30,6 +30,14 @@ For detailed instructions on writing tests (mocking patterns, test structure, MC
 - **Main skill**: `.github/skills/test-writing/SKILL.md`
 - **MCP-specific patterns**: `.github/skills/test-writing/mcp-tools-testing.md`
 
+## Linting
+
+### Running ESLint
+
+- Use `npm run test:lint` to check all TypeScript files for linting errors
+- **IMPORTANT**: The `get_errors` tool may not catch all linting issues, especially in files that aren't currently open in the editor
+- Always run `npm run test:lint` before committing to ensure all files pass linting
+
 ## MCP Tools
 
 ### Writing MCP Tools

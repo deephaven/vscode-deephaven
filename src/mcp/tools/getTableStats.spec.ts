@@ -6,7 +6,6 @@ import type { IAsyncCacheService, IServerManager } from '../../types';
 import {
   fakeMcpToolTimings,
   mcpSuccessResult,
-  mcpErrorResult,
   MOCK_DHC_URL,
 } from '../utils/mcpTestUtils';
 import { getTableOrError } from '../utils/tableUtils';
@@ -29,6 +28,7 @@ const MOCK_TABLE = {
 } as unknown as DhcType.Table;
 
 describe('getTableStats', () => {
+  /* eslint-disable @typescript-eslint/naming-convention */
   const mockDh = {
     VariableType: {
       TABLE: 'Table',
@@ -37,6 +37,7 @@ describe('getTableStats', () => {
       PARTITIONEDTABLE: 'PartitionedTable',
     },
   } as unknown as typeof DhcType;
+  /* eslint-enable @typescript-eslint/naming-convention */
 
   const coreJsApiCache = {
     get: vi.fn().mockResolvedValue(mockDh),
