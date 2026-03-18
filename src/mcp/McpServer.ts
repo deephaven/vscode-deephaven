@@ -154,11 +154,19 @@ export class McpServer extends DisposableBase {
               },
             });
 
-            transport.onclose = () => {
-              const sid = transport.sessionId;
-              if (sid) {
-                this.transports.delete(sid);
-                this.servers.delete(sid);
+            transport.onclose = async () => {
+              try {
+                const sid = transport.sessionId;
+                if (sid) {
+                  this.transports.delete(sid);
+                  const closingServer = this.servers.get(sid);
+                  this.servers.delete(sid);
+                  await closingServer?.close();
+                }
+              } catch (error) {
+                this.outputChannelDebug.appendLine(
+                  `[McpServer] Error during session cleanup: ${error instanceof Error ? error.message : String(error)}`
+                );
               }
             };
 
