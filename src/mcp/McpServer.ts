@@ -1,7 +1,9 @@
 import * as vscode from 'vscode';
+import { randomUUID } from 'node:crypto';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { McpServer as SdkMcpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
 import * as http from 'http';
 import type {
   IAsyncCacheService,
@@ -40,6 +42,8 @@ import { createConnectToServerTool } from './tools/connectToServer';
 export class McpServer extends DisposableBase {
   private httpServer: http.Server | null = null;
   private port: number | null = null;
+  private transports: Map<string, StreamableHTTPServerTransport> = new Map();
+  private servers: Map<string, SdkMcpServer> = new Map();
 
   constructor(
     readonly coreJsApiCache: IAsyncCacheService<URL, typeof DhcType>,
