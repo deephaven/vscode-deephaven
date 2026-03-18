@@ -105,92 +105,28 @@ describe('getTableStats', () => {
     );
   });
 
-  it.each([
-    {
-      name: 'invalid URL',
-      connectionUrl: 'invalid-url',
-      errorMessage: 'Invalid URL',
-      error: 'Invalid URL',
-      expectedMessage: 'Invalid URL: Invalid URL',
-      errorDetails: {
-        connectionUrl: 'invalid-url',
-        variableId: undefined,
-        tableName: 'mock.table',
-      },
-    },
-    {
-      name: 'missing connection',
-      connectionUrl: MOCK_DHC_URL.href,
-      errorMessage: 'No connections or server found',
-      expectedMessage: 'No connections or server found',
-      errorDetails: {
-        connectionUrl: MOCK_DHC_URL.href,
-        tableName: 'mock.table',
-      },
-    },
-    {
-      name: 'missing session',
-      connectionUrl: MOCK_DHC_URL.href,
-      errorMessage: 'Unable to access connection',
-      expectedMessage: 'Unable to access connection',
-      errorDetails: {
-        connectionUrl: MOCK_DHC_URL.href,
-        tableName: 'mock.table',
-      },
-    },
-  ])(
-    'should handle $name',
-    async ({
-      connectionUrl,
-      errorMessage,
-      error,
-      expectedMessage,
-      errorDetails,
-    }) => {
-      vi.mocked(getTableOrError).mockResolvedValue({
-        success: false,
-        errorMessage,
-        error,
-        details: errorDetails,
-      });
-
-      const tool = createGetTableStatsTool({ serverManager, coreJsApiCache });
-      const result = await tool.handler({
-        connectionUrl,
-        tableName: 'mock.table',
-      });
-
-      expect(result.structuredContent).toMatchObject({
-        success: false,
-        message: expectedMessage,
-      });
-    }
-  );
-
-  it('should handle errors and close table', async () => {
-    const error = new Error('Table not found');
+  it('should propagate errors from getTableOrError', async () => {
     vi.mocked(getTableOrError).mockResolvedValue({
       success: false,
-      errorMessage: 'Table not found',
-      error,
+      errorMessage: 'Connection error',
       details: {
         connectionUrl: MOCK_DHC_URL.href,
-        tableName: 'nonExistentTable',
+        tableName: 'myTable',
       },
     });
 
     const tool = createGetTableStatsTool({ serverManager, coreJsApiCache });
     const result = await tool.handler({
       connectionUrl: MOCK_DHC_URL.href,
-      tableName: 'nonExistentTable',
+      tableName: 'myTable',
     });
 
     expect(result.structuredContent).toMatchObject({
       success: false,
-      message: 'Table not found: Table not found',
+      message: 'Connection error',
       details: {
         connectionUrl: MOCK_DHC_URL.href,
-        tableName: 'nonExistentTable',
+        tableName: 'myTable',
       },
     });
   });

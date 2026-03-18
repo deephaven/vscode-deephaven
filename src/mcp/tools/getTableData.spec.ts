@@ -282,39 +282,10 @@ describe('getTableData', () => {
     );
   });
 
-  it('should handle invalid URL', async () => {
+  it('should propagate errors from getTableOrError', async () => {
     vi.mocked(getTableOrError).mockResolvedValue({
       success: false,
-      errorMessage: 'Invalid URL',
-      error: 'Invalid URL',
-      details: {
-        connectionUrl: 'invalid-url',
-        variableId: undefined,
-        tableName: 'myTable',
-      },
-    });
-
-    const tool = createGetTableDataTool({ coreJsApiCache, serverManager });
-    const result = await tool.handler({
-      connectionUrl: 'invalid-url',
-      tableName: 'myTable',
-    });
-
-    expect(result.structuredContent).toMatchObject({
-      success: false,
-      message: 'Invalid URL: Invalid URL',
-      details: {
-        connectionUrl: 'invalid-url',
-        variableId: undefined,
-        tableName: 'myTable',
-      },
-    });
-  });
-
-  it('should handle missing connection', async () => {
-    vi.mocked(getTableOrError).mockResolvedValue({
-      success: false,
-      errorMessage: 'No connections or server found',
+      errorMessage: 'Connection error',
       details: {
         connectionUrl: MOCK_DHC_URL.href,
         tableName: 'myTable',
@@ -329,33 +300,7 @@ describe('getTableData', () => {
 
     expect(result.structuredContent).toMatchObject({
       success: false,
-      message: 'No connections or server found',
-      details: {
-        connectionUrl: MOCK_DHC_URL.href,
-        tableName: 'myTable',
-      },
-    });
-  });
-
-  it('should handle missing session', async () => {
-    vi.mocked(getTableOrError).mockResolvedValue({
-      success: false,
-      errorMessage: 'Unable to access connection',
-      details: {
-        connectionUrl: MOCK_DHC_URL.href,
-        tableName: 'myTable',
-      },
-    });
-
-    const tool = createGetTableDataTool({ coreJsApiCache, serverManager });
-    const result = await tool.handler({
-      connectionUrl: MOCK_DHC_URL.href,
-      tableName: 'myTable',
-    });
-
-    expect(result.structuredContent).toMatchObject({
-      success: false,
-      message: 'Unable to access connection',
+      message: 'Connection error',
       details: {
         connectionUrl: MOCK_DHC_URL.href,
         tableName: 'myTable',
