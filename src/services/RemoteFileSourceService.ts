@@ -43,7 +43,7 @@ export class RemoteFileSourceService extends DisposableBase {
     );
 
     this.disposables.add(
-      this._controllerImportScanner.onDidUpdatePrefix(() => {
+      this._controllerImportScanner.onDidUpdatePrefixes(() => {
         this._onDidUpdatePythonModuleMeta.fire();
       })
     );
@@ -169,14 +169,14 @@ export class RemoteFileSourceService extends DisposableBase {
    */
   getPythonTopLevelModuleNames(): Set<PythonModuleFullname> {
     const set = new Set<PythonModuleFullname>();
-    const prefix = this._controllerImportScanner.getControllerPrefix();
+    const prefixes = this._controllerImportScanner.getControllerPrefixes();
 
     this._pythonWorkspace.getTopLevelMarkedFolders().forEach(({ uri }) => {
       const moduleName = getPythonTopLevelModuleFullname(uri);
 
       set.add(moduleName);
 
-      if (prefix !== null) {
+      for (const prefix of prefixes) {
         set.add(`${prefix}.${moduleName}` as PythonModuleFullname);
       }
     });

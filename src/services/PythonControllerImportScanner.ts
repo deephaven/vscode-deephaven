@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import type { PythonModuleFullname } from '../types';
-import { Logger } from '../util';
+import { Logger, URIMap, URISet } from '../util';
 import { DisposableBase } from './DisposableBase';
 import type { FilteredWorkspace } from './FilteredWorkspace';
 
@@ -10,7 +10,7 @@ const DEBOUNCE_MS = 500;
 
 /**
  * Scans workspace Python files for `deephaven_enterprise.controller_import.meta_import()`
- * usage and extracts the controller prefix argument.
+ * usage and extracts the controller prefix arguments.
  *
  * Supported patterns:
  * 1. `import deephaven_enterprise.controller_import` + `meta_import()` call
@@ -19,7 +19,6 @@ const DEBOUNCE_MS = 500;
  * Limitations:
  * - Import aliases are not detected
  * - Multiline calls are not detected
- * - First match in workspace wins
  */
 export class PythonControllerImportScanner extends DisposableBase {
   constructor(
@@ -27,84 +26,135 @@ export class PythonControllerImportScanner extends DisposableBase {
   ) {
     super();
 
+    // Track individual file changes
     this.disposables.add(
-      this._pythonWorkspace.onDidUpdate(() => {
-        this._scheduleScan();
+      this._pythonWorkspace.onDidChangeFile(({ type, uri }) => {
+        if (type === 'delete') {
+          this._setPrefix(uri, null);
+        } else {
+          this._pendingFileScans.add(uri);
+          this._scheduleScan();
+        }
       })
     );
 
+    // Queue all files for initial scan
+    const allFiles = this._pythonWorkspace.getAllFileUris();
+    for (const fileUri of allFiles) {
+      this._pendingFileScans.add(fileUri);
+    }
     this._scheduleScan();
   }
 
-  private _controllerPrefix: string | null = null;
-  private _scanDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+  private _filePrefixMap = new URIMap<string>();
+  private _prefixFilesMap = new Map<string, URISet>();
+  private _scanDebounceTimer?: NodeJS.Timeout;
+  private _pendingFileScans = new URISet();
 
-  private _onDidUpdatePrefix = new vscode.EventEmitter<string | null>();
-  readonly onDidUpdatePrefix = this._onDidUpdatePrefix.event;
+  private _onDidUpdatePrefixes = new vscode.EventEmitter<void>();
+  readonly onDidUpdatePrefixes = this._onDidUpdatePrefixes.event;
 
   /**
-   * Get the current controller prefix, or null if not configured.
+   * Get all controller prefixes found in the workspace.
    */
-  getControllerPrefix(): string | null {
-    return this._controllerPrefix;
+  getControllerPrefixes(): ReadonlySet<string> {
+    return new Set(this._prefixFilesMap.keys());
   }
 
   protected override async onDisposing(): Promise<void> {
-    if (this._scanDebounceTimer !== null) {
-      clearTimeout(this._scanDebounceTimer);
-      this._scanDebounceTimer = null;
-    }
-    this._onDidUpdatePrefix.dispose();
+    clearTimeout(this._scanDebounceTimer);
+    this._onDidUpdatePrefixes.dispose();
   }
 
   /**
-   * Schedule a debounced workspace scan.
+   * Schedule a debounced scan of pending files.
    */
   private _scheduleScan(): void {
-    if (this._scanDebounceTimer !== null) {
-      clearTimeout(this._scanDebounceTimer);
-    }
+    clearTimeout(this._scanDebounceTimer);
 
     this._scanDebounceTimer = setTimeout(() => {
-      this._scanDebounceTimer = null;
-      this._scanWorkspace().catch(err => {
-        logger.error('Error scanning workspace:', err);
-      });
+      void this._scanPendingFiles();
     }, DEBOUNCE_MS);
   }
 
   /**
-   * Scan all Python files in the workspace for meta_import usage.
-   * Stops after the first match is found (first-match-wins strategy).
+   * Scan pending files that have changed.
    */
-  private async _scanWorkspace(): Promise<void> {
-    const allFiles = await vscode.workspace.findFiles(
-      '**/*.py',
-      '**/node_modules/**'
-    );
+  private async _scanPendingFiles(): Promise<void> {
+    try {
+      const filesToScan = [...this._pendingFileScans.keys()];
+      this._pendingFileScans.clear();
 
-    for (const fileUri of allFiles) {
-      try {
-        const bytes = await vscode.workspace.fs.readFile(fileUri);
-        const text = Buffer.from(bytes).toString('utf8');
+      for (const fileUri of filesToScan) {
+        await this._scanFile(fileUri);
+      }
+    } catch (err) {
+      logger.error('Error scanning pending files:', err);
+    }
+  }
 
-        const prefix = this._extractControllerPrefix(text);
-        if (prefix !== null) {
-          if (this._controllerPrefix !== prefix) {
-            this._controllerPrefix = prefix;
-            this._onDidUpdatePrefix.fire(prefix);
-          }
-          return;
+  /**
+   * Scan a single file for meta_import usage and update tracking maps.
+   */
+  private async _scanFile(fileUri: vscode.Uri): Promise<void> {
+    try {
+      const bytes = await vscode.workspace.fs.readFile(fileUri);
+      const text = Buffer.from(bytes).toString('utf8');
+
+      const newPrefix = this._extractControllerPrefix(text);
+      this._setPrefix(fileUri, newPrefix);
+    } catch (err) {
+      logger.warn('Failed to read file:', fileUri.fsPath, err);
+      this._setPrefix(fileUri, null);
+    }
+  }
+
+  /**
+   * Set the prefix for a file. Updates both tracking maps and fires event if
+   * the prefix set changed.
+   */
+  private _setPrefix(fileUri: vscode.Uri, prefix: string | null): void {
+    const oldPrefix = this._filePrefixMap.get(fileUri);
+
+    if (oldPrefix === prefix) {
+      return;
+    }
+
+    let didUpdate = false;
+
+    if (prefix == null) {
+      this._filePrefixMap.delete(fileUri);
+    } else {
+      this._filePrefixMap.set(fileUri, prefix);
+    }
+
+    if (oldPrefix != null) {
+      const fileSet = this._prefixFilesMap.get(oldPrefix);
+
+      if (fileSet != null) {
+        fileSet.delete(fileUri);
+
+        if (fileSet.size === 0) {
+          this._prefixFilesMap.delete(oldPrefix);
+          didUpdate = true;
         }
-      } catch (err) {
-        logger.warn('Failed to read file:', fileUri.fsPath, err);
       }
     }
 
-    // No configuration found
-    if (this._controllerPrefix !== null) {
-      this._controllerPrefix = null;
-      this._onDidUpdatePrefix.fire(null);
+    if (prefix != null) {
+      let fileSet = this._prefixFilesMap.get(prefix);
+
+      if (fileSet == null) {
+        fileSet = new URISet();
+        this._prefixFilesMap.set(prefix, fileSet);
+        didUpdate = true;
+      }
+
+      fileSet.add(fileUri);
+    }
+
+    if (didUpdate) {
+      this._onDidUpdatePrefixes.fire();
     }
   }
 
