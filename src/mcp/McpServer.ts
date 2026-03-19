@@ -1,7 +1,9 @@
 import * as vscode from 'vscode';
+import { randomUUID } from 'node:crypto';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { McpServer as SdkMcpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
 import * as http from 'http';
 import type {
   IAsyncCacheService,
@@ -38,9 +40,10 @@ import { createConnectToServerTool } from './tools/connectToServer';
  * Provides tools for AI assistants (like GitHub Copilot) to interact with Deephaven.
  */
 export class McpServer extends DisposableBase {
-  private server: SdkMcpServer;
   private httpServer: http.Server | null = null;
   private port: number | null = null;
+  private transports: Map<string, StreamableHTTPServerTransport> = new Map();
+  private servers: Map<string, SdkMcpServer> = new Map();
 
   constructor(
     readonly coreJsApiCache: IAsyncCacheService<URL, typeof DhcType>,
@@ -52,43 +55,162 @@ export class McpServer extends DisposableBase {
     readonly serverManager: IServerManager
   ) {
     super();
+  }
 
-    // Create an MCP server
-    this.server = new SdkMcpServer({
+  private createServer(): SdkMcpServer {
+    const server = new SdkMcpServer({
       name: MCP_SERVER_NAME,
       version: '1.0.0',
     });
 
-    this.registerTool(createAddRemoteFileSourcesTool());
-    this.registerTool(createConnectToServerTool(this));
-    this.registerTool(createGetColumnStatsTool(this));
-    this.registerTool(createGetLogsTool(this));
-    this.registerTool(createGetTableDataTool(this));
-    this.registerTool(createGetTableStatsTool(this));
-    this.registerTool(createListConnectionsTool(this));
-    this.registerTool(createListVariablesTool(this));
-    this.registerTool(createListRemoteFileSourcesTool(this));
-    this.registerTool(createListServersTool(this));
-    this.registerTool(createOpenFilesInEditorTool());
-    this.registerTool(createOpenVariablePanelsTool(this));
-    this.registerTool(createRemoveRemoteFileSourcesTool());
-    this.registerTool(createRunCodeFromUriTool(this));
-    this.registerTool(createRunCodeTool(this));
-    this.registerTool(createSetEditorConnectionTool(this));
-    this.registerTool(createShowOutputPanelTool(this));
+    this.registerToolsOnServer(server);
+
+    return server;
   }
 
-  private registerTool<Spec extends McpToolSpec>({
-    name,
-    spec,
-    handler,
-  }: McpTool<Spec>): void {
-    this.server.registerTool(name, spec, handler);
+  private registerToolsOnServer(server: SdkMcpServer): void {
+    this.registerTool(server, createAddRemoteFileSourcesTool());
+    this.registerTool(server, createConnectToServerTool(this));
+    this.registerTool(server, createGetColumnStatsTool(this));
+    this.registerTool(server, createGetLogsTool(this));
+    this.registerTool(server, createGetTableDataTool(this));
+    this.registerTool(server, createGetTableStatsTool(this));
+    this.registerTool(server, createListConnectionsTool(this));
+    this.registerTool(server, createListVariablesTool(this));
+    this.registerTool(server, createListRemoteFileSourcesTool(this));
+    this.registerTool(server, createListServersTool(this));
+    this.registerTool(server, createOpenFilesInEditorTool());
+    this.registerTool(server, createOpenVariablePanelsTool(this));
+    this.registerTool(server, createRemoveRemoteFileSourcesTool());
+    this.registerTool(server, createRunCodeFromUriTool(this));
+    this.registerTool(server, createRunCodeTool(this));
+    this.registerTool(server, createSetEditorConnectionTool(this));
+    this.registerTool(server, createShowOutputPanelTool(this));
+  }
+
+  private registerTool<Spec extends McpToolSpec>(
+    server: SdkMcpServer,
+    { name, spec, handler }: McpTool<Spec>
+  ): void {
+    server.registerTool(name, spec, handler);
+  }
+
+  private handleInvalidPath(res: http.ServerResponse): void {
+    res.writeHead(404, { contentType: 'text/plain' });
+    res.end('Not found');
+  }
+
+  private handleInvalidMethod(res: http.ServerResponse): void {
+    res.writeHead(405, {
+      contentType: 'text/plain',
+      allow: 'GET, POST',
+    });
+    res.end('Method Not Allowed');
+  }
+
+  private handleSessionNotFound(
+    res: http.ServerResponse,
+    sessionId: string
+  ): void {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(
+      JSON.stringify({
+        jsonrpc: '2.0',
+        error: {
+          code: -32600,
+          message: `Bad Request: session ID ${sessionId} not found`,
+        },
+        id: null,
+      })
+    );
+  }
+
+  private async handleExistingSession(
+    req: http.IncomingMessage,
+    res: http.ServerResponse,
+    requestBody: unknown,
+    sessionId: string
+  ): Promise<void> {
+    if (!this.transports.has(sessionId)) {
+      this.handleSessionNotFound(res, sessionId);
+      return;
+    }
+
+    // Existing session — reuse transport
+    const transport = this.transports.get(sessionId)!;
+    await transport.handleRequest(req, res, requestBody);
+  }
+
+  private handleInvalidSessionIdForRequestType(
+    res: http.ServerResponse,
+    message: string
+  ): void {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(
+      JSON.stringify({
+        jsonrpc: '2.0',
+        error: {
+          code: -32600,
+          message,
+        },
+        id: null,
+      })
+    );
+  }
+
+  private async handleNewSession(
+    req: http.IncomingMessage,
+    res: http.ServerResponse,
+    requestBody: unknown
+  ): Promise<void> {
+    // New session — create isolated server + transport pair
+    const server = this.createServer();
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: (): string => randomUUID(),
+      enableJsonResponse: true,
+      onsessioninitialized: (sid): void => {
+        this.transports.set(sid, transport);
+        this.servers.set(sid, server);
+      },
+    });
+
+    transport.onclose = async (): Promise<void> => {
+      try {
+        const sid = transport.sessionId;
+        if (sid) {
+          this.transports.delete(sid);
+          const closingServer = this.servers.get(sid);
+          this.servers.delete(sid);
+          await closingServer?.close();
+        }
+      } catch (error) {
+        this.outputChannelDebug.appendLine(
+          `[McpServer] Error during session cleanup: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+    };
+
+    await server.connect(transport);
+    await transport.handleRequest(req, res, requestBody);
+  }
+
+  private handleRequestError(res: http.ServerResponse, error: unknown): void {
+    res.writeHead(500, { contentType: 'application/json' });
+    res.end(
+      JSON.stringify({
+        error: `Failed to process request: ${error instanceof Error ? error.message : String(error)}`,
+      })
+    );
   }
 
   /**
    * Start the MCP server on an HTTP endpoint.
-   * Creates a new transport for each request (stateless operation).
+   * Uses stateful session management: each initialize request creates a new
+   * isolated server+transport pair stored by session ID. Subsequent requests
+   * from the same session reuse the existing transport, eliminating race
+   * conditions from multiple concurrent requests.
    *
    * @param preferredPort Optional port to try first. If not provided or unavailable, will auto-allocate.
    * @returns The actual port the server is listening on
@@ -100,50 +222,59 @@ export class McpServer extends DisposableBase {
 
     this.httpServer = http.createServer(async (req, res) => {
       if (req.url !== '/mcp') {
-        res.writeHead(404, { contentType: 'text/plain' });
-        res.end('Not found');
-      }
-
-      // Only accept POST requests since we don't currenlty support SSE. TBD
-      // whether we need SSE in the future.
-      if (req.method !== 'POST') {
-        res.writeHead(405, {
-          contentType: 'text/plain',
-          allow: 'POST',
-        });
-        res.end('Method Not Allowed');
+        this.handleInvalidPath(res);
         return;
       }
 
-      // Collect the request body
+      // Accept GET (for SSE) and POST (for JSON-RPC) requests.
+      // Other methods are not supported by the MCP protocol.
+      if (req.method !== 'GET' && req.method !== 'POST') {
+        this.handleInvalidMethod(res);
+        return;
+      }
+
+      // Collect body only for POST requests
       let body = '';
-      req.on('data', chunk => {
-        body += chunk.toString();
-      });
+      if (req.method === 'POST') {
+        req.on('data', chunk => {
+          body += chunk.toString();
+        });
+      }
 
       req.on('end', async () => {
         try {
-          const requestBody = JSON.parse(body);
+          // Parse body if present, otherwise undefined for GET requests
+          const requestBody = body ? JSON.parse(body) : undefined;
+          const sessionId = req.headers['mcp-session-id'] as string | undefined;
+          const hasSessionId = sessionId != null;
 
-          // Create a new transport for each request
-          const transport = new StreamableHTTPServerTransport({
-            sessionIdGenerator: undefined,
-            enableJsonResponse: true,
-          });
+          // Only POST requests can be an initialize request
+          const isInitializeReq = requestBody
+            ? isInitializeRequest(requestBody)
+            : false;
 
-          res.on('close', () => {
-            transport.close();
-          });
+          // Validate: initialize requests must NOT have a session ID,
+          // and non-initialize requests MUST have a session ID.
+          if (hasSessionId === isInitializeReq) {
+            this.handleInvalidSessionIdForRequestType(
+              res,
+              hasSessionId
+                ? 'Bad Request: initialize request must not include mcp-session-id header'
+                : 'Bad Request: include mcp-session-id header for existing sessions, or send an initialize request to start a new session'
+            );
+            return;
+          }
 
-          await this.server.connect(transport);
-          await transport.handleRequest(req, res, requestBody);
+          sessionId == null
+            ? await this.handleNewSession(req, res, requestBody)
+            : await this.handleExistingSession(
+                req,
+                res,
+                requestBody,
+                sessionId
+              );
         } catch (error) {
-          res.writeHead(500, { contentType: 'application/json' });
-          res.end(
-            JSON.stringify({
-              error: `Failed to process request: ${error instanceof Error ? error.message : String(error)}`,
-            })
-          );
+          this.handleRequestError(res, error);
         }
       });
     });
@@ -206,6 +337,20 @@ export class McpServer extends DisposableBase {
     if (this.httpServer == null) {
       return;
     }
+
+    // Close all active sessions before shutting down the HTTP server
+    for (const [sid, transport] of this.transports) {
+      try {
+        await transport.close();
+        await this.servers.get(sid)?.close();
+      } catch (error) {
+        this.outputChannelDebug.appendLine(
+          `[McpServer] Error closing session ${sid}: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+    }
+    this.transports.clear();
+    this.servers.clear();
 
     const { resolve, reject, promise } = withResolvers<void>();
 

@@ -406,6 +406,10 @@ export class DhcService extends DisposableBase implements IDhcService {
   }
 
   async getConnection(): Promise<DhcType.IdeConnection | null> {
+    if (this.cn == null) {
+      await this.initSession();
+    }
+
     return this.cn;
   }
 

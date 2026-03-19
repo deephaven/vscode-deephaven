@@ -52,6 +52,7 @@ export class ServerManager implements IServerManager {
   ) {
     this._configService = configService;
     this._connectionMap = new URLMap<ConnectionState>();
+    this._pendingConnectionMap = new URLMap<Promise<ConnectionState | null>>();
     this._coreClientCache = coreClientCache;
     this._dhcServiceFactory = dhcServiceFactory;
     this._dheClientCache = dheClientCache;
@@ -70,6 +71,9 @@ export class ServerManager implements IServerManager {
 
   private readonly _configService: IConfigService;
   private readonly _connectionMap: URLMap<ConnectionState>;
+  private readonly _pendingConnectionMap: URLMap<
+    Promise<ConnectionState | null>
+  >;
   private readonly _coreClientCache: URLMap<CoreAuthenticatedClient>;
   private readonly _dhcServiceFactory: IDhcServiceFactory;
   private readonly _dheClientCache: URLMap<DheAuthenticatedClientWrapper>;
@@ -115,6 +119,7 @@ export class ServerManager implements IServerManager {
 
     await Promise.all([
       this._connectionMap.dispose(),
+      this._pendingConnectionMap.dispose(),
       this._serverMap.dispose(),
       this._uriConnectionsMap.dispose(),
       this._workerURLToServerURLMap.dispose(),
@@ -200,17 +205,51 @@ export class ServerManager implements IServerManager {
     const serverState = this._serverMap.get(serverUrl);
 
     if (serverState == null) {
-      return null;
+      throw new Error(`Server with URL '${serverUrl}' not found.`);
     }
 
-    // DHE supports multiple connections, but DHC does not.
-    if (
-      !this._dheServiceCache.has(serverUrl) &&
-      serverState.connectionCount > 0
-    ) {
-      logger.info('Already connected to server:', serverUrl);
-      return null;
+    // We only support 1 connection for DHC servers in the extension
+    if (serverState.type === 'DHC' && serverState.connectionCount > 0) {
+      logger.info('Already connected to server:', serverUrl.href);
+      return this._connectionMap.getOrThrow(serverUrl);
     }
+
+    if (this._pendingConnectionMap.has(serverUrl)) {
+      logger.debug('Connection already in progress:', serverUrl.href);
+      return this._pendingConnectionMap.getOrThrow(serverUrl);
+    }
+
+    const connectionPromise = this._doConnectToServer(
+      serverState,
+      workerConsoleType,
+      operateAsAnotherUser
+    );
+
+    // We only support 1 connection for DHC servers in the extension, but the
+    // count doesn't get updated until the connection is established, so we need
+    // to mark pending connections to prevent multiple simultaneous connection
+    // attempts to the same DHC server.
+    if (serverState.type === 'DHC') {
+      this._pendingConnectionMap.set(
+        serverUrl,
+        connectionPromise.then(result => {
+          this._pendingConnectionMap.delete(serverUrl);
+          return result;
+        })
+      );
+    }
+
+    return connectionPromise;
+  };
+
+  private _doConnectToServer = async (
+    serverState: ServerState,
+    workerConsoleType?: ConsoleType,
+    operateAsAnotherUser: boolean = false
+  ): Promise<ConnectionState | null> => {
+    let serverUrl = serverState.url;
+
+    logger.debug('Connecting to server:', serverUrl.href);
 
     let tagId: UniqueID | undefined;
 
