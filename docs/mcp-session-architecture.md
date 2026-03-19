@@ -298,7 +298,7 @@ Typical usage:
 ```typescript
 this.httpServer = http.createServer(async (req, res) => {
   // Extract session ID from header
-  const sessionId = req.headers['mcp-session-id'];
+  const sessionId = req.headers["mcp-session-id"];
 
   if (sessionId && this.transports.has(sessionId)) {
     // EXISTING SESSION: Reuse transport
@@ -319,7 +319,7 @@ this.httpServer = http.createServer(async (req, res) => {
     await transport.handleRequest(req, res, body);
   } else {
     // ERROR: Invalid request
-    res.status(400).json({ error: 'Invalid session' });
+    res.status(400).json({ error: "Invalid session" });
   }
 });
 ```

@@ -244,6 +244,7 @@ Each IDE or AI assistant that connects gets its own isolated session. For exampl
 **Symptom**: The MCP server returns a `404` error with a message about the session not being found.
 
 **Causes**:
+
 - The session expired or was cleaned up (e.g., after extension restart or VS Code reload).
 - The client is sending a stale session ID from a previous connection.
 
@@ -254,6 +255,7 @@ Each IDE or AI assistant that connects gets its own isolated session. For exampl
 **Symptom**: Requests fail with a `400 Bad Request` error.
 
 **Causes**:
+
 - A request was sent without a session ID but was not an `initialize` request.
 - The client is not following the MCP session protocol.
 
