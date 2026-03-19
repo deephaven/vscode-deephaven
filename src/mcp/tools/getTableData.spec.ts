@@ -164,6 +164,14 @@ describe('getTableData', () => {
       ...(offset !== DEFAULT_TABLE_PAGE_DATA_OFFSET ? { offset } : {}),
     });
 
+    expect(getTableOrError).toHaveBeenCalledWith({
+      coreJsApiCache,
+      connectionUrlStr: MOCK_DHC_URL.href,
+      variableId: undefined,
+      tableName: 'testTable',
+      serverManager,
+    });
+
     expect(getTablePage).toHaveBeenCalledWith(table, offset, limit);
     expect(MOCK_TABLE.close).toHaveBeenCalled();
     expect(result.structuredContent).toEqual(
