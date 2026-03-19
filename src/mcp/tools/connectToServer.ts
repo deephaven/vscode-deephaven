@@ -16,7 +16,10 @@ const spec = {
   inputSchema: {
     url: z.string().describe('Server URL (e.g., "http://localhost:10000")'),
   },
-  outputSchema: createMcpToolOutputSchema(),
+  outputSchema: createMcpToolOutputSchema({
+    type: z.enum(['DHC', 'DHE']).optional().describe('Server type'),
+    url: z.string().optional().describe('Server URL'),
+  }),
 } as const;
 
 type Spec = typeof spec;
