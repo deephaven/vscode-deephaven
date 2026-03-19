@@ -248,7 +248,7 @@ export class McpServer extends DisposableBase {
           const sessionId = req.headers['mcp-session-id'] as string | undefined;
           const hasSessionId = sessionId != null;
 
-          // GET requests are never initialize requests (SSE only)
+          // Only POST requests can be an initialize request
           const isInitializeReq = requestBody
             ? isInitializeRequest(requestBody)
             : false;
