@@ -190,21 +190,21 @@ All subsequent requests from that client include an `mcp-session-id` header, whi
 
 ```
 Client                              MCP Server
-  │                                     │
+  │                                    │
   ├─► POST /mcp (initialize)           │
   │   (no mcp-session-id header)       │
-  │                                     ├─ Create new server+transport pair
-  │                                     ├─ Assign session ID
+  │                                    ├─ Create new server+transport pair
+  │                                    ├─ Assign session ID
   │   ◄── Response: mcp-session-id ────┤
-  │                                     │
+  │                                    │
   ├─► POST /mcp (list tools)           │
   │   mcp-session-id: <session-id>     │
-  │                                     ├─ Look up existing session
+  │                                    ├─ Look up existing session
   │   ◄── Tool list ───────────────────┤
-  │                                     │
+  │                                    │
   ├─► POST /mcp (call tool)            │
   │   mcp-session-id: <session-id>     │
-  │                                     ├─ Reuse same session (no reconnect)
+  │                                    ├─ Reuse same session (no reconnect)
   │   ◄── Tool result ─────────────────┤
 ```
 
