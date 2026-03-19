@@ -29,28 +29,28 @@ There are distinct layers in the MCP server architecture:
 ```
 ┌─────────────────────────────────────────────────────┐
 │ VS Code Extension Process                           │
-│                                                      │
-│  ┌────────────────────────────────────────────┐    │
-│  │ McpServer Class Instance                   │    │
-│  │                                             │    │
-│  │  http.Server (Port 45678)  ◄───────────────┼────┼─── Client Request 1
-│  │         │                                   │    │
-│  │         │                                   │    │
-│  │         ├─► Create Transport 1              │    │
-│  │         │   Connect SdkMcpServer ──────┐    │    │
-│  │         │   Handle Request             │    │    │
-│  │         │   Close Transport            │    │    │
-│  │         │                              │    │    │
-│  │         ├─► Create Transport 2  ◄───────────┼────┼─── Client Request 2
-│  │         │   Connect SdkMcpServer ──┐   │    │    │    (parallel)
-│  │         │   Handle Request         │   │    │    │
-│  │         │   Close Transport        │   │    │    │
-│  │         │                          │   │    │    │
-│  │  SHARED SdkMcpServer Instance  ◄──┴───┴────┼─── ⚠️ RACE CONDITION!
-│  │  (ONE instance, multiple connections)      │    │
-│  │                                             │    │
-│  └────────────────────────────────────────────┘    │
-│                                                      │
+│                                                     │
+│  ┌────────────────────────────────────────────┐     │
+│  │ McpServer Class Instance                   │     │
+│  │                                            │     │
+│  │  http.Server (Port 45678)  ◄───────────────┼─────┼─── Client Request 1
+│  │         │                                  │     │
+│  │         │                                  │     │
+│  │         ├─► Create Transport 1             │     │
+│  │         │   Connect SdkMcpServer ──────┐   │     │
+│  │         │   Handle Request             │   │     │
+│  │         │   Close Transport            │   │     │
+│  │         │                              │   │     │
+│  │         ├─► Create Transport 2  ◄──────┼───┼─────┼─── Client Request 2
+│  │         │   Connect SdkMcpServer ──┐   │   │     │    (parallel)
+│  │         │   Handle Request         │   │   │     │
+│  │         │   Close Transport        │   │   │     │
+│  │         │                          │   │   │     │
+│  │  SHARED SdkMcpServer Instance  ◄───┴───┴───┼─────┼─── ⚠️ RACE CONDITION!
+│  │  (ONE instance, multiple connections)      │     │
+│  │                                            │     │
+│  └────────────────────────────────────────────┘     │
+│                                                     │
 └─────────────────────────────────────────────────────┘
 ```
 
