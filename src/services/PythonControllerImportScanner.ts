@@ -6,15 +6,17 @@ import type { FilteredWorkspace } from './FilteredWorkspace';
 
 const logger = new Logger('PythonControllerImportScanner');
 
-const DEBOUNCE_MS = 500;
+const DEBOUNCE_MS = 500 as const;
+const DEFAULT_META_IMPORT_PREFIX = 'controller' as const;
 
 /**
  * Scans workspace Python files for `deephaven_enterprise.controller_import.meta_import()`
  * usage and extracts the controller prefix arguments.
  *
  * Supported patterns:
- * 1. `import deephaven_enterprise.controller_import` + `meta_import()` call
- * 2. `from deephaven_enterprise.controller_import import meta_import` + `meta_import()` call
+ * 1. `import deephaven_enterprise.controller_import` + `deephaven_enterprise.controller_import.meta_import()` call
+ * 2. `from deephaven_enterprise import controller_import` + `controller_import.meta_import()` call
+ * 3. `from deephaven_enterprise.controller_import import meta_import` + `meta_import()` call
  *
  * Limitations:
  * - Import aliases are not detected
@@ -38,12 +40,14 @@ export class PythonControllerImportScanner extends DisposableBase {
       })
     );
 
+    this.disposables.add(
+      this._pythonWorkspace.onDidUpdate(() => {
+        this._scanAllFiles();
+      })
+    );
+
     // Queue all files for initial scan
-    const allFiles = this._pythonWorkspace.getAllFileUris();
-    for (const fileUri of allFiles) {
-      this._pendingFileScans.add(fileUri);
-    }
-    this._scheduleScan();
+    this._scanAllFiles();
   }
 
   private _filePrefixMap = new URIMap<string>();
@@ -75,6 +79,14 @@ export class PythonControllerImportScanner extends DisposableBase {
     this._scanDebounceTimer = setTimeout(() => {
       void this._scanPendingFiles();
     }, DEBOUNCE_MS);
+  }
+
+  private _scanAllFiles(): void {
+    const allFiles = this._pythonWorkspace.getAllFileUris();
+    for (const fileUri of allFiles) {
+      this._pendingFileScans.add(fileUri);
+    }
+    this._scheduleScan();
   }
 
   /**
@@ -114,7 +126,7 @@ export class PythonControllerImportScanner extends DisposableBase {
    * the prefix set changed.
    */
   private _setPrefix(fileUri: vscode.Uri, prefix: string | null): void {
-    const oldPrefix = this._filePrefixMap.get(fileUri);
+    const oldPrefix = this._filePrefixMap.get(fileUri) ?? null;
 
     if (oldPrefix === prefix) {
       return;
@@ -125,6 +137,9 @@ export class PythonControllerImportScanner extends DisposableBase {
     if (prefix == null) {
       this._filePrefixMap.delete(fileUri);
     } else {
+      logger.debug(
+        `Found controller meta_import(${prefix === DEFAULT_META_IMPORT_PREFIX ? '' : `"${prefix}"`}) in file '${fileUri.fsPath}'`
+      );
       this._filePrefixMap.set(fileUri, prefix);
     }
 
@@ -168,18 +183,31 @@ export class PythonControllerImportScanner extends DisposableBase {
       /deephaven_enterprise\.controller_import\.meta_import\(\s*(?:["'](\w+)["'])?\s*\)/;
     const match1 = directCallPattern.exec(pythonCode);
     if (match1 != null) {
-      return match1[1] ?? 'controller';
+      return match1[1] ?? DEFAULT_META_IMPORT_PREFIX;
     }
 
-    // Pattern 2: from deephaven_enterprise.controller_import import meta_import
+    // Pattern 2: from deephaven_enterprise import controller_import
+    //            followed by controller_import.meta_import() call
+    const fromModulePattern =
+      /from\s+deephaven_enterprise\s+import\s+controller_import/;
+    if (fromModulePattern.test(pythonCode)) {
+      const callPattern =
+        /controller_import\.meta_import\(\s*(?:["'](\w+)["'])?\s*\)/;
+      const match2 = callPattern.exec(pythonCode);
+      if (match2 != null) {
+        return match2[1] ?? DEFAULT_META_IMPORT_PREFIX;
+      }
+    }
+
+    // Pattern 3: from deephaven_enterprise.controller_import import meta_import
     //            followed by meta_import() call
     const fromImportPattern =
       /from\s+deephaven_enterprise\.controller_import\s+import\s+meta_import/;
     if (fromImportPattern.test(pythonCode)) {
       const callPattern = /\bmeta_import\(\s*(?:["'](\w+)["'])?\s*\)/;
-      const match2 = callPattern.exec(pythonCode);
-      if (match2 != null) {
-        return match2[1] ?? 'controller';
+      const match3 = callPattern.exec(pythonCode);
+      if (match3 != null) {
+        return match3[1] ?? DEFAULT_META_IMPORT_PREFIX;
       }
     }
 
