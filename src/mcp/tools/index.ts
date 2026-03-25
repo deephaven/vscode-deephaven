@@ -12,5 +12,4 @@ export * from './getTableData';
 export * from './removeRemoteFileSources';
 export * from './runCode';
 export * from './runCodeFromUri';
-export * from './setEditorConnection';
 export * from './showOutputPanel';
