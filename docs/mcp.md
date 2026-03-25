@@ -57,12 +57,13 @@ Different IDEs require different MCP server configuration:
 | ------------------------------- | ---------------------------- | ------------------------------------- |
 | **VS Code with GitHub Copilot** | ✅ Yes                       | None required                         |
 | **Windsurf**                    | ✅ Yes (after user approval) | `~/.codeium/windsurf/mcp_config.json` |
+| **Claude in VS Code-based IDE** | ❌ No                        | `<wksp-folder>/.mcp.json`             |
 | **Cursor**                      | ❌ No                        | `<wksp-folder>/.cursor/mcp.json`      |
 | **Other VS Code-based IDEs**    | ❌ No                        | Varies by IDE                         |
 
 #### Manual MCP Server Configuration
 
-For IDEs that require manual configuration (Cursor, other VS Code-based IDEs), you'll need to configure the MCP server endpoint. The MCP server port is displayed in the status bar as `MCP:<port>` when running. The endpoint URL follows the format: `http://localhost:<port>/mcp`
+For IDEs that require manual configuration (Cursor and other VS Code-based IDEs) or Claude running in VS Code-based IDEs, you'll need to configure the MCP server endpoint. The MCP server port is displayed in the status bar as `MCP:<port>` when running. You can click the status bar item to copy the full endpoint URL to your clipboard. The endpoint URL follows the format: `http://localhost:<port>/mcp`.
 
 **Cursor:**
 
@@ -78,21 +79,26 @@ Create a `.cursor/mcp.json` file in your workspace root:
 }
 ```
 
-**Other IDEs:**
+**Claude in VS Code-based IDE:**
 
-Configuration format varies by IDE. The general pattern:
+Create a `.mcp.json` file in your workspace root:
 
 ```json
 {
   "mcpServers": {
     "Deephaven VS Code": {
+      "type": "http",
       "url": "http://localhost:<port>/mcp"
     }
   }
 }
 ```
 
-Replace `<port>` (or `45678` in the examples) with the actual port shown in the `MCP:<port>` status bar item.
+> **Note:** This configuration should work for Claude running in any VS Code-based IDE that supports the Deephaven extension (VS Code, Cursor, Windsurf, etc.).
+
+**Other IDEs:**
+
+Configuration format varies by IDE but should be similar to the examples above. Consult your IDE's MCP documentation for the specific configuration file location and format.
 
 > **Note:** After configuration changes, you may need to restart agent sessions or clear MCP tool caches.
 
@@ -203,5 +209,6 @@ The MCP server is designed specifically for VS Code and IDEs built on top of VS 
 
 **Supported with Manual Configuration:**
 
+- Claude in VS Code-based IDEs (VS Code, Cursor, Windsurf, etc.)
 - Cursor
 - Other VS Code-based IDEs (untested, configuration format may vary)
