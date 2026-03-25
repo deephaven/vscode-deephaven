@@ -51,7 +51,7 @@ This automatically sets `"deephaven.mcp.enabled": true` in your workspace settin
 
 #### Docs MCP Server Configuration
 
-The Deephaven Documentation Searching skill connects to the [Deephaven Docs MCP server](https://deephaven.io/enterprise/docs/clients/mcp/#docs-server). The server is automatically configured for Github Copilot or can be manually configured for other agents as described in [skills installation](#skills-installation). The extension skill makes AI assistants aware of the documentation capabilities. For more information about the Deephaven Docs MCP server itself, see the [official documentation](https://deephaven.io/enterprise/docs/clients/mcp/#docs-server).
+The Deephaven Documentation Searching skill connects to the [Deephaven Docs MCP server](https://deephaven.io/enterprise/docs/clients/mcp/#docs-server). The server is automatically configured for Github Copilot or can be manually configured for other agents as described in [Manual MCP Server Configuration](#manual-mcp-server-configuration). The extension skill makes AI assistants aware of the documentation capabilities. For more information about the Deephaven Docs MCP server itself, see the [official documentation](https://deephaven.io/enterprise/docs/clients/mcp/#docs-server).
 
 The documentation server can be independently enabled/disabled via the `deephaven.mcp.docsEnabled` setting:
 
