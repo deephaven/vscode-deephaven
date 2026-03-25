@@ -49,6 +49,16 @@ The extension provides two settings to control MCP functionality:
 
 This automatically sets `"deephaven.mcp.enabled": true` in your workspace settings (`.vscode/settings.json`). The MCP server starts immediately, listening on a local HTTP endpoint. Each workspace gets a unique port.
 
+#### Docs MCP Server Configuration
+
+The Deephaven Documentation Searching skill connects to the [Deephaven Docs MCP server](https://deephaven.io/enterprise/docs/clients/mcp/#docs-server). The server is automatically configured for Github Copilot or can be manually configured for other agents as described in [skills installation](#skills-installation). The extension skill makes AI assistants aware of the documentation capabilities. For more information about the Deephaven Docs MCP server itself, see the [official documentation](https://deephaven.io/enterprise/docs/clients/mcp/#docs-server).
+
+The documentation server can be independently enabled/disabled via the `deephaven.mcp.docsEnabled` setting:
+
+**Setting**: `deephaven.mcp.docsEnabled` (default: `true`)
+
+When `deephaven.mcp.enabled` is `true`, documentation queries are enabled by default. Set `deephaven.mcp.docsEnabled` to `false` to disable documentation queries while keeping the extension's MCP tools available.
+
 #### IDE-Specific Configuration
 
 Different IDEs require different MCP server configuration:
@@ -74,6 +84,9 @@ Create a `.cursor/mcp.json` file in your workspace root:
   "mcpServers": {
     "Deephaven VS Code": {
       "url": "http://localhost:<port>/mcp"
+    },
+    "Deephaven Documentation": {
+      "url": "https://deephaven-mcp-docs-prod.dhc-demo.deephaven.io/mcp"
     }
   }
 }
@@ -89,6 +102,10 @@ Create a `.mcp.json` file in your workspace root:
     "Deephaven VS Code": {
       "type": "http",
       "url": "http://localhost:<port>/mcp"
+    },
+    "Deephaven Documentation": {
+      "type": "http",
+      "url": "https://deephaven-mcp-docs-prod.dhc-demo.deephaven.io/mcp"
     }
   }
 }
@@ -137,11 +154,11 @@ The MCP server provides tools for:
 
 For detailed documentation on each tool including parameters, return types, and examples, see [MCP Tool Reference](mcp-tools.md).
 
-## Chat Skills
+## Skills
 
-In addition to MCP tools, the extension provides Chat Skills that can be registered with supported AI assistants (e.g., GitHub Copilot, Windsurf) to provide domain-specific knowledge and capabilities.
+In addition to MCP tools, the extension provides Skills that can be registered with supported AI assistants to provide domain-specific knowledge and capabilities.
 
-### Available Chat Skills
+### Available Skills
 
 1. **Deephaven VS Code Usage** (`deephaven-vscode-using`)
    - Manages Deephaven server connections and code execution through VS Code MCP tools.
@@ -155,17 +172,31 @@ In addition to MCP tools, the extension provides Chat Skills that can be registe
    - Supports both Python and Groovy.
    - Does NOT require a running server or connection - purely documentation queries.
 
-### Chat Skills Configuration
+### Skills Installation
 
-Chat Skills are automatically registered when the extension loads. They are available in supported AI assistants like GitHub Copilot and Windsurf.
+#### GitHub Copilot (Automatic)
 
-The Deephaven Documentation Searching skill connects to the [Deephaven Docs MCP server](https://deephaven.io/enterprise/docs/clients/mcp/#docs-server), which is automatically configured by the extension when enabled. The extension provides the auto-configuration and the chat skill to make AI assistants aware of the documentation capabilities. For more information about the Deephaven Docs MCP server itself, see the [official documentation](https://deephaven.io/enterprise/docs/clients/mcp/#docs-server).
+Skills are automatically registered when the extension loads for GitHub Copilot users. No manual installation required.
 
-The documentation server can be independently enabled/disabled via the `deephaven.mcp.docsEnabled` setting:
+#### Other Agents (Manual Installation)
 
-**Setting**: `deephaven.mcp.docsEnabled` (default: `true`)
+For other AI agents, you'll need to manually install the skills.
 
-When `deephaven.mcp.enabled` is `true`, documentation queries are enabled by default. Set `deephaven.mcp.docsEnabled` to `false` to disable documentation queries while keeping the extension's MCP tools available.
+**Installation Options:**
+
+1. **Using `npx skills` (recommended if you have Node.js installed):**
+
+   ```bash
+   npx skills add deephaven/vscode-deephaven -g -s deephaven-vscode-using
+   npx skills add deephaven/vscode-deephaven -g -s deephaven-docs-searching
+   ```
+
+2. **Manual installation:**
+   - Navigate to the [skills folder](https://github.com/deephaven/vscode-deephaven/tree/main/skills) in the vscode-deephaven repository
+   - Download the `SKILL.md` file from each skill you want to use:
+     - [deephaven-vscode-using/SKILL.md](https://github.com/deephaven/vscode-deephaven/tree/main/skills/deephaven-vscode-using/SKILL.md) - For interacting with Deephaven through the VS Code extension's MCP tools
+     - [deephaven-docs-searching/SKILL.md](https://github.com/deephaven/vscode-deephaven/tree/main/skills/deephaven-docs-searching/SKILL.md) - For querying Deephaven documentation
+   - Install the skill(s) according to your AI assistant's documentation
 
 ## Tool Response Format
 
