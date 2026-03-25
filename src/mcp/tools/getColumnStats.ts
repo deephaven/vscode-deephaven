@@ -5,6 +5,7 @@ import type {
   McpToolHandlerArg,
   McpToolHandlerResult,
   IServerManager,
+  IAsyncCacheService,
 } from '../../types';
 import {
   createMcpToolOutputSchema,
@@ -63,8 +64,10 @@ type HandlerResult = McpToolHandlerResult<Spec>;
 type GetColumnStatsTool = McpTool<Spec>;
 
 export function createGetColumnStatsTool({
+  coreJsApiCache,
   serverManager,
 }: {
+  coreJsApiCache: IAsyncCacheService<URL, typeof DhcType>;
   serverManager: IServerManager;
 }): GetColumnStatsTool {
   return {
@@ -80,6 +83,7 @@ export function createGetColumnStatsTool({
 
       try {
         const tableResult = await getTableOrError({
+          coreJsApiCache,
           connectionUrlStr,
           variableId,
           tableName,

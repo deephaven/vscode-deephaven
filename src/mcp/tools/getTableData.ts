@@ -1,9 +1,11 @@
 import { z } from 'zod';
+import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type {
   McpTool,
   McpToolHandlerArg,
   McpToolHandlerResult,
   IServerManager,
+  IAsyncCacheService,
 } from '../../types';
 import { createMcpToolOutputSchema, McpToolResponse } from '../utils';
 import { getTablePage, getTableOrError } from '../utils/tableUtils';
@@ -83,9 +85,14 @@ type HandlerArg = McpToolHandlerArg<Spec>;
 type HandlerResult = McpToolHandlerResult<Spec>;
 type GetTableDataTool = McpTool<Spec>;
 
+export const DEFAULT_TABLE_PAGE_DATA_LIMIT = 10;
+export const DEFAULT_TABLE_PAGE_DATA_OFFSET = 0;
+
 export function createGetTableDataTool({
+  coreJsApiCache,
   serverManager,
 }: {
+  coreJsApiCache: IAsyncCacheService<URL, typeof DhcType>;
   serverManager: IServerManager;
 }): GetTableDataTool {
   return {
@@ -93,8 +100,8 @@ export function createGetTableDataTool({
     spec,
     handler: async ({
       connectionUrl: connectionUrlStr,
-      limit = 10,
-      offset = 0,
+      limit = DEFAULT_TABLE_PAGE_DATA_LIMIT,
+      offset = DEFAULT_TABLE_PAGE_DATA_OFFSET,
       variableId,
       tableName,
     }: HandlerArg): Promise<HandlerResult> => {
@@ -102,6 +109,7 @@ export function createGetTableDataTool({
 
       try {
         const tableResult = await getTableOrError({
+          coreJsApiCache,
           connectionUrlStr,
           variableId,
           tableName,

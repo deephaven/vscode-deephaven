@@ -2,17 +2,19 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 
 import { createGetTableStatsTool } from './getTableStats';
-import type { IServerManager, ServerState } from '../../types';
-import { DhcService } from '../../services';
+import type { IAsyncCacheService, IServerManager } from '../../types';
 import {
   fakeMcpToolTimings,
   mcpSuccessResult,
-  mcpErrorResult,
   MOCK_DHC_URL,
 } from '../utils/mcpTestUtils';
+import { getTableOrError } from '../utils/tableUtils';
 
 vi.mock('vscode');
-vi.mock('../../services/DhcService');
+vi.mock('../utils/tableUtils', () => ({
+  getTableOrError: vi.fn(),
+  formatTableColumns: vi.fn(cols => cols),
+}));
 
 const MOCK_TABLE = {
   size: 1000,
@@ -25,23 +27,25 @@ const MOCK_TABLE = {
   close: vi.fn(),
 } as unknown as DhcType.Table;
 
-const MOCK_SERVER_RUNNING: ServerState = {
-  isRunning: true,
-  type: 'DHC',
-  url: MOCK_DHC_URL,
-  isConnected: false,
-  connectionCount: 0,
-};
-
 describe('getTableStats', () => {
-  const mockSession = {
-    getObject: vi.fn(),
-  } as unknown as DhcType.IdeSession;
+  /* eslint-disable @typescript-eslint/naming-convention */
+  const mockDh = {
+    VariableType: {
+      TABLE: 'Table',
+      TREETABLE: 'TreeTable',
+      HIERARCHICALTABLE: 'HierarchicalTable',
+      PARTITIONEDTABLE: 'PartitionedTable',
+    },
+  } as unknown as typeof DhcType;
+  /* eslint-enable @typescript-eslint/naming-convention */
 
-  const mockConnection = Object.assign(Object.create(DhcService.prototype), {
-    initSession: vi.fn(),
-    getSession: vi.fn(),
-  }) as DhcService;
+  const coreJsApiCache = {
+    get: vi.fn().mockResolvedValue(mockDh),
+    has: vi.fn(),
+    invalidate: vi.fn(),
+    dispose: vi.fn(),
+    onDidInvalidate: vi.fn(),
+  } as unknown as IAsyncCacheService<URL, typeof DhcType>;
 
   const serverManager = {
     getServer: vi.fn(),
@@ -53,22 +57,16 @@ describe('getTableStats', () => {
     vi.clearAllMocks();
     fakeMcpToolTimings();
 
-    // Default successful getServer mock
-    vi.mocked(serverManager.getServer).mockReturnValue(MOCK_SERVER_RUNNING);
-    vi.mocked(serverManager.getConnections).mockReturnValue([mockConnection]);
-
-    // Mock isInitialized getter
-    Object.defineProperty(mockConnection, 'isInitialized', {
-      get: vi.fn(() => true),
-      configurable: true,
+    // Default successful mocks
+    vi.mocked(getTableOrError).mockResolvedValue({
+      success: true,
+      table: MOCK_TABLE,
+      connectionUrl: MOCK_DHC_URL,
     });
-
-    vi.mocked(mockConnection.getSession).mockResolvedValue(mockSession);
-    vi.mocked(mockSession.getObject).mockResolvedValue(MOCK_TABLE);
   });
 
   it('should return correct tool spec', () => {
-    const tool = createGetTableStatsTool({ serverManager });
+    const tool = createGetTableStatsTool({ serverManager, coreJsApiCache });
 
     expect(tool.name).toBe('getTableStats');
     expect(tool.spec.title).toBe('Get Table Schema and Statistics');
@@ -78,15 +76,18 @@ describe('getTableStats', () => {
   });
 
   it('should successfully retrieve table stats', async () => {
-    const tool = createGetTableStatsTool({ serverManager });
+    const tool = createGetTableStatsTool({ serverManager, coreJsApiCache });
     const result = await tool.handler({
       connectionUrl: MOCK_DHC_URL.href,
       tableName: 'myTable',
     });
 
-    expect(mockSession.getObject).toHaveBeenCalledWith({
-      type: 'Table',
-      name: 'myTable',
+    expect(getTableOrError).toHaveBeenCalledWith({
+      coreJsApiCache,
+      connectionUrlStr: MOCK_DHC_URL.href,
+      variableId: undefined,
+      tableName: 'myTable',
+      serverManager,
     });
     expect(MOCK_TABLE.close).toHaveBeenCalled();
 
@@ -104,112 +105,34 @@ describe('getTableStats', () => {
     );
   });
 
-  it('should initialize session if not initialized', async () => {
-    Object.defineProperty(mockConnection, 'isInitialized', {
-      get: vi.fn(() => false),
-      configurable: true,
+  it('should propagate errors from getTableOrError', async () => {
+    vi.mocked(getTableOrError).mockResolvedValue({
+      success: false,
+      errorMessage: 'Connection error',
+      details: {
+        connectionUrl: MOCK_DHC_URL.href,
+        tableName: 'myTable',
+      },
     });
 
-    vi.mocked(serverManager.getConnections).mockReturnValue([mockConnection]);
-
-    const tool = createGetTableStatsTool({ serverManager });
-    await tool.handler({
+    const tool = createGetTableStatsTool({ serverManager, coreJsApiCache });
+    const result = await tool.handler({
       connectionUrl: MOCK_DHC_URL.href,
       tableName: 'myTable',
     });
 
-    expect(mockConnection.getSession).toHaveBeenCalled();
-  });
-
-  it.each([
-    {
-      name: 'invalid URL',
-      connectionUrl: 'invalid-url',
-      server: undefined,
-      connections: [],
-      session: null,
-      expected: mcpErrorResult('Invalid URL: Invalid URL', {
-        connectionUrl: 'invalid-url',
-        tableName: 'mock.table',
-      }),
-      shouldCallGetServer: false,
-    },
-    {
-      name: 'missing connection',
-      connectionUrl: MOCK_DHC_URL.href,
-      server: undefined,
-      connections: [],
-      session: null,
-      expected: mcpErrorResult('No connections or server found', {
-        connectionUrl: MOCK_DHC_URL.href,
-        tableName: 'mock.table',
-      }),
-      shouldCallGetServer: true,
-    },
-    {
-      name: 'missing session',
-      connectionUrl: MOCK_DHC_URL.href,
-      server: MOCK_SERVER_RUNNING,
-      connections: [mockConnection],
-      session: null,
-      expected: mcpErrorResult('Unable to access session', {
-        connectionUrl: MOCK_DHC_URL.href,
-        tableName: 'mock.table',
-      }),
-      shouldCallGetServer: true,
-    },
-  ])(
-    'should handle $name',
-    async ({
-      connectionUrl,
-      server,
-      connections,
-      session,
-      expected,
-      shouldCallGetServer,
-    }) => {
-      vi.mocked(serverManager.getServer).mockReturnValue(server);
-      vi.mocked(serverManager.getConnections).mockReturnValue(connections);
-      vi.mocked(mockConnection.getSession).mockResolvedValue(session);
-
-      const tool = createGetTableStatsTool({ serverManager });
-      const result = await tool.handler({
-        connectionUrl,
-        tableName: 'mock.table',
-      });
-
-      expect(result.structuredContent).toEqual(expected);
-      if (!shouldCallGetServer) {
-        expect(serverManager.getServer).not.toHaveBeenCalled();
-      }
-    }
-  );
-
-  it('should handle errors and close table', async () => {
-    const error = new Error('Table not found');
-    vi.mocked(serverManager.getConnection).mockReturnValue(mockConnection);
-    vi.mocked(mockSession.getObject).mockRejectedValue(error);
-
-    const tool = createGetTableStatsTool({ serverManager });
-    const result = await tool.handler({
-      connectionUrl: MOCK_DHC_URL.href,
-      tableName: 'nonExistentTable',
-    });
-
     expect(result.structuredContent).toMatchObject({
       success: false,
-      message: 'Failed to get table stats: Table not found',
+      message: 'Connection error',
       details: {
         connectionUrl: MOCK_DHC_URL.href,
-        tableName: 'nonExistentTable',
+        tableName: 'myTable',
       },
     });
   });
 
   it('should close table even on success', async () => {
-    vi.mocked(serverManager.getConnection).mockReturnValue(mockConnection);
-
-    const tool = createGetTableStatsTool({ serverManager });
+    const tool = createGetTableStatsTool({ serverManager, coreJsApiCache });
     const result = await tool.handler({
       connectionUrl: MOCK_DHC_URL.href,
       tableName: 'myTable',
