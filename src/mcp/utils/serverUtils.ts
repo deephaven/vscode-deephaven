@@ -51,7 +51,6 @@ export type GetFirstConnectionOrCreateResult =
   | GetFirstConnectionOrCreateSuccess
   | GetFirstConnectionOrCreateError;
 
-
 /**
  * Maps a ConnectionState to a connection result object.
  */
@@ -90,16 +89,23 @@ export async function getFirstConnectionOrCreate(params: {
   connectionUrl: URL;
   languageId?: string;
 }): Promise<GetFirstConnectionOrCreateResult> {
-  const { serverManager, connectionUrl, languageId } = params;
+  const {
+    serverManager,
+    connectionUrl: serverOrWorkerUrl,
+    languageId,
+  } = params;
 
   // Get server with matchPort logic
-  const server = getServerMatchPortIfLocalHost(serverManager, connectionUrl);
+  const server = getServerMatchPortIfLocalHost(
+    serverManager,
+    serverOrWorkerUrl
+  );
 
   if (server == null) {
     const hint = languageId
       ? await createConnectionNotFoundHint(
           serverManager,
-          connectionUrl.href,
+          serverOrWorkerUrl.href,
           languageId
         )
       : undefined;
@@ -108,7 +114,7 @@ export async function getFirstConnectionOrCreate(params: {
       success: false,
       errorMessage: 'No connections or server found',
       hint,
-      details: { connectionUrl: connectionUrl.href },
+      details: { connectionUrl: serverOrWorkerUrl.href },
     };
   }
 
@@ -117,12 +123,12 @@ export async function getFirstConnectionOrCreate(params: {
     return {
       success: false,
       errorMessage: 'Server is not running',
-      details: { connectionUrl: connectionUrl.href },
+      details: { connectionUrl: serverOrWorkerUrl.href },
     };
   }
 
   // Get existing connections
-  let connections = serverManager.getConnections(connectionUrl);
+  let connections = serverManager.getConnections(serverOrWorkerUrl);
 
   if (connections.length === 0) {
     // Only Core workers can be connected to if we don't already have a connection
@@ -131,18 +137,21 @@ export async function getFirstConnectionOrCreate(params: {
         success: false,
         errorMessage: 'No active connection',
         hint: 'Use connectToServer first',
-        details: { connectionUrl: connectionUrl.href },
+        details: { connectionUrl: serverOrWorkerUrl.href },
       };
     }
 
     await execConnectToServer({ type: server.type, url: server.url });
-    connections = serverManager.getConnections(connectionUrl);
+
+    // this will normalize connection or server URLs if needed in case an agent
+    // passes a DHE server URL instead of the worker URL
+    connections = serverManager.getConnections(serverOrWorkerUrl);
 
     if (connections.length === 0) {
       return {
         success: false,
         errorMessage: 'Failed to connect to server',
-        details: { connectionUrl: connectionUrl.href },
+        details: { connectionUrl: serverOrWorkerUrl.href },
       };
     }
   }
@@ -156,13 +165,19 @@ export async function getFirstConnectionOrCreate(params: {
     return {
       success: false,
       errorMessage: 'Connection is not a Core / Core+ connection.',
-      details: { connectionUrl: connectionUrl.href },
+      details: { connectionUrl: serverOrWorkerUrl.href },
     };
   }
 
   const panelUrlFormat =
     server.type === 'DHE'
-      ? await getDhePanelUrlFormat(server.url, connectionUrl, serverManager)
+      ? await getDhePanelUrlFormat(
+          server.url,
+          // use connection URL in case server URL was passed to this util and
+          // normalized by the serverManager.getConnections call above
+          connection.serverUrl,
+          serverManager
+        )
       : server.type === 'DHC'
         ? getDhcPanelUrlFormat(server.url, await connection.getPsk())
         : undefined;
