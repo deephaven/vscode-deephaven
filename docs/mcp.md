@@ -53,12 +53,12 @@ This automatically sets `"deephaven.mcp.enabled": true` in your workspace settin
 
 Different IDEs require different MCP server configuration:
 
-| IDE                             | Auto-Configured | MCP Configuration File                |
-| ------------------------------- | --------------- | ------------------------------------- |
-| **VS Code with GitHub Copilot** | ✅ Yes          | None required                         |
-| **Windsurf**                    | ✅ Yes          | `~/.codeium/windsurf/mcp_config.json` |
-| **Cursor**                      | ❌ No           | `<wksp-folder>/.cursor/mcp.json`      |
-| **Other VS Code-based IDEs**    | ❌ No           | Varies by IDE                         |
+| IDE                             | Auto-Configured              | MCP Configuration File                |
+| ------------------------------- | ---------------------------- | ------------------------------------- |
+| **VS Code with GitHub Copilot** | ✅ Yes                       | None required                         |
+| **Windsurf**                    | ✅ Yes (after user approval) | `~/.codeium/windsurf/mcp_config.json` |
+| **Cursor**                      | ❌ No                        | `<wksp-folder>/.cursor/mcp.json`      |
+| **Other VS Code-based IDEs**    | ❌ No                        | Varies by IDE                         |
 
 #### Manual MCP Server Configuration
 
