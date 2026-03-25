@@ -154,11 +154,11 @@ The MCP server provides tools for:
 
 For detailed documentation on each tool including parameters, return types, and examples, see [MCP Tool Reference](mcp-tools.md).
 
-## Skills
+## Agent Skills
 
-In addition to MCP tools, the extension provides Skills that can be registered with supported AI assistants to provide domain-specific knowledge and capabilities.
+In addition to MCP tools, the extension provides agent skills that can be registered with supported AI assistants to provide domain-specific knowledge and capabilities. For GitHub Copilot users, the skills are automatically registered when the extension loads. Other agents require manual installation.
 
-### Available Skills
+### Provided Skills
 
 1. **Deephaven VS Code Usage** (`deephaven-vscode-using`)
    - Manages Deephaven server connections and code execution through VS Code MCP tools.
@@ -172,17 +172,9 @@ In addition to MCP tools, the extension provides Skills that can be registered w
    - Supports both Python and Groovy.
    - Does NOT require a running server or connection - purely documentation queries.
 
-### Skills Installation
+### Installation Options
 
-#### GitHub Copilot (Automatic)
-
-Skills are automatically registered when the extension loads for GitHub Copilot users. No manual installation required.
-
-#### Other Agents (Manual Installation)
-
-For other AI agents, you'll need to manually install the skills.
-
-**Installation Options:**
+> Note: GitHub Copilot users should have access to the skills automatically and don't need to install anything
 
 1. **Using `npx skills` (recommended if you have Node.js installed):**
 
@@ -191,7 +183,7 @@ For other AI agents, you'll need to manually install the skills.
    npx skills add deephaven/vscode-deephaven -g -s deephaven-docs-searching
    ```
 
-2. **Manual installation:**
+1. **Manual installation:**
    - Navigate to the [skills folder](https://github.com/deephaven/vscode-deephaven/tree/main/skills) in the vscode-deephaven repository
    - Download the `SKILL.md` file from each skill you want to use:
      - [deephaven-vscode-using/SKILL.md](https://github.com/deephaven/vscode-deephaven/tree/main/skills/deephaven-vscode-using/SKILL.md) - For interacting with Deephaven through the VS Code extension's MCP tools
