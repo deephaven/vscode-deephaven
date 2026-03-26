@@ -3,12 +3,14 @@
 ## Development
 
 ### Deephaven Packages
+
 The extension depends on some Deephaven web-client-ui npm packages (`@deephaven/*`). In cases where the dependencies need to be developed as part of extension development, the dependencies can be aliased locally to the location of the web-client-ui packages source code.
 
-1. Create a `.env.local` file in the root of this project 
+1. Create a `.env.local` file in the root of this project
 1. Set the `DHC_PACKAGES_PATH` env variable to the path of the web-client-ui/packages directory
 
 e.g.
+
 ```ini
 DHC_PACKAGES_PATH=/path/to/web-client-ui/packages/
 ```
@@ -44,6 +46,27 @@ To run using `VS Code` debugger:
 
 The `vscode-extension-tester` library uses `Mocha` to run tests. If you need to tweak debugging settings such as test timeout, you can do so in [`e2e-testing/src/mocharcDebug.ts`](./e2e-testing/src/mocharcDebug.ts).
 
+#### Enterprise end-to-end Testing
+
+Enterprise end-to-end tests are not yet integrated into CI builds, but they can be run locally. It is recommended to run them against QA / dev servers before doing extension releases.
+
+Tests can be run by specifying the `--coreplus` flag and pointing to an enterprise server:
+
+```sh
+npm run test:e2e -- --coreplus https://my-enterprise-server.com:8123/
+```
+
+For release testing, it is recommended to run against a few different server configurations:
+
+- Server configured with both basic and SAML configs
+- Server with basic only config
+- Envoy server
+- Non-envoy server
+- Grizzly server
+- Grizzly+ or later server
+
+Some servers satisfy multiple of these cases, so can consolidate test runs.
+
 ### Documentation
 
 The `/docs` directory contains the documentation for Deephaven VS Code Extension.
@@ -54,9 +77,10 @@ If any changes were made to docs, you **must** format them before committing cha
 npm run docs:start # Start docs server on port 3001 (npm run docs:start -- -p <port>) to run on a different port.
 npm run docs:format # Format all docs using dprint.
 npm run docs:validate # Validates the docs build and links are valid.
-``` 
+```
 
 ## VSCE
+
 [vsce](https://github.com/microsoft/vscode-vsce), short for "Visual Studio Code Extensions", is a command-line tool for packaging, publishing and managing `VS Code` extensions. The Deephaven extension calls `vsce` via npm scripts. Note that `vsce package` and `vsce publish` both call the `vscode:prepublish` script.
 
 ## Installation from .VSIX
@@ -112,12 +136,15 @@ We create tags for released commits as well as named branches (`vX.X.X-pre` and 
 See [versioning strategy](#versioning-strategy) for details on our version number scheme.
 
 #### Choosing a Commit
+
 Before publishing, you will need to checkout the commit to be published.
 
 ##### Pre-release
-This will typically be latest `main` 
+
+This will typically be latest `main`
 
 ##### Release
+
 Releases should be published from a tagged commit for an existing `pre-release`. e.g. To deploy `v1.0.7-release`, we deploy from the `v1.1.7-pre` tag. Since the `publish.sh` script increments based on the previous release tag, it's important to do a release corresponding to every pre-release to keep things in sequence.
 
 1. Determine what the next release tag will be:
@@ -125,23 +152,28 @@ Releases should be published from a tagged commit for an existing `pre-release`.
    ```sh
    ./scripts/nextreleasetag.sh
    ```
- 
-1. Checkout the corresponding pre-release tag (the minor version should be odd) 
+
+1. Checkout the corresponding pre-release tag (the minor version should be odd)
 
    e.g. If the script yields `1.0.7-release`, run
+
    ```sh
    git checkout v1.1.7-pre
    ```
 
 #### Verify Package Contents
+
 To verify the package will include what you expect, run:
+
 ```sh
 npx vsce ls
 ```
+
 1. If expected content is missing or unexpected content is included, the `.vscodeignore` file will likely need to be updated in a separate PR before doing the release (this should not be common).
 1. Optionally run `npm run package:dev` if you want to locally install a `.vsix` for testing before publishing.
 
 #### Publish a New Version
+
 1. Make sure you are in a clean branch whose HEAD points to the commit to publish (see [Choosing a Commit](#choosing-a-commit)).
 1. `npm install` to ensure npm packages up to date
 1. Make sure you are logged in with `vsce` using a personal access token for a user in the https://dev.azure.com/deephaven-oss/ org. `npx vsce login deephaven`.
@@ -163,6 +195,7 @@ npm run publish
 > Note if the publish fails due to an expired token, you can just re-run the appropriate `npx vsce publish` cmd found at the end of the `scripts/publish.sh` file.
 
 #### Release Notes
+
 After a successful pre-release / release, release notes can be created here: https://github.com/deephaven/vscode-deephaven/releases. A branch will have been created for the release. Just leave this as-is. No need to merge or delete.
 
 ## PNG Generation
@@ -174,14 +207,17 @@ rsvg-convert -w 128 -h 128 images/dh-logo-128.svg -o images/dh-logo-128.png
 ```
 
 ## Icon Font Generation
+
 The extension uses an icon font generated from SVGs in `@deephaven/icons`. Running the generator requires a local checkout of web-client-ui.
 
 The generator can be run via the following script, where `<path-to-dh-icons-directory>` is the location of `packages/icons/src/icons` in `web-client-ui`.
+
 ```sh
 npm run icon:gen -- <path-to-dh-icons-directory>
 ```
 
 The script will automatically copy `icons/dist/dh-icons.woff2` file to the `/assets` folder of the extension, but the contents of `icons/dist/dh/dh-contributes-icons.json` has to be manually copied to the `package.json` `contributes/icons` section.
+
 > Note: All of the icons should be consumed via the `dh-xxx` icon ids, so no code changes should be necessary unless icons have been renamed or removed.
 
 ## Implementation Notes
