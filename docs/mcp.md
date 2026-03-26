@@ -22,117 +22,128 @@ The [Model Context Protocol](https://modelcontextprotocol.io/) is an open protoc
 
 ### Configuration
 
-The MCP server is disabled by default. To use MCP features, you must first enable it in your VS Code settings.
+MCP support is disabled by default. To use MCP features, you must first enable it in your VS Code settings.
 
-#### Enabling/Disabling MCP Server
+#### MCP Server Settings
 
-The MCP server can be controlled via the VS Code setting:
+The extension provides two settings to control MCP functionality:
 
-**Setting**: `deephaven.mcp.enabled` (default: `false`)
+| Setting                     | Default | Description                                                                                  |
+| --------------------------- | ------- | -------------------------------------------------------------------------------------------- |
+| `deephaven.mcp.enabled`     | `false` | Enables/disables MCP servers. Must be `true` for any MCP features to work.                   |
+| `deephaven.mcp.docsEnabled` | `true`  | Enables/disables documentation queries. Only applies when `deephaven.mcp.enabled` is `true`. |
 
-To enable the MCP server, set this to `true` in your VS Code settings (UI or JSON):
+**To enable the MCP server:**
 
-**Via the Settings UI:**
+1. Look for the Deephaven MCP status bar item (shows "MCP: Disabled" when off).
 
-1. Open VS Code Settings (`Cmd+,` on macOS, `Ctrl+,` on Windows/Linux).
-2. Choose **User** settings (applies to all workspaces) or **Workspace** settings (applies only to the current workspace).
-3. Search for `deephaven.mcp.enabled`.
-4. Check the box to enable.
+   ![MCP Disabled](assets/mcp-disabled.png)
 
-**Via `settings.json`:**
+2. Click the status bar item and select **Enable Deephaven MCP Server**.
 
-```json
-{
-  "deephaven.mcp.enabled": true
-}
-```
+   ![Enable Deephaven MCP Server](assets/mcp-enable.png)
 
-Once enabled, the MCP server automatically starts when the extension loads, listening on a local HTTP endpoint. Each workspace gets a unique auto-allocated port, which is displayed in a status bar item as `MCP:<port>`.
+3. The status bar will update to show `MCP:<port>` with the assigned port number.
 
-#### Documentation Queries
+   ![MCP Enabled](assets/mcp-enabled.png)
 
-The extension provides a separate MCP server for querying Deephaven documentation, which is enabled by default when the main MCP server is enabled.
+This automatically sets `"deephaven.mcp.enabled": true` in your workspace settings (`.vscode/settings.json`). The MCP server starts immediately, listening on a local HTTP endpoint. Each workspace gets a unique port.
+
+#### Docs MCP Server Configuration
+
+The Deephaven Documentation Searching skill connects to the [Deephaven Docs MCP server](https://deephaven.io/enterprise/docs/clients/mcp/#docs-server). The server is automatically configured for Github Copilot or can be manually configured for other agents as described in [Manual MCP Server Configuration](#manual-mcp-server-configuration). The extension skill makes AI assistants aware of the documentation capabilities. For more information about the Deephaven Docs MCP server itself, see the [official documentation](https://deephaven.io/enterprise/docs/clients/mcp/#docs-server).
+
+The documentation server can be independently enabled/disabled via the `deephaven.mcp.docsEnabled` setting:
 
 **Setting**: `deephaven.mcp.docsEnabled` (default: `true`)
 
-This setting controls whether documentation queries are available to AI assistants. When `deephaven.mcp.enabled` is `true`, the documentation server is automatically enabled unless `deephaven.mcp.docsEnabled` is set to `false`.
+When `deephaven.mcp.enabled` is `true`, documentation queries are enabled by default. Set `deephaven.mcp.docsEnabled` to `false` to disable documentation queries while keeping the extension's MCP tools available.
 
-To disable documentation queries while keeping the extension's MCP tools available:
+#### IDE-Specific Configuration
 
-```json
-{
-  "deephaven.mcp.enabled": true,
-  "deephaven.mcp.docsEnabled": false
-}
-```
+Different IDEs require different MCP server configuration:
 
-#### VS Code with GitHub Copilot
+| IDE                             | Auto-Configured              | MCP Configuration File                |
+| ------------------------------- | ---------------------------- | ------------------------------------- |
+| **VS Code with GitHub Copilot** | ✅ Yes                       | None required                         |
+| **Windsurf**                    | ✅ Yes (after user approval) | `~/.codeium/windsurf/mcp_config.json` |
+| **Claude in VS Code-based IDE** | ❌ No                        | `<wksp-folder>/.mcp.json`             |
+| **Cursor**                      | ❌ No                        | `<wksp-folder>/.cursor/mcp.json`      |
+| **Other VS Code-based IDEs**    | ❌ No                        | Varies by IDE                         |
 
-When using GitHub Copilot in VS Code, the extension's MCP server is automatically configured and available once enabled. No additional configuration is required.
+#### Manual MCP Server Configuration
 
-#### Windsurf
+For IDEs that require manual configuration (Cursor and other VS Code-based IDEs) or Claude running in VS Code-based IDEs, you'll need to configure the MCP server endpoint. The MCP server port is displayed in the status bar as `MCP:<port>` when running. You can click the status bar item to copy the full endpoint URL to your clipboard. The endpoint URL follows the format: `http://localhost:<port>/mcp`.
 
-Windsurf automatically detects and connects to the MCP server when the Deephaven extension is active. No additional configuration is required.
+**Cursor:**
 
-> **Note:** Since each workspace uses a unique port and Windsurf only supports user-level MCP configuration, the extension will automatically update the MCP configuration when a Windsurf window becomes active to match the current workspace's port. This has not been thoroughly tested and may require manual steps, such as restarting IDE/agent sessions.
-
-#### Other VS Code-based IDEs
-
-For other VS Code-based IDEs that support MCP, you may need to configure the MCP server endpoint in your IDE's settings.
-
-The MCP server uses an auto-allocated port that varies per session. When the MCP server starts, a status bar item will display `MCP:<port>` showing the actual port being used. The endpoint URL follows the format:
-
-```
-http://localhost:<port>/mcp
-```
-
-> **Note:** The port is unique per workspace. If you switch workspaces, you may need to update your MCP configuration with the new port shown in the status bar. Most IDEs don't yet seem to support workspace-level MCP configs, so settings may have to be updated at the user level. This may also require restarting agent sessions, MCP tool caches, etc.
-
-Example configuration (format may vary by IDE):
+Create a `.cursor/mcp.json` file in your workspace root:
 
 ```json
 {
-  "mcp.servers": {
-    "deephaven": {
-      "url": "http://localhost:45678/mcp"
+  "mcpServers": {
+    "Deephaven VS Code": {
+      "url": "http://localhost:<port>/mcp"
+    },
+    "Deephaven Documentation": {
+      "url": "https://deephaven-mcp-docs-prod.dhc-demo.deephaven.io/mcp"
     }
   }
 }
 ```
 
-Replace `45678` with the actual port shown in the `MCP:<port>` status bar item.
+**Claude in VS Code-based IDE:**
+
+Create a `.mcp.json` file in your workspace root:
+
+```json
+{
+  "mcpServers": {
+    "Deephaven VS Code": {
+      "type": "http",
+      "url": "http://localhost:<port>/mcp"
+    },
+    "Deephaven Documentation": {
+      "type": "http",
+      "url": "https://deephaven-mcp-docs-prod.dhc-demo.deephaven.io/mcp"
+    }
+  }
+}
+```
+
+> **Note:** This configuration should work for Claude running in any VS Code-based IDE that supports the Deephaven extension (VS Code, Cursor, Windsurf, etc.).
+
+**Other IDEs:**
+
+Configuration format varies by IDE but should be similar to the examples above. Consult your IDE's MCP documentation for the specific configuration file location and format.
+
+> **Note:** After configuration changes, you may need to restart agent sessions or clear MCP tool caches.
 
 ## Available Tools
 
 The MCP server provides tools for:
 
 - **Server Management** - Connect to and list configured Deephaven servers.
-
   - `connectToServer` - Create a connection to a server.
   - `listServers` - List all configured servers.
 
 - **Connection Management** - Query active connections.
-
   - `listConnections` - List active connections, optionally filtered by URL.
 
 - **Code Execution** - Run Python and Groovy code.
-
   - `runCode` - Execute arbitrary code text.
   - `runCodeFromUri` - Execute code from workspace files.
 
 - **Variables** - Query and interact with Deephaven variables.
-
   - `listVariables` - List all variables on a connection.
   - `openVariablePanels` - Open variable panels for specific variables.
 
 - **Table Data & Statistics** - Fetch and analyze table data.
-
   - `getTableData` - Fetch paginated data from a table.
   - `getTableStats` - Get schema information and basic statistics.
   - `getColumnStats` - Get statistical information for a column.
 
 - **Remote File Sources** - Manage server file source paths.
-
   - `addRemoteFileSources` - Add folders as remote file sources.
   - `listRemoteFileSources` - List current remote file sources.
   - `removeRemoteFileSources` - Remove remote file sources.
@@ -143,14 +154,13 @@ The MCP server provides tools for:
 
 For detailed documentation on each tool including parameters, return types, and examples, see [MCP Tool Reference](mcp-tools.md).
 
-## Chat Skills
+## Agent Skills
 
-In addition to MCP tools, the extension provides Chat Skills that can be registered with supported AI assistants (e.g., GitHub Copilot, Windsurf) to provide domain-specific knowledge and capabilities.
+In addition to MCP tools, the extension provides agent skills that can be registered with supported AI assistants to provide domain-specific knowledge and capabilities. For GitHub Copilot users, the skills are automatically registered when the extension loads. Other agents require manual installation.
 
-### Available Chat Skills
+### Provided Skills
 
 1. **Deephaven VS Code Usage** (`deephaven-vscode-using`)
-
    - Manages Deephaven server connections and code execution through VS Code MCP tools.
    - Handles connecting to DHC/DHE servers, executing Python/Groovy code.
    - Provides workflows for opening variable panels and troubleshooting connection issues.
@@ -162,17 +172,23 @@ In addition to MCP tools, the extension provides Chat Skills that can be registe
    - Supports both Python and Groovy.
    - Does NOT require a running server or connection - purely documentation queries.
 
-### Chat Skills Configuration
+### Installation Options
 
-Chat Skills are automatically registered when the extension loads. They are available in supported AI assistants like GitHub Copilot and Windsurf.
+> Note: GitHub Copilot users should have access to the skills automatically and don't need to install anything.
 
-The Deephaven Documentation Searching skill connects to the [Deephaven Docs MCP server](https://deephaven.io/enterprise/docs/clients/mcp/#docs-server), which is automatically configured by the extension when enabled. The extension provides the auto-configuration and the chat skill to make AI assistants aware of the documentation capabilities. For more information about the Deephaven Docs MCP server itself, see the [official documentation](https://deephaven.io/enterprise/docs/clients/mcp/#docs-server).
+1. **Using `npx skills` (recommended if you have Node.js installed):**
 
-The documentation server can be independently enabled/disabled via the `deephaven.mcp.docsEnabled` setting:
+   ```bash
+   npx skills add deephaven/vscode-deephaven -g -s deephaven-vscode-using
+   npx skills add deephaven/vscode-deephaven -g -s deephaven-docs-searching
+   ```
 
-**Setting**: `deephaven.mcp.docsEnabled` (default: `true`)
-
-When `deephaven.mcp.enabled` is `true`, documentation queries are enabled by default. Set `deephaven.mcp.docsEnabled` to `false` to disable documentation queries while keeping the extension's MCP tools available.
+1. **Manual installation:**
+   - Navigate to the [skills folder](https://github.com/deephaven/vscode-deephaven/tree/main/skills) in the vscode-deephaven repository.
+   - Download the `SKILL.md` file from each skill you want to use:
+     - [deephaven-vscode-using/SKILL.md](https://github.com/deephaven/vscode-deephaven/tree/main/skills/deephaven-vscode-using/SKILL.md) - For interacting with Deephaven through the VS Code extension's MCP tools
+     - [deephaven-docs-searching/SKILL.md](https://github.com/deephaven/vscode-deephaven/tree/main/skills/deephaven-docs-searching/SKILL.md) - For querying Deephaven documentation
+   - Install the skill(s) according to your AI assistant's documentation.
 
 ## Tool Response Format
 
@@ -207,14 +223,15 @@ All MCP tools follow a consistent response structure:
 
 ## Supported IDEs
 
-The MCP server provided by this extension is designed specifically for VS Code and IDEs built on top of VS Code:
+The MCP server is designed specifically for VS Code and IDEs built on top of VS Code. See the [IDE-Specific Configuration](#ide-specific-configuration) table above for details on which IDEs require manual configuration.
 
-- **VS Code with GitHub Copilot** - Fully supported and tested.
-- **Windsurf** - Fully supported and tested.
-- **Other VS Code-based IDEs** (e.g., Cursor) - May work but untested; requires manual MCP server configuration.
+**Tested and Fully Supported:**
 
-### AI Assistant Support
+- VS Code with GitHub Copilot
+- Windsurf
 
-- **GitHub Copilot** - Automatically configured.
-- **Windsurf's built-in agent** - Automatically configured.
-- **Other AI assistants** (e.g., VS Code-based IDEs, AI extensions like Cline) - Automatic configuration not implemented; requires manual MCP server configuration (untested).
+**Supported with Manual Configuration:**
+
+- Claude in VS Code-based IDEs (VS Code, Cursor, Windsurf, etc.)
+- Cursor
+- Other VS Code-based IDEs (untested, configuration format may vary)
