@@ -285,6 +285,48 @@ describe('serverUtils', () => {
           serverManager
         );
       });
+
+      it('should use connection.serverUrl when DHE server URL differs from connection URL', async () => {
+        const dheServerUrl = new URL('http://deephaven-server:8000');
+        const workerUrl = new URL('http://deephaven-server:8000/worker/abc');
+        const mockPanelUrlFormat = 'mock.panelUrlFormat';
+
+        const connectionWithDifferentUrl = createMockDhcService({
+          serverUrl: workerUrl,
+        });
+
+        const runningDheServerWithDifferentUrl = {
+          url: dheServerUrl,
+          type: 'DHE',
+          isRunning: true,
+        } as ServerState;
+
+        vi.mocked(serverManager.getServer).mockReturnValue(
+          runningDheServerWithDifferentUrl
+        );
+        vi.mocked(serverManager.getConnections).mockReturnValue([
+          connectionWithDifferentUrl,
+        ]);
+        vi.mocked(getDhePanelUrlFormat).mockResolvedValue(mockPanelUrlFormat);
+
+        const result = await getFirstConnectionOrCreate({
+          serverManager,
+          connectionUrl: dheServerUrl,
+        });
+
+        expect(result).toEqual({
+          success: true,
+          connection: connectionWithDifferentUrl,
+          panelUrlFormat: mockPanelUrlFormat,
+        });
+
+        // Should use connection.serverUrl (workerUrl), not the DHE server URL
+        expect(getDhePanelUrlFormat).toHaveBeenCalledWith(
+          dheServerUrl,
+          workerUrl,
+          serverManager
+        );
+      });
     });
   });
 

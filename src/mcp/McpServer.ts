@@ -26,7 +26,6 @@ import {
   createRemoveRemoteFileSourcesTool,
   createRunCodeFromUriTool,
   createRunCodeTool,
-  createSetEditorConnectionTool,
   createShowOutputPanelTool,
 } from './tools';
 import { OutputChannelWithHistory, withResolvers } from '../util';
@@ -74,7 +73,6 @@ export class McpServer extends DisposableBase {
     this.registerTool(createRemoveRemoteFileSourcesTool());
     this.registerTool(createRunCodeFromUriTool(this));
     this.registerTool(createRunCodeTool(this));
-    this.registerTool(createSetEditorConnectionTool(this));
     this.registerTool(createShowOutputPanelTool(this));
   }
 
