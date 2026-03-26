@@ -56,16 +56,19 @@ Tests can be run by specifying the `--coreplus` flag and pointing to an enterpri
 npm run test:e2e -- --coreplus https://my-enterprise-server.com:8123/
 ```
 
-For release testing, it is recommended to run against a few different server configurations:
+For release testing:
 
-- Server configured with both basic and SAML configs
-- Server with basic only config
-- Envoy server
-- Non-envoy server
-- Grizzly server
-- Grizzly+ or later server
+1. Checkout the appropriate pre-release tag for the pending release.
+1. Run `npm install`
+1. It is recommended to run against a few different server configurations:
+   - Server configured with both basic and SAML configs
+   - Server with basic only config
+   - Envoy server
+   - Non-envoy server
+   - Grizzly server
+   - Grizzly+ or later server
 
-Some servers satisfy multiple of these cases, so can consolidate test runs.
+   Some servers satisfy multiple of these cases, so can consolidate test runs.
 
 ### Documentation
 
