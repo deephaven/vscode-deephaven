@@ -174,7 +174,7 @@ In addition to MCP tools, the extension provides agent skills that can be regist
 
 ### Installation Options
 
-> Note: GitHub Copilot users should have access to the skills automatically and don't need to install anything
+> Note: GitHub Copilot users should have access to the skills automatically and don't need to install anything.
 
 1. **Using `npx skills` (recommended if you have Node.js installed):**
 
@@ -184,11 +184,11 @@ In addition to MCP tools, the extension provides agent skills that can be regist
    ```
 
 1. **Manual installation:**
-   - Navigate to the [skills folder](https://github.com/deephaven/vscode-deephaven/tree/main/skills) in the vscode-deephaven repository
+   - Navigate to the [skills folder](https://github.com/deephaven/vscode-deephaven/tree/main/skills) in the vscode-deephaven repository.
    - Download the `SKILL.md` file from each skill you want to use:
      - [deephaven-vscode-using/SKILL.md](https://github.com/deephaven/vscode-deephaven/tree/main/skills/deephaven-vscode-using/SKILL.md) - For interacting with Deephaven through the VS Code extension's MCP tools
      - [deephaven-docs-searching/SKILL.md](https://github.com/deephaven/vscode-deephaven/tree/main/skills/deephaven-docs-searching/SKILL.md) - For querying Deephaven documentation
-   - Install the skill(s) according to your AI assistant's documentation
+   - Install the skill(s) according to your AI assistant's documentation.
 
 ## Tool Response Format
 
