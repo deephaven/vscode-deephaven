@@ -3,6 +3,7 @@ dist
 node_modules
 /*.vsix
 .claude
+.tasks
 .vscode-test/
 .DS_Store
 e2e-testing/.resources
