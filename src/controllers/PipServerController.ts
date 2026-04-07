@@ -274,6 +274,14 @@ export class PipServerController implements IDisposable {
         /* eslint-enable @typescript-eslint/naming-convention */
       },
       isTransient: true,
+      // The MS Python extension injects a venv activation command into new
+      // terminals. There is a race condition such that it doesn't always inject
+      // early enough and can interrupt other processes. In this case it kills
+      // the pip server process and breaks the managed servers feature. Hiding
+      // the terminal prevents the Python extension from injecting the command.
+      // Since server output is sent to Output -> Deephaven panel, the terminal
+      // doesn't need to be visible.
+      hideFromUser: true,
     });
 
     this._serverUrlTerminalMap.set(port, terminal);
