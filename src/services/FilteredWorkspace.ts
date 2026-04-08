@@ -77,24 +77,11 @@ export class FilteredWorkspace<
     this.disposables.add(vscode.window.registerFileDecorationProvider(this));
 
     const watcher = vscode.workspace.createFileSystemWatcher(filePattern);
+    this.disposables.add(watcher.onDidCreate(() => this.refresh()));
     this.disposables.add(
-      watcher.onDidCreate(uri => {
-        this._onDidChangeFile.fire({ type: 'create', uri });
-        this.refresh();
-      })
+      watcher.onDidChange(uri => this._handleFileContentChange(uri))
     );
-    this.disposables.add(
-      watcher.onDidChange(uri => {
-        this._onDidChangeFile.fire({ type: 'change', uri });
-        this._handleFileContentChange(uri);
-      })
-    );
-    this.disposables.add(
-      watcher.onDidDelete(uri => {
-        this._onDidChangeFile.fire({ type: 'delete', uri });
-        this.refresh();
-      })
-    );
+    this.disposables.add(watcher.onDidDelete(() => this.refresh()));
     this.disposables.add(watcher);
 
     // TODO: Load marked folders from storage DH-20573
@@ -109,12 +96,6 @@ export class FilteredWorkspace<
 
   private _onDidUpdate = new vscode.EventEmitter<void>();
   readonly onDidUpdate = this._onDidUpdate.event;
-
-  private _onDidChangeFile = new vscode.EventEmitter<{
-    type: 'create' | 'change' | 'delete';
-    uri: vscode.Uri;
-  }>();
-  readonly onDidChangeFile = this._onDidChangeFile.event;
 
   private readonly _childNodeMap = new URIMap<URIMap<FilteredWorkspaceNode>>();
   private readonly _parentUriMap = new URIMap<vscode.Uri | null>();
@@ -324,18 +305,6 @@ export class FilteredWorkspace<
    */
   getWsFileUriMap(): URIMap<URISet> {
     return this._wsFileUriMap;
-  }
-
-  /**
-   * Get all file URIs from all workspace folders.
-   * @returns An array of all file URIs.
-   */
-  getAllFileUris(): vscode.Uri[] {
-    const allFiles: vscode.Uri[] = [];
-    for (const fileUris of this._wsFileUriMap.values()) {
-      allFiles.push(...fileUris);
-    }
-    return allFiles;
   }
 
   /**
@@ -600,6 +569,5 @@ export class FilteredWorkspace<
   protected override async onDisposing(): Promise<void> {
     this._onDidChangeFileDecorations.dispose();
     this._onDidUpdate.dispose();
-    this._onDidChangeFile.dispose();
   }
 }

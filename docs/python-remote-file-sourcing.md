@@ -184,7 +184,7 @@ When controller import prefix support is configured:
 - Both the unprefixed and prefixed module names are sent to the Deephaven server.
 - Example: If you mark a folder called `mymodule` and configure with prefix `controller`, the server will receive both `mymodule` and `controller.mymodule`.
 - Without any configuration, only the unprefixed name (`mymodule`) is sent — this is the default behavior.
-- The configuration is **auto-detected** whenever `.py` files are saved in your workspace; no manual setup is required beyond adding the `meta_import()` call.
+- The configuration is **detected when you run Python code** that includes the `meta_import()` call. Running a full file replaces any previous prefix configuration; running a code snippet updates the prefix only if a `meta_import()` call is found.
 
 ### Supported Import Patterns
 
@@ -207,6 +207,7 @@ The extension detects the following patterns:
 ### Limitations
 
 - **Import aliases are not supported.** Patterns such as `import deephaven_enterprise.controller_import as ci` or `from deephaven_enterprise.controller_import import meta_import as m` will not be detected.
-- **Only one configuration per workspace is supported.** If multiple `.py` files contain a `meta_import()` call with different prefixes, the first match found will be used.
+- **Multiline `meta_import()` calls are not supported.** The call must be on a single line.
+- **The prefix configuration applies per connection.** Each server connection maintains its own prefix configuration based on the last code executed on that connection.
 
 If your use case requires support for additional patterns, please open an issue.
