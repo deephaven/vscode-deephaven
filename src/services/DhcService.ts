@@ -522,6 +522,14 @@ export class DhcService extends DisposableBase implements IDhcService {
       this.isRunningCode = true;
 
       if (this.pythonRemoteFileSourcePlugin != null) {
+        // Update controller prefixes based on the code being executed
+        // Replace prefixes if running a full file, otherwise only update if found
+        const replacePrefixes = typeof documentOrText !== 'string';
+        this.remoteFileSourceService.updateControllerPrefixesFromCode(
+          text,
+          replacePrefixes
+        );
+
         await this.remoteFileSourceService.setPythonServerExecutionContext(
           this.cnId,
           this.session

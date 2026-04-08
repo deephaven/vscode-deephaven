@@ -85,7 +85,6 @@ import {
   DEFAULT_IGNORE_TOP_LEVEL_FOLDER_NAMES,
   FilteredWorkspace,
   RemoteFileSourceService,
-  PythonControllerImportScanner,
   PanelService,
   ParsedDocumentCache,
   PYTHON_FILE_PATTERN,
@@ -406,15 +405,9 @@ export class ExtensionController implements IDisposable {
     );
     this._context.subscriptions.push(this._pythonWorkspace);
 
-    const controllerImportScanner = new PythonControllerImportScanner(
-      this._pythonWorkspace
-    );
-    this._context.subscriptions.push(controllerImportScanner);
-
     this._remoteFileSourceService = new RemoteFileSourceService(
       this._groovyWorkspace,
-      this._pythonWorkspace,
-      controllerImportScanner
+      this._pythonWorkspace
     );
     this._context.subscriptions.push(this._remoteFileSourceService);
   };

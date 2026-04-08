@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { DisposableBase } from './DisposableBase';
 import {
+  extractControllerPrefixes,
   getSetExecutionContextScript,
   getPythonTopLevelModuleFullname,
   Logger,
@@ -18,15 +19,13 @@ import type {
   UniqueID,
 } from '../types';
 import type { FilteredWorkspace } from './FilteredWorkspace';
-import type { PythonControllerImportScanner } from './PythonControllerImportScanner';
 
 const logger = new Logger('RemoteFileSourceService');
 
 export class RemoteFileSourceService extends DisposableBase {
   constructor(
     private readonly _groovyWorkspace: FilteredWorkspace<GroovyPackageName>,
-    private readonly _pythonWorkspace: FilteredWorkspace<PythonModuleFullname>,
-    private readonly _controllerImportScanner: PythonControllerImportScanner
+    private readonly _pythonWorkspace: FilteredWorkspace<PythonModuleFullname>
   ) {
     super();
 
@@ -41,15 +40,10 @@ export class RemoteFileSourceService extends DisposableBase {
         this._onDidUpdatePythonModuleMeta.fire();
       })
     );
-
-    this.disposables.add(
-      this._controllerImportScanner.onDidUpdatePrefixes(() => {
-        this._onDidUpdatePythonModuleMeta.fire();
-      })
-    );
   }
 
   private _isGroovyWorkspaceDirty = false;
+  private _controllerPrefixes = new Set<string>();
 
   private _onDidUpdatePythonModuleMeta = new vscode.EventEmitter<void>();
   readonly onDidUpdatePythonModuleMeta =
@@ -169,19 +163,40 @@ export class RemoteFileSourceService extends DisposableBase {
    */
   getPythonTopLevelModuleNames(): Set<PythonModuleFullname> {
     const set = new Set<PythonModuleFullname>();
-    const prefixes = this._controllerImportScanner.getControllerPrefixes();
 
     this._pythonWorkspace.getTopLevelMarkedFolders().forEach(({ uri }) => {
       const moduleName = getPythonTopLevelModuleFullname(uri);
 
       set.add(moduleName);
 
-      for (const prefix of prefixes) {
+      for (const prefix of this._controllerPrefixes) {
         set.add(`${prefix}.${moduleName}` as PythonModuleFullname);
       }
     });
 
     return set;
+  }
+
+  /**
+   * Update controller prefixes based on Python code being executed.
+   * @param pythonCode The Python code to scan for controller prefixes.
+   * @param replace If true, replace existing prefixes. If false, only add newly found prefixes.
+   */
+  updateControllerPrefixesFromCode(pythonCode: string, replace: boolean): void {
+    const extractedPrefixes = extractControllerPrefixes(pythonCode);
+
+    if (replace) {
+      // Replace all prefixes with what we found (could be empty)
+      this._controllerPrefixes = extractedPrefixes;
+    } else if (extractedPrefixes.size > 0) {
+      // Only update if we found prefixes (keep existing otherwise)
+      this._controllerPrefixes = extractedPrefixes;
+    }
+
+    // Fire update if prefixes changed
+    if (extractedPrefixes.size > 0 || replace) {
+      this._onDidUpdatePythonModuleMeta.fire();
+    }
   }
 
   async registerGroovyPlugin(
