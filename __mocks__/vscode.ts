@@ -364,7 +364,10 @@ export class Uri {
   static joinPath = vi
     .fn()
     .mockName('joinPath')
-    .mockImplementation((...args) => Uri.parse(args.join('/')));
+    .mockImplementation((...args) => {
+      const filteredArgs = args.filter(a => a.toString().length > 0);
+      return Uri.parse(filteredArgs.join('/'));
+    });
 
   static parse = vi
     .fn()

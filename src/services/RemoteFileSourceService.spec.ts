@@ -19,6 +19,8 @@ const groovyWorkspace = {
 const pythonWorkspace = {
   onDidUpdate: vi.fn().mockReturnValue({ dispose: vi.fn() }),
   getTopLevelMarkedFolders: vi.fn().mockReturnValue([]),
+  hasFolder: vi.fn(),
+  hasFile: vi.fn(),
 } as unknown as FilteredWorkspace<PythonModuleFullname>;
 
 const controllerPrefix = 'controller';
@@ -124,6 +126,136 @@ describe('RemoteFileSourceService', () => {
 
       expect(result).toEqual(expected);
     });
+  });
+
+  describe('getPythonModuleSpecData', () => {
+    it.each([
+      {
+        label: 'regular module found',
+        moduleFullname: 'mymodule.submodule',
+        modulePath: 'submodule',
+        hasFileResult: true,
+      },
+      {
+        label: 'nested module found',
+        moduleFullname: 'mymodule.sub.nested',
+        modulePath: 'sub/nested',
+        hasFileResult: true,
+      },
+      {
+        label: 'regular package found',
+        moduleFullname: 'mymodule.subpackage',
+        modulePath: 'subpackage',
+        hasFolderResult: true,
+        hasFileResult: true, // __init__.py exists
+      },
+      {
+        label: 'namespace package found',
+        moduleFullname: 'mymodule.namespace',
+        modulePath: 'namespace',
+        hasFolderResult: true,
+      },
+      {
+        label: 'module with controller prefix stripped',
+        moduleFullname: 'controller.mymodule.test',
+        modulePath: 'test',
+        prefixes: [controllerPrefix],
+        hasFileResult: true,
+      },
+      {
+        label: 'bare prefix with no module after (not found)',
+        moduleFullname: controllerPrefix,
+        prefixes: [controllerPrefix],
+      },
+      {
+        label: 'top-level package',
+        moduleFullname: myModuleName,
+        modulePath: '',
+        hasFolderResult: true,
+        hasFileResult: true,
+      },
+      {
+        label: 'top-level package with same name as prefix',
+        moduleFullname: myModuleName,
+        modulePath: '',
+        prefixes: [myModuleName],
+        hasFolderResult: true,
+        hasFileResult: true,
+      },
+      {
+        label: 'top-level folder not found',
+        moduleFullname: 'notfound.module',
+      },
+      {
+        label: 'module not found',
+        moduleFullname: 'mymodule.notfound',
+      },
+    ])(
+      'returns $label',
+      ({
+        moduleFullname,
+        modulePath,
+        prefixes = [],
+        hasFolderResult = false,
+        hasFileResult = false,
+      }) => {
+        vi.mocked(pythonWorkspace.getTopLevelMarkedFolders).mockReturnValue([
+          myModuleFolder,
+        ]);
+        vi.mocked(pythonWorkspace.hasFolder).mockReturnValue(hasFolderResult);
+        vi.mocked(pythonWorkspace.hasFile).mockReturnValue(hasFileResult);
+
+        const service = new RemoteFileSourceService(
+          groovyWorkspace,
+          pythonWorkspace
+        );
+
+        if (prefixes.length > 0) {
+          service.setControllerImportPrefixes(new Set(prefixes));
+        }
+
+        const result = service.getPythonModuleSpecData(
+          moduleFullname as PythonModuleFullname
+        );
+
+        // Derive expected result from inputs
+        let expected = null;
+        if (hasFolderResult || hasFileResult) {
+          const folderPath = myModuleFolder.uri.fsPath;
+
+          if (!hasFolderResult && hasFileResult) {
+            // Regular module
+            expected = {
+              name: moduleFullname,
+              isPackage: false,
+              origin: `${folderPath}/${modulePath}.py`,
+            };
+          } else if (hasFolderResult && hasFileResult) {
+            // Regular package (with __init__.py)
+            const packagePath =
+              modulePath === '' ? folderPath : `${folderPath}/${modulePath}`;
+            expected = {
+              name: moduleFullname,
+              isPackage: true,
+              origin: `${packagePath}/__init__.py`,
+              subModuleSearchLocations: [packagePath],
+            };
+          } else if (hasFolderResult && !hasFileResult) {
+            // Namespace package (without __init__.py)
+            const packagePath =
+              modulePath === '' ? folderPath : `${folderPath}/${modulePath}`;
+            expected = {
+              name: moduleFullname,
+              isPackage: true,
+              origin: undefined,
+              subModuleSearchLocations: [packagePath],
+            };
+          }
+        }
+
+        expect(result).toEqual(expected);
+      }
+    );
   });
 
   it('fires onDidUpdatePythonModuleMeta event when python workspace updates', () => {

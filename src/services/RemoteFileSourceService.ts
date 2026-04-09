@@ -93,7 +93,16 @@ export class RemoteFileSourceService extends DisposableBase {
   getPythonModuleSpecData(
     moduleFullname: PythonModuleFullname
   ): PythonModuleSpecData | null {
-    const [firstModuleToken, ...restModuleTokens] = moduleFullname.split('.');
+    let [firstModuleToken, ...restModuleTokens] = moduleFullname.split('.');
+
+    // Check if first token is a controller import prefix and strip it
+    if (
+      this._controllerImportPrefixes.has(firstModuleToken) &&
+      restModuleTokens.length > 0
+    ) {
+      firstModuleToken = restModuleTokens[0];
+      restModuleTokens = restModuleTokens.slice(1);
+    }
 
     // Get the top-level folder URI that could contain this module
     const topLevelFolderUri = this._pythonWorkspace
