@@ -249,7 +249,6 @@ export class RemoteFileSourceService extends DisposableBase {
    */
   setControllerImportPrefixes(controllerImportPrefixes: Set<string>): void {
     this._controllerImportPrefixes = controllerImportPrefixes;
-    this._onDidUpdatePythonModuleMeta.fire();
   }
 
   /**
@@ -276,8 +275,14 @@ export class RemoteFileSourceService extends DisposableBase {
     await pluginService.setExecutionContext(isDirty, resourcePaths);
   }
 
+  private _pythonSetExecutionContextI = 0;
+  private _pythonExecutionContextQueue: Promise<void> = Promise.resolve();
+
   /**
    * Set the Python server execution context for the plugin using the given session.
+   * We use a Promise queue to ensure that execution context updates are processed
+   * sequentially. This is mostly to prevent Python workspace events that call
+   * this method without awaiting the response from clearing the execution context.
    * @param connectionId The unique ID of the connection.
    * @param session The IdeSession to use to run the code.
    */
@@ -285,11 +290,27 @@ export class RemoteFileSourceService extends DisposableBase {
     connectionId: UniqueID | null,
     session: DhcType.IdeSession
   ): Promise<void> {
-    const setExecutionContextScript = getSetExecutionContextScript(
-      connectionId,
-      this.getPythonTopLevelModuleNames()
-    );
+    const label = `setPythonServerExecutionContext: ${++this._pythonSetExecutionContextI}:${connectionId}`;
 
-    await session.runCode(setExecutionContextScript);
+    logger.debug(`${label}: queuing`);
+
+    this._pythonExecutionContextQueue = this._pythonExecutionContextQueue
+      // Ignore errors from previous calls. They will get raised to the caller
+      // that queued them, but we dont' want them to break the chain
+      .catch(() => {})
+      .then(async () => {
+        logger.debug(`${label}: running`);
+
+        const setExecutionContextScript = getSetExecutionContextScript(
+          connectionId,
+          this.getPythonTopLevelModuleNames()
+        );
+
+        await session.runCode(setExecutionContextScript);
+      });
+
+    await this._pythonExecutionContextQueue;
+
+    logger.debug(`${label}: complete`);
   }
 }

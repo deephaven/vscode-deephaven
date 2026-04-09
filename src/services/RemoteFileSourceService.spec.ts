@@ -60,22 +60,6 @@ describe('RemoteFileSourceService', () => {
     expect(vi.mocked(pythonWorkspace.onDidUpdate)).toHaveBeenCalled();
   });
 
-  describe('setControllerImportPrefixes', () => {
-    it('fires onDidUpdatePythonModuleMeta event', () => {
-      const service = new RemoteFileSourceService(
-        groovyWorkspace,
-        pythonWorkspace
-      );
-
-      const listener = vi.fn();
-      service.onDidUpdatePythonModuleMeta(listener);
-
-      service.setControllerImportPrefixes(new Set([controllerPrefix]));
-
-      expect(listener).toHaveBeenCalled();
-    });
-  });
-
   describe('getPythonTopLevelModuleNames', () => {
     it.each([
       {
