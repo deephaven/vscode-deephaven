@@ -486,9 +486,7 @@ export class ExtensionController implements IDisposable {
     // Clear diagnostics on save
     vscode.workspace.onDidSaveTextDocument(
       doc => {
-        if (doc.languageId === 'groovy') {
-          this._groovyDiagnostics?.set(doc.uri, []);
-        }
+        this._groovyDiagnostics?.set(doc.uri, []);
         this._pythonDiagnostics?.set(doc.uri, []);
       },
       null,
