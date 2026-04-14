@@ -17,7 +17,7 @@ const spec = {
     languageId: z
       .string()
       .describe(
-        'The language of the remote file sources to add: "python" or "groovy". Use "groovy" when adding Groovy package folders.'
+        'Language of the source files in the folders: "python" or "groovy".'
       ),
     folderUris: z
       .array(z.string())

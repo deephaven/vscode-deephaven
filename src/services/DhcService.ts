@@ -38,7 +38,7 @@ import {
 import {
   NoConsoleTypesError,
   parseGroovyServerError,
-  parseServerError,
+  parsePythonServerError,
 } from '../dh/errorUtils';
 import { hasErrorCode } from '../util/typeUtils';
 import { DisposableBase } from './DisposableBase';
@@ -561,7 +561,7 @@ export class DhcService extends DisposableBase implements IDhcService {
       this.outputChannel.show(true);
 
       if (languageId === 'python' && typeof documentOrText !== 'string') {
-        const errors = parseServerError(error);
+        const errors = parsePythonServerError(error);
 
         for (const { type, file, line, value } of errors) {
           if (line != null) {

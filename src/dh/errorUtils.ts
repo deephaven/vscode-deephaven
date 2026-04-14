@@ -26,7 +26,7 @@ export interface ParsedError {
  *   object is the originating error, second object is an adjusted version that
  *   points to the line in the executed file.
  */
-export function parseServerError(
+export function parsePythonServerError(
   error: string,
   logger: { debug: (...args: unknown[]) => void } = console
 ): [] | [ParsedError] | [ParsedError, ParsedError] {
