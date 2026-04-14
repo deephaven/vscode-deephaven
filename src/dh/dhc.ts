@@ -56,7 +56,7 @@ export async function getDhc(
   });
 
   // @ts-ignore TODO: once deephaven/deephaven-core/pull/7451 merges, we can
-  // update to proper jsapi-types and remove this @ts-ignores
+  // update to proper jsapi-types and remove this @ts-ignore
   return coreModule;
 }
 
