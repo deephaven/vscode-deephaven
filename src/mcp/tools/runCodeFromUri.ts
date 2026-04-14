@@ -133,42 +133,34 @@ export function createRunCodeFromUriTool({
             | { hint: string; foundMatchingFolderUris: string[] }
             | undefined;
 
-          if (languageId === 'python') {
+          if (languageId === 'python' || languageId === 'groovy') {
             const executedConnection = serverManager.getUriConnection(
               parsedUriResult.value
             );
             assertDefined(executedConnection, 'executedConnection');
 
-            const pythonErrors = getDiagnosticsErrors(pythonDiagnostics);
+            const errors = getDiagnosticsErrors(
+              languageId === 'python' ? pythonDiagnostics : groovyDiagnostics
+            );
 
-            if (pythonErrors.length > 0) {
-              errorMsg = pythonErrors.map(formatDiagnosticError).join('\n');
+            if (errors.length > 0) {
+              errorMsg = errors.map(formatDiagnosticError).join('\n');
             }
 
-            hintResult = createPythonModuleImportErrorHint(
-              pythonErrors,
-              executedConnection,
-              pythonWorkspace,
-              result.error
-            );
-          } else if (languageId === 'groovy') {
-            const executedConnection = serverManager.getUriConnection(
-              parsedUriResult.value
-            );
-            assertDefined(executedConnection, 'executedConnection');
-
-            const groovyErrors = getDiagnosticsErrors(groovyDiagnostics);
-
-            if (groovyErrors.length > 0) {
-              errorMsg = groovyErrors.map(formatDiagnosticError).join('\n');
-            }
-
-            hintResult = createGroovyImportErrorHint(
-              groovyErrors,
-              executedConnection,
-              groovyWorkspace,
-              result.error
-            );
+            hintResult =
+              languageId === 'python'
+                ? createPythonModuleImportErrorHint(
+                    errors,
+                    executedConnection,
+                    pythonWorkspace,
+                    result.error
+                  )
+                : createGroovyImportErrorHint(
+                    errors,
+                    executedConnection,
+                    groovyWorkspace,
+                    result.error
+                  );
           }
 
           const { hint, foundMatchingFolderUris } = hintResult ?? {};

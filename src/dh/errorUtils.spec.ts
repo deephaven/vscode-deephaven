@@ -47,7 +47,7 @@ describe('parseGroovyServerError', () => {
     'package3',
     'package3.subpackage1',
     'package3.subpackage1.MultiClassTest',
-  ])('should parse RuntimeException', importPath => {
+  ])('should parse RuntimeException: "%s"', importPath => {
     const value = `Attempting to import a path that does not exist: import ${importPath}`;
 
     const parsed = parseGroovyServerError(`RuntimeException: ${value};`);
@@ -62,7 +62,7 @@ describe('parseGroovyServerError', () => {
   });
 
   it.each(['', 'Some other error'])(
-    'should handle unrecognized error pattern',
+    'should handle unrecognized error pattern: "%s"',
     error => {
       const parsed = parseGroovyServerError(error);
 
