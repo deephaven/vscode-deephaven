@@ -159,6 +159,8 @@ export async function initDhcSession(
     type === 'python' ? await getRemoteFileSourcePlugin(cnId, session) : null;
 
   const groovyRemoteFileSourcePlugin: DhType.remotefilesource.RemoteFileSourceService | null =
+    // The presence of `getRemoteFileSourceService` determines if the Groovy
+    // plugin is available on the server.
     type === 'groovy' && 'getRemoteFileSourceService' in client
       ? await client.getRemoteFileSourceService()
       : null;
