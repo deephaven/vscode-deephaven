@@ -717,7 +717,7 @@ describe('createGroovyImportErrorHint', () => {
   it.each([
     {
       name: 'return undefined when no import errors exist',
-      errors: diagnosticError('Some unrelated Groovy error'),
+      errors: diagnosticError('Some non-import related error'),
       hasPlugin: false,
       workspaces: {
         nodes: [wkspRoot, package3Folder],
@@ -727,7 +727,7 @@ describe('createGroovyImportErrorHint', () => {
     },
     {
       name: 'return undefined when no import errors exist even with plugin',
-      errors: diagnosticError('Some unrelated Groovy error'),
+      errors: diagnosticError('Some non-import related error'),
       hasPlugin: true,
       workspaces: {
         nodes: [wkspRoot, package3Folder],
