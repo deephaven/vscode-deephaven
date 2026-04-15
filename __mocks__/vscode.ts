@@ -306,6 +306,7 @@ export const workspace = {
     .fn()
     .mockName('createFileSystemWatcher')
     .mockReturnValue({
+      onDidChange: vi.fn().mockName('onDidChange'),
       onDidCreate: vi.fn().mockName('onDidCreate'),
       onDidDelete: vi.fn().mockName('onDidDelete'),
     }),
