@@ -132,7 +132,7 @@ export function createPythonModuleImportErrorHint(
   connection: ConnectionState,
   pythonWorkspace: FilteredWorkspace<PythonModuleFullname>,
   rawErrorMessage?: string
-): { hint: string; foundMatchingFolderUris: string[] } | undefined {
+): { hint: string; foundMatchingFolderUris?: string[] } | undefined {
   // Look for 'No module named' errors and extract the module names
   const noModuleErrors = new Set(
     errors
@@ -155,7 +155,6 @@ export function createPythonModuleImportErrorHint(
   if (!hasPythonRemoteFileSourcePlugin(connection)) {
     return {
       hint: `The Python remote file source plugin is not installed. Install it with 'pip install deephaven-plugin-python-remote-file-source' to enable importing workspace packages.`,
-      foundMatchingFolderUris: [],
     };
   }
 
@@ -220,7 +219,7 @@ export function createGroovyImportErrorHint(
   connection: ConnectionState,
   groovyWorkspace: FilteredWorkspace<GroovyPackageName>,
   rawErrorMessage?: string
-): { hint: string; foundMatchingFolderUris: string[] } | undefined {
+): { hint: string; foundMatchingFolderUris?: string[] } | undefined {
   // Look for 'Attempting to import a path that does not exist' errors and
   // extract the top-level package and required subpackage (if any)
   const importErrors = new Map<string, Set<string>>();
@@ -271,7 +270,6 @@ export function createGroovyImportErrorHint(
   if (!hasGroovyRemoteFileSourcePlugin(connection)) {
     return {
       hint: `The Groovy remote file source plugin is not installed. Install it to enable importing workspace packages.`,
-      foundMatchingFolderUris: [],
     };
   }
 

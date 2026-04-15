@@ -530,7 +530,6 @@ describe('createPythonModuleImportErrorHint', () => {
       workspaces: [{ nodes: [wkspRoot, pandasFolder] }],
       expected: {
         hint: `The Python remote file source plugin is not installed. Install it with 'pip install deephaven-plugin-python-remote-file-source' to enable importing workspace packages.`,
-        foundMatchingFolderUris: [],
       },
     },
     {
@@ -740,7 +739,6 @@ describe('createGroovyImportErrorHint', () => {
       workspaces: WKSP_PACKAGE3_SUBPACKAGE1,
       expected: {
         hint: `The Groovy remote file source plugin is not installed. Install it to enable importing workspace packages.`,
-        foundMatchingFolderUris: [],
       },
     },
     {

@@ -76,11 +76,13 @@ Community servers always support panel URLs. Enterprise servers require Grizzly+
 
 ### Remote File Sources
 
-Enable server to fetch source files during execution:
+Configure which workspace folders the server fetches source files from during execution:
 
 - Add folder URIs as remote sources (`addRemoteFileSources`)
 - List current sources (`listRemoteFileSources`)
 - Remove sources when done (`removeRemoteFileSources`)
+
+If an import error occurs, follow the hint in the tool response — it will specify how to resolve it.
 
 ### Troubleshooting
 
@@ -113,6 +115,10 @@ Server connections are managed through MCP tools. Use `listConnections`, `listSe
 ### Tool Availability
 
 All MCP tools are available when the MCP server is enabled via `deephaven.mcp.enabled` setting. If tools aren't available, ensure MCP is enabled (see Troubleshooting).
+
+### Tool Response Hints
+
+Tool responses may include hints that guide next steps. Consider them before deciding how to proceed.
 
 ### Variable Management
 

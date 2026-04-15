@@ -130,7 +130,7 @@ export function createRunCodeFromUriTool({
         if (result?.error) {
           let errorMsg = result.error;
           let hintResult:
-            | { hint: string; foundMatchingFolderUris: string[] }
+            | { hint: string; foundMatchingFolderUris?: string[] }
             | undefined;
 
           if (languageId === 'python' || languageId === 'groovy') {
