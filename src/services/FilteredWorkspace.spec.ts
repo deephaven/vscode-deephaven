@@ -2,9 +2,9 @@
 import * as vscode from 'vscode';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import {
+  DEFAULT_IGNORE_TOP_LEVEL_FOLDER_NAMES,
   FilteredWorkspace,
   PYTHON_FILE_PATTERN,
-  PYTHON_IGNORE_TOP_LEVEL_FOLDER_NAMES,
 } from './FilteredWorkspace';
 import {
   getPythonTopLevelModuleFullname,
@@ -295,7 +295,7 @@ async function initWorkspace(wsMap: URIMap<URISet>): Promise<{
     PYTHON_FILE_PATTERN,
     'python',
     getPythonTopLevelModuleFullname,
-    PYTHON_IGNORE_TOP_LEVEL_FOLDER_NAMES,
+    DEFAULT_IGNORE_TOP_LEVEL_FOLDER_NAMES,
     mockToaster
   );
 

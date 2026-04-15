@@ -25,23 +25,24 @@ const logger = new Logger('FilteredWorkspace');
 export const GROOVY_FILE_PATTERN = '**/*.groovy' as const;
 export const PYTHON_FILE_PATTERN = '**/*.py' as const;
 
-export const GROOVY_IGNORE_TOP_LEVEL_FOLDER_NAMES = new Set<FolderName>();
-
 // TODO: This should be configurable DH-20662
-export const PYTHON_IGNORE_TOP_LEVEL_FOLDER_NAMES: Set<FolderName> =
+export const DEFAULT_IGNORE_TOP_LEVEL_FOLDER_NAMES: Set<FolderName> =
   new Set<FolderName>([
-    '.venv',
-    'venv',
-    'env',
-    '.env',
     '__pycache__',
+    '.env',
     '.git',
+    '.gradle',
+    '.ipynb_checkpoints',
     '.mypy_cache',
     '.pytest_cache',
     '.tox',
+    '.venv',
+    '*.egg-info',
     'build',
     'dist',
-    '*.egg-info',
+    'env',
+    'node_modules',
+    'venv',
   ] as Array<FolderName>);
 
 export type FilteredWorkspaceRootNode =
