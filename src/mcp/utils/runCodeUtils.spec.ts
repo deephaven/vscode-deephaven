@@ -631,6 +631,36 @@ describe('createPythonModuleImportErrorHint', () => {
 });
 
 describe('createGroovyImportErrorHint', () => {
+  function diagnosticError(message: string): DiagnosticsError {
+    return {
+      uri: MOCK_URI_STRING,
+      message,
+      range: new vscode.Range(0, 0, 0, 0),
+    };
+  }
+
+  function missingImportError(importPath: string): DiagnosticsError {
+    return diagnosticError(
+      `Attempting to import a path that does not exist: import ${importPath};\nRuntimeException: Attempting to import a path that does not exist: import ${importPath};`
+    );
+  }
+
+  function unableToResolveClassError(importPath: string): DiagnosticsError {
+    return diagnosticError(
+      `unable to resolve class ${importPath}\n @ line 42, column 1.\n   import ${importPath}`
+    );
+  }
+
+  function groovyFolder(uriStr: string): RemoteImportSourceTreeFolderElement {
+    return {
+      uri: vscode.Uri.parse(uriStr),
+      name: uriStr.split('/').at(-1) ?? '',
+      languageId: 'groovy',
+      type: 'folder',
+      isMarked: false,
+    };
+  }
+
   const wkspRoot: FilteredWorkspaceRootNode = {
     uri: vscode.Uri.parse('file:///workspace'),
     name: 'workspace',
@@ -638,29 +668,17 @@ describe('createGroovyImportErrorHint', () => {
     type: 'workspaceRootFolder',
   };
 
-  const package3Folder: RemoteImportSourceTreeFolderElement = {
-    uri: vscode.Uri.parse('file:///workspace/package3'),
-    name: 'package3',
-    languageId: 'groovy',
-    type: 'folder',
-    isMarked: false,
-  };
+  const package3Folder: RemoteImportSourceTreeFolderElement = groovyFolder(
+    'file:///workspace/package3'
+  );
 
-  const subpackage1Folder: RemoteImportSourceTreeFolderElement = {
-    uri: vscode.Uri.parse('file:///workspace/package3/subpackage1'),
-    name: 'subpackage1',
-    languageId: 'groovy',
-    type: 'folder',
-    isMarked: false,
-  };
+  const subpackage1Folder: RemoteImportSourceTreeFolderElement = groovyFolder(
+    'file:///workspace/package3/subpackage1'
+  );
 
-  const numpyFolder: RemoteImportSourceTreeFolderElement = {
-    uri: vscode.Uri.parse('file:///workspace/numpy'),
-    name: 'numpy',
-    languageId: 'groovy',
-    type: 'folder',
-    isMarked: false,
-  };
+  const otherFolder: RemoteImportSourceTreeFolderElement = groovyFolder(
+    'file:///workspace/other'
+  );
 
   const wksp2Root: FilteredWorkspaceRootNode = {
     uri: vscode.Uri.parse('file:///workspace2'),
@@ -669,70 +687,47 @@ describe('createGroovyImportErrorHint', () => {
     type: 'workspaceRootFolder',
   };
 
-  const wksp2NumpyFolder: RemoteImportSourceTreeFolderElement = {
-    uri: vscode.Uri.parse('file:///workspace2/numpy'),
-    name: 'numpy',
-    languageId: 'groovy',
-    type: 'folder',
-    isMarked: false,
+  const wksp2OtherFolder: RemoteImportSourceTreeFolderElement = groovyFolder(
+    'file:///workspace2/other'
+  );
+
+  const mockWkspSpec: MockWorkspaceSpec = {
+    nodes: [wkspRoot, package3Folder, subpackage1Folder],
+    nodeChildren: [[package3Folder.uri, [subpackage1Folder]]] as [
+      vscode.Uri,
+      FilteredWorkspaceNode[],
+    ][],
   };
 
-  const GROOVY_IMPORT_ERROR_WITH_SUBPACKAGE: DiagnosticsError[] = [
-    {
-      uri: MOCK_URI_STRING,
-      message:
-        'Attempting to import a path that does not exist: import package3.subpackage1.MultiClassTest;\nRuntimeException: Attempting to import a path that does not exist: import package3.subpackage1.MultiClassTest;',
-      range: new vscode.Range(0, 0, 0, 0),
-    },
-  ];
+  const mockWkspOtherSpec: MockWorkspaceSpec = {
+    nodes: [wksp2Root, wksp2OtherFolder],
+    nodeChildren: [],
+  };
 
-  const GROOVY_IMPORT_ERROR_WITHOUT_SUBPACKAGE: DiagnosticsError[] = [
-    {
-      uri: MOCK_URI_STRING,
-      message:
-        'Attempting to import a path that does not exist: import package3.MyClass;\nRuntimeException: Attempting to import a path that does not exist: import package3.MyClass;',
-      range: new vscode.Range(0, 0, 0, 0),
-    },
-  ];
+  const PACKAGE3_SUBPACKAGE1_MULTICLASSTEST =
+    'package3.subpackage1.MultiClassTest' as const;
 
-  const GROOVY_IMPORT_ERRORS_MULTIPLE: DiagnosticsError[] = [
-    {
-      uri: MOCK_URI_STRING,
-      message:
-        'Attempting to import a path that does not exist: import package3.subpackage1.MultiClassTest;\nRuntimeException: Attempting to import a path that does not exist: import package3.subpackage1.MultiClassTest;',
-      range: new vscode.Range(0, 0, 0, 0),
-    },
-    {
-      uri: MOCK_URI_STRING,
-      message:
-        'Attempting to import a path that does not exist: import numpy.SomeClass;\nRuntimeException: Attempting to import a path that does not exist: import numpy.SomeClass;',
-      range: new vscode.Range(0, 0, 0, 0),
-    },
-  ];
+  const PACKAGE3_MYCLASS = 'package3.MyClass' as const;
 
-  const NON_GROOVY_IMPORT_ERROR: DiagnosticsError[] = [
-    {
-      uri: MOCK_URI_STRING,
-      message: 'Some unrelated Groovy error',
-      range: new vscode.Range(0, 0, 0, 0),
-    },
+  const OTHER_SOMECLASS = 'other.SomeClass' as const;
+
+  const GROOVY_NON_IMPORT_ERROR: DiagnosticsError[] = [
+    diagnosticError('Some unrelated Groovy error'),
   ];
 
   const GROOVY_UNABLE_TO_RESOLVE_CLASS_ERROR: DiagnosticsError[] = [
-    {
-      uri: MOCK_URI_STRING,
-      message:
-        'unable to resolve class package3.subpackage1.MultiClassTest\n @ line 42, column 1.\n   import package3.subpackage1.MultiClassTest',
-      range: new vscode.Range(0, 0, 0, 0),
-    },
+    unableToResolveClassError('package3.subpackage1.MultiClassTest'),
   ];
+
+  const ADD_FOLDER_HINT =
+    'If this is a package in your workspace, add its folder as a remote file source using addRemoteFileSources with languageId "groovy". DO NOT guess folder URIs - use the exact URIs provided in details.foundMatchingFolderUris.' as const;
 
   it.each([
     {
       name: 'return undefined when no import errors exist',
-      errors: NON_GROOVY_IMPORT_ERROR,
+      errors: GROOVY_NON_IMPORT_ERROR,
       hasPlugin: false,
-      workspace: {
+      workspaces: {
         nodes: [wkspRoot, package3Folder],
         nodeChildren: [] as [vscode.Uri, FilteredWorkspaceNode[]][],
       },
@@ -740,9 +735,9 @@ describe('createGroovyImportErrorHint', () => {
     },
     {
       name: 'return undefined when no import errors exist even with plugin',
-      errors: NON_GROOVY_IMPORT_ERROR,
+      errors: GROOVY_NON_IMPORT_ERROR,
       hasPlugin: true,
-      workspace: {
+      workspaces: {
         nodes: [wkspRoot, package3Folder],
         nodeChildren: [] as [vscode.Uri, FilteredWorkspaceNode[]][],
       },
@@ -750,15 +745,9 @@ describe('createGroovyImportErrorHint', () => {
     },
     {
       name: 'suggest installing plugin when not installed',
-      errors: GROOVY_IMPORT_ERROR_WITH_SUBPACKAGE,
+      errors: missingImportError(PACKAGE3_SUBPACKAGE1_MULTICLASSTEST),
       hasPlugin: false,
-      workspace: {
-        nodes: [wkspRoot, package3Folder, subpackage1Folder],
-        nodeChildren: [[package3Folder.uri, [subpackage1Folder]]] as [
-          vscode.Uri,
-          FilteredWorkspaceNode[],
-        ][],
-      },
+      workspaces: mockWkspSpec,
       expected: {
         hint: `The Groovy remote file source plugin is not installed. Install it to enable importing workspace packages.`,
         foundMatchingFolderUris: [],
@@ -766,25 +755,19 @@ describe('createGroovyImportErrorHint', () => {
     },
     {
       name: 'return matching folder when plugin installed and subpackage folder exists',
-      errors: GROOVY_IMPORT_ERROR_WITH_SUBPACKAGE,
+      errors: missingImportError(PACKAGE3_SUBPACKAGE1_MULTICLASSTEST),
       hasPlugin: true,
-      workspace: {
-        nodes: [wkspRoot, package3Folder, subpackage1Folder],
-        nodeChildren: [[package3Folder.uri, [subpackage1Folder]]] as [
-          vscode.Uri,
-          FilteredWorkspaceNode[],
-        ][],
-      },
+      workspaces: mockWkspSpec,
       expected: {
-        hint: 'If this is a package in your workspace, add its folder as a remote file source using addRemoteFileSources with languageId "groovy". DO NOT guess folder URIs - use the exact URIs provided in details.foundMatchingFolderUris.',
+        hint: ADD_FOLDER_HINT,
         foundMatchingFolderUris: [package3Folder.uri.toString()],
       },
     },
     {
       name: 'not include folder when subpackage folder does not exist',
-      errors: GROOVY_IMPORT_ERROR_WITH_SUBPACKAGE,
+      errors: missingImportError(PACKAGE3_SUBPACKAGE1_MULTICLASSTEST),
       hasPlugin: true,
-      workspace: {
+      workspaces: {
         nodes: [wkspRoot, package3Folder],
         nodeChildren: [[package3Folder.uri, []]] as [
           vscode.Uri,
@@ -792,33 +775,33 @@ describe('createGroovyImportErrorHint', () => {
         ][],
       },
       expected: {
-        hint: 'If this is a package in your workspace, add its folder as a remote file source using addRemoteFileSources with languageId "groovy". DO NOT guess folder URIs - use the exact URIs provided in details.foundMatchingFolderUris.',
+        hint: ADD_FOLDER_HINT,
         foundMatchingFolderUris: [],
       },
     },
     {
       name: 'include folder when import has only 2 parts (no subpackage verification needed)',
-      errors: GROOVY_IMPORT_ERROR_WITHOUT_SUBPACKAGE,
+      errors: missingImportError(PACKAGE3_MYCLASS),
       hasPlugin: true,
-      workspace: {
+      workspaces: {
         nodes: [wkspRoot, package3Folder],
         nodeChildren: [] as [vscode.Uri, FilteredWorkspaceNode[]][],
       },
       expected: {
-        hint: 'If this is a package in your workspace, add its folder as a remote file source using addRemoteFileSources with languageId "groovy". DO NOT guess folder URIs - use the exact URIs provided in details.foundMatchingFolderUris.',
+        hint: ADD_FOLDER_HINT,
         foundMatchingFolderUris: [package3Folder.uri.toString()],
       },
     },
     {
       name: 'return empty foundMatchingFolderUris when no matching folder exists in workspace',
-      errors: GROOVY_IMPORT_ERROR_WITH_SUBPACKAGE,
+      errors: missingImportError(PACKAGE3_SUBPACKAGE1_MULTICLASSTEST),
       hasPlugin: true,
-      workspace: {
-        nodes: [wkspRoot, numpyFolder],
+      workspaces: {
+        nodes: [wkspRoot, otherFolder],
         nodeChildren: [] as [vscode.Uri, FilteredWorkspaceNode[]][],
       },
       expected: {
-        hint: 'If this is a package in your workspace, add its folder as a remote file source using addRemoteFileSources with languageId "groovy". DO NOT guess folder URIs - use the exact URIs provided in details.foundMatchingFolderUris.',
+        hint: ADD_FOLDER_HINT,
         foundMatchingFolderUris: [],
       },
     },
@@ -826,20 +809,32 @@ describe('createGroovyImportErrorHint', () => {
       name: 'handle "unable to resolve class" error format',
       errors: GROOVY_UNABLE_TO_RESOLVE_CLASS_ERROR,
       hasPlugin: true,
-      workspace: {
-        nodes: [wkspRoot, package3Folder, subpackage1Folder],
-        nodeChildren: [[package3Folder.uri, [subpackage1Folder]]] as [
-          vscode.Uri,
-          FilteredWorkspaceNode[],
-        ][],
-      },
+      workspaces: mockWkspSpec,
       expected: {
-        hint: 'If this is a package in your workspace, add its folder as a remote file source using addRemoteFileSources with languageId "groovy". DO NOT guess folder URIs - use the exact URIs provided in details.foundMatchingFolderUris.',
+        hint: ADD_FOLDER_HINT,
         foundMatchingFolderUris: [package3Folder.uri.toString()],
       },
     },
-  ])('should $name', ({ errors, hasPlugin, workspace, expected }) => {
-    const groovyWorkspace = mockFilteredWorkspace<GroovyPackageName>(workspace);
+    {
+      name: 'handle multiple workspace roots with matching folders',
+      errors: [
+        missingImportError(PACKAGE3_SUBPACKAGE1_MULTICLASSTEST),
+        missingImportError(OTHER_SOMECLASS),
+      ],
+      hasPlugin: true,
+      workspaces: [mockWkspSpec, mockWkspOtherSpec],
+      expected: {
+        hint: ADD_FOLDER_HINT,
+        foundMatchingFolderUris: [
+          package3Folder.uri.toString(),
+          wksp2OtherFolder.uri.toString(),
+        ],
+      },
+    },
+  ])('should $name', ({ errors, hasPlugin, workspaces, expected }) => {
+    const groovyWorkspace = mockFilteredWorkspace<GroovyPackageName>(
+      ...(Array.isArray(workspaces) ? workspaces : [workspaces])
+    );
 
     vi.mocked(isInstanceOf).mockReturnValue(hasPlugin);
 
@@ -848,7 +843,7 @@ describe('createGroovyImportErrorHint', () => {
     } as unknown as ConnectionState;
 
     const hint = createGroovyImportErrorHint(
-      errors,
+      Array.isArray(errors) ? errors : [errors],
       connection,
       groovyWorkspace
     );
@@ -856,44 +851,9 @@ describe('createGroovyImportErrorHint', () => {
     expect(hint).toEqual(expected);
   });
 
-  it('should handle multiple workspace roots with matching folders', () => {
-    const groovyWorkspace = mockFilteredWorkspace<GroovyPackageName>(
-      {
-        nodes: [wkspRoot, package3Folder, subpackage1Folder],
-        nodeChildren: [[package3Folder.uri, [subpackage1Folder]]],
-      },
-      {
-        nodes: [wksp2Root, wksp2NumpyFolder],
-        nodeChildren: [],
-      }
-    );
-
-    vi.mocked(isInstanceOf).mockReturnValue(true);
-
-    const connection = {
-      hasGroovyRemoteFileSourcePlugin: vi.fn().mockReturnValue(true),
-    } as unknown as ConnectionState;
-
-    const hint = createGroovyImportErrorHint(
-      GROOVY_IMPORT_ERRORS_MULTIPLE,
-      connection,
-      groovyWorkspace
-    );
-
-    expect(hint).toEqual({
-      hint: 'If this is a package in your workspace, add its folder as a remote file source using addRemoteFileSources with languageId "groovy". DO NOT guess folder URIs - use the exact URIs provided in details.foundMatchingFolderUris.',
-      foundMatchingFolderUris: [
-        package3Folder.uri.toString(),
-        wksp2NumpyFolder.uri.toString(),
-      ],
-    });
-  });
-
   it('should parse raw error message when diagnostics are empty', () => {
-    const groovyWorkspace = mockFilteredWorkspace<GroovyPackageName>({
-      nodes: [wkspRoot, package3Folder, subpackage1Folder],
-      nodeChildren: [[package3Folder.uri, [subpackage1Folder]]],
-    });
+    const groovyWorkspace =
+      mockFilteredWorkspace<GroovyPackageName>(mockWkspSpec);
 
     vi.mocked(isInstanceOf).mockReturnValue(true);
 
@@ -912,7 +872,7 @@ describe('createGroovyImportErrorHint', () => {
     );
 
     expect(hint).toEqual({
-      hint: 'If this is a package in your workspace, add its folder as a remote file source using addRemoteFileSources with languageId "groovy". DO NOT guess folder URIs - use the exact URIs provided in details.foundMatchingFolderUris.',
+      hint: ADD_FOLDER_HINT,
       foundMatchingFolderUris: [package3Folder.uri.toString()],
     });
   });
@@ -940,7 +900,7 @@ describe('createGroovyImportErrorHint', () => {
     );
 
     expect(hint).toEqual({
-      hint: 'If this is a package in your workspace, add its folder as a remote file source using addRemoteFileSources with languageId "groovy". DO NOT guess folder URIs - use the exact URIs provided in details.foundMatchingFolderUris.',
+      hint: ADD_FOLDER_HINT,
       foundMatchingFolderUris: [package3Folder.uri.toString()],
     });
   });
