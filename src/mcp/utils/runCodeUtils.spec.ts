@@ -711,21 +711,13 @@ describe('createGroovyImportErrorHint', () => {
 
   const OTHER_SOMECLASS = 'other.SomeClass' as const;
 
-  const GROOVY_NON_IMPORT_ERROR: DiagnosticsError[] = [
-    diagnosticError('Some unrelated Groovy error'),
-  ];
-
-  const GROOVY_UNABLE_TO_RESOLVE_CLASS_ERROR: DiagnosticsError[] = [
-    unableToResolveClassError('package3.subpackage1.MultiClassTest'),
-  ];
-
   const ADD_FOLDER_HINT =
     'If this is a package in your workspace, add its folder as a remote file source using addRemoteFileSources with languageId "groovy". DO NOT guess folder URIs - use the exact URIs provided in details.foundMatchingFolderUris.' as const;
 
   it.each([
     {
       name: 'return undefined when no import errors exist',
-      errors: GROOVY_NON_IMPORT_ERROR,
+      errors: diagnosticError('Some unrelated Groovy error'),
       hasPlugin: false,
       workspaces: {
         nodes: [wkspRoot, package3Folder],
@@ -735,7 +727,7 @@ describe('createGroovyImportErrorHint', () => {
     },
     {
       name: 'return undefined when no import errors exist even with plugin',
-      errors: GROOVY_NON_IMPORT_ERROR,
+      errors: diagnosticError('Some unrelated Groovy error'),
       hasPlugin: true,
       workspaces: {
         nodes: [wkspRoot, package3Folder],
@@ -807,7 +799,7 @@ describe('createGroovyImportErrorHint', () => {
     },
     {
       name: 'handle "unable to resolve class" error format',
-      errors: GROOVY_UNABLE_TO_RESOLVE_CLASS_ERROR,
+      errors: unableToResolveClassError('package3.subpackage1.MultiClassTest'),
       hasPlugin: true,
       workspaces: mockWkspSpec,
       expected: {
