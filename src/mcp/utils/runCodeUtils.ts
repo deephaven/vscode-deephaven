@@ -235,20 +235,22 @@ export function createGroovyImportErrorHint(
         message
       ) || /unable to resolve class ([^\s\n]+)/.exec(message);
 
-    if (match) {
-      const importPath = match[1].trim();
-      const parts = importPath.split('.');
-      const topLevelPackage = parts[0];
+    if (match == null) {
+      return;
+    }
 
-      if (!importErrors.has(topLevelPackage)) {
-        importErrors.set(topLevelPackage, new Set());
-      }
+    const importPath = match[1].trim();
+    const parts = importPath.split('.');
+    const topLevelPackage = parts[0];
 
-      // If there are 3+ parts (package.subpackage.ClassName), the second part
-      // is a subpackage that must exist as a child folder
-      if (parts.length >= 3) {
-        importErrors.get(topLevelPackage)!.add(parts[1]);
-      }
+    if (!importErrors.has(topLevelPackage)) {
+      importErrors.set(topLevelPackage, new Set());
+    }
+
+    // If there are 3+ parts (package.subpackage.ClassName), the second part
+    // is a subpackage that must exist as a child folder
+    if (parts.length >= 3) {
+      importErrors.get(topLevelPackage)!.add(parts[1]);
     }
   };
 
@@ -278,7 +280,7 @@ export function createGroovyImportErrorHint(
 
   for (const rootNode of rootNodes) {
     for (const node of groovyWorkspace.iterateNodeTree(rootNode.uri)) {
-      if (node.type === 'folder' && importErrors.has(node.name) && node.uri) {
+      if (node.type === 'folder' && importErrors.has(node.name)) {
         const requiredSubpackages = importErrors.get(node.name)!;
 
         if (requiredSubpackages.size === 0) {
