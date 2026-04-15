@@ -85,23 +85,21 @@ function createDiagnosticCollection(
 }
 
 /**
- * Creates a mock FilteredWorkspace for testing with support for multiple root nodes.
- * Each workspace argument represents a root node and its children.
- *
- * @param workspaces - Rest parameter where each array contains [root, ...children].
- *   The first element is the root node, remaining elements are its children.
- * @returns A mocked FilteredWorkspace with:
- *   - getChildNodes: Returns roots when parentUri is null, empty array otherwise
- *   - iterateNodeTree: Returns children for the matching root, empty array if not found
+ * Type representing a mock workspace specification for testing.
+ * Each workspace represents a root node and its descendants.
  */
+type MockWorkspaceSpec = {
+  /** Array of [root, ...allNodes] for iterateNodeTree */
+  nodes: (FilteredWorkspaceRootNode | FilteredWorkspaceNode)[];
+  /** Optional map of folder URI strings to their direct children */
+  nodeChildren?: [vscode.Uri, FilteredWorkspaceNode[]][];
+};
+
 /**
- * Creates a mock FilteredWorkspace<GroovyPackageName> for testing.
+ * Creates a mock FilteredWorkspace for testing.
  * Each workspace argument represents a root node and its descendants.
  *
- * @param workspaces - Rest parameter where each element is:
- *   - nodes: Array of [root, ...allDescendants] for iterateNodeTree
- *   - nodeChildren: Optional map of folder URI strings to their direct children
- *     (used for getChildNodes(uri) calls during subpackage verification)
+ * @param workspaces - Array of mock workspace specifications
  * @returns A mocked FilteredWorkspace with:
  *   - getChildNodes: Returns roots when parentUri is null, returns nodeChildren
  *     entries when parentUri matches a key, otherwise empty array
@@ -109,12 +107,7 @@ function createDiagnosticCollection(
  */
 function mockFilteredWorkspace<
   TModuleName extends PythonModuleFullname | GroovyPackageName,
->(
-  ...workspaces: Array<{
-    nodes: (FilteredWorkspaceRootNode | FilteredWorkspaceNode)[];
-    nodeChildren?: [vscode.Uri, FilteredWorkspaceNode[]][];
-  }>
-): FilteredWorkspace<TModuleName> {
+>(...workspaces: MockWorkspaceSpec[]): FilteredWorkspace<TModuleName> {
   const roots = workspaces.map(ws => ws.nodes[0] as FilteredWorkspaceRootNode);
 
   const nodeMap = new URIMap(workspaces.map(ws => [ws.nodes[0].uri, ws.nodes]));
