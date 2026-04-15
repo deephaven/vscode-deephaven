@@ -13,7 +13,7 @@ vi.mock('../../common/commands', async () => {
   const actual = await vi.importActual('../../common/commands');
   return {
     ...actual,
-    execRemoveRemoteFileSource: vi.fn().mockResolvedValue(undefined),
+    execRemoveRemoteFileSource: vi.fn(),
   };
 });
 
@@ -33,105 +33,109 @@ describe('removeRemoteFileSources', () => {
     );
   });
 
-  it.each([
-    {
-      scenario: 'multiple URIs (python)',
-      folderUris: [
-        'file:///server1/path/to/folder1',
-        'file:///server2/path/to/folder2/',
-        'file:///local/path/',
-      ],
-      languageId: 'python' as const,
-      expectedParsedUris: [
-        'file:///server1/path/to/folder1',
-        'file:///server2/path/to/folder2',
-        'file:///local/path',
-      ],
-      expectedLanguageId: 'python',
-    },
-    {
-      scenario: 'single folder URI (python)',
-      folderUris: ['file:///server/folder'],
-      languageId: 'python' as const,
-      expectedParsedUris: ['file:///server/folder'],
-      expectedLanguageId: 'python',
-    },
-    {
-      scenario: 'empty array',
-      folderUris: [],
-      languageId: 'python' as const,
-      expectedParsedUris: [],
-      expectedLanguageId: 'python',
-    },
-    {
-      scenario: 'duplicate URIs with mixed trailing slashes',
-      folderUris: [
-        'file:///server/folder',
-        'file:///server/folder',
-        'file:///server/folder/',
-      ],
-      languageId: 'python' as const,
-      expectedParsedUris: ['file:///server/folder'],
-      expectedLanguageId: 'python',
-    },
-    {
-      scenario: 'groovy language ID',
-      folderUris: ['file:///server/groovy/package3'],
-      languageId: 'groovy' as const,
-      expectedParsedUris: ['file:///server/groovy/package3'],
-      expectedLanguageId: 'groovy',
-    },
-  ])(
-    'should handle $scenario',
-    async ({ folderUris, languageId, expectedParsedUris, expectedLanguageId }) => {
-      const tool = createRemoveRemoteFileSourcesTool();
-      const result = await tool.handler({ folderUris, languageId });
+  describe.each(['groovy', 'python'] as const)(
+    'handler with languageId "%s"',
+    languageId => {
+      it.each([
+        {
+          scenario: 'multiple URIs',
+          folderUris: [
+            'file:///server1/path/to/folder1',
+            'file:///server2/path/to/folder2/',
+            'file:///local/path/',
+          ],
+          languageId,
+          expectedParsedUris: [
+            'file:///server1/path/to/folder1',
+            'file:///server2/path/to/folder2',
+            'file:///local/path',
+          ],
+          expectedLanguageId: languageId,
+        },
+        {
+          scenario: 'single folder URI',
+          folderUris: ['file:///server/folder'],
+          languageId,
+          expectedParsedUris: ['file:///server/folder'],
+          expectedLanguageId: languageId,
+        },
+        {
+          scenario: 'empty array',
+          folderUris: [],
+          languageId,
+          expectedParsedUris: [],
+          expectedLanguageId: languageId,
+        },
+        {
+          scenario: 'duplicate URIs with mixed trailing slashes',
+          folderUris: [
+            'file:///server/folder',
+            'file:///server/folder',
+            'file:///server/folder/',
+          ],
+          languageId,
+          expectedParsedUris: ['file:///server/folder'],
+          expectedLanguageId: languageId,
+        },
+      ])(
+        'should handle $scenario',
+        async ({
+          folderUris,
+          languageId,
+          expectedParsedUris,
+          expectedLanguageId,
+        }) => {
+          const tool = createRemoveRemoteFileSourcesTool();
+          const result = await tool.handler({ folderUris, languageId });
 
-      expect(commands.execRemoveRemoteFileSource).toHaveBeenCalledWith(
-        expectedLanguageId,
-        expectedParsedUris.map(uri => vscode.Uri.parse(uri))
+          expect(commands.execRemoveRemoteFileSource).toHaveBeenCalledWith(
+            expectedLanguageId,
+            expectedParsedUris.map(uri => vscode.Uri.parse(uri))
+          );
+          expect(result.structuredContent).toEqual(
+            mcpSuccessResult('Remote file sources removed successfully', {
+              foldersRemoved: expectedParsedUris.length,
+            })
+          );
+        }
       );
-      expect(result.structuredContent).toEqual(
-        mcpSuccessResult('Remote file sources removed successfully', {
-          foldersRemoved: expectedParsedUris.length,
-        })
-      );
-    }
-  );
 
-  it.each([
-    {
-      scenario: 'command execution error',
-      mockSetup: (): void => {
-        vi.mocked(commands.execRemoveRemoteFileSource).mockRejectedValue(
-          new Error('Command failed')
-        );
-      },
-      folderUris: ['file:///server/folder'],
-      languageId: 'python' as const,
-      expectedMessage: 'Failed to remove remote file sources: Command failed',
-    },
-    {
-      scenario: 'URI parsing error',
-      mockSetup: (): void => {
-        vi.mocked(vscode.Uri.parse).mockImplementation(() => {
-          throw new Error('Invalid URI');
-        });
-      },
-      folderUris: ['invalid-uri'],
-      languageId: 'python' as const,
-      expectedMessage: 'Failed to remove remote file sources: Invalid URI',
-    },
-  ])(
-    'should handle $scenario',
-    async ({ mockSetup, folderUris, languageId, expectedMessage }) => {
-      mockSetup();
+      it.each([
+        {
+          scenario: 'command execution error',
+          mockSetup: (): void => {
+            vi.mocked(
+              commands.execRemoveRemoteFileSource
+            ).mockRejectedValueOnce(new Error('Command failed'));
+          },
+          folderUris: ['file:///server/folder'],
+          languageId,
+          expectedMessage:
+            'Failed to remove remote file sources: Command failed',
+        },
+        {
+          scenario: 'URI parsing error',
+          mockSetup: (): void => {
+            vi.mocked(vscode.Uri.parse).mockImplementationOnce(() => {
+              throw new Error('Invalid URI');
+            });
+          },
+          folderUris: ['invalid-uri'],
+          languageId,
+          expectedMessage: 'Failed to remove remote file sources: Invalid URI',
+        },
+      ])(
+        'should handle $scenario',
+        async ({ mockSetup, folderUris, languageId, expectedMessage }) => {
+          mockSetup();
 
-      const tool = createRemoveRemoteFileSourcesTool();
-      const result = await tool.handler({ folderUris, languageId });
+          const tool = createRemoveRemoteFileSourcesTool();
+          const result = await tool.handler({ folderUris, languageId });
 
-      expect(result.structuredContent).toEqual(
-        mcpErrorResult(expectedMessage, { folderUris })
+          expect(result.structuredContent).toEqual(
+            mcpErrorResult(expectedMessage, { folderUris })
+          );
+        }
       );
     }
   );
