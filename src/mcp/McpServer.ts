@@ -75,15 +75,7 @@ export class McpServer extends DisposableBase {
     this.registerTool(createOpenFilesInEditorTool());
     this.registerTool(createOpenVariablePanelsTool(this));
     this.registerTool(createRemoveRemoteFileSourcesTool());
-    this.registerTool(
-      createRunCodeFromUriTool({
-        groovyDiagnostics: this.groovyDiagnostics,
-        groovyWorkspace: this.groovyWorkspace,
-        pythonDiagnostics: this.pythonDiagnostics,
-        pythonWorkspace: this.pythonWorkspace,
-        serverManager: this.serverManager,
-      })
-    );
+    this.registerTool(createRunCodeFromUriTool(this));
     this.registerTool(createRunCodeTool(this));
     this.registerTool(createShowOutputPanelTool(this));
   }
