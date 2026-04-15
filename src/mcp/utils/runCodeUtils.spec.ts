@@ -107,22 +107,24 @@ function createDiagnosticCollection(
  *     entries when parentUri matches a key, otherwise empty array
  *   - iterateNodeTree: Returns all nodes for the matching root
  */
-function createGroovyWorkspace(
+function mockFilteredWorkspace<
+  TModuleName extends PythonModuleFullname | GroovyPackageName,
+>(
   ...workspaces: Array<{
     nodes: (FilteredWorkspaceRootNode | FilteredWorkspaceNode)[];
     nodeChildren?: [vscode.Uri, FilteredWorkspaceNode[]][];
   }>
-): FilteredWorkspace<GroovyPackageName> {
+): FilteredWorkspace<TModuleName> {
   const roots = workspaces.map(ws => ws.nodes[0] as FilteredWorkspaceRootNode);
 
   const nodeMap = new URIMap(workspaces.map(ws => [ws.nodes[0].uri, ws.nodes]));
 
   const childMap = new URIMap(workspaces.flatMap(ws => ws.nodeChildren ?? []));
 
-  const workspace: FilteredWorkspace<GroovyPackageName> = {
+  const workspace: FilteredWorkspace<TModuleName> = {
     getChildNodes: vi.fn(),
     iterateNodeTree: vi.fn(),
-  } as unknown as FilteredWorkspace<GroovyPackageName>;
+  } as unknown as FilteredWorkspace<TModuleName>;
 
   vi.mocked(workspace.getChildNodes).mockImplementation(
     (parentUri: vscode.Uri | null) => {
@@ -131,28 +133,6 @@ function createGroovyWorkspace(
       }
       return childMap.get(parentUri) ?? [];
     }
-  );
-  vi.mocked(workspace.iterateNodeTree).mockImplementation(
-    (rootUri: vscode.Uri) => nodeMap.get(rootUri) ?? []
-  );
-
-  return workspace;
-}
-
-function createPythonWorkspace(
-  ...workspaces: Array<(FilteredWorkspaceRootNode | FilteredWorkspaceNode)[]>
-): FilteredWorkspace<PythonModuleFullname> {
-  const roots = workspaces.map(nodes => nodes[0] as FilteredWorkspaceRootNode);
-
-  const nodeMap = new URIMap(workspaces.map(nodes => [nodes[0].uri, nodes]));
-
-  const workspace: FilteredWorkspace<PythonModuleFullname> = {
-    getChildNodes: vi.fn(),
-    iterateNodeTree: vi.fn(),
-  } as unknown as FilteredWorkspace<PythonModuleFullname>;
-
-  vi.mocked(workspace.getChildNodes).mockImplementation(
-    (parentUri: vscode.Uri | null) => (parentUri == null ? roots : [])
   );
   vi.mocked(workspace.iterateNodeTree).mockImplementation(
     (rootUri: vscode.Uri) => nodeMap.get(rootUri) ?? []
@@ -540,21 +520,21 @@ describe('createPythonModuleImportErrorHint', () => {
       name: 'return undefined when no import errors exist',
       errors: DIAGNOSTIC_ERRORS_WITHOUT_MODULE_IMPORT,
       hasPlugin: false,
-      workspaces: [[wkspRoot, pandasFolder]],
+      workspaces: [{ nodes: [wkspRoot, pandasFolder] }],
       expected: undefined,
     },
     {
       name: 'return undefined when no import errors exist even with plugin',
       errors: DIAGNOSTIC_ERRORS_WITHOUT_MODULE_IMPORT,
       hasPlugin: true,
-      workspaces: [[wkspRoot, pandasFolder]],
+      workspaces: [{ nodes: [wkspRoot, pandasFolder] }],
       expected: undefined,
     },
     {
       name: 'suggest installing plugin when not installed',
       errors: DIAGNOSTIC_ERRORS_WITH_MODULE_IMPORT,
       hasPlugin: false,
-      workspaces: [[wkspRoot, pandasFolder]],
+      workspaces: [{ nodes: [wkspRoot, pandasFolder] }],
       expected: {
         hint: `The Python remote file source plugin is not installed. Install it with 'pip install deephaven-plugin-python-remote-file-source' to enable importing workspace packages.`,
         foundMatchingFolderUris: [],
@@ -564,7 +544,7 @@ describe('createPythonModuleImportErrorHint', () => {
       name: 'suggest workspace folders when plugin is installed and folders exist',
       errors: DIAGNOSTIC_ERRORS_WITH_MODULE_IMPORT,
       hasPlugin: true,
-      workspaces: [[wkspRoot, pandasFolder]],
+      workspaces: [{ nodes: [wkspRoot, pandasFolder] }],
       expected: {
         hint: `If this is a package in your workspace, add its folder as a remote file source using addRemoteFileSources. DO NOT guess folder URIs - use the exact URIs provided in details.foundMatchingFolderUris. DO NOT create __init__.py files without first attempting to configure remote file sources.`,
         foundMatchingFolderUris: [pandasFolder.uri.toString()],
@@ -574,7 +554,7 @@ describe('createPythonModuleImportErrorHint', () => {
       name: 'handle multiple import errors and find matching folders',
       errors: DIAGNOSTIC_ERRORS_WITH_MULTIPLE_MODULE_IMPORTS,
       hasPlugin: true,
-      workspaces: [[wkspRoot, pandasFolder, numpyFolder]],
+      workspaces: [{ nodes: [wkspRoot, pandasFolder, numpyFolder] }],
       expected: {
         hint: `If this is a package in your workspace, add its folder as a remote file source using addRemoteFileSources. DO NOT guess folder URIs - use the exact URIs provided in details.foundMatchingFolderUris. DO NOT create __init__.py files without first attempting to configure remote file sources.`,
         foundMatchingFolderUris: [
@@ -587,7 +567,7 @@ describe('createPythonModuleImportErrorHint', () => {
       name: 'not include file nodes, only folders',
       errors: DIAGNOSTIC_ERRORS_WITH_MODULE_IMPORT,
       hasPlugin: true,
-      workspaces: [[wkspRoot, pandasFile]],
+      workspaces: [{ nodes: [wkspRoot, pandasFile] }],
       expected: {
         hint: `If this is a package in your workspace, add its folder as a remote file source using addRemoteFileSources. DO NOT guess folder URIs - use the exact URIs provided in details.foundMatchingFolderUris. DO NOT create __init__.py files without first attempting to configure remote file sources.`,
         foundMatchingFolderUris: [],
@@ -598,8 +578,8 @@ describe('createPythonModuleImportErrorHint', () => {
       errors: DIAGNOSTIC_ERRORS_WITH_MULTIPLE_MODULE_IMPORTS,
       hasPlugin: true,
       workspaces: [
-        [wkspRoot, pandasFolder],
-        [wksp2Root, wksp2NumpyFolder],
+        { nodes: [wkspRoot, pandasFolder] },
+        { nodes: [wksp2Root, wksp2NumpyFolder] },
       ],
       expected: {
         hint: `If this is a package in your workspace, add its folder as a remote file source using addRemoteFileSources. DO NOT guess folder URIs - use the exact URIs provided in details.foundMatchingFolderUris. DO NOT create __init__.py files without first attempting to configure remote file sources.`,
@@ -610,7 +590,9 @@ describe('createPythonModuleImportErrorHint', () => {
       },
     },
   ])('should $name', async ({ errors, hasPlugin, workspaces, expected }) => {
-    const pythonWorkspace = createPythonWorkspace(...workspaces);
+    const pythonWorkspace = mockFilteredWorkspace<PythonModuleFullname>(
+      ...workspaces
+    );
 
     vi.mocked(isInstanceOf).mockReturnValue(hasPlugin);
 
@@ -628,7 +610,9 @@ describe('createPythonModuleImportErrorHint', () => {
   });
 
   it('should parse raw error message when diagnostics are empty', () => {
-    const pythonWorkspace = createPythonWorkspace([wkspRoot, pandasFolder]);
+    const pythonWorkspace = mockFilteredWorkspace<PythonModuleFullname>({
+      nodes: [wkspRoot, pandasFolder],
+    });
 
     vi.mocked(isInstanceOf).mockReturnValue(true);
 
@@ -862,7 +846,7 @@ describe('createGroovyImportErrorHint', () => {
       },
     },
   ])('should $name', ({ errors, hasPlugin, workspace, expected }) => {
-    const groovyWorkspace = createGroovyWorkspace(workspace);
+    const groovyWorkspace = mockFilteredWorkspace<GroovyPackageName>(workspace);
 
     vi.mocked(isInstanceOf).mockReturnValue(hasPlugin);
 
@@ -880,7 +864,7 @@ describe('createGroovyImportErrorHint', () => {
   });
 
   it('should handle multiple workspace roots with matching folders', () => {
-    const groovyWorkspace = createGroovyWorkspace(
+    const groovyWorkspace = mockFilteredWorkspace<GroovyPackageName>(
       {
         nodes: [wkspRoot, package3Folder, subpackage1Folder],
         nodeChildren: [[package3Folder.uri, [subpackage1Folder]]],
@@ -913,7 +897,7 @@ describe('createGroovyImportErrorHint', () => {
   });
 
   it('should parse raw error message when diagnostics are empty', () => {
-    const groovyWorkspace = createGroovyWorkspace({
+    const groovyWorkspace = mockFilteredWorkspace<GroovyPackageName>({
       nodes: [wkspRoot, package3Folder, subpackage1Folder],
       nodeChildren: [[package3Folder.uri, [subpackage1Folder]]],
     });
@@ -941,7 +925,7 @@ describe('createGroovyImportErrorHint', () => {
   });
 
   it('should parse "unable to resolve class" raw error message when diagnostics are empty', () => {
-    const groovyWorkspace = createGroovyWorkspace({
+    const groovyWorkspace = mockFilteredWorkspace<GroovyPackageName>({
       nodes: [wkspRoot, package3Folder, subpackage1Folder],
       nodeChildren: [[package3Folder.uri, [subpackage1Folder]]],
     });
