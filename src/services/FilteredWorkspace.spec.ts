@@ -70,6 +70,9 @@ const folderElement = element.bind(null, 'folder');
 const wkspFolderElement = element.bind(null, 'workspaceRootFolder');
 const topLevelMarkedFolderElement = element.bind(null, 'topLevelMarkedFolder');
 
+const onDidUpdateListener = vi.fn();
+const onDidChangeFileDecorationsListener = vi.fn();
+
 function element(
   type: RemoteImportSourceTreeElement['type'],
   uri: vscode.Uri,
@@ -299,6 +302,9 @@ async function initWorkspace(wsMap: URIMap<URISet>): Promise<{
     mockToaster
   );
 
+  workspace.onDidUpdate(onDidUpdateListener);
+  workspace.onDidChangeFileDecorations(onDidChangeFileDecorationsListener);
+
   return {
     workspace,
     // Helper to check the current state of the workspace against expected nodes
@@ -379,74 +385,113 @@ describe('getTopLevelMarkedFolders', () => {
   );
 });
 
-describe('mark / unmark', () => {
-  it.each([
-    [[mock.folder1.sub1, mock.folder1.sub2], expected.folder1.allMarked],
-    [[mock.folder1.sub1], expected.folder1.sub1Marked],
-    [[mock.folder1.sub1_a], expected.folder1.sub1aMarked],
-  ])(
-    'should mark a folder and its children: %s',
-    async (markRoots, expected) => {
+describe.each([true, false])(
+  'mark / unmark - supressNotify%s',
+  supressNotify => {
+    it.each([
+      [[mock.folder1.sub1, mock.folder1.sub2], expected.folder1.allMarked],
+      [[mock.folder1.sub1], expected.folder1.sub1Marked],
+      [[mock.folder1.sub1_a], expected.folder1.sub1aMarked],
+    ])(
+      'should mark a folder and its children: %s',
+      async (markRoots, expected) => {
+        const { workspace, expectResult } = await initWorkspace(mock2RootWs);
+
+        vi.spyOn(workspace, 'unmarkConflictingTopLevelFolder');
+
+        markRoots.forEach(markRoot => {
+          workspace.markFolder(markRoot, supressNotify);
+          expect(
+            workspace.unmarkConflictingTopLevelFolder
+          ).toHaveBeenCalledWith(markRoot, true);
+        });
+
+        expectResult(mock.folder1.root, expected);
+
+        if (supressNotify) {
+          expect(onDidUpdateListener).not.toHaveBeenCalled();
+          expect(onDidChangeFileDecorationsListener).not.toHaveBeenCalled();
+        } else {
+          expect(onDidUpdateListener).toHaveBeenCalledTimes(markRoots.length);
+          expect(onDidChangeFileDecorationsListener).toHaveBeenCalledTimes(
+            markRoots.length
+          );
+        }
+      }
+    );
+
+    it('should replace folder with conflicting module name', async () => {
       const { workspace, expectResult } = await initWorkspace(mock2RootWs);
 
-      markRoots.forEach(markRoot => {
-        workspace.markFolder(markRoot);
-      });
+      const moduleA = mock.folder1.sub1_a;
+      const conflictingModuleA = mock.folder1.sub2_a;
 
-      expectResult(mock.folder1.root, expected);
-    }
-  );
+      workspace.markFolder(moduleA, supressNotify);
 
-  it('should replace folder with conflicting module name', async () => {
-    const { workspace, expectResult } = await initWorkspace(mock2RootWs);
+      expectResult(
+        mock.folder1.root,
+        expected.folder1.sub1aMarked,
+        'mark module a'
+      );
 
-    const moduleA = mock.folder1.sub1_a;
-    const conflictingModuleA = mock.folder1.sub2_a;
+      workspace.markFolder(moduleA, supressNotify);
+      expect(mockToaster.error).not.toHaveBeenCalled();
+      expectResult(
+        mock.folder1.root,
+        expected.folder1.sub1aMarked,
+        'mark same module a again'
+      );
 
-    workspace.markFolder(moduleA);
+      workspace.markFolder(conflictingModuleA, supressNotify);
+      expect(mockToaster.info).toHaveBeenCalledWith(
+        `Updated 'a' import source to 'sub2/a'.`
+      );
+      expectResult(
+        mock.folder1.root,
+        expected.folder1.sub2aMarked,
+        'unmark conflicting module a'
+      );
 
-    expectResult(
-      mock.folder1.root,
-      expected.folder1.sub1aMarked,
-      'mark module a'
-    );
+      if (supressNotify) {
+        expect(onDidUpdateListener).not.toHaveBeenCalled();
+        expect(onDidChangeFileDecorationsListener).not.toHaveBeenCalled();
+      } else {
+        expect(onDidUpdateListener).toHaveBeenCalledTimes(3);
+        expect(onDidChangeFileDecorationsListener).toHaveBeenCalledTimes(3);
+      }
+    });
+  }
+);
 
-    workspace.markFolder(moduleA);
-    expect(mockToaster.error).not.toHaveBeenCalled();
-    expectResult(
-      mock.folder1.root,
-      expected.folder1.sub1aMarked,
-      'mark same module a again'
-    );
+describe.each([true, false])(
+  'unmarkFolder - supressNotify%s',
+  supressNotify => {
+    it('should unmark a folder and its children', async () => {
+      const { workspace, expectResult } = await initWorkspace(mock2RootWs);
 
-    workspace.markFolder(conflictingModuleA);
-    expect(mockToaster.info).toHaveBeenCalledWith(
-      `Updated 'a' import source to 'sub2/a'.`
-    );
-    expectResult(
-      mock.folder1.root,
-      expected.folder1.sub2aMarked,
-      'unmark conflicting module a'
-    );
-  });
-});
+      workspace.markFolder(mock.folder1.sub1, supressNotify);
+      workspace.markFolder(mock.folder1.sub2, supressNotify);
+      vi.clearAllMocks();
 
-describe('unmarkFolder', () => {
-  it('should unmark a folder and its children', async () => {
-    const { workspace, expectResult } = await initWorkspace(mock2RootWs);
-    workspace.markFolder(mock.folder1.sub1);
-    workspace.markFolder(mock.folder1.sub2);
+      workspace.unmarkFolder(mock.folder1.sub2, supressNotify);
 
-    workspace.unmarkFolder(mock.folder1.sub2);
+      // Unmarking sub2 should result in only sub1 being marked
+      expectResult(
+        mock.folder1.root,
+        expected.folder1.sub1Marked,
+        'unmark folder1 sub2'
+      );
 
-    // Unmarking sub2 should result in only sub1 being marked
-    expectResult(
-      mock.folder1.root,
-      expected.folder1.sub1Marked,
-      'unmark folder1 sub2'
-    );
-  });
-});
+      if (supressNotify) {
+        expect(onDidUpdateListener).not.toHaveBeenCalled();
+        expect(onDidChangeFileDecorationsListener).not.toHaveBeenCalled();
+      } else {
+        expect(onDidUpdateListener).toHaveBeenCalledTimes(1);
+        expect(onDidChangeFileDecorationsListener).toHaveBeenCalledTimes(1);
+      }
+    });
+  }
+);
 
 describe('unmarkConflictingTopLevelFolder', () => {
   it('should unmark conflicting top-level marked folders', async () => {
@@ -462,7 +507,10 @@ describe('unmarkConflictingTopLevelFolder', () => {
       expected.folder1.sub1aMarked,
       'mark module a'
     );
+    onDidUpdateListener.mockClear();
+    onDidChangeFileDecorationsListener.mockClear();
 
+    // non-conflict scenario
     workspace.unmarkConflictingTopLevelFolder(moduleA);
     expect(mockToaster.error).not.toHaveBeenCalled();
     expectResult(
@@ -470,7 +518,10 @@ describe('unmarkConflictingTopLevelFolder', () => {
       expected.folder1.sub1aMarked,
       'unmark non-conclicting module a'
     );
+    expect(onDidUpdateListener).not.toHaveBeenCalled();
+    expect(onDidChangeFileDecorationsListener).not.toHaveBeenCalled();
 
+    // conflict scenario
     workspace.unmarkConflictingTopLevelFolder(conflictingModuleA);
     expect(mockToaster.info).toHaveBeenCalledWith(
       `Updated 'a' import source to 'sub2/a'.`
@@ -480,6 +531,8 @@ describe('unmarkConflictingTopLevelFolder', () => {
       expected.folder1.allUnmarked,
       'unmark conflicting module a'
     );
+    expect(onDidUpdateListener).toHaveBeenCalledTimes(1);
+    expect(onDidChangeFileDecorationsListener).toHaveBeenCalledTimes(1);
   });
 });
 

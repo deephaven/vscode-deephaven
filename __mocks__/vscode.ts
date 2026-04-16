@@ -128,8 +128,20 @@ export class DiagnosticCollection
   }
 }
 
-export class EventEmitter {
-  fire = vi.fn().mockName('fire');
+export class EventEmitter<T> {
+  listeners = new Set<(...args: any[]) => void>();
+  event = (listener: (e: T) => any) => {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  };
+  fire = vi
+    .fn()
+    .mockName('fire')
+    .mockImplementation((event: T) => {
+      this.listeners.forEach(listener => listener(event));
+    });
 }
 
 export class MarkdownString {
