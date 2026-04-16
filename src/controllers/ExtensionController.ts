@@ -82,6 +82,7 @@ import {
   DheJsApiCache,
   DheService,
   DheServiceCache,
+  DEFAULT_IGNORE_TOP_LEVEL_FOLDER_NAMES,
   FilteredWorkspace,
   RemoteFileSourceService,
   PanelService,
@@ -89,9 +90,7 @@ import {
   PYTHON_FILE_PATTERN,
   SecretService,
   ServerManager,
-  PYTHON_IGNORE_TOP_LEVEL_FOLDER_NAMES,
   GROOVY_FILE_PATTERN,
-  GROOVY_IGNORE_TOP_LEVEL_FOLDER_NAMES,
 } from '../services';
 import type {
   IDisposable,
@@ -392,7 +391,7 @@ export class ExtensionController implements IDisposable {
       GROOVY_FILE_PATTERN,
       'groovy',
       getGroovyTopLevelPackageName,
-      GROOVY_IGNORE_TOP_LEVEL_FOLDER_NAMES,
+      DEFAULT_IGNORE_TOP_LEVEL_FOLDER_NAMES,
       this._toaster
     );
     this._context.subscriptions.push(this._groovyWorkspace);
@@ -401,7 +400,7 @@ export class ExtensionController implements IDisposable {
       PYTHON_FILE_PATTERN,
       'python',
       getPythonTopLevelModuleFullname,
-      PYTHON_IGNORE_TOP_LEVEL_FOLDER_NAMES,
+      DEFAULT_IGNORE_TOP_LEVEL_FOLDER_NAMES,
       this._toaster
     );
     this._context.subscriptions.push(this._pythonWorkspace);
