@@ -490,6 +490,51 @@ describe.each([true, false])(
         expect(onDidChangeFileDecorationsListener).toHaveBeenCalledTimes(1);
       }
     });
+
+    it('should unmark ancestors and re-promote remaining marked siblings as top-level', async () => {
+      const { workspace, expectResult } = await initWorkspace(mock2RootWs);
+
+      // Mark sub1 as top-level, which marks all its descendants
+      workspace.markFolder(mock.folder1.sub1, supressNotify);
+      vi.clearAllMocks();
+
+      vi.spyOn(workspace, 'unmarkConflictingTopLevelFolder');
+
+      // Unmark sub1_b (nested child) — triggers ancestor behavior on sub1
+      workspace.unmarkFolder(mock.folder1.sub1_b, supressNotify);
+
+      expectResult(
+        mock.folder1.root,
+        expected.folder1.sub1aMarked
+      );
+
+      // sub1 (the ancestor) should no longer be a top-level marked folder
+      const topLevelFolders = workspace.getTopLevelMarkedFolders();
+      expect(
+        topLevelFolders.some(f => f.uri.fsPath === mock.folder1.sub1.fsPath)
+      ).toBe(false);
+
+      // sub1_a (sibling of sub1_b) should be re-promoted to top-level
+      expect(topLevelFolders).toContainEqual(
+        topLevelMarkedFolderElement(mock.folder1.sub1_a)
+      );
+
+      // ancestor loop calls unmarkConflictingTopLevelFolder once for sub1_a,
+      // the only remaining marked folder child of the ancestor sub1
+      expect(workspace.unmarkConflictingTopLevelFolder).toHaveBeenCalledOnce();
+      expect(workspace.unmarkConflictingTopLevelFolder).toHaveBeenCalledWith(
+        mock.folder1.sub1_a,
+        true
+      );
+
+      if (supressNotify) {
+        expect(onDidUpdateListener).not.toHaveBeenCalled();
+        expect(onDidChangeFileDecorationsListener).not.toHaveBeenCalled();
+      } else {
+        expect(onDidUpdateListener).toHaveBeenCalledTimes(1);
+        expect(onDidChangeFileDecorationsListener).toHaveBeenCalledTimes(1);
+      }
+    });
   }
 );
 

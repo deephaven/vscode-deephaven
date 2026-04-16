@@ -6,7 +6,7 @@ export type FilePattern = `**/*.${string}`;
 export type FolderName = Brand<'FolderName', string>;
 export type GroovyPackageName = Brand<'GroovyPackageName', string>;
 export type GroovyResourceName = Brand<'GroovyResourceName', string>;
-export type PythonModuleFullname = Brand<'ModuleFullname', string>;
+export type PythonModuleFullname = Brand<'PythonModuleFullname', string>;
 export type RelativeWsUriString = Brand<'RelativeWsUriString', string>;
 
 interface JsonRpcRequestBase {

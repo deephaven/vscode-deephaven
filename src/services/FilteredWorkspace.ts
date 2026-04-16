@@ -210,7 +210,11 @@ export class FilteredWorkspace<
       // Since we've unmarked the parent as a top-level folder, we look for any
       // remaining marked children to re-add as top-level folders
       for (const childNode of this.getChildNodes(node.uri)) {
-        if (childNode.isMarked) {
+        if (!childNode.isMarked) {
+          continue;
+        }
+
+        if (childNode.type === 'folder') {
           // supress notify to avoid multiple notifications during unmarking
           this.unmarkConflictingTopLevelFolder(childNode.uri, true);
 
@@ -218,6 +222,9 @@ export class FilteredWorkspace<
             this._getTopLevelModuleName(childNode.uri),
             childNode.uri
           );
+        } else {
+          // Files cannot be top-level entries; unmark since their parent is now unmarked
+          childNode.isMarked = false;
         }
       }
     }
