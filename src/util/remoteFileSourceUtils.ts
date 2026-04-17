@@ -324,9 +324,9 @@ export async function getWorkspaceFileUriMap(
  *     → imports prefix.package1
  *       → imports prefix.package2 (marked as remote source)
  *   - Both cached in sys.modules
- *   - Remove prefix.package2 as remote source
- *   - prefix.package2 evicted from sys.modules, but prefix.package1
- *     still cached and holds stale reference to prefix.package2
+ *   - Unmark prefix.package2 as remote source
+ *   - Plugin evicts prefix.package2 from cache, but prefix.package1 is still
+ *     cached and holds stale reference to prefix.package2
  *
  * Solution: Clear all `prefix` and `prefix.*` from sys.modules.
  *
