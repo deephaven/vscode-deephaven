@@ -57,6 +57,38 @@ exports[`getFolderTreeItem > should return a TreeItem for a folder element. isMa
 }
 `;
 
+exports[`getLanguageRootTreeItem > should return a collapsed TreeItem for a language root element: groovy 1`] = `
+{
+  "collapsibleState": 1,
+  "contextValue": "languageRoot",
+  "iconPath": ThemeIcon {
+    "color": undefined,
+    "id": "coffee",
+  },
+  "label": "groovy root",
+}
+`;
+
+exports[`getLanguageRootTreeItem > should return a collapsed TreeItem for a language root element: python 1`] = `
+{
+  "collapsibleState": 1,
+  "contextValue": "languageRoot",
+  "iconPath": ThemeIcon {
+    "color": undefined,
+    "id": "dh-python",
+  },
+  "label": "python root",
+}
+`;
+
+exports[`getRootTreeItem > should return an expanded TreeItem for a root element 1`] = `
+{
+  "collapsibleState": 2,
+  "contextValue": "root",
+  "label": "root",
+}
+`;
+
 exports[`getTopLevelMarkedFolderTreeItem > should return a TreeItem for a top-level marked folder element 1`] = `
 {
   "collapsibleState": 0,
@@ -72,5 +104,30 @@ exports[`getTopLevelMarkedFolderTreeItem > should return a TreeItem for a top-le
     "path": "/mock/top/level/marked/folder/",
     "scheme": "file",
   },
+}
+`;
+
+exports[`getTopLevelMarkedFolderTreeItem > should return a non-collapsible TreeItem for a top-level marked folder element 1`] = `
+{
+  "collapsibleState": 0,
+  "contextValue": "canRemoveRemoteFileSource:python",
+  "description": undefined,
+  "iconPath": ThemeIcon {
+    "color": undefined,
+    "id": "dh-python",
+  },
+  "label": "",
+  "resourceUri": Uri {
+    "fsPath": "/mock/top/level/marked/folder/",
+    "path": "/mock/top/level/marked/folder/",
+    "scheme": "file",
+  },
+}
+`;
+
+exports[`getWorkspaceFolderRootTreeItem > should return a collapsed TreeItem for a workspace folder root element 1`] = `
+{
+  "collapsibleState": 1,
+  "label": "Workspace1",
 }
 `;
