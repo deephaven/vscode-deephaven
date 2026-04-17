@@ -89,24 +89,6 @@ exports[`getRootTreeItem > should return an expanded TreeItem for a root element
 }
 `;
 
-exports[`getTopLevelMarkedFolderTreeItem > should return a TreeItem for a top-level marked folder element 1`] = `
-{
-  "collapsibleState": 0,
-  "contextValue": "canRemoveRemoteFileSource:python",
-  "description": undefined,
-  "iconPath": ThemeIcon {
-    "color": undefined,
-    "id": "dh-python",
-  },
-  "label": "",
-  "resourceUri": Uri {
-    "fsPath": "/mock/top/level/marked/folder/",
-    "path": "/mock/top/level/marked/folder/",
-    "scheme": "file",
-  },
-}
-`;
-
 exports[`getTopLevelMarkedFolderTreeItem > should return a non-collapsible TreeItem for a top-level marked folder element 1`] = `
 {
   "collapsibleState": 0,
