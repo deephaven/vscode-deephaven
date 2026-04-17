@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { isAggregateError } from '@deephaven/jsapi-nodejs';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import {
+  extractControllerImportPrefixes,
   formatTimestamp,
   getCombinedRangeLinesText,
   isNonEmptyArray,
@@ -522,13 +523,18 @@ export class DhcService extends DisposableBase implements IDhcService {
       this.isRunningCode = true;
 
       if (this.pythonRemoteFileSourcePlugin != null) {
-        // Update controller prefixes based on the code being executed
-        // Replace prefixes if running a full file, otherwise only update if found
-        const replacePrefixes = typeof documentOrText !== 'string';
-        this.remoteFileSourceService.updateControllerPrefixesFromCode(
-          text,
-          replacePrefixes
-        );
+        const isDoc = typeof documentOrText !== 'string';
+        const controllerImportPrefixes = extractControllerImportPrefixes(text);
+
+        // Update prefixes if we are running full file, or if parsing found
+        // prefixes in the code. This allows prefixes from a full file run to
+        // persist if user wants to run snippets of code to update things, and
+        // running a full file is the entry point, so prefixes should be reset.
+        if (isDoc || controllerImportPrefixes.size > 0) {
+          this.remoteFileSourceService.setControllerImportPrefixes(
+            controllerImportPrefixes
+          );
+        }
 
         await this.remoteFileSourceService.setPythonServerExecutionContext(
           this.cnId,

@@ -14,9 +14,11 @@ const DEFAULT_META_IMPORT_PREFIX = 'controller' as const;
  * - Multiline calls are not detected
  *
  * @param pythonCode The Python source code to scan.
- * @returns A set of controller prefixes found in the code.
+ * @returns A set of controller import prefixes found in the code.
  */
-export function extractControllerPrefixes(pythonCode: string): Set<string> {
+export function extractControllerImportPrefixes(
+  pythonCode: string
+): Set<string> {
   const prefixes = new Set<string>();
 
   // Pattern 1: deephaven_enterprise.controller_import.meta_import() direct call

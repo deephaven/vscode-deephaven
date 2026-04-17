@@ -129,18 +129,28 @@ export class DiagnosticCollection
 }
 
 export class EventEmitter<T> {
-  listeners = new Set<(...args: any[]) => void>();
-  event = (listener: (e: T) => any) => {
-    this.listeners.add(listener);
-    return () => {
-      this.listeners.delete(listener);
-    };
-  };
+  private listeners = new Set<(data: T) => any>();
+
+  event = vi
+    .fn()
+    .mockName('event')
+    .mockImplementation((listener: (e: T) => any) => {
+      this.listeners.add(listener);
+      return {
+        dispose: vi
+          .fn()
+          .mockName('dispose')
+          .mockImplementation(() => {
+            this.listeners.delete(listener);
+          }),
+      };
+    });
+
   fire = vi
     .fn()
     .mockName('fire')
-    .mockImplementation((event: T) => {
-      this.listeners.forEach(listener => listener(event));
+    .mockImplementation((data: T): void => {
+      this.listeners.forEach(listener => listener(data));
     });
 }
 
@@ -320,7 +330,6 @@ export const workspace = {
     .mockReturnValue({
       onDidChange: vi.fn().mockName('onDidChange'),
       onDidCreate: vi.fn().mockName('onDidCreate'),
-      onDidChange: vi.fn().mockName('onDidChange'),
       onDidDelete: vi.fn().mockName('onDidDelete'),
     }),
   fs: {

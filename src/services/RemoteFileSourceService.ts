@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { DisposableBase } from './DisposableBase';
 import {
-  extractControllerPrefixes,
   getSetExecutionContextScript,
   getPythonTopLevelModuleFullname,
   Logger,
@@ -43,7 +42,7 @@ export class RemoteFileSourceService extends DisposableBase {
   }
 
   private _isGroovyWorkspaceDirty = false;
-  private _controllerPrefixes = new Set<string>();
+  private _controllerImportPrefixes = new Set<string>();
 
   private _onDidUpdatePythonModuleMeta = new vscode.EventEmitter<void>();
   readonly onDidUpdatePythonModuleMeta =
@@ -169,34 +168,12 @@ export class RemoteFileSourceService extends DisposableBase {
 
       set.add(moduleName);
 
-      for (const prefix of this._controllerPrefixes) {
+      for (const prefix of this._controllerImportPrefixes) {
         set.add(`${prefix}.${moduleName}` as PythonModuleFullname);
       }
     });
 
     return set;
-  }
-
-  /**
-   * Update controller prefixes based on Python code being executed.
-   * @param pythonCode The Python code to scan for controller prefixes.
-   * @param replace If true, replace existing prefixes. If false, only add newly found prefixes.
-   */
-  updateControllerPrefixesFromCode(pythonCode: string, replace: boolean): void {
-    const extractedPrefixes = extractControllerPrefixes(pythonCode);
-
-    if (replace) {
-      // Replace all prefixes with what we found (could be empty)
-      this._controllerPrefixes = extractedPrefixes;
-    } else if (extractedPrefixes.size > 0) {
-      // Only update if we found prefixes (keep existing otherwise)
-      this._controllerPrefixes = extractedPrefixes;
-    }
-
-    // Fire update if prefixes changed
-    if (extractedPrefixes.size > 0 || replace) {
-      this._onDidUpdatePythonModuleMeta.fire();
-    }
   }
 
   async registerGroovyPlugin(
@@ -254,6 +231,16 @@ export class RemoteFileSourceService extends DisposableBase {
       messageSubscription();
       metaSubscription.dispose();
     };
+  }
+
+  /**
+   * Update controller import prefixes based on Python code being executed.
+   * @param controllerImportPrefixes The set of controller import prefixes to
+   * use for resolving imports in the code being executed.
+   */
+  setControllerImportPrefixes(controllerImportPrefixes: Set<string>): void {
+    this._controllerImportPrefixes = controllerImportPrefixes;
+    this._onDidUpdatePythonModuleMeta.fire();
   }
 
   /**
