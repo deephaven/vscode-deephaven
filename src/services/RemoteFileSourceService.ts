@@ -8,6 +8,7 @@ import {
   registerGroovyRemoteFileSourcePluginMessageListener,
   registerPythonRemoteFileSourcePluginMessageListener,
   getGroovyTopLevelPackageName,
+  getClearControllerPrefixesScript,
 } from '../util';
 import type {
   GroovyPackageName,
@@ -306,7 +307,13 @@ export class RemoteFileSourceService extends DisposableBase {
           this.getPythonTopLevelModuleNames()
         );
 
-        await session.runCode(setExecutionContextScript);
+        const clearControllerPrefixesScript = getClearControllerPrefixesScript(
+          this._controllerImportPrefixes
+        );
+
+        await session.runCode(
+          `${clearControllerPrefixesScript || `${clearControllerPrefixesScript}\n`}${setExecutionContextScript}`
+        );
       });
 
     await this._pythonExecutionContextQueue;
