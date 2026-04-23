@@ -10,7 +10,7 @@ import type {
   WorkerURL,
 } from '../types';
 
-/** Arguments passed to `ADD_REMOTE_FILE_SOURCE_CMD` handler */
+/** Arguments passed to `ADD_GROOVY_REMOTE_FILE_SOURCE_CMD` and `ADD_PYTHON_REMOTE_FILE_SOURCE_CMD` handlers */
 export type AddRemoteFileSourceCmdArgs = [
   languageId: 'groovy' | 'python',
   folderElementOrUri:
@@ -38,7 +38,7 @@ export type RefreshVariablePanelsCmdArgs = [
   variables: NonEmptyArray<VariableDefintion>,
 ];
 
-/** Arguments passed to `REMOVE_REMOTE_FILE_SOURCE_CMD` handler */
+/** Arguments passed to `REMOVE_GROOVY_REMOTE_FILE_SOURCE_CMD` and `REMOVE_PYTHON_REMOTE_FILE_SOURCE_CMD` handlers */
 export type RemoveRemoteFileSourceCmdArgs = [
   languageId: 'groovy' | 'python',
   folderElementOrUri:

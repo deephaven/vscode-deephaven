@@ -21,7 +21,14 @@ const spec = {
       ),
   },
   outputSchema: createMcpToolOutputSchema({
-    folderUris: z.array(z.string()).optional(),
+    folders: z
+      .array(
+        z.object({
+          uri: z.string(),
+          languageId: z.enum(['groovy', 'python']),
+        })
+      )
+      .optional(),
   }),
 } as const;
 
@@ -44,28 +51,38 @@ export function createListRemoteFileSourcesTool({
       const response = new McpToolResponse();
 
       try {
-        const folderUris: string[] = [];
+        // Validate languageId if provided
+        if (languageId && languageId !== 'groovy' && languageId !== 'python') {
+          return response.error(
+            `Unsupported languageId: "${languageId}". Must be "groovy" or "python".`
+          );
+        }
+
+        const folders: Array<{ uri: string; languageId: 'groovy' | 'python' }> =
+          [];
 
         if (!languageId || languageId === 'groovy') {
-          folderUris.push(
-            ...groovyWorkspace
-              .getTopLevelMarkedFolders()
-              .map(folder => folder.uri.toString())
+          folders.push(
+            ...groovyWorkspace.getTopLevelMarkedFolders().map(folder => ({
+              uri: folder.uri.toString(),
+              languageId: 'groovy' as const,
+            }))
           );
         }
 
         if (!languageId || languageId === 'python') {
-          folderUris.push(
-            ...pythonWorkspace
-              .getTopLevelMarkedFolders()
-              .map(folder => folder.uri.toString())
+          folders.push(
+            ...pythonWorkspace.getTopLevelMarkedFolders().map(folder => ({
+              uri: folder.uri.toString(),
+              languageId: 'python' as const,
+            }))
           );
         }
 
         return response.success(
-          `Found ${folderUris.length} remote file source${folderUris.length === 1 ? '' : 's'}`,
+          `Found ${folders.length} remote file source${folders.length === 1 ? '' : 's'}`,
           {
-            folderUris,
+            folders,
           }
         );
       } catch (error) {

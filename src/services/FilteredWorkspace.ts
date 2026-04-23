@@ -122,10 +122,10 @@ export class FilteredWorkspace<
    * Mark a folder and all its children. Will also update parent folders if the
    * changes cause a status change.
    * @param folderUri The folder URI to mark.
-   * @param supressNotify If true, will not notify listeners of changes.
+   * @param suppressNotify If true, will not notify listeners of changes.
    */
-  markFolder(folderUri: vscode.Uri, supressNotify = false): void {
-    // supress notify to avoid multiple notifications during marking
+  markFolder(folderUri: vscode.Uri, suppressNotify = false): void {
+    // suppress notify to avoid multiple notifications during marking
     this.unmarkConflictingTopLevelFolder(folderUri, true);
 
     for (const node of this.iterateNodeTree(folderUri)) {
@@ -146,7 +146,7 @@ export class FilteredWorkspace<
       }
     }
 
-    if (!supressNotify) {
+    if (!suppressNotify) {
       this._onDidChangeFileDecorations.fire(undefined);
       this._onDidUpdate.fire();
     }
@@ -157,12 +157,12 @@ export class FilteredWorkspace<
    * checks for any existing mappings for the same module name as the given
    * folder URI, and unmarks them.
    * @param folderUri
-   * @param supressNotify If true, will not notify listeners of changes.
+   * @param suppressNotify If true, will not notify listeners of changes.
    * @returns
    */
   unmarkConflictingTopLevelFolder(
     folderUri: vscode.Uri,
-    supressNotify = false
+    suppressNotify = false
   ): void {
     const moduleName = this._getTopLevelModuleName(folderUri);
     const existingTopLevelUri = this._topLevelMarkedUriMap.get(moduleName);
@@ -181,7 +181,7 @@ export class FilteredWorkspace<
       return;
     }
 
-    this.unmarkFolder(existingTopLevelUri, supressNotify);
+    this.unmarkFolder(existingTopLevelUri, suppressNotify);
 
     const relativePath = vscode.workspace.asRelativePath(folderUri, true);
 
@@ -193,9 +193,9 @@ export class FilteredWorkspace<
   /**
    * Unmark a folder, its children, and its ancestors.
    * @param folderUri The folder URI to unmark.
-   * @param supressNotify If true, will not notify listeners of changes.
+   * @param suppressNotify If true, will not notify listeners of changes.
    */
-  unmarkFolder(folderUri: vscode.Uri, supressNotify = false): void {
+  unmarkFolder(folderUri: vscode.Uri, suppressNotify = false): void {
     for (const node of this.iterateNodeTree(folderUri)) {
       if (node.type !== 'workspaceRootFolder') {
         node.isMarked = false;
@@ -215,7 +215,7 @@ export class FilteredWorkspace<
         }
 
         if (childNode.type === 'folder') {
-          // supress notify to avoid multiple notifications during unmarking
+          // suppress notify to avoid multiple notifications during unmarking
           this.unmarkConflictingTopLevelFolder(childNode.uri, true);
 
           this._topLevelMarkedUriMap.set(
@@ -229,7 +229,7 @@ export class FilteredWorkspace<
       }
     }
 
-    if (!supressNotify) {
+    if (!suppressNotify) {
       this._onDidChangeFileDecorations.fire(undefined);
       this._onDidUpdate.fire();
     }
@@ -271,9 +271,9 @@ export class FilteredWorkspace<
     for (const [, folderUri] of topLeveMarkedlUris) {
       for (const node of this.iterateNodeTree(folderUri)) {
         if (node.type === 'file') {
-          const relativePath = path.join(
-            path.basename(folderUri.fsPath),
-            path.relative(folderUri.fsPath, node.uri.fsPath)
+          const relativePath = path.posix.join(
+            path.posix.basename(folderUri.path),
+            path.posix.relative(folderUri.path, node.uri.path)
           );
           relativeFilePaths.add(relativePath as RelativeWsUriString);
         }
@@ -435,9 +435,9 @@ export class FilteredWorkspace<
 
   /**
    * Refresh caches based on current workspace state.
-   * @param supressNotify If true, will not notify listeners of changes.
+   * @param suppressNotify If true, will not notify listeners of changes.
    */
-  async refresh(supressNotify = false): Promise<void> {
+  async refresh(suppressNotify = false): Promise<void> {
     // Store a map of just the filtered files in the workspace
     this._wsFileUriMap = await getWorkspaceFileUriMap(
       this.filePattern,
@@ -501,7 +501,7 @@ export class FilteredWorkspace<
       }
     }
 
-    if (!supressNotify) {
+    if (!suppressNotify) {
       this._onDidChangeFileDecorations.fire(undefined);
       this._onDidUpdate.fire();
     }
@@ -525,7 +525,10 @@ export class FilteredWorkspace<
    */
   private _isUnderMarkedFolder(uri: vscode.Uri): boolean {
     for (const markedFolderUri of this._topLevelMarkedUriMap.values()) {
-      if (uri.fsPath.startsWith(markedFolderUri.fsPath)) {
+      if (
+        uri.fsPath === markedFolderUri.fsPath ||
+        uri.fsPath.startsWith(markedFolderUri.fsPath + path.sep)
+      ) {
         return true;
       }
     }

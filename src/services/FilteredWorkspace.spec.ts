@@ -386,8 +386,8 @@ describe('getTopLevelMarkedFolders', () => {
 });
 
 describe.each([true, false])(
-  'mark / unmark - supressNotify%s',
-  supressNotify => {
+  'mark / unmark - suppressNotify%s',
+  suppressNotify => {
     it.each([
       [[mock.folder1.sub1, mock.folder1.sub2], expected.folder1.allMarked],
       [[mock.folder1.sub1], expected.folder1.sub1Marked],
@@ -400,7 +400,7 @@ describe.each([true, false])(
         vi.spyOn(workspace, 'unmarkConflictingTopLevelFolder');
 
         markRoots.forEach(markRoot => {
-          workspace.markFolder(markRoot, supressNotify);
+          workspace.markFolder(markRoot, suppressNotify);
           expect(
             workspace.unmarkConflictingTopLevelFolder
           ).toHaveBeenCalledWith(markRoot, true);
@@ -408,7 +408,7 @@ describe.each([true, false])(
 
         expectResult(mock.folder1.root, expected);
 
-        if (supressNotify) {
+        if (suppressNotify) {
           expect(onDidUpdateListener).not.toHaveBeenCalled();
           expect(onDidChangeFileDecorationsListener).not.toHaveBeenCalled();
         } else {
@@ -426,7 +426,7 @@ describe.each([true, false])(
       const moduleA = mock.folder1.sub1_a;
       const conflictingModuleA = mock.folder1.sub2_a;
 
-      workspace.markFolder(moduleA, supressNotify);
+      workspace.markFolder(moduleA, suppressNotify);
 
       expectResult(
         mock.folder1.root,
@@ -434,7 +434,7 @@ describe.each([true, false])(
         'mark module a'
       );
 
-      workspace.markFolder(moduleA, supressNotify);
+      workspace.markFolder(moduleA, suppressNotify);
       expect(mockToaster.error).not.toHaveBeenCalled();
       expectResult(
         mock.folder1.root,
@@ -442,7 +442,7 @@ describe.each([true, false])(
         'mark same module a again'
       );
 
-      workspace.markFolder(conflictingModuleA, supressNotify);
+      workspace.markFolder(conflictingModuleA, suppressNotify);
       expect(mockToaster.info).toHaveBeenCalledWith(
         `Updated 'a' import source to 'sub2/a'.`
       );
@@ -452,7 +452,7 @@ describe.each([true, false])(
         'unmark conflicting module a'
       );
 
-      if (supressNotify) {
+      if (suppressNotify) {
         expect(onDidUpdateListener).not.toHaveBeenCalled();
         expect(onDidChangeFileDecorationsListener).not.toHaveBeenCalled();
       } else {
@@ -464,16 +464,16 @@ describe.each([true, false])(
 );
 
 describe.each([true, false])(
-  'unmarkFolder - supressNotify%s',
-  supressNotify => {
+  'unmarkFolder - suppressNotify%s',
+  suppressNotify => {
     it('should unmark a folder and its children', async () => {
       const { workspace, expectResult } = await initWorkspace(mock2RootWs);
 
-      workspace.markFolder(mock.folder1.sub1, supressNotify);
-      workspace.markFolder(mock.folder1.sub2, supressNotify);
+      workspace.markFolder(mock.folder1.sub1, suppressNotify);
+      workspace.markFolder(mock.folder1.sub2, suppressNotify);
       vi.clearAllMocks();
 
-      workspace.unmarkFolder(mock.folder1.sub2, supressNotify);
+      workspace.unmarkFolder(mock.folder1.sub2, suppressNotify);
 
       // Unmarking sub2 should result in only sub1 being marked
       expectResult(
@@ -482,7 +482,7 @@ describe.each([true, false])(
         'unmark folder1 sub2'
       );
 
-      if (supressNotify) {
+      if (suppressNotify) {
         expect(onDidUpdateListener).not.toHaveBeenCalled();
         expect(onDidChangeFileDecorationsListener).not.toHaveBeenCalled();
       } else {
@@ -495,18 +495,15 @@ describe.each([true, false])(
       const { workspace, expectResult } = await initWorkspace(mock2RootWs);
 
       // Mark sub1 as top-level, which marks all its descendants
-      workspace.markFolder(mock.folder1.sub1, supressNotify);
+      workspace.markFolder(mock.folder1.sub1, suppressNotify);
       vi.clearAllMocks();
 
       vi.spyOn(workspace, 'unmarkConflictingTopLevelFolder');
 
       // Unmark sub1_b (nested child) — triggers ancestor behavior on sub1
-      workspace.unmarkFolder(mock.folder1.sub1_b, supressNotify);
+      workspace.unmarkFolder(mock.folder1.sub1_b, suppressNotify);
 
-      expectResult(
-        mock.folder1.root,
-        expected.folder1.sub1aMarked
-      );
+      expectResult(mock.folder1.root, expected.folder1.sub1aMarked);
 
       // sub1 (the ancestor) should no longer be a top-level marked folder
       const topLevelFolders = workspace.getTopLevelMarkedFolders();
@@ -527,7 +524,7 @@ describe.each([true, false])(
         true
       );
 
-      if (supressNotify) {
+      if (suppressNotify) {
         expect(onDidUpdateListener).not.toHaveBeenCalled();
         expect(onDidChangeFileDecorationsListener).not.toHaveBeenCalled();
       } else {

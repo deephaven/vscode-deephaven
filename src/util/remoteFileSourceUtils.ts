@@ -70,6 +70,8 @@ export const DH_PYTHON_REMOTE_SOURCE_PLUGIN_INIT_SCRIPT = [
   '        print("Python remote file source plugin not installed")',
 ].join('\n');
 
+// Alias for `dh.remotefilesource.RemoteFileSourceService.EVENT_REQUEST_SOURCE` to avoid having to pass in a
+// `dh` instance to util functions that only need the event name.
 export const DH_REQUEST_SOURCE_EVENT = 'requestsource' as const;
 
 // Alias for `dh.Widget.EVENT_MESSAGE` to avoid having to pass in a `dh` instance
@@ -350,6 +352,7 @@ export function hasPythonPluginVariable(
  * Register a message listener on the Groovy remote file source plugin to
  * handle requests.
  * @param pluginService The remote file source plugin service.
+ * @param getGroovyResourceData Function to retrieve resource data for a given resource name.
  * @returns a function to unregister the listener
  */
 export function registerGroovyRemoteFileSourcePluginMessageListener(
@@ -361,28 +364,32 @@ export function registerGroovyRemoteFileSourcePluginMessageListener(
   return pluginService.addEventListener<DhcType.remotefilesource.ResourceRequestEvent>(
     DH_REQUEST_SOURCE_EVENT,
     async ({ detail }) => {
-      logger.info(
-        'Received resource request from server:',
-        detail.resourceName
-      );
-
-      const resourceData = getGroovyResourceData(
-        detail.resourceName as GroovyResourceName
-      );
-
       let source: string | undefined;
-      if (resourceData?.origin != null) {
-        const textDoc = await vscode.workspace.openTextDocument(
-          resourceData.origin
+      try {
+        logger.info(
+          'Received resource request from server:',
+          detail.resourceName
         );
-        source = textDoc.getText();
-      }
 
-      if (source == null) {
-        logger.error('Resource source not found:', detail.resourceName);
-      }
+        const resourceData = getGroovyResourceData(
+          detail.resourceName as GroovyResourceName
+        );
 
-      detail.respond(source);
+        if (resourceData?.origin != null) {
+          const textDoc = await vscode.workspace.openTextDocument(
+            resourceData.origin
+          );
+          source = textDoc.getText();
+        }
+
+        if (source == null) {
+          logger.error('Resource source not found:', detail.resourceName);
+        }
+      } catch (err) {
+        logger.error('Error handling resource request:', err);
+      } finally {
+        detail.respond(source);
+      }
     }
   );
 }

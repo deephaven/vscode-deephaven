@@ -1050,7 +1050,7 @@ export class ExtensionController implements IDisposable {
 
     assertDefined(workspace, `${languageId}Workspace`);
 
-    // supress notifications since `markFolder` will raise notifications.
+    // suppress notifications since `markFolder` will raise notifications.
     // this avoids sending data to the server that will change anyway
     await workspace.refresh(true);
 
@@ -1086,7 +1086,7 @@ export class ExtensionController implements IDisposable {
 
     assertDefined(workspace, `${languageId}Workspace`);
 
-    // supress notifications since `unmarkFolder` will raise notifications.
+    // suppress notifications since `unmarkFolder` will raise notifications.
     // this avoids sending data to the server that will change anyway
     await workspace.refresh(true);
 

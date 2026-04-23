@@ -103,8 +103,13 @@ describe('listRemoteFileSources', () => {
         expect(yesWorkspace.getTopLevelMarkedFolders).toHaveBeenCalledOnce();
         expect(noWorkspace.getTopLevelMarkedFolders).not.toHaveBeenCalled();
 
+        const expectedFolders = folderUriStrings.map(uri => ({
+          uri,
+          languageId,
+        }));
+
         expect(result.structuredContent).toEqual(
-          mcpSuccessResult(expectedMessage, { folderUris: folderUriStrings })
+          mcpSuccessResult(expectedMessage, { folders: expectedFolders })
         );
       }
     );
@@ -150,8 +155,31 @@ describe('listRemoteFileSources', () => {
 
     expect(result.structuredContent).toEqual(
       mcpSuccessResult('Found 2 remote file sources', {
-        folderUris: [groovyFolder, pythonFolder],
+        folders: [
+          { uri: groovyFolder, languageId: 'groovy' },
+          { uri: pythonFolder, languageId: 'python' },
+        ],
       })
+    );
+  });
+
+  it('should return error for unsupported languageId', async () => {
+    const groovyWorkspace = createMockWorkspace<GroovyPackageName>([]);
+    const pythonWorkspace = createMockWorkspace<PythonModuleFullname>([]);
+
+    const tool = createListRemoteFileSourcesTool({
+      groovyWorkspace,
+      pythonWorkspace,
+    });
+    const result = await tool.handler({ languageId: 'java' });
+
+    expect(groovyWorkspace.getTopLevelMarkedFolders).not.toHaveBeenCalled();
+    expect(pythonWorkspace.getTopLevelMarkedFolders).not.toHaveBeenCalled();
+
+    expect(result.structuredContent).toEqual(
+      mcpErrorResult(
+        'Unsupported languageId: "java". Must be "groovy" or "python".'
+      )
     );
   });
 });
