@@ -353,3 +353,17 @@ describe('updateWindsurfMcpConfig', () => {
     expect(getEnsuredContent).toHaveBeenCalledWith(windowsConfigUri, '{}\n');
   });
 });
+
+describe('getImportPrefix', () => {
+  it.each([
+    ['not configured (undefined)', undefined],
+    ['set to empty string', ''],
+    ['set to prefix value', 'my.prefix'],
+  ])('should return correct value when %s', (_label, given) => {
+    configMap.set(CONFIG_KEY.importPrefix, given);
+
+    const result = ConfigService.getImportPrefix();
+
+    expect(result).toEqual(given);
+  });
+});

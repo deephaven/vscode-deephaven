@@ -78,6 +78,11 @@ function hasValidURL({ url }: { url: string }): boolean {
   }
 }
 
+function getImportPrefix(): string | undefined {
+  const config = getConfig().get<string | null>(CONFIG_KEY.importPrefix);
+  return config ?? undefined;
+}
+
 async function toggleMcp(enable?: boolean): Promise<void> {
   const currentState = isMcpEnabled();
   const targetState = enable ?? !currentState;
@@ -233,6 +238,7 @@ export async function updateWindsurfMcpConfig(
 export const ConfigService: IConfigService = {
   getCoreServers,
   getEnterpriseServers,
+  getImportPrefix,
   isElectronFetchEnabled,
   isMcpDocsEnabled,
   isMcpEnabled,

@@ -302,18 +302,21 @@ export class RemoteFileSourceService extends DisposableBase {
       .then(async () => {
         logger.debug(`${label}: running`);
 
+        const clearControllerPrefixesScript = getClearControllerPrefixesScript(
+          this._controllerImportPrefixes
+        );
+
         const setExecutionContextScript = getSetExecutionContextScript(
           connectionId,
           this.getPythonTopLevelModuleNames()
         );
 
-        const clearControllerPrefixesScript = getClearControllerPrefixesScript(
-          this._controllerImportPrefixes
-        );
+        const scripts = [
+          clearControllerPrefixesScript,
+          setExecutionContextScript,
+        ].filter(Boolean);
 
-        await session.runCode(
-          `${clearControllerPrefixesScript || `${clearControllerPrefixesScript}\n`}${setExecutionContextScript}`
-        );
+        await session.runCode(scripts.join('\n'));
       });
 
     await this._pythonExecutionContextQueue;

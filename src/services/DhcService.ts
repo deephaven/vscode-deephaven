@@ -43,6 +43,7 @@ import {
 } from '../dh/errorUtils';
 import { hasErrorCode } from '../util/typeUtils';
 import { DisposableBase } from './DisposableBase';
+import { ConfigService } from './ConfigService';
 import { assertDefined } from '../shared';
 import type { RemoteFileSourceService } from './RemoteFileSourceService';
 
@@ -524,12 +525,17 @@ export class DhcService extends DisposableBase implements IDhcService {
 
       if (this.pythonRemoteFileSourcePlugin != null) {
         const isDoc = typeof documentOrText !== 'string';
-        const controllerImportPrefixes = extractControllerImportPrefixes(text);
 
-        // Update prefixes if we are running full file, or if parsing found
-        // prefixes in the code. This allows prefixes from a full file run to
-        // persist if user wants to run snippets of code to update things, and
-        // running a full file is the entry point, so prefixes should be reset.
+        // Check for setting override first
+        const configPrefix = ConfigService.getImportPrefix();
+        const controllerImportPrefixes =
+          configPrefix != null
+            ? new Set([configPrefix])
+            : extractControllerImportPrefixes(text);
+
+        // Update prefixes if:
+        // 1. Running full file, OR
+        // 2. Setting or extracted prefixes exist
         if (isDoc || controllerImportPrefixes.size > 0) {
           this.remoteFileSourceService.setControllerImportPrefixes(
             controllerImportPrefixes
