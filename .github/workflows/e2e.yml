@@ -4,7 +4,7 @@ on:
 
 jobs:
   e2e:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}-e2e
