@@ -45,7 +45,7 @@ const exTester = new ExTester(
   extensionsPath
 );
 
-const vscodeVersion = '1.115.0';
+const vscodeVersion = '1.114.0';
 
 if (isSetup) {
   console.log('Downloading VS Code...');
