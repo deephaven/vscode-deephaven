@@ -159,55 +159,57 @@ def dashboard_content(table):
 
 ## Controller Import Prefix Support (Enterprise)
 
-When using **Deephaven Enterprise** with controller-scoped imports, you can configure the extension to automatically send prefixed module names to the server. This is useful when your server environment expects modules to be imported under a controller prefix (e.g., `controller.mymodule` in addition to `mymodule`).
+**Deephaven Enterprise** uses a controller import registration mechanism (`meta_import()`) that causes modules to be importable under a prefixed name in addition to their base name (e.g., `controller.mymodule` alongside `mymodule`). The VS Code extension automatically detects this pattern in your Python code and sends both the unprefixed and prefixed module names to the server.
 
-### Configuration
+### Auto-Detection
 
-Add the following to any Python file in your workspace to enable the default `controller` prefix:
+When you run Python code, the extension scans for `meta_import()` calls and infers the prefix to use. No extra setup is required — if your code already calls `meta_import()`, the extension picks it up automatically.
+
+**With default prefix (`controller`):**
 
 ```python
 import deephaven_enterprise.controller_import
 deephaven_enterprise.controller_import.meta_import()
 ```
 
-To use a custom prefix instead, pass it as an argument:
+**With a custom prefix:**
 
 ```python
 import deephaven_enterprise.controller_import
 deephaven_enterprise.controller_import.meta_import("myprefix")
 ```
 
+**From-import style:**
+
+```python
+from deephaven_enterprise.controller_import import meta_import
+meta_import("custom")
+```
+
 ### Behavior
 
-When controller import prefix support is configured:
-
 - Both the unprefixed and prefixed module names are sent to the Deephaven server.
-- Example: If you mark a folder called `mymodule` and configure with prefix `controller`, the server will receive both `mymodule` and `controller.mymodule`.
-- Without any configuration, only the unprefixed name (`mymodule`) is sent — this is the default behavior.
-- The configuration is **detected when you run Python code** that includes the `meta_import()` call. Running a full file replaces any previous prefix configuration; running a code snippet updates the prefix only if a `meta_import()` call is found.
+- Example: If you mark a folder called `mymodule` and a prefix of `controller` is detected, the server will receive both `mymodule` and `controller.mymodule`.
+- Without a detected or configured prefix, only the unprefixed name (`mymodule`) is sent.
+- The prefix is **updated when you run Python code**: running a full file replaces any previous prefix; running a snippet updates the prefix only if a `meta_import()` call is found in that snippet.
 
-### Supported Import Patterns
+### Manual Override
 
-The extension detects the following patterns:
+You can set the prefix explicitly in your VS Code settings:
 
-1. **Direct import and call:**
+```json
+"deephaven.importPrefix": "controller"
+```
 
-   ```python
-   import deephaven_enterprise.controller_import
-   deephaven_enterprise.controller_import.meta_import()
-   ```
+When set, this value is used as the source of truth and auto-detection is skipped entirely. The main reason to set this manually is **aliased imports**, which the auto-detection does not recognize:
 
-2. **From import and call:**
+```python
+# These patterns are NOT auto-detected:
+import deephaven_enterprise.controller_import as ci
+ci.meta_import()
 
-   ```python
-   from deephaven_enterprise.controller_import import meta_import
-   meta_import("custom")
-   ```
+from deephaven_enterprise.controller_import import meta_import as m
+m()
+```
 
-### Limitations
-
-- **Import aliases are not supported.** Patterns such as `import deephaven_enterprise.controller_import as ci` or `from deephaven_enterprise.controller_import import meta_import as m` will not be detected.
-- **Multiline `meta_import()` calls are not supported.** The call must be on a single line.
-- **The prefix configuration applies per connection.** Each server connection maintains its own prefix configuration based on the last code executed on that connection.
-
-If your use case requires support for additional patterns, please open an issue.
+If you are using aliases or any other pattern the extension cannot recognize, set `deephaven.importPrefix` manually.
