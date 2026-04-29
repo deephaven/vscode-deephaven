@@ -138,4 +138,11 @@ export abstract class SerializedKeySet<TKey> implements IDisposable {
   *values(): IterableIterator<TKey> {
     yield* this.keys();
   }
+
+  /**
+   * Default iterator for the set. Returns the same as values().
+   */
+  [Symbol.iterator](): IterableIterator<TKey> {
+    return this.values();
+  }
 }

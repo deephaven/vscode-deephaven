@@ -16,6 +16,7 @@ export const CONFIG_KEY = {
   root: 'deephaven',
   coreServers: 'coreServers',
   enterpriseServers: 'enterpriseServers',
+  importPrefix: 'importPrefix',
   mcpAutoUpdateConfig: 'mcp.autoUpdateConfig',
   mcpDocsEnabled: 'mcp.docsEnabled',
   mcpEnabled: 'mcp.enabled',

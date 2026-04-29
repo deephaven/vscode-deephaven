@@ -129,18 +129,28 @@ export class DiagnosticCollection
 }
 
 export class EventEmitter<T> {
-  listeners = new Set<(...args: any[]) => void>();
-  event = (listener: (e: T) => any) => {
-    this.listeners.add(listener);
-    return () => {
-      this.listeners.delete(listener);
-    };
-  };
+  private listeners = new Set<(data: T) => any>();
+
+  event = vi
+    .fn()
+    .mockName('event')
+    .mockImplementation((listener: (e: T) => any) => {
+      this.listeners.add(listener);
+      return {
+        dispose: vi
+          .fn()
+          .mockName('dispose')
+          .mockImplementation(() => {
+            this.listeners.delete(listener);
+          }),
+      };
+    });
+
   fire = vi
     .fn()
     .mockName('fire')
-    .mockImplementation((event: T) => {
-      this.listeners.forEach(listener => listener(event));
+    .mockImplementation((data: T): void => {
+      this.listeners.forEach(listener => listener(data));
     });
 }
 
@@ -354,7 +364,10 @@ export class Uri {
   static joinPath = vi
     .fn()
     .mockName('joinPath')
-    .mockImplementation((...args) => Uri.parse(args.join('/')));
+    .mockImplementation((...args) => {
+      const filteredArgs = args.filter(a => a.toString().length > 0);
+      return Uri.parse(filteredArgs.join('/'));
+    });
 
   static parse = vi
     .fn()

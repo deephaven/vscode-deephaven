@@ -156,3 +156,60 @@ def dashboard_content(table):
 2. In your VS Code workspace, use the Deephaven extension to run `main.py`. The imports will resolve because the `stock_ticker` folder is registered as a remote file source.
 
 ![Run main.py](assets/run-main-py.gif)
+
+## Controller Import Prefix Support (Enterprise)
+
+**Deephaven Enterprise** uses a controller import registration mechanism (`meta_import()`) that causes modules to be importable under a prefixed name in addition to their base name (e.g., `controller.mymodule` alongside `mymodule`). The VS Code extension automatically detects this pattern in your Python code and sends both the unprefixed and prefixed module names to the server.
+
+### Auto-Detection
+
+When you run Python code, the extension scans for `meta_import()` calls and infers the prefix to use. No extra setup is required — if your code already calls `meta_import()`, the extension picks it up automatically.
+
+**With default prefix (`controller`):**
+
+```python
+import deephaven_enterprise.controller_import
+deephaven_enterprise.controller_import.meta_import()
+```
+
+**With a custom prefix:**
+
+```python
+import deephaven_enterprise.controller_import
+deephaven_enterprise.controller_import.meta_import("myprefix")
+```
+
+**From-import style:**
+
+```python
+from deephaven_enterprise.controller_import import meta_import
+meta_import("custom")
+```
+
+### Behavior
+
+- Both the unprefixed and prefixed module names are sent to the Deephaven server.
+- Example: If you mark a folder called `mymodule` and a prefix of `controller` is detected, the server will receive both `mymodule` and `controller.mymodule`.
+- Without a detected or configured prefix, only the unprefixed name (`mymodule`) is sent.
+- The prefix is **updated when you run Python code**: running a full file replaces any previous prefix; running a snippet updates the prefix only if a `meta_import()` call is found in that snippet.
+
+### Manual Override
+
+You can set the prefix explicitly in your VS Code settings:
+
+```json
+"deephaven.importPrefix": "controller"
+```
+
+When set, this value is used as the source of truth and auto-detection is skipped entirely. The main reason to set this manually is **aliased imports**, which the auto-detection does not recognize:
+
+```python
+# These patterns are NOT auto-detected:
+import deephaven_enterprise.controller_import as ci
+ci.meta_import()
+
+from deephaven_enterprise.controller_import import meta_import as m
+m()
+```
+
+If you are using aliases or any other pattern the extension cannot recognize, set `deephaven.importPrefix` manually.

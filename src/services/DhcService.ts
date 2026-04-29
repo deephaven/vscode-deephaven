@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { isAggregateError } from '@deephaven/jsapi-nodejs';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import {
+  extractControllerImportPrefixes,
   formatTimestamp,
   getCombinedRangeLinesText,
   isNonEmptyArray,
@@ -42,6 +43,7 @@ import {
 } from '../dh/errorUtils';
 import { hasErrorCode } from '../util/typeUtils';
 import { DisposableBase } from './DisposableBase';
+import { ConfigService } from './ConfigService';
 import { assertDefined } from '../shared';
 import type { RemoteFileSourceService } from './RemoteFileSourceService';
 
@@ -522,6 +524,24 @@ export class DhcService extends DisposableBase implements IDhcService {
       this.isRunningCode = true;
 
       if (this.pythonRemoteFileSourcePlugin != null) {
+        const isDoc = typeof documentOrText !== 'string';
+
+        // Check for setting override first
+        const configPrefix = ConfigService.getImportPrefix();
+        const controllerImportPrefixes =
+          configPrefix != null
+            ? new Set([configPrefix])
+            : extractControllerImportPrefixes(text);
+
+        // Update prefixes if:
+        // 1. Running full file, OR
+        // 2. Setting or extracted prefixes exist
+        if (isDoc || controllerImportPrefixes.size > 0) {
+          this.remoteFileSourceService.setControllerImportPrefixes(
+            controllerImportPrefixes
+          );
+        }
+
         await this.remoteFileSourceService.setPythonServerExecutionContext(
           this.cnId,
           this.session

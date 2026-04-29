@@ -13,6 +13,7 @@ export * from './maps';
 export * from './OutputChannelWithHistory';
 export * from './panelUtils';
 export * from './promiseUtils';
+export * from './pythonUtils';
 export * from './remoteFileSourceMsgUtils';
 export * from './remoteFileSourceUtils';
 export * from './sanitizeUtils';

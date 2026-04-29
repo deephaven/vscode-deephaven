@@ -316,6 +316,43 @@ export async function getWorkspaceFileUriMap(
 }
 
 /**
+ * There are certain import scenarios where a controller prefix import can get cached
+ * in a way that doesn't get evicted when its dependencies do.
+ *
+ * e.g.
+ *   - Run entry_point_script.py
+ *     → imports prefix.package1
+ *       → imports prefix.package2 (marked as remote source)
+ *   - Both cached in sys.modules
+ *   - Unmark prefix.package2 as remote source
+ *   - Plugin evicts prefix.package2 from cache, but prefix.package1 is still
+ *     cached and holds stale reference to prefix.package2
+ *
+ * Solution: Clear all `prefix` and `prefix.*` from sys.modules.
+ *
+ * @param controllerPrefixes
+ * @returns A Python script that will clear all modules from sys.modules that
+ * start with any of the given prefixes.
+ */
+export function getClearControllerPrefixesScript(
+  controllerPrefixes: Set<string>
+): string {
+  if (controllerPrefixes.size === 0) {
+    return '';
+  }
+
+  const startsWithConditions = [...controllerPrefixes].map(
+    prefix => `name == "${prefix}" or name.startswith("${prefix}.")`
+  );
+
+  return [
+    `modules_to_delete = [name for name in sys.modules if ${startsWithConditions.join(' or ')}]`,
+    'for module in modules_to_delete:',
+    '    del sys.modules[module]',
+  ].join('\n');
+}
+
+/**
  * Get a script to set the execution context on the remote file source plugin.
  * @param connectionId The unique ID of the connection.
  * @param moduleFullnames An iterable of module fullnames of python files.

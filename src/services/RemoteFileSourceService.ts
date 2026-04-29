@@ -8,6 +8,7 @@ import {
   registerGroovyRemoteFileSourcePluginMessageListener,
   registerPythonRemoteFileSourcePluginMessageListener,
   getGroovyTopLevelPackageName,
+  getClearControllerPrefixesScript,
 } from '../util';
 import type {
   GroovyPackageName,
@@ -42,6 +43,7 @@ export class RemoteFileSourceService extends DisposableBase {
   }
 
   private _isGroovyWorkspaceDirty = false;
+  private _controllerImportPrefixes = new Set<string>();
 
   private _onDidUpdatePythonModuleMeta = new vscode.EventEmitter<void>();
   readonly onDidUpdatePythonModuleMeta =
@@ -92,7 +94,16 @@ export class RemoteFileSourceService extends DisposableBase {
   getPythonModuleSpecData(
     moduleFullname: PythonModuleFullname
   ): PythonModuleSpecData | null {
-    const [firstModuleToken, ...restModuleTokens] = moduleFullname.split('.');
+    let [firstModuleToken, ...restModuleTokens] = moduleFullname.split('.');
+
+    // Check if first token is a controller import prefix and strip it
+    if (
+      this._controllerImportPrefixes.has(firstModuleToken) &&
+      restModuleTokens.length > 0
+    ) {
+      firstModuleToken = restModuleTokens[0];
+      restModuleTokens = restModuleTokens.slice(1);
+    }
 
     // Get the top-level folder URI that could contain this module
     const topLevelFolderUri = this._pythonWorkspace
@@ -163,7 +174,13 @@ export class RemoteFileSourceService extends DisposableBase {
     const set = new Set<PythonModuleFullname>();
 
     this._pythonWorkspace.getTopLevelMarkedFolders().forEach(({ uri }) => {
-      set.add(getPythonTopLevelModuleFullname(uri));
+      const moduleName = getPythonTopLevelModuleFullname(uri);
+
+      set.add(moduleName);
+
+      for (const prefix of this._controllerImportPrefixes) {
+        set.add(`${prefix}.${moduleName}` as PythonModuleFullname);
+      }
     });
 
     return set;
@@ -227,6 +244,15 @@ export class RemoteFileSourceService extends DisposableBase {
   }
 
   /**
+   * Update controller import prefixes based on Python code being executed.
+   * @param controllerImportPrefixes The set of controller import prefixes to
+   * use for resolving imports in the code being executed.
+   */
+  setControllerImportPrefixes(controllerImportPrefixes: Set<string>): void {
+    this._controllerImportPrefixes = controllerImportPrefixes;
+  }
+
+  /**
    * Set the Groovy server execution context for the plugin.
    * @param pluginService The remote file source plugin service.
    */
@@ -250,8 +276,14 @@ export class RemoteFileSourceService extends DisposableBase {
     await pluginService.setExecutionContext(isDirty, resourcePaths);
   }
 
+  private _pythonSetExecutionContextI = 0;
+  private _pythonExecutionContextQueue: Promise<void> = Promise.resolve();
+
   /**
    * Set the Python server execution context for the plugin using the given session.
+   * We use a Promise queue to ensure that execution context updates are processed
+   * sequentially. This is mostly to prevent Python workspace events that call
+   * this method without awaiting the response from clearing the execution context.
    * @param connectionId The unique ID of the connection.
    * @param session The IdeSession to use to run the code.
    */
@@ -259,11 +291,36 @@ export class RemoteFileSourceService extends DisposableBase {
     connectionId: UniqueID | null,
     session: DhcType.IdeSession
   ): Promise<void> {
-    const setExecutionContextScript = getSetExecutionContextScript(
-      connectionId,
-      this.getPythonTopLevelModuleNames()
-    );
+    const label = `setPythonServerExecutionContext: ${++this._pythonSetExecutionContextI}:${connectionId}`;
 
-    await session.runCode(setExecutionContextScript);
+    logger.debug(`${label}: queuing`);
+
+    this._pythonExecutionContextQueue = this._pythonExecutionContextQueue
+      // Ignore errors from previous calls. They will get raised to the caller
+      // that queued them, but we dont' want them to break the chain
+      .catch(() => {})
+      .then(async () => {
+        logger.debug(`${label}: running`);
+
+        const clearControllerPrefixesScript = getClearControllerPrefixesScript(
+          this._controllerImportPrefixes
+        );
+
+        const setExecutionContextScript = getSetExecutionContextScript(
+          connectionId,
+          this.getPythonTopLevelModuleNames()
+        );
+
+        const scripts = [
+          clearControllerPrefixesScript,
+          setExecutionContextScript,
+        ].filter(Boolean);
+
+        await session.runCode(scripts.join('\n'));
+      });
+
+    await this._pythonExecutionContextQueue;
+
+    logger.debug(`${label}: complete`);
   }
 }

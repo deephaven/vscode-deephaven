@@ -44,6 +44,7 @@ export interface IConfigService {
   isMcpEnabled: () => boolean;
   getCoreServers: () => CoreConnectionConfig[];
   getEnterpriseServers: () => EnterpriseConnectionConfig[];
+  getImportPrefix: () => string | undefined;
   getMcpAutoUpdateConfig: () => boolean;
   setMcpAutoUpdateConfig: (value: boolean) => Promise<void>;
   toggleMcp: (enable?: boolean) => Promise<void>;
