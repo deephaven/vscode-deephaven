@@ -1,7 +1,9 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
+import { randomUUID } from 'node:crypto';
 import { McpServer as SdkMcpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
 import * as http from 'http';
 import type {
   IAsyncCacheService,
@@ -14,6 +16,7 @@ import { MCP_SERVER_NAME } from '../common';
 import {
   createAddRemoteFileSourcesTool,
   createGetColumnStatsTool,
+  createDisplayPanelWidgetTool,
   createGetLogsTool,
   createGetTableDataTool,
   createGetTableStatsTool,
@@ -31,6 +34,7 @@ import {
 import { OutputChannelWithHistory, withResolvers } from '../util';
 import { DisposableBase, type FilteredWorkspace } from '../services';
 import { createConnectToServerTool } from './tools/connectToServer';
+import { DEEPHAVEN_PANEL_UI } from './ui/deephaven-panel.js';
 
 /**
  * MCP Server for Deephaven extension.
@@ -40,6 +44,7 @@ export class McpServer extends DisposableBase {
   private server: SdkMcpServer;
   private httpServer: http.Server | null = null;
   private port: number | null = null;
+  private transports = new Map<string, StreamableHTTPServerTransport>();
 
   constructor(
     readonly coreJsApiCache: IAsyncCacheService<URL, typeof DhcType>,
@@ -61,6 +66,7 @@ export class McpServer extends DisposableBase {
     this.registerTool(createAddRemoteFileSourcesTool());
     this.registerTool(createConnectToServerTool(this));
     this.registerTool(createGetColumnStatsTool(this));
+    this.registerTool(createDisplayPanelWidgetTool(this));
     this.registerTool(createGetLogsTool(this));
     this.registerTool(createGetTableDataTool(this));
     this.registerTool(createGetTableStatsTool(this));
@@ -74,6 +80,64 @@ export class McpServer extends DisposableBase {
     this.registerTool(createRunCodeFromUriTool(this));
     this.registerTool(createRunCodeTool(this));
     this.registerTool(createShowOutputPanelTool(this));
+
+    /**
+     * Register UI resource for Deephaven panel widget.
+     * This enables MCP hosts (like GitHub Copilot) to render interactive Deephaven panels.
+     *
+     * Resource URIs include variable title as path segment for uniqueness:
+     * ui://deephaven/panel/{variableTitle}
+     *
+     * The panelUrl is extracted from structuredContent.details.panelUrl in the tool result
+     * notification.
+     *
+     * CSP configuration: Uses frameDomains to allow loading panels from all configured
+     * Deephaven servers. Per MCP Apps spec, frameDomains maps to CSP frame-src directive.
+     */
+    this.server.registerResource(
+      'deephaven-panel-ui',
+      'ui://deephaven/panel',
+      {
+        description: 'Interactive Deephaven panel widget display',
+        mimeType: 'text/html;profile=mcp-app',
+      },
+      async uri => {
+        this.outputChannelDebug.appendLine(
+          `[MCP] Resource request for URI: ${uri.href}`
+        );
+
+        // Get origins from all configured servers for CSP
+        const serverOrigins = this.serverManager
+          .getServers()
+          .map(server => server.url.origin);
+
+        this.outputChannelDebug.appendLine(
+          `[MCP] Allowing origins in CSP: ${serverOrigins.join(', ')}`
+        );
+
+        // Allow loading Deephaven panels from all configured servers
+        // Using frameDomains (not frameSrc) per MCP Apps spec
+        const csp = {
+          frameDomains: serverOrigins,
+        };
+
+        return {
+          contents: [
+            {
+              uri: uri.href,
+              mimeType: 'text/html;profile=mcp-app',
+              text: DEEPHAVEN_PANEL_UI(),
+              _meta: {
+                ui: {
+                  csp,
+                  prefersBorder: false,
+                },
+              },
+            },
+          ],
+        };
+      }
+    );
   }
 
   private registerTool<Spec extends McpToolSpec>({
@@ -122,18 +186,65 @@ export class McpServer extends DisposableBase {
       req.on('end', async () => {
         try {
           const requestBody = JSON.parse(body);
+          const sessionId = req.headers['mcp-session-id'] as string | undefined;
 
-          // Create a new transport for each request
-          const transport = new StreamableHTTPServerTransport({
-            sessionIdGenerator: undefined,
-            enableJsonResponse: true,
-          });
+          let transport: StreamableHTTPServerTransport;
 
-          res.on('close', () => {
-            transport.close();
-          });
+          if (sessionId && this.transports.has(sessionId)) {
+            // Reuse existing transport for this session
+            transport = this.transports.get(sessionId)!;
+            this.outputChannelDebug.appendLine(
+              `[MCP] Reusing transport for session: ${sessionId}`
+            );
+          } else if (!sessionId && isInitializeRequest(requestBody)) {
+            // New initialization request - create new transport
+            transport = new StreamableHTTPServerTransport({
+              sessionIdGenerator: (): string => randomUUID(),
+              onsessioninitialized: (sessionId): void => {
+                this.outputChannelDebug.appendLine(
+                  `[MCP] Session initialized: ${sessionId}`
+                );
+                this.transports.set(sessionId, transport);
+              },
+              onsessionclosed: (sessionId): void => {
+                this.outputChannelDebug.appendLine(
+                  `[MCP] Session closed: ${sessionId}`
+                );
+                this.transports.delete(sessionId);
+              },
+              enableJsonResponse: true,
+            });
 
-          await this.server.connect(transport);
+            // Clean up transport when closed
+            transport.onclose = (): void => {
+              const sid = transport.sessionId;
+              if (sid && this.transports.has(sid)) {
+                this.outputChannelDebug.appendLine(
+                  `[MCP] Transport closed for session ${sid}`
+                );
+                this.transports.delete(sid);
+              }
+            };
+
+            // Connect the transport to the MCP server (only once for new sessions)
+            await this.server.connect(transport);
+          } else {
+            // Invalid request - no session ID or not an initialization request
+            res.writeHead(400, { contentType: 'application/json' });
+            res.end(
+              JSON.stringify({
+                jsonrpc: '2.0',
+                error: {
+                  code: -32000,
+                  message: 'Bad Request: No valid session ID provided',
+                },
+                id: null,
+              })
+            );
+            return;
+          }
+
+          // Handle the request with the transport
           await transport.handleRequest(req, res, requestBody);
         } catch (error) {
           res.writeHead(500, { contentType: 'application/json' });
@@ -203,6 +314,20 @@ export class McpServer extends DisposableBase {
   async stop(): Promise<void> {
     if (this.httpServer == null) {
       return;
+    }
+
+    // Clean up all active sessions
+    if (this.transports.size > 0) {
+      this.outputChannelDebug.appendLine(
+        `[MCP] Cleaning up ${this.transports.size} active session(s)`
+      );
+      for (const [sessionId, transport] of this.transports.entries()) {
+        this.outputChannelDebug.appendLine(
+          `[MCP] Closing session: ${sessionId}`
+        );
+        transport.close();
+      }
+      this.transports.clear();
     }
 
     const { resolve, reject, promise } = withResolvers<void>();

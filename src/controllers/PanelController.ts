@@ -29,7 +29,12 @@ import {
 import { waitFor } from '../util/promiseUtils';
 import { getEmbedWidgetUrl } from '../dh/dhc';
 import { ControllerBase } from './ControllerBase';
-import { assertDefined, DH_POST_MSG } from '../shared';
+import {
+  assertDefined,
+  DH_POST_MSG,
+  isErrorNotificationFromDh,
+} from '../shared';
+import type { OutputChannelWithHistory } from '../util';
 
 const logger = new Logger('PanelController');
 
@@ -37,13 +42,15 @@ export class PanelController extends ControllerBase {
   constructor(
     extensionUri: vscode.Uri,
     serverManager: IServerManager,
-    panelService: IPanelService
+    panelService: IPanelService,
+    outputChannel: OutputChannelWithHistory
   ) {
     super();
 
     this._extensionUri = extensionUri;
     this._panelService = panelService;
     this._serverManager = serverManager;
+    this._outputChannel = outputChannel;
 
     this.registerCommand(OPEN_VARIABLE_PANELS_CMD, this._onOpenPanels);
     this.registerCommand(
@@ -65,6 +72,7 @@ export class PanelController extends ControllerBase {
   private readonly _extensionUri: vscode.Uri;
   private readonly _panelService: IPanelService;
   private readonly _serverManager: IServerManager;
+  private readonly _outputChannel: OutputChannelWithHistory;
 
   private readonly _lastPanelInViewColumn = new Map<
     vscode.ViewColumn | undefined,
@@ -141,15 +149,88 @@ export class PanelController extends ControllerBase {
    * See `getPanelHtml` util for the panel html which wires up the `postMessage`
    * communication between the extension and the DH iframe.
    * @param serverOrWorkerUrl The server or worker url.
-   * @param message The message data.
+   * @param variable The variable definition for this panel.
+   * @param message The message data (can be legacy format or JSON-RPC 2.0 format).
    * @param postResponseMessage The function to post a response message.
    * @returns A promise that resolves when the message has been handled.
    */
   private async _onPanelMessage(
     serverOrWorkerUrl: URL | WorkerURL,
-    { id, message }: { id: string; message: string },
+    variable: VariableDefintion,
+    message: unknown,
     postResponseMessage: (response: unknown) => void
   ): Promise<void> {
+    // Handle JSON-RPC 2.0 error notifications from Deephaven iframe
+    if (isErrorNotificationFromDh(message as any)) {
+      const { level, logger: loggerName, data } = (message as any).params;
+
+      // Extract message and stack for better formatting
+      let errorMessage: string;
+      let stackTrace: string | undefined;
+
+      if (typeof data === 'string') {
+        errorMessage = data;
+      } else if (data && typeof data === 'object') {
+        errorMessage =
+          'message' in data ? String(data.message) : JSON.stringify(data);
+        stackTrace =
+          'stack' in data && typeof data.stack === 'string'
+            ? data.stack
+            : undefined;
+      } else {
+        errorMessage = JSON.stringify(data);
+      }
+
+      // Log full notification details to debug output (stacktrace-like format)
+      let debugOutput =
+        `Error notification from Deephaven panel '${variable.title}':\n` +
+        `  Level: ${level}\n` +
+        `  Logger: ${loggerName || 'unknown'}\n` +
+        `  Message: ${errorMessage}`;
+
+      if (stackTrace) {
+        // Add stack trace with proper indentation
+        debugOutput +=
+          `\n  Stack:\n` +
+          stackTrace
+            .split('\n')
+            .map(line => `    ${line}`)
+            .join('\n');
+      }
+
+      logger.debug(debugOutput);
+
+      // Log to output channel with variable name and appropriate level prefix
+      const prefix = `[${variable.title}] `;
+      if (
+        level === 'error' ||
+        level === 'critical' ||
+        level === 'alert' ||
+        level === 'emergency'
+      ) {
+        this._outputChannel.appendLine(`${prefix}ERROR: ${errorMessage}`);
+      } else if (level === 'warning') {
+        this._outputChannel.appendLine(`${prefix}WARNING: ${errorMessage}`);
+      } else {
+        this._outputChannel.appendLine(`${prefix}${errorMessage}`);
+      }
+
+      return;
+    }
+
+    // Handle legacy format messages (login/session requests)
+    if (
+      typeof message !== 'object' ||
+      message == null ||
+      !('id' in message) ||
+      !('message' in message)
+    ) {
+      logger.debug('Unknown message format', message);
+      return;
+    }
+
+    const { id, message: msgType } = message as { id: string; message: string };
+
     const workerInfo = await this._serverManager.getWorkerInfo(
       serverOrWorkerUrl as WorkerURL
     );
@@ -159,7 +240,7 @@ export class PanelController extends ControllerBase {
     }
 
     // Respond to login credentials request from DH iframe
-    if (message === DH_POST_MSG.loginOptionsRequest) {
+    if (msgType === DH_POST_MSG.loginOptionsRequest) {
       const credentials =
         await this._serverManager.getWorkerCredentials(serverOrWorkerUrl);
 
@@ -191,7 +272,7 @@ export class PanelController extends ControllerBase {
     }
 
     // Respond to session details request from DH iframe
-    if (message === DH_POST_MSG.sessionDetailsRequest) {
+    if (msgType === DH_POST_MSG.sessionDetailsRequest) {
       const response = createSessionDetailsResponsePostMessage({
         id,
         workerInfo,
@@ -204,7 +285,7 @@ export class PanelController extends ControllerBase {
       return;
     }
 
-    logger.debug('Unknown message type', message);
+    logger.debug('Unknown message type', msgType);
   }
 
   /**
@@ -259,7 +340,7 @@ export class PanelController extends ControllerBase {
         const onDidReceiveMessageSubscription =
           panel.webview.onDidReceiveMessage(({ data }) => {
             const postMessage = panel.webview.postMessage.bind(panel.webview);
-            this._onPanelMessage(serverUrl, data, postMessage);
+            this._onPanelMessage(serverUrl, variable, data, postMessage);
           });
 
         this._panelService.setPanel(serverUrl, id, panel);

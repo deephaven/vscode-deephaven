@@ -341,11 +341,13 @@ export class ExtensionController implements IDisposable {
   initializePanelController = (): void => {
     assertDefined(this._panelService, 'panelService');
     assertDefined(this._serverManager, 'serverManager');
+    assertDefined(this._outputChannel, 'outputChannel');
 
     this._panelController = new PanelController(
       this._context.extensionUri,
       this._serverManager,
-      this._panelService
+      this._panelService,
+      this._outputChannel
     );
 
     this._context.subscriptions.push(this._panelController);

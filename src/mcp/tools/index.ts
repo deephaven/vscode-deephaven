@@ -1,4 +1,5 @@
 export * from './addRemoteFileSources';
+export * from './displayPanelWidget';
 export * from './getColumnStats';
 export * from './getLogs';
 export * from './getTableStats';
