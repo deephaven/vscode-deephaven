@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`parseServerError > should parse an error originating from another file > error <string> 1`] = `
+exports[`parsePythonServerError > should parse an error originating from another file > error <string> 1`] = `
 {
   "file": "<string>",
   "java.lang.runtimeexception": "Error in Python interpreter",
@@ -11,7 +11,7 @@ exports[`parseServerError > should parse an error originating from another file 
 }
 `;
 
-exports[`parseServerError > should parse an error originating from another file > error path 1`] = `
+exports[`parsePythonServerError > should parse an error originating from another file > error path 1`] = `
 {
   "file": "/some/path/my_weather/error_test.py",
   "java.lang.runtimeexception": "Error in Python interpreter",
@@ -22,7 +22,7 @@ exports[`parseServerError > should parse an error originating from another file 
 }
 `;
 
-exports[`parseServerError > should parse an error originating from another file > traceback 1`] = `
+exports[`parsePythonServerError > should parse an error originating from another file > traceback 1`] = `
 "
   File "<string>", line 6, in <module>
   File "/some/path/my_weather/__init__.py", line 3, in <module>
@@ -38,7 +38,7 @@ exports[`parseServerError > should parse an error originating from another file 
 "
 `;
 
-exports[`parseServerError > should parse an error originating from the current file > error <string> 1`] = `
+exports[`parsePythonServerError > should parse an error originating from the current file > error <string> 1`] = `
 {
   "file": "<string>",
   "java.lang.runtimeexception": "Error in Python interpreter",
@@ -49,7 +49,7 @@ exports[`parseServerError > should parse an error originating from the current f
 }
 `;
 
-exports[`parseServerError > should parse an error originating from the current file > traceback 1`] = `
+exports[`parsePythonServerError > should parse an error originating from the current file > traceback 1`] = `
 "
   File "<string>", line 5, in <module>
 

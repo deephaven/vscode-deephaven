@@ -10,8 +10,9 @@ import type {
   WorkerURL,
 } from '../types';
 
-/** Arguments passed to `ADD_REMOTE_FILE_SOURCE_CMD` handler */
+/** Arguments passed to `ADD_GROOVY_REMOTE_FILE_SOURCE_CMD` and `ADD_PYTHON_REMOTE_FILE_SOURCE_CMD` handlers */
 export type AddRemoteFileSourceCmdArgs = [
+  languageId: 'groovy' | 'python',
   folderElementOrUri:
     | RemoteImportSourceTreeFolderElement
     | vscode.Uri
@@ -37,8 +38,9 @@ export type RefreshVariablePanelsCmdArgs = [
   variables: NonEmptyArray<VariableDefintion>,
 ];
 
-/** Arguments passed to `REMOVE_REMOTE_FILE_SOURCE_CMD` handler */
+/** Arguments passed to `REMOVE_GROOVY_REMOTE_FILE_SOURCE_CMD` and `REMOVE_PYTHON_REMOTE_FILE_SOURCE_CMD` handlers */
 export type RemoveRemoteFileSourceCmdArgs = [
+  languageId: 'groovy' | 'python',
   folderElementOrUri:
     | RemoteImportSourceTreeFolderElement
     | vscode.Uri
@@ -77,6 +79,12 @@ function cmd<T extends string>(cmd: T): `${typeof EXTENSION_ID}.${T}` {
   return `${EXTENSION_ID}.${cmd}`;
 }
 
+export const ADD_GROOVY_REMOTE_FILE_SOURCE_CMD = cmd(
+  'addGroovyRemoteFileSource'
+);
+export const ADD_PYTHON_REMOTE_FILE_SOURCE_CMD = cmd(
+  'addPythonRemoteFileSource'
+);
 export const CLEAR_SECRET_STORAGE_CMD = cmd('clearSecretStorage');
 export const CLOSE_CREATE_QUERY_VIEW_CMD = cmd('view.createQuery.close');
 export const CONNECT_TO_SERVER_CMD = cmd('connectToServer');
@@ -106,6 +114,13 @@ export const REFRESH_SERVER_CONNECTION_TREE_CMD = cmd(
 );
 export const REFRESH_PANELS_TREE_CMD = cmd('refreshPanelsTree');
 export const REFRESH_VARIABLE_PANELS_CMD = cmd('refreshVariablePanels');
+export const REMOVE_GROOVY_REMOTE_FILE_SOURCE_CMD = cmd(
+  'removeGroovyRemoteFileSource'
+);
+export const REMOVE_PYTHON_REMOTE_FILE_SOURCE_CMD = cmd(
+  'removePythonRemoteFileSource'
+);
+export const REVEAL_IN_EXPLORER_CMD = cmd('revealInExplorer');
 export const RUN_CODE_COMMAND = cmd('runCode');
 export const RUN_MARKDOWN_CODEBLOCK_CMD = cmd('runMarkdownCodeBlock');
 export const RUN_SELECTION_COMMAND = cmd('runSelection');
@@ -116,17 +131,22 @@ export const SHOW_MCP_QUICK_PICK_CMD = cmd('showMcpQuickPick');
 export const START_SERVER_CMD = cmd('startServer');
 export const STOP_SERVER_CMD = cmd('stopServer');
 export const TOGGLE_MCP_CMD = cmd('toggleMcp');
-export const ADD_REMOTE_FILE_SOURCE_CMD = cmd('addRemoteFileSource');
-export const REMOVE_REMOTE_FILE_SOURCE_CMD = cmd('removeRemoteFileSource');
 
 /**
  * Execute the add remote file source command with type safety.
- * @param uris The folder URIs to add as remote file sources.
+ * @param args The arguments for adding the remote file source, including the language ID and folder URI(s).
+ * @returns A Thenable that resolves when the command has been executed.
  */
 export function execAddRemoteFileSource(
   ...args: AddRemoteFileSourceCmdArgs
 ): Thenable<void> {
-  return vscode.commands.executeCommand(ADD_REMOTE_FILE_SOURCE_CMD, ...args);
+  const [languageId, ...rest] = args;
+  return vscode.commands.executeCommand(
+    languageId === 'groovy'
+      ? ADD_GROOVY_REMOTE_FILE_SOURCE_CMD
+      : ADD_PYTHON_REMOTE_FILE_SOURCE_CMD,
+    ...rest
+  );
 }
 
 /**
@@ -153,12 +173,21 @@ export function execOpenVariablePanels(
 
 /**
  * Execute the remove remote file source command with type safety.
- * @param uris The folder URIs to remove as remote file sources.
+ * @param args The arguments for removing the remote file source, including the
+ * language ID and folder URI(s).
+ * @returns A Thenable that resolves when the command has been executed.
  */
 export function execRemoveRemoteFileSource(
   ...args: RemoveRemoteFileSourceCmdArgs
 ): Thenable<void> {
-  return vscode.commands.executeCommand(REMOVE_REMOTE_FILE_SOURCE_CMD, ...args);
+  const [languageId, ...rest] = args;
+
+  return vscode.commands.executeCommand(
+    languageId === 'groovy'
+      ? REMOVE_GROOVY_REMOTE_FILE_SOURCE_CMD
+      : REMOVE_PYTHON_REMOTE_FILE_SOURCE_CMD,
+    ...rest
+  );
 }
 
 /**

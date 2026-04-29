@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseServerError } from './errorUtils';
+import { parseGroovyServerError, parsePythonServerError } from './errorUtils';
 
 const mockErrorFromCurrentFile = [
   'java.lang.RuntimeException: Error in Python interpreter:',
@@ -42,9 +42,38 @@ const mockErrorFromAnotherFile = [
   '',
 ].join('\n');
 
-describe('parseServerError', () => {
+describe('parseGroovyServerError', () => {
+  it.each([
+    'package3',
+    'package3.subpackage1',
+    'package3.subpackage1.MultiClassTest',
+  ])('should parse RuntimeException: "%s"', importPath => {
+    const value = `Attempting to import a path that does not exist: import ${importPath}`;
+
+    const parsed = parseGroovyServerError(`RuntimeException: ${value};`);
+
+    expect(parsed).toEqual([
+      {
+        type: 'RuntimeException',
+        value: `${value};`,
+        importPath,
+      },
+    ]);
+  });
+
+  it.each(['', 'Some other error'])(
+    'should handle unrecognized error pattern: "%s"',
+    error => {
+      const parsed = parseGroovyServerError(error);
+
+      expect(parsed).toEqual([]);
+    }
+  );
+});
+
+describe('parsePythonServerError', () => {
   it('should parse an error originating from the current file', () => {
-    const parsed = parseServerError(mockErrorFromCurrentFile);
+    const parsed = parsePythonServerError(mockErrorFromCurrentFile);
     expect(parsed).toHaveLength(1);
 
     const [error] = parsed;
@@ -55,7 +84,7 @@ describe('parseServerError', () => {
   });
 
   it('should parse an error originating from another file', () => {
-    const parsed = parseServerError(mockErrorFromAnotherFile);
+    const parsed = parsePythonServerError(mockErrorFromAnotherFile);
     expect(parsed).toHaveLength(2);
 
     const [errorA, errorB] = parsed;

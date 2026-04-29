@@ -4,22 +4,29 @@ import type { dh as DhcType } from '@deephaven/jsapi-types';
 import {
   getFileTreeItem,
   getFolderTreeItem,
+  getGroovyTopLevelPackageName,
+  getLanguageRootTreeItem,
+  getRootTreeItem,
   getSetExecutionContextScript,
   getTopLevelMarkedFolderTreeItem,
-  getTopLevelModuleFullname,
+  getWorkspaceFolderRootTreeItem,
+  getPythonTopLevelModuleFullname,
   hasPythonPluginVariable,
-  registerRemoteFileSourcePluginMessageListener,
+  registerPythonRemoteFileSourcePluginMessageListener,
   sendWidgetMessageAsync,
 } from './remoteFileSourceUtils';
 import type {
   JsonRpcFetchModuleRequest,
   JsonRpcRequest,
   JsonRpcResponse,
-  ModuleFullname,
+  PythonModuleFullname,
   PythonModuleSpecData,
   RemoteImportSourceTreeFileElement,
   RemoteImportSourceTreeFolderElement,
+  RemoteImportSourceTreeLanguageRootElement,
+  RemoteImportSourceTreeRootElement,
   RemoteImportSourceTreeTopLevelMarkedFolderElement,
+  RemoteImportSourceTreeWkspRootFolderElement,
   UniqueID,
 } from '../types';
 import { getLastEventListener } from '../testUtils';
@@ -69,6 +76,7 @@ describe('getFolderTreeItem', () => {
         name: 'mockFolder',
         isMarked,
         uri: vscode.Uri.parse('file:///mock/folder/path/'),
+        languageId: 'python',
       } as RemoteImportSourceTreeFolderElement;
 
       expect(getFolderTreeItem(element)).toMatchSnapshot();
@@ -94,12 +102,62 @@ describe('getSetExecutionContextScript', () => {
 });
 
 describe('getTopLevelMarkedFolderTreeItem', () => {
-  it('should return a TreeItem for a top-level marked folder element', () => {
+  it('should return a non-collapsible TreeItem for a top-level marked folder element', () => {
     const element = {
       uri: vscode.Uri.parse('file:///mock/top/level/marked/folder/'),
+      languageId: 'python',
     } as RemoteImportSourceTreeTopLevelMarkedFolderElement;
 
     expect(getTopLevelMarkedFolderTreeItem(element)).toMatchSnapshot();
+  });
+});
+
+describe('getGroovyTopLevelPackageName', () => {
+  it.each([
+    ['file:///mock/trailing-slash/', 'trailing-slash'],
+    ['file:///mock/package', 'package'],
+  ])(
+    'should return the top-level package name for a given folder URI: %s',
+    (uriPath, expectedPackageName) => {
+      const result = getGroovyTopLevelPackageName(vscode.Uri.parse(uriPath));
+      expect(result).toBe(expectedPackageName);
+    }
+  );
+});
+
+describe('getLanguageRootTreeItem', () => {
+  it.each(['python', 'groovy'] as const)(
+    'should return a collapsed TreeItem for a language root element: %s',
+    languageId => {
+      const element: RemoteImportSourceTreeLanguageRootElement = {
+        name: `${languageId} root`,
+        type: 'languageRoot',
+        languageId,
+      };
+      expect(getLanguageRootTreeItem(element)).toMatchSnapshot();
+    }
+  );
+});
+
+describe('getRootTreeItem', () => {
+  it('should return an expanded TreeItem for a root element', () => {
+    const element: RemoteImportSourceTreeRootElement = {
+      name: 'root',
+      type: 'root',
+    };
+    expect(getRootTreeItem(element)).toMatchSnapshot();
+  });
+});
+
+describe('getWorkspaceFolderRootTreeItem', () => {
+  it('should return a collapsed TreeItem for a workspace folder root element', () => {
+    const element: RemoteImportSourceTreeWkspRootFolderElement = {
+      name: 'Workspace1',
+      type: 'workspaceRootFolder',
+      languageId: 'python',
+      uri: vscode.Uri.parse('file:///path/to/ws1'),
+    };
+    expect(getWorkspaceFolderRootTreeItem(element)).toMatchSnapshot();
   });
 });
 
@@ -110,7 +168,7 @@ describe('getTopLevelModuleFullname', () => {
   ])(
     'should return the top-level module fullname for a given folder URI: %s',
     (uriPath, expectedModuleName) => {
-      const result = getTopLevelModuleFullname(vscode.Uri.parse(uriPath));
+      const result = getPythonTopLevelModuleFullname(vscode.Uri.parse(uriPath));
       expect(result).toBe(expectedModuleName);
     }
   );
@@ -155,9 +213,11 @@ describe('hasPythonPluginVariable', () => {
 
 describe('registerRemoteFileSourcePluginMessageListener', () => {
   const getPythonModuleSpecData =
-    vi.fn<(moduleFullname: ModuleFullname) => PythonModuleSpecData | null>();
+    vi.fn<
+      (moduleFullname: PythonModuleFullname) => PythonModuleSpecData | null
+    >();
 
-  const mockModuleName = 'a.b.c' as ModuleFullname;
+  const mockModuleName = 'a.b.c' as PythonModuleFullname;
 
   const mockFile = {
     exists: {
@@ -178,7 +238,7 @@ describe('registerRemoteFileSourcePluginMessageListener', () => {
       id: '1',
       method: 'fetch_module',
       // eslint-disable-next-line @typescript-eslint/naming-convention
-      params: { module_name: moduleName as ModuleFullname },
+      params: { module_name: moduleName as PythonModuleFullname },
     }),
     fetchModuleRes: ({
       source,
@@ -212,7 +272,7 @@ describe('registerRemoteFileSourcePluginMessageListener', () => {
       mockIncomingMsg(mockMsg.fetchModuleReq(mockModuleName));
       getPythonModuleSpecData.mockReturnValueOnce(spec);
 
-      registerRemoteFileSourcePluginMessageListener(
+      registerPythonRemoteFileSourcePluginMessageListener(
         mockPlugin,
         getPythonModuleSpecData
       );

@@ -5,6 +5,8 @@ import type {
   McpTool,
   McpToolHandlerArg,
   McpToolHandlerResult,
+  GroovyPackageName,
+  PythonModuleFullname,
 } from '../../types';
 
 import type { IServerManager } from '../../types';
@@ -14,6 +16,7 @@ import {
   runCodeOutputSchema,
   extractVariables,
   getDiagnosticsErrors,
+  createGroovyImportErrorHint,
   createPythonModuleImportErrorHint,
   formatDiagnosticError,
   createConnectionNotFoundHint,
@@ -48,12 +51,16 @@ type HandlerResult = McpToolHandlerResult<Spec>;
 type RunCodeFromUriTool = McpTool<Spec>;
 
 export function createRunCodeFromUriTool({
+  groovyDiagnostics,
+  groovyWorkspace,
   pythonDiagnostics,
   pythonWorkspace,
   serverManager,
 }: {
+  groovyDiagnostics: vscode.DiagnosticCollection;
+  groovyWorkspace: FilteredWorkspace<GroovyPackageName>;
   pythonDiagnostics: vscode.DiagnosticCollection;
-  pythonWorkspace: FilteredWorkspace;
+  pythonWorkspace: FilteredWorkspace<PythonModuleFullname>;
   serverManager: IServerManager;
 }): RunCodeFromUriTool {
   return {
@@ -123,27 +130,37 @@ export function createRunCodeFromUriTool({
         if (result?.error) {
           let errorMsg = result.error;
           let hintResult:
-            | { hint: string; foundMatchingFolderUris: string[] }
+            | { hint: string; foundMatchingFolderUris?: string[] }
             | undefined;
 
-          // TODO: We currently only parse Python errors into a
-          // `vscode.DiagnosticsCollection`, but we should be able to improve
-          // error hints for Groovy once DH-21363 is implemented.
-          if (languageId === 'python') {
+          if (languageId === 'python' || languageId === 'groovy') {
             const executedConnection = serverManager.getUriConnection(
               parsedUriResult.value
             );
             assertDefined(executedConnection, 'executedConnection');
 
-            const pythonErrors = getDiagnosticsErrors(pythonDiagnostics);
-
-            errorMsg = pythonErrors.map(formatDiagnosticError).join('\n');
-
-            hintResult = createPythonModuleImportErrorHint(
-              pythonErrors,
-              executedConnection,
-              pythonWorkspace
+            const errors = getDiagnosticsErrors(
+              languageId === 'python' ? pythonDiagnostics : groovyDiagnostics
             );
+
+            if (errors.length > 0) {
+              errorMsg = errors.map(formatDiagnosticError).join('\n');
+            }
+
+            hintResult =
+              languageId === 'python'
+                ? createPythonModuleImportErrorHint(
+                    errors,
+                    executedConnection,
+                    pythonWorkspace,
+                    result.error
+                  )
+                : createGroovyImportErrorHint(
+                    errors,
+                    executedConnection,
+                    groovyWorkspace,
+                    result.error
+                  );
           }
 
           const { hint, foundMatchingFolderUris } = hintResult ?? {};

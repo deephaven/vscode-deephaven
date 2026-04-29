@@ -12,7 +12,8 @@ import {
 import { NodeHttp2gRPCTransport } from '@deephaven/jsapi-nodejs';
 import { McpController } from './McpController';
 import {
-  ADD_REMOTE_FILE_SOURCE_CMD,
+  ADD_GROOVY_REMOTE_FILE_SOURCE_CMD,
+  ADD_PYTHON_REMOTE_FILE_SOURCE_CMD,
   CLEAR_SECRET_STORAGE_CMD,
   ConnectionNotFoundError,
   CREATE_NEW_TEXT_DOC_CMD,
@@ -24,7 +25,9 @@ import {
   REFRESH_REMOTE_IMPORT_SOURCE_TREE_CMD,
   REFRESH_SERVER_CONNECTION_TREE_CMD,
   REFRESH_SERVER_TREE_CMD,
-  REMOVE_REMOTE_FILE_SOURCE_CMD,
+  REMOVE_GROOVY_REMOTE_FILE_SOURCE_CMD,
+  REMOVE_PYTHON_REMOTE_FILE_SOURCE_CMD,
+  REVEAL_IN_EXPLORER_CMD,
   RUN_CODE_COMMAND,
   RUN_MARKDOWN_CODEBLOCK_CMD,
   RUN_SELECTION_COMMAND,
@@ -44,6 +47,8 @@ import {
   createExtensionInfo,
   deserializeRange,
   getEditorForUri,
+  getGroovyTopLevelPackageName,
+  getPythonTopLevelModuleFullname,
   getTempDir,
   isInstanceOf,
   isSerializedRange,
@@ -77,6 +82,7 @@ import {
   DheJsApiCache,
   DheService,
   DheServiceCache,
+  DEFAULT_IGNORE_TOP_LEVEL_FOLDER_NAMES,
   FilteredWorkspace,
   RemoteFileSourceService,
   PanelService,
@@ -84,6 +90,7 @@ import {
   PYTHON_FILE_PATTERN,
   SecretService,
   ServerManager,
+  GROOVY_FILE_PATTERN,
 } from '../services';
 import type {
   IDisposable,
@@ -119,6 +126,8 @@ import type {
   RemoteImportSourceTreeView,
   VariableDefintion,
   RemoteImportSourceTreeElement,
+  GroovyPackageName,
+  PythonModuleFullname,
 } from '../types';
 import { ServerConnectionTreeDragAndDropController } from './ServerConnectionTreeDragAndDropController';
 import { ConnectionController } from './ConnectionController';
@@ -189,7 +198,9 @@ export class ExtensionController implements IDisposable {
   private _dhcServiceFactory: IDhcServiceFactory | null = null;
   private _dheJsApiCache: IAsyncCacheService<URL, DheType> | null = null;
   private _dheServiceFactory: IDheServiceFactory | null = null;
-  private _pythonWorkspace: FilteredWorkspace | null = null;
+  private _groovyWorkspace: FilteredWorkspace<GroovyPackageName> | null = null;
+  private _pythonWorkspace: FilteredWorkspace<PythonModuleFullname> | null =
+    null;
   private _remoteFileSourceService: RemoteFileSourceService | null = null;
   private _secretService: ISecretService | null = null;
   private _serverManager: IServerManager | null = null;
@@ -215,6 +226,7 @@ export class ExtensionController implements IDisposable {
   // Web views
   private _createQueryViewProvider: CreateQueryViewProvider | null = null;
 
+  private _groovyDiagnostics: vscode.DiagnosticCollection | null = null;
   private _pythonDiagnostics: vscode.DiagnosticCollection | null = null;
   private _outputChannel: OutputChannelWithHistory | null = null;
   private _outputChannelDebug: OutputChannelWithHistory | null = null;
@@ -374,13 +386,27 @@ export class ExtensionController implements IDisposable {
    */
   initializeRemoteFileSourcing = (): void => {
     assertDefined(this._toaster, 'toaster');
+
+    this._groovyWorkspace = new FilteredWorkspace(
+      GROOVY_FILE_PATTERN,
+      'groovy',
+      getGroovyTopLevelPackageName,
+      DEFAULT_IGNORE_TOP_LEVEL_FOLDER_NAMES,
+      this._toaster
+    );
+    this._context.subscriptions.push(this._groovyWorkspace);
+
     this._pythonWorkspace = new FilteredWorkspace(
       PYTHON_FILE_PATTERN,
+      'python',
+      getPythonTopLevelModuleFullname,
+      DEFAULT_IGNORE_TOP_LEVEL_FOLDER_NAMES,
       this._toaster
     );
     this._context.subscriptions.push(this._pythonWorkspace);
 
     this._remoteFileSourceService = new RemoteFileSourceService(
+      this._groovyWorkspace,
       this._pythonWorkspace
     );
     this._context.subscriptions.push(this._remoteFileSourceService);
@@ -422,6 +448,8 @@ export class ExtensionController implements IDisposable {
     assertDefined(this._outputChannel, 'outputChannel');
     assertDefined(this._outputChannelDebug, 'outputChannelDebug');
     assertDefined(this._panelService, 'panelService');
+    assertDefined(this._groovyDiagnostics, 'groovyDiagnostics');
+    assertDefined(this._groovyWorkspace, 'groovyWorkspace');
     assertDefined(this._pythonDiagnostics, 'pythonDiagnostics');
     assertDefined(this._pythonWorkspace, 'pythonWorkspace');
     assertDefined(this._serverManager, 'serverManager');
@@ -434,6 +462,8 @@ export class ExtensionController implements IDisposable {
       this._outputChannel,
       this._outputChannelDebug,
       this._panelService,
+      this._groovyDiagnostics,
+      this._groovyWorkspace,
       this._pythonDiagnostics,
       this._pythonWorkspace,
       this._serverManager
@@ -446,12 +476,16 @@ export class ExtensionController implements IDisposable {
    * Initialize diagnostics collections.
    */
   initializeDiagnostics = (): void => {
+    this._groovyDiagnostics =
+      vscode.languages.createDiagnosticCollection('groovy');
+
     this._pythonDiagnostics =
       vscode.languages.createDiagnosticCollection('python');
 
     // Clear diagnostics on save
     vscode.workspace.onDidSaveTextDocument(
       doc => {
+        this._groovyDiagnostics?.set(doc.uri, []);
         this._pythonDiagnostics?.set(doc.uri, []);
       },
       null,
@@ -521,6 +555,7 @@ export class ExtensionController implements IDisposable {
   };
 
   initializeServerManager = (): void => {
+    assertDefined(this._groovyDiagnostics, 'groovyDiagnostics');
     assertDefined(this._pythonDiagnostics, 'pythonDiagnostics');
     assertDefined(this._outputChannel, 'outputChannel');
     assertDefined(this._remoteFileSourceService, 'remoteFileSourceService');
@@ -656,6 +691,7 @@ export class ExtensionController implements IDisposable {
 
     this._dhcServiceFactory = DhcService.factory(
       this._coreClientCache,
+      this._groovyDiagnostics,
       this._pythonDiagnostics,
       this._remoteFileSourceService,
       this._outputChannel,
@@ -744,6 +780,9 @@ export class ExtensionController implements IDisposable {
   initializeCommands = (): void => {
     assertDefined(this._connectionController, 'connectionController');
 
+    /** Reveal in Explorer */
+    this.registerCommand(REVEAL_IN_EXPLORER_CMD, this.onRevealInExplorer);
+
     /** Clear secret storage */
     this.registerCommand(CLEAR_SECRET_STORAGE_CMD, this.onClearSecretStorage);
 
@@ -792,12 +831,20 @@ export class ExtensionController implements IDisposable {
       this.onRefreshRemoteImportSourceTree
     );
     this.registerCommand(
-      ADD_REMOTE_FILE_SOURCE_CMD,
-      this.onAddRemoteFileSource
+      ADD_GROOVY_REMOTE_FILE_SOURCE_CMD,
+      this.onAddRemoteFileSource.bind(this, 'groovy')
     );
     this.registerCommand(
-      REMOVE_REMOTE_FILE_SOURCE_CMD,
-      this.onRemoveRemoteFileSource
+      REMOVE_GROOVY_REMOTE_FILE_SOURCE_CMD,
+      this.onRemoveRemoteFileSource.bind(this, 'groovy')
+    );
+    this.registerCommand(
+      ADD_PYTHON_REMOTE_FILE_SOURCE_CMD,
+      this.onAddRemoteFileSource.bind(this, 'python')
+    );
+    this.registerCommand(
+      REMOVE_PYTHON_REMOTE_FILE_SOURCE_CMD,
+      this.onRemoveRemoteFileSource.bind(this, 'python')
     );
 
     /** Search connections */
@@ -828,6 +875,7 @@ export class ExtensionController implements IDisposable {
    */
   initializeWebViews = (): void => {
     assertDefined(this._dheClientCache, 'dheClientCache');
+    assertDefined(this._groovyWorkspace, 'groovyWorkspace');
     assertDefined(this._pythonWorkspace, 'pythonWorkspace');
     assertDefined(this._panelService, 'panelService');
     assertDefined(this._serverManager, 'serverManager');
@@ -889,6 +937,7 @@ export class ExtensionController implements IDisposable {
 
     // Remote import source tree
     this._remoteImportSourceTreeProvider = new RemoteImportSourceTreeProvider(
+      this._groovyWorkspace,
       this._pythonWorkspace
     );
     this._remoteImportSourceTreeView =
@@ -983,18 +1032,27 @@ export class ExtensionController implements IDisposable {
   onAddRemoteFileSource = async (
     ...args: AddRemoteFileSourceCmdArgs
   ): Promise<void> => {
-    const [folderElementOrUri] = args;
+    const [languageId, folderElementOrUri] = args;
 
     // Sometimes view/item/context commands pass undefined instead of a value.
     // Just ignore. microsoft/vscode#283655
     if (folderElementOrUri == null) {
-      logger.debug('onAddRemoteFileSource', 'folderElementOrUri is undefined');
+      logger.debug(
+        'onAddRemoteFileSource',
+        languageId,
+        'folderElementOrUri is undefined'
+      );
       return;
     }
 
-    assertDefined(this._pythonWorkspace, 'pythonWorkspace');
+    const workspace =
+      languageId === 'groovy' ? this._groovyWorkspace : this._pythonWorkspace;
 
-    await this._pythonWorkspace.refresh();
+    assertDefined(workspace, `${languageId}Workspace`);
+
+    // suppress notifications since `markFolder` will raise notifications.
+    // this avoids sending data to the server that will change anyway
+    await workspace.refresh(true);
 
     const uris = Array.isArray(folderElementOrUri)
       ? folderElementOrUri
@@ -1003,28 +1061,34 @@ export class ExtensionController implements IDisposable {
         : [folderElementOrUri.uri];
 
     for (const uri of uris) {
-      this._pythonWorkspace.markFolder(uri);
+      workspace.markFolder(uri);
     }
   };
 
   onRemoveRemoteFileSource = async (
     ...args: RemoveRemoteFileSourceCmdArgs
   ): Promise<void> => {
-    const [folderElementOrUri] = args;
+    const [languageId, folderElementOrUri] = args;
 
     // Sometimes view/item/context commands pass undefined instead of a value.
     // Just ignore. microsoft/vscode#283655
     if (folderElementOrUri == null) {
       logger.debug(
         'onRemoveRemoteFileSource',
+        languageId,
         'folderElementOrUri is undefined'
       );
       return;
     }
 
-    assertDefined(this._pythonWorkspace, 'pythonWorkspace');
+    const workspace =
+      languageId === 'groovy' ? this._groovyWorkspace : this._pythonWorkspace;
 
-    await this._pythonWorkspace.refresh();
+    assertDefined(workspace, `${languageId}Workspace`);
+
+    // suppress notifications since `unmarkFolder` will raise notifications.
+    // this avoids sending data to the server that will change anyway
+    await workspace.refresh(true);
 
     const uris = Array.isArray(folderElementOrUri)
       ? folderElementOrUri
@@ -1033,7 +1097,7 @@ export class ExtensionController implements IDisposable {
         : [folderElementOrUri.uri];
 
     for (const uri of uris) {
-      this._pythonWorkspace.unmarkFolder(uri);
+      workspace.unmarkFolder(uri);
     }
   };
 
@@ -1147,6 +1211,22 @@ export class ExtensionController implements IDisposable {
   onRefreshServerStatus = async (): Promise<void> => {
     await this._pipServerController?.syncManagedServers({ forceCheck: true });
     await this._serverManager?.updateStatus();
+  };
+
+  onRevealInExplorer = async (
+    uriOrHasUri: vscode.Uri | { uri: vscode.Uri } | undefined
+  ): Promise<void> => {
+    // Sometimes view/item/context commands pass undefined instead of a value.
+    // Just ignore. microsoft/vscode#283655
+    if (uriOrHasUri == null) {
+      logger.debug('onRevealInExplorer', 'uri is undefined');
+      return;
+    }
+
+    const uri =
+      uriOrHasUri instanceof vscode.Uri ? uriOrHasUri : uriOrHasUri.uri;
+
+    await vscode.commands.executeCommand('revealInExplorer', uri);
   };
 
   /**

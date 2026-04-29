@@ -26,7 +26,7 @@ export interface ParsedError {
  *   object is the originating error, second object is an adjusted version that
  *   points to the line in the executed file.
  */
-export function parseServerError(
+export function parsePythonServerError(
   error: string,
   logger: { debug: (...args: unknown[]) => void } = console
 ): [] | [ParsedError] | [ParsedError, ParsedError] {
@@ -88,4 +88,36 @@ export function parseServerError(
   }
 
   return [topLevelError];
+}
+
+/**
+ * Parse a Groovy server error string into an array of `ParsedError` objects.
+ * @param error Error string to parse.
+ * @param logger Optional logger for debugging. Defaults to console.
+ * @returns Array of parsed error objects. This can be one of:
+ * - []: Unrecognized error format.
+ * - [ParsedError]: Recognized Groovy import error with type, value, and importPath fields.
+ */
+export function parseGroovyServerError(
+  error: string,
+  logger: { debug: (...args: unknown[]) => void } = console
+): [] | [ParsedError] {
+  const importErrorPattern =
+    /^RuntimeException: Attempting to import a path that does not exist: import (.+);$/m;
+  const match = importErrorPattern.exec(error);
+
+  if (!match) {
+    logger.debug('Unrecognized Groovy error type:', error);
+    return [];
+  }
+
+  const importPath = match[1];
+
+  return [
+    {
+      type: 'RuntimeException',
+      value: `Attempting to import a path that does not exist: import ${importPath};`,
+      importPath,
+    },
+  ];
 }
