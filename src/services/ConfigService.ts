@@ -78,8 +78,21 @@ function hasValidURL({ url }: { url: string }): boolean {
   }
 }
 
+// ASCII subset of Python identifier rules (PEP 3131 / py3 lexical spec allows Unicode,
+// but controller prefix names are expected to be ASCII in practice). A prefix is a
+// single identifier, not a dotted module path.
+const VALID_PYTHON_IDENTIFIER_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
 function getImportPrefix(): string | undefined {
   const config = getConfig().get<string | null>(CONFIG_KEY.importPrefix);
+
+  if (config != null && !VALID_PYTHON_IDENTIFIER_RE.test(config)) {
+    vscode.window.showErrorMessage(
+      `Invalid 'deephaven.importPrefix' setting: '${config}' is not a valid import prefix name. The setting will be ignored.`
+    );
+    return undefined;
+  }
+
   return config ?? undefined;
 }
 

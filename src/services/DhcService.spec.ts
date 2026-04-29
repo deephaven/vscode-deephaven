@@ -118,18 +118,6 @@ describe('DhcService.runCode – importPrefix setting', () => {
     );
   });
 
-  it('should use Set with single prefix when importPrefix is configured as empty string', async () => {
-    vi.mocked(ConfigService.getImportPrefix).mockReturnValue('');
-
-    const service = createTestDhcService({
-      setControllerImportPrefixes: mockSetControllerImportPrefixes,
-    });
-
-    await service.runCode('x = 1', 'python');
-
-    expect(mockSetControllerImportPrefixes).toHaveBeenCalledWith(new Set(['']));
-  });
-
   it('should fall back to extraction when importPrefix is undefined and code has prefixes', async () => {
     vi.mocked(ConfigService.getImportPrefix).mockReturnValue(undefined);
 

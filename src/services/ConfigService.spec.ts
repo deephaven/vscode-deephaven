@@ -357,13 +357,30 @@ describe('updateWindsurfMcpConfig', () => {
 describe('getImportPrefix', () => {
   it.each([
     ['not configured (undefined)', undefined],
-    ['set to empty string', ''],
-    ['set to prefix value', 'my.prefix'],
-  ])('should return correct value when %s', (_label, given) => {
+    ['set to a simple name', 'controller'],
+    ['set to a name with underscores', '_my_prefix'],
+  ])('should return value when %s', (_label, given) => {
     configMap.set(CONFIG_KEY.importPrefix, given);
 
     const result = ConfigService.getImportPrefix();
 
     expect(result).toEqual(given);
+    expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['empty string', ''],
+    ['starts with a digit', '1controller'],
+    ['contains a hyphen', 'my-prefix'],
+    ['dotted name', 'my.prefix'],
+  ])('should show error and return undefined when set to invalid value: %s', (_label, given) => {
+    configMap.set(CONFIG_KEY.importPrefix, given);
+
+    const result = ConfigService.getImportPrefix();
+
+    expect(result).toBeUndefined();
+    expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+      expect.stringContaining(`'${given}' is not a valid import prefix name`)
+    );
   });
 });
