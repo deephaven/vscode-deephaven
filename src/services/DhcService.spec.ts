@@ -19,28 +19,20 @@ vi.mock('./ConfigService', () => {
 /** Build a minimal DhcService instance that has a session already set up. */
 function createTestDhcService({
   pythonRemoteFileSourcePlugin,
-  setControllerImportPrefixes,
-  setPythonServerExecutionContext,
-  sessionRunCode,
+  setControllerImportPrefixes = vi.fn(),
+  setPythonServerExecutionContext = vi.fn().mockResolvedValue(undefined),
+  sessionRunCode = vi.fn().mockResolvedValue({
+    error: '',
+    changes: { created: [], updated: [], removed: [] },
+  }),
 }: {
   pythonRemoteFileSourcePlugin?: DhcType.Widget | null;
   setControllerImportPrefixes?: ReturnType<typeof vi.fn>;
   setPythonServerExecutionContext?: ReturnType<typeof vi.fn>;
   sessionRunCode?: ReturnType<typeof vi.fn>;
-}): DhcService {
-  const mockSetControllerImportPrefixes =
-    setControllerImportPrefixes ?? vi.fn();
-  const mockSetPythonServerExecutionContext =
-    setPythonServerExecutionContext ?? vi.fn().mockResolvedValue(undefined);
-  const mockSessionRunCode =
-    sessionRunCode ??
-    vi.fn().mockResolvedValue({
-      error: '',
-      changes: { created: [], updated: [], removed: [] },
-    });
-
+} = {}): DhcService {
   const mockSession = {
-    runCode: mockSessionRunCode,
+    runCode: sessionRunCode,
   } as unknown as DhcType.IdeSession;
 
   const mockCn = {
@@ -48,8 +40,8 @@ function createTestDhcService({
   } as unknown as DhcType.IdeConnection;
 
   const mockRemoteFileSourceService = {
-    setControllerImportPrefixes: mockSetControllerImportPrefixes,
-    setPythonServerExecutionContext: mockSetPythonServerExecutionContext,
+    setControllerImportPrefixes,
+    setPythonServerExecutionContext,
   } as unknown as RemoteFileSourceService;
 
   const mockDiagnosticsCollection = {
@@ -80,21 +72,14 @@ function createTestDhcService({
     serverUrl: new URL('http://localhost:10000/'),
   });
 
-  // Wire up isRunningCode setter to call fire like the real implementation
-  Object.defineProperty(service, 'isRunningCode', {
-    get() {
-      return this._isRunningCode;
-    },
-    set(value: boolean) {
-      if (this._isRunningCode !== value) {
-        this._isRunningCode = value;
-        this._onDidChangeRunningCodeStatus.fire(value);
-      }
-    },
-    configurable: true,
-  });
-
   return service;
+}
+
+function mockTextDoc(codeText: string): vscode.TextDocument {
+  return {
+    uri: vscode.Uri.file('/path/to/file.py'),
+    getText: vi.fn().mockReturnValue(codeText),
+  } as unknown as vscode.TextDocument;
 }
 
 describe('DhcService.runCode – importPrefixes setting', () => {
@@ -104,94 +89,64 @@ describe('DhcService.runCode – importPrefixes setting', () => {
     vi.clearAllMocks();
   });
 
-  it('should use setting prefixes when importPrefixes is configured', async () => {
-    vi.mocked(ConfigService.getImportPrefixes).mockReturnValue(['myPrefix']);
+  it.each([
+    {
+      label: 'uses setting prefixes when configured',
+      configPrefixes: ['myPrefix'],
+      input: 'x = 1',
+      expected: new Set(['myPrefix']),
+    },
+    {
+      label: 'uses all prefixes when multiple configured',
+      configPrefixes: ['prefix1', 'prefix2'],
+      input: 'x = 1',
+      expected: new Set(['prefix1', 'prefix2']),
+    },
+    {
+      label: 'falls back to extraction when undefined and code has prefixes',
+      configPrefixes: undefined,
+      input: 'deephaven_enterprise.controller_import.meta_import("myPrefix")\n',
+      expected: new Set(['myPrefix']),
+    },
+    {
+      label: 'skips call when undefined and no prefixes in snippet',
+      configPrefixes: undefined,
+      input: 'x = 1',
+      expected: null,
+    },
+    {
+      label: 'calls with empty set for full file runs even when no prefixes found',
+      configPrefixes: undefined,
+      input: mockTextDoc('x = 1'),
+      expected: new Set(),
+    },
+    {
+      label: 'setting takes precedence over meta_import in code',
+      configPrefixes: ['forced'],
+      input: 'deephaven_enterprise.controller_import.meta_import("otherPrefix")\n',
+      expected: new Set(['forced']),
+    },
+    {
+      label: 'setting takes precedence over meta_import in text doc',
+      configPrefixes: ['forced'],
+      input: mockTextDoc(
+        'deephaven_enterprise.controller_import.meta_import("otherPrefix")\n'
+      ),
+      expected: new Set(['forced']),
+    },
+  ])('$label', async ({ configPrefixes, input, expected }) => {
+    vi.mocked(ConfigService.getImportPrefixes).mockReturnValue(configPrefixes);
 
     const service = createTestDhcService({
       setControllerImportPrefixes: mockSetControllerImportPrefixes,
     });
 
-    await service.runCode('x = 1', 'python');
+    await service.runCode(input, 'python');
 
-    expect(mockSetControllerImportPrefixes).toHaveBeenCalledWith(
-      new Set(['myPrefix'])
-    );
-  });
-
-  it('should use all prefixes when importPrefixes contains multiple values', async () => {
-    vi.mocked(ConfigService.getImportPrefixes).mockReturnValue([
-      'prefix1',
-      'prefix2',
-    ]);
-
-    const service = createTestDhcService({
-      setControllerImportPrefixes: mockSetControllerImportPrefixes,
-    });
-
-    await service.runCode('x = 1', 'python');
-
-    expect(mockSetControllerImportPrefixes).toHaveBeenCalledWith(
-      new Set(['prefix1', 'prefix2'])
-    );
-  });
-
-  it('should fall back to extraction when importPrefixes is undefined and code has prefixes', async () => {
-    vi.mocked(ConfigService.getImportPrefixes).mockReturnValue(undefined);
-
-    const service = createTestDhcService({
-      setControllerImportPrefixes: mockSetControllerImportPrefixes,
-    });
-
-    const code =
-      'deephaven_enterprise.controller_import.meta_import("myPrefix")\n';
-
-    await service.runCode(code, 'python');
-
-    expect(mockSetControllerImportPrefixes).toHaveBeenCalledWith(
-      new Set(['myPrefix'])
-    );
-  });
-
-  it('should not call setControllerImportPrefixes when importPrefixes is undefined and no prefixes found in snippet', async () => {
-    vi.mocked(ConfigService.getImportPrefixes).mockReturnValue(undefined);
-
-    const service = createTestDhcService({
-      setControllerImportPrefixes: mockSetControllerImportPrefixes,
-    });
-
-    await service.runCode('x = 1', 'python');
-
-    expect(mockSetControllerImportPrefixes).not.toHaveBeenCalled();
-  });
-
-  it('should call setControllerImportPrefixes for full file runs even when no prefixes found', async () => {
-    vi.mocked(ConfigService.getImportPrefixes).mockReturnValue(undefined);
-
-    const service = createTestDhcService({
-      setControllerImportPrefixes: mockSetControllerImportPrefixes,
-    });
-
-    const mockDoc = {
-      uri: vscode.Uri.file('/path/to/file.py'),
-      getText: vi.fn().mockReturnValue('x = 1'),
-    } as unknown as vscode.TextDocument;
-
-    await service.runCode(mockDoc, 'python');
-
-    expect(mockSetControllerImportPrefixes).toHaveBeenCalledWith(new Set());
-  });
-
-  it('setting always takes precedence over code content (even for snippets without meta_import)', async () => {
-    vi.mocked(ConfigService.getImportPrefixes).mockReturnValue(['forced']);
-
-    const service = createTestDhcService({
-      setControllerImportPrefixes: mockSetControllerImportPrefixes,
-    });
-
-    await service.runCode('x = 1', 'python');
-
-    expect(mockSetControllerImportPrefixes).toHaveBeenCalledWith(
-      new Set(['forced'])
-    );
+    if (expected == null) {
+      expect(mockSetControllerImportPrefixes).not.toHaveBeenCalled();
+    } else {
+      expect(mockSetControllerImportPrefixes).toHaveBeenCalledWith(expected);
+    }
   });
 });
