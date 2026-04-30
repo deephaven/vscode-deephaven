@@ -44,6 +44,7 @@ export class RemoteFileSourceService extends DisposableBase {
 
   private _isGroovyWorkspaceDirty = false;
   private _controllerImportPrefixes = new Set<string>();
+  private _evictControllerImportPrefixes = new Set<string>();
 
   private _onDidUpdatePythonModuleMeta = new vscode.EventEmitter<void>();
   readonly onDidUpdatePythonModuleMeta =
@@ -249,6 +250,20 @@ export class RemoteFileSourceService extends DisposableBase {
    * use for resolving imports in the code being executed.
    */
   setControllerImportPrefixes(controllerImportPrefixes: Set<string>): void {
+    // Mark previous and current prefixes to evict in the next execution context
+    // update.
+    [...this._controllerImportPrefixes, ...controllerImportPrefixes].forEach(
+      prefix => {
+        this._evictControllerImportPrefixes.add(prefix);
+      }
+    );
+
+    if (this._evictControllerImportPrefixes.size > 0) {
+      logger.debug(`marking controller import prefixes for eviction:`, [
+        ...this._evictControllerImportPrefixes,
+      ]);
+    }
+
     this._controllerImportPrefixes = controllerImportPrefixes;
   }
 
@@ -303,8 +318,9 @@ export class RemoteFileSourceService extends DisposableBase {
         logger.debug(`${label}: running`);
 
         const clearControllerPrefixesScript = getClearControllerPrefixesScript(
-          this._controllerImportPrefixes
+          this._evictControllerImportPrefixes
         );
+        this._evictControllerImportPrefixes.clear();
 
         const setExecutionContextScript = getSetExecutionContextScript(
           connectionId,

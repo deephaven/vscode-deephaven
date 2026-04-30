@@ -2,13 +2,19 @@
 import * as vscode from 'vscode';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { RemoteFileSourceService } from './RemoteFileSourceService';
+import { getClearControllerPrefixesScript } from '../util';
 import type {
   FilteredWorkspace,
   FilteredWorkspaceTopLevelMarkedNode,
 } from './FilteredWorkspace';
+import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type { GroovyPackageName, PythonModuleFullname } from '../types';
 
 vi.mock('vscode');
+vi.mock('../util', async () => {
+  const actual = await vi.importActual<typeof import('../util')>('../util');
+  return { ...actual, getClearControllerPrefixesScript: vi.fn().mockReturnValue('') };
+});
 
 // ── setup ────────────────────────────────────────────────────────────────────
 
@@ -256,5 +262,77 @@ describe('RemoteFileSourceService', () => {
     updateListener();
 
     expect(listener).toHaveBeenCalled();
+  });
+});
+
+describe('setControllerImportPrefixes eviction', () => {
+  const mockSession = {
+    runCode: vi.fn().mockResolvedValue(undefined),
+  } as unknown as DhcType.IdeSession;
+
+  // getClearControllerPrefixesScript receives the live Set reference, which is
+  // cleared in-place immediately after the call. Snapshot copies are captured
+  // here so assertions see the value at call time, not after the clear.
+  const capturedEvictions: Set<string>[] = [];
+
+  beforeEach(() => {
+    capturedEvictions.length = 0;
+    vi.mocked(getClearControllerPrefixesScript).mockImplementation(set => {
+      capturedEvictions.push(new Set(set));
+      return '';
+    });
+  });
+
+  it.each([
+    {
+      label: 'initial single prefix',
+      prefixCalls: [new Set(['controller'])],
+      expectedEvicted: new Set(['controller']),
+    },
+    {
+      label: 'same prefix set twice',
+      prefixCalls: [new Set(['controller']), new Set(['controller'])],
+      expectedEvicted: new Set(['controller']),
+    },
+    {
+      label: 'prefix change unions old and new',
+      prefixCalls: [new Set(['controller']), new Set(['custom'])],
+      expectedEvicted: new Set(['controller', 'custom']),
+    },
+    {
+      label: 'empty prefix set',
+      prefixCalls: [new Set<string>()],
+      expectedEvicted: new Set<string>(),
+    },
+  ])(
+    'passes accumulated prefixes to eviction script: $label',
+    async ({ prefixCalls, expectedEvicted }) => {
+      const service = new RemoteFileSourceService(
+        groovyWorkspace,
+        pythonWorkspace
+      );
+
+      for (const prefixes of prefixCalls) {
+        service.setControllerImportPrefixes(prefixes);
+      }
+
+      await service.setPythonServerExecutionContext(null, mockSession);
+
+      expect(capturedEvictions[0]).toEqual(expectedEvicted);
+    }
+  );
+
+  it('clears eviction set after setPythonServerExecutionContext', async () => {
+    const service = new RemoteFileSourceService(
+      groovyWorkspace,
+      pythonWorkspace
+    );
+
+    service.setControllerImportPrefixes(new Set(['controller']));
+    await service.setPythonServerExecutionContext(null, mockSession);
+    await service.setPythonServerExecutionContext(null, mockSession);
+
+    expect(capturedEvictions[0]).toEqual(new Set(['controller']));
+    expect(capturedEvictions[1]).toEqual(new Set());
   });
 });
