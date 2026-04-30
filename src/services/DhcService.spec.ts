@@ -10,7 +10,7 @@ vi.mock('vscode');
 
 vi.mock('./ConfigService', () => {
   const mockConfigService = {
-    getImportPrefix: vi.fn(),
+    getImportPrefixes: vi.fn(),
   };
   // eslint-disable-next-line @typescript-eslint/naming-convention
   return { ConfigService: mockConfigService };
@@ -97,15 +97,15 @@ function createTestDhcService({
   return service;
 }
 
-describe('DhcService.runCode – importPrefix setting', () => {
+describe('DhcService.runCode – importPrefixes setting', () => {
   const mockSetControllerImportPrefixes = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should use setting prefix when importPrefix is configured', async () => {
-    vi.mocked(ConfigService.getImportPrefix).mockReturnValue('myPrefix');
+  it('should use setting prefixes when importPrefixes is configured', async () => {
+    vi.mocked(ConfigService.getImportPrefixes).mockReturnValue(['myPrefix']);
 
     const service = createTestDhcService({
       setControllerImportPrefixes: mockSetControllerImportPrefixes,
@@ -118,8 +118,25 @@ describe('DhcService.runCode – importPrefix setting', () => {
     );
   });
 
-  it('should fall back to extraction when importPrefix is undefined and code has prefixes', async () => {
-    vi.mocked(ConfigService.getImportPrefix).mockReturnValue(undefined);
+  it('should use all prefixes when importPrefixes contains multiple values', async () => {
+    vi.mocked(ConfigService.getImportPrefixes).mockReturnValue([
+      'prefix1',
+      'prefix2',
+    ]);
+
+    const service = createTestDhcService({
+      setControllerImportPrefixes: mockSetControllerImportPrefixes,
+    });
+
+    await service.runCode('x = 1', 'python');
+
+    expect(mockSetControllerImportPrefixes).toHaveBeenCalledWith(
+      new Set(['prefix1', 'prefix2'])
+    );
+  });
+
+  it('should fall back to extraction when importPrefixes is undefined and code has prefixes', async () => {
+    vi.mocked(ConfigService.getImportPrefixes).mockReturnValue(undefined);
 
     const service = createTestDhcService({
       setControllerImportPrefixes: mockSetControllerImportPrefixes,
@@ -135,8 +152,8 @@ describe('DhcService.runCode – importPrefix setting', () => {
     );
   });
 
-  it('should not call setControllerImportPrefixes when importPrefix is undefined and no prefixes found in snippet', async () => {
-    vi.mocked(ConfigService.getImportPrefix).mockReturnValue(undefined);
+  it('should not call setControllerImportPrefixes when importPrefixes is undefined and no prefixes found in snippet', async () => {
+    vi.mocked(ConfigService.getImportPrefixes).mockReturnValue(undefined);
 
     const service = createTestDhcService({
       setControllerImportPrefixes: mockSetControllerImportPrefixes,
@@ -148,7 +165,7 @@ describe('DhcService.runCode – importPrefix setting', () => {
   });
 
   it('should call setControllerImportPrefixes for full file runs even when no prefixes found', async () => {
-    vi.mocked(ConfigService.getImportPrefix).mockReturnValue(undefined);
+    vi.mocked(ConfigService.getImportPrefixes).mockReturnValue(undefined);
 
     const service = createTestDhcService({
       setControllerImportPrefixes: mockSetControllerImportPrefixes,
@@ -165,7 +182,7 @@ describe('DhcService.runCode – importPrefix setting', () => {
   });
 
   it('setting always takes precedence over code content (even for snippets without meta_import)', async () => {
-    vi.mocked(ConfigService.getImportPrefix).mockReturnValue('forced');
+    vi.mocked(ConfigService.getImportPrefixes).mockReturnValue(['forced']);
 
     const service = createTestDhcService({
       setControllerImportPrefixes: mockSetControllerImportPrefixes,

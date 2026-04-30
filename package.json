@@ -160,13 +160,16 @@
           },
           "default": []
         },
-        "deephaven.importPrefix": {
+        "deephaven.importPrefixes": {
           "type": [
-            "string",
+            "array",
             "null"
           ],
           "default": null,
-          "markdownDescription": "Optional controller import prefix for remote file sourcing. When set, overrides automatic detection from `meta_import()` calls in Python code. Defaults to automatic detection if not specified."
+          "items": {
+            "type": "string"
+          },
+          "markdownDescription": "Optional controller import prefixes for remote file sourcing. When set, overrides automatic detection from `meta_import()` calls in Python code. Defaults to automatic detection if not specified."
         },
         "deephaven.mcp.enabled": {
           "type": "boolean",

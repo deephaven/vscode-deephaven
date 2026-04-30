@@ -83,17 +83,21 @@ function hasValidURL({ url }: { url: string }): boolean {
 // single identifier, not a dotted module path.
 const VALID_PYTHON_IDENTIFIER_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
-function getImportPrefix(): string | undefined {
-  const config = getConfig().get<string | null>(CONFIG_KEY.importPrefix);
-
-  if (config != null && !VALID_PYTHON_IDENTIFIER_RE.test(config)) {
-    vscode.window.showErrorMessage(
-      `Invalid 'deephaven.importPrefix' setting: '${config}' is not a valid import prefix name. The setting will be ignored.`
-    );
+function getImportPrefixes(): string[] | undefined {
+  const config = getConfig().get<string[] | null>(CONFIG_KEY.importPrefixes);
+  if (config == null) {
     return undefined;
   }
 
-  return config ?? undefined;
+  return config.filter(prefix => {
+    if (VALID_PYTHON_IDENTIFIER_RE.test(prefix)) {
+      return true;
+    }
+    vscode.window.showErrorMessage(
+      `Invalid 'deephaven.importPrefixes' setting: '${prefix}' is not a valid import prefix name. It will be ignored.`
+    );
+    return false;
+  });
 }
 
 async function toggleMcp(enable?: boolean): Promise<void> {
@@ -251,7 +255,7 @@ export async function updateWindsurfMcpConfig(
 export const ConfigService: IConfigService = {
   getCoreServers,
   getEnterpriseServers,
-  getImportPrefix,
+  getImportPrefixes,
   isElectronFetchEnabled,
   isMcpDocsEnabled,
   isMcpEnabled,

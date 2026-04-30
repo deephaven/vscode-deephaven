@@ -527,10 +527,10 @@ export class DhcService extends DisposableBase implements IDhcService {
         const isDoc = typeof documentOrText !== 'string';
 
         // Check for setting override first
-        const configPrefix = ConfigService.getImportPrefix();
+        const configPrefixes = ConfigService.getImportPrefixes();
         const controllerImportPrefixes =
-          configPrefix != null
-            ? new Set([configPrefix])
+          configPrefixes != null
+            ? new Set(configPrefixes)
             : extractControllerImportPrefixes(text);
 
         // Update prefixes if:
