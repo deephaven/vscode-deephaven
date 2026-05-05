@@ -169,6 +169,7 @@ When you run Python code, the extension scans for `meta_import()` calls and infe
 
 ```python
 import deephaven_enterprise.controller_import
+
 deephaven_enterprise.controller_import.meta_import()
 ```
 
@@ -176,6 +177,7 @@ deephaven_enterprise.controller_import.meta_import()
 
 ```python
 import deephaven_enterprise.controller_import
+
 deephaven_enterprise.controller_import.meta_import("myprefix")
 ```
 
@@ -183,6 +185,7 @@ deephaven_enterprise.controller_import.meta_import("myprefix")
 
 ```python
 from deephaven_enterprise.controller_import import meta_import
+
 meta_import("custom")
 ```
 
@@ -213,9 +216,11 @@ The main reasons to set this manually are:
 
   ```python
   import deephaven_enterprise.controller_import as ci
+
   ci.meta_import()
 
   from deephaven_enterprise.controller_import import meta_import as m
+
   m()
   ```
 
