@@ -1,5 +1,19 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`getClearControllerPrefixesScript > empty set 1`] = `""`;
+
+exports[`getClearControllerPrefixesScript > multiple prefixes 1`] = `
+"modules_to_delete = [name for name in sys.modules if name == "a" or name.startswith("a.") or name == "b" or name.startswith("b.")]
+for module in modules_to_delete:
+    del sys.modules[module]"
+`;
+
+exports[`getClearControllerPrefixesScript > single prefix 1`] = `
+"modules_to_delete = [name for name in sys.modules if name == "controller" or name.startswith("controller.")]
+for module in modules_to_delete:
+    del sys.modules[module]"
+`;
+
 exports[`getFileTreeItem > should return a TreeItem for a file element 1`] = `
 {
   "collapsibleState": 0,
