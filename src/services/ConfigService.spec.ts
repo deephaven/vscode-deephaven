@@ -353,3 +353,39 @@ describe('updateWindsurfMcpConfig', () => {
     expect(getEnsuredContent).toHaveBeenCalledWith(windowsConfigUri, '{}\n');
   });
 });
+
+describe('getImportPrefixes', () => {
+  it.each([
+    ['not configured', undefined, undefined],
+    ['empty array', [], []],
+    ['single valid prefix', ['controller'], ['controller']],
+    ['multiple valid prefixes', ['controller', '_my_prefix'], ['controller', '_my_prefix']],
+  ])('should return without errors when %s', (_label, given, expected) => {
+    configMap.set(CONFIG_KEY.importPrefixes, given);
+
+    const result = ConfigService.getImportPrefixes();
+
+    expect(result).toEqual(expected);
+    expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['one invalid entry (empty string)', [''], [], ['']],
+    ['one invalid entry (starts with digit)', ['1controller'], [], ['1controller']],
+    ['one invalid entry (contains hyphen)', ['my-prefix'], [], ['my-prefix']],
+    ['one invalid entry (dotted name)', ['my.prefix'], [], ['my.prefix']],
+    ['mixed valid and invalid entries', ['valid', '1bad', 'also_valid', 'my-prefix'], ['valid', 'also_valid'], ['1bad', 'my-prefix']],
+  ])('should filter invalid entries and show errors when %s', (_label, given, expectedResult, expectedInvalid) => {
+    configMap.set(CONFIG_KEY.importPrefixes, given);
+
+    const result = ConfigService.getImportPrefixes();
+
+    expect(result).toEqual(expectedResult);
+    expect(vscode.window.showErrorMessage).toHaveBeenCalledTimes(expectedInvalid.length);
+    for (const invalid of expectedInvalid) {
+      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+        expect.stringContaining(`'${invalid}' is not a valid import prefix name`)
+      );
+    }
+  });
+});

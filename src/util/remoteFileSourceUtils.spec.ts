@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import {
+  getClearControllerPrefixesScript,
   getFileTreeItem,
   getFolderTreeItem,
   getGroovyTopLevelPackageName,
@@ -330,5 +331,15 @@ describe('sendWidgetMessageAsync', () => {
     const response = await promise;
     expect(response).toEqual(matchingMsg);
     expect(removeEventListener).toHaveBeenCalled();
+  });
+});
+
+describe('getClearControllerPrefixesScript', () => {
+  it.each([
+    ['empty set', new Set<string>()],
+    ['single prefix', new Set(['controller'])],
+    ['multiple prefixes', new Set(['a', 'b'])],
+  ])('%s', (_label, prefixes) => {
+    expect(getClearControllerPrefixesScript(prefixes)).toMatchSnapshot();
   });
 });

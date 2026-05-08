@@ -156,3 +156,74 @@ def dashboard_content(table):
 2. In your VS Code workspace, use the Deephaven extension to run `main.py`. The imports will resolve because the `stock_ticker` folder is registered as a remote file source.
 
 ![Run main.py](assets/run-main-py.gif)
+
+## Controller Import Prefix Support (Enterprise)
+
+**Deephaven Enterprise** uses a controller import registration mechanism (`meta_import()`) that requires modules to be importable under a prefixed name (e.g., `controller.mymodule`) for the server to find them. The VS Code extension automatically detects this pattern in your Python code and registers both the unprefixed and prefixed names with the server for each folder marked as a remote file source, allowing prefixed imports to be sourced by the extension.
+
+### Auto-Detection
+
+When you run Python code, the extension scans for `meta_import()` calls and infers the prefix to use. No extra setup is required — if your code already calls `meta_import()`, the extension picks it up automatically.
+
+**With default prefix (`controller`):**
+
+```python
+import deephaven_enterprise.controller_import
+
+deephaven_enterprise.controller_import.meta_import()
+```
+
+**With a custom prefix:**
+
+```python
+import deephaven_enterprise.controller_import
+
+deephaven_enterprise.controller_import.meta_import("myprefix")
+```
+
+**From-import style:**
+
+```python
+from deephaven_enterprise.controller_import import meta_import
+
+meta_import("custom")
+```
+
+### Behavior
+
+- For each folder marked as a remote file source, both the unprefixed and prefixed module names are registered with the Deephaven server.
+- Example: If you mark a folder called `mymodule` and a prefix of `controller` is detected, the server will receive both `mymodule` and `controller.mymodule` as importable names for that folder.
+- Without a detected or configured prefix, only the unprefixed name (`mymodule`) is registered for each marked folder.
+- Prefixes are **updated when you run Python code**: running a full file replaces any previous prefixes; running a snippet updates prefixes only if a `meta_import()` call is found in that snippet.
+
+### Manual Override
+
+You can set one or more prefixes explicitly in your VS Code settings:
+
+```json
+"deephaven.importPrefixes": ["controller"]
+```
+
+When set, this array is used as the source of truth and auto-detection is skipped entirely. Multiple prefixes can be provided if needed:
+
+```json
+"deephaven.importPrefixes": ["controller", "custom"]
+```
+
+The main reasons to set this manually are:
+
+- **Unrecognized imports** — the auto-detection doesn't recognize all possible import patterns such as aliasing:
+
+  ```python
+  import deephaven_enterprise.controller_import as ci
+
+  ci.meta_import()
+
+  from deephaven_enterprise.controller_import import meta_import as m
+
+  m()
+  ```
+
+- **`meta_import()` in a dependency** — auto-detection only scans the code being run directly, not modules it imports. If the registration happens inside a dependency rather than the script itself, the prefix will not be detected.
+
+If either case applies, set `deephaven.importPrefixes` manually.

@@ -78,6 +78,28 @@ function hasValidURL({ url }: { url: string }): boolean {
   }
 }
 
+// ASCII subset of Python identifier rules (PEP 3131 / py3 lexical spec allows Unicode,
+// but controller prefix names are expected to be ASCII in practice). A prefix is a
+// single identifier, not a dotted module path.
+const VALID_PYTHON_IDENTIFIER_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+function getImportPrefixes(): string[] | undefined {
+  const config = getConfig().get<string[] | null>(CONFIG_KEY.importPrefixes);
+  if (config == null) {
+    return undefined;
+  }
+
+  return config.filter(prefix => {
+    if (VALID_PYTHON_IDENTIFIER_RE.test(prefix)) {
+      return true;
+    }
+    vscode.window.showErrorMessage(
+      `Invalid 'deephaven.importPrefixes' setting: '${prefix}' is not a valid import prefix name. It will be ignored.`
+    );
+    return false;
+  });
+}
+
 async function toggleMcp(enable?: boolean): Promise<void> {
   const currentState = isMcpEnabled();
   const targetState = enable ?? !currentState;
@@ -233,6 +255,7 @@ export async function updateWindsurfMcpConfig(
 export const ConfigService: IConfigService = {
   getCoreServers,
   getEnterpriseServers,
+  getImportPrefixes,
   isElectronFetchEnabled,
   isMcpDocsEnabled,
   isMcpEnabled,

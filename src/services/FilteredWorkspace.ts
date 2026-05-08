@@ -565,4 +565,9 @@ export class FilteredWorkspace<
       childMap.set(node.uri, node as FilteredWorkspaceNode);
     }
   }
+
+  protected override async onDisposing(): Promise<void> {
+    this._onDidChangeFileDecorations.dispose();
+    this._onDidUpdate.dispose();
+  }
 }
