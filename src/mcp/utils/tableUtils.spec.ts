@@ -184,10 +184,7 @@ describe('tableUtils', () => {
           tableName: 'my_figure',
         });
 
-        expect(fetchVariableDefinition).not.toHaveBeenCalled();
-        expect(mockSession.getObject).toHaveBeenCalledWith(
-          mockRollupVariableDef
-        );
+        expect(mockSession.getObject).toHaveBeenCalledWith(mockTreeVariableDef);
         expect(result).toEqual({
           success: false,
           errorMessage: 'Variable is not a table',

@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
-import { fetchVariableDefinition } from '@deephaven/jsapi-utils';
 
 import { createGetTableStatsTool } from './getTableStats';
 import type { IAsyncCacheService, IServerManager } from '../../types';
