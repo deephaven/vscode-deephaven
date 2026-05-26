@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
+import { fetchVariableDefinition } from '@deephaven/jsapi-utils';
 
 import { createGetColumnStatsTool } from './getColumnStats';
 import type { IAsyncCacheService, IServerManager } from '../../types';
@@ -119,6 +120,7 @@ describe('createGetColumnStatsTool', () => {
     vi.mocked(MOCK_TABLE.getColumnStatistics).mockResolvedValue(
       MOCK_COLUMN_STATS
     );
+    vi.mocked(fetchVariableDefinition).mockResolvedValue(MOCK_VARIABLE_DEF);
   });
 
   it('should return correct tool spec', () => {
