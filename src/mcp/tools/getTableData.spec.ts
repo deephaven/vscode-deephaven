@@ -252,7 +252,7 @@ describe('getTableData', () => {
       id: 'rollup-id',
       name: 'myRollup',
       title: 'myRollup',
-    };
+    } as DhcType.ide.VariableDefinition;
     vi.mocked(fetchVariableDefinition).mockResolvedValue(rollupVariableDef);
 
     const tool = createGetTableDataTool({ serverManager });
