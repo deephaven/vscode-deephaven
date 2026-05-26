@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
+import { fetchVariableDefinition } from '@deephaven/jsapi-utils';
 
 import {
   createGetTableDataTool,
@@ -243,5 +244,28 @@ describe('getTableData', () => {
 
     expect(result.structuredContent.success).toBe(true);
     expect(MOCK_TABLE.close).toHaveBeenCalled();
+  });
+
+  it('should fetch rollup table using actual variable type from fetchVariableDefinition', async () => {
+    const rollupVariableDef = {
+      type: 'RollupTable',
+      id: 'rollup-id',
+      name: 'myRollup',
+      title: 'myRollup',
+    };
+    vi.mocked(fetchVariableDefinition).mockResolvedValue(rollupVariableDef);
+
+    const tool = createGetTableDataTool({ serverManager });
+    const result = await tool.handler({
+      connectionUrl: MOCK_DHC_URL.href,
+      tableName: 'myRollup',
+    });
+
+    expect(fetchVariableDefinition).toHaveBeenCalledWith(
+      mockSession,
+      'myRollup'
+    );
+    expect(mockSession.getObject).toHaveBeenCalledWith(rollupVariableDef);
+    expect(result.structuredContent.success).toBe(true);
   });
 });
