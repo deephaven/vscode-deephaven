@@ -1,5 +1,5 @@
 import { MIME_TYPE } from '../common';
-import { getEditorForUri } from '../util';
+import { getEditorForUri, isServerStateNode } from '../util';
 import type { IServerManager } from '../types';
 import type { ServerConnectionNode } from '../types/treeViewTypes';
 
@@ -21,8 +21,13 @@ export class ServerConnectionTreeDragAndDropController
     dataTransfer: vscode.DataTransfer,
     _token: vscode.CancellationToken
   ): Promise<void> => {
-    // Only target connection nodes
-    if (target == null || target instanceof vscode.Uri) {
+    // Only target connection nodes. DHE server group nodes and uri leaf nodes
+    // are not valid editor-connection targets.
+    if (
+      target == null ||
+      target instanceof vscode.Uri ||
+      isServerStateNode(target)
+    ) {
       return;
     }
 

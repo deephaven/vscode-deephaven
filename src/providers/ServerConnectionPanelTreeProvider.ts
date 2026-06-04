@@ -2,13 +2,15 @@ import * as vscode from 'vscode';
 import type {
   IPanelService,
   IServerManager,
-  ConnectionState,
   ServerConnectionPanelNode,
 } from '../types';
 import { ServerTreeProviderBase } from './ServerTreeProviderBase';
 import {
+  getConnectionServerTreeItem,
+  getConnectionTreeRootNodes,
   getPanelConnectionTreeItem,
   getPanelVariableTreeItem,
+  isServerStateNode,
   sortByStringProp,
 } from '../util';
 import { getFirstSupportedConsoleType } from '../services';
@@ -27,40 +29,61 @@ export class ServerConnectionPanelTreeProvider extends ServerTreeProviderBase<Se
   private readonly _panelService: IPanelService;
 
   getTreeItem = async (
-    connectionOrVariable: ServerConnectionPanelNode
+    node: ServerConnectionPanelNode
   ): Promise<vscode.TreeItem> => {
-    if (Array.isArray(connectionOrVariable)) {
-      return getPanelVariableTreeItem(connectionOrVariable);
+    // Variable leaf node.
+    if (Array.isArray(node)) {
+      return getPanelVariableTreeItem(node);
+    }
+
+    // DHE server node grouping its worker connections.
+    if (isServerStateNode(node)) {
+      return getConnectionServerTreeItem(node);
     }
 
     const serverLabel = getServerMatchPortIfLocalHost(
       this.serverManager,
-      connectionOrVariable.serverUrl
+      node.serverUrl
     )?.label;
 
-    const workerInfo = await this.serverManager.getWorkerInfo(
-      connectionOrVariable.serverUrl
-    );
+    const workerInfo = await this.serverManager.getWorkerInfo(node.serverUrl);
+
+    // DHE worker nodes are nested under their server node (worker name as the
+    // label); flat DHC connections keep the server label.
+    const isWorkerChild = this.serverManager.getServerForConnection(node) != null;
 
     return getPanelConnectionTreeItem(
-      connectionOrVariable,
+      node,
       getFirstSupportedConsoleType,
       serverLabel,
-      workerInfo?.name
+      workerInfo?.name,
+      isWorkerChild
     );
   };
 
   getChildren = (
-    connectionOrRoot?: ConnectionState
+    elementOrRoot?: ServerConnectionPanelNode
   ): vscode.ProviderResult<ServerConnectionPanelNode[]> => {
-    if (connectionOrRoot == null) {
+    // Root: DHE server nodes + flat DHC connection nodes.
+    if (elementOrRoot == null) {
+      return getConnectionTreeRootNodes(this.serverManager);
+    }
+
+    // Variable leaf nodes have no children.
+    if (Array.isArray(elementOrRoot)) {
+      return [];
+    }
+
+    // DHE server node -> its worker connections.
+    if (isServerStateNode(elementOrRoot)) {
       return this.serverManager
-        .getConnections()
+        .getConnections(elementOrRoot.url)
         .sort(sortByStringProp('serverUrl'));
     }
 
-    return [...this._panelService.getVariables(connectionOrRoot.serverUrl)]
+    // Connection node -> its panel variables.
+    return [...this._panelService.getVariables(elementOrRoot.serverUrl)]
       .sort(sortByStringProp('title'))
-      .map(variable => [connectionOrRoot.serverUrl, variable]);
+      .map(variable => [elementOrRoot.serverUrl, variable]);
   };
 }

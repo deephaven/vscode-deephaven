@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import type {
   ConnectionState,
   ConsoleType,
+  IServerManager,
   NonEmptyArray,
   ServerGroupState,
   ServerState,
@@ -9,6 +10,7 @@ import type {
   VariableType,
 } from '../types';
 import {
+  CONNECTION_TREE_ITEM_CONTEXT,
   DH_PROTECTED_VARIABLE_NAMES,
   ICON_ID,
   OPEN_VARIABLE_PANELS_CMD,
@@ -79,16 +81,25 @@ export async function getPanelConnectionTreeItem(
     connection: ConnectionState
   ) => Promise<ConsoleType | undefined>,
   serverLabel?: string,
-  pqName?: string
+  pqName?: string,
+  isWorkerChild = false
 ): Promise<vscode.TreeItem> {
   // Console type (language) drives the node icon rather than the description.
   const consoleType = await getConsoleType(connection);
 
   // Prefer the persistent query name (what the DHE Query Monitor shows) over
   // the local correlation tagId. Falls back to tagId for plain DHC connections.
-  const description = pqName ?? connection.tagId;
+  const workerName = pqName ?? connection.tagId;
 
-  const label = serverLabel ?? connection.serverUrl.host;
+  // DHE worker nodes are nested under their server node, so the worker name
+  // becomes the node label and the server label lives on the parent. Flat DHC
+  // connections keep the server label as the node label and show the worker
+  // name as the description.
+  const label = isWorkerChild
+    ? workerName
+    : (serverLabel ?? connection.serverUrl.host);
+
+  const description = isWorkerChild ? undefined : workerName;
 
   return {
     label,
@@ -126,6 +137,71 @@ export function getPanelVariableTreeItem([url, variable]: [
       command: OPEN_VARIABLE_PANELS_CMD,
       arguments: [url, variablesToOpen],
     },
+  };
+}
+
+/**
+ * Type guard for a (DHE) server node within the connection / panel tree root.
+ * `ServerState` carries `url`; `ConnectionState` carries `serverUrl`.
+ * @param node A server or connection root node.
+ */
+export function isServerStateNode(
+  node: ServerState | ConnectionState
+): node is ServerState {
+  return 'url' in node;
+}
+
+/**
+ * Compute the root nodes for the connection / panel tree views. DHE worker
+ * connections are grouped under their parent DHE server node; DHC connections
+ * remain flat top-level nodes. Roots are sorted by their displayed label.
+ * @param serverManager Server manager.
+ * @returns The root nodes (DHE servers and flat DHC connections).
+ */
+export function getConnectionTreeRootNodes(
+  serverManager: IServerManager
+): (ServerState | ConnectionState)[] {
+  const dheServers = new Map<string, ServerState>();
+  const flatConnections: ConnectionState[] = [];
+
+  for (const connection of serverManager.getConnections()) {
+    const server = serverManager.getServerForConnection(connection);
+    if (server == null) {
+      flatConnections.push(connection);
+    } else {
+      dheServers.set(server.url.toString(), server);
+    }
+  }
+
+  return [...flatConnections, ...dheServers.values()].sort((a, b) =>
+    getConnectionNodeSortKey(a).localeCompare(getConnectionNodeSortKey(b))
+  );
+}
+
+function getConnectionNodeSortKey(
+  node: ServerState | ConnectionState
+): string {
+  return isServerStateNode(node)
+    ? (node.label ?? node.url.host)
+    : node.serverUrl.host;
+}
+
+/**
+ * Get `TreeItem` for a DHE server node in the connection / panel tree views.
+ * This is a grouping container whose children are the server's worker
+ * connections.
+ * @param server DHE server state
+ */
+export function getConnectionServerTreeItem(
+  server: ServerState
+): vscode.TreeItem {
+  return {
+    label: server.label ?? server.url.host,
+    // The "computer" icon (`vm-connect`) previously used for worker connection
+    // nodes, before the language (Python/Groovy) icons took their place.
+    iconPath: new vscode.ThemeIcon(ICON_ID.connected),
+    collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
+    contextValue: CONNECTION_TREE_ITEM_CONTEXT.isDHEServerConnectionParent,
   };
 }
 

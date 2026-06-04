@@ -159,6 +159,7 @@ export const VARIABLE_UNICODE_ICONS = {
 export const CONNECTION_TREE_ITEM_CONTEXT = {
   isConnectionConnected: 'isConnectionConnected',
   isConnectionConnecting: 'isConnectionConnecting',
+  isDHEServerConnectionParent: 'isDHEServerConnectionParent',
   isUri: 'isUri',
 } as const;
 

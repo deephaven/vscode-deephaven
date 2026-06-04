@@ -737,6 +737,23 @@ export class ServerManager implements IServerManager {
   };
 
   /**
+   * Get the parent DHE server for a connection. Returns the DHE server state
+   * when the connection is a DHE worker (its `serverUrl` is mapped to a DHE
+   * server URL), or `undefined` for DHC connections, which have no parent
+   * server node in the tree.
+   * @param connection The connection to get the parent server for.
+   * @returns The parent DHE server state, or `undefined`.
+   */
+  getServerForConnection = (
+    connection: ConnectionState
+  ): ServerState | undefined => {
+    const dheServerUrl = this._workerURLToServerURLMap.get(
+      connection.serverUrl
+    );
+    return dheServerUrl == null ? undefined : this.getServer(dheServerUrl);
+  };
+
+  /**
    * Get all URIs associated with a connection.
    * @param connection
    */

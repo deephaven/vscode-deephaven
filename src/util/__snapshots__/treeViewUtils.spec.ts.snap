@@ -1,6 +1,42 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:false, isInitialized:false 1`] = `
+exports[`getConnectionServerTreeItem > should fall back to the url host when there is no label 1`] = `
+{
+  "collapsibleState": 2,
+  "contextValue": "isDHEServerConnectionParent",
+  "iconPath": ThemeIcon {
+    "color": undefined,
+    "id": "vm-connect",
+  },
+  "label": "my-dhe-server:8123",
+}
+`;
+
+exports[`getConnectionServerTreeItem > should return a labeled server tree item 1`] = `
+{
+  "collapsibleState": 2,
+  "contextValue": "isDHEServerConnectionParent",
+  "iconPath": ThemeIcon {
+    "color": undefined,
+    "id": "vm-connect",
+  },
+  "label": "My DHE Server",
+}
+`;
+
+exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:false, isInitialized:false, isWorkerChild:false 1`] = `
+{
+  "collapsibleState": 2,
+  "description": "Some Worker PQ",
+  "iconPath": ThemeIcon {
+    "color": undefined,
+    "id": "sync~spin",
+  },
+  "label": "Some Server",
+}
+`;
+
+exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:false, isInitialized:false, isWorkerChild:true 1`] = `
 {
   "collapsibleState": 2,
   "description": undefined,
@@ -8,11 +44,23 @@ exports[`getPanelConnectionTreeItem > should return panel connection tree item: 
     "color": undefined,
     "id": "sync~spin",
   },
-  "label": "localhost:10000",
+  "label": "Some Worker PQ",
 }
 `;
 
-exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:false, isInitialized:true 1`] = `
+exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:false, isInitialized:true, isWorkerChild:false 1`] = `
+{
+  "collapsibleState": 2,
+  "description": "Some Worker PQ",
+  "iconPath": ThemeIcon {
+    "color": undefined,
+    "id": "sync~spin",
+  },
+  "label": "Some Server",
+}
+`;
+
+exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:false, isInitialized:true, isWorkerChild:true 1`] = `
 {
   "collapsibleState": 2,
   "description": undefined,
@@ -20,11 +68,23 @@ exports[`getPanelConnectionTreeItem > should return panel connection tree item: 
     "color": undefined,
     "id": "sync~spin",
   },
-  "label": "localhost:10000",
+  "label": "Some Worker PQ",
 }
 `;
 
-exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:true, isInitialized:false 1`] = `
+exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:true, isInitialized:false, isWorkerChild:false 1`] = `
+{
+  "collapsibleState": 2,
+  "description": "Some Worker PQ",
+  "iconPath": ThemeIcon {
+    "color": undefined,
+    "id": "vm-connect",
+  },
+  "label": "Some Server",
+}
+`;
+
+exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:true, isInitialized:false, isWorkerChild:true 1`] = `
 {
   "collapsibleState": 2,
   "description": undefined,
@@ -32,11 +92,23 @@ exports[`getPanelConnectionTreeItem > should return panel connection tree item: 
     "color": undefined,
     "id": "vm-connect",
   },
-  "label": "localhost:10000",
+  "label": "Some Worker PQ",
 }
 `;
 
-exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:true, isInitialized:true 1`] = `
+exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:true, isInitialized:true, isWorkerChild:false 1`] = `
+{
+  "collapsibleState": 2,
+  "description": "Some Worker PQ",
+  "iconPath": ThemeIcon {
+    "color": undefined,
+    "id": "dh-python",
+  },
+  "label": "Some Server",
+}
+`;
+
+exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:true, isInitialized:true, isWorkerChild:true 1`] = `
 {
   "collapsibleState": 2,
   "description": undefined,
@@ -44,7 +116,7 @@ exports[`getPanelConnectionTreeItem > should return panel connection tree item: 
     "color": undefined,
     "id": "dh-python",
   },
-  "label": "localhost:10000",
+  "label": "Some Worker PQ",
 }
 `;
 

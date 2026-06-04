@@ -190,6 +190,14 @@ export interface IServerManager extends IDisposable {
   getConnection: (serverUrl: URL) => ConnectionState | undefined;
   getConnections: (serverOrWorkerUrl?: URL) => ConnectionState[];
   getConnectionUris: (connection: ConnectionState) => vscode.Uri[];
+  /**
+   * Get the parent DHE server for a connection. Returns the DHE `ServerState`
+   * when the connection is a DHE worker, or `undefined` for DHC connections
+   * (which have no parent server node in the tree).
+   */
+  getServerForConnection: (
+    connection: ConnectionState
+  ) => ServerState | undefined;
   getDheServiceForWorker: (maybeWorkerUrl: URL) => Promise<IDheService | null>;
   getEditorConnection: (uri: vscode.Uri) => Promise<ConnectionState | null>;
   getWorkerCredentials: (

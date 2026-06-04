@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { bitValues, boolValues, matrix } from '../testUtils';
 import {
+  getConnectionServerTreeItem,
   getPanelConnectionTreeItem,
   getPanelVariableTreeItem,
   getServerContextValue,
@@ -47,9 +48,9 @@ describe('getPanelConnectionTreeItem', () => {
 
   const serverUrl = new URL('http://localhost:10000');
 
-  it.each(matrix(boolValues, boolValues))(
-    'should return panel connection tree item: isConnected:%s, isInitialized:%s',
-    async (isConnected, isInitialized) => {
+  it.each(matrix(boolValues, boolValues, boolValues))(
+    'should return panel connection tree item: isConnected:%s, isInitialized:%s, isWorkerChild:%s',
+    async (isConnected, isInitialized, isWorkerChild) => {
       const connection = {
         isConnected,
         isInitialized,
@@ -59,13 +60,46 @@ describe('getPanelConnectionTreeItem', () => {
 
       vi.mocked(isInstanceOf).mockReturnValue(true);
 
-      const actual = await getPanelConnectionTreeItem(connection, async () => {
-        const [consoleType] = await getConsoleTypes();
-        return isInitialized ? consoleType : undefined;
-      });
+      const actual = await getPanelConnectionTreeItem(
+        connection,
+        async () => {
+          const [consoleType] = await getConsoleTypes();
+          return isInitialized ? consoleType : undefined;
+        },
+        'Some Server',
+        'Some Worker PQ',
+        isWorkerChild
+      );
       expect(actual).toMatchSnapshot();
     }
   );
+});
+
+describe('getConnectionServerTreeItem', () => {
+  it('should return a labeled server tree item', () => {
+    const server: ServerState = {
+      type: 'DHE',
+      url: new URL('https://my-dhe-server:8123'),
+      label: 'My DHE Server',
+      isConnected: true,
+      isRunning: true,
+      connectionCount: 2,
+    };
+
+    expect(getConnectionServerTreeItem(server)).toMatchSnapshot();
+  });
+
+  it('should fall back to the url host when there is no label', () => {
+    const server: ServerState = {
+      type: 'DHE',
+      url: new URL('https://my-dhe-server:8123'),
+      isConnected: true,
+      isRunning: true,
+      connectionCount: 2,
+    };
+
+    expect(getConnectionServerTreeItem(server)).toMatchSnapshot();
+  });
 });
 
 describe('getPanelVariableTreeItem', () => {
