@@ -58,7 +58,8 @@ export async function getPanelConnectionTreeItem(
   getConsoleType: (
     connection: ConnectionState
   ) => Promise<ConsoleType | undefined>,
-  serverLabel?: string
+  serverLabel?: string,
+  pqName?: string
 ): Promise<vscode.TreeItem> {
   const descriptionTokens: string[] = [];
 
@@ -68,8 +69,11 @@ export async function getPanelConnectionTreeItem(
     descriptionTokens.push(consoleType);
   }
 
-  if (connection.tagId) {
-    descriptionTokens.push(connection.tagId);
+  // Prefer the persistent query name (what the DHE Query Monitor shows) over
+  // the local correlation tagId. Falls back to tagId for plain DHC connections.
+  const idToken = pqName ?? connection.tagId;
+  if (idToken) {
+    descriptionTokens.push(idToken);
   }
 
   const label = serverLabel ?? connection.serverUrl.host;

@@ -106,6 +106,7 @@ export class DheService implements IDheService {
   private _isConnected: boolean = false;
   private _operateAs: string | null = null;
   private _removeConfigListeners: (() => void) | null = null;
+  private readonly _creatingTagIds = new Set<UniqueID>();
   private readonly _config: IConfigService;
   private readonly _dheClientCache: URLMap<DheAuthenticatedClientWrapper>;
   private readonly _dheJsApiCache: IAsyncCacheService<URL, DheType>;
@@ -236,7 +237,21 @@ export class DheService implements IDheService {
           logger.info('Worker entered terminal state:', queryInfo.serial);
           this._onDidWorkerRemoved.fire(queryInfo.serial as QuerySerial);
         }
-      } else if (isAttachableWorker(queryInfo, operateAs)) {
+      } else if (
+        isAttachableWorker(queryInfo, operateAs) &&
+        !this._querySerialSet.has(queryInfo.serial as QuerySerial) &&
+        !this._isCreatingQuery(queryInfo.name)
+      ) {
+        // Skip workers the extension is creating or already owns. The create
+        // path connects those directly with the tagId it allocated for the
+        // query name (`IC - VS Code - <tagId>`). Without this guard, the same
+        // `EVENT_CONFIG_UPDATED` that flips a freshly-created worker to
+        // `Running` would auto-attach it here, racing the create path: it would
+        // double-connect with a *new* random tagId and let the now-functioning
+        // detach/cleanup machinery tear down a worker mid-creation (surfacing as
+        // a spurious startup failure). `_querySerialSet` covers the worker once
+        // its serial is known; `_isCreatingQuery` covers the earlier window
+        // (e.g. the iframe flow) where only the query name is known (Gotcha 4).
         this._onDidWorkerAttachable.fire(queryInfo);
       }
     };
@@ -329,6 +344,24 @@ export class DheService implements IDheService {
   }
 
   /**
+   * Whether the given query name belongs to a worker this extension is
+   * currently creating. Created workers are named `IC - VS Code - <tagId>`
+   * (the iframe create flow may append a `_vN` version suffix), so a prefix
+   * match against in-flight tagIds covers both forms. Used to keep the
+   * auto-attach event path off a worker the create path owns end-to-end, during
+   * the window before its serial is known and added to `_querySerialSet`.
+   * @param queryName The query name from a config event.
+   */
+  private _isCreatingQuery = (queryName: string): boolean => {
+    for (const tagId of this._creatingTagIds) {
+      if (queryName.startsWith(createQueryName(tagId))) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  /**
    * Create an InteractiveConsole query and get worker info from it.
    * @param tagId Unique tag id to include in the worker info.
    * @param consoleType Console type to create.
@@ -355,6 +388,14 @@ export class DheService implements IDheService {
     let startupFailureStatus: string | null = null;
 
     const queryName = createQueryName(tagId);
+
+    // Suppress auto-attach for this worker while it is being created. The
+    // config event that flips it to `Running` would otherwise race the create
+    // path and auto-attach it (see `onDidWorkerAttachable` guard). Cleared in
+    // the `finally` below, by which point its serial is in `_querySerialSet`
+    // (added synchronously right after, with no `await` in between), so the
+    // serial-based guard takes over without a gap.
+    this._creatingTagIds.add(tagId);
     const removeStartupFailureListener = dheClient.client.addEventListener(
       dhe.Client.EVENT_CONFIG_UPDATED,
       ({ detail: queryInfo }: CustomEvent<QueryInfo>) => {
@@ -403,6 +444,7 @@ export class DheService implements IDheService {
       throw err;
     } finally {
       removeStartupFailureListener();
+      this._creatingTagIds.delete(tagId);
     }
 
     if (querySerial == null) {

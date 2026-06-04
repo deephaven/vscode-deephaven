@@ -185,6 +185,8 @@ export interface WorkerInfo {
   grpcUrl: GrpcURL;
   ideUrl: IdeURL;
   jsapiUrl: JsapiURL;
+  /** Persistent query name (`queryInfo.name`), as shown in the Query Monitor. */
+  name: string;
   processInfoId: string | null;
   serial: QuerySerial;
   workerName: string | null;

@@ -38,10 +38,15 @@ export class ServerConnectionPanelTreeProvider extends ServerTreeProviderBase<Se
       connectionOrVariable.serverUrl
     )?.label;
 
+    const workerInfo = await this.serverManager.getWorkerInfo(
+      connectionOrVariable.serverUrl
+    );
+
     return getPanelConnectionTreeItem(
       connectionOrVariable,
       getFirstSupportedConsoleType,
-      serverLabel
+      serverLabel,
+      workerInfo?.name
     );
   };
 

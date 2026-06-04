@@ -479,6 +479,7 @@ export function buildWorkerInfo(
     grpcUrl: new URL(grpcUrl) as GrpcURL,
     ideUrl: new URL(ideUrl) as IdeURL,
     jsapiUrl: new URL(jsApiUrl) as JsapiURL,
+    name: queryInfo.name,
     processInfoId,
     workerName,
     workerUrl,

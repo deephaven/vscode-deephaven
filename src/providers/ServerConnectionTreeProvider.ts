@@ -43,8 +43,18 @@ export class ServerConnectionTreeProvider extends ServerTreeProviderBase<ServerC
       }
     }
 
-    if (connectionOrUri.tagId) {
-      descriptionTokens.push(connectionOrUri.tagId);
+    // Prefer the persistent query name (what the DHE Query Monitor shows) over
+    // the local correlation tagId. Attached workers get a synthesized random
+    // tagId that matches nothing server-side, and created workers' tagId can
+    // diverge from their query name; the PQ name is the stable identifier in
+    // both cases. Falls back to tagId for plain DHC connections, which have no
+    // associated WorkerInfo.
+    const workerInfo = await this.serverManager.getWorkerInfo(
+      connectionOrUri.serverUrl
+    );
+    const idToken = workerInfo?.name ?? connectionOrUri.tagId;
+    if (idToken) {
+      descriptionTokens.push(idToken);
     }
 
     const hasUris = this.serverManager.hasConnectionUris(connectionOrUri);
