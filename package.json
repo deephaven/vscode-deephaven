@@ -1096,7 +1096,7 @@
         },
         {
           "id": "vscode-deephaven.view.serverConnectionTree",
-          "name": "Connections",
+          "name": "Workers",
           "type": "tree",
           "icon": "images/dh-logo-28.svg"
         },

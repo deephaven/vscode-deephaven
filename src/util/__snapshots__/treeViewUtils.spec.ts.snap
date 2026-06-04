@@ -15,7 +15,7 @@ exports[`getPanelConnectionTreeItem > should return panel connection tree item: 
 exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:false, isInitialized:true 1`] = `
 {
   "collapsibleState": 2,
-  "description": "python",
+  "description": undefined,
   "iconPath": ThemeIcon {
     "color": undefined,
     "id": "sync~spin",
@@ -39,10 +39,10 @@ exports[`getPanelConnectionTreeItem > should return panel connection tree item: 
 exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:true, isInitialized:true 1`] = `
 {
   "collapsibleState": 2,
-  "description": "python",
+  "description": undefined,
   "iconPath": ThemeIcon {
     "color": undefined,
-    "id": "vm-connect",
+    "id": "dh-python",
   },
   "label": "localhost:10000",
 }

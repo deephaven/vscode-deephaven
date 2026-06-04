@@ -49,6 +49,26 @@ export function getVariableIconPath(
 }
 
 /**
+ * Get the icon id for a console type / language, used for connection tree nodes.
+ * Falls back to the generic "connected" icon when the console type is unknown
+ * (e.g. a plain DHC connection or one whose console type has not resolved yet).
+ * @param consoleType Console type (language) of the connection, if known.
+ * @returns Icon id from `ICON_ID`.
+ */
+export function getConsoleTypeIconId(
+  consoleType: ConsoleType | undefined
+): string {
+  switch (consoleType) {
+    case 'python':
+      return ICON_ID.python;
+    case 'groovy':
+      return ICON_ID.groovy;
+    default:
+      return ICON_ID.connected;
+  }
+}
+
+/**
  * Get `TreeItem` for a panel connection.
  * @param connection Connection state
  * @param getConsoleType Function to get the console type for the connection.
@@ -61,31 +81,25 @@ export async function getPanelConnectionTreeItem(
   serverLabel?: string,
   pqName?: string
 ): Promise<vscode.TreeItem> {
-  const descriptionTokens: string[] = [];
-
+  // Console type (language) drives the node icon rather than the description.
   const consoleType = await getConsoleType(connection);
-
-  if (consoleType) {
-    descriptionTokens.push(consoleType);
-  }
 
   // Prefer the persistent query name (what the DHE Query Monitor shows) over
   // the local correlation tagId. Falls back to tagId for plain DHC connections.
-  const idToken = pqName ?? connection.tagId;
-  if (idToken) {
-    descriptionTokens.push(idToken);
-  }
+  const description = pqName ?? connection.tagId;
 
   const label = serverLabel ?? connection.serverUrl.host;
-  const description =
-    descriptionTokens.length === 0 ? undefined : descriptionTokens.join(' - ');
 
   return {
     label,
     description,
     collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
+    // Show the language (Python/Groovy) icon when idle/connected; show the
+    // spinner while busy (connecting or running code).
     iconPath: new vscode.ThemeIcon(
-      connection.isConnected ? ICON_ID.connected : ICON_ID.connecting
+      connection.isRunningCode || !connection.isConnected
+        ? ICON_ID.connecting
+        : getConsoleTypeIconId(consoleType)
     ),
   };
 }

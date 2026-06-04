@@ -4,9 +4,14 @@ import { CONNECTION_TREE_ITEM_CONTEXT, ICON_ID } from '../common';
 import type {
   IDhcService,
   ConnectionState,
+  ConsoleType,
   ServerConnectionNode,
 } from '../types';
-import { isInstanceOf, sortByStringProp } from '../util';
+import {
+  getConsoleTypeIconId,
+  isInstanceOf,
+  sortByStringProp,
+} from '../util';
 import { DhcService } from '../services';
 import { getServerMatchPortIfLocalHost } from '../mcp/utils';
 
@@ -31,16 +36,13 @@ export class ServerConnectionTreeProvider extends ServerTreeProviderBase<ServerC
       };
     }
 
-    const descriptionTokens: string[] = [];
-
+    // Console type (language) drives the node icon rather than the description.
+    let consoleType: ConsoleType | undefined;
     if (
       isInstanceOf(connectionOrUri, DhcService) &&
       connectionOrUri.isInitialized
     ) {
-      const [consoleType] = await connectionOrUri.getConsoleTypes();
-      if (consoleType) {
-        descriptionTokens.push(consoleType);
-      }
+      [consoleType] = await connectionOrUri.getConsoleTypes();
     }
 
     // Prefer the persistent query name (what the DHE Query Monitor shows) over
@@ -52,10 +54,7 @@ export class ServerConnectionTreeProvider extends ServerTreeProviderBase<ServerC
     const workerInfo = await this.serverManager.getWorkerInfo(
       connectionOrUri.serverUrl
     );
-    const idToken = workerInfo?.name ?? connectionOrUri.tagId;
-    if (idToken) {
-      descriptionTokens.push(idToken);
-    }
+    const description = workerInfo?.name ?? connectionOrUri.tagId ?? '';
 
     const hasUris = this.serverManager.hasConnectionUris(connectionOrUri);
 
@@ -69,19 +68,19 @@ export class ServerConnectionTreeProvider extends ServerTreeProviderBase<ServerC
     // Connection node
     return {
       label,
-      description: descriptionTokens.join(' - '),
+      description,
       contextValue: connectionOrUri.isConnected
         ? CONNECTION_TREE_ITEM_CONTEXT.isConnectionConnected
         : CONNECTION_TREE_ITEM_CONTEXT.isConnectionConnecting,
       collapsibleState: hasUris
         ? vscode.TreeItemCollapsibleState.Expanded
         : undefined,
+      // Show the language (Python/Groovy) icon when idle/connected; show the
+      // spinner while busy (connecting or running code).
       iconPath: new vscode.ThemeIcon(
-        connectionOrUri.isRunningCode
-          ? ICON_ID.runningCode
-          : connectionOrUri.isConnected
-            ? ICON_ID.connected
-            : ICON_ID.connecting
+        connectionOrUri.isRunningCode || !connectionOrUri.isConnected
+          ? ICON_ID.connecting
+          : getConsoleTypeIconId(consoleType)
       ),
     };
   };
