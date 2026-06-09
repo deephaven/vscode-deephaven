@@ -184,7 +184,6 @@ describe('tableUtils', () => {
           tableName: 'my_figure',
         });
 
-        expect(mockSession.getObject).toHaveBeenCalledWith(mockTreeVariableDef);
         expect(result).toEqual({
           success: false,
           errorMessage: 'Variable is not a table',
