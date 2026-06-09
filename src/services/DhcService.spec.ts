@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DhcService } from './DhcService';
 import { ConfigService } from './ConfigService';
 import type { RemoteFileSourceService } from './RemoteFileSourceService';
-import type { UniqueID } from '../types';
+import type { PublicOf, UniqueID } from '../types';
 
 vi.mock('vscode');
 
@@ -16,8 +16,23 @@ vi.mock('./ConfigService', () => {
   return { ConfigService: mockConfigService };
 });
 
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
+function createMockCn(): DhcType.IdeConnection {
+  return {
+    getConsoleTypes: vi.fn().mockResolvedValue(['python']),
+  } as unknown as DhcType.IdeConnection;
+}
+
+type DhcServicePublicCn = PublicOf<DhcService> & {
+  cn: DhcType.IdeConnection | null;
+};
+
 /** Build a minimal DhcService instance that has a session already set up. */
 function createTestDhcService({
+  cn = createMockCn(),
   pythonRemoteFileSourcePlugin,
   setControllerImportPrefixes = vi.fn(),
   setPythonServerExecutionContext = vi.fn().mockResolvedValue(undefined),
@@ -26,18 +41,15 @@ function createTestDhcService({
     changes: { created: [], updated: [], removed: [] },
   }),
 }: {
+  cn?: DhcType.IdeConnection | null;
   pythonRemoteFileSourcePlugin?: DhcType.Widget | null;
   setControllerImportPrefixes?: ReturnType<typeof vi.fn>;
   setPythonServerExecutionContext?: ReturnType<typeof vi.fn>;
   sessionRunCode?: ReturnType<typeof vi.fn>;
-} = {}): DhcService {
+} = {}): DhcServicePublicCn {
   const mockSession = {
     runCode: sessionRunCode,
   } as unknown as DhcType.IdeSession;
-
-  const mockCn = {
-    getConsoleTypes: vi.fn().mockResolvedValue(['python']),
-  } as unknown as DhcType.IdeConnection;
 
   const mockRemoteFileSourceService = {
     setControllerImportPrefixes,
@@ -51,7 +63,7 @@ function createTestDhcService({
 
   const service = Object.assign(Object.create(DhcService.prototype), {
     session: mockSession,
-    cn: mockCn,
+    cn,
     cnId: 'test-cn-id' as UniqueID,
     pythonRemoteFileSourcePlugin:
       pythonRemoteFileSourcePlugin !== undefined
@@ -82,12 +94,8 @@ function mockTextDoc(codeText: string): vscode.TextDocument {
   } as unknown as vscode.TextDocument;
 }
 
-describe('DhcService.runCode – importPrefixes setting', () => {
+describe('runCode – importPrefixes setting', () => {
   const mockSetControllerImportPrefixes = vi.fn();
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
 
   it.each([
     {
@@ -115,7 +123,8 @@ describe('DhcService.runCode – importPrefixes setting', () => {
       expected: null,
     },
     {
-      label: 'calls with empty set for full file runs even when no prefixes found',
+      label:
+        'calls with empty set for full file runs even when no prefixes found',
       configPrefixes: undefined,
       input: mockTextDoc('x = 1'),
       expected: new Set(),
@@ -123,7 +132,8 @@ describe('DhcService.runCode – importPrefixes setting', () => {
     {
       label: 'setting takes precedence over meta_import in code',
       configPrefixes: ['forced'],
-      input: 'deephaven_enterprise.controller_import.meta_import("otherPrefix")\n',
+      input:
+        'deephaven_enterprise.controller_import.meta_import("otherPrefix")\n',
       expected: new Set(['forced']),
     },
     {
@@ -148,5 +158,37 @@ describe('DhcService.runCode – importPrefixes setting', () => {
     } else {
       expect(mockSetControllerImportPrefixes).toHaveBeenCalledWith(expected);
     }
+  });
+});
+
+describe('getConnection', () => {
+  it('initializes the session when no connection exists yet', async () => {
+    const service = createTestDhcService({ cn: null });
+
+    const mockCn = createMockCn();
+
+    // `initSession` establishes the connection as a side effect.
+    const initSession = vi
+      .spyOn(service, 'initSession')
+      .mockImplementation(async () => {
+        service.cn = mockCn;
+        return true;
+      });
+
+    const result = await service.getConnection();
+
+    expect(initSession).toHaveBeenCalledOnce();
+    expect(result).toBe(mockCn);
+  });
+
+  it('returns the existing connection without re-initializing', async () => {
+    const service = createTestDhcService();
+
+    const initSession = vi.spyOn(service, 'initSession');
+
+    const result = await service.getConnection();
+
+    expect(initSession).not.toHaveBeenCalled();
+    expect(result).toBe(service.cn);
   });
 });

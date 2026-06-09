@@ -263,3 +263,7 @@ export interface SerializedPoint {
 }
 
 export type SerializedRange = [start: SerializedPoint, end: SerializedPoint];
+
+export type PublicOf<T> = {
+  [K in keyof T]: T[K];
+};
