@@ -4,6 +4,7 @@ import type {
   CreateWorkerIframeSettings,
   SerializableRefreshToken,
 } from '../types';
+import type { LoggingMessageNotificationParams } from './dhPostMsg';
 
 export const VSCODE_POST_MSG_PREFIX = 'vscode-ext.';
 export type VscodePostMsgType = `${typeof VSCODE_POST_MSG_PREFIX}${string}`;
@@ -23,6 +24,14 @@ export const VSCODE_POST_MSG = {
   // VS Code property messages
   getVscodeProperty: `${VSCODE_POST_MSG_PREFIX}getVscodeProperty`,
   getVscodePropertyResponse: `${VSCODE_POST_MSG_PREFIX}getVscodePropertyResponse`,
+} as const;
+
+/**
+ * JSON-RPC 2.0 method names (forwarded from iframe).
+ * These use the standard JSON-RPC format with `method` field.
+ */
+export const VSCODE_JSON_RPC_METHOD = {
+  errorNotification: 'notifications/message',
 } as const;
 
 /**
@@ -113,7 +122,17 @@ export type VscodeSessionDetailsResponseMsg = {
   targetOrigin: string;
 };
 
+/**
+ * VS Code forwarded error notification message (JSON-RPC 2.0 format).
+ * Follows MCP specification for notifications/message.
+ */
+export interface VscodeErrorNotificationMsg {
+  jsonrpc: '2.0';
+  method: typeof VSCODE_JSON_RPC_METHOD.errorNotification;
+  params: LoggingMessageNotificationParams;
+}
+
 export type VscodeVariablePanelMsg =
   | VscodeLoginOptionsResponseMsg
-  | VscodeSessionDetailsResponseMsg;
-
+  | VscodeSessionDetailsResponseMsg
+  | VscodeErrorNotificationMsg;

@@ -9,7 +9,7 @@ import type { IServerManager, Psk } from '../../types';
  * @returns The panel URL format for DHC servers.
  */
 export function getDhcPanelUrlFormat(serverUrl: URL, psk?: Psk): string {
-  const url = `${serverUrl.origin}/iframe/widget/?name=<variableTitle>`;
+  const url = `${serverUrl.origin}/iframe/widget/?name=<variableTitle>&errorNotifications=true`;
   return psk ? `${url}&psk=${psk}` : url;
 }
 
@@ -44,5 +44,5 @@ export async function getDhePanelUrlFormat(
     return undefined;
   }
 
-  return `${serverUrl.origin}/iriside/embed/widget/serial/${workerInfo.serial}/<variableTitle>`;
+  return `${serverUrl.origin}/iriside/embed/widget/serial/${workerInfo.serial}/<variableTitle>?errorNotifications=true`;
 }

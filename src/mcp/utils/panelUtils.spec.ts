@@ -10,14 +10,15 @@ describe('getDhcPanelUrlFormat', () => {
       name: 'without psk',
       url: 'http://localhost:10000',
       psk: undefined,
-      expected: 'http://localhost:10000/iframe/widget/?name=<variableTitle>',
+      expected:
+        'http://localhost:10000/iframe/widget/?name=<variableTitle>&errorNotifications=true',
     },
     {
       name: 'with psk',
       url: 'http://localhost:10000',
       psk: 'test-psk-123' as Psk,
       expected:
-        'http://localhost:10000/iframe/widget/?name=<variableTitle>&psk=test-psk-123',
+        'http://localhost:10000/iframe/widget/?name=<variableTitle>&errorNotifications=true&psk=test-psk-123',
     },
   ])(
     'should return correct panel URL format $name',
@@ -102,7 +103,7 @@ describe('getDhePanelUrlFormat', () => {
       },
       workerInfo: { serial: 'abc123' } as WorkerInfo,
       expected:
-        'https://example.deephaven.io/iriside/embed/widget/serial/abc123/<variableTitle>',
+        'https://example.deephaven.io/iriside/embed/widget/serial/abc123/<variableTitle>?errorNotifications=true',
     },
   ])(
     'should return $expected when $scenario',

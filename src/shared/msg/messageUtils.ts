@@ -1,15 +1,19 @@
 import {
   type DhCreateQueryMsg,
+  type DhErrorNotificationMsg,
   type DhLoginOptionsRequestMsg,
   type DhSessionDetailsRequestMsg,
   type DhVariablePanelMsg,
+  DH_JSON_RPC_METHOD,
   DH_POST_MSG,
 } from './dhPostMsg';
 import {
   type VscodeCreateQueryMsg,
+  type VscodeErrorNotificationMsg,
   type VscodeLoginOptionsResponseMsg,
   type VscodeSessionDetailsResponseMsg,
   type VscodeVariablePanelMsg,
+  VSCODE_JSON_RPC_METHOD,
   VSCODE_POST_MSG,
 } from './vscodePostMsg';
 
@@ -59,7 +63,7 @@ export function isWindowProxy(
 export function isLoginOptionsRequestFromDh(
   msg: DhVariablePanelMsg | VscodeVariablePanelMsg
 ): msg is DhLoginOptionsRequestMsg {
-  return msg.message === DH_POST_MSG.loginOptionsRequest;
+  return 'message' in msg && msg.message === DH_POST_MSG.loginOptionsRequest;
 }
 
 /**
@@ -70,7 +74,23 @@ export function isLoginOptionsRequestFromDh(
 export function isSessionDetailsRequestFromDh(
   msg: DhVariablePanelMsg | VscodeVariablePanelMsg
 ): msg is DhSessionDetailsRequestMsg {
-  return msg.message === DH_POST_MSG.sessionDetailsRequest;
+  return 'message' in msg && msg.message === DH_POST_MSG.sessionDetailsRequest;
+}
+
+/**
+ * Determine if a given message is a `DhErrorNotificationMsg` (JSON-RPC 2.0 format).
+ * @param msg The message to check.
+ * @returns `true` if the message is a `DhErrorNotificationMsg`, `false` otherwise.
+ */
+export function isErrorNotificationFromDh(
+  msg: DhVariablePanelMsg | VscodeVariablePanelMsg
+): msg is DhErrorNotificationMsg {
+  return (
+    'jsonrpc' in msg &&
+    msg.jsonrpc === '2.0' &&
+    'method' in msg &&
+    msg.method === DH_JSON_RPC_METHOD.errorNotification
+  );
 }
 
 /**
@@ -81,7 +101,9 @@ export function isSessionDetailsRequestFromDh(
 export function isLoginOptionsResponseFromVscode(
   msg: DhVariablePanelMsg | VscodeVariablePanelMsg
 ): msg is VscodeLoginOptionsResponseMsg {
-  return msg.message === VSCODE_POST_MSG.loginOptionsResponse;
+  return (
+    'message' in msg && msg.message === VSCODE_POST_MSG.loginOptionsResponse
+  );
 }
 
 /**
@@ -92,5 +114,23 @@ export function isLoginOptionsResponseFromVscode(
 export function isSessionDetailsResponseFromVscode(
   msg: DhVariablePanelMsg | VscodeVariablePanelMsg
 ): msg is VscodeSessionDetailsResponseMsg {
-  return msg.message === VSCODE_POST_MSG.sessionDetailsResponse;
+  return (
+    'message' in msg && msg.message === VSCODE_POST_MSG.sessionDetailsResponse
+  );
+}
+
+/**
+ * Determine if a given message is a `VscodeErrorNotificationMsg` (JSON-RPC 2.0 format).
+ * @param msg The message to check.
+ * @returns `true` if the message is a `VscodeErrorNotificationMsg`, `false` otherwise.
+ */
+export function isErrorNotificationFromVscode(
+  msg: DhVariablePanelMsg | VscodeVariablePanelMsg
+): msg is VscodeErrorNotificationMsg {
+  return (
+    'jsonrpc' in msg &&
+    msg.jsonrpc === '2.0' &&
+    'method' in msg &&
+    msg.method === VSCODE_JSON_RPC_METHOD.errorNotification
+  );
 }
