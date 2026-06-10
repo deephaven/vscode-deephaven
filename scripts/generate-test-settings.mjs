@@ -92,16 +92,21 @@ if (coreServers.length === 0 && enterpriseServers.length === 0) {
 }
 
 // Create settings object
+/* eslint-disable @typescript-eslint/naming-convention */
 const settings = {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   'deephaven.coreServers': coreServers,
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   'deephaven.enterpriseServers': enterpriseServers,
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   'extensions.ignoreRecommendations': true,
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   'git.openRepositoryInParentFolders': 'never',
+  // Suppress the onboarding overlay (.onboarding-a-overlay, "Welcome to Visual
+  // Studio Code") that newer VS Code shows on first run. ExTester wipes the
+  // user-data-dir each run, so every run looks like a first run and the overlay
+  // reappears, intercepting clicks and blocking the quick-input widget.
+  // VS Code's tryShowOnboarding() only calls show() when this setting is truthy
+  // (see workbench.desktop.main.js), so false short-circuits it entirely.
+  'workbench.welcomePage.experimentalOnboarding': false,
 };
+/* eslint-enable @typescript-eslint/naming-convention */
 
 // Output path
 const outputPath = `${__dirname}/../e2e-testing/test-ws/.vscode/settings.json`;

@@ -84,6 +84,15 @@ fi
 
 export DH_SERVER_URL="${SERVER_URL}"
 
+# Locally, default test resources to a short path outside the repo. VS Code/Electron
+# creates an IPC socket under <TEST_RESOURCES>/settings, and macOS caps Unix socket
+# paths at 104 bytes; a long repo/worktree path overflows it and the VS Code instance
+# exits immediately ("Chrome instance exited"). Skipped in CI (where $CI is set) so
+# screenshots keep landing in e2e-testing/.resources for the artifact upload.
+if [[ -z "$CI" ]]; then
+  export TEST_RESOURCES="${TEST_RESOURCES:-$HOME/.dh-e2e-resources}"
+fi
+
 # Run e2e tests
 echo "Running E2E tests..."
 node e2e-testing/out/runner.mjs --setup

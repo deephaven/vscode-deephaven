@@ -35,7 +35,7 @@ See [vscode-extension-tester](https://github.com/redhat-developer/vscode-extensi
 To run end-to-end tests:
 
 ```sh
-npm run test:e2e
+npm run test:e2e -- --core
 ```
 
 To run using `VS Code` debugger:
@@ -61,6 +61,7 @@ For release testing:
 1. Checkout the appropriate pre-release tag for the pending release.
 1. Run `npm install`
 1. It is recommended to run against a few different server configurations:
+
    - Server configured with both basic and SAML configs
    - Server with basic only config
    - Envoy server
