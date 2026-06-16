@@ -83,7 +83,12 @@ describe('addRemoteFileSources', () => {
     },
   ])(
     'should handle $scenario',
-    async ({ folderUris, languageId, expectedParsedUris, expectedLanguageId }) => {
+    async ({
+      folderUris,
+      languageId,
+      expectedParsedUris,
+      expectedLanguageId,
+    }) => {
       const tool = createAddRemoteFileSourcesTool();
       const result = await tool.handler({ folderUris, languageId });
 

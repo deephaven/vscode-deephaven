@@ -20,7 +20,7 @@ describe('extractControllerImportPrefixes', () => {
   ])('%s', (_, make: (args: string) => string) => {
     it.each([
       ['double-quoted prefix', '"my_prefix"', new Set(['my_prefix'])],
-      ["single-quoted prefix", `'my_prefix'`, new Set(['my_prefix'])],
+      ['single-quoted prefix', `'my_prefix'`, new Set(['my_prefix'])],
       ['no arg defaults to "controller"', '', new Set(['controller'])],
       ['whitespace inside parens', '  "spaced"  ', new Set(['spaced'])],
     ])('%s', (_label, args, expected) => {

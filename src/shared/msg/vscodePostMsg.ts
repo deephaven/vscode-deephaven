@@ -116,4 +116,3 @@ export type VscodeSessionDetailsResponseMsg = {
 export type VscodeVariablePanelMsg =
   | VscodeLoginOptionsResponseMsg
   | VscodeSessionDetailsResponseMsg;
-

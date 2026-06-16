@@ -13,7 +13,10 @@ import type { GroovyPackageName, PythonModuleFullname } from '../types';
 vi.mock('vscode');
 vi.mock('../util', async () => {
   const actual = await vi.importActual<typeof import('../util')>('../util');
-  return { ...actual, getClearControllerPrefixesScript: vi.fn().mockReturnValue('') };
+  return {
+    ...actual,
+    getClearControllerPrefixesScript: vi.fn().mockReturnValue(''),
+  };
 });
 
 // ── setup ────────────────────────────────────────────────────────────────────
