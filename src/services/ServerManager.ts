@@ -255,10 +255,6 @@ export class ServerManager implements IServerManager {
 
     logger.debug('Connecting to server:', serverUrl.href);
 
-    let tagId: UniqueID | undefined;
-
-    let placeholderUrl: URL | undefined;
-
     if (serverState.type === 'DHE') {
       const dheServerUrl = serverUrl;
       const isNewDheService = !this._dheServiceCache.has(dheServerUrl);
