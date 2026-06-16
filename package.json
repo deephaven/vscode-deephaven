@@ -36,6 +36,7 @@
     "docs:start": "./scripts/startDocs",
     "docs:format": "./scripts/formatDocs",
     "docs:validate": "./scripts/validateDocs",
+    "format": "prettier --write \"src/**/*.{ts,js}\"",
     "icon:gen:dh": "node icons/generate.mjs dh",
     "icon:gen:ext": "node icons/generate.mjs dh-ext icons/src",
     "package:dev": "./scripts/package-dev.sh",
