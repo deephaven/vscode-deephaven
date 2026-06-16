@@ -24,99 +24,47 @@ exports[`getConnectionServerTreeItem > should return a labeled server tree item 
 }
 `;
 
-exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:false, isInitialized:false, isWorkerChild:false 1`] = `
+exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:false, isInitialized:false 1`] = `
 {
   "collapsibleState": 2,
-  "description": "Some Worker PQ",
   "iconPath": ThemeIcon {
     "color": undefined,
     "id": "sync~spin",
   },
-  "label": "Some Server",
+  "label": "Some Worker Label",
 }
 `;
 
-exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:false, isInitialized:false, isWorkerChild:true 1`] = `
+exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:false, isInitialized:true 1`] = `
 {
   "collapsibleState": 2,
-  "description": undefined,
   "iconPath": ThemeIcon {
     "color": undefined,
     "id": "sync~spin",
   },
-  "label": "Some Worker PQ",
+  "label": "Some Worker Label",
 }
 `;
 
-exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:false, isInitialized:true, isWorkerChild:false 1`] = `
+exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:true, isInitialized:false 1`] = `
 {
   "collapsibleState": 2,
-  "description": "Some Worker PQ",
-  "iconPath": ThemeIcon {
-    "color": undefined,
-    "id": "sync~spin",
-  },
-  "label": "Some Server",
-}
-`;
-
-exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:false, isInitialized:true, isWorkerChild:true 1`] = `
-{
-  "collapsibleState": 2,
-  "description": undefined,
-  "iconPath": ThemeIcon {
-    "color": undefined,
-    "id": "sync~spin",
-  },
-  "label": "Some Worker PQ",
-}
-`;
-
-exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:true, isInitialized:false, isWorkerChild:false 1`] = `
-{
-  "collapsibleState": 2,
-  "description": "Some Worker PQ",
   "iconPath": ThemeIcon {
     "color": undefined,
     "id": "vm-connect",
   },
-  "label": "Some Server",
+  "label": "Some Worker Label",
 }
 `;
 
-exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:true, isInitialized:false, isWorkerChild:true 1`] = `
+exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:true, isInitialized:true 1`] = `
 {
   "collapsibleState": 2,
-  "description": undefined,
-  "iconPath": ThemeIcon {
-    "color": undefined,
-    "id": "vm-connect",
-  },
-  "label": "Some Worker PQ",
-}
-`;
-
-exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:true, isInitialized:true, isWorkerChild:false 1`] = `
-{
-  "collapsibleState": 2,
-  "description": "Some Worker PQ",
   "iconPath": ThemeIcon {
     "color": undefined,
     "id": "dh-python",
   },
-  "label": "Some Server",
-}
-`;
-
-exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:true, isInitialized:true, isWorkerChild:true 1`] = `
-{
-  "collapsibleState": 2,
-  "description": undefined,
-  "iconPath": ThemeIcon {
-    "color": undefined,
-    "id": "dh-python",
-  },
-  "label": "Some Worker PQ",
+  "label": "Some Worker Label",
 }
 `;
 

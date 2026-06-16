@@ -8,13 +8,13 @@ import { ServerTreeProviderBase } from './ServerTreeProviderBase';
 import {
   getConnectionServerTreeItem,
   getConnectionTreeRootNodes,
+  getConnectionWorkerLabel,
   getPanelConnectionTreeItem,
   getPanelVariableTreeItem,
   isServerStateNode,
   sortByStringProp,
 } from '../util';
 import { getFirstSupportedConsoleType } from '../services';
-import { getServerMatchPortIfLocalHost } from '../mcp/utils';
 
 export class ServerConnectionPanelTreeProvider extends ServerTreeProviderBase<ServerConnectionPanelNode> {
   constructor(serverManager: IServerManager, panelService: IPanelService) {
@@ -41,31 +41,28 @@ export class ServerConnectionPanelTreeProvider extends ServerTreeProviderBase<Se
       return getConnectionServerTreeItem(node);
     }
 
-    const serverLabel = getServerMatchPortIfLocalHost(
-      this.serverManager,
-      node.serverUrl
-    )?.label;
-
+    // Worker (connection) node, nested under its server node. DHE workers use
+    // their persistent-query name; DHC connections fall back to their server's
+    // label so the single child mirrors its parent server node.
     const workerInfo = await this.serverManager.getWorkerInfo(node.serverUrl);
-
-    // DHE worker nodes are nested under their server node (worker name as the
-    // label); flat DHC connections keep the server label.
-    const isWorkerChild =
-      this.serverManager.getServerForConnection(node) != null;
+    const parentServer = this.serverManager.getServerForConnection(node);
+    const label = getConnectionWorkerLabel(
+      parentServer,
+      node,
+      workerInfo?.name
+    );
 
     return getPanelConnectionTreeItem(
       node,
       getFirstSupportedConsoleType,
-      serverLabel,
-      workerInfo?.name,
-      isWorkerChild
+      label
     );
   };
 
   getChildren = (
     elementOrRoot?: ServerConnectionPanelNode
   ): vscode.ProviderResult<ServerConnectionPanelNode[]> => {
-    // Root: DHE server nodes + flat DHC connection nodes.
+    // Root: one server node per server that has connections.
     if (elementOrRoot == null) {
       return getConnectionTreeRootNodes(this.serverManager);
     }
@@ -75,7 +72,7 @@ export class ServerConnectionPanelTreeProvider extends ServerTreeProviderBase<Se
       return [];
     }
 
-    // DHE server node -> its worker connections.
+    // Server node -> its worker connections.
     if (isServerStateNode(elementOrRoot)) {
       return this.serverManager
         .getConnections(elementOrRoot.url)

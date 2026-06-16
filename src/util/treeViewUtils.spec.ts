@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { bitValues, boolValues, matrix } from '../testUtils';
 import {
   getConnectionServerTreeItem,
+  getConnectionWorkerLabel,
   getPanelConnectionTreeItem,
   getPanelVariableTreeItem,
   getServerContextValue,
@@ -14,10 +15,12 @@ import {
   groupServers,
 } from './treeViewUtils';
 import type {
+  ConnectionState,
   ConsoleType,
   IDhcService,
   Psk,
   ServerState,
+  UniqueID,
   VariableDefintion,
   VariableType,
 } from '../types';
@@ -48,9 +51,9 @@ describe('getPanelConnectionTreeItem', () => {
 
   const serverUrl = new URL('http://localhost:10000');
 
-  it.each(matrix(boolValues, boolValues, boolValues))(
-    'should return panel connection tree item: isConnected:%s, isInitialized:%s, isWorkerChild:%s',
-    async (isConnected, isInitialized, isWorkerChild) => {
+  it.each(matrix(boolValues, boolValues))(
+    'should return panel connection tree item: isConnected:%s, isInitialized:%s',
+    async (isConnected, isInitialized) => {
       const connection = {
         isConnected,
         isInitialized,
@@ -66,9 +69,7 @@ describe('getPanelConnectionTreeItem', () => {
           const [consoleType] = await getConsoleTypes();
           return isInitialized ? consoleType : undefined;
         },
-        'Some Server',
-        'Some Worker PQ',
-        isWorkerChild
+        'Some Worker Label'
       );
       expect(actual).toMatchSnapshot();
     }
@@ -99,6 +100,51 @@ describe('getConnectionServerTreeItem', () => {
     };
 
     expect(getConnectionServerTreeItem(server)).toMatchSnapshot();
+  });
+});
+
+describe('getConnectionWorkerLabel', () => {
+  const connection = {
+    isConnected: true,
+    serverUrl: new URL('http://localhost:10000'),
+    tagId: 'mock.tagId' as UniqueID,
+  } as ConnectionState;
+
+  const dhcServer: ServerState = {
+    type: 'DHC',
+    url: new URL('http://localhost:10000'),
+    label: 'My DHC Server',
+    isConnected: true,
+    isRunning: true,
+    connectionCount: 1,
+  };
+
+  it('should prefer the persistent-query name when present (DHE worker)', () => {
+    expect(
+      getConnectionWorkerLabel(dhcServer, connection, 'Some Worker PQ')
+    ).toBe('Some Worker PQ');
+  });
+
+  it('should fall back to the server label when there is no pq name (DHC)', () => {
+    expect(getConnectionWorkerLabel(dhcServer, connection, undefined)).toBe(
+      'My DHC Server'
+    );
+  });
+
+  it('should fall back to the server url host when the server has no label', () => {
+    expect(
+      getConnectionWorkerLabel(
+        { ...dhcServer, label: undefined },
+        connection,
+        undefined
+      )
+    ).toBe('localhost:10000');
+  });
+
+  it('should fall back to the connection serverUrl host when no parent server resolves', () => {
+    expect(getConnectionWorkerLabel(undefined, connection, undefined)).toBe(
+      'localhost:10000'
+    );
   });
 });
 

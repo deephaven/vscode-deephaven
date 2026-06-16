@@ -80,30 +80,13 @@ export async function getPanelConnectionTreeItem(
   getConsoleType: (
     connection: ConnectionState
   ) => Promise<ConsoleType | undefined>,
-  serverLabel?: string,
-  pqName?: string,
-  isWorkerChild = false
+  label: string
 ): Promise<vscode.TreeItem> {
   // Console type (language) drives the node icon rather than the description.
   const consoleType = await getConsoleType(connection);
 
-  // Prefer the persistent query name (what the DHE Query Monitor shows) over
-  // the local correlation tagId. Falls back to tagId for plain DHC connections.
-  const workerName = pqName ?? connection.tagId;
-
-  // DHE worker nodes are nested under their server node, so the worker name
-  // becomes the node label and the server label lives on the parent. Flat DHC
-  // connections keep the server label as the node label and show the worker
-  // name as the description.
-  const label = isWorkerChild
-    ? workerName
-    : (serverLabel ?? connection.serverUrl.host);
-
-  const description = isWorkerChild ? undefined : workerName;
-
   return {
     label,
-    description,
     collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
     // Show the language (Python/Groovy) icon when idle/connected; show the
     // spinner while busy (connecting or running code).
@@ -152,36 +135,58 @@ export function isServerStateNode(
 }
 
 /**
- * Compute the root nodes for the connection / panel tree views. DHE worker
- * connections are grouped under their parent DHE server node; DHC connections
- * remain flat top-level nodes. Roots are sorted by their displayed label.
+ * Get the label shown for a server node in the connection / panel tree views.
+ * @param server Server state.
+ */
+export function getConnectionServerLabel(server: ServerState): string {
+  return server.label ?? server.url.host;
+}
+
+/**
+ * Get the label shown for a worker (connection) node in the connection / panel
+ * tree views. DHE workers use their persistent-query name; DHC connections,
+ * which have none, fall back to their server's label so the single child
+ * mirrors its parent server node.
+ * @param parentServer The connection's parent server, if resolved.
+ * @param connection The connection.
+ * @param pqName The persistent-query name (DHE workers only).
+ */
+export function getConnectionWorkerLabel(
+  parentServer: ServerState | undefined,
+  connection: ConnectionState,
+  pqName: string | undefined
+): string {
+  const serverLabel =
+    parentServer == null
+      ? connection.serverUrl.host
+      : getConnectionServerLabel(parentServer);
+
+  return pqName ?? serverLabel ?? connection.tagId ?? '';
+}
+
+/**
+ * Compute the root nodes for the connection / panel tree views. Every
+ * connection is grouped under its parent server node (DHC and DHE alike), so a
+ * community server with a single worker has the same hierarchy shape as an
+ * enterprise server with many. Roots are sorted by their displayed label.
  * @param serverManager Server manager.
- * @returns The root nodes (DHE servers and flat DHC connections).
+ * @returns The server root nodes (only servers that have connections).
  */
 export function getConnectionTreeRootNodes(
   serverManager: IServerManager
-): (ServerState | ConnectionState)[] {
-  const dheServers = new Map<string, ServerState>();
-  const flatConnections: ConnectionState[] = [];
+): ServerState[] {
+  const servers = new Map<string, ServerState>();
 
   for (const connection of serverManager.getConnections()) {
     const server = serverManager.getServerForConnection(connection);
-    if (server == null) {
-      flatConnections.push(connection);
-    } else {
-      dheServers.set(server.url.toString(), server);
+    if (server != null) {
+      servers.set(server.url.toString(), server);
     }
   }
 
-  return [...flatConnections, ...dheServers.values()].sort((a, b) =>
-    getConnectionNodeSortKey(a).localeCompare(getConnectionNodeSortKey(b))
+  return [...servers.values()].sort((a, b) =>
+    getConnectionServerLabel(a).localeCompare(getConnectionServerLabel(b))
   );
-}
-
-function getConnectionNodeSortKey(node: ServerState | ConnectionState): string {
-  return isServerStateNode(node)
-    ? (node.label ?? node.url.host)
-    : node.serverUrl.host;
 }
 
 /**

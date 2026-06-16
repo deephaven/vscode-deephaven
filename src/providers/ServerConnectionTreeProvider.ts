@@ -5,13 +5,13 @@ import type { ConsoleType, ServerConnectionNode } from '../types';
 import {
   getConnectionServerTreeItem,
   getConnectionTreeRootNodes,
+  getConnectionWorkerLabel,
   getConsoleTypeIconId,
   isInstanceOf,
   isServerStateNode,
   sortByStringProp,
 } from '../util';
 import { DhcService } from '../services';
-import { getServerMatchPortIfLocalHost } from '../mcp/utils';
 
 /**
  * Provider for the server connection tree view.
@@ -45,39 +45,23 @@ export class ServerConnectionTreeProvider extends ServerTreeProviderBase<ServerC
       [consoleType] = await node.getConsoleTypes();
     }
 
-    // Prefer the persistent query name (what the DHE Query Monitor shows) over
-    // the local correlation tagId. Attached workers get a synthesized random
-    // tagId that matches nothing server-side, and created workers' tagId can
-    // diverge from their query name; the PQ name is the stable identifier in
-    // both cases. Falls back to tagId for plain DHC connections, which have no
-    // associated WorkerInfo.
+    // Worker (connection) node, nested under its server node. Prefer the
+    // persistent query name (what the DHE Query Monitor shows); DHC connections
+    // have none and fall back to their server's label so the single child
+    // mirrors its parent server node.
     const workerInfo = await this.serverManager.getWorkerInfo(node.serverUrl);
-    const workerName = workerInfo?.name ?? node.tagId ?? '';
+    const parentServer = this.serverManager.getServerForConnection(node);
+    const label = getConnectionWorkerLabel(
+      parentServer,
+      node,
+      workerInfo?.name
+    );
 
     const hasUris = this.serverManager.hasConnectionUris(node);
-
-    // DHE worker nodes are nested under their server node, so the worker name
-    // becomes the node label and the server label lives on the parent. Flat DHC
-    // connections keep the server label as the node label and show the worker
-    // name as the description.
-    const isWorkerChild =
-      this.serverManager.getServerForConnection(node) != null;
-
-    const serverLabel = getServerMatchPortIfLocalHost(
-      this.serverManager,
-      node.serverUrl
-    )?.label;
-
-    const label = isWorkerChild
-      ? workerName
-      : (serverLabel ?? node.serverUrl.host);
-
-    const description = isWorkerChild ? undefined : workerName;
 
     // Connection node
     return {
       label,
-      description,
       contextValue: node.isConnected
         ? CONNECTION_TREE_ITEM_CONTEXT.isConnectionConnected
         : CONNECTION_TREE_ITEM_CONTEXT.isConnectionConnecting,
@@ -97,7 +81,7 @@ export class ServerConnectionTreeProvider extends ServerTreeProviderBase<ServerC
   getChildren = (
     elementOrRoot?: ServerConnectionNode
   ): vscode.ProviderResult<ServerConnectionNode[]> => {
-    // Root: DHE server nodes + flat DHC connection nodes.
+    // Root: one server node per server that has connections.
     if (elementOrRoot == null) {
       return getConnectionTreeRootNodes(this.serverManager);
     }
@@ -107,7 +91,7 @@ export class ServerConnectionTreeProvider extends ServerTreeProviderBase<ServerC
       return [];
     }
 
-    // DHE server node -> its worker connections.
+    // Server node -> its worker connections.
     if (isServerStateNode(elementOrRoot)) {
       return this.serverManager
         .getConnections(elementOrRoot.url)
@@ -132,7 +116,7 @@ export class ServerConnectionTreeProvider extends ServerTreeProviderBase<ServerC
       return null;
     }
 
-    // Connection node -> its parent DHE server (or null for flat DHC).
+    // Connection node -> its parent server.
     return this.serverManager.getServerForConnection(element) ?? null;
   };
 }
