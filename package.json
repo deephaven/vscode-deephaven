@@ -1125,8 +1125,8 @@
     }
   },
   "dependencies": {
-    "@deephaven-enterprise/auth-nodejs": "^1.20250219.134-beta",
-    "@deephaven-enterprise/query-utils": "^1.20250219.134-beta",
+    "@deephaven-enterprise/auth-nodejs": "^2026.1.38",
+    "@deephaven-enterprise/query-utils": "^2026.1.38",
     "@deephaven/jsapi-nodejs": "^1.15.0",
     "@deephaven/jsapi-utils": "^1.16.0",
     "@modelcontextprotocol/sdk": "^1.27.1",
@@ -1137,7 +1137,7 @@
   },
   "devDependencies": {
     "@cfworker/json-schema": "^4.1.1",
-    "@deephaven-enterprise/jsapi-types": "^1.20250219.134-beta",
+    "@deephaven-enterprise/jsapi-types": "^2026.1.38",
     "@deephaven/jsapi-types": "^41.2.0",
     "@react-types/shared": "^3.33.1",
     "@types/archiver": "^6.0.3",

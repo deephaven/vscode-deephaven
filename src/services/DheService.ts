@@ -18,14 +18,17 @@ import {
   type WorkerInfo,
   type WorkerURL,
 } from '../types';
-import { Logger, URLMap } from '../util';
+import { Logger, uniqueId, URLMap } from '../util';
 import {
+  buildWorkerInfo,
   createInteractiveConsoleQuery,
   createQueryName,
   deleteQueries,
   getDheFeatures,
   getSerialFromTagId,
   getWorkerInfoFromQuery,
+  isAttachableWorker,
+  listAttachableWorkers as listAttachableWorkersHelper,
 } from '../dh/dhe';
 import {
   CLOSE_CREATE_QUERY_VIEW_CMD,
@@ -101,6 +104,8 @@ export class DheService implements IDheService {
   private _clientPromise: Promise<DheAuthenticatedClientWrapper | null> | null =
     null;
   private _isConnected: boolean = false;
+  private _operateAs: string | null = null;
+  private _removeConfigListeners: (() => void) | null = null;
   private readonly _config: IConfigService;
   private readonly _dheClientCache: URLMap<DheAuthenticatedClientWrapper>;
   private readonly _dheJsApiCache: IAsyncCacheService<URL, DheType>;
@@ -110,8 +115,12 @@ export class DheService implements IDheService {
   private readonly _toaster: IToastService;
   private readonly _workerInfoMap: URLMap<WorkerInfo, WorkerURL>;
 
-  private readonly _onDidWorkerTerminate = new vscode.EventEmitter<WorkerURL>();
-  readonly onDidWorkerTerminate = this._onDidWorkerTerminate.event;
+  private readonly _onDidWorkerAttachable =
+    new vscode.EventEmitter<QueryInfo>();
+  readonly onDidWorkerAttachable = this._onDidWorkerAttachable.event;
+
+  private readonly _onDidWorkerRemoved = new vscode.EventEmitter<QuerySerial>();
+  readonly onDidWorkerRemoved = this._onDidWorkerRemoved.event;
 
   readonly serverUrl: URL;
 
@@ -141,7 +150,9 @@ export class DheService implements IDheService {
     const maybeClient = await this._dheClientCache.get(this.serverUrl);
 
     if (maybeClient != null) {
-      this._subscribeToWorkerTermination(maybeClient);
+      const userInfo = await maybeClient.client.getUserInfo();
+      this._operateAs = userInfo.operateAs;
+      await this._subscribeToWorkerEvents(maybeClient);
     }
 
     if (!this._dheServerFeaturesCache.has(this.serverUrl)) {
@@ -177,7 +188,18 @@ export class DheService implements IDheService {
   };
 
   private _onDidDheClientCacheInvalidate = (url: URL): void => {
-    if (url.toString() === this.serverUrl.toString()) {
+    // Only reset when the client was actually removed from the cache (logout /
+    // disconnect / failed login). The cache also fires `onDidChange` on `set`,
+    // which happens during a successful login from inside `_initClient` itself.
+    // Resetting on that `set` would null out the in-flight `_clientPromise` we
+    // are currently awaiting, so a subsequent `getClient(false)` (e.g. from
+    // `listAttachableWorkers`) would see `null` and short-circuit — silently
+    // skipping the attach path. Guard on the client being absent so we only
+    // reset for genuine invalidations.
+    if (
+      url.toString() === this.serverUrl.toString() &&
+      !this._dheClientCache.has(this.serverUrl)
+    ) {
       // Reset the client promise so that the next call to `getClient` can
       // reinitialize it if necessary.
       this._clientPromise = null;
@@ -185,37 +207,70 @@ export class DheService implements IDheService {
   };
 
   /**
-   * Subscribe to DHE config updates to detect when workers enter a terminal state.
+   * Subscribe to DHE config added/updated/removed events. Emits
+   * `onDidWorkerAttachable` when an IC worker becomes attachable, and
+   * `onDidWorkerRemoved` when a tracked worker is removed or enters a terminal
+   * state. Replaces any previous subscription.
    * @param dheClient DHE client to use.
    */
-  private _subscribeToWorkerTermination = async (
+  private _subscribeToWorkerEvents = async (
     dheClient: DheAuthenticatedClientWrapper
   ): Promise<void> => {
+    // Remove any previous listeners before re-registering.
+    this._removeConfigListeners?.();
+
     const dhe = await this._dheJsApiCache.get(this.serverUrl);
+    const operateAs = this._operateAs ?? '';
 
-    dheClient.client.addEventListener(
-      dhe.Client.EVENT_CONFIG_UPDATED,
-      ({ detail: queryInfo }: CustomEvent<QueryInfo>) => {
-        const status = queryInfo.designated?.status;
-        if (!isTerminalQueryStatus(status)) {
-          return;
-        }
+    const onConfigAddedOrUpdated = ({
+      detail: queryInfo,
+    }: CustomEvent<QueryInfo>): void => {
+      const status = queryInfo.designated?.status;
 
-        const workerInfo = [...this._workerInfoMap.values()].find(
+      if (isTerminalQueryStatus(status)) {
+        // Terminal status on a tracked worker → signal removal.
+        const isTracked = [...this._workerInfoMap.values()].some(
           w => w.serial === queryInfo.serial
         );
-
-        if (workerInfo == null) {
-          return;
+        if (isTracked) {
+          logger.info('Worker entered terminal state:', queryInfo.serial);
+          this._onDidWorkerRemoved.fire(queryInfo.serial as QuerySerial);
         }
-
-        logger.info(
-          'Worker entered terminal state:',
-          workerInfo.workerUrl.href
-        );
-        this._onDidWorkerTerminate.fire(workerInfo.workerUrl);
+      } else if (isAttachableWorker(queryInfo, operateAs)) {
+        this._onDidWorkerAttachable.fire(queryInfo);
       }
+    };
+
+    const onConfigRemoved = ({
+      detail: queryInfo,
+    }: CustomEvent<QueryInfo>): void => {
+      const isTracked = [...this._workerInfoMap.values()].some(
+        w => w.serial === queryInfo.serial
+      );
+      if (isTracked) {
+        logger.info('Worker removed:', queryInfo.serial);
+        this._onDidWorkerRemoved.fire(queryInfo.serial as QuerySerial);
+      }
+    };
+
+    const removeAdded = dheClient.client.addEventListener(
+      dhe.Client.EVENT_CONFIG_ADDED,
+      onConfigAddedOrUpdated
     );
+    const removeUpdated = dheClient.client.addEventListener(
+      dhe.Client.EVENT_CONFIG_UPDATED,
+      onConfigAddedOrUpdated
+    );
+    const removeRemoved = dheClient.client.addEventListener(
+      dhe.Client.EVENT_CONFIG_REMOVED,
+      onConfigRemoved
+    );
+
+    this._removeConfigListeners = (): void => {
+      removeAdded();
+      removeUpdated();
+      removeRemoved();
+    };
   };
 
   /**
@@ -371,7 +426,41 @@ export class DheService implements IDheService {
   };
 
   /**
-   * Delete a worker.
+   * Attach to a pre-existing Running worker by building WorkerInfo from the
+   * given QueryInfo. Does NOT add the serial to `_querySerialSet` — attached
+   * workers are never owned and must never be deleted by the extension.
+   * @param queryInfo The already-Running QueryInfo for the worker to attach.
+   * @returns WorkerInfo for the attached worker.
+   */
+  attachWorker = (queryInfo: QueryInfo): WorkerInfo => {
+    const tagId = uniqueId();
+    const workerInfo = buildWorkerInfo(tagId, queryInfo);
+    if (workerInfo == null) {
+      throw new Error(
+        `Cannot attach worker: queryInfo.designated is null for serial ${queryInfo.serial}`
+      );
+    }
+    this._workerInfoMap.set(workerInfo.workerUrl, workerInfo);
+    return workerInfo;
+  };
+
+  /**
+   * List all running InteractiveConsole workers owned by the current effective
+   * user.
+   * @returns A promise resolving to the filtered QueryInfo array.
+   */
+  listAttachableWorkers = async (): Promise<QueryInfo[]> => {
+    const dheClient = await this.getClient(false);
+    if (dheClient == null) {
+      return [];
+    }
+    return listAttachableWorkersHelper(dheClient.client);
+  };
+
+  /**
+   * Delete a worker. Only deletes the server-side PQ when the worker is owned
+   * by this extension (serial is in `_querySerialSet`). Attached workers are
+   * removed from `_workerInfoMap` but the PQ is left running.
    * @param workerUrl Worker URL to delete.
    */
   deleteWorker = async (workerUrl: WorkerURL): Promise<void> => {
@@ -380,10 +469,14 @@ export class DheService implements IDheService {
       return;
     }
 
+    const isOwned = this._querySerialSet.has(workerInfo.serial);
+
     this._querySerialSet.delete(workerInfo.serial);
     this._workerInfoMap.delete(workerUrl);
 
-    await this._disposeQueries([workerInfo.serial]);
+    if (isOwned) {
+      await this._disposeQueries([workerInfo.serial]);
+    }
   };
 
   getQuerySerialFromTag = async (
@@ -407,7 +500,10 @@ export class DheService implements IDheService {
     const querySerials = [...this._querySerialSet];
 
     this._querySerialSet.clear();
-    this._onDidWorkerTerminate.dispose();
+    this._removeConfigListeners?.();
+    this._removeConfigListeners = null;
+    this._onDidWorkerAttachable.dispose();
+    this._onDidWorkerRemoved.dispose();
 
     await Promise.all([
       this._workerInfoMap.dispose(),

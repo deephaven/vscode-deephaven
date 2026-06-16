@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
+import type { QueryInfo } from '@deephaven-enterprise/jsapi-types';
 import type {
   ConsoleType,
   CoreConnectionConfig,
@@ -80,7 +81,8 @@ export interface IDhcService extends IDisposable, ConnectionState {
 }
 
 export interface IDheService extends ConnectionState, IDisposable {
-  readonly onDidWorkerTerminate: vscode.Event<WorkerURL>;
+  readonly onDidWorkerAttachable: vscode.Event<QueryInfo>;
+  readonly onDidWorkerRemoved: vscode.Event<QuerySerial>;
 
   getClient(
     initializeIfNull: false
@@ -92,6 +94,8 @@ export interface IDheService extends ConnectionState, IDisposable {
   getQuerySerialFromTag(tagId: UniqueID): Promise<QuerySerial | null>;
   getServerFeatures(): DheServerFeatures | undefined;
   getWorkerInfo: (workerUrl: WorkerURL) => WorkerInfo | undefined;
+  attachWorker: (queryInfo: QueryInfo) => WorkerInfo;
+  listAttachableWorkers: () => Promise<QueryInfo[]>;
   createWorker: (
     tagId: UniqueID,
     consoleType?: ConsoleType

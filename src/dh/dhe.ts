@@ -42,7 +42,7 @@ import {
   UnsupportedFeatureQueryError,
 } from '../common';
 import { withResolvers } from '../util';
-import type { QuerySerial } from '../shared';
+import { assertDefined, type QuerySerial } from '../shared';
 
 export type IDraftQuery = EditableQueryInfo & {
   isClientSide: boolean;
@@ -412,6 +412,80 @@ export async function getDheAuthConfig(
 }
 
 /**
+ * Determine if a given query info represents an attachable IC worker for the
+ * current effective user. An attachable worker is an InteractiveConsole type,
+ * owned by `operateAs`, and currently Running.
+ * @param queryInfo Query info to check.
+ * @param operateAs The effective user to match ownership against.
+ * @returns True if the query is attachable, false otherwise.
+ */
+export function isAttachableWorker(
+  queryInfo: QueryInfo,
+  operateAs: string
+): boolean {
+  return (
+    queryInfo.type === INTERACTIVE_CONSOLE_QUERY_TYPE &&
+    queryInfo.owner === operateAs &&
+    queryInfo.designated?.status === 'Running'
+  );
+}
+
+/**
+ * List all running InteractiveConsole workers owned by the current effective
+ * user.
+ * @param dheClient DHE client to use.
+ * @returns A promise resolving to the filtered QueryInfo array.
+ */
+export async function listAttachableWorkers(
+  dheClient: DheAuthenticatedClient
+): Promise<QueryInfo[]> {
+  const userInfo = await dheClient.getUserInfo();
+  const operateAs = userInfo.operateAs;
+  return dheClient
+    .getKnownConfigs()
+    .filter(qi => isAttachableWorker(qi, operateAs));
+}
+
+/**
+ * Build WorkerInfo from an already-Running QueryInfo without any I/O or
+ * side effects. Returns undefined when `queryInfo.designated` is null.
+ * @param tagId Unique tag id to associate with the worker.
+ * @param queryInfo The running query info.
+ * @returns WorkerInfo or undefined.
+ */
+export function buildWorkerInfo(
+  tagId: UniqueID,
+  queryInfo: QueryInfo
+): WorkerInfo | undefined {
+  if (queryInfo.designated == null) {
+    return;
+  }
+
+  assertDefined(
+    queryInfo.designated.ideUrl,
+    'designated.ideUrl must be defined'
+  );
+
+  const { envoyPrefix, grpcUrl, ideUrl, jsApiUrl, processInfoId, workerName } =
+    queryInfo.designated;
+
+  const workerUrl = new URL(jsApiUrl) as WorkerURL;
+  workerUrl.pathname = workerUrl.pathname.replace(/jsapi\/dh-core.js$/, '');
+
+  return {
+    tagId,
+    serial: queryInfo.serial as QuerySerial,
+    envoyPrefix,
+    grpcUrl: new URL(grpcUrl) as GrpcURL,
+    ideUrl: new URL(ideUrl) as IdeURL,
+    jsapiUrl: new URL(jsApiUrl) as JsapiURL,
+    processInfoId,
+    workerName,
+    workerUrl,
+  };
+}
+
+/**
  * Search existing queries for a query with the given tag id and return its serial.
  * @param tagId Unique tag id to search for.
  * @param dheClient DHE client to use for searching queries.
@@ -498,27 +572,7 @@ export async function getWorkerInfoFromQuery(
     }
   }
 
-  if (queryInfo.designated == null) {
-    return;
-  }
-
-  const { envoyPrefix, grpcUrl, ideUrl, jsApiUrl, processInfoId, workerName } =
-    queryInfo.designated;
-
-  const workerUrl = new URL(jsApiUrl) as WorkerURL;
-  workerUrl.pathname = workerUrl.pathname.replace(/jsapi\/dh-core.js$/, '');
-
-  return {
-    tagId,
-    serial: querySerial,
-    envoyPrefix,
-    grpcUrl: new URL(grpcUrl) as GrpcURL,
-    ideUrl: new URL(ideUrl) as IdeURL,
-    jsapiUrl: new URL(jsApiUrl) as JsapiURL,
-    processInfoId,
-    workerName,
-    workerUrl,
-  };
+  return buildWorkerInfo(tagId, queryInfo);
 }
 
 /**
