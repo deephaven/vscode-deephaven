@@ -178,9 +178,7 @@ export function getConnectionTreeRootNodes(
   );
 }
 
-function getConnectionNodeSortKey(
-  node: ServerState | ConnectionState
-): string {
+function getConnectionNodeSortKey(node: ServerState | ConnectionState): string {
   return isServerStateNode(node)
     ? (node.label ?? node.url.host)
     : node.serverUrl.host;

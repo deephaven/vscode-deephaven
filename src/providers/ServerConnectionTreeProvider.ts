@@ -60,7 +60,8 @@ export class ServerConnectionTreeProvider extends ServerTreeProviderBase<ServerC
     // becomes the node label and the server label lives on the parent. Flat DHC
     // connections keep the server label as the node label and show the worker
     // name as the description.
-    const isWorkerChild = this.serverManager.getServerForConnection(node) != null;
+    const isWorkerChild =
+      this.serverManager.getServerForConnection(node) != null;
 
     const serverLabel = getServerMatchPortIfLocalHost(
       this.serverManager,

@@ -50,7 +50,8 @@ export class ServerConnectionPanelTreeProvider extends ServerTreeProviderBase<Se
 
     // DHE worker nodes are nested under their server node (worker name as the
     // label); flat DHC connections keep the server label.
-    const isWorkerChild = this.serverManager.getServerForConnection(node) != null;
+    const isWorkerChild =
+      this.serverManager.getServerForConnection(node) != null;
 
     return getPanelConnectionTreeItem(
       node,
