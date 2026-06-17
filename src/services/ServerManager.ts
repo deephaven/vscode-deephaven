@@ -34,6 +34,7 @@ import {
   URIMap,
   URLMap,
   withResolvers,
+  type PromiseWithResolvers,
 } from '../util';
 import { DhcService } from './DhcService';
 import { getWorkerCredentials, isDheServerRunning } from '../dh/dhe';
@@ -55,7 +56,10 @@ export class ServerManager implements IServerManager {
   ) {
     this._configService = configService;
     this._connectionMap = new URLMap<ConnectionState>();
-    this._pendingConnectionMap = new URLMap<Promise<ConnectionState | null>>();
+    this._pendingConnectionMap = new URLMap<
+      PromiseWithResolvers<ConnectionState | null>
+    >();
+    this._pendingServerConnections = new URLMap<PromiseWithResolvers<void>>();
     this._coreClientCache = coreClientCache;
     this._dhcServiceFactory = dhcServiceFactory;
     this._dheClientCache = dheClientCache;
@@ -77,7 +81,10 @@ export class ServerManager implements IServerManager {
   private readonly _configService: IConfigService;
   private readonly _connectionMap: URLMap<ConnectionState>;
   private readonly _pendingConnectionMap: URLMap<
-    Promise<ConnectionState | null>
+    PromiseWithResolvers<ConnectionState | null>
+  >;
+  private readonly _pendingServerConnections: URLMap<
+    PromiseWithResolvers<void>
   >;
   private readonly _coreClientCache: URLMap<CoreAuthenticatedClient>;
   private readonly _dhcServiceFactory: IDhcServiceFactory;
@@ -109,22 +116,27 @@ export class ServerManager implements IServerManager {
   private readonly _onDidUpdate = new vscode.EventEmitter<void>();
   readonly onDidUpdate = this._onDidUpdate.event;
 
-  private _setPendingConnection = (
+  private _resolvePendingConnection = (
     serverUrl: URL,
-    connectionPromise: Promise<ConnectionState | null>
+    connectionState: ConnectionState | null
   ): void => {
-    this._pendingConnectionMap.set(serverUrl, connectionPromise);
-    this._onDidUpdate.fire();
-  };
-
-  private _clearPendingConnection = (serverUrl: URL): void => {
-    if (this._pendingConnectionMap.delete(serverUrl)) {
+    if (this._pendingConnectionMap.has(serverUrl)) {
+      this._pendingConnectionMap.getOrThrow(serverUrl).resolve(connectionState);
+      this._pendingConnectionMap.delete(serverUrl);
       this._onDidUpdate.fire();
     }
   };
 
-  isConnecting = (serverUrl: URL): boolean =>
-    this._pendingConnectionMap.has(serverUrl);
+  private _resolvePendingServerConnection = (serverUrl: URL): void => {
+    if (this._pendingServerConnections.has(serverUrl)) {
+      this._pendingServerConnections.getOrThrow(serverUrl).resolve();
+      this._pendingServerConnections.delete(serverUrl);
+      this._onDidUpdate.fire();
+    }
+  };
+
+  isServerConnecting = (serverUrl: URL): boolean =>
+    this._pendingServerConnections.has(serverUrl);
 
   private _lastServerRunningStatus = new URLMap<boolean>();
   private _hasEverUpdatedStatus = false;
@@ -219,6 +231,16 @@ export class ServerManager implements IServerManager {
     this._onDidLoadConfig.fire();
   };
 
+  /**
+   * Connect to a server and attach to any Core / Core+ workers available for
+   * the server. For DHE, if no workers are available, creates one and attaches
+   * to it.
+   * @param serverUrl
+   * @param workerConsoleType
+   * @param operateAsAnotherUser
+   * @returns The connection state of the attached worker, or `null` if the
+   * connection or worker creation/attachment failed.
+   */
   connectToServer = async (
     serverUrl: URL,
     workerConsoleType?: ConsoleType,
@@ -230,7 +252,7 @@ export class ServerManager implements IServerManager {
       throw new Error(`Server with URL '${serverUrl}' not found.`);
     }
 
-    // We only support 1 connection for DHC servers in the extension
+    // We only support 1 connection to a DHC server
     if (serverState.type === 'DHC' && serverState.connectionCount > 0) {
       logger.info('Already connected to server:', serverUrl.href);
       return this._connectionMap.getOrThrow(serverUrl);
@@ -238,7 +260,7 @@ export class ServerManager implements IServerManager {
 
     if (this._pendingConnectionMap.has(serverUrl)) {
       logger.debug('Connection already in progress:', serverUrl.href);
-      return this._pendingConnectionMap.getOrThrow(serverUrl);
+      return this._pendingConnectionMap.getOrThrow(serverUrl).promise;
     }
 
     return this._doConnectToServer(
@@ -250,186 +272,130 @@ export class ServerManager implements IServerManager {
 
   private _doConnectToServer = async (
     serverState: ServerState,
-    workerConsoleType?: ConsoleType,
-    operateAsAnotherUser: boolean = false
+    workerConsoleType: ConsoleType | undefined = undefined,
+    operateAsAnotherUser: boolean
   ): Promise<ConnectionState | null> => {
     const serverUrl = serverState.url;
 
     logger.debug('Connecting to server:', serverUrl.href);
 
-    // Register the in-flight connection synchronously — before the first
-    // await — so concurrent callers dedupe against it. The deferred is settled
-    // with the result once the connect completes (see `finally`).
-    const { promise, resolve } = withResolvers<ConnectionState | null>();
-    this._setPendingConnection(serverUrl, promise);
+    // Mark server and worker connection as pending
+    this._pendingServerConnections.set(serverUrl, withResolvers());
+    this._pendingConnectionMap.set(serverUrl, withResolvers());
+    this._onDidUpdate.fire();
 
-    let result: ConnectionState | null = null;
+    let firstConnection: ConnectionState | null = null;
+
     try {
       if (serverState.type === 'DHE') {
-        const dheServerUrl = serverUrl;
-        const isNewDheService = !this._dheServiceCache.has(dheServerUrl);
-        const dheService = await this._dheServiceCache.get(dheServerUrl);
+        const dheService = await this._connectToDheServer(
+          serverUrl,
+          operateAsAnotherUser
+        );
 
-        // Get client. Client will be initialized if it doesn't exist (including
-        // prompting user for login).
-        if (!(await dheService.getClient(true, operateAsAnotherUser))) {
+        // server connection is done
+        this._resolvePendingServerConnection(serverUrl);
+
+        if (dheService == null) {
           return null;
         }
 
-        // Mark the DHE server as connected now that we have a live client.
-        // (connectionCount stays 0 until workers attach; isConnected reflects
-        // the server-level connection, which is now established.)
-        const currentServerState = this._serverMap.get(dheServerUrl);
-        if (currentServerState != null && !currentServerState.isConnected) {
-          this._serverMap.set(dheServerUrl, {
-            ...currentServerState,
-            isConnected: true,
-          });
-          this._onDidUpdate.fire();
-        }
-
-        // Client is live; the DHE connecting window ends here. The worker
-        // attach/create phase below is intentionally not covered (the `finally`
-        // clear is then an idempotent no-op).
-        this._clearPendingConnection(dheServerUrl);
-
-        // Wire the config-event subscription exactly once per DHE service
-        // instance, BEFORE snapshotting, so any worker that appears or disappears
-        // between the snapshot and now is not missed. `_connectWorker` reserves
-        // each serial synchronously (before any `await`), so an event-driven
-        // attach and the snapshot batch below can never double-connect the same
-        // worker — whichever reaches `_connectWorker` first wins and the other is
-        // a no-op.
-        if (isNewDheService) {
-          dheService.onDidWorkerAttachable(qi =>
-            this._reconcileAttach(dheServerUrl, dheService, qi)
-          );
-          dheService.onDidWorkerRemoved(serial =>
-            this._reconcileDetach(serial)
-          );
-        }
-
-        // Snapshot currently-running attachable workers and compute the
-        // not-yet-attached subset.
-        const attachable = await dheService.listAttachableWorkers();
-        const toAttach = attachable.filter(
-          qi => !this._attachedWorkerSerials.has(qi.serial as QuerySerial)
+        const attachableWorkers = await dheService.listAttachableWorkers(
+          this._attachedWorkerSerials.keys()
         );
 
-        if (toAttach.length > 0) {
-          // Attach existing workers in batches to avoid server stampede.
-          const BATCH_SIZE = 4;
-          let firstConnection: ConnectionState | null = null;
-          for (let i = 0; i < toAttach.length; i += BATCH_SIZE) {
-            const batch = toAttach.slice(i, i + BATCH_SIZE);
-            const connections = await Promise.all(
-              batch.map(async qi => {
-                const workerInfo = dheService.attachWorker(qi);
-                return this._connectWorker(dheServerUrl, workerInfo);
-              })
-            );
-            if (firstConnection == null) {
-              firstConnection = connections.find(c => c != null) ?? null;
-            }
-          }
-          if (toAttach.length > 1) {
-            this._toaster.info(`Attached to ${toAttach.length} worker(s).`);
-          }
-          result = firstConnection;
-          return result;
-        }
+        let workerInfos: WorkerInfo[];
 
-        // Nothing left to attach — either no workers exist for this user, or all
-        // of them already have live connections. Create a fresh one so clicking a
-        // server always yields a usable session.
-        const tagId = uniqueId();
-        const placeholderUrl = this.addWorkerPlaceholderConnection(
-          dheServerUrl,
-          tagId
-        );
+        // If no attachable workers exist, create a new one
+        if (attachableWorkers.length === 0) {
+          const workerInfo = await this._createWorker(
+            dheService,
+            workerConsoleType
+          );
 
-        let workerInfo: WorkerInfo;
-        try {
-          workerInfo = await dheService.createWorker(tagId, workerConsoleType);
-
-          // If the worker finished creating but there is no placeholder
-          // connection, the user cancelled before it was ready.
-          if (!this._connectionMap.has(placeholderUrl)) {
-            dheService.deleteWorker(workerInfo.workerUrl);
-            this._onDidUpdate.fire();
+          if (workerInfo == null) {
             return null;
           }
-        } catch (err) {
-          if (err instanceof QueryCreationCancelledError) {
-            logger.info(err);
-            const msg = 'Connection cancelled.';
-            this._outputChannel.appendLine(msg);
-            this._toaster.info(msg);
-          } else {
-            const msg =
-              err instanceof QueryStartupFailureError
-                ? err.message
-                : 'Failed to create worker.';
-            logger.error(err);
-            this._outputChannel.appendLine(msg);
-            this._toaster.error(msg);
-          }
 
-          this.removeWorkerPlaceholderConnection(placeholderUrl);
-          return null;
+          workerInfos = [workerInfo];
+        }
+        // register attachable workers
+        else {
+          workerInfos = attachableWorkers.map(queryInfo =>
+            dheService.registerWorkerInfo(queryInfo)
+          );
         }
 
-        this.removeWorkerPlaceholderConnection(placeholderUrl);
-        result = await this._connectWorker(dheServerUrl, workerInfo);
-        return result;
+        // Connect to workers in parallel
+        const connections = (
+          await Promise.all(
+            workerInfos.map(workerInfo =>
+              this._attachToWorker(serverUrl, workerInfo)
+            )
+          )
+        ).filter(c => c != null);
+
+        if (attachableWorkers.length > 1) {
+          this._toaster.info(`Attached to ${connections.length} worker(s).`);
+        }
+
+        [firstConnection = null] = connections;
+
+        return firstConnection;
       }
 
-      // DHC path: single direct connection.
-      const connection = this._dhcServiceFactory.create(serverUrl, undefined);
+      // DHC attach to Core worker
+      firstConnection = await this._attachToWorker(serverUrl);
 
-      // Initialize client + prompt for login if necessary
-      const coreClient = await connection.getClient();
-
-      if (coreClient == null) {
-        return null;
-      }
-
-      this._connectionMap.set(serverUrl, connection);
-      this._onDidUpdate.fire();
-
-      if (!(await connection.initSession())) {
-        this._coreClientCache.delete(serverUrl);
-
-        connection.dispose();
-        this._connectionMap.delete(serverUrl);
-        return null;
-      }
-
-      connection.onDidDisconnect(() => {
-        logger.debug('onDidDisconnect fired for:', serverUrl.href);
-        this.disconnectFromServer(serverUrl);
-      });
-
-      connection.onDidChangeRunningCodeStatus?.(() => {
-        this._onDidUpdate.fire();
-      });
-
-      this.updateConnectionCount(serverUrl, 1);
-
-      this._onDidConnect.fire(serverUrl);
-      this._onDidUpdate.fire();
-
-      result = this._connectionMap.get(serverUrl) ?? null;
-      return result;
+      this._resolvePendingServerConnection(serverUrl);
     } finally {
-      // Settle the deferred for any deduped caller, and clear the pending
-      // entry. The clear ends the connecting window — DHC: the whole connect;
-      // DHE: idempotent here, since the explicit clear above already ran once
-      // the client was established (this still covers DHE failures before
-      // establishment).
-      resolve(result);
-      this._clearPendingConnection(serverUrl);
+      this._resolvePendingConnection(serverUrl, firstConnection);
     }
+
+    return firstConnection;
+  };
+
+  private _connectToDheServer = async (
+    serverUrl: URL,
+    operateAsAnotherUser: boolean
+  ): Promise<IDheService | null> => {
+    const dheServerUrl = serverUrl;
+    const isNewDheService = !this._dheServiceCache.has(dheServerUrl);
+    const dheService = await this._dheServiceCache.get(dheServerUrl);
+
+    // Get client. Client will be initialized if it doesn't exist (including
+    // prompting user for login).
+    if (!(await dheService.getClient(true, operateAsAnotherUser))) {
+      return null;
+    }
+
+    // Mark the DHE server as connected now that we have a live client.
+    // (connectionCount stays 0 until workers attach; isConnected reflects
+    // the server-level connection, which is now established.)
+    const currentServerState = this._serverMap.get(dheServerUrl);
+    if (currentServerState != null && !currentServerState.isConnected) {
+      this._serverMap.set(dheServerUrl, {
+        ...currentServerState,
+        isConnected: true,
+      });
+      this._onDidUpdate.fire();
+    }
+
+    // Wire the config-event subscription exactly once per DHE service
+    // instance, BEFORE snapshotting, so any worker that appears or disappears
+    // between the snapshot and now is not missed. `_connectWorker` reserves
+    // each serial synchronously (before any `await`), so an event-driven
+    // attach and the snapshot batch below can never double-connect the same
+    // worker — whichever reaches `_connectWorker` first wins and the other is
+    // a no-op.
+    if (isNewDheService) {
+      dheService.onWorkerAttachable(qi =>
+        this._reconcileAttach(dheServerUrl, dheService, qi)
+      );
+      dheService.onWorkerRemoved(serial => this._reconcileDetach(serial));
+    }
+
+    return dheService;
   };
 
   /**
@@ -437,38 +403,45 @@ export class ServerManager implements IServerManager {
    * `_workerURLToServerURLMap` for auth lookup and `_attachedWorkerSerials`
    * for idempotency/teardown. Used by both the create path and the attach path.
    * Does NOT touch placeholder connections — that is the create path's concern.
-   * @param dheServerUrl The DHE server this worker belongs to.
+   * @param serverUrl The DHE server this worker belongs to.
    * @param workerInfo Worker info built from the query.
    * @returns The new connection state, or null on failure.
    */
-  private _connectWorker = async (
-    dheServerUrl: URL,
-    workerInfo: WorkerInfo
+  private _attachToWorker = async (
+    serverUrl: URL,
+    workerInfo?: WorkerInfo
   ): Promise<ConnectionState | null> => {
-    const workerUrl = new URL(workerInfo.workerUrl);
+    const workerUrl =
+      workerInfo == null ? serverUrl : new URL(workerInfo.workerUrl);
 
-    // Idempotency gate: reserve the serial synchronously, before any `await`,
-    // so concurrent attach attempts for the same worker — e.g. the initial
-    // enumeration racing a streaming config event, or two clicks on the same
-    // server — cannot both connect and double-count. A later failure rolls the
-    // reservation back so the worker can be retried.
-    if (this._attachedWorkerSerials.has(workerInfo.serial)) {
-      return this._connectionMap.get(workerUrl) ?? null;
+    if (workerInfo != null) {
+      // Idempotency gate: reserve the serial synchronously, before any `await`,
+      // so concurrent attach attempts for the same worker — e.g. the initial
+      // enumeration racing a streaming config event, or two clicks on the same
+      // server — cannot both connect and double-count. A later failure rolls the
+      // reservation back so the worker can be retried.
+      if (this._attachedWorkerSerials.has(workerInfo.serial)) {
+        return this._connectionMap.get(workerUrl) ?? null;
+      }
+      this._attachedWorkerSerials.set(workerInfo.serial, workerInfo.workerUrl);
+
+      // Map the worker URL to its DHE server so the auth flow can resolve creds.
+      this._workerURLToServerURLMap.set(workerUrl, serverUrl);
     }
-    this._attachedWorkerSerials.set(workerInfo.serial, workerInfo.workerUrl);
-
-    // Map the worker URL to its DHE server so the auth flow can resolve creds.
-    this._workerURLToServerURLMap.set(workerUrl, dheServerUrl);
 
     const connection = this._dhcServiceFactory.create(
       workerUrl,
-      workerInfo.tagId
+      workerInfo?.tagId
     );
 
-    // Initialize client (drives getWorkerCredentials → createAuthToken).
+    // Initialize client (includes auth flow).
     const coreClient = await connection.getClient();
+
     if (coreClient == null) {
-      this._attachedWorkerSerials.delete(workerInfo.serial);
+      if (workerInfo != null) {
+        this._attachedWorkerSerials.delete(workerInfo.serial);
+      }
+
       return null;
     }
 
@@ -476,8 +449,12 @@ export class ServerManager implements IServerManager {
     this._onDidUpdate.fire();
 
     if (!(await connection.initSession())) {
-      this._attachedWorkerSerials.delete(workerInfo.serial);
+      if (workerInfo != null) {
+        this._attachedWorkerSerials.delete(workerInfo.serial);
+      }
+
       this._coreClientCache.delete(workerUrl);
+
       connection.dispose();
       this._connectionMap.delete(workerUrl);
       return null;
@@ -492,12 +469,59 @@ export class ServerManager implements IServerManager {
       this._onDidUpdate.fire();
     });
 
-    this.updateConnectionCount(dheServerUrl, 1);
+    this.updateConnectionCount(serverUrl, 1);
 
     this._onDidConnect.fire(workerUrl);
     this._onDidUpdate.fire();
 
     return this._connectionMap.get(workerUrl) ?? null;
+  };
+
+  private _createWorker = async (
+    dheService: IDheService,
+    workerConsoleType?: ConsoleType
+  ): Promise<WorkerInfo | null> => {
+    const tagId = uniqueId();
+    const placeholderUrl = this.addWorkerPlaceholderConnection(
+      dheService.serverUrl,
+      tagId
+    );
+
+    try {
+      const workerInfo = await dheService.createWorker(
+        tagId,
+        workerConsoleType
+      );
+
+      // If the worker finished creating but there is no placeholder
+      // connection, the user cancelled before it was ready.
+      if (!this._connectionMap.has(placeholderUrl)) {
+        dheService.deleteWorker(workerInfo.workerUrl);
+        this._onDidUpdate.fire();
+        return null;
+      }
+
+      this.removeWorkerPlaceholderConnection(placeholderUrl);
+      return workerInfo;
+    } catch (err) {
+      if (err instanceof QueryCreationCancelledError) {
+        logger.info(err);
+        const msg = 'Connection cancelled.';
+        this._outputChannel.appendLine(msg);
+        this._toaster.info(msg);
+      } else {
+        const msg =
+          err instanceof QueryStartupFailureError
+            ? err.message
+            : 'Failed to create worker.';
+        logger.error(err);
+        this._outputChannel.appendLine(msg);
+        this._toaster.error(msg);
+      }
+
+      this.removeWorkerPlaceholderConnection(placeholderUrl);
+      return null;
+    }
   };
 
   /**
@@ -512,8 +536,8 @@ export class ServerManager implements IServerManager {
     if (this._attachedWorkerSerials.has(queryInfo.serial as QuerySerial)) {
       return;
     }
-    const workerInfo = dheService.attachWorker(queryInfo);
-    await this._connectWorker(dheServerUrl, workerInfo);
+    const workerInfo = dheService.registerWorkerInfo(queryInfo);
+    await this._attachToWorker(dheServerUrl, workerInfo);
   };
 
   /**

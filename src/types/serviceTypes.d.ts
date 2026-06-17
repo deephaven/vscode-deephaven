@@ -81,8 +81,8 @@ export interface IDhcService extends IDisposable, ConnectionState {
 }
 
 export interface IDheService extends ConnectionState, IDisposable {
-  readonly onDidWorkerAttachable: vscode.Event<QueryInfo>;
-  readonly onDidWorkerRemoved: vscode.Event<QuerySerial>;
+  readonly onWorkerAttachable: vscode.Event<QueryInfo>;
+  readonly onWorkerRemoved: vscode.Event<QuerySerial>;
 
   getClient(
     initializeIfNull: false
@@ -94,8 +94,10 @@ export interface IDheService extends ConnectionState, IDisposable {
   getQuerySerialFromTag(tagId: UniqueID): Promise<QuerySerial | null>;
   getServerFeatures(): DheServerFeatures | undefined;
   getWorkerInfo: (workerUrl: WorkerURL) => WorkerInfo | undefined;
-  attachWorker: (queryInfo: QueryInfo) => WorkerInfo;
-  listAttachableWorkers: () => Promise<QueryInfo[]>;
+  registerWorkerInfo: (queryInfo: QueryInfo) => WorkerInfo;
+  listAttachableWorkers: (
+    exclude: Iterable<QuerySerial>
+  ) => Promise<QueryInfo[]>;
   createWorker: (
     tagId: UniqueID,
     consoleType?: ConsoleType
@@ -188,7 +190,7 @@ export interface IServerManager extends IDisposable {
   hasConnectionUris: (connection: ConnectionState) => boolean;
 
   /** Whether a client connection to the given server is currently being established. */
-  isConnecting: (serverUrl: URL) => boolean;
+  isServerConnecting: (serverUrl: URL) => boolean;
 
   getConnection: (serverUrl: URL) => ConnectionState | undefined;
   getConnections: (serverOrWorkerUrl?: URL) => ConnectionState[];

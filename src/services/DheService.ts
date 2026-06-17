@@ -20,15 +20,15 @@ import {
 } from '../types';
 import { Logger, uniqueId, URLMap } from '../util';
 import {
-  buildWorkerInfo,
+  getWorkerInfoFromQueryInfo,
   createInteractiveConsoleQuery,
   createQueryName,
   deleteQueries,
   getDheFeatures,
   getSerialFromTagId,
-  getWorkerInfoFromQuery,
+  getWorkerInfoFromQuerySerial,
   isAttachableWorker,
-  listAttachableWorkers as listAttachableWorkersHelper,
+  listAttachableWorkers,
 } from '../dh/dhe';
 import {
   CLOSE_CREATE_QUERY_VIEW_CMD,
@@ -106,22 +106,22 @@ export class DheService implements IDheService {
   private _isConnected: boolean = false;
   private _operateAs: string | null = null;
   private _removeConfigListeners: (() => void) | null = null;
-  private readonly _creatingTagIds = new Set<UniqueID>();
+
   private readonly _config: IConfigService;
   private readonly _dheClientCache: URLMap<DheAuthenticatedClientWrapper>;
   private readonly _dheJsApiCache: IAsyncCacheService<URL, DheType>;
   private readonly _dheServerFeaturesCache: URLMap<DheServerFeatures>;
+  private readonly _pendingQueryTagIds = new Set<UniqueID>();
   private readonly _querySerialSet: Set<QuerySerial>;
   private readonly _interactiveConsoleQueryFactory: IInteractiveConsoleQueryFactory;
   private readonly _toaster: IToastService;
   private readonly _workerInfoMap: URLMap<WorkerInfo, WorkerURL>;
 
-  private readonly _onDidWorkerAttachable =
-    new vscode.EventEmitter<QueryInfo>();
-  readonly onDidWorkerAttachable = this._onDidWorkerAttachable.event;
+  private readonly _onWorkerAttachable = new vscode.EventEmitter<QueryInfo>();
+  readonly onWorkerAttachable = this._onWorkerAttachable.event;
 
-  private readonly _onDidWorkerRemoved = new vscode.EventEmitter<QuerySerial>();
-  readonly onDidWorkerRemoved = this._onDidWorkerRemoved.event;
+  private readonly _onWorkerRemoved = new vscode.EventEmitter<QuerySerial>();
+  readonly onWorkerRemoved = this._onWorkerRemoved.event;
 
   readonly serverUrl: URL;
 
@@ -221,7 +221,6 @@ export class DheService implements IDheService {
     this._removeConfigListeners?.();
 
     const dhe = await this._dheJsApiCache.get(this.serverUrl);
-    const operateAs = this._operateAs ?? '';
 
     const onConfigAddedOrUpdated = ({
       detail: queryInfo,
@@ -229,43 +228,32 @@ export class DheService implements IDheService {
       const status = queryInfo.designated?.status;
 
       if (isTerminalQueryStatus(status)) {
-        // Terminal status on a tracked worker → signal removal.
-        const isTracked = [...this._workerInfoMap.values()].some(
-          w => w.serial === queryInfo.serial
-        );
-        if (isTracked) {
+        // Terminal status on a tracked worker, fire _onWorkerRemoved
+        if (this._isQueryTracked(queryInfo)) {
           logger.info('Worker entered terminal state:', queryInfo.serial);
-          this._onDidWorkerRemoved.fire(queryInfo.serial as QuerySerial);
+          this._onWorkerRemoved.fire(queryInfo.serial as QuerySerial);
         }
-      } else if (
-        isAttachableWorker(queryInfo, operateAs) &&
-        !this._querySerialSet.has(queryInfo.serial as QuerySerial) &&
-        !this._isCreatingQuery(queryInfo.name)
+
+        return;
+      }
+
+      if (
+        !this._isQueryOwned(queryInfo) &&
+        isAttachableWorker(queryInfo, this._operateAs)
       ) {
-        // Skip workers the extension is creating or already owns. The create
-        // path connects those directly with the tagId it allocated for the
-        // query name (`IC - VS Code - <tagId>`). Without this guard, the same
-        // `EVENT_CONFIG_UPDATED` that flips a freshly-created worker to
-        // `Running` would auto-attach it here, racing the create path: it would
-        // double-connect with a *new* random tagId and let the now-functioning
-        // detach/cleanup machinery tear down a worker mid-creation (surfacing as
-        // a spurious startup failure). `_querySerialSet` covers the worker once
-        // its serial is known; `_isCreatingQuery` covers the earlier window
-        // (e.g. the iframe flow) where only the query name is known (Gotcha 4).
-        this._onDidWorkerAttachable.fire(queryInfo);
+        this._onWorkerAttachable.fire(queryInfo);
       }
     };
 
     const onConfigRemoved = ({
       detail: queryInfo,
     }: CustomEvent<QueryInfo>): void => {
-      const isTracked = [...this._workerInfoMap.values()].some(
-        w => w.serial === queryInfo.serial
-      );
-      if (isTracked) {
-        logger.info('Worker removed:', queryInfo.serial);
-        this._onDidWorkerRemoved.fire(queryInfo.serial as QuerySerial);
+      if (!this._isQueryTracked(queryInfo)) {
+        return;
       }
+
+      logger.info('Worker removed:', queryInfo.serial);
+      this._onWorkerRemoved.fire(queryInfo.serial as QuerySerial);
     };
 
     const removeAdded = dheClient.client.addEventListener(
@@ -343,22 +331,32 @@ export class DheService implements IDheService {
     return dheClient;
   }
 
-  /**
-   * Whether the given query name belongs to a worker this extension is
-   * currently creating. Created workers are named `IC - VS Code - <tagId>`
-   * (the iframe create flow may append a `_vN` version suffix), so a prefix
-   * match against in-flight tagIds covers both forms. Used to keep the
-   * auto-attach event path off a worker the create path owns end-to-end, during
-   * the window before its serial is known and added to `_querySerialSet`.
-   * @param queryName The query name from a config event.
-   */
-  private _isCreatingQuery = (queryName: string): boolean => {
-    for (const tagId of this._creatingTagIds) {
-      if (queryName.startsWith(createQueryName(tagId))) {
-        return true;
+  private _isQueryOwned = (
+    querySerialOrInfo: QuerySerial | QueryInfo
+  ): boolean => {
+    const { name, serial } =
+      typeof querySerialOrInfo === 'object'
+        ? querySerialOrInfo
+        : { serial: querySerialOrInfo };
+
+    if (name != null) {
+      for (const tagId of this._pendingQueryTagIds) {
+        // Created workers are named `IC - VS Code - <tagId>` (the iframe create
+        // flow may append a `_vN` version suffix), so a prefix match against
+        // in-flight tagIds covers both forms
+        const namePrefix = createQueryName(tagId);
+
+        if (name.startsWith(namePrefix)) {
+          return true;
+        }
       }
     }
-    return false;
+
+    return this._querySerialSet.has(serial as QuerySerial);
+  };
+
+  private _isQueryTracked = ({ serial }: QueryInfo): boolean => {
+    return [...this._workerInfoMap.values()].some(w => w.serial === serial);
   };
 
   /**
@@ -395,7 +393,8 @@ export class DheService implements IDheService {
     // the `finally` below, by which point its serial is in `_querySerialSet`
     // (added synchronously right after, with no `await` in between), so the
     // serial-based guard takes over without a gap.
-    this._creatingTagIds.add(tagId);
+    this._pendingQueryTagIds.add(tagId);
+
     const removeStartupFailureListener = dheClient.client.addEventListener(
       dhe.Client.EVENT_CONFIG_UPDATED,
       ({ detail: queryInfo }: CustomEvent<QueryInfo>) => {
@@ -444,7 +443,7 @@ export class DheService implements IDheService {
       throw err;
     } finally {
       removeStartupFailureListener();
-      this._creatingTagIds.delete(tagId);
+      this._pendingQueryTagIds.delete(tagId);
     }
 
     if (querySerial == null) {
@@ -452,7 +451,7 @@ export class DheService implements IDheService {
     }
     this._querySerialSet.add(querySerial);
 
-    const workerInfo = await getWorkerInfoFromQuery(
+    const workerInfo = await getWorkerInfoFromQuerySerial(
       tagId,
       dhe,
       dheClient.client,
@@ -468,35 +467,40 @@ export class DheService implements IDheService {
   };
 
   /**
-   * Attach to a pre-existing Running worker by building WorkerInfo from the
-   * given QueryInfo. Does NOT add the serial to `_querySerialSet` — attached
+   * Register a pre-existing Running worker by building WorkerInfo from the
+   * given QueryInfo. Does NOT add the serial to `_querySerialSet` — registered
    * workers are never owned and must never be deleted by the extension.
-   * @param queryInfo The already-Running QueryInfo for the worker to attach.
-   * @returns WorkerInfo for the attached worker.
+   * @param queryInfo The already-Running QueryInfo for the worker to register.
+   * @returns WorkerInfo for the registered worker.
    */
-  attachWorker = (queryInfo: QueryInfo): WorkerInfo => {
+  registerWorkerInfo = (queryInfo: QueryInfo): WorkerInfo => {
     const tagId = uniqueId();
-    const workerInfo = buildWorkerInfo(tagId, queryInfo);
+    const workerInfo = getWorkerInfoFromQueryInfo(tagId, queryInfo);
     if (workerInfo == null) {
       throw new Error(
-        `Cannot attach worker: queryInfo.designated is null for serial ${queryInfo.serial}`
+        `Cannot register worker for query info: ${queryInfo.serial}`
       );
     }
+
     this._workerInfoMap.set(workerInfo.workerUrl, workerInfo);
+
     return workerInfo;
   };
 
   /**
    * List all running InteractiveConsole workers owned by the current effective
    * user.
+   * @param exclude Iterable of query serials to exclude from the results.
    * @returns A promise resolving to the filtered QueryInfo array.
    */
-  listAttachableWorkers = async (): Promise<QueryInfo[]> => {
+  listAttachableWorkers = async (
+    exclude: Iterable<QuerySerial>
+  ): Promise<QueryInfo[]> => {
     const dheClient = await this.getClient(false);
     if (dheClient == null) {
       return [];
     }
-    return listAttachableWorkersHelper(dheClient.client);
+    return listAttachableWorkers(dheClient.client, exclude);
   };
 
   /**
@@ -511,12 +515,10 @@ export class DheService implements IDheService {
       return;
     }
 
-    const isOwned = this._querySerialSet.has(workerInfo.serial);
-
-    this._querySerialSet.delete(workerInfo.serial);
     this._workerInfoMap.delete(workerUrl);
 
-    if (isOwned) {
+    if (this._isQueryOwned(workerInfo.serial)) {
+      this._querySerialSet.delete(workerInfo.serial);
       await this._disposeQueries([workerInfo.serial]);
     }
   };
@@ -544,8 +546,8 @@ export class DheService implements IDheService {
     this._querySerialSet.clear();
     this._removeConfigListeners?.();
     this._removeConfigListeners = null;
-    this._onDidWorkerAttachable.dispose();
-    this._onDidWorkerRemoved.dispose();
+    this._onWorkerAttachable.dispose();
+    this._onWorkerRemoved.dispose();
 
     await Promise.all([
       this._workerInfoMap.dispose(),

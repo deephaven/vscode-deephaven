@@ -23,7 +23,7 @@ export class ServerTreeProvider extends ServerTreeProviderBase<ServerNode> {
 
     return getServerTreeItem(
       element,
-      this.serverManager.isConnecting(element.url)
+      this.serverManager.isServerConnecting(element.url)
     );
   };
 

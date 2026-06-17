@@ -421,7 +421,7 @@ export async function getDheAuthConfig(
  */
 export function isAttachableWorker(
   queryInfo: QueryInfo,
-  operateAs: string
+  operateAs: string | null
 ): boolean {
   return (
     queryInfo.type === INTERACTIVE_CONSOLE_QUERY_TYPE &&
@@ -434,26 +434,34 @@ export function isAttachableWorker(
  * List all running InteractiveConsole workers owned by the current effective
  * user.
  * @param dheClient DHE client to use.
+ * @param exclude Iterable of query serials to exclude from the results.
  * @returns A promise resolving to the filtered QueryInfo array.
  */
 export async function listAttachableWorkers(
-  dheClient: DheAuthenticatedClient
+  dheClient: DheAuthenticatedClient,
+  exclude: Iterable<QuerySerial>
 ): Promise<QueryInfo[]> {
   const userInfo = await dheClient.getUserInfo();
   const operateAs = userInfo.operateAs;
+  const excludeSet = new Set(exclude);
+
   return dheClient
     .getKnownConfigs()
-    .filter(qi => isAttachableWorker(qi, operateAs));
+    .filter(
+      qi =>
+        isAttachableWorker(qi, operateAs) &&
+        !excludeSet.has(qi.serial as QuerySerial)
+    );
 }
 
 /**
- * Build WorkerInfo from an already-Running QueryInfo without any I/O or
+ * Convert a QueryInfo object to a WorkerInfo object without any I/O or
  * side effects. Returns undefined when `queryInfo.designated` is null.
  * @param tagId Unique tag id to associate with the worker.
  * @param queryInfo The running query info.
  * @returns WorkerInfo or undefined.
  */
-export function buildWorkerInfo(
+export function getWorkerInfoFromQueryInfo(
   tagId: UniqueID,
   queryInfo: QueryInfo
 ): WorkerInfo | undefined {
@@ -511,7 +519,7 @@ export function getSerialFromTagId(
  * @param querySerial Serial of the query to get worker info for.
  * @returns A promise that resolves to the worker info when the worker is ready.
  */
-export async function getWorkerInfoFromQuery(
+export async function getWorkerInfoFromQuerySerial(
   tagId: UniqueID,
   dhe: DheType,
   dheClient: DheAuthenticatedClient,
@@ -573,7 +581,7 @@ export async function getWorkerInfoFromQuery(
     }
   }
 
-  return buildWorkerInfo(tagId, queryInfo);
+  return getWorkerInfoFromQueryInfo(tagId, queryInfo);
 }
 
 /**

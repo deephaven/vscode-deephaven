@@ -185,6 +185,10 @@ export class ConnectionController
       );
 
       if (cn == null) {
+        updateConnectionStatusBarItem(
+          this._connectStatusBarItem,
+          'disconnected'
+        );
         return;
       }
 
