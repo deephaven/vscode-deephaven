@@ -33,12 +33,12 @@ exports[`createConnectionQuickPickOptions > should return quick pick options: ed
       "isConnected": true,
       "serverUrl": "http://localhost:10000/",
     },
-    "description": "python (current)",
+    "description": "localhost:10000 (current)",
     "iconPath": ThemeIcon {
       "color": undefined,
-      "id": "vm-connect",
+      "id": "dh-python",
     },
-    "label": "http://localhost:10000/",
+    "label": "localhost:10000",
     "type": "connection",
   },
   {
@@ -46,12 +46,12 @@ exports[`createConnectionQuickPickOptions > should return quick pick options: ed
       "isConnected": true,
       "serverUrl": "http://localhost:10002/",
     },
-    "description": "python",
+    "description": "localhost:10002",
     "iconPath": ThemeIcon {
       "color": undefined,
-      "id": "vm-connect",
+      "id": "dh-python",
     },
-    "label": "http://localhost:10002/",
+    "label": "localhost:10002",
     "type": "connection",
   },
   {
@@ -104,12 +104,12 @@ exports[`createConnectionQuickPickOptions > should return quick pick options: ed
       "isConnected": true,
       "serverUrl": "http://localhost:10000/",
     },
-    "description": "python",
+    "description": "localhost:10000",
     "iconPath": ThemeIcon {
       "color": undefined,
-      "id": "vm-connect",
+      "id": "dh-python",
     },
-    "label": "http://localhost:10000/",
+    "label": "localhost:10000",
     "type": "connection",
   },
   {
@@ -117,12 +117,12 @@ exports[`createConnectionQuickPickOptions > should return quick pick options: ed
       "isConnected": true,
       "serverUrl": "http://localhost:10002/",
     },
-    "description": "python",
+    "description": "localhost:10002",
     "iconPath": ThemeIcon {
       "color": undefined,
-      "id": "vm-connect",
+      "id": "dh-python",
     },
-    "label": "http://localhost:10002/",
+    "label": "localhost:10002",
     "type": "connection",
   },
   {

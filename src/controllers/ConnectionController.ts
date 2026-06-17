@@ -500,10 +500,11 @@ export class ConnectionController
 
     try {
       selectedCnResult = await createConnectionQuickPick(
-        createConnectionQuickPickOptions(
+        await createConnectionQuickPickOptions(
           [...runningDHCServersWithoutConnections, ...runningDHEServers],
           connectionsForConsoleType,
           languageId,
+          this._serverManager,
           editorActiveConnectionUrl
         )
       );

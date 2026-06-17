@@ -19,6 +19,7 @@ import type {
   ConnectionType,
   ConsoleType,
   ConnectionPickItem,
+  IServerManager,
   ServerState,
   SeparatorPickItem,
   ConnectionPickOption,
@@ -32,6 +33,7 @@ import type {
   MultiAuthConfig,
 } from '../types';
 import { getFilePathDateToken, sortByStringProp } from './dataUtils';
+import { getConnectionWorkerLabel, getConsoleTypeIconId } from './treeViewUtils';
 import { Logger } from './Logger';
 
 const logger = new Logger('uiUtils');
@@ -54,20 +56,27 @@ export interface WorkspaceFolderConfig {
 
 /**
  * Create options for a connection quick pick.
+ *
+ * Active-connection items mirror the WORKERS-tree worker node: a leading
+ * language icon plus the worker name, with the server host:port shown in the
+ * description.
  * @param servers The available servers
  * @param connections The available connections
  * @param editorLanguageId The language id of the editor
+ * @param serverManager The server manager used to resolve each connection's
+ * parent server and worker info.
  * @param editorActiveConnectionUrl The active connection url of the editor
  * @returns
  */
-export function createConnectionQuickPickOptions<
+export async function createConnectionQuickPickOptions<
   TConnection extends ConnectionState,
 >(
   servers: ServerState[],
   connections: TConnection[],
   editorLanguageId: string,
+  serverManager: IServerManager,
   editorActiveConnectionUrl?: URL | null
-): ConnectionPickOption<TConnection>[] {
+): Promise<ConnectionPickOption<TConnection>[]> {
   const serverOptions: ConnectionPickItem<'server', ServerState>[] =
     servers.map(data => ({
       type: 'server',
@@ -77,22 +86,36 @@ export function createConnectionQuickPickOptions<
       data,
     }));
 
-  const connectionOptions: ConnectionPickItem<'connection', TConnection>[] = [];
+  const connectionOptions: ConnectionPickItem<'connection', TConnection>[] =
+    await Promise.all(
+      connections.map(async dhService => {
+        const isActiveConnection =
+          editorActiveConnectionUrl?.toString() ===
+          dhService.serverUrl.toString();
 
-  for (const dhService of connections) {
-    const isActiveConnection =
-      editorActiveConnectionUrl?.toString() === dhService.serverUrl.toString();
+        const parentServer =
+          serverManager.getServerForConnection(dhService);
+        const workerInfo = await serverManager.getWorkerInfo(
+          dhService.serverUrl
+        );
 
-    connectionOptions.push({
-      type: 'connection',
-      label: dhService.serverUrl.toString(),
-      iconPath: new vscode.ThemeIcon(ICON_ID.connected),
-      description: isActiveConnection
-        ? `${editorLanguageId} (current)`
-        : editorLanguageId,
-      data: dhService,
-    });
-  }
+        const host = parentServer?.url.host ?? dhService.serverUrl.host;
+
+        return {
+          type: 'connection' as const,
+          label: getConnectionWorkerLabel(
+            parentServer,
+            dhService,
+            workerInfo?.name
+          ),
+          iconPath: new vscode.ThemeIcon(
+            getConsoleTypeIconId(editorLanguageId as ConsoleType)
+          ),
+          description: isActiveConnection ? `${host} (current)` : host,
+          data: dhService,
+        };
+      })
+    );
 
   if (serverOptions.length === 0 && connectionOptions.length === 0) {
     throw new Error('No available servers to connect to.');

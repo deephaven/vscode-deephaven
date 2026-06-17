@@ -14,6 +14,7 @@ import type {
   ConnectionState,
   CoreConnectionConfig,
   IDhcService,
+  IServerManager,
   ServerState,
 } from '../types';
 
@@ -55,7 +56,7 @@ describe('createConnectionQuickPickOptions', () => {
     ['Active A', serverUrlA],
   ])(
     'should return quick pick options: editorActiveConnectionUrl=%s',
-    (_label, editorActiveConnectionUrl) => {
+    async (_label, editorActiveConnectionUrl) => {
       const serversWithoutConnections: ServerState[] = [
         {
           type: 'DHC',
@@ -77,23 +78,47 @@ describe('createConnectionQuickPickOptions', () => {
         { serverUrl: serverUrlC, isConnected: true },
       ];
 
-      const actual = createConnectionQuickPickOptions(
+      const serverManager = {
+        getServerForConnection: vi.fn(
+          (connection: ConnectionState): ServerState => ({
+            type: 'DHC',
+            url: connection.serverUrl,
+            isConnected: true,
+            isRunning: true,
+            connectionCount: 1,
+          })
+        ),
+        getWorkerInfo: vi.fn(async () => undefined),
+      } as unknown as IServerManager;
+
+      const actual = await createConnectionQuickPickOptions(
         serversWithoutConnections,
         connections,
         'python',
+        serverManager,
         editorActiveConnectionUrl
       );
       expect(actual).toMatchSnapshot();
     }
   );
 
-  it('should throw if no servers or connections', () => {
+  it('should throw if no servers or connections', async () => {
     const servers: ServerState[] = [];
     const connections: IDhcService[] = [];
 
-    expect(() =>
-      createConnectionQuickPickOptions(servers, connections, 'python')
-    ).toThrowError('No available servers to connect to.');
+    const serverManager = {
+      getServerForConnection: vi.fn(),
+      getWorkerInfo: vi.fn(async () => undefined),
+    } as unknown as IServerManager;
+
+    await expect(
+      createConnectionQuickPickOptions(
+        servers,
+        connections,
+        'python',
+        serverManager
+      )
+    ).rejects.toThrowError('No available servers to connect to.');
   });
 });
 
