@@ -211,21 +211,28 @@ export function getConnectionServerTreeItem(
 /**
  * Get `contextValue` for server tree items.
  * @param isConnected Whether the server is connected
+ * @param isConnecting Whether a client connection is currently being established
  * @param isDHE Whether the server is a DHE server
  * @param isManaged Whether the server is managed
  * @param isRunning Whether the server is running
  */
 export function getServerContextValue({
   isConnected,
+  isConnecting,
   isDHE,
   isManaged,
   isRunning,
 }: {
   isConnected: boolean;
+  isConnecting: boolean;
   isDHE: boolean;
   isManaged: boolean;
   isRunning: boolean;
 }): ServerTreeItemContextValue {
+  if (isConnecting) {
+    return SERVER_TREE_ITEM_CONTEXT.isServerConnecting;
+  }
+
   if (isManaged) {
     return isConnected
       ? SERVER_TREE_ITEM_CONTEXT.isManagedServerConnected
@@ -314,19 +321,26 @@ export function getServerGroupTreeItem(
 /**
  * Get icon id for a server in the UI. e.g. for tree nodes.
  * @param isConnected Whether the server is connected
+ * @param isConnecting Whether a client connection is currently being established
  * @param isManaged Whether the server is managed
  * @param isRunning Whether the server is running
  * @returns Icon id for server tree item
  */
 export function getServerIconID({
   isConnected,
+  isConnecting,
   isManaged,
   isRunning,
 }: {
   isConnected: boolean;
+  isConnecting: boolean;
   isManaged: boolean;
   isRunning: boolean;
 }): string {
+  if (isConnecting) {
+    return ICON_ID.connecting;
+  }
+
   return isRunning
     ? isConnected
       ? ICON_ID.serverConnected
@@ -343,9 +357,13 @@ export function getServerIconID({
  * number of connected workers in the case of DHE)
  * @param isManaged Whether the server is managed
  * @param isRunning Whether the server is running
+ * @param isConnecting Whether a client connection is currently being established
  * @returns Tree item representing the server
  */
-export function getServerTreeItem(server: ServerState): vscode.TreeItem {
+export function getServerTreeItem(
+  server: ServerState,
+  isConnecting: boolean
+): vscode.TreeItem {
   const {
     connectionCount,
     isConnected,
@@ -356,6 +374,7 @@ export function getServerTreeItem(server: ServerState): vscode.TreeItem {
 
   const contextValue = getServerContextValue({
     isConnected,
+    isConnecting,
     isDHE: type === 'DHE',
     isManaged,
     isRunning,
@@ -377,10 +396,14 @@ export function getServerTreeItem(server: ServerState): vscode.TreeItem {
   return {
     label,
     description,
-    tooltip: canConnect ? `Click to connect to ${label}` : label,
+    tooltip: isConnecting
+      ? `Connecting to ${label}…`
+      : canConnect
+        ? `Click to connect to ${label}`
+        : label,
     contextValue,
     iconPath: new vscode.ThemeIcon(
-      getServerIconID({ isConnected, isManaged, isRunning })
+      getServerIconID({ isConnected, isConnecting, isManaged, isRunning })
     ),
     command: canConnect
       ? {

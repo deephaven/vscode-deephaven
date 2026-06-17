@@ -166,11 +166,12 @@ describe('getPanelVariableTreeItem', () => {
 });
 
 describe('getServerContextValue', () => {
-  it.each(matrix(boolValues, boolValues, boolValues))(
-    'should return contextValue based on server state: isConnected=%s, isManaged=%s, isRunning=%s',
-    (isConnected, isManaged, isRunning) => {
+  it.each(matrix(boolValues, boolValues, boolValues, boolValues))(
+    'should return contextValue based on server state: isConnected=%s, isConnecting=%s, isManaged=%s, isRunning=%s',
+    (isConnected, isConnecting, isManaged, isRunning) => {
       const actual = getServerContextValue({
         isConnected,
+        isConnecting,
         isDHE: false,
         isManaged,
         isRunning,
@@ -217,10 +218,15 @@ describe('getServerGroupTreeItem', () => {
 });
 
 describe('getServerIconID', () => {
-  it.each(matrix(boolValues, boolValues, boolValues))(
-    'should return icon id based on server state: isConnected=%s, isManaged=%s, isRunning=%s',
-    (isConnected, isManaged, isRunning) => {
-      const actual = getServerIconID({ isConnected, isManaged, isRunning });
+  it.each(matrix(boolValues, boolValues, boolValues, boolValues))(
+    'should return icon id based on server state: isConnected=%s, isConnecting=%s, isManaged=%s, isRunning=%s',
+    (isConnected, isConnecting, isManaged, isRunning) => {
+      const actual = getServerIconID({
+        isConnected,
+        isConnecting,
+        isManaged,
+        isRunning,
+      });
       expect(actual).toMatchSnapshot();
     }
   );
@@ -237,19 +243,22 @@ describe('getServerTreeItem', () => {
     connectionCount: 0,
   };
 
-  it.each(matrix(typeValues, boolValues, boolValues, boolValues))(
-    'should return server tree item: type=%s, isConnected=%s, isManaged=%s, isRunning=%s',
-    (type, isConnected, isManaged, isRunning) => {
-      const actual = getServerTreeItem({
-        ...dhcServerState,
-        ...(isManaged
-          ? { isManaged: true, psk: 'mock.psk' as Psk }
-          : { isManaged: false }),
-        type,
-        connectionCount: isConnected ? 1 : 0,
-        isConnected,
-        isRunning,
-      });
+  it.each(matrix(typeValues, boolValues, boolValues, boolValues, boolValues))(
+    'should return server tree item: type=%s, isConnected=%s, isConnecting=%s, isManaged=%s, isRunning=%s',
+    (type, isConnected, isConnecting, isManaged, isRunning) => {
+      const actual = getServerTreeItem(
+        {
+          ...dhcServerState,
+          ...(isManaged
+            ? { isManaged: true, psk: 'mock.psk' as Psk }
+            : { isManaged: false }),
+          type,
+          connectionCount: isConnected ? 1 : 0,
+          isConnected,
+          isRunning,
+        },
+        isConnecting
+      );
 
       expect(actual).toMatchSnapshot();
     }

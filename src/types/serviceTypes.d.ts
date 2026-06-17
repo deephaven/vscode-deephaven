@@ -187,6 +187,9 @@ export interface IServerManager extends IDisposable {
 
   hasConnectionUris: (connection: ConnectionState) => boolean;
 
+  /** Whether a client connection to the given server is currently being established. */
+  isConnecting: (serverUrl: URL) => boolean;
+
   getConnection: (serverUrl: URL) => ConnectionState | undefined;
   getConnections: (serverOrWorkerUrl?: URL) => ConnectionState[];
   getConnectionUris: (connection: ConnectionState) => vscode.Uri[];

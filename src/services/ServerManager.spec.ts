@@ -37,7 +37,16 @@ type TestServerManager = PublicOf<ServerManager> & {
   _serverMap: URLMap<ServerState>;
   _connectionMap: URLMap<ConnectionState>;
   _pendingConnectionMap: URLMap<Promise<ConnectionState | null>>;
-  _doConnectToServer: ReturnType<typeof vi.fn>;
+  _dhcServiceFactory: { create: ReturnType<typeof vi.fn> };
+  _dheServiceCache: {
+    has: ReturnType<typeof vi.fn>;
+    get: ReturnType<typeof vi.fn>;
+  };
+  _setPendingConnection: (
+    serverUrl: URL,
+    connectionPromise: Promise<ConnectionState | null>
+  ) => void;
+  _clearPendingConnection: (serverUrl: URL) => void;
 };
 
 /** Build a `ServerManager` with minimal mocked dependencies. */
@@ -107,21 +116,13 @@ const dheServer0 = mockServerState({
   type: 'DHE',
 });
 const cn1 = mockConnectionState(serverUrl);
-const cn2 = mockConnectionState(serverUrl);
 
 describe('ServerManager.connectToServer', () => {
   let manager: TestServerManager;
 
-  let promise: Promise<ConnectionState | null>;
-  let resolve: (value: ConnectionState | null) => void;
-
   beforeEach(() => {
     vi.clearAllMocks();
     manager = createServerManager();
-
-    ({ promise, resolve } = withResolvers<ConnectionState | null>());
-
-    manager._doConnectToServer = vi.fn().mockReturnValue(promise);
   });
 
   it('throws when the server is not found', async () => {
@@ -137,50 +138,122 @@ describe('ServerManager.connectToServer', () => {
     const result = await manager.connectToServer(serverUrl);
 
     expect(result).toBe(cn1);
-    expect(manager._doConnectToServer).not.toHaveBeenCalled();
+    expect(manager._dhcServiceFactory.create).not.toHaveBeenCalled();
   });
 
   it('only connects once when called concurrently for the same DHC server', async () => {
     manager._serverMap.set(dhcServer0.url, dhcServer0);
 
+    // Hold the client handshake open so the connection stays in flight.
+    const { promise: clientPromise, resolve: resolveClient } =
+      withResolvers<object>();
+    const connection = {
+      getClient: vi.fn().mockReturnValue(clientPromise),
+      initSession: vi.fn().mockResolvedValue(true),
+      onDidDisconnect: vi.fn(),
+      onDidChangeRunningCodeStatus: vi.fn(),
+    };
+    manager._dhcServiceFactory.create.mockReturnValue(connection);
+
     const first = manager.connectToServer(serverUrl);
     const second = manager.connectToServer(serverUrl);
 
-    // The in-progress connection is reused rather than starting a new one.
-    expect(manager._doConnectToServer).toHaveBeenCalledTimes(1);
+    // The second call dedupes against the in-flight connection rather than
+    // creating a new one.
+    expect(manager._dhcServiceFactory.create).toHaveBeenCalledTimes(1);
+    expect(manager.isConnecting(serverUrl)).toBe(true);
 
-    resolve(cn1);
+    resolveClient({});
 
-    expect(await first).toBe(cn1);
-    expect(await second).toBe(cn1);
+    expect(await first).toBe(connection);
+    expect(await second).toBe(connection);
   });
 
-  it('clears the pending connection once it resolves so later calls reconnect', async () => {
-    manager._serverMap.set(dhcServer0.url, dhcServer0);
-
-    manager._doConnectToServer.mockResolvedValue(cn1);
-    const first = manager.connectToServer(serverUrl);
-    expect(manager._pendingConnectionMap.has(serverUrl)).toBe(true);
-    expect(await first).toBe(cn1);
-
-    expect(manager._pendingConnectionMap.has(serverUrl)).toBe(false);
-
-    // A subsequent connect attempt is not blocked by the resolved pending entry.
-    manager._doConnectToServer.mockResolvedValue(cn2);
-    const second = manager.connectToServer(serverUrl);
-    expect(await second).toBe(cn2);
-
-    expect(manager._doConnectToServer).toHaveBeenCalledTimes(2);
-  });
-
-  it('does not track pending connections for DHE servers', async () => {
+  it('dedups concurrent client connections for DHE servers', () => {
     manager._serverMap.set(dheServer0.url, dheServer0);
 
+    // Leave the DHE service acquisition pending so the client connection stays
+    // in flight.
+    const { promise } = withResolvers<IDheService>();
+    manager._dheServiceCache.get.mockReturnValue(promise);
+
     void manager.connectToServer(serverUrl);
     void manager.connectToServer(serverUrl);
 
-    // DHE supports multiple connections, so concurrent calls each start one.
-    expect(manager._doConnectToServer).toHaveBeenCalledTimes(2);
-    expect(manager._pendingConnectionMap.has(serverUrl)).toBe(false);
+    // The DHE client connection is singular, so concurrent attempts reuse the
+    // in-flight connection rather than starting a second one (multiple workers
+    // are created later, off the single client connection).
+    expect(manager._dheServiceCache.get).toHaveBeenCalledTimes(1);
+    expect(manager.isConnecting(serverUrl)).toBe(true);
+  });
+});
+
+describe('ServerManager.isConnecting', () => {
+  let manager: TestServerManager;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    manager = createServerManager();
+  });
+
+  it('toggles isConnecting and fires onDidUpdate on set/clear', () => {
+    const onDidUpdate = vi.fn();
+    manager.onDidUpdate(onDidUpdate);
+
+    expect(manager.isConnecting(serverUrl)).toBe(false);
+
+    manager._setPendingConnection(serverUrl, Promise.resolve(null));
+    expect(manager.isConnecting(serverUrl)).toBe(true);
+    expect(onDidUpdate).toHaveBeenCalledTimes(1);
+
+    manager._clearPendingConnection(serverUrl);
+    expect(manager.isConnecting(serverUrl)).toBe(false);
+    expect(onDidUpdate).toHaveBeenCalledTimes(2);
+  });
+
+  it('clears idempotently and does not fire when there is no pending entry', () => {
+    const onDidUpdate = vi.fn();
+    manager.onDidUpdate(onDidUpdate);
+
+    // Clearing when not connecting is a no-op (no fire).
+    manager._clearPendingConnection(serverUrl);
+    expect(onDidUpdate).not.toHaveBeenCalled();
+
+    manager._setPendingConnection(serverUrl, Promise.resolve(null));
+    expect(onDidUpdate).toHaveBeenCalledTimes(1);
+
+    manager._clearPendingConnection(serverUrl);
+    expect(onDidUpdate).toHaveBeenCalledTimes(2);
+
+    // Clearing again is a no-op (no extra fire) — covers DHE's early clear
+    // followed by the connect-settle clear.
+    manager._clearPendingConnection(serverUrl);
+    expect(onDidUpdate).toHaveBeenCalledTimes(2);
+  });
+
+  it('clears the pending entry when a connect settles, so a retry is not blocked', async () => {
+    manager._serverMap.set(dhcServer0.url, dhcServer0);
+
+    // First attempt fails to get a client; `_doConnectToServer`'s `finally`
+    // must clear the pending entry (no stale entry left behind).
+    const failConnection = { getClient: vi.fn().mockResolvedValue(null) };
+    const okConnection = {
+      getClient: vi.fn().mockResolvedValue({}),
+      initSession: vi.fn().mockResolvedValue(true),
+      onDidDisconnect: vi.fn(),
+      onDidChangeRunningCodeStatus: vi.fn(),
+    };
+    manager._dhcServiceFactory.create
+      .mockReturnValueOnce(failConnection)
+      .mockReturnValueOnce(okConnection);
+
+    expect(await manager.connectToServer(serverUrl)).toBeNull();
+    expect(manager.isConnecting(serverUrl)).toBe(false);
+
+    // The retry is not blocked by a stale pending entry — it starts a new
+    // connection rather than deduping against the failed one.
+    expect(await manager.connectToServer(serverUrl)).toBe(okConnection);
+    expect(manager._dhcServiceFactory.create).toHaveBeenCalledTimes(2);
+    expect(manager.isConnecting(serverUrl)).toBe(false);
   });
 });

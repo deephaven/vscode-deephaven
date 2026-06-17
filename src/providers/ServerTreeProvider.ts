@@ -21,7 +21,10 @@ export class ServerTreeProvider extends ServerTreeProviderBase<ServerNode> {
       return getServerGroupTreeItem(element, this.serverManager.canStartServer);
     }
 
-    return getServerTreeItem(element);
+    return getServerTreeItem(
+      element,
+      this.serverManager.isConnecting(element.url)
+    );
   };
 
   getChildren(elementOrRoot?: ServerNode): vscode.ProviderResult<ServerNode[]> {
