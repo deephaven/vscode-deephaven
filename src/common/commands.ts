@@ -26,6 +26,11 @@ export type ConnectToServerCmdArgs = [
   operateAsAnotherUser?: boolean,
 ];
 
+/** Arguments passed to `CREATE_WORKER_CMD` handler */
+export type CreateWorkerCmdArgs = [
+  serverState: Pick<ServerState, 'type' | 'url'>,
+];
+
 /** Arguments passed to `OPEN_VARIABLE_PANELS_CMD` handler */
 export type OpenVariablePanelsCmdArgs = [
   serverUrl: URL,
@@ -97,6 +102,7 @@ export const CREATE_DHE_AUTHENTICATED_CLIENT_CMD = cmd(
   'createDHEAuthenticatedClient'
 );
 export const CREATE_NEW_TEXT_DOC_CMD = cmd('createNewTextDoc');
+export const CREATE_WORKER_CMD = cmd('createWorker');
 export const DELETE_VARIABLE_CMD = cmd('deleteVariable');
 export const DISCONNECT_EDITOR_CMD = cmd('disconnectEditor');
 export const DISCONNECT_FROM_SERVER_CMD = cmd('disconnectFromServer');

@@ -525,6 +525,36 @@ export class ServerManager implements IServerManager {
   };
 
   /**
+   * Explicitly create a new worker on a DHE server and attach to it. Unlike
+   * `connectToServer` (which only auto-creates a worker when none are
+   * attachable), this always creates a worker — it backs the "+" create-worker
+   * action on DHE server nodes.
+   * @param dheServerUrl The DHE server to create the worker on.
+   * @param workerConsoleType Optional console type for the new worker.
+   * @returns The new connection state, or `null` if client/worker
+   * creation/attachment failed.
+   */
+  createWorker = async (
+    dheServerUrl: URL,
+    workerConsoleType?: ConsoleType
+  ): Promise<ConnectionState | null> => {
+    const dheService = await this._dheServiceCache.get(dheServerUrl);
+
+    // Ensure a live client (the server is already connected when the "+" action
+    // is visible, but guard anyway — this also covers a stale/expired client).
+    if (!(await dheService.getClient(true, false))) {
+      return null;
+    }
+
+    const workerInfo = await this._createWorker(dheService, workerConsoleType);
+    if (workerInfo == null) {
+      return null;
+    }
+
+    return this._attachToWorker(dheServerUrl, workerInfo);
+  };
+
+  /**
    * Attach a single worker when a config event indicates it became attachable.
    * Idempotent: no-ops if the serial is already connected.
    */

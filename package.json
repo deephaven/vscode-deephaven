@@ -246,6 +246,11 @@
         "icon": "$(account)"
       },
       {
+        "command": "vscode-deephaven.createWorker",
+        "title": "Create Worker",
+        "icon": "$(add)"
+      },
+      {
         "command": "vscode-deephaven.createNewTextDoc",
         "title": "New File",
         "icon": "$(new-file)"
@@ -836,6 +841,10 @@
           "when": "false"
         },
         {
+          "command": "vscode-deephaven.createWorker",
+          "when": "false"
+        },
+        {
           "command": "vscode-deephaven.disconnectEditor",
           "when": "false"
         },
@@ -1008,6 +1017,11 @@
           "command": "vscode-deephaven.createNewTextDoc",
           "when": "view == vscode-deephaven.view.serverConnectionTree && viewItem == isConnectionConnected",
           "group": "inline@1"
+        },
+        {
+          "command": "vscode-deephaven.createWorker",
+          "when": "view == vscode-deephaven.view.serverConnectionTree && viewItem == isDHEServerConnectionParent",
+          "group": "inline"
         },
         {
           "command": "vscode-deephaven.disconnectEditor",

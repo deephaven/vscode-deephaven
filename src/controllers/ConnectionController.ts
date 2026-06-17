@@ -24,6 +24,8 @@ import {
   CONNECT_TO_SERVER_CMD,
   CONNECT_TO_SERVER_OPERATE_AS_CMD,
   ConnectToServerCmdArgs,
+  CREATE_WORKER_CMD,
+  CreateWorkerCmdArgs,
   DISCONNECT_EDITOR_CMD,
   DISCONNECT_FROM_SERVER_CMD,
   SELECT_CONNECTION_COMMAND,
@@ -65,6 +67,9 @@ export class ConnectionController
       CONNECT_TO_SERVER_OPERATE_AS_CMD,
       this.onConnectToServerOperateAs
     );
+
+    /** Create a new worker on a DHE server */
+    this.registerCommand(CREATE_WORKER_CMD, this.onCreateWorker);
 
     /** Disconnect editor */
     this.registerCommand(DISCONNECT_EDITOR_CMD, this.onDisconnectEditor);
@@ -336,6 +341,24 @@ export class ConnectionController
       workerConsoleType,
       operateAsAnotherUser
     );
+  };
+
+  /**
+   * Handle explicitly creating a new worker on a DHE server (the "+" action).
+   */
+  onCreateWorker = async (
+    ...[serverState]: CreateWorkerCmdArgs | [undefined]
+  ): Promise<void> => {
+    // Sometimes view/item/context commands pass undefined instead of a value.
+    // Just ignore. microsoft/vscode#283655
+    if (serverState == null) {
+      return;
+    }
+
+    const languageId = vscode.window.activeTextEditor?.document.languageId;
+    const workerConsoleType = getConsoleType(languageId);
+
+    await this._serverManager?.createWorker(serverState.url, workerConsoleType);
   };
 
   /**

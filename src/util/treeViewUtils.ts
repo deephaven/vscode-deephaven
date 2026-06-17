@@ -169,8 +169,13 @@ export function getConnectionWorkerLabel(
  * connection is grouped under its parent server node (DHC and DHE alike), so a
  * community server with a single worker has the same hierarchy shape as an
  * enterprise server with many. Roots are sorted by their displayed label.
+ *
+ * In addition to every server that has connections, any DHE server with a live
+ * client is included so its node (and its "+" create-worker action) stays
+ * reachable even with zero workers.
  * @param serverManager Server manager.
- * @returns The server root nodes (only servers that have connections).
+ * @returns The server root nodes (servers with connections, plus connected DHE
+ * servers).
  */
 export function getConnectionTreeRootNodes(
   serverManager: IServerManager
@@ -180,6 +185,15 @@ export function getConnectionTreeRootNodes(
   for (const connection of serverManager.getConnections()) {
     const server = serverManager.getServerForConnection(connection);
     if (server != null) {
+      servers.set(server.url.toString(), server);
+    }
+  }
+
+  // DHE servers with a live client appear even with zero workers, so the server
+  // node (and its "+" create-worker action) stays reachable after a cancelled
+  // worker creation or after the last worker is detached.
+  for (const server of serverManager.getServers({ type: 'DHE' })) {
+    if (server.isConnected) {
       servers.set(server.url.toString(), server);
     }
   }
