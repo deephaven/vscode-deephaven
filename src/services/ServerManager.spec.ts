@@ -77,7 +77,7 @@ function createServerManager(): TestServerManager {
 }
 
 function mockConnectionState(url: URL): ConnectionState {
-  return { isConnected: true, serverUrl: url };
+  return { label: 'Mock connection state', isConnected: true, serverUrl: url };
 }
 
 function mockServerState({
