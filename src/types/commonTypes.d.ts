@@ -170,6 +170,7 @@ export interface WorkerConfig {
 export interface ConnectionState {
   readonly isConnected: boolean;
   readonly isRunningCode?: boolean;
+  readonly label: string;
   readonly serverUrl: URL;
   readonly tagId?: UniqueID;
 }

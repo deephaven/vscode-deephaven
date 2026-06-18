@@ -8,7 +8,6 @@ import { ServerTreeProviderBase } from './ServerTreeProviderBase';
 import {
   getConnectionServerTreeItem,
   getConnectionTreeRootNodes,
-  getConnectionWorkerLabel,
   getPanelConnectionTreeItem,
   getPanelVariableTreeItem,
   isServerStateNode,
@@ -41,21 +40,10 @@ export class ServerConnectionPanelTreeProvider extends ServerTreeProviderBase<Se
       return getConnectionServerTreeItem(node);
     }
 
-    // Worker (connection) node, nested under its server node. DHE workers use
-    // their persistent-query name; DHC connections fall back to their server's
-    // label so the single child mirrors its parent server node.
-    const workerInfo = await this.serverManager.getWorkerInfo(node.serverUrl);
-    const parentServer = this.serverManager.getServerForConnection(node);
-    const label = getConnectionWorkerLabel(
-      parentServer,
-      node,
-      workerInfo?.name
-    );
-
     return getPanelConnectionTreeItem(
       node,
       getFirstSupportedConsoleType,
-      label
+      node.label
     );
   };
 

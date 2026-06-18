@@ -119,7 +119,7 @@ export type ICoreClientFactory = (
  */
 export type IDhcServiceFactory = IFactory<
   IDhcService,
-  [serverUrl: URL, isOwned: boolean, tagId?: UniqueID]
+  [label: string, serverUrl: URL, isOwned: boolean, tagId?: UniqueID]
 >;
 export type IDheClientFactory = (
   serverUrl: URL

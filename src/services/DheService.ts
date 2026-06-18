@@ -64,15 +64,21 @@ export class DheService implements IDheService {
     toaster: IToastService
   ): IDheServiceFactory => {
     return {
-      create: (serverUrl: URL): IDheService =>
-        new DheService(
+      create: (serverUrl: URL): IDheService => {
+        const serverConfig = configService
+          .getEnterpriseServers()
+          .find(server => server.url.href === serverUrl.href);
+
+        return new DheService(
+          serverConfig?.label ?? serverUrl.href,
           serverUrl,
           configService,
           dheClientCache,
           dheJsApiCache,
           interactiveConsoleQueryFactory,
           toaster
-        ),
+        );
+      },
     };
   };
 
@@ -81,6 +87,7 @@ export class DheService implements IDheService {
    * mechanism for instantiating.
    */
   private constructor(
+    label: string,
     serverUrl: URL,
     configService: IConfigService,
     dheClientCache: URLMap<DheAuthenticatedClientWrapper>,
@@ -88,6 +95,7 @@ export class DheService implements IDheService {
     interactiveConsoleQueryFactory: IInteractiveConsoleQueryFactory,
     toaster: IToastService
   ) {
+    this.label = label;
     this.serverUrl = serverUrl;
     this._config = configService;
     this._dheClientCache = dheClientCache;
@@ -123,6 +131,7 @@ export class DheService implements IDheService {
   private readonly _onWorkerRemoved = new vscode.EventEmitter<QuerySerial>();
   readonly onWorkerRemoved = this._onWorkerRemoved.event;
 
+  readonly label: string;
   readonly serverUrl: URL;
 
   /**

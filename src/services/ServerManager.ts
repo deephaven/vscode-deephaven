@@ -352,6 +352,7 @@ export class ServerManager implements IServerManager {
     }
 
     const connection = this._dhcServiceFactory.create(
+      workerInfo?.name ?? serverUrl.host,
       workerUrl,
       isOwned,
       workerInfo?.tagId
@@ -496,6 +497,7 @@ export class ServerManager implements IServerManager {
   ): Promise<WorkerInfo | null> => {
     const tagId = uniqueId();
     const placeholderUrl = this.addWorkerPlaceholderConnection(
+      dheService.label,
       dheService.serverUrl,
       tagId
     );
@@ -597,11 +599,16 @@ export class ServerManager implements IServerManager {
 
   /**
    * Add a placeholder connection to represent a pending DHE Core+ woker creation.
+   * @param label The connection label to show in the UI for this pending worker.
    * @param serverUrl The DHE server URL the pending worker is associated with.
    * @param tagId The tag ID of the worker.
    * @returns The placeholder URL.
    */
-  addWorkerPlaceholderConnection = (serverUrl: URL, tagId: UniqueID): URL => {
+  addWorkerPlaceholderConnection = (
+    label: string,
+    serverUrl: URL,
+    tagId: UniqueID
+  ): URL => {
     // simple way to keep placeholder urls unique by just adding a tagId as the pathname
     const placeholderUrl = new URL(serverUrl);
     placeholderUrl.pathname = tagId;
@@ -609,6 +616,7 @@ export class ServerManager implements IServerManager {
     this._workerURLToServerURLMap.set(placeholderUrl, serverUrl);
 
     this._connectionMap.set(placeholderUrl, {
+      label,
       isConnected: false,
       isRunningCode: false,
       serverUrl: placeholderUrl,

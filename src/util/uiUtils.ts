@@ -33,7 +33,7 @@ import type {
   MultiAuthConfig,
 } from '../types';
 import { getFilePathDateToken, sortByStringProp } from './dataUtils';
-import { getConnectionWorkerLabel, getConsoleTypeIconId } from './treeViewUtils';
+import { getConsoleTypeIconId } from './treeViewUtils';
 import { Logger } from './Logger';
 
 const logger = new Logger('uiUtils');
@@ -93,21 +93,12 @@ export async function createConnectionQuickPickOptions<
           editorActiveConnectionUrl?.toString() ===
           dhService.serverUrl.toString();
 
-        const parentServer =
-          serverManager.getServerForConnection(dhService);
-        const workerInfo = await serverManager.getWorkerInfo(
-          dhService.serverUrl
-        );
-
+        const parentServer = serverManager.getServerForConnection(dhService);
         const host = parentServer?.url.host ?? dhService.serverUrl.host;
 
         return {
           type: 'connection' as const,
-          label: getConnectionWorkerLabel(
-            parentServer,
-            dhService,
-            workerInfo?.name
-          ),
+          label: dhService.label,
           iconPath: new vscode.ThemeIcon(
             getConsoleTypeIconId(editorLanguageId as ConsoleType)
           ),

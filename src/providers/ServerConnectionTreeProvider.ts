@@ -5,7 +5,6 @@ import type { ConsoleType, ServerConnectionNode } from '../types';
 import {
   getConnectionServerTreeItem,
   getConnectionTreeRootNodes,
-  getConnectionWorkerLabel,
   getConsoleTypeIconId,
   isInstanceOf,
   isServerStateNode,
@@ -45,18 +44,6 @@ export class ServerConnectionTreeProvider extends ServerTreeProviderBase<ServerC
       [consoleType] = await node.getConsoleTypes();
     }
 
-    // Worker (connection) node, nested under its server node. Prefer the
-    // persistent query name (what the DHE Query Monitor shows); DHC connections
-    // have none and fall back to their server's label so the single child
-    // mirrors its parent server node.
-    const workerInfo = await this.serverManager.getWorkerInfo(node.serverUrl);
-    const parentServer = this.serverManager.getServerForConnection(node);
-    const label = getConnectionWorkerLabel(
-      parentServer,
-      node,
-      workerInfo?.name
-    );
-
     const hasUris = this.serverManager.hasConnectionUris(node);
 
     // Identify connections created by the extension or in-flight placeholders
@@ -64,7 +51,7 @@ export class ServerConnectionTreeProvider extends ServerTreeProviderBase<ServerC
 
     // Connection node
     return {
-      label,
+      label: node.label,
       contextValue: node.isConnected
         ? CONNECTION_TREE_ITEM_CONTEXT.isConnectionConnected(isOwned)
         : CONNECTION_TREE_ITEM_CONTEXT.isConnectionConnecting(isOwned),

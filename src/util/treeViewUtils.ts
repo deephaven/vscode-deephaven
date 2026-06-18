@@ -143,28 +143,6 @@ export function getConnectionServerLabel(server: ServerState): string {
 }
 
 /**
- * Get the label shown for a worker (connection) node in the connection / panel
- * tree views. DHE workers use their persistent-query name; DHC connections,
- * which have none, fall back to their server's label so the single child
- * mirrors its parent server node.
- * @param parentServer The connection's parent server, if resolved.
- * @param connection The connection.
- * @param pqName The persistent-query name (DHE workers only).
- */
-export function getConnectionWorkerLabel(
-  parentServer: ServerState | undefined,
-  connection: ConnectionState,
-  pqName: string | undefined
-): string {
-  const serverLabel =
-    parentServer == null
-      ? connection.serverUrl.host
-      : getConnectionServerLabel(parentServer);
-
-  return pqName ?? serverLabel ?? connection.tagId ?? '';
-}
-
-/**
  * Compute the root nodes for the connection / panel tree views. Every
  * connection is grouped under its parent server node (DHC and DHE alike), so a
  * community server with a single worker has the same hierarchy shape as an

@@ -73,11 +73,13 @@ export class DhcService extends DisposableBase implements IDhcService {
   ): IDhcServiceFactory => {
     return {
       create: (
+        label: string,
         serverUrl: URL,
         isOwned: boolean,
         tagId?: UniqueID
       ): IDhcService => {
         return new DhcService(
+          label,
           serverUrl,
           isOwned,
           coreClientCache,
@@ -99,6 +101,7 @@ export class DhcService extends DisposableBase implements IDhcService {
    * mechanism for instantiating.
    */
   private constructor(
+    label: string,
     serverUrl: URL,
     isOwned: boolean,
     coreClientCache: URLMap<CoreAuthenticatedClient>,
@@ -115,6 +118,7 @@ export class DhcService extends DisposableBase implements IDhcService {
 
     this.coreClientCache = coreClientCache;
     this.isOwned = isOwned;
+    this.label = label;
     this.groovyDiagnosticsCollection = groovyDiagnosticsCollection;
     this.diagnosticsCollection = diagnosticsCollection;
     this.remoteFileSourceService = remoteFileSourceService;
@@ -140,6 +144,7 @@ export class DhcService extends DisposableBase implements IDhcService {
   readonly onDidDisconnect = this._onDidDisconnect.event;
 
   public readonly isOwned: boolean;
+  public readonly label: string;
   public readonly serverUrl: URL;
   public readonly tagId?: UniqueID;
 
