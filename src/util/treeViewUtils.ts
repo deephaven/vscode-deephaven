@@ -196,7 +196,10 @@ export function getConnectionServerTreeItem(
     // nodes, before the language (Python/Groovy) icons took their place.
     iconPath: new vscode.ThemeIcon(ICON_ID.connected),
     collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
-    contextValue: CONNECTION_TREE_ITEM_CONTEXT.isDHEServerConnectionParent,
+    contextValue:
+      server.type === 'DHE'
+        ? CONNECTION_TREE_ITEM_CONTEXT.isDHEServerConnectionParent
+        : undefined,
   };
 }
 
