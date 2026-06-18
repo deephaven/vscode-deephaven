@@ -96,11 +96,7 @@ export async function createConnectionQuickPickOptions<
         const parentServer = serverManager.getServerForConnection(dhService);
         assertDefined(parentServer, 'parentServer');
 
-        const descriptionTokens = [
-          parentServer.type === 'DHC'
-            ? (parentServer.label ?? parentServer.url.host)
-            : `${parentServer.label ?? parentServer.url.hostname}:${dhService.serverUrl.port}`,
-        ];
+        const descriptionTokens = [parentServer.label ?? parentServer.url.host];
 
         if (isActiveConnection) {
           descriptionTokens.push('(current)');
