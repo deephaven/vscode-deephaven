@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ServerManager } from './ServerManager';
-import { URLMap, withResolvers } from '../util';
+import { URLMap, withResolvers, type PromiseWithResolvers } from '../util';
 import type {
   ConnectionState,
   IAsyncCacheService,
@@ -36,17 +36,14 @@ vi.mock('../dh/dhe', () => ({
 type TestServerManager = PublicOf<ServerManager> & {
   _serverMap: URLMap<ServerState>;
   _connectionMap: URLMap<ConnectionState>;
-  _pendingConnectionMap: URLMap<Promise<ConnectionState | null>>;
+  _pendingConnectionMap: URLMap<PromiseWithResolvers<ConnectionState | null>>;
+  _pendingServerConnections: URLMap<PromiseWithResolvers<void>>;
   _dhcServiceFactory: { create: ReturnType<typeof vi.fn> };
   _dheServiceCache: {
     has: ReturnType<typeof vi.fn>;
     get: ReturnType<typeof vi.fn>;
   };
-  _setPendingConnection: (
-    serverUrl: URL,
-    connectionPromise: Promise<ConnectionState | null>
-  ) => void;
-  _clearPendingConnection: (serverUrl: URL) => void;
+  _resolvePendingServerConnection: (serverUrl: URL) => void;
 };
 
 /** Build a `ServerManager` with minimal mocked dependencies. */
@@ -161,7 +158,7 @@ describe('ServerManager.connectToServer', () => {
     // The second call dedupes against the in-flight connection rather than
     // creating a new one.
     expect(manager._dhcServiceFactory.create).toHaveBeenCalledTimes(1);
-    expect(manager.isConnecting(serverUrl)).toBe(true);
+    expect(manager.isServerConnecting(serverUrl)).toBe(true);
 
     resolveClient({});
 
@@ -184,11 +181,11 @@ describe('ServerManager.connectToServer', () => {
     // in-flight connection rather than starting a second one (multiple workers
     // are created later, off the single client connection).
     expect(manager._dheServiceCache.get).toHaveBeenCalledTimes(1);
-    expect(manager.isConnecting(serverUrl)).toBe(true);
+    expect(manager.isServerConnecting(serverUrl)).toBe(true);
   });
 });
 
-describe('ServerManager.isConnecting', () => {
+describe('ServerManager.isServerConnecting', () => {
   let manager: TestServerManager;
 
   beforeEach(() => {
@@ -196,39 +193,35 @@ describe('ServerManager.isConnecting', () => {
     manager = createServerManager();
   });
 
-  it('toggles isConnecting and fires onDidUpdate on set/clear', () => {
+  it('reflects a pending server connection and fires onDidUpdate when it resolves', () => {
     const onDidUpdate = vi.fn();
     manager.onDidUpdate(onDidUpdate);
 
-    expect(manager.isConnecting(serverUrl)).toBe(false);
+    expect(manager.isServerConnecting(serverUrl)).toBe(false);
 
-    manager._setPendingConnection(serverUrl, Promise.resolve(null));
-    expect(manager.isConnecting(serverUrl)).toBe(true);
+    manager._pendingServerConnections.set(serverUrl, withResolvers());
+    expect(manager.isServerConnecting(serverUrl)).toBe(true);
+
+    manager._resolvePendingServerConnection(serverUrl);
+    expect(manager.isServerConnecting(serverUrl)).toBe(false);
     expect(onDidUpdate).toHaveBeenCalledTimes(1);
-
-    manager._clearPendingConnection(serverUrl);
-    expect(manager.isConnecting(serverUrl)).toBe(false);
-    expect(onDidUpdate).toHaveBeenCalledTimes(2);
   });
 
-  it('clears idempotently and does not fire when there is no pending entry', () => {
+  it('resolves idempotently and does not fire when there is no pending entry', () => {
     const onDidUpdate = vi.fn();
     manager.onDidUpdate(onDidUpdate);
 
-    // Clearing when not connecting is a no-op (no fire).
-    manager._clearPendingConnection(serverUrl);
+    // Resolving when not connecting is a no-op (no fire).
+    manager._resolvePendingServerConnection(serverUrl);
     expect(onDidUpdate).not.toHaveBeenCalled();
 
-    manager._setPendingConnection(serverUrl, Promise.resolve(null));
+    manager._pendingServerConnections.set(serverUrl, withResolvers());
+    manager._resolvePendingServerConnection(serverUrl);
     expect(onDidUpdate).toHaveBeenCalledTimes(1);
 
-    manager._clearPendingConnection(serverUrl);
-    expect(onDidUpdate).toHaveBeenCalledTimes(2);
-
-    // Clearing again is a no-op (no extra fire) — covers DHE's early clear
-    // followed by the connect-settle clear.
-    manager._clearPendingConnection(serverUrl);
-    expect(onDidUpdate).toHaveBeenCalledTimes(2);
+    // Resolving again is a no-op (no extra fire).
+    manager._resolvePendingServerConnection(serverUrl);
+    expect(onDidUpdate).toHaveBeenCalledTimes(1);
   });
 
   it('clears the pending entry when a connect settles, so a retry is not blocked', async () => {
@@ -248,12 +241,12 @@ describe('ServerManager.isConnecting', () => {
       .mockReturnValueOnce(okConnection);
 
     expect(await manager.connectToServer(serverUrl)).toBeNull();
-    expect(manager.isConnecting(serverUrl)).toBe(false);
+    expect(manager.isServerConnecting(serverUrl)).toBe(false);
 
     // The retry is not blocked by a stale pending entry — it starts a new
     // connection rather than deduping against the failed one.
     expect(await manager.connectToServer(serverUrl)).toBe(okConnection);
     expect(manager._dhcServiceFactory.create).toHaveBeenCalledTimes(2);
-    expect(manager.isConnecting(serverUrl)).toBe(false);
+    expect(manager.isServerConnecting(serverUrl)).toBe(false);
   });
 });
