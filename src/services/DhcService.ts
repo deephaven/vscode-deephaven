@@ -72,9 +72,14 @@ export class DhcService extends DisposableBase implements IDhcService {
     toaster: IToastService
   ): IDhcServiceFactory => {
     return {
-      create: (serverUrl: URL, tagId?: UniqueID): IDhcService => {
+      create: (
+        serverUrl: URL,
+        isOwned: boolean,
+        tagId?: UniqueID
+      ): IDhcService => {
         return new DhcService(
           serverUrl,
+          isOwned,
           coreClientCache,
           groovyDiagnosticsCollection,
           diagnosticsCollection,
@@ -95,6 +100,7 @@ export class DhcService extends DisposableBase implements IDhcService {
    */
   private constructor(
     serverUrl: URL,
+    isOwned: boolean,
     coreClientCache: URLMap<CoreAuthenticatedClient>,
     groovyDiagnosticsCollection: vscode.DiagnosticCollection,
     diagnosticsCollection: vscode.DiagnosticCollection,
@@ -108,6 +114,7 @@ export class DhcService extends DisposableBase implements IDhcService {
     super();
 
     this.coreClientCache = coreClientCache;
+    this.isOwned = isOwned;
     this.groovyDiagnosticsCollection = groovyDiagnosticsCollection;
     this.diagnosticsCollection = diagnosticsCollection;
     this.remoteFileSourceService = remoteFileSourceService;
@@ -132,6 +139,7 @@ export class DhcService extends DisposableBase implements IDhcService {
   private readonly _onDidDisconnect = new vscode.EventEmitter<URL>();
   readonly onDidDisconnect = this._onDidDisconnect.event;
 
+  public readonly isOwned: boolean;
   public readonly serverUrl: URL;
   public readonly tagId?: UniqueID;
 

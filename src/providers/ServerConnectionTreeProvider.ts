@@ -59,12 +59,15 @@ export class ServerConnectionTreeProvider extends ServerTreeProviderBase<ServerC
 
     const hasUris = this.serverManager.hasConnectionUris(node);
 
+    // Identify connections created by the extension or in-flight placeholders
+    const isOwned = isInstanceOf(node, DhcService) ? node.isOwned : true;
+
     // Connection node
     return {
       label,
       contextValue: node.isConnected
-        ? CONNECTION_TREE_ITEM_CONTEXT.isConnectionConnected
-        : CONNECTION_TREE_ITEM_CONTEXT.isConnectionConnecting,
+        ? CONNECTION_TREE_ITEM_CONTEXT.isConnectionConnected(isOwned)
+        : CONNECTION_TREE_ITEM_CONTEXT.isConnectionConnecting(isOwned),
       collapsibleState: hasUris
         ? vscode.TreeItemCollapsibleState.Expanded
         : undefined,

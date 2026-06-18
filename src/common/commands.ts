@@ -106,6 +106,7 @@ export const CREATE_WORKER_CMD = cmd('createWorker');
 export const DELETE_VARIABLE_CMD = cmd('deleteVariable');
 export const DISCONNECT_EDITOR_CMD = cmd('disconnectEditor');
 export const DISCONNECT_FROM_SERVER_CMD = cmd('disconnectFromServer');
+export const DISCONNECT_FROM_WORKER_CMD = cmd('disconnectFromWorker');
 export const DOWNLOAD_LOGS_CMD = cmd('downloadLogs');
 export const GENERATE_DHE_KEY_PAIR_CMD = cmd('generateDHEKeyPair');
 export const GENERATE_REQUIREMENTS_TXT_CMD = cmd('generateRequirementsTxt');

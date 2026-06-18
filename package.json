@@ -266,6 +266,11 @@
         "icon": "$(debug-disconnect)"
       },
       {
+        "command": "vscode-deephaven.disconnectFromWorker",
+        "title": "Disconnect from Worker",
+        "icon": "$(debug-disconnect)"
+      },
+      {
         "command": "vscode-deephaven.generateDHEKeyPair",
         "title": "Generate DHE Key Pair",
         "icon": "$(key)"
@@ -853,6 +858,10 @@
           "when": "false"
         },
         {
+          "command": "vscode-deephaven.disconnectFromWorker",
+          "when": "false"
+        },
+        {
           "command": "vscode-deephaven.generateDHEKeyPair",
           "when:": "false"
         },
@@ -1015,7 +1024,7 @@
         },
         {
           "command": "vscode-deephaven.createNewTextDoc",
-          "when": "view == vscode-deephaven.view.serverConnectionTree && viewItem == isConnectionConnected",
+          "when": "view == vscode-deephaven.view.serverConnectionTree && (viewItem == isConnectionConnected || viewItem == isConnectionConnectedRemovable)",
           "group": "inline@1"
         },
         {
@@ -1030,7 +1039,12 @@
         },
         {
           "command": "vscode-deephaven.disconnectFromServer",
-          "when": "(view == vscode-deephaven.view.serverTree && (viewItem == isServerRunningConnected || viewItem == isDHEServerRunningConnected)) || (view == vscode-deephaven.view.serverConnectionTree && (viewItem == isConnectionConnected || viewItem == isConnectionConnecting))",
+          "when": "view == vscode-deephaven.view.serverTree && (viewItem == isServerRunningConnected || viewItem == isDHEServerRunningConnected)",
+          "group": "inline@2"
+        },
+        {
+          "command": "vscode-deephaven.disconnectFromWorker",
+          "when": "view == vscode-deephaven.view.serverConnectionTree && (viewItem == isConnectionConnectedRemovable || viewItem == isConnectionConnectingRemovable)",
           "group": "inline@2"
         },
         {
@@ -1039,7 +1053,7 @@
         },
         {
           "command": "vscode-deephaven.generateRequirementsTxt",
-          "when": "view == vscode-deephaven.view.serverConnectionTree && viewItem == isConnectionConnected"
+          "when": "view == vscode-deephaven.view.serverConnectionTree && (viewItem == isConnectionConnected || viewItem == isConnectionConnectedRemovable)"
         },
         {
           "command": "vscode-deephaven.openInBrowser",

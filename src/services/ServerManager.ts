@@ -287,7 +287,12 @@ export class ServerManager implements IServerManager {
     let firstConnection: ConnectionState | null = null;
 
     try {
-      if (serverState.type === 'DHE') {
+      if (serverState.type === 'DHC') {
+        // DHC attach to Core worker
+        firstConnection = await this._attachToWorker(serverUrl, true);
+
+        this._resolvePendingServerConnection(serverUrl);
+      } else {
         const dheService = await this._connectToDheServer(
           serverUrl,
           operateAsAnotherUser
@@ -300,59 +305,99 @@ export class ServerManager implements IServerManager {
           return null;
         }
 
-        const attachableWorkers = await dheService.listAttachableWorkers(
-          this._attachedWorkerSerials.keys()
+        [firstConnection = null] = await this._createOrAttachToWorkers(
+          dheService,
+          workerConsoleType
         );
-
-        let workerInfos: WorkerInfo[];
-
-        // If no attachable workers exist, create a new one
-        if (attachableWorkers.length === 0) {
-          const workerInfo = await this._createWorker(
-            dheService,
-            workerConsoleType
-          );
-
-          if (workerInfo == null) {
-            return null;
-          }
-
-          workerInfos = [workerInfo];
-        }
-        // register attachable workers
-        else {
-          workerInfos = attachableWorkers.map(queryInfo =>
-            dheService.registerWorkerInfo(queryInfo)
-          );
-        }
-
-        // Connect to workers in parallel
-        const connections = (
-          await Promise.all(
-            workerInfos.map(workerInfo =>
-              this._attachToWorker(serverUrl, workerInfo)
-            )
-          )
-        ).filter(c => c != null);
-
-        if (attachableWorkers.length > 1) {
-          this._toaster.info(`Attached to ${connections.length} worker(s).`);
-        }
-
-        [firstConnection = null] = connections;
 
         return firstConnection;
       }
-
-      // DHC attach to Core worker
-      firstConnection = await this._attachToWorker(serverUrl);
-
-      this._resolvePendingServerConnection(serverUrl);
     } finally {
       this._resolvePendingConnection(serverUrl, firstConnection);
     }
 
     return firstConnection;
+  };
+
+  /**
+   * Create a Core+ JS API connection to an existing worker. Populates
+   * `_workerURLToServerURLMap` for auth lookup and `_attachedWorkerSerials`
+   * for idempotency/teardown. Used by both the create path and the attach path.
+   * Does NOT touch placeholder connections — that is the create path's concern.
+   * @param serverUrl The DHE server this worker belongs to.
+   * @param workerInfo Worker info built from the query.
+   * @returns The new connection state, or null on failure.
+   */
+  private _attachToWorker = async (
+    serverUrl: URL,
+    isOwned: boolean,
+    workerInfo?: WorkerInfo
+  ): Promise<ConnectionState | null> => {
+    const workerUrl =
+      workerInfo == null ? serverUrl : new URL(workerInfo.workerUrl);
+
+    if (workerInfo != null) {
+      // Idempotency gate: reserve the serial synchronously, before any `await`,
+      // so concurrent attach attempts for the same worker — e.g. the initial
+      // enumeration racing a streaming config event, or two clicks on the same
+      // server — cannot both connect and double-count. A later failure rolls the
+      // reservation back so the worker can be retried.
+      if (this._attachedWorkerSerials.has(workerInfo.serial)) {
+        return this._connectionMap.get(workerUrl) ?? null;
+      }
+      this._attachedWorkerSerials.set(workerInfo.serial, workerInfo.workerUrl);
+
+      // Map the worker URL to its DHE server so the auth flow can resolve creds.
+      this._workerURLToServerURLMap.set(workerUrl, serverUrl);
+    }
+
+    const connection = this._dhcServiceFactory.create(
+      workerUrl,
+      isOwned,
+      workerInfo?.tagId
+    );
+
+    // Initialize client (includes auth flow).
+    const coreClient = await connection.getClient();
+
+    if (coreClient == null) {
+      if (workerInfo != null) {
+        this._attachedWorkerSerials.delete(workerInfo.serial);
+      }
+
+      return null;
+    }
+
+    this._connectionMap.set(workerUrl, connection);
+    this._onDidUpdate.fire();
+
+    if (!(await connection.initSession())) {
+      if (workerInfo != null) {
+        this._attachedWorkerSerials.delete(workerInfo.serial);
+      }
+
+      this._coreClientCache.delete(workerUrl);
+
+      connection.dispose();
+      this._connectionMap.delete(workerUrl);
+      return null;
+    }
+
+    connection.onDidDisconnect(() => {
+      logger.debug('onDidDisconnect fired for:', workerUrl.href);
+      this.disconnectFromServer(workerUrl);
+    });
+
+    connection.onDidChangeRunningCodeStatus?.(() => {
+      this._onDidUpdate.fire();
+    });
+
+    this.updateConnectionCount(serverUrl, 1);
+
+    this._onDidConnect.fire(workerUrl);
+    this._onDidUpdate.fire();
+
+    return this._connectionMap.get(workerUrl) ?? null;
   };
 
   private _connectToDheServer = async (
@@ -398,83 +443,51 @@ export class ServerManager implements IServerManager {
     return dheService;
   };
 
-  /**
-   * Create a Core+ JS API connection to an existing worker. Populates
-   * `_workerURLToServerURLMap` for auth lookup and `_attachedWorkerSerials`
-   * for idempotency/teardown. Used by both the create path and the attach path.
-   * Does NOT touch placeholder connections — that is the create path's concern.
-   * @param serverUrl The DHE server this worker belongs to.
-   * @param workerInfo Worker info built from the query.
-   * @returns The new connection state, or null on failure.
-   */
-  private _attachToWorker = async (
-    serverUrl: URL,
-    workerInfo?: WorkerInfo
-  ): Promise<ConnectionState | null> => {
-    const workerUrl =
-      workerInfo == null ? serverUrl : new URL(workerInfo.workerUrl);
-
-    if (workerInfo != null) {
-      // Idempotency gate: reserve the serial synchronously, before any `await`,
-      // so concurrent attach attempts for the same worker — e.g. the initial
-      // enumeration racing a streaming config event, or two clicks on the same
-      // server — cannot both connect and double-count. A later failure rolls the
-      // reservation back so the worker can be retried.
-      if (this._attachedWorkerSerials.has(workerInfo.serial)) {
-        return this._connectionMap.get(workerUrl) ?? null;
-      }
-      this._attachedWorkerSerials.set(workerInfo.serial, workerInfo.workerUrl);
-
-      // Map the worker URL to its DHE server so the auth flow can resolve creds.
-      this._workerURLToServerURLMap.set(workerUrl, serverUrl);
-    }
-
-    const connection = this._dhcServiceFactory.create(
-      workerUrl,
-      workerInfo?.tagId
+  private _createOrAttachToWorkers = async (
+    dheService: IDheService,
+    workerConsoleType: ConsoleType | undefined = undefined
+  ): Promise<ConnectionState[]> => {
+    const attachableWorkers = await dheService.listAttachableWorkers(
+      this._attachedWorkerSerials.keys()
     );
 
-    // Initialize client (includes auth flow).
-    const coreClient = await connection.getClient();
+    let workerInfos: [boolean, WorkerInfo][];
 
-    if (coreClient == null) {
-      if (workerInfo != null) {
-        this._attachedWorkerSerials.delete(workerInfo.serial);
+    // If no attachable workers exist, create a new one
+    if (attachableWorkers.length === 0) {
+      const workerInfo = await this._createWorker(
+        dheService,
+        workerConsoleType
+      );
+
+      if (workerInfo == null) {
+        return [];
       }
 
-      return null;
+      workerInfos = [[true, workerInfo]];
+    }
+    // register attachable workers
+    else {
+      workerInfos = attachableWorkers.map(queryInfo => [
+        false,
+        dheService.registerWorkerInfo(queryInfo),
+      ]);
     }
 
-    this._connectionMap.set(workerUrl, connection);
-    this._onDidUpdate.fire();
+    // Connect to workers in parallel
+    const connections = (
+      await Promise.all(
+        workerInfos.map(([isOwned, workerInfo]) =>
+          this._attachToWorker(dheService.serverUrl, isOwned, workerInfo)
+        )
+      )
+    ).filter(c => c != null);
 
-    if (!(await connection.initSession())) {
-      if (workerInfo != null) {
-        this._attachedWorkerSerials.delete(workerInfo.serial);
-      }
-
-      this._coreClientCache.delete(workerUrl);
-
-      connection.dispose();
-      this._connectionMap.delete(workerUrl);
-      return null;
+    if (attachableWorkers.length > 1) {
+      this._toaster.info(`Attached to ${connections.length} worker(s).`);
     }
 
-    connection.onDidDisconnect(() => {
-      logger.debug('onDidDisconnect fired for:', workerUrl.href);
-      this.disconnectFromServer(workerUrl);
-    });
-
-    connection.onDidChangeRunningCodeStatus?.(() => {
-      this._onDidUpdate.fire();
-    });
-
-    this.updateConnectionCount(serverUrl, 1);
-
-    this._onDidConnect.fire(workerUrl);
-    this._onDidUpdate.fire();
-
-    return this._connectionMap.get(workerUrl) ?? null;
+    return connections;
   };
 
   private _createWorker = async (
@@ -551,7 +564,7 @@ export class ServerManager implements IServerManager {
       return null;
     }
 
-    return this._attachToWorker(dheServerUrl, workerInfo);
+    return this._attachToWorker(dheServerUrl, true, workerInfo);
   };
 
   /**
@@ -567,7 +580,7 @@ export class ServerManager implements IServerManager {
       return;
     }
     const workerInfo = dheService.registerWorkerInfo(queryInfo);
-    await this._attachToWorker(dheServerUrl, workerInfo);
+    await this._attachToWorker(dheServerUrl, false, workerInfo);
   };
 
   /**

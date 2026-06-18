@@ -157,8 +157,10 @@ export const VARIABLE_UNICODE_ICONS = {
 /* eslint-enable @typescript-eslint/naming-convention */
 
 export const CONNECTION_TREE_ITEM_CONTEXT = {
-  isConnectionConnected: 'isConnectionConnected',
-  isConnectionConnecting: 'isConnectionConnecting',
+  isConnectionConnected: (isOwned: boolean) =>
+    `isConnectionConnected${isOwned ? 'Removable' : ''}`,
+  isConnectionConnecting: (isOwned: boolean) =>
+    `isConnectionConnecting${isOwned ? 'Removable' : ''}`,
   isDHEServerConnectionParent: 'isDHEServerConnectionParent',
   isUri: 'isUri',
 } as const;

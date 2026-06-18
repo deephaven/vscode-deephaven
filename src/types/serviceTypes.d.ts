@@ -58,6 +58,7 @@ export interface IConfigService {
 export interface IDhcService extends IDisposable, ConnectionState {
   readonly isInitialized: boolean;
   readonly isConnected: boolean;
+  readonly isOwned: boolean;
   isRunningCode: boolean;
 
   readonly onDidDisconnect: vscode.Event<URL>;
@@ -118,7 +119,7 @@ export type ICoreClientFactory = (
  */
 export type IDhcServiceFactory = IFactory<
   IDhcService,
-  [serverUrl: URL, tagId?: UniqueID]
+  [serverUrl: URL, isOwned: boolean, tagId?: UniqueID]
 >;
 export type IDheClientFactory = (
   serverUrl: URL

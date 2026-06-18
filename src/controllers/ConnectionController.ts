@@ -28,6 +28,7 @@ import {
   CreateWorkerCmdArgs,
   DISCONNECT_EDITOR_CMD,
   DISCONNECT_FROM_SERVER_CMD,
+  DISCONNECT_FROM_WORKER_CMD,
   SELECT_CONNECTION_COMMAND,
   UnsupportedConsoleTypeError,
 } from '../common';
@@ -77,6 +78,12 @@ export class ConnectionController
     /** Disconnect from server */
     this.registerCommand(
       DISCONNECT_FROM_SERVER_CMD,
+      this.onDisconnectFromServer
+    );
+
+    /** Disconnect from worker (per-worker action on connection nodes) */
+    this.registerCommand(
+      DISCONNECT_FROM_WORKER_CMD,
       this.onDisconnectFromServer
     );
 
