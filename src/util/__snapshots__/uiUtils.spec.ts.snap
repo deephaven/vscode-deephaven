@@ -31,6 +31,7 @@ exports[`createConnectionQuickPickOptions > should return quick pick options: ed
   {
     "data": {
       "isConnected": true,
+      "label": "ServerA Connection",
       "serverUrl": "http://localhost:10000/",
     },
     "description": "localhost:10000 (current)",
@@ -38,12 +39,13 @@ exports[`createConnectionQuickPickOptions > should return quick pick options: ed
       "color": undefined,
       "id": "dh-python",
     },
-    "label": "localhost:10000",
+    "label": "ServerA Connection",
     "type": "connection",
   },
   {
     "data": {
       "isConnected": true,
+      "label": "ServerC Connection",
       "serverUrl": "http://localhost:10002/",
     },
     "description": "localhost:10002",
@@ -51,7 +53,7 @@ exports[`createConnectionQuickPickOptions > should return quick pick options: ed
       "color": undefined,
       "id": "dh-python",
     },
-    "label": "localhost:10002",
+    "label": "ServerC Connection",
     "type": "connection",
   },
   {
@@ -102,6 +104,7 @@ exports[`createConnectionQuickPickOptions > should return quick pick options: ed
   {
     "data": {
       "isConnected": true,
+      "label": "ServerA Connection",
       "serverUrl": "http://localhost:10000/",
     },
     "description": "localhost:10000",
@@ -109,12 +112,13 @@ exports[`createConnectionQuickPickOptions > should return quick pick options: ed
       "color": undefined,
       "id": "dh-python",
     },
-    "label": "localhost:10000",
+    "label": "ServerA Connection",
     "type": "connection",
   },
   {
     "data": {
       "isConnected": true,
+      "label": "ServerC Connection",
       "serverUrl": "http://localhost:10002/",
     },
     "description": "localhost:10002",
@@ -122,7 +126,7 @@ exports[`createConnectionQuickPickOptions > should return quick pick options: ed
       "color": undefined,
       "id": "dh-python",
     },
-    "label": "localhost:10002",
+    "label": "ServerC Connection",
     "type": "connection",
   },
   {

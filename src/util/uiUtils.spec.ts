@@ -74,8 +74,16 @@ describe('createConnectionQuickPickOptions', () => {
         },
       ];
       const connections: ConnectionState[] = [
-        { serverUrl: serverUrlA, isConnected: true },
-        { serverUrl: serverUrlC, isConnected: true },
+        {
+          label: 'ServerA Connection',
+          serverUrl: serverUrlA,
+          isConnected: true,
+        },
+        {
+          label: 'ServerC Connection',
+          serverUrl: serverUrlC,
+          isConnected: true,
+        },
       ];
 
       const serverManager = {
