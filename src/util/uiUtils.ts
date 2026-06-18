@@ -80,8 +80,8 @@ export async function createConnectionQuickPickOptions<
   const serverOptions: ConnectionPickItem<'server', ServerState>[] =
     servers.map(data => ({
       type: 'server',
-      label: data.url.toString(),
-      description: data.label ?? (data.isManaged ? 'pip' : undefined),
+      label: data.label ?? data.url.toString(),
+      description: data.isManaged ? 'pip' : undefined,
       iconPath: new vscode.ThemeIcon(ICON_ID.server),
       data,
     }));
@@ -94,7 +94,17 @@ export async function createConnectionQuickPickOptions<
           dhService.serverUrl.toString();
 
         const parentServer = serverManager.getServerForConnection(dhService);
-        const host = parentServer?.url.host ?? dhService.serverUrl.host;
+        assertDefined(parentServer, 'parentServer');
+
+        const descriptionTokens = [
+          parentServer.type === 'DHC'
+            ? (parentServer.label ?? parentServer.url.host)
+            : `${parentServer.label ?? parentServer.url.hostname}:${dhService.serverUrl.port}`,
+        ];
+
+        if (isActiveConnection) {
+          descriptionTokens.push('(current)');
+        }
 
         return {
           type: 'connection' as const,
@@ -102,7 +112,7 @@ export async function createConnectionQuickPickOptions<
           iconPath: new vscode.ThemeIcon(
             getConsoleTypeIconId(editorLanguageId as ConsoleType)
           ),
-          description: isActiveConnection ? `${host} (current)` : host,
+          description: descriptionTokens.join(' '),
           data: dhService,
         };
       })

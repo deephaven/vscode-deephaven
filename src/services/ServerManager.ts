@@ -289,7 +289,7 @@ export class ServerManager implements IServerManager {
     try {
       if (serverState.type === 'DHC') {
         // DHC attach to Core worker
-        firstConnection = await this._attachToWorker(serverUrl, true);
+        firstConnection = await this._attachToWorker('Core', serverUrl, true);
 
         this._resolvePendingServerConnection(serverUrl);
       } else {
@@ -324,11 +324,13 @@ export class ServerManager implements IServerManager {
    * `_workerURLToServerURLMap` for auth lookup and `_attachedWorkerSerials`
    * for idempotency/teardown. Used by both the create path and the attach path.
    * Does NOT touch placeholder connections — that is the create path's concern.
+   * @param label The connection label to show in the UI for this worker.
    * @param serverUrl The DHE server this worker belongs to.
    * @param workerInfo Worker info built from the query.
    * @returns The new connection state, or null on failure.
    */
   private _attachToWorker = async (
+    label: string,
     serverUrl: URL,
     isOwned: boolean,
     workerInfo?: WorkerInfo
@@ -352,7 +354,7 @@ export class ServerManager implements IServerManager {
     }
 
     const connection = this._dhcServiceFactory.create(
-      workerInfo?.name ?? serverUrl.host,
+      label,
       workerUrl,
       isOwned,
       workerInfo?.tagId
@@ -479,7 +481,12 @@ export class ServerManager implements IServerManager {
     const connections = (
       await Promise.all(
         workerInfos.map(([isOwned, workerInfo]) =>
-          this._attachToWorker(dheService.serverUrl, isOwned, workerInfo)
+          this._attachToWorker(
+            workerInfo.name,
+            dheService.serverUrl,
+            isOwned,
+            workerInfo
+          )
         )
       )
     ).filter(c => c != null);
@@ -566,7 +573,12 @@ export class ServerManager implements IServerManager {
       return null;
     }
 
-    return this._attachToWorker(dheServerUrl, true, workerInfo);
+    return this._attachToWorker(
+      workerInfo.name,
+      dheServerUrl,
+      true,
+      workerInfo
+    );
   };
 
   /**
@@ -582,7 +594,12 @@ export class ServerManager implements IServerManager {
       return;
     }
     const workerInfo = dheService.registerWorkerInfo(queryInfo);
-    await this._attachToWorker(dheServerUrl, false, workerInfo);
+    await this._attachToWorker(
+      workerInfo.name,
+      dheServerUrl,
+      false,
+      workerInfo
+    );
   };
 
   /**
