@@ -152,7 +152,7 @@ The MCP server provides tools for:
   - `getLogs` - Retrieve server or debug logs.
   - `showOutputPanel` - Display output panel in VS Code.
 
-For detailed documentation on each tool including parameters, return types, and examples, see [MCP Tool Reference](mcp-tools.md).
+For detailed documentation on each tool including parameters, return types, and examples, see the [MCP Tool Reference](mcp-tools.md). For technical details about the MCP server's session-based architecture, see the [MCP Session Architecture](mcp-session-architecture.md) reference.
 
 ## Agent Skills
 
@@ -189,6 +189,46 @@ In addition to MCP tools, the extension provides agent skills that can be regist
      - [deephaven-vscode-using/SKILL.md](https://github.com/deephaven/vscode-deephaven/tree/main/skills/deephaven-vscode-using/SKILL.md) - For interacting with Deephaven through the VS Code extension's MCP tools
      - [deephaven-docs-searching/SKILL.md](https://github.com/deephaven/vscode-deephaven/tree/main/skills/deephaven-docs-searching/SKILL.md) - For querying Deephaven documentation
    - Install the skill(s) according to your AI assistant's documentation.
+
+## Troubleshooting
+
+### Session Not Found (404)
+
+**Symptom**: The MCP server returns a `404` error with a message about the session not being found.
+
+**Causes**:
+
+- The session expired or was cleaned up (e.g., after extension restart or VS Code reload).
+- The client is sending a stale session ID from a previous connection.
+
+**Resolution**: Restart the AI assistant session or MCP client. Most clients will automatically re-initialize and obtain a new session ID.
+
+### Session Initialization Failures (400)
+
+**Symptom**: Requests fail with a `400 Bad Request` error.
+
+**Causes**:
+
+- A request was sent without a session ID but was not an `initialize` request.
+- The client is not following the MCP session protocol.
+
+**Resolution**: Ensure the client sends an `initialize` request first to establish a session before sending other requests.
+
+### Stale Sessions After Extension Restart
+
+**Symptom**: MCP tools stop responding or return errors after the Deephaven extension restarts.
+
+**Cause**: When the extension restarts, all active sessions are terminated. Clients holding old session IDs will receive errors.
+
+**Resolution**: Restart the AI assistant session or reload the MCP configuration so the client re-initializes with a fresh session.
+
+### Port Changes After Workspace Switch
+
+**Symptom**: MCP connection fails after switching VS Code workspaces.
+
+**Cause**: Each workspace uses an auto-allocated port. Switching workspaces changes the port.
+
+**Resolution**: Check the `MCP:<port>` status bar item for the current port and update your MCP configuration accordingly. You may also need to restart the AI assistant session.
 
 ## Tool Response Format
 
