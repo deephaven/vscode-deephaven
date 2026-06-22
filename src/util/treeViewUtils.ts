@@ -191,7 +191,7 @@ export function getConnectionServerTreeItem(
   server: ServerState
 ): vscode.TreeItem {
   return {
-    label: server.label ?? server.url.host,
+    label: getConnectionServerLabel(server),
     // The "computer" icon (`vm-connect`) previously used for worker connection
     // nodes, before the language (Python/Groovy) icons took their place.
     iconPath: new vscode.ThemeIcon(ICON_ID.connected),
@@ -377,16 +377,13 @@ export function getServerTreeItem(
 
   const description = getServerDescription(connectionCount, isManaged);
 
-  const urlStr = server.url.toString();
-
   const canConnect =
     contextValue === SERVER_TREE_ITEM_CONTEXT.isManagedServerDisconnected ||
     contextValue === SERVER_TREE_ITEM_CONTEXT.isServerRunningDisconnected ||
     contextValue === SERVER_TREE_ITEM_CONTEXT.isDHEServerRunningConnected ||
     contextValue === SERVER_TREE_ITEM_CONTEXT.isDHEServerRunningDisconnected;
 
-  const url = new URL(urlStr);
-  const label = server.label ?? url.host;
+  const label = getConnectionServerLabel(server);
 
   return {
     label,

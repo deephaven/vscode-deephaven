@@ -220,7 +220,7 @@ export async function loginClientWrapper<TCredentials>(
  * @param consoleType The type of console to create.
  * @returns A promise that resolves to the serial of the created query. Note
  * that this will resolve before the query is actually ready to use. Use
- * `getWorkerInfoFromQuery` to get the worker info when the query is ready.
+ * `getWorkerInfoFromQuerySerial` to get the worker info when the query is ready.
  */
 export async function createInteractiveConsoleQuery(
   tagId: UniqueID,

@@ -265,24 +265,32 @@ export class DheService implements IDheService {
       this._onWorkerRemoved.fire(queryInfo.serial as QuerySerial);
     };
 
-    const removeAdded = dheClient.client.addEventListener(
-      dhe.Client.EVENT_CONFIG_ADDED,
-      onConfigAddedOrUpdated
-    );
-    const removeUpdated = dheClient.client.addEventListener(
-      dhe.Client.EVENT_CONFIG_UPDATED,
-      onConfigAddedOrUpdated
-    );
-    const removeRemoved = dheClient.client.addEventListener(
-      dhe.Client.EVENT_CONFIG_REMOVED,
-      onConfigRemoved
-    );
-
+    const removeConfigListeners: (() => void)[] = [];
     this._removeConfigListeners = (): void => {
-      removeAdded();
-      removeUpdated();
-      removeRemoved();
+      for (const remove of removeConfigListeners) {
+        remove();
+      }
+      removeConfigListeners.length = 0;
     };
+
+    removeConfigListeners.push(
+      dheClient.client.addEventListener(
+        dhe.Client.EVENT_CONFIG_ADDED,
+        onConfigAddedOrUpdated
+      )
+    );
+    removeConfigListeners.push(
+      dheClient.client.addEventListener(
+        dhe.Client.EVENT_CONFIG_UPDATED,
+        onConfigAddedOrUpdated
+      )
+    );
+    removeConfigListeners.push(
+      dheClient.client.addEventListener(
+        dhe.Client.EVENT_CONFIG_REMOVED,
+        onConfigRemoved
+      )
+    );
   };
 
   /**

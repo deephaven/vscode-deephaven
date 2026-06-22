@@ -471,10 +471,18 @@ export class ServerManager implements IServerManager {
     }
     // register attachable workers
     else {
-      workerInfos = attachableWorkers.map(queryInfo => [
-        false,
-        dheService.registerWorkerInfo(queryInfo),
-      ]);
+      workerInfos = [];
+      for (const queryInfo of attachableWorkers) {
+        try {
+          workerInfos.push([false, dheService.registerWorkerInfo(queryInfo)]);
+        } catch (err) {
+          logger.error(
+            'Failed to register attachable worker; skipping:',
+            queryInfo.serial,
+            err
+          );
+        }
+      }
     }
 
     // Connect to workers in parallel
@@ -593,13 +601,17 @@ export class ServerManager implements IServerManager {
     if (this._attachedWorkerSerials.has(queryInfo.serial as QuerySerial)) {
       return;
     }
-    const workerInfo = dheService.registerWorkerInfo(queryInfo);
-    await this._attachToWorker(
-      workerInfo.name,
-      dheServerUrl,
-      false,
-      workerInfo
-    );
+    try {
+      const workerInfo = dheService.registerWorkerInfo(queryInfo);
+      await this._attachToWorker(
+        workerInfo.name,
+        dheServerUrl,
+        false,
+        workerInfo
+      );
+    } catch (err) {
+      logger.error('Failed to attach worker:', queryInfo.serial, err);
+    }
   };
 
   /**
