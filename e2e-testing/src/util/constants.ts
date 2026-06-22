@@ -15,6 +15,6 @@ export const RETRY_SWITCH_IFRAME_ERRORS: ReadonlySet<string> = new Set([
 
 export const VIEW_NAME = {
   servers: 'Servers',
-  connections: 'Connections',
+  workers: 'Workers',
   panels: 'Panels',
 } as const;
