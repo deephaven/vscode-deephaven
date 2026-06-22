@@ -42,11 +42,13 @@ describe('serverUtils', () => {
           isRunningCode,
           serverUrl,
           tagId,
+          label: 'mock connection',
         });
 
         expect(resultWithoutTag, 'without tag').toEqual({
           isConnected,
           isRunningCode,
+          label: 'mock connection',
           serverUrl: serverUrl.toString(),
           tagId,
         });
@@ -389,6 +391,7 @@ describe('serverUtils', () => {
     const MOCK_CONNECTION: ConnectionState = {
       isConnected: true,
       isRunningCode: true,
+      label: 'mock connection',
       serverUrl,
       tagId,
     } as ConnectionState;
