@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type { QueryInfo } from '@deephaven-enterprise/jsapi-types';
+import type { CorePlusManager } from '@deephaven-enterprise/client-utils';
 import type {
   ConsoleType,
   CoreConnectionConfig,
@@ -92,6 +93,7 @@ export interface IDheService extends ConnectionState, IDisposable {
     initializeIfNull: true,
     operateAsAnotherUser: boolean
   ): Promise<DheAuthenticatedClientWrapper | null>;
+  getCorePlusManager(): Promise<CorePlusManager | null>;
   getQuerySerialFromTag(tagId: UniqueID): Promise<QuerySerial | null>;
   getServerFeatures(): DheServerFeatures | undefined;
   getWorkerInfo: (workerUrl: WorkerURL) => WorkerInfo | undefined;

@@ -3,6 +3,13 @@ import type {
   EnterpriseDhType as DheType,
   QueryInfo,
 } from '@deephaven-enterprise/jsapi-types';
+import type {
+  AuthenticatedEnterpriseClient,
+  CorePlusManager,
+} from '@deephaven-enterprise/client-utils';
+import { EnterpriseCorePlusManager } from '@deephaven-enterprise/jsapi-manager';
+import { createJsApiFactories } from '@deephaven-enterprise/jsapi-nodejs';
+import { NodeHttp2gRPCTransport } from '@deephaven/jsapi-nodejs';
 import {
   type ConsoleType,
   type DheAuthenticatedClientWrapper,
@@ -18,7 +25,13 @@ import {
   type WorkerInfo,
   type WorkerURL,
 } from '../types';
-import { Logger, uniqueId, URLMap } from '../util';
+import {
+  getTempDir,
+  Logger,
+  uniqueId,
+  URLMap,
+  urlToDirectoryName,
+} from '../util';
 import {
   getWorkerInfoFromQueryInfo,
   createInteractiveConsoleQuery,
@@ -111,6 +124,7 @@ export class DheService implements IDheService {
 
   private _clientPromise: Promise<DheAuthenticatedClientWrapper | null> | null =
     null;
+  private _corePlusManagerPromise: Promise<CorePlusManager | null> | null = null;
   private _isConnected: boolean = false;
   private _operateAs: string | null = null;
   private _removeConfigListeners: (() => void) | null = null;
@@ -213,7 +227,31 @@ export class DheService implements IDheService {
       // Reset the client promise so that the next call to `getClient` can
       // reinitialize it if necessary.
       this._clientPromise = null;
+
+      // The CorePlusManager is bound to the specific (now stale) client
+      // instance, so dispose + null it. The next `getCorePlusManager` call will
+      // rebuild one from the fresh client.
+      this._disposeCorePlusManager();
     }
+  };
+
+  /**
+   * Dispose the current CorePlusManager (if any) and reset the cached promise so
+   * a subsequent `getCorePlusManager` rebuilds one from the current client.
+   */
+  private _disposeCorePlusManager = (): void => {
+    const managerPromise = this._corePlusManagerPromise;
+    this._corePlusManagerPromise = null;
+
+    if (managerPromise == null) {
+      return;
+    }
+
+    void managerPromise
+      .then(manager => manager?.dispose())
+      .catch(err => {
+        logger.error('Failed to dispose CorePlusManager', err);
+      });
   };
 
   /**
@@ -347,6 +385,68 @@ export class DheService implements IDheService {
 
     return dheClient;
   }
+
+  /**
+   * Lazily create the `EnterpriseCorePlusManager` for this DHE server, built
+   * from the client this service already authenticates (Decision 1 — no second
+   * login). Returns null when no client is available. The manager is cached on
+   * the instance and disposed with the service / on client-cache invalidation.
+   * @returns The CorePlusManager or null if the client is not available.
+   */
+  getCorePlusManager = async (): Promise<CorePlusManager | null> => {
+    if (this._corePlusManagerPromise == null) {
+      this._corePlusManagerPromise = this._initCorePlusManager();
+    }
+
+    const manager = await this._corePlusManagerPromise;
+
+    // If construction failed, clear the cached rejection/null so a later call
+    // can retry once the client is available.
+    if (manager == null) {
+      this._corePlusManagerPromise = null;
+    }
+
+    return manager;
+  };
+
+  /**
+   * Build the `EnterpriseCorePlusManager` from the already-authenticated DHE
+   * client (Decision 1). Replicates `initCorePlusManager`'s assembly minus the
+   * login so the manager reuses the extension's existing session. Reuses the
+   * extension's jsapi storage dir (Gotcha 6) and `NodeHttp2gRPCTransport`.
+   * @returns The CorePlusManager or null if the client is not available.
+   */
+  private _initCorePlusManager = async (): Promise<CorePlusManager | null> => {
+    const dheClient = await this.getClient(false);
+    if (dheClient == null) {
+      return null;
+    }
+
+    const dhe = await this._dheJsApiCache.get(this.serverUrl);
+    const { workerKinds } = await dheClient.client.getServerConfigValues();
+
+    // Only the `loadCorePlusApi` (worker api loader) and `createCoreClient`
+    // (construct-only, un-logged-in — Gotcha 2) hooks are needed. The manager
+    // owns worker login via an auth token off the DHE client.
+    const { loadCorePlusApi, createCoreClient } = createJsApiFactories({
+      storageDir: getTempDir({
+        subDirectory: urlToDirectoryName(this.serverUrl),
+      }),
+      transportFactory: NodeHttp2gRPCTransport.factory,
+    });
+
+    return new EnterpriseCorePlusManager(
+      dhe,
+      // `DheAuthenticatedClientWrapper.client` is branded
+      // `AuthenticatedClient` (auth-nodejs); the manager expects the
+      // structurally-identical `AuthenticatedEnterpriseClient` brand
+      // (client-utils). Same underlying `EnterpriseClient`.
+      dheClient.client as unknown as AuthenticatedEnterpriseClient,
+      workerKinds,
+      loadCorePlusApi,
+      createCoreClient
+    );
+  };
 
   private _isQueryOwned = (
     querySerialOrInfo: QuerySerial | QueryInfo
@@ -559,6 +659,8 @@ export class DheService implements IDheService {
 
   dispose = async (): Promise<void> => {
     const querySerials = [...this._querySerialSet];
+    const managerPromise = this._corePlusManagerPromise;
+    this._corePlusManagerPromise = null;
 
     this._querySerialSet.clear();
     this._removeConfigListeners?.();
@@ -569,6 +671,11 @@ export class DheService implements IDheService {
     await Promise.all([
       this._workerInfoMap.dispose(),
       this._disposeQueries(querySerials),
+      managerPromise
+        ?.then(manager => manager?.dispose())
+        .catch(err => {
+          logger.error('Failed to dispose CorePlusManager', err);
+        }),
     ]);
   };
 }

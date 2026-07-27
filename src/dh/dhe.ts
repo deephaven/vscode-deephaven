@@ -50,9 +50,11 @@ export type IDraftQuery = EditableQueryInfo & {
 };
 
 declare global {
-  // This gets added by the DHE jsapi.
-  // eslint-disable-next-line no-unused-vars
-  const iris: DheType;
+  // This gets added by the DHE jsapi. Declared as `var` (not `const`) so it
+  // merges with the ambient `var iris` global declared by
+  // `@deephaven-enterprise/jsapi-nodejs` rather than conflicting with it.
+  // eslint-disable-next-line no-unused-vars, no-var
+  var iris: DheType;
 }
 
 /**

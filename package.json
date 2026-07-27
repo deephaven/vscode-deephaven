@@ -1155,6 +1155,9 @@
   },
   "dependencies": {
     "@deephaven-enterprise/auth-nodejs": "^2026.1.48",
+    "@deephaven-enterprise/client-utils": "^2026.1.48",
+    "@deephaven-enterprise/jsapi-manager": "^2026.1.48",
+    "@deephaven-enterprise/jsapi-nodejs": "^2026.1.48",
     "@deephaven-enterprise/query-utils": "^2026.1.48",
     "@deephaven/jsapi-nodejs": "^1.15.0",
     "@deephaven/jsapi-utils": "^1.16.0",
