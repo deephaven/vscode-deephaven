@@ -120,6 +120,9 @@ export const REFRESH_SERVER_CONNECTION_TREE_CMD = cmd(
   'refreshServerConnectionTree'
 );
 export const REFRESH_PANELS_TREE_CMD = cmd('refreshPanelsTree');
+export const REFRESH_PERSISTENT_QUERY_TREE_CMD = cmd(
+  'refreshPersistentQueryTree'
+);
 export const REFRESH_VARIABLE_PANELS_CMD = cmd('refreshVariablePanels');
 export const REMOVE_GROOVY_REMOTE_FILE_SOURCE_CMD = cmd(
   'removeGroovyRemoteFileSource'

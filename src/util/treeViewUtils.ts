@@ -1,9 +1,11 @@
 import * as vscode from 'vscode';
+import type { QueryInfo } from '@deephaven-enterprise/jsapi-types';
 import type {
   ConnectionState,
   ConsoleType,
   IServerManager,
   NonEmptyArray,
+  PersistentQueryNode,
   ServerGroupState,
   ServerState,
   VariableDefintion,
@@ -14,6 +16,7 @@ import {
   DH_PROTECTED_VARIABLE_NAMES,
   ICON_ID,
   OPEN_VARIABLE_PANELS_CMD,
+  PERSISTENT_QUERY_TREE_ITEM_CONTEXT,
   SERVER_TREE_ITEM_CONTEXT,
   type ServerTreeItemContextValue,
 } from '../common';
@@ -121,6 +124,86 @@ export function getPanelVariableTreeItem([url, variable]: [
       arguments: [url, variablesToOpen],
     },
   };
+}
+
+/**
+ * Get the icon for a persistent query based on its (designated worker) status.
+ * `Running` PQs — the only ones this tree lists — show the connected icon; any
+ * transitional/other status shows a spinner. Mirrors the connection tree's
+ * running/connecting icon convention.
+ * @param status The `queryInfo.designated?.status` value.
+ */
+export function getPersistentQueryIconId(status: string | null | undefined): string {
+  return status === 'Running' ? ICON_ID.serverConnected : ICON_ID.connecting;
+}
+
+/**
+ * Get `TreeItem` for a persistent-query node in the Persistent Queries tree.
+ * The node is collapsible (its children are the PQ's exported objects) and
+ * carries a status icon + the PQ name.
+ * @param node The persistent-query node.
+ */
+export function getPersistentQueryTreeItem(
+  node: PersistentQueryNode
+): vscode.TreeItem {
+  const { queryInfo } = node;
+  const status = queryInfo.designated?.status;
+
+  return {
+    label: queryInfo.name,
+    description: queryInfo.owner ?? undefined,
+    tooltip: `${queryInfo.name}${status == null ? '' : ` (${status})`}`,
+    iconPath: new vscode.ThemeIcon(getPersistentQueryIconId(status)),
+    collapsibleState: vscode.TreeItemCollapsibleState.Collapsed,
+    contextValue: PERSISTENT_QUERY_TREE_ITEM_CONTEXT.isPersistentQuery,
+  };
+}
+
+/**
+ * Get `TreeItem` for a DHE server node in the Persistent Queries tree. This is a
+ * grouping container whose children are the server's (non-InteractiveConsole)
+ * persistent queries.
+ * @param server DHE server state.
+ */
+export function getPersistentQueryServerTreeItem(
+  server: ServerState
+): vscode.TreeItem {
+  return {
+    label: getConnectionServerLabel(server),
+    iconPath: new vscode.ThemeIcon(ICON_ID.connected),
+    collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
+    contextValue: PERSISTENT_QUERY_TREE_ITEM_CONTEXT.isPersistentQueryServer,
+  };
+}
+
+/**
+ * Type guard distinguishing a persistent-query node from a server node in the
+ * Persistent Queries tree. A `PersistentQueryNode` carries a `queryInfo`.
+ * @param node The node to check.
+ */
+export function isPersistentQueryNode(
+  node: ServerState | PersistentQueryNode
+): node is PersistentQueryNode {
+  return (node as PersistentQueryNode).queryInfo != null;
+}
+
+/**
+ * Map a `QueryInfo`'s exported objects (`designated.objects`) to
+ * `VariableDefintion` leaves paired with the given worker URL — the same
+ * `[URL, VariableDefintion]` shape the Panels tree uses for object leaves.
+ * Filters out unnamed / untyped entries defensively.
+ * @param workerUrl The worker URL objects are hosted on (for the open command).
+ * @param queryInfo The running PQ whose objects to enumerate.
+ */
+export function getPersistentQueryObjectLeaves(
+  workerUrl: URL,
+  queryInfo: QueryInfo
+): [URL, VariableDefintion][] {
+  const objects = queryInfo.designated?.objects ?? [];
+
+  return objects
+    .filter(obj => obj.title != null && obj.type != null)
+    .map(obj => [workerUrl, obj as VariableDefintion]);
 }
 
 /**

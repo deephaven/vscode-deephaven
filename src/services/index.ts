@@ -8,6 +8,7 @@ export * from './FilteredWorkspace';
 export * from './PanelService';
 export * from './ParseDocumentCache';
 export * from './PollingService';
+export * from './QueryConfigTableService';
 export * from './RemoteFileSourceService';
 export * from './SecretService';
 export * from './ServerManager';

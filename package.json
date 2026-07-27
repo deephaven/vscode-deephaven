@@ -310,6 +310,11 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "vscode-deephaven.refreshPersistentQueryTree",
+        "title": "Refresh Persistent Queries",
+        "icon": "$(refresh)"
+      },
+      {
         "command": "vscode-deephaven.refreshRemoteImportSourceTree",
         "title": "Refresh Remote Import Source Tree",
         "icon": "$(refresh)"
@@ -1002,6 +1007,11 @@
           "when": "view == vscode-deephaven.view.serverConnectionPanelTree"
         },
         {
+          "command": "vscode-deephaven.refreshPersistentQueryTree",
+          "group": "navigation",
+          "when": "view == vscode-deephaven.view.persistentQueryTree"
+        },
+        {
           "command": "vscode-deephaven.searchConnections",
           "group": "navigation",
           "when": "view == vscode-deephaven.view.serverConnectionTree"
@@ -1132,6 +1142,12 @@
         {
           "id": "vscode-deephaven.view.serverConnectionPanelTree",
           "name": "Panels",
+          "type": "tree",
+          "icon": "images/dh-logo-28.svg"
+        },
+        {
+          "id": "vscode-deephaven.view.persistentQueryTree",
+          "name": "Persistent Queries",
           "type": "tree",
           "icon": "images/dh-logo-28.svg"
         },

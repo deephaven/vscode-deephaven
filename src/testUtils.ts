@@ -41,6 +41,37 @@ export function getLastEventListener<
 }
 
 /**
+ * Build a mock `QueryInfoTableSubscription` whose `table.getViewportData()`
+ * returns rows backed by the given plain objects, keyed by column name. Each
+ * `row.get(column)` reads `row[column.name]`. Used to test consumers of the
+ * ticking `QueryInfo` table without a live server.
+ * @param options.rows Row records keyed by column name.
+ * @returns A mocked subscription (only `table` + `onDidUpdate` are populated).
+ */
+export function getQueryInfoTableMock({
+  rows,
+}: {
+  rows: Record<string, unknown>[];
+}): unknown {
+  const findColumn = (name: string): { name: string } => ({ name });
+
+  const viewportRows = rows.map(record => ({
+    get: (column: { name: string }): unknown => record[column.name],
+  }));
+
+  const table = {
+    findColumn,
+    getViewportData: vi.fn(async () => ({ rows: viewportRows })),
+  };
+
+  return {
+    table,
+    onDidUpdate: vi.fn(() => () => {}),
+    dispose: vi.fn(async () => {}),
+  };
+}
+
+/**
  * Return last registered event handler for 'message' event. Assumes that
  * `window.addEventListener` has been mocked or spied on.
  */

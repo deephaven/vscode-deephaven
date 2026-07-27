@@ -22,6 +22,7 @@ import {
   GENERATE_REQUIREMENTS_TXT_CMD,
   OPEN_IN_BROWSER_CMD,
   REFRESH_PANELS_TREE_CMD,
+  REFRESH_PERSISTENT_QUERY_TREE_CMD,
   REFRESH_REMOTE_IMPORT_SOURCE_TREE_CMD,
   REFRESH_SERVER_CONNECTION_TREE_CMD,
   REFRESH_SERVER_TREE_CMD,
@@ -70,6 +71,7 @@ import {
   ServerTreeProvider,
   ServerConnectionTreeProvider,
   ServerConnectionPanelTreeProvider,
+  PersistentQueryTreeProvider,
   runSelectedLinesHoverProvider,
   RunMarkdownCodeBlockCodeLensProvider,
   SamlAuthProvider,
@@ -107,6 +109,8 @@ import type {
   IToastService,
   ServerConnectionPanelNode,
   ServerConnectionPanelTreeView,
+  PersistentQueryTreeNode,
+  PersistentQueryTreeView,
   ServerConnectionTreeView,
   ServerState,
   ServerTreeView,
@@ -213,6 +217,8 @@ export class ExtensionController implements IDisposable {
     null;
   private _serverConnectionPanelTreeProvider: ServerConnectionPanelTreeProvider | null =
     null;
+  private _persistentQueryTreeProvider: PersistentQueryTreeProvider | null =
+    null;
   private _remoteImportSourceTreeProvider: RemoteImportSourceTreeProvider | null =
     null;
 
@@ -221,6 +227,7 @@ export class ExtensionController implements IDisposable {
   private _serverConnectionTreeView: ServerConnectionTreeView | null = null;
   private _serverConnectionPanelTreeView: ServerConnectionPanelTreeView | null =
     null;
+  private _persistentQueryTreeView: PersistentQueryTreeView | null = null;
   private _remoteImportSourceTreeView: RemoteImportSourceTreeView | null = null;
 
   // Web views
@@ -825,6 +832,12 @@ export class ExtensionController implements IDisposable {
     /** Refresh variable panels tree */
     this.registerCommand(REFRESH_PANELS_TREE_CMD, this.onRefreshServerStatus);
 
+    /** Refresh persistent query tree */
+    this.registerCommand(
+      REFRESH_PERSISTENT_QUERY_TREE_CMD,
+      this.onRefreshPersistentQueryTree
+    );
+
     /** Remote import source tree */
     this.registerCommand(
       REFRESH_REMOTE_IMPORT_SOURCE_TREE_CMD,
@@ -875,6 +888,8 @@ export class ExtensionController implements IDisposable {
    */
   initializeWebViews = (): void => {
     assertDefined(this._dheClientCache, 'dheClientCache');
+    assertDefined(this._dheJsApiCache, 'dheJsApiCache');
+    assertDefined(this._dheServiceCache, 'dheServiceCache');
     assertDefined(this._groovyWorkspace, 'groovyWorkspace');
     assertDefined(this._pythonWorkspace, 'pythonWorkspace');
     assertDefined(this._panelService, 'panelService');
@@ -935,6 +950,21 @@ export class ExtensionController implements IDisposable {
         }
       );
 
+    // Persistent Queries tree
+    this._persistentQueryTreeProvider = new PersistentQueryTreeProvider(
+      this._serverManager,
+      this._dheServiceCache,
+      this._dheJsApiCache
+    );
+    this._persistentQueryTreeView =
+      vscode.window.createTreeView<PersistentQueryTreeNode>(
+        VIEW_ID.persistentQueryTree,
+        {
+          showCollapseAll: true,
+          treeDataProvider: this._persistentQueryTreeProvider,
+        }
+      );
+
     // Remote import source tree
     this._remoteImportSourceTreeProvider = new RemoteImportSourceTreeProvider(
       this._groovyWorkspace,
@@ -953,10 +983,12 @@ export class ExtensionController implements IDisposable {
       this._serverTreeView,
       this._serverConnectionTreeView,
       this._serverConnectionPanelTreeView,
+      this._persistentQueryTreeView,
       this._remoteImportSourceTreeView,
       this._serverTreeProvider,
       this._serverConnectionTreeProvider,
       this._serverConnectionPanelTreeProvider,
+      this._persistentQueryTreeProvider,
       this._remoteImportSourceTreeProvider
     );
   };
@@ -1211,6 +1243,10 @@ export class ExtensionController implements IDisposable {
   onRefreshServerStatus = async (): Promise<void> => {
     await this._pipServerController?.syncManagedServers({ forceCheck: true });
     await this._serverManager?.updateStatus();
+  };
+
+  onRefreshPersistentQueryTree = async (): Promise<void> => {
+    this._persistentQueryTreeProvider?.refresh();
   };
 
   onRevealInExplorer = async (

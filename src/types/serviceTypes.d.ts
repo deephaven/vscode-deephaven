@@ -216,6 +216,18 @@ export interface IServerManager extends IDisposable {
     serverOrWorkerUrl: URL | WorkerURL
   ) => Promise<DhcType.LoginCredentials | null>;
   getWorkerInfo: (maybeWorkerUrl: URL) => Promise<WorkerInfo | undefined>;
+  /**
+   * Register a lightweight, non-console "browse" connection for a persistent
+   * query's worker so the DH embed panel can open its objects read-only. Never
+   * creates a console session, never increments `connectionCount`, and never
+   * deletes the server-side PQ.
+   */
+  registerBrowseConnection: (
+    dheServerUrl: URL,
+    queryInfo: QueryInfo
+  ) => Promise<WorkerInfo | null>;
+  /** Tear down a browse connection (never deletes the server-side PQ). */
+  unregisterBrowseConnection: (workerUrl: URL) => void;
   setEditorConnection: (
     uri: vscode.Uri,
     languageId: string,

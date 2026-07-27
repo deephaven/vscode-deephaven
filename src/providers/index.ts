@@ -1,5 +1,6 @@
 export * from './CreateQueryViewProvider';
 export * from './McpServerDefinitionProvider';
+export * from './PersistentQueryTreeProvider';
 export * from './RemoteImportSourceTreeProvider';
 export * from './RunCommandCodeLensProvider';
 export * from './RunMarkdownCodeBlockCodeLensProvider';

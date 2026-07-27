@@ -4,6 +4,11 @@ import {
   getConnectionServerTreeItem,
   getPanelConnectionTreeItem,
   getPanelVariableTreeItem,
+  getPersistentQueryIconId,
+  getPersistentQueryObjectLeaves,
+  getPersistentQueryServerTreeItem,
+  getPersistentQueryTreeItem,
+  isPersistentQueryNode,
   getServerContextValue,
   getServerDescription,
   getServerGroupContextValue,
@@ -245,5 +250,111 @@ describe('groupServers', () => {
     const actual = groupServers(servers);
 
     expect(actual).toMatchSnapshot();
+  });
+});
+
+describe('getPersistentQueryIconId', () => {
+  it('returns the connected icon for a Running PQ', () => {
+    expect(getPersistentQueryIconId('Running')).toBe('circle-large-filled');
+  });
+
+  it.each([['Stopped'], ['Initializing'], [null], [undefined]])(
+    'returns the connecting/spinner icon for non-Running status: %s',
+    status => {
+      expect(getPersistentQueryIconId(status as string | null)).toBe(
+        'sync~spin'
+      );
+    }
+  );
+});
+
+describe('isPersistentQueryNode', () => {
+  it('is true for a node carrying queryInfo', () => {
+    const node = {
+      dheServerUrl: new URL('https://dhe.example.com/'),
+      queryInfo: { name: 'PQ' },
+    } as unknown as Parameters<typeof isPersistentQueryNode>[0];
+    expect(isPersistentQueryNode(node)).toBe(true);
+  });
+
+  it('is false for a server state node', () => {
+    const server = { url: new URL('https://dhe.example.com/') } as ServerState;
+    expect(isPersistentQueryNode(server)).toBe(false);
+  });
+});
+
+describe('getPersistentQueryTreeItem', () => {
+  it('renders name + owner + collapsed state + context value', () => {
+    const node = {
+      dheServerUrl: new URL('https://dhe.example.com/'),
+      queryInfo: {
+        name: 'My PQ',
+        owner: 'alice',
+        designated: { status: 'Running' },
+      },
+    } as unknown as Parameters<typeof getPersistentQueryTreeItem>[0];
+
+    const item = getPersistentQueryTreeItem(node);
+    expect(item.label).toBe('My PQ');
+    expect(item.description).toBe('alice');
+    expect(item.contextValue).toBe('isPersistentQuery');
+    // Collapsed = 1 in the vscode mock enum.
+    expect(item.collapsibleState).toBe(1);
+  });
+});
+
+describe('getPersistentQueryServerTreeItem', () => {
+  it('renders an expanded server grouping node', () => {
+    const server = {
+      type: 'DHE',
+      url: new URL('https://dhe.example.com/'),
+      label: 'DHE',
+    } as ServerState;
+    const item = getPersistentQueryServerTreeItem(server);
+    expect(item.label).toBe('DHE');
+    expect(item.contextValue).toBe('isPersistentQueryServer');
+    // Expanded = 2 in the vscode mock enum.
+    expect(item.collapsibleState).toBe(2);
+  });
+});
+
+describe('getPersistentQueryObjectLeaves', () => {
+  const workerUrl = new URL('https://dhe.example.com/worker/1/');
+
+  it('maps designated.objects to [url, variable] leaves', () => {
+    const queryInfo = {
+      designated: {
+        objects: [
+          { title: 't', name: 't', type: 'Table', id: 'v1' },
+          { title: 'f', name: 'f', type: 'Figure', id: 'v2' },
+        ],
+      },
+    } as unknown as Parameters<typeof getPersistentQueryObjectLeaves>[1];
+
+    const leaves = getPersistentQueryObjectLeaves(workerUrl, queryInfo);
+    expect(leaves).toHaveLength(2);
+    expect(leaves.map(([, v]) => v.title)).toEqual(['t', 'f']);
+    leaves.forEach(([url]) => expect(url).toBe(workerUrl));
+  });
+
+  it('returns an empty array when there are no objects', () => {
+    const queryInfo = {
+      designated: { objects: [] },
+    } as unknown as Parameters<typeof getPersistentQueryObjectLeaves>[1];
+    expect(getPersistentQueryObjectLeaves(workerUrl, queryInfo)).toEqual([]);
+  });
+
+  it('filters out untitled / untyped objects defensively', () => {
+    const queryInfo = {
+      designated: {
+        objects: [
+          { title: 't', name: 't', type: 'Table', id: 'v1' },
+          { title: null, name: 'x', type: 'Table', id: 'v2' },
+          { title: 'y', name: 'y', type: null, id: 'v3' },
+        ],
+      },
+    } as unknown as Parameters<typeof getPersistentQueryObjectLeaves>[1];
+    const leaves = getPersistentQueryObjectLeaves(workerUrl, queryInfo);
+    expect(leaves).toHaveLength(1);
   });
 });

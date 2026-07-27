@@ -627,6 +627,87 @@ export class ServerManager implements IServerManager {
   };
 
   /**
+   * Register a lightweight, NON-console "browse" connection for a persistent
+   * query's worker so the DH embed panel (`OPEN_VARIABLE_PANELS_CMD`) can open
+   * its objects read-only. This wires up exactly the three lookups the panel
+   * path needs — `getConnection`, `getWorkerInfo`, `getWorkerCredentials` — all
+   * keyed by the worker URL, WITHOUT creating a console session.
+   *
+   * Browse connections are a view layer over someone else's PQ. They are
+   * deliberately NOT worker connections: no `initSession`, no
+   * `connectionCount` increment, no `_attachedWorkerSerials` entry, and the
+   * server-side PQ is NEVER deleted on teardown (`unregisterBrowseConnection`).
+   * Idempotent — re-registering the same worker URL is a no-op that returns the
+   * existing worker info.
+   * @param dheServerUrl The DHE server the PQ belongs to (for auth resolution).
+   * @param queryInfo The running PQ whose worker to register.
+   * @returns The registered `WorkerInfo`, or `null` if the DHE service/worker
+   * info could not be resolved.
+   */
+  registerBrowseConnection = async (
+    dheServerUrl: URL,
+    queryInfo: QueryInfo
+  ): Promise<WorkerInfo | null> => {
+    if (!this._dheServiceCache.has(dheServerUrl)) {
+      return null;
+    }
+
+    const dheService = await this._dheServiceCache.get(dheServerUrl);
+
+    let workerInfo: WorkerInfo;
+    try {
+      workerInfo = dheService.registerWorkerInfo(queryInfo);
+    } catch (err) {
+      logger.error(
+        'Failed to register browse worker info:',
+        queryInfo.serial,
+        err
+      );
+      return null;
+    }
+
+    const workerUrl = new URL(workerInfo.workerUrl);
+
+    // Map the worker URL to its DHE server so the panel auth flow
+    // (`getWorkerCredentials` / `getWorkerInfo`) can resolve creds + info.
+    this._workerURLToServerURLMap.set(workerUrl, dheServerUrl);
+
+    // Register a lightweight non-console ConnectionState so
+    // `PanelController._onRefreshPanelsContent`'s `getConnection` assertion is
+    // satisfied. This is NOT a `DhcService` (so no PSK path, no session) and is
+    // never counted as a worker connection.
+    if (!this._connectionMap.has(workerUrl)) {
+      this._connectionMap.set(workerUrl, {
+        label: workerInfo.name,
+        isConnected: true,
+        isRunningCode: false,
+        serverUrl: workerUrl,
+      });
+      this._onDidUpdate.fire();
+    }
+
+    return workerInfo;
+  };
+
+  /**
+   * Tear down a browse connection previously registered with
+   * `registerBrowseConnection`. Removes the lightweight connection + auth
+   * mapping ONLY — it never deletes the server-side PQ and never touches
+   * `connectionCount` / `_attachedWorkerSerials` (browse connections never
+   * contributed to those). No-op if the worker URL is not a browse connection.
+   * @param workerUrl The worker URL to unregister.
+   */
+  unregisterBrowseConnection = (workerUrl: URL): void => {
+    const hadConnection = this._connectionMap.has(workerUrl);
+    this._connectionMap.delete(workerUrl);
+    this._workerURLToServerURLMap.delete(workerUrl);
+
+    if (hadConnection) {
+      this._onDidUpdate.fire();
+    }
+  };
+
+  /**
    * Add a placeholder connection to represent a pending DHE Core+ woker creation.
    * @param label The connection label to show in the UI for this pending worker.
    * @param serverUrl The DHE server URL the pending worker is associated with.

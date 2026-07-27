@@ -114,6 +114,7 @@ export const VIEW_ID = {
   serverTree: `${VIEW_ID_PREFIX}serverTree`,
   serverConnectionTree: `${VIEW_ID_PREFIX}serverConnectionTree`,
   serverConnectionPanelTree: `${VIEW_ID_PREFIX}serverConnectionPanelTree`,
+  persistentQueryTree: `${VIEW_ID_PREFIX}persistentQueryTree`,
   variablePanel: `${VIEW_ID_PREFIX}variablePanel`,
 } as const;
 
@@ -163,6 +164,13 @@ export const CONNECTION_TREE_ITEM_CONTEXT = {
     `isConnectionConnecting${isOwned ? 'Removable' : ''}`,
   isDHEServerConnectionParent: 'isDHEServerConnectionParent',
   isUri: 'isUri',
+} as const;
+
+export const PERSISTENT_QUERY_TREE_ITEM_CONTEXT = {
+  /** A DHE server grouping its persistent queries. */
+  isPersistentQueryServer: 'isPersistentQueryServer',
+  /** A (non-InteractiveConsole) persistent query node. */
+  isPersistentQuery: 'isPersistentQuery',
 } as const;
 
 export const PIP_SERVER_STATUS_DIRECTORY = 'pip-server-status';
