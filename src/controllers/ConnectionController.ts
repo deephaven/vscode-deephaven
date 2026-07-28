@@ -343,10 +343,14 @@ export class ConnectionController
     const workerConsoleType =
       serverState.type === 'DHE' ? getConsoleType(languageId) : undefined;
 
+    // Plain "connect to server" — attach to existing workers and let
+    // persistent queries populate, but do not auto-create a worker. Worker
+    // creation is explicit (the "+" action) or on-demand when running code.
     await this._serverManager?.connectToServer(
       serverState.url,
       workerConsoleType,
-      operateAsAnotherUser
+      operateAsAnotherUser,
+      false
     );
   };
 

@@ -233,18 +233,23 @@ export class ServerManager implements IServerManager {
 
   /**
    * Connect to a server and attach to any Core / Core+ workers available for
-   * the server. For DHE, if no workers are available, creates one and attaches
-   * to it.
+   * the server. For DHE, if no workers are available and `createWorkerIfNone`
+   * is `true`, creates one and attaches to it; if `false`, the server connects
+   * (letting persistent queries populate) without provisioning a worker.
    * @param serverUrl
    * @param workerConsoleType
    * @param operateAsAnotherUser
+   * @param createWorkerIfNone When no attachable DHE worker exists, whether to
+   * auto-create one. Defaults to `true` (e.g. the run-code flow needs a live
+   * console). The plain "connect to server" action passes `false`.
    * @returns The connection state of the attached worker, or `null` if the
-   * connection or worker creation/attachment failed.
+   * connection or worker creation/attachment failed (or none was created).
    */
   connectToServer = async (
     serverUrl: URL,
     workerConsoleType?: ConsoleType,
-    operateAsAnotherUser: boolean = false
+    operateAsAnotherUser: boolean = false,
+    createWorkerIfNone: boolean = true
   ): Promise<ConnectionState | null> => {
     const serverState = this._serverMap.get(serverUrl);
 
@@ -266,14 +271,16 @@ export class ServerManager implements IServerManager {
     return this._doConnectToServer(
       serverState,
       workerConsoleType,
-      operateAsAnotherUser
+      operateAsAnotherUser,
+      createWorkerIfNone
     );
   };
 
   private _doConnectToServer = async (
     serverState: ServerState,
     workerConsoleType: ConsoleType | undefined = undefined,
-    operateAsAnotherUser: boolean
+    operateAsAnotherUser: boolean,
+    createWorkerIfNone: boolean
   ): Promise<ConnectionState | null> => {
     const serverUrl = serverState.url;
 
@@ -307,7 +314,8 @@ export class ServerManager implements IServerManager {
 
         [firstConnection = null] = await this._createOrAttachToWorkers(
           dheService,
-          workerConsoleType
+          workerConsoleType,
+          createWorkerIfNone
         );
 
         return firstConnection;
@@ -448,7 +456,8 @@ export class ServerManager implements IServerManager {
 
   private _createOrAttachToWorkers = async (
     dheService: IDheService,
-    workerConsoleType: ConsoleType | undefined = undefined
+    workerConsoleType: ConsoleType | undefined = undefined,
+    createWorkerIfNone: boolean = true
   ): Promise<ConnectionState[]> => {
     const attachableWorkers = await dheService.listAttachableWorkers(
       this._attachedWorkerSerials.keys()
@@ -456,8 +465,15 @@ export class ServerManager implements IServerManager {
 
     let workerInfos: [boolean, WorkerInfo][];
 
-    // If no attachable workers exist, create a new one
+    // If no attachable workers exist, optionally create a new one. When
+    // `createWorkerIfNone` is false (the plain "connect to server" action), the
+    // server stays connected with no worker so persistent queries can populate
+    // without forcing worker creation.
     if (attachableWorkers.length === 0) {
+      if (!createWorkerIfNone) {
+        return [];
+      }
+
       const workerInfo = await this._createWorker(
         dheService,
         workerConsoleType

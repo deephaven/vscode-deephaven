@@ -1140,14 +1140,14 @@
           "icon": "images/dh-logo-28.svg"
         },
         {
-          "id": "vscode-deephaven.view.serverConnectionPanelTree",
-          "name": "Panels",
+          "id": "vscode-deephaven.view.persistentQueryTree",
+          "name": "Persistent Queries",
           "type": "tree",
           "icon": "images/dh-logo-28.svg"
         },
         {
-          "id": "vscode-deephaven.view.persistentQueryTree",
-          "name": "Persistent Queries",
+          "id": "vscode-deephaven.view.serverConnectionPanelTree",
+          "name": "Panels",
           "type": "tree",
           "icon": "images/dh-logo-28.svg"
         },

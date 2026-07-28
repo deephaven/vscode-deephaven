@@ -44,6 +44,12 @@ type TestServerManager = PublicOf<ServerManager> & {
     get: ReturnType<typeof vi.fn>;
   };
   _resolvePendingServerConnection: (serverUrl: URL) => void;
+  _createOrAttachToWorkers: (
+    dheService: IDheService,
+    workerConsoleType?: unknown,
+    createWorkerIfNone?: boolean
+  ) => Promise<ConnectionState[]>;
+  _createWorker: ReturnType<typeof vi.fn>;
 };
 
 /** Build a `ServerManager` with minimal mocked dependencies. */
@@ -182,6 +188,46 @@ describe('ServerManager.connectToServer', () => {
     // are created later, off the single client connection).
     expect(manager._dheServiceCache.get).toHaveBeenCalledTimes(1);
     expect(manager.isServerConnecting(serverUrl)).toBe(true);
+  });
+});
+
+describe('ServerManager._createOrAttachToWorkers', () => {
+  let manager: TestServerManager;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    manager = createServerManager();
+    // Isolate the create-vs-attach decision from the placeholder/attach
+    // plumbing.
+    manager._createWorker = vi.fn().mockResolvedValue(null);
+  });
+
+  function mockDheServiceWithNoWorkers(): IDheService {
+    return {
+      listAttachableWorkers: vi.fn().mockResolvedValue([]),
+      registerWorkerInfo: vi.fn(),
+    } as unknown as IDheService;
+  }
+
+  it('does not create a worker when none are attachable and createWorkerIfNone is false', async () => {
+    const dheService = mockDheServiceWithNoWorkers();
+
+    const result = await manager._createOrAttachToWorkers(
+      dheService,
+      undefined,
+      false
+    );
+
+    expect(result).toEqual([]);
+    expect(manager._createWorker).not.toHaveBeenCalled();
+  });
+
+  it('creates a worker when none are attachable and createWorkerIfNone defaults to true', async () => {
+    const dheService = mockDheServiceWithNoWorkers();
+
+    await manager._createOrAttachToWorkers(dheService);
+
+    expect(manager._createWorker).toHaveBeenCalledTimes(1);
   });
 });
 
