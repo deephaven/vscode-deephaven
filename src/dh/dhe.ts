@@ -42,7 +42,7 @@ import {
   UnsupportedFeatureQueryError,
 } from '../common';
 import { withResolvers } from '../util';
-import { assertDefined, type QuerySerial } from '../shared';
+import { type QuerySerial } from '../shared';
 
 export type IDraftQuery = EditableQueryInfo & {
   isClientSide: boolean;
@@ -467,14 +467,9 @@ export function getWorkerInfoFromQueryInfo(
   tagId: UniqueID,
   queryInfo: QueryInfo
 ): WorkerInfo | undefined {
-  if (queryInfo.designated == null) {
+  if (queryInfo.designated == null || queryInfo.designated.ideUrl == null) {
     return;
   }
-
-  assertDefined(
-    queryInfo.designated.ideUrl,
-    'designated.ideUrl must be defined'
-  );
 
   const { envoyPrefix, grpcUrl, ideUrl, jsApiUrl, processInfoId, workerName } =
     queryInfo.designated;
