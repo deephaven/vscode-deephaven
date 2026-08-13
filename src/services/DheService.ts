@@ -124,7 +124,8 @@ export class DheService implements IDheService {
 
   private _clientPromise: Promise<DheAuthenticatedClientWrapper | null> | null =
     null;
-  private _corePlusManagerPromise: Promise<CorePlusManager | null> | null = null;
+  private _corePlusManagerPromise: Promise<CorePlusManager | null> | null =
+    null;
   private _isConnected: boolean = false;
   private _operateAs: string | null = null;
   private _removeConfigListeners: (() => void) | null = null;

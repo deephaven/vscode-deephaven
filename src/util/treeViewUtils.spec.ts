@@ -1,14 +1,19 @@
 import { describe, it, expect, vi } from 'vitest';
+import type * as vscode from 'vscode';
 import { bitValues, boolValues, matrix } from '../testUtils';
 import {
+  canBrowsePersistentQueryObjects,
   getConnectionServerTreeItem,
   getPanelConnectionTreeItem,
   getPanelVariableTreeItem,
   getPersistentQueryIconId,
   getPersistentQueryObjectLeaves,
+  getPersistentQueryLanguageIconId,
   getPersistentQueryServerTreeItem,
+  getPersistentQueryStatus,
   getPersistentQueryTreeItem,
   isPersistentQueryNode,
+  persistentQueryHasTables,
   getServerContextValue,
   getServerDescription,
   getServerGroupContextValue,
@@ -27,6 +32,7 @@ import type {
   VariableType,
 } from '../types';
 import { isInstanceOf } from './isInstanceOf';
+import { DH_PROTECTED_VARIABLE_NAMES } from '../common';
 
 // See __mocks__/vscode.ts for the mock implementation
 vi.mock('vscode');
@@ -116,10 +122,47 @@ describe('getPanelVariableTreeItem', () => {
         type,
       } as VariableDefintion;
 
-      const actual = getPanelVariableTreeItem([url, variable]);
+      const actual = getPanelVariableTreeItem([url, variable], true);
       expect(actual).toMatchSnapshot();
     }
   );
+
+  it('offers the delete action when the variable can be deleted', () => {
+    const variable = {
+      title: 'some title',
+      name: 'some_name',
+      type: 'Table',
+    } as VariableDefintion;
+
+    expect(getPanelVariableTreeItem([url, variable], true).contextValue).toBe(
+      'canDeleteDeephavenVariable'
+    );
+  });
+
+  it('offers no delete action for a browse-only (PQ) object', () => {
+    const variable = {
+      title: 'some title',
+      name: 'some_name',
+      type: 'Table',
+    } as VariableDefintion;
+
+    expect(
+      getPanelVariableTreeItem([url, variable], false).contextValue
+    ).toBeUndefined();
+  });
+
+  it('offers no delete action for a protected variable name', () => {
+    const [protectedName] = DH_PROTECTED_VARIABLE_NAMES;
+    const variable = {
+      title: 'some title',
+      name: protectedName,
+      type: 'Table',
+    } as VariableDefintion;
+
+    expect(
+      getPanelVariableTreeItem([url, variable], true).contextValue
+    ).toBeUndefined();
+  });
 });
 
 describe('getServerContextValue', () => {
@@ -254,18 +297,80 @@ describe('groupServers', () => {
 });
 
 describe('getPersistentQueryIconId', () => {
-  it('returns the connected icon for a Running PQ', () => {
+  it('returns the filled circle for a Running PQ', () => {
     expect(getPersistentQueryIconId('Running')).toBe('circle-large-filled');
   });
 
-  it.each([['Stopped'], ['Initializing'], [null], [undefined]])(
-    'returns the connecting/spinner icon for non-Running status: %s',
+  it.each([
+    ['Stopped'],
+    ['Stopping'],
+    ['Failed'],
+    ['Error'],
+    ['Disconnected'],
+    ['Completed'],
+  ])('returns the stop sign for a terminal status: %s', status => {
+    expect(getPersistentQueryIconId(status)).toBe('circle-slash');
+  });
+
+  it.each([[null], [undefined], ['']])(
+    'returns the open circle for an unset status (not the same as stopped): %s',
     status => {
       expect(getPersistentQueryIconId(status as string | null)).toBe(
-        'sync~spin'
+        'circle-large-outline'
       );
     }
   );
+
+  it.each([['Initializing'], ['Connecting'], ['Queued']])(
+    'returns the spinner for a status between running and stopped: %s',
+    status => {
+      expect(getPersistentQueryIconId(status)).toBe('sync~spin');
+    }
+  );
+});
+
+describe('getPersistentQueryLanguageIconId', () => {
+  it.each([
+    ['Python', 'dh-python'],
+    ['python', 'dh-python'],
+    ['Groovy', 'coffee'],
+    ['groovy', 'coffee'],
+  ])(
+    'returns the language icon: scriptLanguage=%s',
+    (scriptLanguage, expected) => {
+      expect(getPersistentQueryLanguageIconId(scriptLanguage)).toBe(expected);
+    }
+  );
+
+  it.each([[null], [undefined], [''], ['Scala']])(
+    'falls back to the generic worker icon when the language is unknown: %s',
+    scriptLanguage => {
+      expect(
+        getPersistentQueryLanguageIconId(scriptLanguage as string | null)
+      ).toBe('remote');
+    }
+  );
+});
+
+describe('getPersistentQueryStatus', () => {
+  const makeQueryInfo = (
+    overrides: Record<string, unknown>
+  ): Parameters<typeof getPersistentQueryStatus>[0] =>
+    overrides as unknown as Parameters<typeof getPersistentQueryStatus>[0];
+
+  it('prefers the designated worker status', () => {
+    expect(
+      getPersistentQueryStatus(
+        makeQueryInfo({ designated: { status: 'Running' }, status: 'Stopped' })
+      )
+    ).toBe('Running');
+  });
+
+  it('falls back to the config status when there is no designated worker', () => {
+    expect(getPersistentQueryStatus(makeQueryInfo({ status: 'Stopped' }))).toBe(
+      'Stopped'
+    );
+  });
 });
 
 describe('isPersistentQueryNode', () => {
@@ -284,22 +389,228 @@ describe('isPersistentQueryNode', () => {
 });
 
 describe('getPersistentQueryTreeItem', () => {
-  it('renders name + owner + collapsed state + context value', () => {
-    const node = {
-      dheServerUrl: new URL('https://dhe.example.com/'),
-      queryInfo: {
-        name: 'My PQ',
-        owner: 'alice',
-        designated: { status: 'Running' },
-      },
-    } as unknown as Parameters<typeof getPersistentQueryTreeItem>[0];
+  /** The designated-worker endpoints a browsable PQ must have. */
+  const browsableUrls = {
+    jsApiUrl: 'https://dhe.example.com/worker/1/jsapi/dh-core.js',
+    ideUrl: 'https://dhe.example.com/worker/1/ide',
+  };
 
-    const item = getPersistentQueryTreeItem(node);
+  function makeNode(
+    designated: unknown,
+    scriptLanguage = 'Python'
+  ): Parameters<typeof getPersistentQueryTreeItem>[0] {
+    return {
+      dheServerUrl: new URL('https://dhe.example.com/'),
+      queryInfo: { name: 'My PQ', owner: 'alice', designated, scriptLanguage },
+    } as unknown as Parameters<typeof getPersistentQueryTreeItem>[0];
+  }
+
+  it('renders name + owner + context value', () => {
+    const item = getPersistentQueryTreeItem(
+      makeNode({
+        ...browsableUrls,
+        status: 'Running',
+        objects: [{ title: 't1', type: 'Table' }],
+      }),
+      'status'
+    );
     expect(item.label).toBe('My PQ');
     expect(item.description).toBe('alice');
     expect(item.contextValue).toBe('isPersistentQuery');
-    // Collapsed = 1 in the vscode mock enum.
+  });
+
+  it("renders the status circle for iconStyle 'status'", () => {
+    const item = getPersistentQueryTreeItem(
+      makeNode({ status: 'Running', objects: [] }),
+      'status'
+    );
+    expect((item.iconPath as vscode.ThemeIcon).id).toBe('circle-large-filled');
+  });
+
+  it("renders the open circle for a PQ with no status (iconStyle 'status')", () => {
+    const item = getPersistentQueryTreeItem(makeNode(undefined), 'status');
+    expect((item.iconPath as vscode.ThemeIcon).id).toBe('circle-large-outline');
+  });
+
+  it("renders the stop sign for a stopped PQ (iconStyle 'status')", () => {
+    const item = getPersistentQueryTreeItem(
+      makeNode({ status: 'Stopped', objects: [] }),
+      'status'
+    );
+    expect((item.iconPath as vscode.ThemeIcon).id).toBe('circle-slash');
+  });
+
+  it("renders the script language icon for iconStyle 'language'", () => {
+    const item = getPersistentQueryTreeItem(
+      makeNode({ status: 'Running', objects: [] }, 'Groovy'),
+      'language'
+    );
+    expect((item.iconPath as vscode.ThemeIcon).id).toBe('coffee');
+  });
+
+  it('is collapsible when the PQ exposes browsable objects (Collapsed = 1)', () => {
+    const item = getPersistentQueryTreeItem(
+      makeNode({
+        ...browsableUrls,
+        status: 'Running',
+        objects: [
+          { title: 't1', type: 'Table' },
+          { title: 'f1', type: 'Figure' },
+        ],
+      }),
+      'status'
+    );
     expect(item.collapsibleState).toBe(1);
+    // Object + table counts surfaced in the tooltip (no expansion needed).
+    expect(item.tooltip).toBe('My PQ (Running) — 2 objects (1 table)');
+  });
+
+  it.each([
+    ['no ideUrl (e.g. a RevertHelper query)', { ideUrl: null }],
+    ['an empty ideUrl', { ideUrl: '' }],
+    ['no jsApiUrl', { jsApiUrl: null }],
+  ])(
+    'is non-expandable when the objects cannot be opened: %s',
+    (_label, overrides) => {
+      const item = getPersistentQueryTreeItem(
+        makeNode({
+          ...browsableUrls,
+          ...overrides,
+          status: 'Running',
+          objects: [{ title: 't1', type: 'Table' }],
+        }),
+        'status'
+      );
+      expect(item.collapsibleState).toBe(0);
+      expect(item.tooltip).toBe(
+        'My PQ (Running) — 1 object (1 table) (worker not browsable)'
+      );
+    }
+  );
+
+  it('ignores object entries with an empty title or type', () => {
+    const item = getPersistentQueryTreeItem(
+      makeNode({
+        ...browsableUrls,
+        status: 'Running',
+        objects: [
+          { title: '', type: 'Table' },
+          { title: 't1', type: '' },
+        ],
+      }),
+      'status'
+    );
+    expect(item.collapsibleState).toBe(0);
+    expect(item.tooltip).toBe('My PQ (Running) — no objects');
+  });
+
+  it('ignores objects whose type is not an openable panel', () => {
+    const item = getPersistentQueryTreeItem(
+      makeNode({
+        ...browsableUrls,
+        status: 'Running',
+        objects: [
+          { title: 'd1', type: 'deephaven.ui.Dashboard' },
+          { title: 'm1', type: 'TableMap' },
+          { title: 'tm1', type: 'Treemap' },
+          { title: 'w1', type: 'OtherWidget' },
+          { title: 'acl', type: 'AclService' },
+        ],
+      }),
+      'status'
+    );
+    expect(item.collapsibleState).toBe(0);
+    expect(item.tooltip).toBe('My PQ (Running) — no objects');
+  });
+
+  it('counts deephaven.ui panels as openable objects', () => {
+    const item = getPersistentQueryTreeItem(
+      makeNode({
+        ...browsableUrls,
+        status: 'Running',
+        objects: [{ title: 'ui1', type: 'deephaven.ui.Element' }],
+      }),
+      'status'
+    );
+    expect(item.collapsibleState).toBe(1);
+    expect(item.tooltip).toBe('My PQ (Running) — 1 object');
+  });
+
+  it('is non-expandable when the PQ exposes no objects (None = 0)', () => {
+    const item = getPersistentQueryTreeItem(
+      makeNode({ status: 'Running', objects: [] }),
+      'status'
+    );
+    expect(item.collapsibleState).toBe(0);
+    expect(item.tooltip).toBe('My PQ (Running) — no objects');
+  });
+
+  it('treats a PQ with no designated worker as non-expandable', () => {
+    const item = getPersistentQueryTreeItem(makeNode(undefined), 'status');
+    expect(item.collapsibleState).toBe(0);
+    expect(item.tooltip).toBe('My PQ — no objects');
+  });
+});
+
+describe('canBrowsePersistentQueryObjects', () => {
+  const makeQueryInfo = (
+    designated: unknown
+  ): Parameters<typeof canBrowsePersistentQueryObjects>[0] =>
+    ({ designated }) as unknown as Parameters<
+      typeof canBrowsePersistentQueryObjects
+    >[0];
+
+  it('is true when the designated worker has both endpoints', () => {
+    expect(
+      canBrowsePersistentQueryObjects(
+        makeQueryInfo({
+          jsApiUrl: 'https://w/jsapi/dh-core.js',
+          ideUrl: 'https://w/ide',
+        })
+      )
+    ).toBe(true);
+  });
+
+  it.each([
+    [undefined],
+    [{ jsApiUrl: 'https://w/jsapi/dh-core.js', ideUrl: null }],
+    [{ jsApiUrl: 'https://w/jsapi/dh-core.js', ideUrl: '' }],
+    [{ jsApiUrl: null, ideUrl: 'https://w/ide' }],
+    [{ jsApiUrl: '', ideUrl: 'https://w/ide' }],
+  ])('is false without both endpoints: %s', designated => {
+    expect(canBrowsePersistentQueryObjects(makeQueryInfo(designated))).toBe(
+      false
+    );
+  });
+});
+
+describe('persistentQueryHasTables', () => {
+  const makeQueryInfo = (
+    objects: unknown
+  ): Parameters<typeof persistentQueryHasTables>[0] =>
+    ({ designated: { objects } }) as unknown as Parameters<
+      typeof persistentQueryHasTables
+    >[0];
+
+  it('returns true when a table-typed object is present', () => {
+    expect(
+      persistentQueryHasTables(
+        makeQueryInfo([
+          { title: 'f1', type: 'Figure' },
+          { title: 't1', type: 'TreeTable' },
+        ])
+      )
+    ).toBe(true);
+  });
+
+  it('returns false when only non-table objects are present', () => {
+    expect(
+      persistentQueryHasTables(makeQueryInfo([{ title: 'f1', type: 'Figure' }]))
+    ).toBe(false);
+  });
+
+  it('returns false when there are no objects', () => {
+    expect(persistentQueryHasTables(makeQueryInfo([]))).toBe(false);
   });
 });
 
@@ -313,6 +624,8 @@ describe('getPersistentQueryServerTreeItem', () => {
     const item = getPersistentQueryServerTreeItem(server);
     expect(item.label).toBe('DHE');
     expect(item.contextValue).toBe('isPersistentQueryServer');
+    // Server icon, matching the Workers / Panels tree server nodes.
+    expect((item.iconPath as vscode.ThemeIcon).id).toBe('vm-connect');
     // Expanded = 2 in the vscode mock enum.
     expect(item.collapsibleState).toBe(2);
   });

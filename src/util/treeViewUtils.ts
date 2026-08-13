@@ -15,11 +15,14 @@ import {
   CONNECTION_TREE_ITEM_CONTEXT,
   DH_PROTECTED_VARIABLE_NAMES,
   ICON_ID,
+  isTerminalQueryStatus,
   OPEN_VARIABLE_PANELS_CMD,
   PERSISTENT_QUERY_TREE_ITEM_CONTEXT,
   SERVER_TREE_ITEM_CONTEXT,
   type ServerTreeItemContextValue,
 } from '../common';
+import { isOpenablePanelVariable } from './panelUtils';
+import { getScriptLanguageConsoleType } from './serverUtils';
 
 /**
  * Get a tree item vscode.ThemeIcon for a variable type.
@@ -54,9 +57,11 @@ export function getVariableIconPath(
 }
 
 /**
- * Get the icon id for a console type / language, used for connection tree nodes.
- * Falls back to the generic "connected" icon when the console type is unknown
- * (e.g. a plain DHC connection or one whose console type has not resolved yet).
+ * Get the icon id for a console type / language, used for worker (connection /
+ * persistent query) tree nodes. Falls back to the generic worker icon when the
+ * console type is unknown (e.g. a plain DHC connection or one whose console type
+ * has not resolved yet) — never the server icon, so a worker node is always
+ * distinguishable from its parent server.
  * @param consoleType Console type (language) of the connection, if known.
  * @returns Icon id from `ICON_ID`.
  */
@@ -69,7 +74,7 @@ export function getConsoleTypeIconId(
     case 'groovy':
       return ICON_ID.groovy;
     default:
-      return ICON_ID.connected;
+      return ICON_ID.worker;
   }
 }
 
@@ -103,21 +108,27 @@ export async function getPanelConnectionTreeItem(
 
 /**
  * Get `TreeItem` for a panel variable.
- * @param variable
+ * @param variable The worker URL + variable to render.
+ * @param canDelete Whether the node offers the delete (trash) action. Only
+ * variables living in a console session can be deleted — a persistent query's
+ * exported objects are browse-only, so the action must not be offered for them
+ * (`ExtensionController.onDeleteVariable` would ignore it anyway, leaving a
+ * button that does nothing).
  */
-export function getPanelVariableTreeItem([url, variable]: [
-  URL,
-  VariableDefintion,
-]): vscode.TreeItem {
+export function getPanelVariableTreeItem(
+  [url, variable]: [URL, VariableDefintion],
+  canDelete: boolean
+): vscode.TreeItem {
   const iconPath = getVariableIconPath(variable.type);
   const variablesToOpen: NonEmptyArray<VariableDefintion> = [variable];
 
   return {
     label: variable.title,
     iconPath,
-    contextValue: DH_PROTECTED_VARIABLE_NAMES.has(variable.name)
-      ? undefined
-      : 'canDeleteDeephavenVariable',
+    contextValue:
+      canDelete && !DH_PROTECTED_VARIABLE_NAMES.has(variable.name)
+        ? 'canDeleteDeephavenVariable'
+        : undefined,
     command: {
       title: 'Open Panel',
       command: OPEN_VARIABLE_PANELS_CMD,
@@ -127,34 +138,172 @@ export function getPanelVariableTreeItem([url, variable]: [
 }
 
 /**
- * Get the icon for a persistent query based on its (designated worker) status.
- * `Running` PQs — the only ones this tree lists — show the connected icon; any
- * transitional/other status shows a spinner. Mirrors the connection tree's
- * running/connecting icon convention.
- * @param status The `queryInfo.designated?.status` value.
+ * How a persistent-query node draws its icon. Each tree picks the vocabulary
+ * that keeps it internally consistent:
+ * - `'status'` (Persistent Queries tree): the Servers-tree circles, since that
+ *   view is about PQ lifecycle and lists PQs of every status.
+ * - `'language'` (Panels tree): the script-language icon, matching the console
+ *   worker nodes a PQ sits alongside there.
  */
-export function getPersistentQueryIconId(status: string | null | undefined): string {
-  return status === 'Running' ? ICON_ID.serverConnected : ICON_ID.connecting;
+export type PersistentQueryIconStyle = 'status' | 'language';
+
+/**
+ * Get the status icon for a persistent query, using the same circle vocabulary
+ * as the Servers tree:
+ * - `Running` → filled circle.
+ * - terminal (`Stopped`, `Failed`, …) → stop sign.
+ * - unset → open circle. An unknown status is NOT the same as a stopped one: a
+ *   PQ can be listed with no status yet (no `designated` block), and claiming it
+ *   stopped would be wrong. A spinner would be equally wrong — nothing is known
+ *   to be in progress.
+ * - anything else (`Initializing`, `Connecting`, …) → spinner.
+ * @param status The PQ status (`designated.status`, falling back to `status`).
+ */
+export function getPersistentQueryIconId(
+  status: string | null | undefined
+): string {
+  if (status === 'Running') {
+    return ICON_ID.serverConnected;
+  }
+
+  if (status == null || status === '') {
+    return ICON_ID.serverRunning;
+  }
+
+  if (isTerminalQueryStatus(status)) {
+    return ICON_ID.serverStopped;
+  }
+
+  return ICON_ID.connecting;
 }
 
 /**
- * Get `TreeItem` for a persistent-query node in the Persistent Queries tree.
- * The node is collapsible (its children are the PQ's exported objects) and
- * carries a status icon + the PQ name.
+ * Get the script-language icon for a persistent query — the same icon its
+ * console-worker siblings use in the Panels tree. Falls back to the generic
+ * worker icon when the language is unset / unrecognized.
+ * @param scriptLanguage The `queryInfo.scriptLanguage` value (e.g. `'Python'`).
+ */
+export function getPersistentQueryLanguageIconId(
+  scriptLanguage?: string | null
+): string {
+  return getConsoleTypeIconId(getScriptLanguageConsoleType(scriptLanguage));
+}
+
+/**
+ * The status of a persistent query. Prefers the designated worker's live status
+ * and falls back to the (deprecated) config-level status, which is the only one
+ * available for a PQ with no designated worker (e.g. never started / stopped).
+ * @param queryInfo The PQ whose status to read.
+ */
+export function getPersistentQueryStatus(
+  queryInfo: QueryInfo
+): string | null | undefined {
+  return queryInfo.designated?.status ?? queryInfo.status;
+}
+
+/** Variable types that render as tables (mirrors the table icon set). */
+const TABLE_VARIABLE_TYPES: ReadonlySet<VariableType> = new Set([
+  'Table',
+  'TableMap',
+  'TreeTable',
+  'HierarchicalTable',
+  'PartitionedTable',
+]);
+
+/**
+ * The exported objects of a PQ, read straight from `designated.objects` — no
+ * worker connection or node expansion required — filtered to the named + typed
+ * entries that render as object leaves. This is the same set
+ * {@link getPersistentQueryObjectLeaves} produces, so a caller can cheaply tell
+ * whether a PQ has any (or any table-typed) objects before expanding it.
+ * @param queryInfo The PQ whose exported objects to read.
+ */
+export function getPersistentQueryObjects(
+  queryInfo: QueryInfo
+): VariableDefintion[] {
+  const objects = queryInfo.designated?.objects ?? [];
+  // Only objects that can actually open as a panel: counting an unopenable one
+  // would put an expander on a PQ whose children open onto nothing.
+  return objects.filter((obj): obj is VariableDefintion =>
+    isOpenablePanelVariable(obj)
+  );
+}
+
+/**
+ * Whether a PQ's exported objects can actually be opened. The tree opens them
+ * through a browse connection derived from the designated worker
+ * (`getWorkerInfoFromQueryInfo`), which requires both `jsApiUrl` and `ideUrl`.
+ * Helper / system queries (e.g. `RevertHelper`) can be `Running` and report
+ * objects while having no IDE endpoint (`designated.ideUrl` is nullable), so
+ * without this check they render an expander that can never produce children.
+ * @param queryInfo The PQ to check.
+ */
+export function canBrowsePersistentQueryObjects(queryInfo: QueryInfo): boolean {
+  const { designated } = queryInfo;
+
+  return (
+    designated != null &&
+    designated.jsApiUrl != null &&
+    designated.jsApiUrl !== '' &&
+    designated.ideUrl != null &&
+    designated.ideUrl !== ''
+  );
+}
+
+/**
+ * Whether a PQ exposes at least one table-typed object, determined from
+ * `designated.objects` without connecting to or expanding the PQ.
+ * @param queryInfo The PQ to check.
+ */
+export function persistentQueryHasTables(queryInfo: QueryInfo): boolean {
+  return getPersistentQueryObjects(queryInfo).some(obj =>
+    TABLE_VARIABLE_TYPES.has(obj.type)
+  );
+}
+
+/**
+ * Get `TreeItem` for a persistent-query node. The node carries the PQ name plus
+ * the icon its host tree calls for ({@link PersistentQueryIconStyle}), and is
+ * collapsible only when the PQ exposes objects *and* those objects can be opened
+ * ({@link canBrowsePersistentQueryObjects}) — otherwise it renders
+ * non-expandable so the tree never opens onto an empty list (both are known
+ * cheaply from `designated`, no connection required).
  * @param node The persistent-query node.
+ * @param iconStyle Which icon vocabulary the host tree uses.
  */
 export function getPersistentQueryTreeItem(
-  node: PersistentQueryNode
+  node: PersistentQueryNode,
+  iconStyle: PersistentQueryIconStyle
 ): vscode.TreeItem {
   const { queryInfo } = node;
-  const status = queryInfo.designated?.status;
+  const status = getPersistentQueryStatus(queryInfo);
+
+  const objects = getPersistentQueryObjects(queryInfo);
+  const tableCount = objects.filter(obj =>
+    TABLE_VARIABLE_TYPES.has(obj.type)
+  ).length;
+  const canBrowse = canBrowsePersistentQueryObjects(queryInfo);
+
+  const plural = (n: number, noun: string): string =>
+    `${n} ${noun}${n === 1 ? '' : 's'}`;
+  const countSuffix =
+    objects.length === 0
+      ? ' — no objects'
+      : ` — ${plural(objects.length, 'object')}${tableCount > 0 ? ` (${plural(tableCount, 'table')})` : ''}${canBrowse ? '' : ' (worker not browsable)'}`;
 
   return {
     label: queryInfo.name,
     description: queryInfo.owner ?? undefined,
-    tooltip: `${queryInfo.name}${status == null ? '' : ` (${status})`}`,
-    iconPath: new vscode.ThemeIcon(getPersistentQueryIconId(status)),
-    collapsibleState: vscode.TreeItemCollapsibleState.Collapsed,
+    tooltip: `${queryInfo.name}${status == null ? '' : ` (${status})`}${countSuffix}`,
+    iconPath: new vscode.ThemeIcon(
+      iconStyle === 'language'
+        ? getPersistentQueryLanguageIconId(queryInfo.scriptLanguage)
+        : getPersistentQueryIconId(status)
+    ),
+    collapsibleState:
+      objects.length > 0 && canBrowse
+        ? vscode.TreeItemCollapsibleState.Collapsed
+        : vscode.TreeItemCollapsibleState.None,
     contextValue: PERSISTENT_QUERY_TREE_ITEM_CONTEXT.isPersistentQuery,
   };
 }
@@ -177,12 +326,13 @@ export function getPersistentQueryServerTreeItem(
 }
 
 /**
- * Type guard distinguishing a persistent-query node from a server node in the
- * Persistent Queries tree. A `PersistentQueryNode` carries a `queryInfo`.
+ * Type guard distinguishing a persistent-query node from a server or connection
+ * node (both the Persistent Queries and Panels trees mix them). A
+ * `PersistentQueryNode` carries a `queryInfo`.
  * @param node The node to check.
  */
 export function isPersistentQueryNode(
-  node: ServerState | PersistentQueryNode
+  node: ServerState | ConnectionState | PersistentQueryNode
 ): node is PersistentQueryNode {
   return (node as PersistentQueryNode).queryInfo != null;
 }
@@ -199,11 +349,7 @@ export function getPersistentQueryObjectLeaves(
   workerUrl: URL,
   queryInfo: QueryInfo
 ): [URL, VariableDefintion][] {
-  const objects = queryInfo.designated?.objects ?? [];
-
-  return objects
-    .filter(obj => obj.title != null && obj.type != null)
-    .map(obj => [workerUrl, obj as VariableDefintion]);
+  return getPersistentQueryObjects(queryInfo).map(obj => [workerUrl, obj]);
 }
 
 /**
@@ -275,8 +421,6 @@ export function getConnectionServerTreeItem(
 ): vscode.TreeItem {
   return {
     label: getConnectionServerLabel(server),
-    // The "computer" icon (`vm-connect`) previously used for worker connection
-    // nodes, before the language (Python/Groovy) icons took their place.
     iconPath: new vscode.ThemeIcon(ICON_ID.connected),
     collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
     contextValue:

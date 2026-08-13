@@ -694,6 +694,9 @@ export class ServerManager implements IServerManager {
     // never counted as a worker connection.
     if (!this._connectionMap.has(workerUrl)) {
       this._connectionMap.set(workerUrl, {
+        // Flagged so `getConnections` can exclude it: this is an auth/panel
+        // shim, not a worker connection the user can select or run code on.
+        isBrowseConnection: true,
         label: workerInfo.name,
         isConnected: true,
         isRunningCode: false,
@@ -930,17 +933,25 @@ export class ServerManager implements IServerManager {
   };
 
   /**
-   * Get all connections. Optionally filter connections by server or worker URL.
+   * Get all worker connections. Optionally filter connections by server or
+   * worker URL. PQ browse connections are always excluded — they are panel-auth
+   * shims, not worker connections, so they must not show up in the Workers tree,
+   * the connection picker, or any "run code here" target list. Use
+   * `getConnection` to look one up directly by worker URL.
    * @param serverOrWorkerUrl The server or worker URL to filter connections by.
-   * @returns An array of all connections.
+   * @returns An array of all worker connections.
    */
   getConnections = (serverOrWorkerUrl?: URL): ConnectionState[] => {
+    const isWorkerConnection = (connection: ConnectionState): boolean =>
+      connection.isBrowseConnection !== true;
+
     if (serverOrWorkerUrl == null) {
-      return [...this._connectionMap.values()];
+      return [...this._connectionMap.values()].filter(isWorkerConnection);
     }
 
     if (this._connectionMap.has(serverOrWorkerUrl)) {
-      return [this._connectionMap.getOrThrow(serverOrWorkerUrl)];
+      const connection = this._connectionMap.getOrThrow(serverOrWorkerUrl);
+      return isWorkerConnection(connection) ? [connection] : [];
     }
 
     const server = this.getServer(serverOrWorkerUrl);
@@ -950,11 +961,16 @@ export class ServerManager implements IServerManager {
 
     if (server.type === 'DHC') {
       const connection = this._connectionMap.get(serverOrWorkerUrl);
-      return connection == null ? [] : [connection];
+      return connection == null || !isWorkerConnection(connection)
+        ? []
+        : [connection];
     }
 
     // For DHE, return all connections associated with the server URL
     return [...this._connectionMap.values()].filter(connection => {
+      if (!isWorkerConnection(connection)) {
+        return false;
+      }
       const dheServerUrl =
         this._workerURLToServerURLMap.get(connection.serverUrl) ??
         connection.serverUrl;

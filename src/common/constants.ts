@@ -139,7 +139,54 @@ export const ICON_ID = {
   varElement: 'preview',
   varPandas: 'dh-pandas',
   varTable: 'dh-table',
+  /**
+   * Fallback icon for a worker node (connection / persistent query) whose script
+   * language isn't known. Deliberately not `connected` (`vm-connect`) — that's
+   * the parent server node's icon, and a worker should never look like its
+   * server.
+   */
+  worker: 'remote',
 } as const;
+
+/**
+ * Variable types that can open as a Deephaven panel. Anything not listed is
+ * hidden from panel lists rather than opening a panel that never renders.
+ *
+ * This is an allow-list because a worker's exported objects include plenty of
+ * things that are not panels at all — DHE service objects (`AclService` and
+ * friends), dashboards, and legacy widget types — and nothing on the object says
+ * so. The web UI decides by looking the type up in its widget-plugin registry
+ * (`WidgetLoaderPlugin.handlePanelOpen` silently returns when no plugin claims
+ * the type), a registry assembled at runtime from the plugins a given worker
+ * kind serves and therefore not inspectable from the extension host.
+ *
+ * The entries mirror the types the bundled web plugins claim — Grid
+ * (`Table`/`TreeTable`/`HierarchicalTable`/`PartitionedTable`), Chart (`Figure`),
+ * Pandas (`pandas.DataFrame`) — plus the two first-party plugin widgets
+ * (`deephaven.ui.Element`, `deephaven.plot.express.DeephavenFigure`).
+ *
+ * Deliberately absent:
+ * - `deephaven.ui.Dashboard`: a dashboard, not a panel (the web client excludes
+ *   it from its own Panels menu — iris `QueryListUtils.filterPanelWidgets`).
+ * - `TableMap` / `Treemap`: legacy `dh.VariableType` members no plugin claims
+ *   (`TableMap` was superseded by `PartitionedTable`).
+ * - `OtherWidget`: the server's catch-all for a widget with no specific type;
+ *   no bundled plugin claims it.
+ *
+ * TRADEOFF: a server-side JS plugin defining its own widget type will be hidden
+ * until its type is added here. That is the cost of the allow-list — the
+ * alternative surfaces unopenable service objects.
+ */
+export const OPENABLE_PANEL_VARIABLE_TYPES: ReadonlySet<string> = new Set([
+  'deephaven.plot.express.DeephavenFigure',
+  'deephaven.ui.Element',
+  'Figure',
+  'HierarchicalTable',
+  'pandas.DataFrame',
+  'PartitionedTable',
+  'Table',
+  'TreeTable',
+]);
 
 /* eslint-disable @typescript-eslint/naming-convention */
 export const VARIABLE_UNICODE_ICONS = {

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { ServerTreeProviderBase } from './ServerTreeProviderBase';
 import { CONNECTION_TREE_ITEM_CONTEXT, ICON_ID } from '../common';
-import type { ConsoleType, ServerConnectionNode } from '../types';
+import type { ServerConnectionNode } from '../types';
 import {
   getConnectionServerTreeItem,
   getConnectionTreeRootNodes,
@@ -10,7 +10,7 @@ import {
   isServerStateNode,
   sortByStringProp,
 } from '../util';
-import { DhcService } from '../services';
+import { DhcService, getFirstSupportedConsoleType } from '../services';
 
 /**
  * Provider for the server connection tree view.
@@ -39,10 +39,7 @@ export class ServerConnectionTreeProvider extends ServerTreeProviderBase<ServerC
     }
 
     // Console type (language) drives the node icon rather than the description.
-    let consoleType: ConsoleType | undefined;
-    if (isInstanceOf(node, DhcService) && node.isInitialized) {
-      [consoleType] = await node.getConsoleTypes();
-    }
+    const consoleType = await getFirstSupportedConsoleType(node);
 
     const hasUris = this.serverManager.hasConnectionUris(node);
 

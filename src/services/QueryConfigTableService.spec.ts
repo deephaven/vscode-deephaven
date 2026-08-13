@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
-import type { EnterpriseDhType as DheType } from '@deephaven-enterprise/jsapi-types';
 import { getQueryTableFilters } from './QueryConfigTableService';
+
+/** The API-object parameter type of `getQueryTableFilters`. */
+type QueryFilterApi = Parameters<typeof getQueryTableFilters>[0];
 
 // See __mocks__/vscode.ts for the mock implementation
 vi.mock('vscode');
@@ -64,7 +66,7 @@ const dh = {
   FilterValue: {
     ofString: (value: string): { value: string } => ({ value }),
   },
-} as unknown as DheType;
+} as unknown as QueryFilterApi;
 
 describe('getQueryTableFilters', () => {
   let mock: ReturnType<typeof createMockTable>;
@@ -176,11 +178,6 @@ describe('getQueryTableFilters', () => {
     });
     expect(
       conditions.map(c => (c as unknown as { column: string }).column)
-    ).toEqual([
-      'Owner',
-      'QueryType',
-      'Status',
-      'Name',
-    ]);
+    ).toEqual(['Owner', 'QueryType', 'Status', 'Name']);
   });
 });

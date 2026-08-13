@@ -15,9 +15,17 @@ export type ServerConnectionNode = ServerState | ConnectionState | vscode.Uri;
 export interface ServerConnectionTreeView
   extends vscode.TreeView<ServerConnectionNode> {}
 
+/**
+ * A node in the Panels tree:
+ * - `ServerState`: a server grouping its console workers + persistent queries.
+ * - `ConnectionState`: a console worker connection (panels come from its session).
+ * - `PersistentQueryNode`: a PQ whose exported objects can be opened.
+ * - `[URL, VariableDefintion]`: a panel / object leaf.
+ */
 export type ServerConnectionPanelNode =
   | ServerState
   | ConnectionState
+  | PersistentQueryNode
   | [URL, VariableDefintion];
 
 export interface ServerConnectionPanelTreeView

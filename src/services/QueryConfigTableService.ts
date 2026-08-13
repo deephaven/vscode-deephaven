@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type { EnterpriseDhType as DheType } from '@deephaven-enterprise/jsapi-types';
+import type { CorePlusManager } from '@deephaven-enterprise/client-utils';
 import {
   EXCLUDED_QUERY_TYPES,
   makeFactoryServiceTablePromise,
@@ -8,15 +9,20 @@ import {
   QUERY_CONFIG_TABLE,
   WEB_CLIENT_DATA_CORE_QUERY,
 } from '@deephaven-enterprise/query-utils';
-import type {
-  IAsyncCacheService,
-  IDheService,
-  IDisposable,
-} from '../types';
+import type { IAsyncCacheService, IDheService, IDisposable } from '../types';
 import { Logger } from '../util';
 import { DisposableBase } from './DisposableBase';
 
 const logger = new Logger('QueryConfigTableService');
+
+/**
+ * The community (Core) JS API object returned by `CorePlusManager.getApi`. The
+ * `QueryInfo` table is created by the WebClientData worker's community API, so
+ * server-side filter values must be built from *this* API — a `FilterValue`
+ * from any other API instance (e.g. the enterprise `dhe`) throws a
+ * `java.lang.ClassCastException` when the table tries to cast it.
+ */
+type CoreApi = Awaited<ReturnType<CorePlusManager['getApi']>>;
 
 /**
  * Error thrown when the `WebClientData` Core+ system query required to fetch the
@@ -58,13 +64,14 @@ export interface QueryTableFilters {
  * Build the server-side `FilterCondition[]` for the `QueryInfo` table from the
  * given filters. Pure — no I/O or subscription side effects, so it can be unit
  * tested against a mocked table. Mirrors `PQExplorerPanel.getQueryTableFilters`.
- * @param dh The (enterprise) DH API providing `FilterValue`.
+ * @param dh The community DH API that created `table`, providing `FilterValue`.
+ * Must be the table's own API (see {@link CoreApi}).
  * @param table The `QueryInfo` table to build columns/filters from.
  * @param filters The filters to apply.
  * @returns An array of `FilterCondition` to pass to `table.applyFilter`.
  */
 export function getQueryTableFilters(
-  dh: DheType,
+  dh: CoreApi,
   table: DhcType.Table,
   filters: QueryTableFilters
 ): DhcType.FilterCondition[] {
@@ -82,9 +89,7 @@ export function getQueryTableFilters(
     return filterValue.in(values.map(value => dh.FilterValue.ofString(value)));
   };
 
-  const pushIfNonEmpty = (
-    condition: DhcType.FilterCondition | null
-  ): void => {
+  const pushIfNonEmpty = (condition: DhcType.FilterCondition | null): void => {
     if (condition != null) {
       conditions.push(condition);
     }
@@ -126,14 +131,22 @@ export function getQueryTableFilters(
 }
 
 /**
- * A subscription over a filtered `QueryInfo` table. Emits the current set of
- * filtered rows on every server tick (`EVENT_UPDATED`) until disposed.
+ * A subscription over a filtered `QueryInfo` table. Ticks on every server
+ * update (`EVENT_UPDATED`) until disposed, keeping {@link getQuerySerials} in
+ * sync with the filtered row set.
  */
 export interface QueryInfoTableSubscription extends IDisposable {
   /** The underlying (filtered) `QueryInfo` table. */
   readonly table: DhcType.Table;
-  /** Fires with a snapshot of the current viewport rows on each update. */
-  readonly onDidUpdate: vscode.Event<DhcType.ViewportData>;
+  /** Fires on every tick of the filtered row set. */
+  readonly onDidUpdate: vscode.Event<void>;
+  /**
+   * Serials of the current filtered rows, excluding child-replica rows (rows
+   * with `Parent` set). Reflects the most recent tick — empty until the first
+   * one arrives, so consumers must refresh on {@link onDidUpdate} rather than
+   * treating an empty set as "no queries".
+   */
+  getQuerySerials: () => ReadonlySet<string>;
 }
 
 /**
@@ -165,11 +178,16 @@ export class QueryConfigTableService extends DisposableBase {
 
   /**
    * Fetch the (unfiltered) `QueryInfo` table via the WebClientData factory
-   * service. Throws a clear error when `WebClientData` is unavailable
-   * (Gotcha 7) rather than hanging on the upstream widget-message path.
-   * @returns The `QueryInfo` table.
+   * service, along with the community API that created it. Throws a clear error
+   * when `WebClientData` is unavailable (Gotcha 7) rather than hanging on the
+   * upstream widget-message path.
+   * @returns The `QueryInfo` table and the community API that created it. Filter
+   * values must be built from that API (see {@link CoreApi}).
    */
-  private async _fetchQueryInfoTable(): Promise<DhcType.Table> {
+  private async _fetchQueryInfoTable(): Promise<{
+    table: DhcType.Table;
+    coreApi: CoreApi;
+  }> {
     const dheClient = await this._dheService.getClient(false);
     if (dheClient == null) {
       throw new Error(
@@ -188,28 +206,38 @@ export class QueryConfigTableService extends DisposableBase {
     // running. `makeFactoryServiceTablePromise` routes through a widget-message
     // helper whose rejection is not reliably propagated (upstream DH-20345), so
     // guard here to surface a clear error instead of hanging (Gotcha 7).
-    const hasWebClientData = dheClient.client
+    const webClientData = dheClient.client
       .getKnownConfigs()
-      .some(
+      .find(
         qi =>
           qi.name === WEB_CLIENT_DATA_CORE_QUERY &&
           qi.designated?.status === 'Running'
       );
 
-    if (!hasWebClientData) {
+    if (webClientData?.designated == null) {
       throw new WebClientDataUnavailableError(this._serverUrl);
     }
 
     const dhe = await this._dheJsApiCache.get(this._serverUrl);
     const userInfo = await dheClient.client.getUserInfo();
 
-    return makeFactoryServiceTablePromise({
+    const table = await makeFactoryServiceTablePromise({
       client: dheClient.client,
       corePlusManager,
       dh: dhe,
       userInfo,
       tableName: QUERY_CONFIG_TABLE,
     });
+
+    // The table is served by the WebClientData worker's *community* API. Grab
+    // that same (cached) API instance so filter values are castable by the
+    // table — `getApi` returns the instance the factory used above.
+    const coreApi = await corePlusManager.getApi(
+      webClientData.workerKind,
+      webClientData.designated.jsApiUrl
+    );
+
+    return { table, coreApi };
   }
 
   /**
@@ -222,37 +250,66 @@ export class QueryConfigTableService extends DisposableBase {
   getQueryInfoTable = async (
     filters: QueryTableFilters = {}
   ): Promise<QueryInfoTableSubscription> => {
-    const dhe = await this._dheJsApiCache.get(this._serverUrl);
-    const table = await this._fetchQueryInfoTable();
+    const { table, coreApi } = await this._fetchQueryInfoTable();
 
-    const conditions = getQueryTableFilters(dhe, table, filters);
+    const conditions = getQueryTableFilters(coreApi, table, filters);
     table.applyFilter(conditions);
 
-    const onDidUpdateEmitter =
-      new vscode.EventEmitter<DhcType.ViewportData>();
+    const onDidUpdateEmitter = new vscode.EventEmitter<void>();
 
-    const onUpdate = ({
-      detail,
-    }: DhcType.Event<DhcType.ViewportData>): void => {
-      onDidUpdateEmitter.fire(detail);
-    };
+    const serialColumn = table.findColumn(QueryColumns.SERIAL.name);
+    const parentColumn = table.findColumn(QueryColumns.PARENT_ID.name);
+    const statusColumn = table.findColumn(QueryColumns.STATUS.name);
 
-    const removeUpdateListener = table.addEventListener<DhcType.ViewportData>(
-      dhe.Table.EVENT_UPDATED,
-      onUpdate
-    );
+    let querySerials: ReadonlySet<string> = new Set();
 
-    // Subscribe to all rows so the table ticks. The viewport is refreshed as
-    // the filtered size changes.
-    table.setViewport(0, Math.max(0, table.size - 1));
+    // Subscribe to the whole filtered table rather than tracking a viewport.
+    // A viewport has to be re-pinned as the filtered size changes, and
+    // `getViewportData()` only returns the snapshot that has arrived so far, so
+    // rows that tick in later were silently dropped (PQs missing from the
+    // tree). A full subscription's `EVENT_UPDATED` carries every row the client
+    // has, so each tick is a complete picture of the filtered set.
+    //
+    // Only the columns consumers act on are subscribed, so the table ticks on
+    // row add/remove and status transitions but not on churn like heap usage.
+    // `Status` earns its place even though the value is unused here: a PQ going
+    // Running → Stopped must re-render, and the resolved `QueryInfo` carries the
+    // new status.
+    const tableSubscription = table.subscribe([
+      serialColumn,
+      parentColumn,
+      statusColumn,
+    ]);
+
+    const removeUpdateListener =
+      tableSubscription.addEventListener<DhcType.SubscriptionTableData>(
+        coreApi.Table.EVENT_UPDATED,
+        ({ detail }) => {
+          const serials = new Set<string>();
+
+          for (const row of detail.rows) {
+            // Skip child-replica rows; the parent row represents the query.
+            const parent = row.get(parentColumn);
+            if (parent != null && String(parent).length > 0) {
+              continue;
+            }
+            serials.add(String(row.get(serialColumn)));
+          }
+
+          querySerials = serials;
+          onDidUpdateEmitter.fire();
+        }
+      );
 
     const subscription: QueryInfoTableSubscription = {
       table,
       onDidUpdate: onDidUpdateEmitter.event,
+      getQuerySerials: () => querySerials,
       dispose: async (): Promise<void> => {
         removeUpdateListener();
         onDidUpdateEmitter.dispose();
         try {
+          tableSubscription.close();
           table.close();
         } catch (err) {
           logger.debug('Error closing QueryInfo table', err);

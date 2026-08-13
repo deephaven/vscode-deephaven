@@ -51,7 +51,7 @@ exports[`getPanelConnectionTreeItem > should return panel connection tree item: 
   "collapsibleState": 2,
   "iconPath": ThemeIcon {
     "color": undefined,
-    "id": "vm-connect",
+    "id": "remote",
   },
   "label": "Some Worker Label",
 }

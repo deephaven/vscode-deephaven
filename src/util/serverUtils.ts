@@ -43,6 +43,19 @@ export function getConsoleType(
 }
 
 /**
+ * Get the console type for a DHE query's `scriptLanguage` (e.g. `'Python'` /
+ * `'Groovy'`). DHE reports the language capitalized (it comes from the server's
+ * `scriptSessionProviders`), while `ConsoleType` is lower case.
+ * @param scriptLanguage `QueryInfo.scriptLanguage`, if known.
+ * @returns The console type, or undefined if the language is unset / unknown.
+ */
+export function getScriptLanguageConsoleType(
+  scriptLanguage?: string | null
+): ConsoleType | undefined {
+  return getConsoleType(scriptLanguage?.toLowerCase());
+}
+
+/**
  * Get the pip server URL for the given port.
  * @param port The port number to create a URL for
  * @returns The pip server URL

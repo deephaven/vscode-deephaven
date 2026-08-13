@@ -89,6 +89,7 @@ import {
   RemoteFileSourceService,
   PanelService,
   ParsedDocumentCache,
+  PersistentQueryService,
   PYTHON_FILE_PATTERN,
   SecretService,
   ServerManager,
@@ -104,6 +105,7 @@ import type {
   IDhcService,
   IDhcServiceFactory,
   IPanelService,
+  IPersistentQueryService,
   ISecretService,
   IServerManager,
   IToastService,
@@ -198,6 +200,7 @@ export class ExtensionController implements IDisposable {
   private _logFileHandler: LogFileHandler | null = null;
   private _panelController: PanelController | null = null;
   private _panelService: IPanelService | null = null;
+  private _persistentQueryService: IPersistentQueryService | null = null;
   private _pipServerController: PipServerController | null = null;
   private _dhcServiceFactory: IDhcServiceFactory | null = null;
   private _dheJsApiCache: IAsyncCacheService<URL, DheType> | null = null;
@@ -743,6 +746,15 @@ export class ExtensionController implements IDisposable {
     );
     this._context.subscriptions.push(this._serverManager);
 
+    // Shared PQ source for every view that lists persistent queries (the
+    // Persistent Queries tree and the Panels tree).
+    this._persistentQueryService = new PersistentQueryService(
+      this._serverManager,
+      this._dheServiceCache,
+      this._dheJsApiCache
+    );
+    this._context.subscriptions.push(this._persistentQueryService);
+
     this._serverManager.onDidDisconnect(
       serverUrl => {
         this._panelService?.clearServerData(serverUrl);
@@ -936,10 +948,12 @@ export class ExtensionController implements IDisposable {
     );
 
     // Connection Panel tree
+    assertDefined(this._persistentQueryService, 'persistentQueryService');
     this._serverConnectionPanelTreeProvider =
       new ServerConnectionPanelTreeProvider(
         this._serverManager,
-        this._panelService
+        this._panelService,
+        this._persistentQueryService
       );
     this._serverConnectionPanelTreeView =
       vscode.window.createTreeView<ServerConnectionPanelNode>(
@@ -953,8 +967,7 @@ export class ExtensionController implements IDisposable {
     // Persistent Queries tree
     this._persistentQueryTreeProvider = new PersistentQueryTreeProvider(
       this._serverManager,
-      this._dheServiceCache,
-      this._dheJsApiCache
+      this._persistentQueryService
     );
     this._persistentQueryTreeView =
       vscode.window.createTreeView<PersistentQueryTreeNode>(

@@ -154,6 +154,17 @@ export interface IPanelService extends IDisposable {
 }
 
 /**
+ * Source of the persistent queries visible on a DHE server, shared by every view
+ * that lists PQs. `onDidUpdate` fires whenever the underlying (ticking)
+ * `QueryInfo` table changes.
+ */
+export interface IPersistentQueryService extends IDisposable {
+  readonly onDidUpdate: vscode.Event<void>;
+
+  getPersistentQueries: (serverUrl: URL) => Promise<QueryInfo[]>;
+}
+
+/**
  * Secret service interface.
  */
 export interface ISecretService {
