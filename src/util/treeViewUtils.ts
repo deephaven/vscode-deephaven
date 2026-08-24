@@ -190,15 +190,13 @@ export function getPersistentQueryLanguageIconId(
 }
 
 /**
- * The status of a persistent query. Prefers the designated worker's live status
- * and falls back to the (deprecated) config-level status, which is the only one
- * available for a PQ with no designated worker (e.g. never started / stopped).
+ * Get the the status of a persistent query.
  * @param queryInfo The PQ whose status to read.
  */
 export function getPersistentQueryStatus(
   queryInfo: QueryInfo
 ): string | null | undefined {
-  return queryInfo.designated?.status ?? queryInfo.status;
+  return queryInfo.designated?.status;
 }
 
 /** Variable types that render as tables (mirrors the table icon set). */

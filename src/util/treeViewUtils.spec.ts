@@ -358,18 +358,16 @@ describe('getPersistentQueryStatus', () => {
   ): Parameters<typeof getPersistentQueryStatus>[0] =>
     overrides as unknown as Parameters<typeof getPersistentQueryStatus>[0];
 
-  it('prefers the designated worker status', () => {
+  it('returns the designated worker status', () => {
     expect(
       getPersistentQueryStatus(
-        makeQueryInfo({ designated: { status: 'Running' }, status: 'Stopped' })
+        makeQueryInfo({ designated: { status: 'Running' } })
       )
     ).toBe('Running');
   });
 
-  it('falls back to the config status when there is no designated worker', () => {
-    expect(getPersistentQueryStatus(makeQueryInfo({ status: 'Stopped' }))).toBe(
-      'Stopped'
-    );
+  it('returns undefined when there is no designated worker', () => {
+    expect(getPersistentQueryStatus(makeQueryInfo({}))).toBeUndefined();
   });
 });
 
