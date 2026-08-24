@@ -198,9 +198,12 @@ export class PersistentQueryService
     // the tree, so surface it rather than dropping it quietly.
     const unresolved = [...serials].filter(serial => !knownSerials.has(serial));
     if (unresolved.length > 0) {
+      // Capped: this fires on every tree refresh, and a server can hold tens of
+      // thousands of queries — stringifying the whole array each time would cost
+      // more than the lookup it is reporting on.
       logger.debug(
-        `Table serials with no known config for ${serverUrl.href}:`,
-        unresolved
+        `Table serials with no known config for ${serverUrl.href}: ${unresolved.length} total,`,
+        unresolved.slice(0, 20)
       );
     }
 

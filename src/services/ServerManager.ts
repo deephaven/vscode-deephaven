@@ -29,7 +29,9 @@ import {
   getInitialServerStates,
   isDisposable,
   isInstanceOf,
+  isConnectTimingEnabled,
   Logger,
+  startEventLoopLagSampler,
   uniqueId,
   URIMap,
   URLMap,
@@ -291,6 +293,16 @@ export class ServerManager implements IServerManager {
     this._pendingConnectionMap.set(serverUrl, withResolvers());
     this._onDidUpdate.fire();
 
+    // Covers the whole connect — the server tree's "connecting" spinner (which
+    // clears at `_resolvePendingServerConnection`, partway through) plus worker
+    // attach. Sampling event loop lag across it says whether a slow connect is
+    // the extension host working or waiting, which is the measurement that
+    // distinguishes a client-side bottleneck from an upstream one. Opt-in via
+    // `deephaven.diagnostics.connectTiming`.
+    const stopLagSampler = isConnectTimingEnabled()
+      ? startEventLoopLagSampler(`connectToServer ${serverUrl.href}`)
+      : null;
+
     let firstConnection: ConnectionState | null = null;
 
     try {
@@ -321,6 +333,7 @@ export class ServerManager implements IServerManager {
         return firstConnection;
       }
     } finally {
+      stopLagSampler?.();
       this._resolvePendingConnection(serverUrl, firstConnection);
     }
 

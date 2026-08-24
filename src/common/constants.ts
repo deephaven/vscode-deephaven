@@ -15,6 +15,7 @@ export const EXTENSION_ID = 'vscode-deephaven' as const;
 export const CONFIG_KEY = {
   root: 'deephaven',
   coreServers: 'coreServers',
+  diagnosticsConnectTiming: 'diagnostics.connectTiming',
   enterpriseServers: 'enterpriseServers',
   importPrefixes: 'importPrefixes',
   mcpAutoUpdateConfig: 'mcp.autoUpdateConfig',

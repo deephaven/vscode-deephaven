@@ -1,5 +1,6 @@
 export * from './dataUtils';
 export * from './configUtils';
+export * from './connectDiagnostics';
 export * from './documentUtils';
 export * from './envUtils';
 export * from './extensionApiUtils';
@@ -21,6 +22,7 @@ export * from './selectionUtils';
 export * from './serverUtils';
 export * from './sets';
 export * from './tmpUtils';
+export * from './transportUtils';
 export * from './treeViewUtils';
 export * from './Toaster';
 export * from './uiUtils';

@@ -45,11 +45,13 @@ import {
   type ViewID,
 } from '../common';
 import {
+  createConnectTimer,
   createExtensionInfo,
   deserializeRange,
   getEditorForUri,
   getGroovyTopLevelPackageName,
   getPythonTopLevelModuleFullname,
+  getSharedTransportFactory,
   getTempDir,
   isInstanceOf,
   isSerializedRange,
@@ -603,7 +605,7 @@ export class ExtensionController implements IDisposable {
         // so that we can provide a working NodeJS version of http2.
         transportFactory: isElectronFetchEnabled
           ? undefined
-          : NodeHttp2gRPCTransport.factory,
+          : getSharedTransportFactory(),
       };
 
       if (envoyPrefix != null) {
@@ -632,8 +634,16 @@ export class ExtensionController implements IDisposable {
       url: URL
     ): Promise<DheUnauthenticatedClientWrapper> => {
       assertDefined(this._dheJsApiCache, 'dheJsApiCache');
-      const dhe = await this._dheJsApiCache.get(url);
 
+      // On a cache miss this downloads ~5MB of `irisapi.nocache.js`, writes it
+      // synchronously, and `require`s it — all on the extension host thread, and
+      // all inside the server tree's "connecting" spinner. Timed separately from
+      // the websocket connect below so the two aren't conflated.
+      const doneJsApi = createConnectTimer();
+      const dhe = await this._dheJsApiCache.get(url);
+      doneJsApi('dheJsApiCache.get');
+
+      const doneConnect = createConnectTimer();
       const client: DheUnauthenticatedClient = await createDheClient(
         dhe,
         // While gplus forward will normalize the URL, Grizzly still requires
@@ -644,9 +654,13 @@ export class ExtensionController implements IDisposable {
           // should just be ignored if provided. We don't really have a good way
           // to determine if the server supports it or not, and gplus and beyond
           // require it on non-envoy servers, so we just always provide it.
-          transportFactory: NodeHttp2gRPCTransport.factory,
+          //
+          // The shared factory carries the HTTP/2 window sizes and, when
+          // diagnostics are on, upstream's native session/stream metrics.
+          transportFactory: getSharedTransportFactory(),
         }
       );
+      doneConnect('createDheClient (connect)');
 
       const wResolvers = withResolvers<SerializableRefreshToken | null>();
       let { promise: refreshTokenSerializedPromise } = wResolvers;

@@ -98,6 +98,11 @@
             "http://localhost:10000/"
           ]
         },
+        "deephaven.diagnostics.connectTiming": {
+          "description": "Log detailed connection timing and HTTP/2 transport diagnostics to the Deephaven Debug output channel. Useful for diagnosing slow server connections. Transport metrics require a window reload to take effect.",
+          "type": "boolean",
+          "default": false
+        },
         "deephaven.enterpriseServers": {
           "description": "List of Deephaven Enterprise servers that the extension can connect to.",
           "type": "array",
@@ -1175,7 +1180,7 @@
     "@deephaven-enterprise/jsapi-manager": "^2026.1.48",
     "@deephaven-enterprise/jsapi-nodejs": "^2026.1.48",
     "@deephaven-enterprise/query-utils": "^2026.1.48",
-    "@deephaven/jsapi-nodejs": "^1.15.0",
+    "@deephaven/jsapi-nodejs": "1.27.5-alpha-nodehttp2-config.98bcfa9.0",
     "@deephaven/jsapi-utils": "^1.16.0",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "archiver": "^7.0.1",
@@ -1222,6 +1227,7 @@
     "vscode-extension-tester": "^8.21.0"
   },
   "overrides": {
+    "@deephaven/jsapi-nodejs": "1.27.5-alpha-nodehttp2-config.98bcfa9.0",
     "undici": "^6.24.0",
     "diff": "^8.0.3",
     "serialize-javascript": "^7.0.3"
