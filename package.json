@@ -98,11 +98,6 @@
             "http://localhost:10000/"
           ]
         },
-        "deephaven.diagnostics.connectTiming": {
-          "description": "Log detailed connection timing and HTTP/2 transport diagnostics to the Deephaven Debug output channel. Useful for diagnosing slow server connections. Transport metrics require a window reload to take effect.",
-          "type": "boolean",
-          "default": false
-        },
         "deephaven.enterpriseServers": {
           "description": "List of Deephaven Enterprise servers that the extension can connect to.",
           "type": "array",
