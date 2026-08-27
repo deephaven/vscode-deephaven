@@ -165,6 +165,23 @@ export interface IPersistentQueryService extends IDisposable {
 }
 
 /**
+ * The Persistent Queries view's status filter. Stores the set of statuses to
+ * HIDE rather than the set to show: an inclusion set would make any status this
+ * extension has never heard of (a new one from a future DHE release) invisible
+ * by default and unreachable, whereas an exclusion set keeps an unknown status
+ * visible until the user hides it. `onDidUpdate` fires whenever the set changes.
+ */
+export interface IPersistentQueryStatusFilterService extends IDisposable {
+  readonly onDidUpdate: vscode.Event<void>;
+  /** Whether a query with this status should be listed. */
+  isVisible: (status: string | null | undefined) => boolean;
+  /** The statuses currently hidden (normalised; unset is ''). */
+  getHiddenStatuses: () => ReadonlySet<string>;
+  /** Replace the hidden set, persist it, and fire `onDidUpdate`. */
+  setHiddenStatuses: (hidden: Iterable<string>) => Promise<void>;
+}
+
+/**
  * Secret service interface.
  */
 export interface ISecretService {

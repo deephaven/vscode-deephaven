@@ -22,4 +22,6 @@ Editors can be dragged from one active connection to another.
 
 ## Persistent Queries
 
-The `PERSISTENT QUERIES` panel shows the persistent queries visible to you on each connected enterprise server, grouped into `Running` and `Stopped`. Queries that are starting up or otherwise in transition show a spinner and are listed under `Running`. Expanding a running query lists the objects it exports; clicking one opens it read-only in a panel.
+The `PERSISTENT QUERIES` panel shows the persistent queries visible to you on each connected enterprise server, listed directly beneath the server that owns them. Each query's icon shows its status: a filled circle for a running query, a slashed circle for a stopped or failed one, a hollow circle when the server reports no status, and a spinner while it is starting up. Expanding a running query lists the objects it exports; clicking one opens it read-only in a panel.
+
+The funnel in the panel title chooses which statuses are listed. It opens a checkbox list of every status with the number of queries currently in each; by default everything except the stopped ones is shown. The funnel is filled while a filter is hiding something, and each server node reports how many of its queries are visible (`(13 of 58)`).

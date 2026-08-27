@@ -6,8 +6,6 @@ import type {
   IPanelService,
   IServerManager,
   NonEmptyArray,
-  PersistentQueryGroup,
-  PersistentQueryGroupNode,
   PersistentQueryNode,
   ServerGroupState,
   ServerState,
@@ -26,7 +24,6 @@ import {
 } from '../common';
 import { sortByStringProp } from './dataUtils';
 import { isOpenablePanelVariable } from './panelUtils';
-import { getScriptLanguageConsoleType } from './serverUtils';
 
 /**
  * Get a tree item vscode.ThemeIcon for a variable type.
@@ -172,58 +169,33 @@ export function getPanelVariableLeaves(
 }
 
 /**
- * Which group a persistent query belongs to in the Persistent Queries tree.
- * Terminal statuses (`Stopped`, `Failed`, …) group under `Stopped`, and so does
- * an unset status — a stopped PQ can report none at all (it has no `designated`
- * block to carry one), so an unset status belongs with the terminal ones rather
- * than with the live ones. Everything else — `Running` plus the transitional
- * statuses (`Initializing`, `Connecting`, …) — groups under `Running`.
- * @param queryInfo The PQ to classify.
+ * Get the status icon for a persistent query, using the same circle vocabulary
+ * as the Servers tree:
+ * - `Running` → filled circle.
+ * - terminal (`Stopped`, `Failed`, …) → stop sign.
+ * - unset → open circle. An unknown status is NOT the same as a stopped one: a
+ *   PQ can be listed with no status yet (no `designated` block), and claiming it
+ *   stopped would be wrong. A spinner would be equally wrong — nothing is known
+ *   to be in progress.
+ * - anything else (`Initializing`, `Connecting`, …) → spinner.
+ * @param status The PQ status (`designated.status`, falling back to `status`).
  */
-export function getPersistentQueryGroup(
-  queryInfo: QueryInfo
-): PersistentQueryGroup {
-  const status = getPersistentQueryStatus(queryInfo);
-
-  return status == null || status === '' || isTerminalQueryStatus(status)
-    ? 'Stopped'
-    : 'Running';
-}
-
-/**
- * Get the icon for a persistent-query node. Status is carried by the node's
- * group ({@link getPersistentQueryGroup}), so the node itself shows the script
- * language — the same vocabulary its console-worker siblings use. The one
- * exception is a *transitional* status (`Initializing`, `Connecting`, …), which
- * shows the spinner because it is the one state the group can't express: such a
- * PQ sits under `Running` while not yet being run. An unset status gets the
- * language icon, not the spinner — nothing is known to be in progress.
- * @param queryInfo The PQ to draw.
- */
-export function getPersistentQueryNodeIconId(queryInfo: QueryInfo): string {
-  const status = getPersistentQueryStatus(queryInfo);
-
-  const isTransitional =
-    status != null &&
-    status !== '' &&
-    status !== 'Running' &&
-    !isTerminalQueryStatus(status);
-
-  return isTransitional
-    ? ICON_ID.connecting
-    : getPersistentQueryLanguageIconId(queryInfo.scriptLanguage);
-}
-
-/**
- * Get the script-language icon for a persistent query — the same icon its
- * console-worker siblings use in the Panels tree. Falls back to the generic
- * worker icon when the language is unset / unrecognized.
- * @param scriptLanguage The `queryInfo.scriptLanguage` value (e.g. `'Python'`).
- */
-export function getPersistentQueryLanguageIconId(
-  scriptLanguage?: string | null
+export function getPersistentQueryIconId(
+  status: string | null | undefined
 ): string {
-  return getConsoleTypeIconId(getScriptLanguageConsoleType(scriptLanguage));
+  if (status === 'Running') {
+    return ICON_ID.serverConnected;
+  }
+
+  if (status == null || status === '') {
+    return ICON_ID.serverRunning;
+  }
+
+  if (isTerminalQueryStatus(status)) {
+    return ICON_ID.serverStopped;
+  }
+
+  return ICON_ID.connecting;
 }
 
 /**
@@ -298,7 +270,7 @@ export function persistentQueryHasTables(queryInfo: QueryInfo): boolean {
 
 /**
  * Get `TreeItem` for a persistent-query node. The node carries the PQ name plus
- * its {@link getPersistentQueryNodeIconId} icon, and is collapsible only when
+ * its {@link getPersistentQueryIconId} status circle, and is collapsible only when
  * the PQ exposes objects *and* those objects can be opened
  * ({@link canBrowsePersistentQueryObjects}) — otherwise it renders
  * non-expandable so the tree never opens onto an empty list (both are known
@@ -328,40 +300,12 @@ export function getPersistentQueryTreeItem(
     label: queryInfo.name,
     description: queryInfo.owner ?? undefined,
     tooltip: `${queryInfo.name}${status == null ? '' : ` (${status})`}${countSuffix}`,
-    iconPath: new vscode.ThemeIcon(getPersistentQueryNodeIconId(queryInfo)),
+    iconPath: new vscode.ThemeIcon(getPersistentQueryIconId(status)),
     collapsibleState:
       objects.length > 0 && canBrowse
         ? vscode.TreeItemCollapsibleState.Collapsed
         : vscode.TreeItemCollapsibleState.None,
     contextValue: PERSISTENT_QUERY_TREE_ITEM_CONTEXT.isPersistentQuery,
-  };
-}
-
-/**
- * Get `TreeItem` for a status group node in the Persistent Queries tree. The
- * group carries the status vocabulary the PQ nodes beneath it dropped (the
- * Servers-tree circles), plus the number of queries it holds. `Stopped` renders
- * collapsed: a server can carry tens of thousands of queries, and auto-expanding
- * the terminal ones would bury the live ones.
- * @param node The group node.
- * @param count Number of persistent queries in the group.
- */
-export function getPersistentQueryGroupTreeItem(
-  node: PersistentQueryGroupNode,
-  count: number
-): vscode.TreeItem {
-  const isRunning = node.group === 'Running';
-
-  return {
-    label: node.group,
-    description: `(${count})`,
-    iconPath: new vscode.ThemeIcon(
-      isRunning ? ICON_ID.serverConnected : ICON_ID.serverStopped
-    ),
-    collapsibleState: isRunning
-      ? vscode.TreeItemCollapsibleState.Expanded
-      : vscode.TreeItemCollapsibleState.Collapsed,
-    contextValue: PERSISTENT_QUERY_TREE_ITEM_CONTEXT.isPersistentQueryGroup,
   };
 }
 
@@ -383,30 +327,15 @@ export function getPersistentQueryServerTreeItem(
 }
 
 /**
- * Type guard distinguishing a persistent-query node from the server, group, or
+ * Type guard distinguishing a persistent-query node from the server or
  * connection nodes it shares a tree with. A `PersistentQueryNode` carries a
  * `queryInfo`.
  * @param node The node to check.
  */
 export function isPersistentQueryNode(
-  node:
-    | ServerState
-    | ConnectionState
-    | PersistentQueryGroupNode
-    | PersistentQueryNode
+  node: ServerState | ConnectionState | PersistentQueryNode
 ): node is PersistentQueryNode {
   return (node as PersistentQueryNode).queryInfo != null;
-}
-
-/**
- * Type guard for a status group node in the Persistent Queries tree. A
- * `PersistentQueryGroupNode` carries a `group`.
- * @param node The node to check.
- */
-export function isPersistentQueryGroupNode(
-  node: ServerState | PersistentQueryGroupNode | PersistentQueryNode
-): node is PersistentQueryGroupNode {
-  return (node as PersistentQueryGroupNode).group != null;
 }
 
 /**

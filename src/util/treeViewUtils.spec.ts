@@ -6,15 +6,11 @@ import {
   getConnectionServerTreeItem,
   getPanelVariableLeaves,
   getPanelVariableTreeItem,
-  getPersistentQueryGroup,
-  getPersistentQueryGroupTreeItem,
-  getPersistentQueryNodeIconId,
+  getPersistentQueryIconId,
   getPersistentQueryObjectLeaves,
-  getPersistentQueryLanguageIconId,
   getPersistentQueryServerTreeItem,
   getPersistentQueryStatus,
   getPersistentQueryTreeItem,
-  isPersistentQueryGroupNode,
   isPersistentQueryNode,
   getWorkerNodeLabel,
   persistentQueryHasTables,
@@ -328,24 +324,10 @@ describe('groupServers', () => {
   });
 });
 
-describe('getPersistentQueryGroup', () => {
-  const makeQueryInfo = (
-    status: string | null | undefined
-  ): Parameters<typeof getPersistentQueryGroup>[0] =>
-    ({ designated: { status } }) as unknown as Parameters<
-      typeof getPersistentQueryGroup
-    >[0];
-
-  it('groups a Running PQ under Running', () => {
-    expect(getPersistentQueryGroup(makeQueryInfo('Running'))).toBe('Running');
+describe('getPersistentQueryIconId', () => {
+  it('returns the filled circle for a Running PQ', () => {
+    expect(getPersistentQueryIconId('Running')).toBe('circle-large-filled');
   });
-
-  it.each([['Initializing'], ['Connecting'], ['Queued']])(
-    'groups a transitional PQ under Running: %s',
-    status => {
-      expect(getPersistentQueryGroup(makeQueryInfo(status))).toBe('Running');
-    }
-  );
 
   it.each([
     ['Stopped'],
@@ -354,113 +336,23 @@ describe('getPersistentQueryGroup', () => {
     ['Error'],
     ['Disconnected'],
     ['Completed'],
-  ])('groups a terminal PQ under Stopped: %s', status => {
-    expect(getPersistentQueryGroup(makeQueryInfo(status))).toBe('Stopped');
+  ])('returns the stop sign for a terminal status: %s', status => {
+    expect(getPersistentQueryIconId(status)).toBe('circle-slash');
   });
 
   it.each([[null], [undefined], ['']])(
-    'groups an unset status under Stopped (a stopped PQ may report none): %s',
+    'returns the open circle for an unset status (not the same as stopped): %s',
     status => {
-      expect(
-        getPersistentQueryGroup(makeQueryInfo(status as string | null))
-      ).toBe('Stopped');
-    }
-  );
-
-  it('groups a PQ with no designated worker under Stopped', () => {
-    const queryInfo = {} as unknown as Parameters<
-      typeof getPersistentQueryGroup
-    >[0];
-    expect(getPersistentQueryGroup(queryInfo)).toBe('Stopped');
-  });
-});
-
-describe('getPersistentQueryNodeIconId', () => {
-  const makeQueryInfo = (
-    status: string | null | undefined,
-    scriptLanguage: string | null = 'Python'
-  ): Parameters<typeof getPersistentQueryNodeIconId>[0] =>
-    ({ designated: { status }, scriptLanguage }) as unknown as Parameters<
-      typeof getPersistentQueryNodeIconId
-    >[0];
-
-  it.each([['Running'], ['Stopped'], ['Failed'], [null], [undefined], ['']])(
-    'shows the language icon when the group already carries the status: %s',
-    status => {
-      expect(
-        getPersistentQueryNodeIconId(makeQueryInfo(status as string | null))
-      ).toBe('dh-python');
+      expect(getPersistentQueryIconId(status as string | null)).toBe(
+        'circle-large-outline'
+      );
     }
   );
 
   it.each([['Initializing'], ['Connecting'], ['Queued']])(
-    'shows the spinner for a transitional status: %s',
+    'returns the spinner for a status between running and stopped: %s',
     status => {
-      expect(getPersistentQueryNodeIconId(makeQueryInfo(status))).toBe(
-        'sync~spin'
-      );
-    }
-  );
-
-  it('falls back to the worker icon for an unknown language', () => {
-    expect(getPersistentQueryNodeIconId(makeQueryInfo('Running', null))).toBe(
-      'remote'
-    );
-  });
-});
-
-describe('getPersistentQueryGroupTreeItem', () => {
-  it.each([['Running'], ['Stopped']] as const)(
-    'renders the %s group',
-    group => {
-      const item = getPersistentQueryGroupTreeItem(
-        { dheServerUrl: new URL('https://dhe.example.com/'), group },
-        3
-      );
-      expect(item).toMatchSnapshot();
-    }
-  );
-});
-
-describe('isPersistentQueryGroupNode', () => {
-  it('is true for a node carrying a group', () => {
-    expect(
-      isPersistentQueryGroupNode({
-        dheServerUrl: new URL('https://dhe.example.com/'),
-        group: 'Running',
-      })
-    ).toBe(true);
-  });
-
-  it('is false for a persistent query node', () => {
-    expect(
-      isPersistentQueryGroupNode({
-        dheServerUrl: new URL('https://dhe.example.com/'),
-        queryInfo: {},
-      } as unknown as Parameters<typeof isPersistentQueryGroupNode>[0])
-    ).toBe(false);
-  });
-});
-
-describe('getPersistentQueryLanguageIconId', () => {
-  it.each([
-    ['Python', 'dh-python'],
-    ['python', 'dh-python'],
-    ['Groovy', 'coffee'],
-    ['groovy', 'coffee'],
-  ])(
-    'returns the language icon: scriptLanguage=%s',
-    (scriptLanguage, expected) => {
-      expect(getPersistentQueryLanguageIconId(scriptLanguage)).toBe(expected);
-    }
-  );
-
-  it.each([[null], [undefined], [''], ['Scala']])(
-    'falls back to the generic worker icon when the language is unknown: %s',
-    scriptLanguage => {
-      expect(
-        getPersistentQueryLanguageIconId(scriptLanguage as string | null)
-      ).toBe('remote');
+      expect(getPersistentQueryIconId(status)).toBe('sync~spin');
     }
   );
 });
@@ -529,18 +421,23 @@ describe('getPersistentQueryTreeItem', () => {
     expect(item.contextValue).toBe('isPersistentQuery');
   });
 
-  it('renders the script language icon', () => {
+  it('renders the status circle for a running PQ', () => {
     const item = getPersistentQueryTreeItem(
-      makeNode({ status: 'Running', objects: [] }, 'Groovy')
+      makeNode({ status: 'Running', objects: [] })
     );
-    expect((item.iconPath as vscode.ThemeIcon).id).toBe('coffee');
+    expect((item.iconPath as vscode.ThemeIcon).id).toBe('circle-large-filled');
   });
 
-  it('renders the language icon for a stopped PQ (status is on the group)', () => {
+  it('renders the stop sign for a stopped PQ', () => {
     const item = getPersistentQueryTreeItem(
       makeNode({ status: 'Stopped', objects: [] })
     );
-    expect((item.iconPath as vscode.ThemeIcon).id).toBe('dh-python');
+    expect((item.iconPath as vscode.ThemeIcon).id).toBe('circle-slash');
+  });
+
+  it('renders the open circle for a PQ with no status', () => {
+    const item = getPersistentQueryTreeItem(makeNode(undefined));
+    expect((item.iconPath as vscode.ThemeIcon).id).toBe('circle-large-outline');
   });
 
   it('renders the spinner for a transitional PQ', () => {

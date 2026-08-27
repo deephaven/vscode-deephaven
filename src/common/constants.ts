@@ -88,6 +88,26 @@ export function isTerminalQueryStatus(
   );
 }
 
+/**
+ * The canonical hidden-set key for "no status". A PQ can report its status as
+ * `null`, `undefined`, or `''` (the JS API maps a null status to an empty
+ * string), so all three normalise to this single entry.
+ */
+export const UNSET_QUERY_STATUS = '' as const;
+
+/**
+ * Statuses hidden by the Persistent Queries status filter on first run. The
+ * filter stores what to HIDE rather than what to show, so a status this
+ * extension has never heard of (a new one from a future DHE release) stays
+ * visible instead of silently disappearing. The default is "everything except
+ * terminal": the six terminal statuses plus the unset one, which belongs with
+ * them because a stopped PQ can report no status at all.
+ */
+export const DEFAULT_HIDDEN_QUERY_STATUSES: readonly string[] = [
+  ...TERMINAL_QUERY_STATUSES,
+  UNSET_QUERY_STATUS,
+];
+
 export const PIP_SERVER_SUPPORTED_PLATFORMS = new Set<NodeJS.Platform>([
   'darwin',
   'linux',
@@ -215,8 +235,6 @@ export const CONNECTION_TREE_ITEM_CONTEXT = {
 export const PERSISTENT_QUERY_TREE_ITEM_CONTEXT = {
   /** A DHE server grouping its persistent queries. */
   isPersistentQueryServer: 'isPersistentQueryServer',
-  /** A `Running` / `Stopped` status group under a server. */
-  isPersistentQueryGroup: 'isPersistentQueryGroup',
   /** A (non-InteractiveConsole) persistent query node. */
   isPersistentQuery: 'isPersistentQuery',
 } as const;
@@ -270,6 +288,14 @@ export const AUTH_CONFIG_SAML_LOGIN_URL =
   'authentication.client.samlauth.login.url' as const;
 
 export const CREATE_QUERY_SETTINGS_STORAGE_KEY = 'createQuerySettings' as const;
+
+/**
+ * `globalState` key for the Persistent Queries status filter (the set of
+ * statuses to hide). Global rather than workspace scoped so the filter follows
+ * the user across workspaces, matching `CREATE_QUERY_SETTINGS_STORAGE_KEY`.
+ */
+export const PERSISTENT_QUERY_HIDDEN_STATUSES_STORAGE_KEY =
+  'persistentQueryHiddenStatuses' as const;
 
 export const DH_SAML_AUTH_PROVIDER_TYPE = 'dhsaml' as const;
 export const DH_SAML_SERVER_URL_SCOPE_KEY = 'deephaven.samlServerUrl' as const;

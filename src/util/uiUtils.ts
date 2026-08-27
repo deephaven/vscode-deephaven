@@ -7,11 +7,14 @@ import type {
   PasswordCredentials,
   Username,
 } from '@deephaven-enterprise/auth-nodejs';
+import { QueryStatus } from '@deephaven-enterprise/query-utils';
 import {
   SELECT_CONNECTION_COMMAND,
   STATUS_BAR_CONNECTING_TEXT,
   STATUS_BAR_DISCONNECTED_TEXT,
   ICON_ID,
+  TERMINAL_QUERY_STATUSES,
+  UNSET_QUERY_STATUS,
   type ViewID,
 } from '../common';
 import { assertDefined, type BaseThemeKey } from '../shared';
@@ -647,6 +650,98 @@ export async function saveRequirementsTxt(
 }
 
 /**
+ * The transitional statuses, in `QueryStatus` declaration order — everything
+ * that is neither `Running` nor terminal. Listed explicitly (rather than
+ * derived by subtraction) so the picker's row order is stable regardless of what
+ * `QueryStatus` gains later; anything new simply falls into the "unrecognized"
+ * bucket at the bottom of the list.
+ */
+const TRANSITIONAL_QUERY_STATUSES: readonly string[] = [
+  QueryStatus.uninitialized,
+  QueryStatus.connecting,
+  QueryStatus.authenticating,
+  QueryStatus.acquiringWorker,
+  QueryStatus.findingDispatcher,
+  QueryStatus.initializing,
+  QueryStatus.executing,
+];
+
+/** A row in the {@link promptForQueryStatusFilter} picker. */
+interface QueryStatusPickItem extends vscode.QuickPickItem {
+  readonly status: string;
+}
+
+/**
+ * Prompt for the persistent-query statuses to show, as a multi-select checkbox
+ * list with one row per status and its current count.
+ *
+ * The rows are ordered by likelihood of interest rather than by `QueryStatus`
+ * declaration order: `Running` first, then the transitional statuses, then the
+ * terminal ones, then anything observed in the data that this extension doesn't
+ * recognize (so a status from a newer DHE release is still togglable), and
+ * finally the unset row.
+ *
+ * Returns the new set of statuses to HIDE — the storage the filter actually
+ * uses — or `undefined` if the picker was dismissed. A dismissal must be
+ * treated as "no change" by the caller; an empty set means "hide nothing".
+ * @param statusCounts How many queries currently carry each status (unset
+ * bucketed under `''`).
+ * @param hiddenStatuses The statuses currently hidden, used to seed the
+ * checkboxes.
+ */
+export async function promptForQueryStatusFilter(
+  statusCounts: ReadonlyMap<string, number>,
+  hiddenStatuses: ReadonlySet<string>
+): Promise<Set<string> | undefined> {
+  const known = [
+    QueryStatus.running,
+    ...TRANSITIONAL_QUERY_STATUSES,
+    ...TERMINAL_QUERY_STATUSES,
+  ];
+  const knownSet = new Set([...known, UNSET_QUERY_STATUS]);
+
+  // Any status the server reported that isn't in the known vocabulary still
+  // gets a row so it can be hidden / shown like the rest.
+  const unrecognized = [...statusCounts.keys()]
+    .filter(status => !knownSet.has(status))
+    .sort((a, b) => a.localeCompare(b));
+
+  const statuses = [...known, ...unrecognized, UNSET_QUERY_STATUS];
+
+  const items = statuses.map(
+    (status): QueryStatusPickItem => ({
+      status,
+      // `getDisplayString` returns 'None' for the unset status, which reads like
+      // a status literally named "None" — spell it out instead.
+      label:
+        status === UNSET_QUERY_STATUS
+          ? '(no status)'
+          : QueryStatus.getDisplayString(status),
+      description: String(statusCounts.get(status) ?? 0),
+      picked: !hiddenStatuses.has(status),
+    })
+  );
+
+  // `canPickMany` (a `QuickPickOptions` field) is what makes this a checkbox
+  // list. `canSelectMany` is the `QuickPick` *class* property and would silently
+  // give a single-select picker here.
+  const picked = await vscode.window.showQuickPick(items, {
+    canPickMany: true,
+    ignoreFocusOut: true,
+    title: 'Filter Persistent Queries',
+    placeHolder: 'Select the query statuses to show',
+  });
+
+  if (picked == null) {
+    return undefined;
+  }
+
+  const visible = new Set(picked.map(item => item.status));
+
+  return new Set(statuses.filter(status => !visible.has(status)));
+}
+
+/**
  * Set the `isVisible` state of a given view id. Uses extension context
  * `${viewId}.isVisible` to store the state. This can then be used in package.json
  * view configs to conditionally show or hide views based on their visibility.
@@ -658,5 +753,21 @@ export function setViewIsVisible(viewId: ViewID, isVisible: boolean): void {
     'setContext',
     `${viewId}.isVisible`,
     isVisible
+  );
+}
+
+/**
+ * Set the `isFiltered` state of a given view id. Uses extension context
+ * `${viewId}.isFiltered` to store the state. This lets package.json swap between
+ * two view-title actions bound to the same handler, since VS Code takes an
+ * action's icon from its command (hollow funnel vs. filled funnel).
+ * @param viewId The view ID to set the filtered state for.
+ * @param isFiltered Whether a filter is currently hiding anything.
+ */
+export function setViewIsFiltered(viewId: ViewID, isFiltered: boolean): void {
+  vscode.commands.executeCommand(
+    'setContext',
+    `${viewId}.isFiltered`,
+    isFiltered
   );
 }

@@ -1,22 +1,20 @@
 import type * as vscode from 'vscode';
 import type {
   IPersistentQueryService,
+  IPersistentQueryStatusFilterService,
   IServerManager,
-  PersistentQueryGroup,
-  PersistentQueryGroupNode,
   PersistentQueryNode,
   PersistentQueryTreeNode,
 } from '../types';
+import { UNSET_QUERY_STATUS } from '../common';
 import { ServerTreeProviderBase } from './ServerTreeProviderBase';
 import {
   getConnectionServerLabel,
   getPanelVariableTreeItem,
-  getPersistentQueryGroup,
-  getPersistentQueryGroupTreeItem,
   getPersistentQueryObjectLeaves,
   getPersistentQueryServerTreeItem,
+  getPersistentQueryStatus,
   getPersistentQueryTreeItem,
-  isPersistentQueryGroupNode,
   isPersistentQueryNode,
 } from '../util';
 
@@ -29,19 +27,25 @@ import {
  * Browse-only: no console session, no "attach", and the server-side PQ is never
  * deleted.
  *
+ * Which queries are listed is governed by the shared status filter
+ * (`IPersistentQueryStatusFilterService`); the server node's description states
+ * what the filter is doing, since a filter with no visible effect reads as a
+ * missing query.
+ *
  * Tree shape:
  *   root      → DHE `ServerState[]`
- *   server    → `PersistentQueryGroupNode[]`  (`Running` / `Stopped`)
- *   group     → `PersistentQueryNode[]`
- *   PQ        → `[URL, VariableDefintion][]`  (object leaves, opened on click)
+ *   server    → `PersistentQueryNode[]`      (alphabetized, status-filtered)
+ *   PQ        → `[URL, VariableDefintion][]` (object leaves, opened on click)
  */
 export class PersistentQueryTreeProvider extends ServerTreeProviderBase<PersistentQueryTreeNode> {
   constructor(
     serverManager: IServerManager,
-    persistentQueryService: IPersistentQueryService
+    persistentQueryService: IPersistentQueryService,
+    statusFilterService: IPersistentQueryStatusFilterService
   ) {
     super(serverManager);
     this._persistentQueryService = persistentQueryService;
+    this._statusFilterService = statusFilterService;
 
     // Refresh whenever the PQ set ticks.
     this.disposables.add(
@@ -49,9 +53,17 @@ export class PersistentQueryTreeProvider extends ServerTreeProviderBase<Persiste
         this._onDidChangeTreeData.fire();
       })
     );
+
+    // ...or whenever the user changes which statuses are listed.
+    this.disposables.add(
+      this._statusFilterService.onDidUpdate(() => {
+        this._onDidChangeTreeData.fire();
+      })
+    );
   }
 
   private readonly _persistentQueryService: IPersistentQueryService;
+  private readonly _statusFilterService: IPersistentQueryStatusFilterService;
 
   getTreeItem = async (
     node: PersistentQueryTreeNode
@@ -63,44 +75,58 @@ export class PersistentQueryTreeProvider extends ServerTreeProviderBase<Persiste
       return getPanelVariableTreeItem(node, false);
     }
 
-    // Persistent-query node. Status is carried by the group above it, so the
-    // node shows its script language (or a spinner while transitional).
+    // Persistent-query node, drawn with its status circle.
     if (isPersistentQueryNode(node)) {
       return getPersistentQueryTreeItem(node);
     }
 
-    // Status group node. Rendering the count means resolving the group's
-    // queries, which the service already has cached from `getChildren`.
-    if (isPersistentQueryGroupNode(node)) {
-      const queries = await this._getQueriesInGroup(
-        node.dheServerUrl,
-        node.group
-      );
+    // DHE server node grouping its persistent queries. Its description is the
+    // only always-visible statement of what the filter is hiding, so it reports
+    // the visible count against the total whenever a filter is active.
+    const queries = await this._persistentQueryService.getPersistentQueries(
+      node.url
+    );
+    const visibleCount = queries.filter(queryInfo =>
+      this._statusFilterService.isVisible(getPersistentQueryStatus(queryInfo))
+    ).length;
 
-      return getPersistentQueryGroupTreeItem(node, queries.length);
-    }
-
-    // DHE server node grouping its persistent queries.
-    return getPersistentQueryServerTreeItem(node);
+    return {
+      ...getPersistentQueryServerTreeItem(node),
+      description:
+        visibleCount === queries.length
+          ? `(${queries.length})`
+          : `(${visibleCount} of ${queries.length})`,
+    };
   };
 
   /**
-   * The server's persistent queries belonging to a given status group, sorted
-   * by name.
-   * @param dheServerUrl The DHE server URL.
-   * @param group The status group to filter to.
+   * How many queries carry each status, summed across every connected DHE
+   * server — the counts shown beside each row of the filter picker. Unset
+   * statuses bucket under {@link UNSET_QUERY_STATUS}, matching the filter's own
+   * normalisation. Counts are of *all* queries, not just the visible ones:
+   * a hidden status still needs its count so the user can see what unhiding it
+   * would bring back.
    */
-  private _getQueriesInGroup = async (
-    dheServerUrl: URL,
-    group: PersistentQueryGroup
-  ): Promise<PersistentQueryNode[]> => {
-    const queries =
-      await this._persistentQueryService.getPersistentQueries(dheServerUrl);
+  getStatusCounts = async (): Promise<Map<string, number>> => {
+    const servers = this.serverManager
+      .getServers({ type: 'DHE' })
+      .filter(server => server.isConnected);
 
-    return queries
-      .filter(queryInfo => getPersistentQueryGroup(queryInfo) === group)
-      .sort((a, b) => a.name.localeCompare(b.name))
-      .map((queryInfo): PersistentQueryNode => ({ dheServerUrl, queryInfo }));
+    const counts = new Map<string, number>();
+
+    for (const server of servers) {
+      const queries = await this._persistentQueryService.getPersistentQueries(
+        server.url
+      );
+
+      for (const queryInfo of queries) {
+        const status =
+          getPersistentQueryStatus(queryInfo) ?? UNSET_QUERY_STATUS;
+        counts.set(status, (counts.get(status) ?? 0) + 1);
+      }
+    }
+
+    return counts;
   };
 
   getChildren = async (
@@ -119,14 +145,6 @@ export class PersistentQueryTreeProvider extends ServerTreeProviderBase<Persiste
     // Object leaves have no children.
     if (Array.isArray(elementOrRoot)) {
       return [];
-    }
-
-    // Group node → its persistent queries.
-    if (isPersistentQueryGroupNode(elementOrRoot)) {
-      return this._getQueriesInGroup(
-        elementOrRoot.dheServerUrl,
-        elementOrRoot.group
-      );
     }
 
     // PQ node → its exported object leaves. Objects come straight off the
@@ -151,18 +169,17 @@ export class PersistentQueryTreeProvider extends ServerTreeProviderBase<Persiste
       );
     }
 
-    // Server node → its status groups. Empty groups are omitted so the tree
-    // never opens onto an empty list.
+    // Server node → its persistent queries, filtered by status and sorted by
+    // name.
     const dheServerUrl = elementOrRoot.url;
     const queries =
       await this._persistentQueryService.getPersistentQueries(dheServerUrl);
 
-    const groups: PersistentQueryGroup[] = ['Running', 'Stopped'];
-
-    return groups
-      .filter(group =>
-        queries.some(queryInfo => getPersistentQueryGroup(queryInfo) === group)
+    return queries
+      .filter(queryInfo =>
+        this._statusFilterService.isVisible(getPersistentQueryStatus(queryInfo))
       )
-      .map((group): PersistentQueryGroupNode => ({ dheServerUrl, group }));
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((queryInfo): PersistentQueryNode => ({ dheServerUrl, queryInfo }));
   };
 }

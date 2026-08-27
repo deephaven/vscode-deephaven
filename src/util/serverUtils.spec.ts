@@ -2,7 +2,6 @@ import { describe, it, expect, vi } from 'vitest';
 import {
   getInitialServerStates,
   getPipServerUrl,
-  getScriptLanguageConsoleType,
   getServerUrlFromState,
   isConnectionState,
   parsePort,
@@ -48,29 +47,6 @@ describe('getPipServerUrl', () => {
 
     expect(getPipServerUrl(givenPort)).toEqual(expectedURL);
   });
-});
-
-describe('getScriptLanguageConsoleType', () => {
-  it.each([
-    ['Python', 'python'],
-    ['python', 'python'],
-    ['Groovy', 'groovy'],
-    ['groovy', 'groovy'],
-  ] as const)(
-    'should map a DHE scriptLanguage to a console type: %s',
-    (scriptLanguage, expected) => {
-      expect(getScriptLanguageConsoleType(scriptLanguage)).toBe(expected);
-    }
-  );
-
-  it.each([[null], [undefined], [''], ['Scala']])(
-    'should return undefined for an unset / unknown language: %s',
-    scriptLanguage => {
-      expect(
-        getScriptLanguageConsoleType(scriptLanguage as string | null)
-      ).toBeUndefined();
-    }
-  );
 });
 
 describe('getServerUrlFromState', () => {

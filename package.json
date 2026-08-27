@@ -333,6 +333,16 @@
         "icon": "$(search)"
       },
       {
+        "command": "vscode-deephaven.filterPersistentQueries",
+        "title": "Filter Persistent Queries",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "vscode-deephaven.filterPersistentQueriesActive",
+        "title": "Filter Persistent Queries (filtered)",
+        "icon": "$(filter-filled)"
+      },
+      {
         "command": "vscode-deephaven.startServer",
         "title": "Deephaven: Start Server",
         "icon": "$(debug-start)"
@@ -898,6 +908,14 @@
           "when": "false"
         },
         {
+          "command": "vscode-deephaven.filterPersistentQueries",
+          "when": "false"
+        },
+        {
+          "command": "vscode-deephaven.filterPersistentQueriesActive",
+          "when": "false"
+        },
+        {
           "command": "vscode-deephaven.createCoreAuthenticatedClient",
           "when": "false"
         },
@@ -993,8 +1011,18 @@
           "when": "view == vscode-deephaven.view.remoteImportSourceTree"
         },
         {
+          "command": "vscode-deephaven.filterPersistentQueries",
+          "group": "navigation@1",
+          "when": "view == vscode-deephaven.view.persistentQueryTree && !vscode-deephaven.view.persistentQueryTree.isFiltered"
+        },
+        {
+          "command": "vscode-deephaven.filterPersistentQueriesActive",
+          "group": "navigation@1",
+          "when": "view == vscode-deephaven.view.persistentQueryTree && vscode-deephaven.view.persistentQueryTree.isFiltered"
+        },
+        {
           "command": "vscode-deephaven.refreshPersistentQueryTree",
-          "group": "navigation",
+          "group": "navigation@2",
           "when": "view == vscode-deephaven.view.persistentQueryTree"
         },
         {
@@ -1004,7 +1032,7 @@
         },
         {
           "command": "vscode-deephaven.searchPersistentQueries",
-          "group": "navigation",
+          "group": "navigation@3",
           "when": "view == vscode-deephaven.view.persistentQueryTree"
         },
         {

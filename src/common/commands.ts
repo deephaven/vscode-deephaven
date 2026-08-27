@@ -108,6 +108,14 @@ export const DISCONNECT_EDITOR_CMD = cmd('disconnectEditor');
 export const DISCONNECT_FROM_SERVER_CMD = cmd('disconnectFromServer');
 export const DISCONNECT_FROM_WORKER_CMD = cmd('disconnectFromWorker');
 export const DOWNLOAD_LOGS_CMD = cmd('downloadLogs');
+// The Persistent Queries status filter is one handler behind two command ids:
+// VS Code takes a view-title action's icon from the command, so the only way to
+// show a filled funnel while a filter is active is to contribute a second
+// command and swap between them on a `when` clause.
+export const FILTER_PERSISTENT_QUERIES_CMD = cmd('filterPersistentQueries');
+export const FILTER_PERSISTENT_QUERIES_ACTIVE_CMD = cmd(
+  'filterPersistentQueriesActive'
+);
 export const GENERATE_DHE_KEY_PAIR_CMD = cmd('generateDHEKeyPair');
 export const GENERATE_REQUIREMENTS_TXT_CMD = cmd('generateRequirementsTxt');
 export const OPEN_IN_BROWSER_CMD = cmd('openInBrowser');

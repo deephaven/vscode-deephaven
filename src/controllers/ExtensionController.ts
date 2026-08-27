@@ -27,6 +27,8 @@ import {
   REFRESH_SERVER_TREE_CMD,
   REMOVE_GROOVY_REMOTE_FILE_SOURCE_CMD,
   REMOVE_PYTHON_REMOTE_FILE_SOURCE_CMD,
+  FILTER_PERSISTENT_QUERIES_ACTIVE_CMD,
+  FILTER_PERSISTENT_QUERIES_CMD,
   REVEAL_IN_EXPLORER_CMD,
   RUN_CODE_COMMAND,
   RUN_MARKDOWN_CODEBLOCK_CMD,
@@ -58,9 +60,11 @@ import {
   Logger,
   OutputChannelWithHistory,
   parseMarkdownCodeblocks,
+  promptForQueryStatusFilter,
   sanitizeGRPCLogMessageArgs,
   saveLogFiles,
   serializeRefreshToken,
+  setViewIsFiltered,
   Toaster,
   URLMap,
   withResolvers,
@@ -89,6 +93,7 @@ import {
   PanelService,
   ParsedDocumentCache,
   PersistentQueryService,
+  PersistentQueryStatusFilterService,
   PYTHON_FILE_PATTERN,
   SecretService,
   ServerManager,
@@ -105,6 +110,7 @@ import type {
   IDhcServiceFactory,
   IPanelService,
   IPersistentQueryService,
+  IPersistentQueryStatusFilterService,
   ISecretService,
   IServerManager,
   IToastService,
@@ -199,6 +205,8 @@ export class ExtensionController implements IDisposable {
   private _panelController: PanelController | null = null;
   private _panelService: IPanelService | null = null;
   private _persistentQueryService: IPersistentQueryService | null = null;
+  private _persistentQueryStatusFilterService: IPersistentQueryStatusFilterService | null =
+    null;
   private _pipServerController: PipServerController | null = null;
   private _dhcServiceFactory: IDhcServiceFactory | null = null;
   private _dheJsApiCache: IAsyncCacheService<URL, DheType> | null = null;
@@ -752,6 +760,30 @@ export class ExtensionController implements IDisposable {
     );
     this._context.subscriptions.push(this._persistentQueryService);
 
+    // The Persistent Queries status filter. Owned here rather than by the tree
+    // provider so the `isFiltered` context key can be seeded from the persisted
+    // set at startup, before any command has run.
+    this._persistentQueryStatusFilterService =
+      new PersistentQueryStatusFilterService(this._context);
+    this._context.subscriptions.push(this._persistentQueryStatusFilterService);
+
+    setViewIsFiltered(
+      VIEW_ID.persistentQueryTree,
+      this._persistentQueryStatusFilterService.getHiddenStatuses().size > 0
+    );
+
+    this._persistentQueryStatusFilterService.onDidUpdate(
+      () => {
+        setViewIsFiltered(
+          VIEW_ID.persistentQueryTree,
+          (this._persistentQueryStatusFilterService?.getHiddenStatuses().size ??
+            0) > 0
+        );
+      },
+      undefined,
+      this._context.subscriptions
+    );
+
     this._serverManager.onDidDisconnect(
       serverUrl => {
         this._panelService?.clearServerData(serverUrl);
@@ -844,6 +876,20 @@ export class ExtensionController implements IDisposable {
     this.registerCommand(
       REFRESH_PERSISTENT_QUERY_TREE_CMD,
       this.onRefreshPersistentQueryTree
+    );
+
+    /**
+     * Filter persistent queries by status. Two command ids share one handler so
+     * the view-title action can render a filled funnel while a filter is active
+     * (VS Code reads an action's icon from its command).
+     */
+    this.registerCommand(
+      FILTER_PERSISTENT_QUERIES_CMD,
+      this.onFilterPersistentQueries
+    );
+    this.registerCommand(
+      FILTER_PERSISTENT_QUERIES_ACTIVE_CMD,
+      this.onFilterPersistentQueries
     );
 
     /** Remote import source tree */
@@ -947,9 +993,14 @@ export class ExtensionController implements IDisposable {
 
     // Persistent Queries tree
     assertDefined(this._persistentQueryService, 'persistentQueryService');
+    assertDefined(
+      this._persistentQueryStatusFilterService,
+      'persistentQueryStatusFilterService'
+    );
     this._persistentQueryTreeProvider = new PersistentQueryTreeProvider(
       this._serverManager,
-      this._persistentQueryService
+      this._persistentQueryService,
+      this._persistentQueryStatusFilterService
     );
     this._persistentQueryTreeView =
       vscode.window.createTreeView<PersistentQueryTreeNode>(
@@ -1240,6 +1291,34 @@ export class ExtensionController implements IDisposable {
 
   onRefreshPersistentQueryTree = async (): Promise<void> => {
     this._persistentQueryTreeProvider?.refresh();
+  };
+
+  /**
+   * Prompt for the persistent-query statuses to show. Shared by both filter
+   * command ids. A dismissed picker resolves `undefined` and must leave the
+   * filter untouched — treating it as an empty selection would hide everything.
+   */
+  onFilterPersistentQueries = async (): Promise<void> => {
+    if (
+      this._persistentQueryTreeProvider == null ||
+      this._persistentQueryStatusFilterService == null
+    ) {
+      return;
+    }
+
+    const statusCounts =
+      await this._persistentQueryTreeProvider.getStatusCounts();
+
+    const hidden = await promptForQueryStatusFilter(
+      statusCounts,
+      this._persistentQueryStatusFilterService.getHiddenStatuses()
+    );
+
+    if (hidden == null) {
+      return;
+    }
+
+    await this._persistentQueryStatusFilterService.setHiddenStatuses(hidden);
   };
 
   onRevealInExplorer = async (

@@ -9,7 +9,10 @@ import {
   createConnectionQuickPickOptions,
   createSeparatorPickItem,
   promptForCredentials,
+  promptForQueryStatusFilter,
+  setViewIsFiltered,
 } from './uiUtils';
+import { UNSET_QUERY_STATUS, type ViewID } from '../common';
 import type {
   ConnectionState,
   CoreConnectionConfig,
@@ -272,4 +275,158 @@ describe('promptForCredentials', () => {
       expect(actual).toEqual(expected);
     }
   );
+});
+
+describe('setViewIsFiltered', () => {
+  it.each([[true], [false]])(
+    'should set the `${viewId}.isFiltered` context key: %s',
+    isFiltered => {
+      const viewId = 'mock.viewId' as ViewID;
+
+      setViewIsFiltered(viewId, isFiltered);
+
+      expect(vscode.commands.executeCommand).toHaveBeenCalledWith(
+        'setContext',
+        'mock.viewId.isFiltered',
+        isFiltered
+      );
+    }
+  );
+});
+
+describe('promptForQueryStatusFilter', () => {
+  /** Grab the items the picker was shown, ignoring the options argument. */
+  function shownItems(): {
+    label: string;
+    description?: string;
+    picked?: boolean;
+  }[] {
+    return vi.mocked(vscode.window.showQuickPick).mock.calls[0][0] as never;
+  }
+
+  it('lists Running, then transitional, then terminal, then unset', async () => {
+    vi.mocked(vscode.window.showQuickPick).mockResolvedValue(
+      undefined as never
+    );
+
+    await promptForQueryStatusFilter(new Map(), new Set());
+
+    expect(shownItems().map(item => item.label)).toEqual([
+      'Running',
+      'Uninitialized',
+      'Connecting',
+      'Authenticating',
+      'Acquiring Worker',
+      'Finding Dispatcher',
+      'Initializing',
+      'Executing',
+      'Stopping',
+      'Stopped',
+      'Failed',
+      'Error',
+      'Disconnected',
+      'Completed',
+      '(no status)',
+    ]);
+  });
+
+  it('is a multi-select picker (canPickMany, not canSelectMany)', async () => {
+    vi.mocked(vscode.window.showQuickPick).mockResolvedValue(
+      undefined as never
+    );
+
+    await promptForQueryStatusFilter(new Map(), new Set());
+
+    expect(
+      vi.mocked(vscode.window.showQuickPick).mock.calls[0][1]
+    ).toMatchObject({
+      canPickMany: true,
+      ignoreFocusOut: true,
+      placeHolder: 'Select the query statuses to show',
+    });
+  });
+
+  it('shows counts (0 when absent) and checks the statuses that are not hidden', async () => {
+    vi.mocked(vscode.window.showQuickPick).mockResolvedValue(
+      undefined as never
+    );
+
+    await promptForQueryStatusFilter(
+      new Map([
+        ['Running', 13],
+        [UNSET_QUERY_STATUS, 2],
+      ]),
+      new Set(['Stopped', UNSET_QUERY_STATUS])
+    );
+
+    const byLabel = new Map(shownItems().map(item => [item.label, item]));
+
+    expect(byLabel.get('Running')).toMatchObject({
+      description: '13',
+      picked: true,
+    });
+    expect(byLabel.get('(no status)')).toMatchObject({
+      description: '2',
+      picked: false,
+    });
+    expect(byLabel.get('Stopped')).toMatchObject({
+      description: '0',
+      picked: false,
+    });
+    expect(byLabel.get('Connecting')).toMatchObject({
+      description: '0',
+      picked: true,
+    });
+  });
+
+  it('gives a row to a status it does not recognize, alphabetized before the unset row', async () => {
+    vi.mocked(vscode.window.showQuickPick).mockResolvedValue(
+      undefined as never
+    );
+
+    await promptForQueryStatusFilter(
+      new Map([
+        ['Zombie', 1],
+        ['Hibernating', 3],
+      ]),
+      new Set()
+    );
+
+    const labels = shownItems().map(item => item.label);
+    expect(labels.slice(-3)).toEqual(['Hibernating', 'Zombie', '(no status)']);
+  });
+
+  it('returns the statuses that were NOT picked (the hidden set)', async () => {
+    vi.mocked(vscode.window.showQuickPick).mockImplementation(
+      (async (items: { status: string }[]) =>
+        items.filter(item => item.status === 'Running')) as never
+    );
+
+    const hidden = await promptForQueryStatusFilter(new Map(), new Set());
+
+    expect(hidden).toBeDefined();
+    expect(hidden?.has('Running')).toBe(false);
+    expect(hidden?.has('Stopped')).toBe(true);
+    expect(hidden?.has(UNSET_QUERY_STATUS)).toBe(true);
+  });
+
+  it('returns an empty hidden set when everything is picked', async () => {
+    vi.mocked(vscode.window.showQuickPick).mockImplementation(
+      (async (items: unknown[]) => items) as never
+    );
+
+    const hidden = await promptForQueryStatusFilter(new Map(), new Set());
+
+    expect(hidden?.size).toBe(0);
+  });
+
+  it('returns undefined when the picker is dismissed, so the caller leaves the filter alone', async () => {
+    vi.mocked(vscode.window.showQuickPick).mockResolvedValue(
+      undefined as never
+    );
+
+    expect(
+      await promptForQueryStatusFilter(new Map(), new Set(['Stopped']))
+    ).toBeUndefined();
+  });
 });
