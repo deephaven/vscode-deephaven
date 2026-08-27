@@ -300,19 +300,37 @@ describe('promptForQueryStatusFilter', () => {
     label: string;
     description?: string;
     picked?: boolean;
+    kind?: vscode.QuickPickItemKind;
   }[] {
     return vi.mocked(vscode.window.showQuickPick).mock.calls[0][0] as never;
   }
 
-  it('lists Running, then transitional, then terminal, then unset', async () => {
+  /** The checkbox rows only, with the group separators dropped. */
+  function shownStatusRows(): ReturnType<typeof shownItems> {
+    return shownItems().filter(
+      item => item.kind !== vscode.QuickPickItemKind.Separator
+    );
+  }
+
+  it('groups the rows under separators: Running, starting up, stopped', async () => {
     vi.mocked(vscode.window.showQuickPick).mockResolvedValue(
       undefined as never
     );
 
     await promptForQueryStatusFilter(new Map(), new Set());
 
-    expect(shownItems().map(item => item.label)).toEqual([
+    // The unset row sits with the terminal statuses: a query reporting no
+    // status has stopped without saying so.
+    expect(
+      shownItems().map(item =>
+        item.kind === vscode.QuickPickItemKind.Separator
+          ? `-- ${item.label} --`
+          : item.label
+      )
+    ).toEqual([
+      '-- Running --',
       'Running',
+      '-- Starting up --',
       'Uninitialized',
       'Connecting',
       'Authenticating',
@@ -320,6 +338,7 @@ describe('promptForQueryStatusFilter', () => {
       'Finding Dispatcher',
       'Initializing',
       'Executing',
+      '-- Stopped --',
       'Stopping',
       'Stopped',
       'Failed',
@@ -328,6 +347,16 @@ describe('promptForQueryStatusFilter', () => {
       'Completed',
       '(no status)',
     ]);
+  });
+
+  it('omits the Other separator when every status is recognized', async () => {
+    vi.mocked(vscode.window.showQuickPick).mockResolvedValue(
+      undefined as never
+    );
+
+    await promptForQueryStatusFilter(new Map([['Running', 1]]), new Set());
+
+    expect(shownItems().map(item => item.label)).not.toContain('Other');
   });
 
   it('is a multi-select picker (canPickMany, not canSelectMany)', async () => {
@@ -398,7 +427,7 @@ describe('promptForQueryStatusFilter', () => {
     expect(byLabel.get('(no status)')?.description).toBe('20,001');
   });
 
-  it('gives a row to a status it does not recognize, alphabetized before the unset row', async () => {
+  it('gives unrecognized statuses their own trailing group, alphabetized', async () => {
     vi.mocked(vscode.window.showQuickPick).mockResolvedValue(
       undefined as never
     );
@@ -412,7 +441,9 @@ describe('promptForQueryStatusFilter', () => {
     );
 
     const labels = shownItems().map(item => item.label);
-    expect(labels.slice(-3)).toEqual(['Hibernating', 'Zombie', '(no status)']);
+    expect(labels.slice(-3)).toEqual(['Other', 'Hibernating', 'Zombie']);
+    // ...and the unset row stays with the terminal statuses.
+    expect(shownStatusRows().at(-3)?.label).toBe('(no status)');
   });
 
   it('returns the statuses that were NOT picked (the hidden set)', async () => {

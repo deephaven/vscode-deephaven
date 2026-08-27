@@ -679,11 +679,17 @@ interface QueryStatusPickItem extends vscode.QuickPickItem {
  * Prompt for the persistent-query statuses to show, as a multi-select checkbox
  * list with one row per status and its current count.
  *
- * The rows are ordered by likelihood of interest rather than by `QueryStatus`
- * declaration order: `Running` first, then the transitional statuses, then the
- * terminal ones, then anything observed in the data that this extension doesn't
- * recognize (so a status from a newer DHE release is still togglable), and
- * finally the unset row.
+ * The rows are grouped by separators rather than listed flat, and ordered by
+ * likelihood of interest rather than by `QueryStatus` declaration order:
+ * `Running`, then the transitional statuses, then the terminal ones — which
+ * include the unset row, since a query that reports no status has stopped
+ * without saying so — and finally anything observed in the data that this
+ * extension doesn't recognize (so a status from a newer DHE release is still
+ * togglable). A group with no rows contributes no separator.
+ *
+ * Separators are visual only: VS Code ignores every property but `label` on
+ * them and they cannot be picked, so there is no way to toggle a whole group in
+ * one click.
  *
  * Returns the new set of statuses to HIDE — the storage the filter actually
  * uses — or `undefined` if the picker was dismissed. A dismissal must be
@@ -697,12 +703,13 @@ export async function promptForQueryStatusFilter(
   statusCounts: ReadonlyMap<string, number>,
   hiddenStatuses: ReadonlySet<string>
 ): Promise<Set<string> | undefined> {
+  const terminal = [...TERMINAL_QUERY_STATUSES, UNSET_QUERY_STATUS];
   const known = [
     QueryStatus.running,
     ...TRANSITIONAL_QUERY_STATUSES,
-    ...TERMINAL_QUERY_STATUSES,
+    ...terminal,
   ];
-  const knownSet = new Set([...known, UNSET_QUERY_STATUS]);
+  const knownSet = new Set(known);
 
   // Any status the server reported that isn't in the known vocabulary still
   // gets a row so it can be hidden / shown like the rest.
@@ -710,21 +717,34 @@ export async function promptForQueryStatusFilter(
     .filter(status => !knownSet.has(status))
     .sort((a, b) => a.localeCompare(b));
 
-  const statuses = [...known, ...unrecognized, UNSET_QUERY_STATUS];
+  const statuses = [...known, ...unrecognized];
 
-  const items = statuses.map(
-    (status): QueryStatusPickItem => ({
-      status,
-      // `getDisplayString` returns 'None' for the unset status, which reads like
-      // a status literally named "None" — spell it out instead.
-      label:
-        status === UNSET_QUERY_STATUS
-          ? '(no status)'
-          : QueryStatus.getDisplayString(status),
-      description: formatCount(statusCounts.get(status) ?? 0),
-      picked: !hiddenStatuses.has(status),
-    })
-  );
+  const toItem = (status: string): QueryStatusPickItem => ({
+    status,
+    // `getDisplayString` returns 'None' for the unset status, which reads like
+    // a status literally named "None" — spell it out instead.
+    label:
+      status === UNSET_QUERY_STATUS
+        ? '(no status)'
+        : QueryStatus.getDisplayString(status),
+    description: formatCount(statusCounts.get(status) ?? 0),
+    picked: !hiddenStatuses.has(status),
+  });
+
+  const items: (SeparatorPickItem | QueryStatusPickItem)[] = [];
+
+  const pushGroup = (label: string, groupStatuses: string[]): void => {
+    if (groupStatuses.length === 0) {
+      return;
+    }
+
+    items.push(createSeparatorPickItem(label), ...groupStatuses.map(toItem));
+  };
+
+  pushGroup('Running', [QueryStatus.running]);
+  pushGroup('Starting up', [...TRANSITIONAL_QUERY_STATUSES]);
+  pushGroup('Stopped', terminal);
+  pushGroup('Other', unrecognized);
 
   // `canPickMany` (a `QuickPickOptions` field) is what makes this a checkbox
   // list. `canSelectMany` is the `QuickPick` *class* property and would silently
@@ -740,7 +760,13 @@ export async function promptForQueryStatusFilter(
     return undefined;
   }
 
-  const visible = new Set(picked.map(item => item.status));
+  // Separators are never returned by the picker, but the item union includes
+  // them — narrow before reading `status`.
+  const visible = new Set(
+    picked
+      .filter((item): item is QueryStatusPickItem => 'status' in item)
+      .map(item => item.status)
+  );
 
   return new Set(statuses.filter(status => !visible.has(status)));
 }
