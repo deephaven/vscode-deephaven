@@ -34,6 +34,7 @@ import {
   RUN_SELECTION_COMMAND,
   SEARCH_CONNECTIONS_CMD,
   SEARCH_PANELS_CMD,
+  SEARCH_PERSISTENT_QUERIES_CMD,
   START_SERVER_CMD,
   STOP_SERVER_CMD,
   VIEW_ID,
@@ -888,6 +889,13 @@ export class ExtensionController implements IDisposable {
       SEARCH_PANELS_CMD,
       this.onSearchTree,
       VIEW_ID.serverConnectionPanelTree
+    );
+
+    /** Search persistent queries */
+    this.registerCommand(
+      SEARCH_PERSISTENT_QUERIES_CMD,
+      this.onSearchTree,
+      VIEW_ID.persistentQueryTree
     );
 
     this.registerCommand(DELETE_VARIABLE_CMD, this.onDeleteVariable);

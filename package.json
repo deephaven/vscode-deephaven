@@ -338,6 +338,11 @@
         "icon": "$(search)"
       },
       {
+        "command": "vscode-deephaven.searchPersistentQueries",
+        "title": "Search Persistent Queries",
+        "icon": "$(search)"
+      },
+      {
         "command": "vscode-deephaven.startServer",
         "title": "Deephaven: Start Server",
         "icon": "$(debug-start)"
@@ -907,6 +912,10 @@
           "when": "false"
         },
         {
+          "command": "vscode-deephaven.searchPersistentQueries",
+          "when": "false"
+        },
+        {
           "command": "vscode-deephaven.createCoreAuthenticatedClient",
           "when": "false"
         },
@@ -1020,6 +1029,11 @@
           "command": "vscode-deephaven.searchPanels",
           "group": "navigation",
           "when": "view == vscode-deephaven.view.serverConnectionPanelTree"
+        },
+        {
+          "command": "vscode-deephaven.searchPersistentQueries",
+          "group": "navigation",
+          "when": "view == vscode-deephaven.view.persistentQueryTree"
         },
         {
           "command": "vscode-deephaven.view.createQuery.close",

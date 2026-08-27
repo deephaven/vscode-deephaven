@@ -136,6 +136,7 @@ export const RUN_MARKDOWN_CODEBLOCK_CMD = cmd('runMarkdownCodeBlock');
 export const RUN_SELECTION_COMMAND = cmd('runSelection');
 export const SEARCH_CONNECTIONS_CMD = cmd('searchConnections');
 export const SEARCH_PANELS_CMD = cmd('searchPanels');
+export const SEARCH_PERSISTENT_QUERIES_CMD = cmd('searchPersistentQueries');
 export const SELECT_CONNECTION_COMMAND = cmd('selectConnection');
 export const SHOW_MCP_QUICK_PICK_CMD = cmd('showMcpQuickPick');
 export const START_SERVER_CMD = cmd('startServer');
