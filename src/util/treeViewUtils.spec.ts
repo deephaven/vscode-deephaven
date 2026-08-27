@@ -4,7 +4,6 @@ import { bitValues, boolValues, matrix } from '../testUtils';
 import {
   canBrowsePersistentQueryObjects,
   getConnectionServerTreeItem,
-  getPanelConnectionTreeItem,
   getPanelVariableLeaves,
   getPanelVariableTreeItem,
   getPersistentQueryGroup,
@@ -29,20 +28,16 @@ import {
   groupServers,
 } from './treeViewUtils';
 import type {
-  ConsoleType,
-  IDhcService,
   IPanelService,
   Psk,
   ServerState,
   VariableDefintion,
   VariableType,
 } from '../types';
-import { isInstanceOf } from './isInstanceOf';
 import { DH_PROTECTED_VARIABLE_NAMES } from '../common';
 
 // See __mocks__/vscode.ts for the mock implementation
 vi.mock('vscode');
-vi.mock('../util/isInstanceOf.ts');
 
 const variableTypes: readonly VariableType[] = [
   'deephaven.plot.express.DeephavenFigure',
@@ -57,38 +52,6 @@ const variableTypes: readonly VariableType[] = [
   'Treemap',
   'TreeTable',
 ] as const;
-
-describe('getPanelConnectionTreeItem', () => {
-  const getConsoleTypes: IDhcService['getConsoleTypes'] = vi
-    .fn()
-    .mockResolvedValue(new Set<ConsoleType>(['python']));
-
-  const serverUrl = new URL('http://localhost:10000');
-
-  it.each(matrix(boolValues, boolValues))(
-    'should return panel connection tree item: isConnected:%s, isInitialized:%s',
-    async (isConnected, isInitialized) => {
-      const connection = {
-        isConnected,
-        isInitialized,
-        serverUrl,
-        getConsoleTypes,
-      } as IDhcService;
-
-      vi.mocked(isInstanceOf).mockReturnValue(true);
-
-      const actual = await getPanelConnectionTreeItem(
-        connection,
-        async () => {
-          const [consoleType] = await getConsoleTypes();
-          return isInitialized ? consoleType : undefined;
-        },
-        'Some Worker Label'
-      );
-      expect(actual).toMatchSnapshot();
-    }
-  );
-});
 
 describe('getConnectionServerTreeItem', () => {
   it('should return a labeled server tree item', () => {

@@ -21,7 +21,6 @@ import {
   DOWNLOAD_LOGS_CMD,
   GENERATE_REQUIREMENTS_TXT_CMD,
   OPEN_IN_BROWSER_CMD,
-  REFRESH_PANELS_TREE_CMD,
   REFRESH_PERSISTENT_QUERY_TREE_CMD,
   REFRESH_REMOTE_IMPORT_SOURCE_TREE_CMD,
   REFRESH_SERVER_CONNECTION_TREE_CMD,
@@ -33,7 +32,6 @@ import {
   RUN_MARKDOWN_CODEBLOCK_CMD,
   RUN_SELECTION_COMMAND,
   SEARCH_CONNECTIONS_CMD,
-  SEARCH_PANELS_CMD,
   SEARCH_PERSISTENT_QUERIES_CMD,
   START_SERVER_CMD,
   STOP_SERVER_CMD,
@@ -72,7 +70,6 @@ import {
   RunCommandCodeLensProvider,
   ServerTreeProvider,
   ServerConnectionTreeProvider,
-  ServerConnectionPanelTreeProvider,
   PersistentQueryTreeProvider,
   runSelectedLinesHoverProvider,
   RunMarkdownCodeBlockCodeLensProvider,
@@ -112,8 +109,6 @@ import type {
   IServerManager,
   IToastService,
   ServerConnectionNode,
-  ServerConnectionPanelNode,
-  ServerConnectionPanelTreeView,
   PersistentQueryTreeNode,
   PersistentQueryTreeView,
   ServerConnectionTreeView,
@@ -221,8 +216,6 @@ export class ExtensionController implements IDisposable {
   private _serverTreeProvider: ServerTreeProvider | null = null;
   private _serverConnectionTreeProvider: ServerConnectionTreeProvider | null =
     null;
-  private _serverConnectionPanelTreeProvider: ServerConnectionPanelTreeProvider | null =
-    null;
   private _persistentQueryTreeProvider: PersistentQueryTreeProvider | null =
     null;
   private _remoteImportSourceTreeProvider: RemoteImportSourceTreeProvider | null =
@@ -231,8 +224,6 @@ export class ExtensionController implements IDisposable {
   // Tree views
   private _serverTreeView: ServerTreeView | null = null;
   private _serverConnectionTreeView: ServerConnectionTreeView | null = null;
-  private _serverConnectionPanelTreeView: ServerConnectionPanelTreeView | null =
-    null;
   private _persistentQueryTreeView: PersistentQueryTreeView | null = null;
   private _remoteImportSourceTreeView: RemoteImportSourceTreeView | null = null;
 
@@ -848,7 +839,6 @@ export class ExtensionController implements IDisposable {
     );
 
     /** Refresh variable panels tree */
-    this.registerCommand(REFRESH_PANELS_TREE_CMD, this.onRefreshServerStatus);
 
     /** Refresh persistent query tree */
     this.registerCommand(
@@ -883,13 +873,6 @@ export class ExtensionController implements IDisposable {
       SEARCH_CONNECTIONS_CMD,
       this.onSearchTree,
       VIEW_ID.serverConnectionTree
-    );
-
-    /** Search variable panels */
-    this.registerCommand(
-      SEARCH_PANELS_CMD,
-      this.onSearchTree,
-      VIEW_ID.serverConnectionPanelTree
     );
 
     /** Search persistent queries */
@@ -962,24 +945,8 @@ export class ExtensionController implements IDisposable {
       )
     );
 
-    // Connection Panel tree
-    assertDefined(this._persistentQueryService, 'persistentQueryService');
-    this._serverConnectionPanelTreeProvider =
-      new ServerConnectionPanelTreeProvider(
-        this._serverManager,
-        this._panelService,
-        this._persistentQueryService
-      );
-    this._serverConnectionPanelTreeView =
-      vscode.window.createTreeView<ServerConnectionPanelNode>(
-        VIEW_ID.serverConnectionPanelTree,
-        {
-          showCollapseAll: true,
-          treeDataProvider: this._serverConnectionPanelTreeProvider,
-        }
-      );
-
     // Persistent Queries tree
+    assertDefined(this._persistentQueryService, 'persistentQueryService');
     this._persistentQueryTreeProvider = new PersistentQueryTreeProvider(
       this._serverManager,
       this._persistentQueryService
@@ -1010,12 +977,10 @@ export class ExtensionController implements IDisposable {
     this._context.subscriptions.push(
       this._serverTreeView,
       this._serverConnectionTreeView,
-      this._serverConnectionPanelTreeView,
       this._persistentQueryTreeView,
       this._remoteImportSourceTreeView,
       this._serverTreeProvider,
       this._serverConnectionTreeProvider,
-      this._serverConnectionPanelTreeProvider,
       this._persistentQueryTreeProvider,
       this._remoteImportSourceTreeProvider
     );

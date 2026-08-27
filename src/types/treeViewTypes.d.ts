@@ -27,22 +27,6 @@ export interface ServerConnectionTreeView
   extends vscode.TreeView<ServerConnectionNode> {}
 
 /**
- * A node in the Panels tree:
- * - `ServerState`: a server grouping its console workers + persistent queries.
- * - `ConnectionState`: a console worker connection (panels come from its session).
- * - `PersistentQueryNode`: a PQ whose exported objects can be opened.
- * - `[URL, VariableDefintion]`: a panel / object leaf.
- */
-export type ServerConnectionPanelNode =
-  | ServerState
-  | ConnectionState
-  | PersistentQueryNode
-  | [URL, VariableDefintion];
-
-export interface ServerConnectionPanelTreeView
-  extends vscode.TreeView<ServerConnectionPanelNode> {}
-
-/**
  * A persistent-query node in the Persistent Queries tree. Pairs the owning DHE
  * server URL with the `QueryInfo` so the provider can resolve the PQ's worker
  * (via `getKnownConfigs()`) and its exported objects on expand.

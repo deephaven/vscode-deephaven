@@ -1,6 +1,6 @@
 # Deephaven VS Code - Panels
 
-There are four panels in the Deephaven extension. They appear on the left side of the VS Code window below the activity bar.
+There are three panels in the Deephaven extension. They appear on the left side of the VS Code window below the activity bar.
 
 ## Servers
 
@@ -23,11 +23,3 @@ Editors can be dragged from one active connection to another.
 ## Persistent Queries
 
 The `PERSISTENT QUERIES` panel shows the persistent queries visible to you on each connected enterprise server, grouped into `Running` and `Stopped`. Queries that are starting up or otherwise in transition show a spinner and are listed under `Running`. Expanding a running query lists the objects it exports; clicking one opens it read-only in a panel.
-
-## Panels
-
-The `PANELS` panel shows exported variables available on an active connection. Clicking a variable will open or refresh the respective output panel.
-
-> Note: this panel is superseded by the variables now listed under each worker in `INTERACTIVE CONSOLES` and will be removed.
-
-![Panels Panel](./assets/panels-panel.png)

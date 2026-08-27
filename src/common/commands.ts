@@ -119,7 +119,6 @@ export const REFRESH_SERVER_TREE_CMD = cmd('refreshServerTree');
 export const REFRESH_SERVER_CONNECTION_TREE_CMD = cmd(
   'refreshServerConnectionTree'
 );
-export const REFRESH_PANELS_TREE_CMD = cmd('refreshPanelsTree');
 export const REFRESH_PERSISTENT_QUERY_TREE_CMD = cmd(
   'refreshPersistentQueryTree'
 );
@@ -135,7 +134,6 @@ export const RUN_CODE_COMMAND = cmd('runCode');
 export const RUN_MARKDOWN_CODEBLOCK_CMD = cmd('runMarkdownCodeBlock');
 export const RUN_SELECTION_COMMAND = cmd('runSelection');
 export const SEARCH_CONNECTIONS_CMD = cmd('searchConnections');
-export const SEARCH_PANELS_CMD = cmd('searchPanels');
 export const SEARCH_PERSISTENT_QUERIES_CMD = cmd('searchPersistentQueries');
 export const SELECT_CONNECTION_COMMAND = cmd('selectConnection');
 export const SHOW_MCP_QUICK_PICK_CMD = cmd('showMcpQuickPick');

@@ -9,5 +9,4 @@ export * from './RunSelectedLinesHoverProvider';
 export * from './SamlAuthProvider';
 export * from './ServerConnectionTreeProvider';
 export * from './ServerTreeProvider';
-export * from './ServerConnectionPanelTreeProvider';
 export * from './TreeDataProviderBase';

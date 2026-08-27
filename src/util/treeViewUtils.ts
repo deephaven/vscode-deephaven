@@ -123,34 +123,6 @@ export function getWorkerNodeLabel(label: string): string {
 }
 
 /**
- * Get `TreeItem` for a panel connection.
- * @param connection Connection state
- * @param getConsoleType Function to get the console type for the connection.
- */
-export async function getPanelConnectionTreeItem(
-  connection: ConnectionState,
-  getConsoleType: (
-    connection: ConnectionState
-  ) => Promise<ConsoleType | undefined>,
-  label: string
-): Promise<vscode.TreeItem> {
-  // Console type (language) drives the node icon rather than the description.
-  const consoleType = await getConsoleType(connection);
-
-  return {
-    label,
-    collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
-    // Show the language (Python/Groovy) icon when idle/connected; show the
-    // spinner while busy (connecting or running code).
-    iconPath: new vscode.ThemeIcon(
-      connection.isRunningCode || !connection.isConnected
-        ? ICON_ID.connecting
-        : getConsoleTypeIconId(consoleType)
-    ),
-  };
-}
-
-/**
  * Get `TreeItem` for a panel variable.
  * @param variable The worker URL + variable to render.
  * @param canDelete Whether the node offers the delete (trash) action. Only

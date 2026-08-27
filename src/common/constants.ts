@@ -113,7 +113,6 @@ export const VIEW_ID = {
   remoteImportSourceTree: `${VIEW_ID_PREFIX}remoteImportSourceTree`,
   serverTree: `${VIEW_ID_PREFIX}serverTree`,
   serverConnectionTree: `${VIEW_ID_PREFIX}serverConnectionTree`,
-  serverConnectionPanelTree: `${VIEW_ID_PREFIX}serverConnectionPanelTree`,
   persistentQueryTree: `${VIEW_ID_PREFIX}persistentQueryTree`,
   variablePanel: `${VIEW_ID_PREFIX}variablePanel`,
 } as const;

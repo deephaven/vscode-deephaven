@@ -24,50 +24,6 @@ exports[`getConnectionServerTreeItem > should return a labeled server tree item 
 }
 `;
 
-exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:false, isInitialized:false 1`] = `
-{
-  "collapsibleState": 2,
-  "iconPath": ThemeIcon {
-    "color": undefined,
-    "id": "sync~spin",
-  },
-  "label": "Some Worker Label",
-}
-`;
-
-exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:false, isInitialized:true 1`] = `
-{
-  "collapsibleState": 2,
-  "iconPath": ThemeIcon {
-    "color": undefined,
-    "id": "sync~spin",
-  },
-  "label": "Some Worker Label",
-}
-`;
-
-exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:true, isInitialized:false 1`] = `
-{
-  "collapsibleState": 2,
-  "iconPath": ThemeIcon {
-    "color": undefined,
-    "id": "remote",
-  },
-  "label": "Some Worker Label",
-}
-`;
-
-exports[`getPanelConnectionTreeItem > should return panel connection tree item: isConnected:true, isInitialized:true 1`] = `
-{
-  "collapsibleState": 2,
-  "iconPath": ThemeIcon {
-    "color": undefined,
-    "id": "dh-python",
-  },
-  "label": "Some Worker Label",
-}
-`;
-
 exports[`getPanelVariableTreeItem > should return panel variable tree item: type:Figure 1`] = `
 {
   "command": {
