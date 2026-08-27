@@ -279,6 +279,25 @@ describe('PersistentQueryTreeProvider', () => {
       expect(item.description).toBe('(1 of 3)');
     });
 
+    it('formats large counts with thousands separators', async () => {
+      // A DHE server can host tens of thousands of queries; an unseparated run
+      // of digits is unreadable at a glance.
+      const queries = Array.from({ length: 1234 }, (_unused, i) =>
+        makeQueryInfo({
+          serial: `serial-${i}`,
+          name: `PQ ${i}`,
+          // Only the first 12 are Running; the rest are hidden by the filter.
+          designated: i < 12 ? { status: 'Running' } : { status: 'Stopped' },
+        } as unknown as Partial<QueryInfo>)
+      );
+      (
+        persistentQueryService.getPersistentQueries as ReturnType<typeof vi.fn>
+      ).mockResolvedValue(queries);
+
+      const item = await provider.getTreeItem(makeServerState());
+      expect(item.description).toBe('(12 of 1,234)');
+    });
+
     it('renders a persistent-query node with its status circle + name', async () => {
       const node: PersistentQueryNode = {
         dheServerUrl: DHE_URL,

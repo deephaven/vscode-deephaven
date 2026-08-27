@@ -1,6 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { dh as DhType } from '@deephaven/jsapi-types';
-import { parseSamlScopes, serializeRefreshToken } from './dataUtils';
+import {
+  formatCount,
+  parseSamlScopes,
+  serializeRefreshToken,
+} from './dataUtils';
 import {
   DH_SAML_LOGIN_URL_SCOPE_KEY,
   DH_SAML_SERVER_URL_SCOPE_KEY,
@@ -67,4 +71,18 @@ describe('serializeRefreshToken', () => {
       }
     }
   );
+});
+
+describe('formatCount', () => {
+  it.each([
+    [0, '0'],
+    [7, '7'],
+    [999, '999'],
+    [1000, '1,000'],
+    [20007, '20,007'],
+    [20001, '20,001'],
+    [1234567, '1,234,567'],
+  ])('formats %s with thousands separators', (count, expected) => {
+    expect(formatCount(count)).toBe(expected);
+  });
 });

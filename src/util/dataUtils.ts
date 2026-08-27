@@ -205,3 +205,17 @@ export function sortByStringProp<TPropName extends string>(
     return String(a[propName]).localeCompare(String(b[propName]));
   };
 }
+
+/**
+ * Format a count for display with thousands separators, e.g. `20007` ->
+ * `'20,007'`. A DHE server can host tens of thousands of queries, and an
+ * unseparated run of digits is hard to size up at a glance.
+ *
+ * The locale is pinned to `en-US` rather than left to the host so the separator
+ * is always a comma. Drop the argument if these counts should follow the user's
+ * locale instead.
+ * @param count The number to format.
+ */
+export function formatCount(count: number): string {
+  return count.toLocaleString('en-US');
+}

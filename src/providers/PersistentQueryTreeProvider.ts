@@ -9,6 +9,7 @@ import type {
 import { UNSET_QUERY_STATUS } from '../common';
 import { ServerTreeProviderBase } from './ServerTreeProviderBase';
 import {
+  formatCount,
   getConnectionServerLabel,
   getPanelVariableTreeItem,
   getPersistentQueryObjectLeaves,
@@ -94,8 +95,8 @@ export class PersistentQueryTreeProvider extends ServerTreeProviderBase<Persiste
       ...getPersistentQueryServerTreeItem(node),
       description:
         visibleCount === queries.length
-          ? `(${queries.length})`
-          : `(${visibleCount} of ${queries.length})`,
+          ? `(${formatCount(queries.length)})`
+          : `(${formatCount(visibleCount)} of ${formatCount(queries.length)})`,
     };
   };
 

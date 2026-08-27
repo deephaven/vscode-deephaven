@@ -379,6 +379,25 @@ describe('promptForQueryStatusFilter', () => {
     });
   });
 
+  it('formats large counts with thousands separators', async () => {
+    vi.mocked(vscode.window.showQuickPick).mockResolvedValue(
+      undefined as never
+    );
+
+    await promptForQueryStatusFilter(
+      new Map([
+        ['Running', 20007],
+        [UNSET_QUERY_STATUS, 20001],
+      ]),
+      new Set()
+    );
+
+    const byLabel = new Map(shownItems().map(item => [item.label, item]));
+
+    expect(byLabel.get('Running')?.description).toBe('20,007');
+    expect(byLabel.get('(no status)')?.description).toBe('20,001');
+  });
+
   it('gives a row to a status it does not recognize, alphabetized before the unset row', async () => {
     vi.mocked(vscode.window.showQuickPick).mockResolvedValue(
       undefined as never
@@ -397,10 +416,9 @@ describe('promptForQueryStatusFilter', () => {
   });
 
   it('returns the statuses that were NOT picked (the hidden set)', async () => {
-    vi.mocked(vscode.window.showQuickPick).mockImplementation(
-      (async (items: { status: string }[]) =>
-        items.filter(item => item.status === 'Running')) as never
-    );
+    vi.mocked(vscode.window.showQuickPick).mockImplementation((async (
+      items: { status: string }[]
+    ) => items.filter(item => item.status === 'Running')) as never);
 
     const hidden = await promptForQueryStatusFilter(new Map(), new Set());
 
