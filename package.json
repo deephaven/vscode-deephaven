@@ -1149,7 +1149,7 @@
         },
         {
           "id": "vscode-deephaven.view.serverConnectionTree",
-          "name": "Workers",
+          "name": "Interactive Consoles",
           "type": "tree",
           "icon": "images/dh-logo-28.svg"
         },
