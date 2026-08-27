@@ -15,7 +15,6 @@ import {
   GENERATE_DHE_KEY_PAIR_CMD,
 } from '../common';
 import {
-  createConnectTimer,
   Logger,
   promptForPsk,
   promptForAuthFlow,
@@ -297,16 +296,9 @@ export class UserLoginController extends ControllerBase {
     serverUrl: URL,
     operateAsAnotherUser: boolean
   ): Promise<void> => {
-    // Everything in this handler runs inside the server tree's "connecting"
-    // spinner, so each step is timed to show where a slow connect actually goes.
-    // No-ops unless `deephaven.diagnostics.connectTiming` is enabled.
-    const doneFactory = createConnectTimer();
     const dheClient = await this.dheClientFactory(serverUrl);
-    doneFactory('dheClientFactory');
 
-    const doneAuthConfig = createConnectTimer();
     const authConfig = await getDheAuthConfig(dheClient.client, logger);
-    doneAuthConfig('getDheAuthConfig');
 
     if (isNoAuthConfig(authConfig)) {
       this.toast.info('No authentication methods configured.');
@@ -341,16 +333,12 @@ export class UserLoginController extends ControllerBase {
 
         const privateKeyUserNames = Object.keys(secretKeys) as Username[];
 
-        // Interactive — this is user typing time, not server time. Timed only so
-        // it can be subtracted from the total.
-        const donePrompt = createConnectTimer();
         credentials = await promptForCredentials({
           title,
           userLoginPreferences,
           privateKeyUserNames,
           showOperateAs: operateAsAnotherUser,
         });
-        donePrompt('promptForCredentials (user input)');
 
         // Cancelled by user
         if (credentials == null) {
@@ -368,10 +356,6 @@ export class UserLoginController extends ControllerBase {
           },
         });
 
-        // `IrisClient.login` does not resolve until the initial query config
-        // batch has been received from the controller (`handleLoggedIn` awaits
-        // `controllerConfig`), so this step scales with the server's PQ count.
-        const doneLogin = createConnectTimer();
         authenticatedClient =
           credentials.type === 'password'
             ? await loginClientWrapper(
@@ -385,14 +369,11 @@ export class UserLoginController extends ControllerBase {
                   username
                 ],
               });
-        doneLogin('login');
       }
 
-      const donePermission = createConnectTimer();
       const isInteractive = await hasInteractivePermission(
         authenticatedClient.client
       );
-      donePermission('hasInteractivePermission');
 
       if (!isInteractive) {
         throw new Error('User does not have interactive permissions.');

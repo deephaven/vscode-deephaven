@@ -1,6 +1,5 @@
 export * from './dataUtils';
 export * from './configUtils';
-export * from './connectDiagnostics';
 export * from './documentUtils';
 export * from './envUtils';
 export * from './extensionApiUtils';

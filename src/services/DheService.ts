@@ -25,7 +25,6 @@ import {
   type WorkerURL,
 } from '../types';
 import {
-  createConnectTimer,
   getSharedTransportFactory,
   getTempDir,
   Logger,
@@ -165,38 +164,25 @@ export class DheService implements IDheService {
   private _initClient = async (
     operateAsAnotherUser: boolean
   ): Promise<DheAuthenticatedClientWrapper | null> => {
-    // This whole method runs inside the server tree's "connecting" spinner
-    // (`ServerManager._pendingServerConnections`), so each step is timed to show
-    // where a slow connect actually goes. No-ops unless
-    // `deephaven.diagnostics.connectTiming` is enabled.
-    const doneTotal = createConnectTimer();
-
     if (!this._dheClientCache.has(this.serverUrl)) {
-      const done = createConnectTimer();
       await vscode.commands.executeCommand(
         CREATE_DHE_AUTHENTICATED_CLIENT_CMD,
         this.serverUrl,
         operateAsAnotherUser
       );
-      done('createAuthenticatedClient');
     }
 
     const maybeClient = await this._dheClientCache.get(this.serverUrl);
 
     if (maybeClient != null) {
-      const doneUserInfo = createConnectTimer();
       const userInfo = await maybeClient.client.getUserInfo();
-      doneUserInfo('getUserInfo');
 
       this._operateAs = userInfo.operateAs;
 
-      const doneSubscribe = createConnectTimer();
       await this._subscribeToWorkerEvents(maybeClient);
-      doneSubscribe('subscribeToWorkerEvents');
     }
 
     if (!this._dheServerFeaturesCache.has(this.serverUrl)) {
-      const doneFeatures = createConnectTimer();
       try {
         const features = await getDheFeatures(this.serverUrl);
         this._dheServerFeaturesCache.set(this.serverUrl, features);
@@ -208,15 +194,8 @@ export class DheService implements IDheService {
         } else {
           logger.error('Failed to get DHE server features', err);
         }
-      } finally {
-        // `getDheFeatures` is an unbounded `fetch` (no timeout / abort signal),
-        // so time it on the failure path too — a hung request looks identical to
-        // a slow one from here.
-        doneFeatures('getDheFeatures');
       }
     }
-
-    doneTotal('_initClient total');
 
     return maybeClient ?? null;
   };

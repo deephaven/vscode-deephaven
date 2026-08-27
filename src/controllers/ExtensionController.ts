@@ -45,7 +45,6 @@ import {
   type ViewID,
 } from '../common';
 import {
-  createConnectTimer,
   createExtensionInfo,
   deserializeRange,
   getEditorForUri,
@@ -635,15 +634,8 @@ export class ExtensionController implements IDisposable {
     ): Promise<DheUnauthenticatedClientWrapper> => {
       assertDefined(this._dheJsApiCache, 'dheJsApiCache');
 
-      // On a cache miss this downloads ~5MB of `irisapi.nocache.js`, writes it
-      // synchronously, and `require`s it — all on the extension host thread, and
-      // all inside the server tree's "connecting" spinner. Timed separately from
-      // the websocket connect below so the two aren't conflated.
-      const doneJsApi = createConnectTimer();
       const dhe = await this._dheJsApiCache.get(url);
-      doneJsApi('dheJsApiCache.get');
 
-      const doneConnect = createConnectTimer();
       const client: DheUnauthenticatedClient = await createDheClient(
         dhe,
         // While gplus forward will normalize the URL, Grizzly still requires
@@ -655,12 +647,10 @@ export class ExtensionController implements IDisposable {
           // to determine if the server supports it or not, and gplus and beyond
           // require it on non-envoy servers, so we just always provide it.
           //
-          // The shared factory carries the HTTP/2 window sizes and, when
-          // diagnostics are on, upstream's native session/stream metrics.
+          // The shared factory carries the HTTP/2 window sizes.
           transportFactory: getSharedTransportFactory(),
         }
       );
-      doneConnect('createDheClient (connect)');
 
       const wResolvers = withResolvers<SerializableRefreshToken | null>();
       let { promise: refreshTokenSerializedPromise } = wResolvers;
