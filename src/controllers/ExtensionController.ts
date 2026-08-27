@@ -111,6 +111,7 @@ import type {
   ISecretService,
   IServerManager,
   IToastService,
+  ServerConnectionNode,
   ServerConnectionPanelNode,
   ServerConnectionPanelTreeView,
   PersistentQueryTreeNode,
@@ -928,19 +929,21 @@ export class ExtensionController implements IDisposable {
 
     // Connection tree
     this._serverConnectionTreeProvider = new ServerConnectionTreeProvider(
-      this._serverManager
+      this._serverManager,
+      this._panelService
     );
     const serverConnectionTreeDragAndDropController =
       new ServerConnectionTreeDragAndDropController(this._serverManager);
 
-    this._serverConnectionTreeView = vscode.window.createTreeView(
-      VIEW_ID.serverConnectionTree,
-      {
-        dragAndDropController: serverConnectionTreeDragAndDropController,
-        showCollapseAll: true,
-        treeDataProvider: this._serverConnectionTreeProvider,
-      }
-    );
+    this._serverConnectionTreeView =
+      vscode.window.createTreeView<ServerConnectionNode>(
+        VIEW_ID.serverConnectionTree,
+        {
+          dragAndDropController: serverConnectionTreeDragAndDropController,
+          showCollapseAll: true,
+          treeDataProvider: this._serverConnectionTreeProvider,
+        }
+      );
 
     // Create Query View
     this._createQueryViewProvider = new CreateQueryViewProvider(

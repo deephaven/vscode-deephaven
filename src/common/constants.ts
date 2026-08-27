@@ -216,6 +216,8 @@ export const CONNECTION_TREE_ITEM_CONTEXT = {
 export const PERSISTENT_QUERY_TREE_ITEM_CONTEXT = {
   /** A DHE server grouping its persistent queries. */
   isPersistentQueryServer: 'isPersistentQueryServer',
+  /** A `Running` / `Stopped` status group under a server. */
+  isPersistentQueryGroup: 'isPersistentQueryGroup',
   /** A (non-InteractiveConsole) persistent query node. */
   isPersistentQuery: 'isPersistentQuery',
 } as const;

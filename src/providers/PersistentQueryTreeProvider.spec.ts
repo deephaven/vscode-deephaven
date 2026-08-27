@@ -4,6 +4,7 @@ import type { QueryInfo } from '@deephaven-enterprise/jsapi-types';
 import { PersistentQueryTreeProvider } from './PersistentQueryTreeProvider';
 import type {
   IPersistentQueryService,
+  PersistentQueryGroupNode,
   IServerManager,
   PersistentQueryNode,
   PersistentQueryTreeNode,
@@ -97,33 +98,41 @@ describe('PersistentQueryTreeProvider', () => {
     });
   });
 
-  describe('getChildren (server -> persistent queries)', () => {
-    it('lists every PQ the service reports, including stopped ones', async () => {
+  describe('getChildren (server -> status groups)', () => {
+    it('returns the Running group before the Stopped group', async () => {
       (
         persistentQueryService.getPersistentQueries as ReturnType<typeof vi.fn>
       ).mockResolvedValue([
-        makeQueryInfo({ serial: 'serial-1', name: 'Alpha PQ' }),
         makeQueryInfo({
-          serial: 'serial-2',
+          serial: 'serial-1',
           name: 'Stopped PQ',
-          designated: undefined,
-          status: 'Stopped',
-        } as Partial<QueryInfo>),
+          designated: { status: 'Stopped' },
+        } as unknown as Partial<QueryInfo>),
+        makeQueryInfo({ serial: 'serial-2', name: 'Running PQ' }),
       ]);
 
       const server = makeServerState();
       const children = (await provider.getChildren(
         server
-      )) as PersistentQueryNode[];
+      )) as PersistentQueryGroupNode[];
 
       expect(persistentQueryService.getPersistentQueries).toHaveBeenCalledWith(
         server.url
       );
-      expect(children.map(c => c.queryInfo.name)).toEqual([
-        'Alpha PQ',
-        'Stopped PQ',
-      ]);
+      expect(children.map(c => c.group)).toEqual(['Running', 'Stopped']);
       children.forEach(c => expect(c.dheServerUrl).toBe(server.url));
+    });
+
+    it('omits a group that holds no queries', async () => {
+      (
+        persistentQueryService.getPersistentQueries as ReturnType<typeof vi.fn>
+      ).mockResolvedValue([makeQueryInfo({ name: 'Running PQ' })]);
+
+      const children = (await provider.getChildren(
+        makeServerState()
+      )) as PersistentQueryGroupNode[];
+
+      expect(children.map(c => c.group)).toEqual(['Running']);
     });
 
     it('returns an empty list when the service reports none', async () => {
@@ -133,6 +142,52 @@ describe('PersistentQueryTreeProvider', () => {
 
       const children = await provider.getChildren(makeServerState());
       expect(children).toEqual([]);
+    });
+  });
+
+  describe('getChildren (group -> persistent queries)', () => {
+    beforeEach(() => {
+      (
+        persistentQueryService.getPersistentQueries as ReturnType<typeof vi.fn>
+      ).mockResolvedValue([
+        makeQueryInfo({ serial: 'serial-1', name: 'Zeta PQ' }),
+        makeQueryInfo({
+          serial: 'serial-2',
+          name: 'Terminated PQ',
+          designated: { status: 'Failed' },
+        } as unknown as Partial<QueryInfo>),
+        makeQueryInfo({ serial: 'serial-3', name: 'Alpha PQ' }),
+        makeQueryInfo({
+          serial: 'serial-4',
+          name: 'No Status PQ',
+          designated: undefined,
+        } as Partial<QueryInfo>),
+      ]);
+    });
+
+    it('lists the running queries alphabetized', async () => {
+      const children = (await provider.getChildren({
+        dheServerUrl: DHE_URL,
+        group: 'Running',
+      })) as PersistentQueryNode[];
+
+      expect(children.map(c => c.queryInfo.name)).toEqual([
+        'Alpha PQ',
+        'Zeta PQ',
+      ]);
+      children.forEach(c => expect(c.dheServerUrl).toBe(DHE_URL));
+    });
+
+    it('lists the terminal + unset-status queries under Stopped', async () => {
+      const children = (await provider.getChildren({
+        dheServerUrl: DHE_URL,
+        group: 'Stopped',
+      })) as PersistentQueryNode[];
+
+      expect(children.map(c => c.queryInfo.name)).toEqual([
+        'No Status PQ',
+        'Terminated PQ',
+      ]);
     });
   });
 
@@ -159,7 +214,7 @@ describe('PersistentQueryTreeProvider', () => {
       leaves.forEach(([url]) => expect(url.href).toBe(WORKER_URL.href));
 
       // Verify the open command wiring via the tree item.
-      const item = provider.getTreeItem(leaves[0]);
+      const item = await provider.getTreeItem(leaves[0]);
       expect(item.command?.command).toBe(OPEN_VARIABLE_PANELS_CMD);
       expect(item.command?.arguments?.[0]).toBe(leaves[0][0]);
     });
@@ -180,31 +235,50 @@ describe('PersistentQueryTreeProvider', () => {
   });
 
   describe('getTreeItem', () => {
-    it('renders a DHE server node', () => {
-      const item = provider.getTreeItem(makeServerState());
+    it('renders a DHE server node', async () => {
+      const item = await provider.getTreeItem(makeServerState());
       expect(item.label).toBe('DHE');
     });
 
-    it('renders a persistent-query node with the status circle + name', () => {
-      const node: PersistentQueryNode = {
+    it('renders a status group node with its query count', async () => {
+      (
+        persistentQueryService.getPersistentQueries as ReturnType<typeof vi.fn>
+      ).mockResolvedValue([
+        makeQueryInfo({ serial: 'serial-1', name: 'Alpha PQ' }),
+        makeQueryInfo({ serial: 'serial-2', name: 'Beta PQ' }),
+      ]);
+
+      const item = await provider.getTreeItem({
         dheServerUrl: DHE_URL,
-        queryInfo: makeQueryInfo({ name: 'My PQ' }),
-      };
-      const item = provider.getTreeItem(node);
-      expect(item.label).toBe('My PQ');
-      expect(item.contextValue).toBe('isPersistentQuery');
-      // Status circle here, not the language icon the Panels tree uses.
-      expect((item.iconPath as vscode.ThemeIcon).id).toBe(
-        'circle-large-filled'
-      );
+        group: 'Running',
+      });
+
+      expect(item.label).toBe('Running');
+      expect(item.description).toBe('(2)');
+      expect(item.contextValue).toBe('isPersistentQueryGroup');
     });
 
-    it('renders an object leaf via the shared panel renderer', () => {
+    it('renders a persistent-query node with the language icon + name', async () => {
+      const node: PersistentQueryNode = {
+        dheServerUrl: DHE_URL,
+        queryInfo: makeQueryInfo({
+          name: 'My PQ',
+          scriptLanguage: 'Python',
+        } as Partial<QueryInfo>),
+      };
+      const item = await provider.getTreeItem(node);
+      expect(item.label).toBe('My PQ');
+      expect(item.contextValue).toBe('isPersistentQuery');
+      // Status lives on the group now, so the node shows its language.
+      expect((item.iconPath as vscode.ThemeIcon).id).toBe('dh-python');
+    });
+
+    it('renders an object leaf via the shared panel renderer', async () => {
       const leaf: PersistentQueryTreeNode = [
         WORKER_URL,
         { title: 'my_table', name: 'my_table', type: 'Table', id: 'v1' },
       ] as [URL, VariableDefintion];
-      const item = provider.getTreeItem(leaf);
+      const item = await provider.getTreeItem(leaf);
       expect(item.label).toBe('my_table');
       expect(item.command?.command).toBe(OPEN_VARIABLE_PANELS_CMD);
     });

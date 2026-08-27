@@ -12,11 +12,11 @@ import {
   getConnectionServerTreeItem,
   getConnectionTreeRootNodes,
   getPanelConnectionTreeItem,
+  getPanelVariableLeaves,
   getPanelVariableTreeItem,
   getPersistentQueryObjectLeaves,
   getPersistentQueryObjects,
   getPersistentQueryTreeItem,
-  isOpenablePanelVariable,
   isPersistentQueryNode,
   isServerStateNode,
   sortByStringProp,
@@ -75,7 +75,7 @@ export class ServerConnectionPanelTreeProvider extends ServerTreeProviderBase<Se
     // status circle: every PQ listed here is running, and this view's other
     // children are console workers drawn the same way.
     if (isPersistentQueryNode(node)) {
-      return getPersistentQueryTreeItem(node, 'language');
+      return getPersistentQueryTreeItem(node);
     }
 
     // DHE server node grouping its worker connections + persistent queries.
@@ -154,9 +154,6 @@ export class ServerConnectionPanelTreeProvider extends ServerTreeProviderBase<Se
     }
 
     // Connection node -> its panel variables (only ones that can open).
-    return [...this._panelService.getVariables(elementOrRoot.serverUrl)]
-      .filter(isOpenablePanelVariable)
-      .sort(sortByStringProp('title'))
-      .map(variable => [elementOrRoot.serverUrl, variable]);
+    return getPanelVariableLeaves(this._panelService, elementOrRoot.serverUrl);
   };
 }

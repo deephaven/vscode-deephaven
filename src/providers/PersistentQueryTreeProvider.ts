@@ -2,6 +2,8 @@ import type * as vscode from 'vscode';
 import type {
   IPersistentQueryService,
   IServerManager,
+  PersistentQueryGroup,
+  PersistentQueryGroupNode,
   PersistentQueryNode,
   PersistentQueryTreeNode,
 } from '../types';
@@ -9,9 +11,12 @@ import { ServerTreeProviderBase } from './ServerTreeProviderBase';
 import {
   getConnectionServerLabel,
   getPanelVariableTreeItem,
+  getPersistentQueryGroup,
+  getPersistentQueryGroupTreeItem,
   getPersistentQueryObjectLeaves,
   getPersistentQueryServerTreeItem,
   getPersistentQueryTreeItem,
+  isPersistentQueryGroupNode,
   isPersistentQueryNode,
 } from '../util';
 
@@ -24,9 +29,10 @@ import {
  * Browse-only: no console session, no "attach", and the server-side PQ is never
  * deleted.
  *
- * Tree shape (mirrors `ServerConnectionPanelTreeProvider`):
+ * Tree shape:
  *   root      → DHE `ServerState[]`
- *   server    → `PersistentQueryNode[]`
+ *   server    → `PersistentQueryGroupNode[]`  (`Running` / `Stopped`)
+ *   group     → `PersistentQueryNode[]`
  *   PQ        → `[URL, VariableDefintion][]`  (object leaves, opened on click)
  */
 export class PersistentQueryTreeProvider extends ServerTreeProviderBase<PersistentQueryTreeNode> {
@@ -47,7 +53,9 @@ export class PersistentQueryTreeProvider extends ServerTreeProviderBase<Persiste
 
   private readonly _persistentQueryService: IPersistentQueryService;
 
-  getTreeItem = (node: PersistentQueryTreeNode): vscode.TreeItem => {
+  getTreeItem = async (
+    node: PersistentQueryTreeNode
+  ): Promise<vscode.TreeItem> => {
     // Object leaf node (worker URL + variable). Reuse the Panels tree renderer
     // so the click command is `OPEN_VARIABLE_PANELS_CMD` verbatim. Browse-only:
     // this view never deletes anything from a PQ.
@@ -55,14 +63,44 @@ export class PersistentQueryTreeProvider extends ServerTreeProviderBase<Persiste
       return getPanelVariableTreeItem(node, false);
     }
 
-    // Persistent-query node. This view lists PQs of every status, so the node
-    // carries the Servers-tree status circle.
+    // Persistent-query node. Status is carried by the group above it, so the
+    // node shows its script language (or a spinner while transitional).
     if (isPersistentQueryNode(node)) {
-      return getPersistentQueryTreeItem(node, 'status');
+      return getPersistentQueryTreeItem(node);
+    }
+
+    // Status group node. Rendering the count means resolving the group's
+    // queries, which the service already has cached from `getChildren`.
+    if (isPersistentQueryGroupNode(node)) {
+      const queries = await this._getQueriesInGroup(
+        node.dheServerUrl,
+        node.group
+      );
+
+      return getPersistentQueryGroupTreeItem(node, queries.length);
     }
 
     // DHE server node grouping its persistent queries.
     return getPersistentQueryServerTreeItem(node);
+  };
+
+  /**
+   * The server's persistent queries belonging to a given status group, sorted
+   * by name.
+   * @param dheServerUrl The DHE server URL.
+   * @param group The status group to filter to.
+   */
+  private _getQueriesInGroup = async (
+    dheServerUrl: URL,
+    group: PersistentQueryGroup
+  ): Promise<PersistentQueryNode[]> => {
+    const queries =
+      await this._persistentQueryService.getPersistentQueries(dheServerUrl);
+
+    return queries
+      .filter(queryInfo => getPersistentQueryGroup(queryInfo) === group)
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((queryInfo): PersistentQueryNode => ({ dheServerUrl, queryInfo }));
   };
 
   getChildren = async (
@@ -81,6 +119,14 @@ export class PersistentQueryTreeProvider extends ServerTreeProviderBase<Persiste
     // Object leaves have no children.
     if (Array.isArray(elementOrRoot)) {
       return [];
+    }
+
+    // Group node → its persistent queries.
+    if (isPersistentQueryGroupNode(elementOrRoot)) {
+      return this._getQueriesInGroup(
+        elementOrRoot.dheServerUrl,
+        elementOrRoot.group
+      );
     }
 
     // PQ node → its exported object leaves. Objects come straight off the
@@ -105,16 +151,18 @@ export class PersistentQueryTreeProvider extends ServerTreeProviderBase<Persiste
       );
     }
 
-    // Server node → its persistent queries (any status).
-    const serverUrl = elementOrRoot.url;
+    // Server node → its status groups. Empty groups are omitted so the tree
+    // never opens onto an empty list.
+    const dheServerUrl = elementOrRoot.url;
     const queries =
-      await this._persistentQueryService.getPersistentQueries(serverUrl);
+      await this._persistentQueryService.getPersistentQueries(dheServerUrl);
 
-    return queries.map(
-      (queryInfo): PersistentQueryNode => ({
-        dheServerUrl: serverUrl,
-        queryInfo,
-      })
-    );
+    const groups: PersistentQueryGroup[] = ['Running', 'Stopped'];
+
+    return groups
+      .filter(group =>
+        queries.some(queryInfo => getPersistentQueryGroup(queryInfo) === group)
+      )
+      .map((group): PersistentQueryGroupNode => ({ dheServerUrl, group }));
   };
 }

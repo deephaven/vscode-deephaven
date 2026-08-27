@@ -3,8 +3,11 @@ import type { QueryInfo } from '@deephaven-enterprise/jsapi-types';
 import type {
   ConnectionState,
   ConsoleType,
+  IPanelService,
   IServerManager,
   NonEmptyArray,
+  PersistentQueryGroup,
+  PersistentQueryGroupNode,
   PersistentQueryNode,
   ServerGroupState,
   ServerState,
@@ -21,6 +24,7 @@ import {
   SERVER_TREE_ITEM_CONTEXT,
   type ServerTreeItemContextValue,
 } from '../common';
+import { sortByStringProp } from './dataUtils';
 import { isOpenablePanelVariable } from './panelUtils';
 import { getScriptLanguageConsoleType } from './serverUtils';
 
@@ -76,6 +80,46 @@ export function getConsoleTypeIconId(
     default:
       return ICON_ID.worker;
   }
+}
+
+/**
+ * Separator DHE worker names are built from (e.g. `Code Studio - Web - <id>`,
+ * `IC - VS Code - <tagId>`).
+ */
+const WORKER_LABEL_SEPARATOR = ' - ';
+
+/** Number of characters of a worker name's trailing id segment to keep. */
+const WORKER_LABEL_ID_LENGTH = 6;
+
+/**
+ * Shorten a worker name for display in a tree node. DHE worker names end in a
+ * generated id (`Code Studio - Web - l9hnYDTiEosKmJwe4Fma5`) that is long enough
+ * to push the meaningful part of the name out of the sidebar, so the trailing
+ * segment is clipped to its first few characters. Callers pair this with the
+ * untruncated name as the node tooltip.
+ *
+ * Only a name with at least three ` - ` segments is touched, and only when its
+ * last segment looks like an id (no whitespace) and is long enough to be worth
+ * clipping — a name like `IC - VS Code` (no id) is left alone.
+ * @param label The full worker name.
+ * @returns The name to show on the node.
+ */
+export function getWorkerNodeLabel(label: string): string {
+  const segments = label.split(WORKER_LABEL_SEPARATOR);
+
+  if (segments.length < 3) {
+    return label;
+  }
+
+  const id = segments[segments.length - 1];
+
+  if (/\s/.test(id) || id.length <= WORKER_LABEL_ID_LENGTH) {
+    return label;
+  }
+
+  return [...segments.slice(0, -1), id.slice(0, WORKER_LABEL_ID_LENGTH)].join(
+    WORKER_LABEL_SEPARATOR
+  );
 }
 
 /**
@@ -138,43 +182,64 @@ export function getPanelVariableTreeItem(
 }
 
 /**
- * How a persistent-query node draws its icon. Each tree picks the vocabulary
- * that keeps it internally consistent:
- * - `'status'` (Persistent Queries tree): the Servers-tree circles, since that
- *   view is about PQ lifecycle and lists PQs of every status.
- * - `'language'` (Panels tree): the script-language icon, matching the console
- *   worker nodes a PQ sits alongside there.
+ * The openable panel variables of a worker, as the `[URL, VariableDefintion]`
+ * leaves both worker-hosting trees render. Variables that cannot open as a
+ * panel are dropped rather than rendering a node that clicks onto nothing, and
+ * the rest are alphabetized by title.
+ * @param panelService Panel service holding the worker's variables.
+ * @param serverUrl The worker URL whose variables to list.
  */
-export type PersistentQueryIconStyle = 'status' | 'language';
+export function getPanelVariableLeaves(
+  panelService: IPanelService,
+  serverUrl: URL
+): [URL, VariableDefintion][] {
+  return [...panelService.getVariables(serverUrl)]
+    .filter(isOpenablePanelVariable)
+    .sort(sortByStringProp('title'))
+    .map(variable => [serverUrl, variable]);
+}
 
 /**
- * Get the status icon for a persistent query, using the same circle vocabulary
- * as the Servers tree:
- * - `Running` → filled circle.
- * - terminal (`Stopped`, `Failed`, …) → stop sign.
- * - unset → open circle. An unknown status is NOT the same as a stopped one: a
- *   PQ can be listed with no status yet (no `designated` block), and claiming it
- *   stopped would be wrong. A spinner would be equally wrong — nothing is known
- *   to be in progress.
- * - anything else (`Initializing`, `Connecting`, …) → spinner.
- * @param status The PQ status (`designated.status`, falling back to `status`).
+ * Which group a persistent query belongs to in the Persistent Queries tree.
+ * Terminal statuses (`Stopped`, `Failed`, …) group under `Stopped`, and so does
+ * an unset status — a stopped PQ can report none at all (it has no `designated`
+ * block to carry one), so an unset status belongs with the terminal ones rather
+ * than with the live ones. Everything else — `Running` plus the transitional
+ * statuses (`Initializing`, `Connecting`, …) — groups under `Running`.
+ * @param queryInfo The PQ to classify.
  */
-export function getPersistentQueryIconId(
-  status: string | null | undefined
-): string {
-  if (status === 'Running') {
-    return ICON_ID.serverConnected;
-  }
+export function getPersistentQueryGroup(
+  queryInfo: QueryInfo
+): PersistentQueryGroup {
+  const status = getPersistentQueryStatus(queryInfo);
 
-  if (status == null || status === '') {
-    return ICON_ID.serverRunning;
-  }
+  return status == null || status === '' || isTerminalQueryStatus(status)
+    ? 'Stopped'
+    : 'Running';
+}
 
-  if (isTerminalQueryStatus(status)) {
-    return ICON_ID.serverStopped;
-  }
+/**
+ * Get the icon for a persistent-query node. Status is carried by the node's
+ * group ({@link getPersistentQueryGroup}), so the node itself shows the script
+ * language — the same vocabulary its console-worker siblings use. The one
+ * exception is a *transitional* status (`Initializing`, `Connecting`, …), which
+ * shows the spinner because it is the one state the group can't express: such a
+ * PQ sits under `Running` while not yet being run. An unset status gets the
+ * language icon, not the spinner — nothing is known to be in progress.
+ * @param queryInfo The PQ to draw.
+ */
+export function getPersistentQueryNodeIconId(queryInfo: QueryInfo): string {
+  const status = getPersistentQueryStatus(queryInfo);
 
-  return ICON_ID.connecting;
+  const isTransitional =
+    status != null &&
+    status !== '' &&
+    status !== 'Running' &&
+    !isTerminalQueryStatus(status);
+
+  return isTransitional
+    ? ICON_ID.connecting
+    : getPersistentQueryLanguageIconId(queryInfo.scriptLanguage);
 }
 
 /**
@@ -261,17 +326,15 @@ export function persistentQueryHasTables(queryInfo: QueryInfo): boolean {
 
 /**
  * Get `TreeItem` for a persistent-query node. The node carries the PQ name plus
- * the icon its host tree calls for ({@link PersistentQueryIconStyle}), and is
- * collapsible only when the PQ exposes objects *and* those objects can be opened
+ * its {@link getPersistentQueryNodeIconId} icon, and is collapsible only when
+ * the PQ exposes objects *and* those objects can be opened
  * ({@link canBrowsePersistentQueryObjects}) — otherwise it renders
  * non-expandable so the tree never opens onto an empty list (both are known
  * cheaply from `designated`, no connection required).
  * @param node The persistent-query node.
- * @param iconStyle Which icon vocabulary the host tree uses.
  */
 export function getPersistentQueryTreeItem(
-  node: PersistentQueryNode,
-  iconStyle: PersistentQueryIconStyle
+  node: PersistentQueryNode
 ): vscode.TreeItem {
   const { queryInfo } = node;
   const status = getPersistentQueryStatus(queryInfo);
@@ -293,16 +356,40 @@ export function getPersistentQueryTreeItem(
     label: queryInfo.name,
     description: queryInfo.owner ?? undefined,
     tooltip: `${queryInfo.name}${status == null ? '' : ` (${status})`}${countSuffix}`,
-    iconPath: new vscode.ThemeIcon(
-      iconStyle === 'language'
-        ? getPersistentQueryLanguageIconId(queryInfo.scriptLanguage)
-        : getPersistentQueryIconId(status)
-    ),
+    iconPath: new vscode.ThemeIcon(getPersistentQueryNodeIconId(queryInfo)),
     collapsibleState:
       objects.length > 0 && canBrowse
         ? vscode.TreeItemCollapsibleState.Collapsed
         : vscode.TreeItemCollapsibleState.None,
     contextValue: PERSISTENT_QUERY_TREE_ITEM_CONTEXT.isPersistentQuery,
+  };
+}
+
+/**
+ * Get `TreeItem` for a status group node in the Persistent Queries tree. The
+ * group carries the status vocabulary the PQ nodes beneath it dropped (the
+ * Servers-tree circles), plus the number of queries it holds. `Stopped` renders
+ * collapsed: a server can carry tens of thousands of queries, and auto-expanding
+ * the terminal ones would bury the live ones.
+ * @param node The group node.
+ * @param count Number of persistent queries in the group.
+ */
+export function getPersistentQueryGroupTreeItem(
+  node: PersistentQueryGroupNode,
+  count: number
+): vscode.TreeItem {
+  const isRunning = node.group === 'Running';
+
+  return {
+    label: node.group,
+    description: `(${count})`,
+    iconPath: new vscode.ThemeIcon(
+      isRunning ? ICON_ID.serverConnected : ICON_ID.serverStopped
+    ),
+    collapsibleState: isRunning
+      ? vscode.TreeItemCollapsibleState.Expanded
+      : vscode.TreeItemCollapsibleState.Collapsed,
+    contextValue: PERSISTENT_QUERY_TREE_ITEM_CONTEXT.isPersistentQueryGroup,
   };
 }
 
@@ -324,15 +411,30 @@ export function getPersistentQueryServerTreeItem(
 }
 
 /**
- * Type guard distinguishing a persistent-query node from a server or connection
- * node (both the Persistent Queries and Panels trees mix them). A
- * `PersistentQueryNode` carries a `queryInfo`.
+ * Type guard distinguishing a persistent-query node from the server, group, or
+ * connection nodes it shares a tree with. A `PersistentQueryNode` carries a
+ * `queryInfo`.
  * @param node The node to check.
  */
 export function isPersistentQueryNode(
-  node: ServerState | ConnectionState | PersistentQueryNode
+  node:
+    | ServerState
+    | ConnectionState
+    | PersistentQueryGroupNode
+    | PersistentQueryNode
 ): node is PersistentQueryNode {
   return (node as PersistentQueryNode).queryInfo != null;
+}
+
+/**
+ * Type guard for a status group node in the Persistent Queries tree. A
+ * `PersistentQueryGroupNode` carries a `group`.
+ * @param node The node to check.
+ */
+export function isPersistentQueryGroupNode(
+  node: ServerState | PersistentQueryGroupNode | PersistentQueryNode
+): node is PersistentQueryGroupNode {
+  return (node as PersistentQueryGroupNode).group != null;
 }
 
 /**

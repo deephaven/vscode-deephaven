@@ -21,10 +21,11 @@ export class ServerConnectionTreeDragAndDropController
     dataTransfer: vscode.DataTransfer,
     _token: vscode.CancellationToken
   ): Promise<void> => {
-    // Only target connection nodes. DHE server group nodes and uri leaf nodes
-    // are not valid editor-connection targets.
+    // Only target connection nodes. DHE server group nodes, uri leaf nodes, and
+    // panel leaf nodes are not valid editor-connection targets.
     if (
       target == null ||
+      Array.isArray(target) ||
       target instanceof vscode.Uri ||
       isServerStateNode(target)
     ) {

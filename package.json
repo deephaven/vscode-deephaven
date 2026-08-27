@@ -1096,7 +1096,7 @@
         },
         {
           "command": "vscode-deephaven.deleteVariable",
-          "when": "view == vscode-deephaven.view.serverConnectionPanelTree && viewItem == canDeleteDeephavenVariable",
+          "when": "(view == vscode-deephaven.view.serverConnectionPanelTree || view == vscode-deephaven.view.serverConnectionTree) && viewItem == canDeleteDeephavenVariable",
           "group": "inline@2"
         },
         {
