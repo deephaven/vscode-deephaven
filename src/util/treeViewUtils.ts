@@ -6,7 +6,9 @@ import type {
   IPanelService,
   IServerManager,
   NonEmptyArray,
+  PersistentQueryHiddenNode,
   PersistentQueryNode,
+  PersistentQueryTreeNode,
   ServerGroupState,
   ServerState,
   VariableDefintion,
@@ -15,14 +17,15 @@ import type {
 import {
   CONNECTION_TREE_ITEM_CONTEXT,
   DH_PROTECTED_VARIABLE_NAMES,
+  FILTER_PERSISTENT_QUERIES_CMD,
   ICON_ID,
-  isTerminalQueryStatus,
+  isStoppedQueryStatus,
   OPEN_VARIABLE_PANELS_CMD,
   PERSISTENT_QUERY_TREE_ITEM_CONTEXT,
   SERVER_TREE_ITEM_CONTEXT,
   type ServerTreeItemContextValue,
 } from '../common';
-import { sortByStringProp } from './dataUtils';
+import { formatCount, sortByStringProp } from './dataUtils';
 import { isOpenablePanelVariable } from './panelUtils';
 
 /**
@@ -172,7 +175,9 @@ export function getPanelVariableLeaves(
  * Get the status icon for a persistent query, using the same circle vocabulary
  * as the Servers tree:
  * - `Running` → filled circle.
- * - terminal (`Stopped`, `Failed`, …) → stop sign.
+ * - stopped (`Stopped`, `Failed`, …) → stop sign. `Stopping` is deliberately not
+ *   one of these: it is still winding down, so it gets the spinner alongside the
+ *   other statuses in motion (see `isStoppedQueryStatus`).
  * - unset → open circle. An unknown status is NOT the same as a stopped one: a
  *   PQ can be listed with no status yet (no `designated` block), and claiming it
  *   stopped would be wrong. A spinner would be equally wrong — nothing is known
@@ -191,7 +196,7 @@ export function getPersistentQueryIconId(
     return ICON_ID.serverRunning;
   }
 
-  if (isTerminalQueryStatus(status)) {
+  if (isStoppedQueryStatus(status)) {
     return ICON_ID.serverStopped;
   }
 
@@ -310,6 +315,43 @@ export function getPersistentQueryTreeItem(
 }
 
 /**
+ * Get `TreeItem` for the trailing "N hidden" node under a filtered server. The
+ * node exists so a filter is never a silent omission: it states the count and
+ * clicking it reopens the picker that produced it.
+ * @param node The hidden-count node.
+ */
+export function getPersistentQueryHiddenTreeItem(
+  node: PersistentQueryHiddenNode
+): vscode.TreeItem {
+  const { hiddenCount } = node;
+
+  return {
+    label: `Hidden (${formatCount(hiddenCount)})`,
+    tooltip: `${formatCount(hiddenCount)} ${
+      hiddenCount === 1 ? 'query is' : 'queries are'
+    } hidden by the status filter. Click to change it.`,
+    iconPath: new vscode.ThemeIcon(ICON_ID.hidden),
+    collapsibleState: vscode.TreeItemCollapsibleState.None,
+    contextValue: PERSISTENT_QUERY_TREE_ITEM_CONTEXT.isPersistentQueryHidden,
+    command: {
+      title: 'Filter Persistent Queries',
+      command: FILTER_PERSISTENT_QUERIES_CMD,
+    },
+  };
+}
+
+/**
+ * Type guard for the trailing hidden-count node. It carries a `hiddenCount`,
+ * which nothing else in the Persistent Queries tree does.
+ * @param node The node to check.
+ */
+export function isPersistentQueryHiddenNode(
+  node: PersistentQueryTreeNode
+): node is PersistentQueryHiddenNode {
+  return (node as PersistentQueryHiddenNode).hiddenCount != null;
+}
+
+/**
  * Get `TreeItem` for a DHE server node in the Persistent Queries tree. This is a
  * grouping container whose children are the server's (non-InteractiveConsole)
  * persistent queries.
@@ -333,7 +375,11 @@ export function getPersistentQueryServerTreeItem(
  * @param node The node to check.
  */
 export function isPersistentQueryNode(
-  node: ServerState | ConnectionState | PersistentQueryNode
+  node:
+    | ServerState
+    | ConnectionState
+    | PersistentQueryHiddenNode
+    | PersistentQueryNode
 ): node is PersistentQueryNode {
   return (node as PersistentQueryNode).queryInfo != null;
 }

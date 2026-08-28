@@ -9,13 +9,14 @@ import type {
 import { UNSET_QUERY_STATUS } from '../common';
 import { ServerTreeProviderBase } from './ServerTreeProviderBase';
 import {
-  formatCount,
   getConnectionServerLabel,
   getPanelVariableTreeItem,
+  getPersistentQueryHiddenTreeItem,
   getPersistentQueryObjectLeaves,
   getPersistentQueryServerTreeItem,
   getPersistentQueryStatus,
   getPersistentQueryTreeItem,
+  isPersistentQueryHiddenNode,
   isPersistentQueryNode,
 } from '../util';
 
@@ -81,23 +82,13 @@ export class PersistentQueryTreeProvider extends ServerTreeProviderBase<Persiste
       return getPersistentQueryTreeItem(node);
     }
 
-    // DHE server node grouping its persistent queries. Its description is the
-    // only always-visible statement of what the filter is hiding, so it reports
-    // the visible count against the total whenever a filter is active.
-    const queries = await this._persistentQueryService.getPersistentQueries(
-      node.url
-    );
-    const visibleCount = queries.filter(queryInfo =>
-      this._statusFilterService.isVisible(getPersistentQueryStatus(queryInfo))
-    ).length;
+    // The trailing node standing in for whatever the filter is hiding.
+    if (isPersistentQueryHiddenNode(node)) {
+      return getPersistentQueryHiddenTreeItem(node);
+    }
 
-    return {
-      ...getPersistentQueryServerTreeItem(node),
-      description:
-        visibleCount === queries.length
-          ? `(${formatCount(queries.length)})`
-          : `(${formatCount(visibleCount)} of ${formatCount(queries.length)})`,
-    };
+    // DHE server node grouping its persistent queries.
+    return getPersistentQueryServerTreeItem(node);
   };
 
   /**
@@ -143,6 +134,11 @@ export class PersistentQueryTreeProvider extends ServerTreeProviderBase<Persiste
         );
     }
 
+    // The hidden-count node is a leaf.
+    if (isPersistentQueryHiddenNode(elementOrRoot)) {
+      return [];
+    }
+
     // Object leaves have no children.
     if (Array.isArray(elementOrRoot)) {
       return [];
@@ -171,16 +167,27 @@ export class PersistentQueryTreeProvider extends ServerTreeProviderBase<Persiste
     }
 
     // Server node → its persistent queries, filtered by status and sorted by
-    // name.
+    // name, with a trailing node accounting for whatever the filter hid.
     const dheServerUrl = elementOrRoot.url;
     const queries =
       await this._persistentQueryService.getPersistentQueries(dheServerUrl);
 
-    return queries
-      .filter(queryInfo =>
-        this._statusFilterService.isVisible(getPersistentQueryStatus(queryInfo))
-      )
+    const visible = queries.filter(queryInfo =>
+      this._statusFilterService.isVisible(getPersistentQueryStatus(queryInfo))
+    );
+
+    const children: PersistentQueryTreeNode[] = visible
       .sort((a, b) => a.name.localeCompare(b.name))
       .map((queryInfo): PersistentQueryNode => ({ dheServerUrl, queryInfo }));
+
+    const hiddenCount = queries.length - visible.length;
+
+    // Always last, and only when something is actually hidden — a filter that
+    // hides nothing needs no footnote.
+    if (hiddenCount > 0) {
+      children.push({ dheServerUrl, hiddenCount });
+    }
+
+    return children;
   };
 }

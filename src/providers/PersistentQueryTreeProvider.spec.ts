@@ -12,7 +12,11 @@ import type {
   VariableDefintion,
   WorkerInfo,
 } from '../types';
-import { OPEN_VARIABLE_PANELS_CMD, UNSET_QUERY_STATUS } from '../common';
+import {
+  FILTER_PERSISTENT_QUERIES_CMD,
+  OPEN_VARIABLE_PANELS_CMD,
+  UNSET_QUERY_STATUS,
+} from '../common';
 
 // See __mocks__/vscode.ts for the mock implementation
 vi.mock('vscode');
@@ -150,27 +154,33 @@ describe('PersistentQueryTreeProvider', () => {
       const server = makeServerState();
       const children = (await provider.getChildren(
         server
-      )) as PersistentQueryNode[];
+      )) as PersistentQueryTreeNode[];
 
       expect(persistentQueryService.getPersistentQueries).toHaveBeenCalledWith(
         server.url
       );
-      expect(children.map(c => c.queryInfo.name)).toEqual([
-        'Alpha PQ',
-        'Zeta PQ',
-      ]);
-      children.forEach(c => expect(c.dheServerUrl).toBe(server.url));
+      // Two visible queries, then the trailing hidden-count node.
+      expect(
+        children
+          .slice(0, -1)
+          .map(c => (c as PersistentQueryNode).queryInfo.name)
+      ).toEqual(['Alpha PQ', 'Zeta PQ']);
+      expect(children.at(-1)).toEqual({
+        dheServerUrl: server.url,
+        hiddenCount: 2,
+      });
     });
 
     it('excludes the hidden statuses', async () => {
       const children = (await provider.getChildren(
         makeServerState()
-      )) as PersistentQueryNode[];
+      )) as PersistentQueryTreeNode[];
 
-      expect(children.map(c => c.queryInfo.name)).not.toContain(
-        'Terminated PQ'
+      const names = children.map(
+        c => (c as PersistentQueryNode).queryInfo?.name
       );
-      expect(children.map(c => c.queryInfo.name)).not.toContain('No Status PQ');
+      expect(names).not.toContain('Terminated PQ');
+      expect(names).not.toContain('No Status PQ');
     });
 
     it('shows a status it does not recognize (not in the hidden set)', async () => {
@@ -244,58 +254,43 @@ describe('PersistentQueryTreeProvider', () => {
   });
 
   describe('getTreeItem', () => {
-    it('renders a DHE server node with the total count when nothing is hidden', async () => {
+    it('renders a DHE server node with no count description', async () => {
       (
         persistentQueryService.getPersistentQueries as ReturnType<typeof vi.fn>
       ).mockResolvedValue([
         makeQueryInfo({ serial: 'serial-1', name: 'Alpha PQ' }),
-        makeQueryInfo({ serial: 'serial-2', name: 'Beta PQ' }),
       ]);
       hiddenStatuses.clear();
 
       const item = await provider.getTreeItem(makeServerState());
       expect(item.label).toBe('DHE');
-      expect(item.description).toBe('(2)');
+      expect(item.description).toBeUndefined();
     });
 
-    it('renders the visible-of-total count while the filter is active', async () => {
-      (
-        persistentQueryService.getPersistentQueries as ReturnType<typeof vi.fn>
-      ).mockResolvedValue([
-        makeQueryInfo({ serial: 'serial-1', name: 'Alpha PQ' }),
-        makeQueryInfo({
-          serial: 'serial-2',
-          name: 'Beta PQ',
-          designated: { status: 'Stopped' },
-        } as unknown as Partial<QueryInfo>),
-        makeQueryInfo({
-          serial: 'serial-3',
-          name: 'Gamma PQ',
-          designated: undefined,
-        } as Partial<QueryInfo>),
-      ]);
+    it('renders the hidden-count node with the filter command', async () => {
+      const item = await provider.getTreeItem({
+        dheServerUrl: DHE_URL,
+        hiddenCount: 20007,
+      });
 
-      const item = await provider.getTreeItem(makeServerState());
-      expect(item.description).toBe('(1 of 3)');
+      expect(item.label).toBe('Hidden (20,007)');
+      expect(item.command?.command).toBe(FILTER_PERSISTENT_QUERIES_CMD);
+      expect(item.contextValue).toBe('isPersistentQueryHidden');
+      expect((item.iconPath as vscode.ThemeIcon).id).toBe('ellipsis');
     });
 
-    it('formats large counts with thousands separators', async () => {
-      // A DHE server can host tens of thousands of queries; an unseparated run
-      // of digits is unreadable at a glance.
-      const queries = Array.from({ length: 1234 }, (_unused, i) =>
-        makeQueryInfo({
-          serial: `serial-${i}`,
-          name: `PQ ${i}`,
-          // Only the first 12 are Running; the rest are hidden by the filter.
-          designated: i < 12 ? { status: 'Running' } : { status: 'Stopped' },
-        } as unknown as Partial<QueryInfo>)
-      );
-      (
-        persistentQueryService.getPersistentQueries as ReturnType<typeof vi.fn>
-      ).mockResolvedValue(queries);
+    it('singularizes the hidden-count tooltip', async () => {
+      const one = await provider.getTreeItem({
+        dheServerUrl: DHE_URL,
+        hiddenCount: 1,
+      });
+      const many = await provider.getTreeItem({
+        dheServerUrl: DHE_URL,
+        hiddenCount: 2,
+      });
 
-      const item = await provider.getTreeItem(makeServerState());
-      expect(item.description).toBe('(12 of 1,234)');
+      expect(one.tooltip).toContain('1 query is hidden');
+      expect(many.tooltip).toContain('2 queries are hidden');
     });
 
     it('renders a persistent-query node with its status circle + name', async () => {

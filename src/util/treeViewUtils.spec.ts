@@ -331,13 +331,16 @@ describe('getPersistentQueryIconId', () => {
 
   it.each([
     ['Stopped'],
-    ['Stopping'],
     ['Failed'],
     ['Error'],
     ['Disconnected'],
     ['Completed'],
-  ])('returns the stop sign for a terminal status: %s', status => {
+  ])('returns the stop sign for a stopped status: %s', status => {
     expect(getPersistentQueryIconId(status)).toBe('circle-slash');
+  });
+
+  it('returns the spinner for Stopping — it is still winding down', () => {
+    expect(getPersistentQueryIconId('Stopping')).toBe('sync~spin');
   });
 
   it.each([[null], [undefined], ['']])(

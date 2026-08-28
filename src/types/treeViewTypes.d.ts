@@ -37,15 +37,27 @@ export type PersistentQueryNode = {
 };
 
 /**
+ * The trailing node under a server whose status filter is hiding queries. It
+ * states how many are hidden and opens the filter picker when clicked, so the
+ * hidden ones are never a silent omission.
+ */
+export type PersistentQueryHiddenNode = {
+  readonly dheServerUrl: URL;
+  readonly hiddenCount: number;
+};
+
+/**
  * A node in the Persistent Queries tree:
  * - `ServerState`: a DHE server grouping its persistent queries.
  * - `PersistentQueryNode`: a non-InteractiveConsole PQ (expandable to objects).
+ * - `PersistentQueryHiddenNode`: the trailing "N hidden" node, when filtered.
  * - `[URL, VariableDefintion]`: an exported object leaf (worker URL + variable),
  *   rendered/opened exactly like the Panels tree's object leaves.
  */
 export type PersistentQueryTreeNode =
   | ServerState
   | PersistentQueryNode
+  | PersistentQueryHiddenNode
   | [URL, VariableDefintion];
 
 export interface PersistentQueryTreeView

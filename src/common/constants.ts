@@ -119,6 +119,23 @@ export const STOPPED_QUERY_STATUSES: readonly string[] = [
  * show, so a status this extension has never heard of (a new one from a future
  * DHE release) stays visible instead of silently disappearing.
  */
+const STOPPED_QUERY_STATUS_SET: ReadonlySet<string> = new Set(
+  STOPPED_QUERY_STATUSES
+);
+
+/**
+ * Whether a status means the query has finished moving — see
+ * {@link STOPPED_QUERY_STATUSES}. Note this is NOT
+ * {@link isTerminalQueryStatus}: `Stopping` is terminal for worker-teardown
+ * purposes but is still in motion as far as the user is concerned.
+ * @param status The status to check.
+ */
+export function isStoppedQueryStatus(
+  status: string | null | undefined
+): boolean {
+  return STOPPED_QUERY_STATUS_SET.has(status ?? UNSET_QUERY_STATUS);
+}
+
 export const DEFAULT_HIDDEN_QUERY_STATUSES: readonly string[] = [
   ...STOPPED_QUERY_STATUSES,
 ];
@@ -159,6 +176,8 @@ export const ICON_ID = {
   connected: 'vm-connect',
   connecting: 'sync~spin',
   disconnected: 'plug',
+  /** Trailing node standing in for the queries a filter is hiding. */
+  hidden: 'ellipsis',
   groovy: 'coffee',
   python: 'dh-python',
   runAll: 'run-all',
@@ -252,6 +271,8 @@ export const PERSISTENT_QUERY_TREE_ITEM_CONTEXT = {
   isPersistentQueryServer: 'isPersistentQueryServer',
   /** A (non-InteractiveConsole) persistent query node. */
   isPersistentQuery: 'isPersistentQuery',
+  /** The trailing "N hidden" node under a filtered server. */
+  isPersistentQueryHidden: 'isPersistentQueryHidden',
 } as const;
 
 export const PIP_SERVER_STATUS_DIRECTORY = 'pip-server-status';
