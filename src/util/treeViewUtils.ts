@@ -302,6 +302,10 @@ export function getPersistentQueryTreeItem(
       : ` — ${plural(objects.length, 'object')}${tableCount > 0 ? ` (${plural(tableCount, 'table')})` : ''}${canBrowse ? '' : ' (worker not browsable)'}`;
 
   return {
+    // Serial, not name: VS Code falls back to generating an id from the label
+    // when none is given, and two queries on a server can share a name. The
+    // colliding ids that produces confuse selection and the tree's find widget.
+    id: `pq:${node.dheServerUrl.href}:${queryInfo.serial}`,
     label: queryInfo.name,
     description: queryInfo.owner ?? undefined,
     tooltip: `${queryInfo.name}${status == null ? '' : ` (${status})`}${countSuffix}`,
@@ -326,6 +330,9 @@ export function getPersistentQueryHiddenTreeItem(
   const { hiddenCount } = node;
 
   return {
+    // Fixed id: the label carries a count that changes on every table tick, and
+    // a label-generated id would make this a different node each time.
+    id: `pq:${node.dheServerUrl.href}:more`,
     label: `More (${formatCount(hiddenCount)})`,
     tooltip: `${formatCount(hiddenCount)} ${
       hiddenCount === 1 ? 'query is' : 'queries are'
@@ -361,6 +368,7 @@ export function getPersistentQueryServerTreeItem(
   server: ServerState
 ): vscode.TreeItem {
   return {
+    id: `pq:${server.url.href}`,
     label: getConnectionServerLabel(server),
     iconPath: new vscode.ThemeIcon(ICON_ID.connected),
     collapsibleState: vscode.TreeItemCollapsibleState.Expanded,

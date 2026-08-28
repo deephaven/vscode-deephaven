@@ -274,6 +274,9 @@ describe('PersistentQueryTreeProvider', () => {
       });
 
       expect(item.label).toBe('More (20,007)');
+      // Fixed id: the label's count changes on every table tick, and a
+      // label-generated id would make this a different node each time.
+      expect(item.id).toBe(`pq:${DHE_URL.href}:more`);
       expect(item.command?.command).toBe(FILTER_PERSISTENT_QUERIES_CMD);
       expect(item.contextValue).toBe('isPersistentQueryHidden');
       expect((item.iconPath as vscode.ThemeIcon).id).toBe('ellipsis');

@@ -407,7 +407,13 @@ describe('getPersistentQueryTreeItem', () => {
   ): Parameters<typeof getPersistentQueryTreeItem>[0] {
     return {
       dheServerUrl: new URL('https://dhe.example.com/'),
-      queryInfo: { name: 'My PQ', owner: 'alice', designated, scriptLanguage },
+      queryInfo: {
+        serial: 'serial-1',
+        name: 'My PQ',
+        owner: 'alice',
+        designated,
+        scriptLanguage,
+      },
     } as unknown as Parameters<typeof getPersistentQueryTreeItem>[0];
   }
 
@@ -422,6 +428,13 @@ describe('getPersistentQueryTreeItem', () => {
     expect(item.label).toBe('My PQ');
     expect(item.description).toBe('alice');
     expect(item.contextValue).toBe('isPersistentQuery');
+  });
+
+  it('identifies a query by serial, not by its (possibly duplicated) name', () => {
+    const item = getPersistentQueryTreeItem(
+      makeNode({ status: 'Running', objects: [] })
+    );
+    expect(item.id).toBe('pq:https://dhe.example.com/:serial-1');
   });
 
   it('renders the status circle for a running PQ', () => {
