@@ -34,7 +34,7 @@ describe('PersistentQueryStatusFilterService', () => {
   });
 
   describe('initial state', () => {
-    it('hides the terminal + unset statuses on first run', () => {
+    it('hides the completely-stopped statuses on first run', () => {
       const service = new PersistentQueryStatusFilterService(makeContext());
 
       expect([...service.getHiddenStatuses()].sort()).toEqual(
@@ -42,7 +42,10 @@ describe('PersistentQueryStatusFilterService', () => {
       );
       expect(service.isVisible('Running')).toBe(true);
       expect(service.isVisible('Initializing')).toBe(true);
+      // Still winding down, so still worth seeing.
+      expect(service.isVisible('Stopping')).toBe(true);
       expect(service.isVisible('Stopped')).toBe(false);
+      expect(service.isVisible(null)).toBe(false);
     });
 
     it('treats a stored empty array as "show everything", not as unset', () => {

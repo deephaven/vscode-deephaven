@@ -96,16 +96,31 @@ export function isTerminalQueryStatus(
 export const UNSET_QUERY_STATUS = '' as const;
 
 /**
- * Statuses hidden by the Persistent Queries status filter on first run. The
- * filter stores what to HIDE rather than what to show, so a status this
- * extension has never heard of (a new one from a future DHE release) stays
- * visible instead of silently disappearing. The default is "everything except
- * terminal": the six terminal statuses plus the unset one, which belongs with
- * them because a stopped PQ can report no status at all.
+ * The statuses the Persistent Queries view treats as *completely stopped* — the
+ * terminal statuses minus `Stopping`, plus the unset one (a stopped PQ can
+ * report no status at all). A query that is `Stopping` is still in motion, so it
+ * belongs with the live ones where someone watching the view can see it wind
+ * down; everything here has finished moving.
+ *
+ * Deliberately derived from — but not equal to — {@link TERMINAL_QUERY_STATUSES}.
+ * That set drives worker-lifecycle teardown in `DheService` / `dhe.ts`, where
+ * `Stopping` must keep counting as terminal or a worker on its way out would
+ * never be detached. Widening the terminal set automatically widens this one.
+ */
+export const STOPPED_QUERY_STATUSES: readonly string[] = [
+  ...[...TERMINAL_QUERY_STATUSES].filter(status => status !== 'Stopping'),
+  UNSET_QUERY_STATUS,
+];
+
+/**
+ * Statuses hidden by the Persistent Queries status filter on first run — exactly
+ * {@link STOPPED_QUERY_STATUSES}, so the view opens showing every query that is
+ * running or still in motion. The filter stores what to HIDE rather than what to
+ * show, so a status this extension has never heard of (a new one from a future
+ * DHE release) stays visible instead of silently disappearing.
  */
 export const DEFAULT_HIDDEN_QUERY_STATUSES: readonly string[] = [
-  ...TERMINAL_QUERY_STATUSES,
-  UNSET_QUERY_STATUS,
+  ...STOPPED_QUERY_STATUSES,
 ];
 
 export const PIP_SERVER_SUPPORTED_PLATFORMS = new Set<NodeJS.Platform>([

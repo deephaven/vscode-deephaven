@@ -12,7 +12,11 @@ import {
   promptForQueryStatusFilter,
   setViewIsFiltered,
 } from './uiUtils';
-import { UNSET_QUERY_STATUS, type ViewID } from '../common';
+import {
+  DEFAULT_HIDDEN_QUERY_STATUSES,
+  UNSET_QUERY_STATUS,
+  type ViewID,
+} from '../common';
 import type {
   ConnectionState,
   CoreConnectionConfig,
@@ -312,15 +316,16 @@ describe('promptForQueryStatusFilter', () => {
     );
   }
 
-  it('groups the rows under separators: Running, starting up, stopped', async () => {
+  it('splits the rows into a Running and a Stopped section', async () => {
     vi.mocked(vscode.window.showQuickPick).mockResolvedValue(
       undefined as never
     );
 
     await promptForQueryStatusFilter(new Map(), new Set());
 
-    // The unset row sits with the terminal statuses: a query reporting no
-    // status has stopped without saying so.
+    // `Stopping` sits with the live statuses (it is still winding down), and
+    // the unset row with the stopped ones (a query reporting no status has
+    // stopped without saying so).
     expect(
       shownItems().map(item =>
         item.kind === vscode.QuickPickItemKind.Separator
@@ -330,7 +335,6 @@ describe('promptForQueryStatusFilter', () => {
     ).toEqual([
       '-- Running --',
       'Running',
-      '-- Starting up --',
       'Uninitialized',
       'Connecting',
       'Authenticating',
@@ -338,8 +342,8 @@ describe('promptForQueryStatusFilter', () => {
       'Finding Dispatcher',
       'Initializing',
       'Executing',
-      '-- Stopped --',
       'Stopping',
+      '-- Stopped --',
       'Stopped',
       'Failed',
       'Error',
@@ -349,14 +353,21 @@ describe('promptForQueryStatusFilter', () => {
     ]);
   });
 
-  it('omits the Other separator when every status is recognized', async () => {
+  it('checks exactly the Running section under the default filter', async () => {
     vi.mocked(vscode.window.showQuickPick).mockResolvedValue(
       undefined as never
     );
 
-    await promptForQueryStatusFilter(new Map([['Running', 1]]), new Set());
+    await promptForQueryStatusFilter(
+      new Map(),
+      new Set(DEFAULT_HIDDEN_QUERY_STATUSES)
+    );
 
-    expect(shownItems().map(item => item.label)).not.toContain('Other');
+    const rows = shownStatusRows();
+    const stoppedIndex = rows.findIndex(row => row.label === 'Stopped');
+
+    expect(rows.slice(0, stoppedIndex).every(row => row.picked)).toBe(true);
+    expect(rows.slice(stoppedIndex).some(row => row.picked)).toBe(false);
   });
 
   it('is a multi-select picker (canPickMany, not canSelectMany)', async () => {
@@ -427,7 +438,7 @@ describe('promptForQueryStatusFilter', () => {
     expect(byLabel.get('(no status)')?.description).toBe('20,001');
   });
 
-  it('gives unrecognized statuses their own trailing group, alphabetized', async () => {
+  it('puts unrecognized statuses at the end of the Running section, alphabetized', async () => {
     vi.mocked(vscode.window.showQuickPick).mockResolvedValue(
       undefined as never
     );
@@ -437,13 +448,27 @@ describe('promptForQueryStatusFilter', () => {
         ['Zombie', 1],
         ['Hibernating', 3],
       ]),
-      new Set()
+      new Set(DEFAULT_HIDDEN_QUERY_STATUSES)
     );
 
-    const labels = shownItems().map(item => item.label);
-    expect(labels.slice(-3)).toEqual(['Other', 'Hibernating', 'Zombie']);
-    // ...and the unset row stays with the terminal statuses.
-    expect(shownStatusRows().at(-3)?.label).toBe('(no status)');
+    const items = shownItems();
+    // Note both the separator and a status row are labelled 'Stopped'; match on
+    // the kind so this finds the section header.
+    const stoppedSeparator = items.findIndex(
+      item =>
+        item.kind === vscode.QuickPickItemKind.Separator &&
+        item.label === 'Stopped'
+    );
+
+    // Immediately before the Stopped separator, i.e. last in the Running list.
+    expect(
+      items
+        .slice(stoppedSeparator - 2, stoppedSeparator)
+        .map(item => item.label)
+    ).toEqual(['Hibernating', 'Zombie']);
+    // An unknown status is not known to have stopped, so it stays visible.
+    const byLabel = new Map(shownItems().map(item => [item.label, item]));
+    expect(byLabel.get('Zombie')?.picked).toBe(true);
   });
 
   it('returns the statuses that were NOT picked (the hidden set)', async () => {

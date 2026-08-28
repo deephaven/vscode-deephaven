@@ -13,7 +13,7 @@ import {
   STATUS_BAR_CONNECTING_TEXT,
   STATUS_BAR_DISCONNECTED_TEXT,
   ICON_ID,
-  TERMINAL_QUERY_STATUSES,
+  STOPPED_QUERY_STATUSES,
   UNSET_QUERY_STATUS,
   type ViewID,
 } from '../common';
@@ -654,13 +654,17 @@ export async function saveRequirementsTxt(
 }
 
 /**
- * The transitional statuses, in `QueryStatus` declaration order — everything
- * that is neither `Running` nor terminal. Listed explicitly (rather than
- * derived by subtraction) so the picker's row order is stable regardless of what
- * `QueryStatus` gains later; anything new simply falls into the "unrecognized"
- * bucket at the bottom of the list.
+ * The picker's "Running" section: every status a user watching the view might
+ * still care about — `Running` itself, the transitional statuses in
+ * `QueryStatus` declaration order, and `Stopping`, which is winding down but has
+ * not finished. The complement is {@link STOPPED_QUERY_STATUSES}.
+ *
+ * Listed explicitly (rather than derived by subtraction) so the row order is
+ * stable regardless of what `QueryStatus` gains later; anything new simply falls
+ * in with the unrecognized rows at the end of this section.
  */
-const TRANSITIONAL_QUERY_STATUSES: readonly string[] = [
+const LIVE_QUERY_STATUSES: readonly string[] = [
+  QueryStatus.running,
   QueryStatus.uninitialized,
   QueryStatus.connecting,
   QueryStatus.authenticating,
@@ -668,6 +672,7 @@ const TRANSITIONAL_QUERY_STATUSES: readonly string[] = [
   QueryStatus.findingDispatcher,
   QueryStatus.initializing,
   QueryStatus.executing,
+  QueryStatus.stopping,
 ];
 
 /** A row in the {@link promptForQueryStatusFilter} picker. */
@@ -679,17 +684,20 @@ interface QueryStatusPickItem extends vscode.QuickPickItem {
  * Prompt for the persistent-query statuses to show, as a multi-select checkbox
  * list with one row per status and its current count.
  *
- * The rows are grouped by separators rather than listed flat, and ordered by
- * likelihood of interest rather than by `QueryStatus` declaration order:
- * `Running`, then the transitional statuses, then the terminal ones — which
- * include the unset row, since a query that reports no status has stopped
- * without saying so — and finally anything observed in the data that this
- * extension doesn't recognize (so a status from a newer DHE release is still
- * togglable). A group with no rows contributes no separator.
+ * The rows sit in two separator-headed sections, splitting queries that have
+ * finished moving from ones still worth watching:
+ * - **Running** — `Running`, the transitional statuses, and `Stopping` (winding
+ *   down, but not gone), followed by any status observed in the data that this
+ *   extension doesn't recognize. An unknown status is not known to have stopped,
+ *   so it belongs with the live ones and stays visible by default.
+ * - **Stopped** — {@link STOPPED_QUERY_STATUSES}, including the unset row, since
+ *   a query that reports no status has stopped without saying so.
+ *
+ * The Stopped section is exactly what the filter hides on first run.
  *
  * Separators are visual only: VS Code ignores every property but `label` on
- * them and they cannot be picked, so there is no way to toggle a whole group in
- * one click.
+ * them and they cannot be picked, so there is no way to toggle a whole section
+ * in one click.
  *
  * Returns the new set of statuses to HIDE — the storage the filter actually
  * uses — or `undefined` if the picker was dismissed. A dismissal must be
@@ -703,16 +711,12 @@ export async function promptForQueryStatusFilter(
   statusCounts: ReadonlyMap<string, number>,
   hiddenStatuses: ReadonlySet<string>
 ): Promise<Set<string> | undefined> {
-  const terminal = [...TERMINAL_QUERY_STATUSES, UNSET_QUERY_STATUS];
-  const known = [
-    QueryStatus.running,
-    ...TRANSITIONAL_QUERY_STATUSES,
-    ...terminal,
-  ];
+  const known = [...LIVE_QUERY_STATUSES, ...STOPPED_QUERY_STATUSES];
   const knownSet = new Set(known);
 
   // Any status the server reported that isn't in the known vocabulary still
-  // gets a row so it can be hidden / shown like the rest.
+  // gets a row so it can be hidden / shown like the rest. It goes in the
+  // Running section: nothing says it has stopped.
   const unrecognized = [...statusCounts.keys()]
     .filter(status => !knownSet.has(status))
     .sort((a, b) => a.localeCompare(b));
@@ -731,20 +735,12 @@ export async function promptForQueryStatusFilter(
     picked: !hiddenStatuses.has(status),
   });
 
-  const items: (SeparatorPickItem | QueryStatusPickItem)[] = [];
-
-  const pushGroup = (label: string, groupStatuses: string[]): void => {
-    if (groupStatuses.length === 0) {
-      return;
-    }
-
-    items.push(createSeparatorPickItem(label), ...groupStatuses.map(toItem));
-  };
-
-  pushGroup('Running', [QueryStatus.running]);
-  pushGroup('Starting up', [...TRANSITIONAL_QUERY_STATUSES]);
-  pushGroup('Stopped', terminal);
-  pushGroup('Other', unrecognized);
+  const items: (SeparatorPickItem | QueryStatusPickItem)[] = [
+    createSeparatorPickItem('Running'),
+    ...[...LIVE_QUERY_STATUSES, ...unrecognized].map(toItem),
+    createSeparatorPickItem('Stopped'),
+    ...STOPPED_QUERY_STATUSES.map(toItem),
+  ];
 
   // `canPickMany` (a `QuickPickOptions` field) is what makes this a checkbox
   // list. `canSelectMany` is the `QuickPick` *class* property and would silently

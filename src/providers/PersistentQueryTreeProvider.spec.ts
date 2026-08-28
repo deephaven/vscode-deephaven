@@ -64,9 +64,9 @@ describe('PersistentQueryTreeProvider', () => {
     vi.clearAllMocks();
     onFilterDidUpdate = undefined;
 
-    // Default filter: hide the terminal + unset statuses.
+    // Default filter: hide the completely-stopped statuses. `Stopping` is not
+    // one of them — it is still winding down, so it stays visible.
     hiddenStatuses = new Set([
-      'Stopping',
       'Stopped',
       'Failed',
       'Error',
