@@ -9,8 +9,9 @@ import {
   QUERY_CONFIG_TABLE,
   WEB_CLIENT_DATA_CORE_QUERY,
 } from '@deephaven-enterprise/query-utils';
+import { QUERY_INFO_UPDATE_INTERVAL_MS } from '../common';
 import type { IAsyncCacheService, IDheService, IDisposable } from '../types';
-import { Logger } from '../util';
+import { createThrottledTrigger, Logger } from '../util';
 import { DisposableBase } from './DisposableBase';
 
 const logger = new Logger('QueryConfigTableService');
@@ -281,6 +282,11 @@ export class QueryConfigTableService extends DisposableBase {
       statusColumn,
     ]);
 
+    const throttledUpdate = createThrottledTrigger(
+      () => onDidUpdateEmitter.fire(),
+      QUERY_INFO_UPDATE_INTERVAL_MS
+    );
+
     const removeUpdateListener =
       tableSubscription.addEventListener<DhcType.SubscriptionTableData>(
         coreApi.Table.EVENT_UPDATED,
@@ -296,8 +302,10 @@ export class QueryConfigTableService extends DisposableBase {
             serials.add(String(row.get(serialColumn)));
           }
 
+          // The serial set is updated on every tick so `getQuerySerials` is
+          // never stale; only the notification is rate limited.
           querySerials = serials;
-          onDidUpdateEmitter.fire();
+          throttledUpdate.trigger();
         }
       );
 
@@ -307,6 +315,9 @@ export class QueryConfigTableService extends DisposableBase {
       getQuerySerials: () => querySerials,
       dispose: async (): Promise<void> => {
         removeUpdateListener();
+        // Before the emitter, so a pending trailing fire cannot land on a
+        // disposed emitter.
+        throttledUpdate.dispose();
         onDidUpdateEmitter.dispose();
         try {
           tableSubscription.close();

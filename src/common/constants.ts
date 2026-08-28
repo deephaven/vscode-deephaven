@@ -47,6 +47,16 @@ export const MCP_DOCS_SERVER_NAME = 'Deephaven Documentation' as const;
 export const MCP_DOCS_SERVER_URL =
   'https://deephaven-mcp-docs-prod.dhc-demo.deephaven.io/mcp' as const;
 
+/**
+ * Minimum milliseconds between `QueryInfo` table update notifications. The table
+ * ticks on every row add/remove and status transition, and a server can hold
+ * tens of thousands of queries, so an unthrottled tick would refresh the whole
+ * Persistent Queries tree continuously — expensive, and it lands mid-interaction
+ * with the tree's find widget. The serial set behind `getQuerySerials` is still
+ * updated on every tick; only the notification is rate limited.
+ */
+export const QUERY_INFO_UPDATE_INTERVAL_MS = 250;
+
 export const PIP_SERVER_STATUS_CHECK_INTERVAL = 3000;
 export const PIP_SERVER_STATUS_CHECK_TIMEOUT = 30000;
 
