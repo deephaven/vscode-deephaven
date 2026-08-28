@@ -14,6 +14,7 @@ import {
 } from './uiUtils';
 import {
   DEFAULT_HIDDEN_QUERY_STATUSES,
+  STOPPED_QUERY_STATUSES,
   UNSET_QUERY_STATUS,
   type ViewID,
 } from '../common';
@@ -324,7 +325,7 @@ describe('promptForQueryStatusFilter', () => {
     await promptForQueryStatusFilter(new Map(), new Set());
 
     // `Stopping` sits with the live statuses (it is still winding down), and
-    // the unset row with the stopped ones (a query reporting no status has
+    // the unset row leads the stopped ones (a query reporting no status has
     // stopped without saying so).
     expect(
       shownItems().map(item =>
@@ -344,12 +345,12 @@ describe('promptForQueryStatusFilter', () => {
       'Executing',
       'Stopping',
       '-- Stopped --',
+      '(no status)',
       'Stopped',
       'Failed',
       'Error',
       'Disconnected',
       'Completed',
-      '(no status)',
     ]);
   });
 
@@ -364,7 +365,8 @@ describe('promptForQueryStatusFilter', () => {
     );
 
     const rows = shownStatusRows();
-    const stoppedIndex = rows.findIndex(row => row.label === 'Stopped');
+    // The Stopped section is the tail of the list, one row per stopped status.
+    const stoppedIndex = rows.length - STOPPED_QUERY_STATUSES.length;
 
     expect(rows.slice(0, stoppedIndex).every(row => row.picked)).toBe(true);
     expect(rows.slice(stoppedIndex).some(row => row.picked)).toBe(false);

@@ -97,10 +97,14 @@ export const UNSET_QUERY_STATUS = '' as const;
 
 /**
  * The statuses the Persistent Queries view treats as *completely stopped* — the
- * terminal statuses minus `Stopping`, plus the unset one (a stopped PQ can
- * report no status at all). A query that is `Stopping` is still in motion, so it
- * belongs with the live ones where someone watching the view can see it wind
+ * unset one (a stopped PQ can report no status at all) followed by the terminal
+ * statuses minus `Stopping`. A query that is `Stopping` is still in motion, so
+ * it belongs with the live ones where someone watching the view can see it wind
  * down; everything here has finished moving.
+ *
+ * The order is the filter picker's row order for its "Stopped" section, with the
+ * unset row leading because "reported nothing at all" is the vaguest case and
+ * reads best before the specific ones.
  *
  * Deliberately derived from — but not equal to — {@link TERMINAL_QUERY_STATUSES}.
  * That set drives worker-lifecycle teardown in `DheService` / `dhe.ts`, where
@@ -108,8 +112,8 @@ export const UNSET_QUERY_STATUS = '' as const;
  * never be detached. Widening the terminal set automatically widens this one.
  */
 export const STOPPED_QUERY_STATUSES: readonly string[] = [
-  ...[...TERMINAL_QUERY_STATUSES].filter(status => status !== 'Stopping'),
   UNSET_QUERY_STATUS,
+  ...[...TERMINAL_QUERY_STATUSES].filter(status => status !== 'Stopping'),
 ];
 
 /**
