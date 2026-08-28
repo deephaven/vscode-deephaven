@@ -326,7 +326,7 @@ export function getPersistentQueryHiddenTreeItem(
   const { hiddenCount } = node;
 
   return {
-    label: `Hidden (${formatCount(hiddenCount)})`,
+    label: `More (${formatCount(hiddenCount)})`,
     tooltip: `${formatCount(hiddenCount)} ${
       hiddenCount === 1 ? 'query is' : 'queries are'
     } hidden by the status filter. Click to change it.`,

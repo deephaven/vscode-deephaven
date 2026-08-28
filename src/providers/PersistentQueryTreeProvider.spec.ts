@@ -273,7 +273,7 @@ describe('PersistentQueryTreeProvider', () => {
         hiddenCount: 20007,
       });
 
-      expect(item.label).toBe('Hidden (20,007)');
+      expect(item.label).toBe('More (20,007)');
       expect(item.command?.command).toBe(FILTER_PERSISTENT_QUERIES_CMD);
       expect(item.contextValue).toBe('isPersistentQueryHidden');
       expect((item.iconPath as vscode.ThemeIcon).id).toBe('ellipsis');
