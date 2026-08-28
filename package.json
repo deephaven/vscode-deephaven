@@ -997,17 +997,17 @@
       "view/title": [
         {
           "command": "vscode-deephaven.refreshServerTree",
-          "group": "navigation",
+          "group": "navigation@99",
           "when": "view == vscode-deephaven.view.serverTree"
         },
         {
           "command": "vscode-deephaven.refreshServerConnectionTree",
-          "group": "navigation",
+          "group": "navigation@99",
           "when": "view == vscode-deephaven.view.serverConnectionTree"
         },
         {
           "command": "vscode-deephaven.refreshRemoteImportSourceTree",
-          "group": "navigation@1",
+          "group": "navigation@99",
           "when": "view == vscode-deephaven.view.remoteImportSourceTree"
         },
         {
@@ -1022,17 +1022,17 @@
         },
         {
           "command": "vscode-deephaven.refreshPersistentQueryTree",
-          "group": "navigation@2",
+          "group": "navigation@99",
           "when": "view == vscode-deephaven.view.persistentQueryTree"
         },
         {
           "command": "vscode-deephaven.searchConnections",
-          "group": "navigation",
+          "group": "navigation@2",
           "when": "view == vscode-deephaven.view.serverConnectionTree"
         },
         {
           "command": "vscode-deephaven.searchPersistentQueries",
-          "group": "navigation@3",
+          "group": "navigation@2",
           "when": "view == vscode-deephaven.view.persistentQueryTree"
         },
         {
