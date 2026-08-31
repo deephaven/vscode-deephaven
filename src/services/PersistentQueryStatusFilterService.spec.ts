@@ -3,6 +3,7 @@ import type * as vscode from 'vscode';
 import { PersistentQueryStatusFilterService } from './PersistentQueryStatusFilterService';
 import {
   DEFAULT_HIDDEN_QUERY_STATUSES,
+  LIVE_QUERY_STATUSES,
   PERSISTENT_QUERY_HIDDEN_STATUSES_STORAGE_KEY,
   UNSET_QUERY_STATUS,
 } from '../common';
@@ -147,5 +148,71 @@ describe('PersistentQueryStatusFilterService', () => {
       expect(context.globalState.update).not.toHaveBeenCalled();
       expect(onDidUpdate).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('status sections', () => {
+  it('reports the default filter as Running shown, Stopped hidden', () => {
+    const service = new PersistentQueryStatusFilterService(makeContext());
+
+    expect(service.isSectionVisible('Running')).toBe(true);
+    expect(service.isSectionVisible('Stopped')).toBe(false);
+  });
+
+  it('counts a partly hidden section as still shown', async () => {
+    const service = new PersistentQueryStatusFilterService(makeContext([]));
+
+    // Hide all of Running except `Running` itself.
+    await service.setHiddenStatuses(
+      LIVE_QUERY_STATUSES.filter(status => status !== 'Running')
+    );
+
+    // The checkbox answers "am I seeing any of these?", so unchecking it can
+    // hide the remainder rather than doing nothing.
+    expect(service.isSectionVisible('Running')).toBe(true);
+  });
+
+  it('hides every status in a section', async () => {
+    const service = new PersistentQueryStatusFilterService(makeContext([]));
+
+    await service.setSectionVisible('Running', false);
+
+    expect(service.isSectionVisible('Running')).toBe(false);
+    for (const status of LIVE_QUERY_STATUSES) {
+      expect(service.isVisible(status)).toBe(false);
+    }
+    // The other section is untouched.
+    expect(service.isSectionVisible('Stopped')).toBe(true);
+  });
+
+  it('shows every status in a section, including the unset one', async () => {
+    const service = new PersistentQueryStatusFilterService(makeContext());
+
+    await service.setSectionVisible('Stopped', true);
+
+    expect(service.isSectionVisible('Stopped')).toBe(true);
+    expect(service.isVisible('Stopped')).toBe(true);
+    expect(service.isVisible(null)).toBe(true);
+  });
+
+  it('leaves an unrecognized status alone when toggling a section', async () => {
+    const service = new PersistentQueryStatusFilterService(makeContext([]));
+
+    await service.setSectionVisible('Running', false);
+
+    // Not part of either section's status list, so the toggle cannot hide it.
+    expect(service.isVisible('Hibernating')).toBe(true);
+  });
+
+  it('persists a section toggle', async () => {
+    const context = makeContext([]);
+    const service = new PersistentQueryStatusFilterService(context);
+
+    await service.setSectionVisible('Stopped', false);
+
+    expect(context.globalState.update).toHaveBeenCalledWith(
+      PERSISTENT_QUERY_HIDDEN_STATUSES_STORAGE_KEY,
+      expect.arrayContaining(['Stopped', UNSET_QUERY_STATUS])
+    );
   });
 });

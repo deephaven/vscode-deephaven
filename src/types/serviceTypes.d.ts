@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
+import type { QueryStatusSection } from '../common';
 import type { QueryInfo } from '@deephaven-enterprise/jsapi-types';
 import type { CorePlusManager } from '@deephaven-enterprise/client-utils';
 import type {
@@ -179,6 +180,17 @@ export interface IPersistentQueryStatusFilterService extends IDisposable {
   getHiddenStatuses: () => ReadonlySet<string>;
   /** Replace the hidden set, persist it, and fire `onDidUpdate`. */
   setHiddenStatuses: (hidden: Iterable<string>) => Promise<void>;
+  /**
+   * Whether *any* status in the section is currently listed. A section the user
+   * has partly hidden (via the per-status picker) still counts as shown — the
+   * checkbox answers "am I seeing any of these?".
+   */
+  isSectionVisible: (section: QueryStatusSection) => boolean;
+  /** Show or hide every status in the section at once. */
+  setSectionVisible: (
+    section: QueryStatusSection,
+    isVisible: boolean
+  ) => Promise<void>;
 }
 
 /**

@@ -133,6 +133,43 @@ export const STOPPED_QUERY_STATUSES: readonly string[] = [
  * show, so a status this extension has never heard of (a new one from a future
  * DHE release) stays visible instead of silently disappearing.
  */
+/**
+ * The statuses the Persistent Queries view treats as *live* — running, or still
+ * in motion on the way to or from it. The complement of
+ * {@link STOPPED_QUERY_STATUSES} over the vocabulary this extension knows, and
+ * the order the filter picker lists them in.
+ *
+ * Spelled out rather than derived from `QueryStatus` (the enterprise
+ * `query-utils` class) so `constants` stays free of that runtime import, and so
+ * the picker's row order is stable regardless of what `QueryStatus` gains later:
+ * anything new simply lands in the picker's "unrecognized" rows and is visible
+ * by default.
+ */
+export const LIVE_QUERY_STATUSES: readonly string[] = [
+  'Running',
+  'Uninitialized',
+  'Connecting',
+  'Authenticating',
+  'AcquiringWorker',
+  'FindingDispatcher',
+  'Initializing',
+  'Executing',
+  'Stopping',
+];
+
+/** The two halves the Persistent Queries status filter can toggle at once. */
+export type QueryStatusSection = 'Running' | 'Stopped';
+
+/**
+ * The statuses making up a {@link QueryStatusSection}.
+ * @param section The section whose statuses to list.
+ */
+export function getQueryStatusSectionStatuses(
+  section: QueryStatusSection
+): readonly string[] {
+  return section === 'Running' ? LIVE_QUERY_STATUSES : STOPPED_QUERY_STATUSES;
+}
+
 const STOPPED_QUERY_STATUS_SET: ReadonlySet<string> = new Set(
   STOPPED_QUERY_STATUSES
 );

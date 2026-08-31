@@ -27,8 +27,11 @@ import {
   REFRESH_SERVER_TREE_CMD,
   REMOVE_GROOVY_REMOTE_FILE_SOURCE_CMD,
   REMOVE_PYTHON_REMOTE_FILE_SOURCE_CMD,
-  FILTER_PERSISTENT_QUERIES_ACTIVE_CMD,
   FILTER_PERSISTENT_QUERIES_CMD,
+  HIDE_RUNNING_QUERIES_CMD,
+  HIDE_STOPPED_QUERIES_CMD,
+  SHOW_RUNNING_QUERIES_CMD,
+  SHOW_STOPPED_QUERIES_CMD,
   REVEAL_IN_EXPLORER_CMD,
   RUN_CODE_COMMAND,
   RUN_MARKDOWN_CODEBLOCK_CMD,
@@ -42,6 +45,7 @@ import {
   type RemoveRemoteFileSourceCmdArgs,
   type RunCodeCmdArgs,
   type RunMarkdownCodeblockCmdArgs,
+  type QueryStatusSection,
   type RunSelectionCmdArgs,
   type ViewID,
 } from '../common';
@@ -65,6 +69,7 @@ import {
   saveLogFiles,
   serializeRefreshToken,
   setViewIsFiltered,
+  setViewSectionIsVisible,
   Toaster,
   URLMap,
   withResolvers,
@@ -767,18 +772,11 @@ export class ExtensionController implements IDisposable {
       new PersistentQueryStatusFilterService(this._context);
     this._context.subscriptions.push(this._persistentQueryStatusFilterService);
 
-    setViewIsFiltered(
-      VIEW_ID.persistentQueryTree,
-      this._persistentQueryStatusFilterService.getHiddenStatuses().size > 0
-    );
+    this.syncPersistentQueryFilterContext();
 
     this._persistentQueryStatusFilterService.onDidUpdate(
       () => {
-        setViewIsFiltered(
-          VIEW_ID.persistentQueryTree,
-          (this._persistentQueryStatusFilterService?.getHiddenStatuses().size ??
-            0) > 0
-        );
+        this.syncPersistentQueryFilterContext();
       },
       undefined,
       this._context.subscriptions
@@ -887,9 +885,17 @@ export class ExtensionController implements IDisposable {
       FILTER_PERSISTENT_QUERIES_CMD,
       this.onFilterPersistentQueries
     );
-    this.registerCommand(
-      FILTER_PERSISTENT_QUERIES_ACTIVE_CMD,
-      this.onFilterPersistentQueries
+    this.registerCommand(SHOW_RUNNING_QUERIES_CMD, () =>
+      this.onSetQuerySectionVisible('Running', true)
+    );
+    this.registerCommand(HIDE_RUNNING_QUERIES_CMD, () =>
+      this.onSetQuerySectionVisible('Running', false)
+    );
+    this.registerCommand(SHOW_STOPPED_QUERIES_CMD, () =>
+      this.onSetQuerySectionVisible('Stopped', true)
+    );
+    this.registerCommand(HIDE_STOPPED_QUERIES_CMD, () =>
+      this.onSetQuerySectionVisible('Stopped', false)
     );
 
     /** Remote import source tree */
@@ -1298,6 +1304,48 @@ export class ExtensionController implements IDisposable {
    * command ids. A dismissed picker resolves `undefined` and must leave the
    * filter untouched — treating it as an empty selection would hide everything.
    */
+  /**
+   * Push the filter state into context keys the Persistent Queries menu reads:
+   * which submenu icon to show (hollow / filled funnel), and which of each
+   * checked / unchecked row pair to render. Driven off the filter service's
+   * event rather than the commands, so the keys are correct at startup too,
+   * where no command has run.
+   */
+  syncPersistentQueryFilterContext = (): void => {
+    const filterService = this._persistentQueryStatusFilterService;
+    if (filterService == null) {
+      return;
+    }
+
+    setViewIsFiltered(
+      VIEW_ID.persistentQueryTree,
+      filterService.getHiddenStatuses().size > 0
+    );
+
+    for (const section of ['Running', 'Stopped'] as const) {
+      setViewSectionIsVisible(
+        VIEW_ID.persistentQueryTree,
+        section,
+        filterService.isSectionVisible(section)
+      );
+    }
+  };
+
+  /**
+   * Show or hide a whole status section from the filter menu's checkbox rows.
+   * @param section The section to toggle.
+   * @param isVisible Whether its queries should be listed.
+   */
+  onSetQuerySectionVisible = async (
+    section: QueryStatusSection,
+    isVisible: boolean
+  ): Promise<void> => {
+    await this._persistentQueryStatusFilterService?.setSectionVisible(
+      section,
+      isVisible
+    );
+  };
+
   onFilterPersistentQueries = async (): Promise<void> => {
     if (
       this._persistentQueryTreeProvider == null ||

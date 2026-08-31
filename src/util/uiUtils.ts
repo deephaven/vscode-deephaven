@@ -790,6 +790,26 @@ export function setViewIsVisible(viewId: ViewID, isVisible: boolean): void {
  * @param viewId The view ID to set the filtered state for.
  * @param isFiltered Whether a filter is currently hiding anything.
  */
+/**
+ * Set the visibility of a filter section for a given view id, as
+ * `${viewId}.${section}Visible`, so package.json `when` clauses can pick which
+ * of a checked / unchecked menu row pair to show.
+ * @param viewId The view the section belongs to.
+ * @param section The section name (used verbatim, lower-cased, in the key).
+ * @param isVisible Whether the section's items are currently listed.
+ */
+export function setViewSectionIsVisible(
+  viewId: ViewID,
+  section: string,
+  isVisible: boolean
+): void {
+  vscode.commands.executeCommand(
+    'setContext',
+    `${viewId}.${section.toLowerCase()}Visible`,
+    isVisible
+  );
+}
+
 export function setViewIsFiltered(viewId: ViewID, isFiltered: boolean): void {
   vscode.commands.executeCommand(
     'setContext',

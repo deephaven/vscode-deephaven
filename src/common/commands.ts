@@ -113,6 +113,18 @@ export const DOWNLOAD_LOGS_CMD = cmd('downloadLogs');
 // show a filled funnel while a filter is active is to contribute a second
 // command and swap between them on a `when` clause.
 export const FILTER_PERSISTENT_QUERIES_CMD = cmd('filterPersistentQueries');
+/**
+ * The four rows of the Persistent Queries filter menu: one pair per section,
+ * gated on complementary `when` clauses so exactly one of each pair shows. The
+ * "checked" variant carries a literal U+2713 in its title — extension menus
+ * cannot render a real checked state, and a `$(check)` codicon does not render
+ * in a menu at all.
+ */
+export const SHOW_RUNNING_QUERIES_CMD = cmd('showRunningQueries');
+export const HIDE_RUNNING_QUERIES_CMD = cmd('hideRunningQueries');
+export const SHOW_STOPPED_QUERIES_CMD = cmd('showStoppedQueries');
+export const HIDE_STOPPED_QUERIES_CMD = cmd('hideStoppedQueries');
+
 export const FILTER_PERSISTENT_QUERIES_ACTIVE_CMD = cmd(
   'filterPersistentQueriesActive'
 );

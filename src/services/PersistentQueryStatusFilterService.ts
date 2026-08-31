@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import {
   DEFAULT_HIDDEN_QUERY_STATUSES,
   PERSISTENT_QUERY_HIDDEN_STATUSES_STORAGE_KEY,
+  getQueryStatusSectionStatuses,
+  type QueryStatusSection,
   UNSET_QUERY_STATUS,
 } from '../common';
 import type { IPersistentQueryStatusFilterService } from '../types';
@@ -50,6 +52,41 @@ export class PersistentQueryStatusFilterService
    */
   isVisible = (status: string | null | undefined): boolean => {
     return !this._hiddenStatuses.has(normalizeQueryStatus(status));
+  };
+
+  /**
+   * Whether any status in the section is currently listed. A section the user
+   * has partly hidden through the per-status picker still counts as shown: the
+   * checkbox answers "am I seeing any of these?", so unchecking it hides the
+   * rest rather than doing nothing.
+   * @param section The section to check.
+   */
+  isSectionVisible = (section: QueryStatusSection): boolean => {
+    return getQueryStatusSectionStatuses(section).some(status =>
+      this.isVisible(status)
+    );
+  };
+
+  /**
+   * Show or hide every status in a section at once.
+   * @param section The section to toggle.
+   * @param isVisible Whether its statuses should be listed.
+   */
+  setSectionVisible = async (
+    section: QueryStatusSection,
+    isVisible: boolean
+  ): Promise<void> => {
+    const hidden = new Set(this._hiddenStatuses);
+
+    for (const status of getQueryStatusSectionStatuses(section)) {
+      if (isVisible) {
+        hidden.delete(status);
+      } else {
+        hidden.add(status);
+      }
+    }
+
+    await this.setHiddenStatuses(hidden);
   };
 
   /** The statuses currently hidden (normalised; unset is `''`). */
