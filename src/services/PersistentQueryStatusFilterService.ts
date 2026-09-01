@@ -55,14 +55,14 @@ export class PersistentQueryStatusFilterService
   };
 
   /**
-   * Whether any status in the section is currently listed. A section the user
-   * has partly hidden through the per-status picker still counts as shown: the
-   * checkbox answers "am I seeing any of these?", so unchecking it hides the
-   * rest rather than doing nothing.
+   * Whether *every* status in the section is currently listed — the section's
+   * menu row shows a checkmark only then. A section the user has partly hidden
+   * through the per-status picker reads as unchecked, so clicking it fills the
+   * section in rather than clearing the remainder.
    * @param section The section to check.
    */
-  isSectionVisible = (section: QueryStatusSection): boolean => {
-    return getQueryStatusSectionStatuses(section).some(status =>
+  isSectionFullyVisible = (section: QueryStatusSection): boolean => {
+    return getQueryStatusSectionStatuses(section).every(status =>
       this.isVisible(status)
     );
   };

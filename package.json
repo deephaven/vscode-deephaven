@@ -1079,22 +1079,22 @@
         {
           "command": "vscode-deephaven.hideRunningQueries",
           "group": "1_sections@1",
-          "when": "vscode-deephaven.view.persistentQueryTree.runningVisible"
+          "when": "vscode-deephaven.view.persistentQueryTree.runningChecked"
         },
         {
           "command": "vscode-deephaven.showRunningQueries",
           "group": "1_sections@1",
-          "when": "!vscode-deephaven.view.persistentQueryTree.runningVisible"
+          "when": "!vscode-deephaven.view.persistentQueryTree.runningChecked"
         },
         {
           "command": "vscode-deephaven.hideStoppedQueries",
           "group": "1_sections@2",
-          "when": "vscode-deephaven.view.persistentQueryTree.stoppedVisible"
+          "when": "vscode-deephaven.view.persistentQueryTree.stoppedChecked"
         },
         {
           "command": "vscode-deephaven.showStoppedQueries",
           "group": "1_sections@2",
-          "when": "!vscode-deephaven.view.persistentQueryTree.stoppedVisible"
+          "when": "!vscode-deephaven.view.persistentQueryTree.stoppedChecked"
         },
         {
           "command": "vscode-deephaven.filterPersistentQueries",
@@ -1105,22 +1105,22 @@
         {
           "command": "vscode-deephaven.hideRunningQueries",
           "group": "1_sections@1",
-          "when": "vscode-deephaven.view.persistentQueryTree.runningVisible"
+          "when": "vscode-deephaven.view.persistentQueryTree.runningChecked"
         },
         {
           "command": "vscode-deephaven.showRunningQueries",
           "group": "1_sections@1",
-          "when": "!vscode-deephaven.view.persistentQueryTree.runningVisible"
+          "when": "!vscode-deephaven.view.persistentQueryTree.runningChecked"
         },
         {
           "command": "vscode-deephaven.hideStoppedQueries",
           "group": "1_sections@2",
-          "when": "vscode-deephaven.view.persistentQueryTree.stoppedVisible"
+          "when": "vscode-deephaven.view.persistentQueryTree.stoppedChecked"
         },
         {
           "command": "vscode-deephaven.showStoppedQueries",
           "group": "1_sections@2",
-          "when": "!vscode-deephaven.view.persistentQueryTree.stoppedVisible"
+          "when": "!vscode-deephaven.view.persistentQueryTree.stoppedChecked"
         },
         {
           "command": "vscode-deephaven.filterPersistentQueries",

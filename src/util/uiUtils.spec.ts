@@ -324,9 +324,8 @@ describe('promptForQueryStatusFilter', () => {
 
     await promptForQueryStatusFilter(new Map(), new Set());
 
-    // `Stopping` sits with the live statuses (it is still winding down), and
-    // the unset row leads the stopped ones (a query reporting no status has
-    // stopped without saying so).
+    // `Stopping` groups with the stopped statuses, and the unset row leads them
+    // (a query reporting no status has stopped without saying so).
     expect(
       shownItems().map(item =>
         item.kind === vscode.QuickPickItemKind.Separator
@@ -343,9 +342,9 @@ describe('promptForQueryStatusFilter', () => {
       'Finding Dispatcher',
       'Initializing',
       'Executing',
-      'Stopping',
       '-- Stopped --',
       '(no status)',
+      'Stopping',
       'Stopped',
       'Failed',
       'Error',

@@ -338,7 +338,7 @@ describe('getPersistentQueryIconId', () => {
     expect(getPersistentQueryIconId(status)).toBe('circle-slash');
   });
 
-  it('returns the spinner for Stopping — it is still winding down', () => {
+  it('returns the spinner for Stopping, which the filter groups as stopped but is still transitional', () => {
     expect(getPersistentQueryIconId('Stopping')).toBe('sync~spin');
   });
 

@@ -754,22 +754,23 @@ export function setViewIsVisible(viewId: ViewID, isVisible: boolean): void {
 }
 
 /**
- * Set the visibility of a filter section for a given view id, as
- * `${viewId}.${section}Visible`, so package.json `when` clauses can pick which
- * of a checked / unchecked menu row pair to show.
+ * Set the checked state of a filter section for a given view id, as
+ * `${viewId}.${section}Checked`, so package.json `when` clauses can pick which
+ * of a checked / unchecked menu row pair to show. Extension menus cannot render
+ * a real checkbox, so the pair stands in for one.
  * @param viewId The view the section belongs to.
  * @param section The section name (used verbatim, lower-cased, in the key).
- * @param isVisible Whether the section's items are currently listed.
+ * @param isChecked Whether the section's row should render as checked.
  */
-export function setViewSectionIsVisible(
+export function setViewSectionIsChecked(
   viewId: ViewID,
   section: string,
-  isVisible: boolean
+  isChecked: boolean
 ): void {
   vscode.commands.executeCommand(
     'setContext',
-    `${viewId}.${section.toLowerCase()}Visible`,
-    isVisible
+    `${viewId}.${section.toLowerCase()}Checked`,
+    isChecked
   );
 }
 

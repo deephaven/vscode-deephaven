@@ -69,7 +69,7 @@ import {
   saveLogFiles,
   serializeRefreshToken,
   setViewIsFiltered,
-  setViewSectionIsVisible,
+  setViewSectionIsChecked,
   Toaster,
   URLMap,
   withResolvers,
@@ -1310,10 +1310,10 @@ export class ExtensionController implements IDisposable {
     );
 
     for (const section of ['Running', 'Stopped'] as const) {
-      setViewSectionIsVisible(
+      setViewSectionIsChecked(
         VIEW_ID.persistentQueryTree,
         section,
-        filterService.isSectionVisible(section)
+        filterService.isSectionFullyVisible(section)
       );
     }
   };

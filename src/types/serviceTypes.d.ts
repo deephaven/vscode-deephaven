@@ -181,11 +181,11 @@ export interface IPersistentQueryStatusFilterService extends IDisposable {
   /** Replace the hidden set, persist it, and fire `onDidUpdate`. */
   setHiddenStatuses: (hidden: Iterable<string>) => Promise<void>;
   /**
-   * Whether *any* status in the section is currently listed. A section the user
-   * has partly hidden (via the per-status picker) still counts as shown — the
-   * checkbox answers "am I seeing any of these?".
+   * Whether *every* status in the section is currently listed. The section's
+   * menu row is checked only then; a partly hidden section reads as unchecked,
+   * so clicking it fills the section in.
    */
-  isSectionVisible: (section: QueryStatusSection) => boolean;
+  isSectionFullyVisible: (section: QueryStatusSection) => boolean;
   /** Show or hide every status in the section at once. */
   setSectionVisible: (
     section: QueryStatusSection,

@@ -68,9 +68,9 @@ describe('PersistentQueryTreeProvider', () => {
     vi.clearAllMocks();
     onFilterDidUpdate = undefined;
 
-    // Default filter: hide the completely-stopped statuses. `Stopping` is not
-    // one of them — it is still winding down, so it stays visible.
+    // Default filter: hide the whole Stopped section.
     hiddenStatuses = new Set([
+      'Stopping',
       'Stopped',
       'Failed',
       'Error',

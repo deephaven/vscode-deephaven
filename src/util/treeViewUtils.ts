@@ -19,7 +19,7 @@ import {
   DH_PROTECTED_VARIABLE_NAMES,
   FILTER_PERSISTENT_QUERIES_CMD,
   ICON_ID,
-  isStoppedQueryStatus,
+  isSettledQueryStatus,
   OPEN_VARIABLE_PANELS_CMD,
   PERSISTENT_QUERY_TREE_ITEM_CONTEXT,
   SERVER_TREE_ITEM_CONTEXT,
@@ -177,9 +177,11 @@ export function getPanelVariableLeaves(
  * - `Running` -> filled circle.
  * - unset -> open circle. A PQ can be listed before it has a `designated` block,
  *   and neither the stop sign nor the spinner would be true of it.
- * - stopped (`Stopped`, `Failed`, ...) -> stop sign. `Stopping` is not one of
- *   these — it is still winding down, so it gets the spinner.
- * - anything else (`Initializing`, `Connecting`, ...) -> spinner.
+ * - settled (`Stopped`, `Failed`, ...) -> stop sign.
+ * - anything else -> spinner, i.e. every transitional status (`Initializing`,
+ *   `Stopping`, ...) and any status this extension doesn't recognize. Note that
+ *   `Stopping` is grouped under "Stopped" by the filter but is still in motion,
+ *   so it lands here rather than on the stop sign.
  * @param status The PQ status.
  */
 export function getPersistentQueryIconId(
@@ -193,7 +195,7 @@ export function getPersistentQueryIconId(
     return ICON_ID.serverRunning;
   }
 
-  if (isStoppedQueryStatus(status)) {
+  if (isSettledQueryStatus(status)) {
     return ICON_ID.serverStopped;
   }
 

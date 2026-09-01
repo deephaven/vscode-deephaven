@@ -104,25 +104,24 @@ export function isTerminalQueryStatus(
 export const UNSET_QUERY_STATUS = '' as const;
 
 /**
- * The statuses the Persistent Queries view treats as *completely stopped*: the
- * unset one (a stopped PQ can report no status at all) followed by the terminal
- * statuses minus `Stopping`, which is still in motion and belongs with the live
- * ones. Listed in the filter picker's "Stopped" row order.
+ * The "Stopped" half of the Persistent Queries status filter: the terminal
+ * statuses plus the unset one, since a stopped PQ can report no status at all.
+ * Listed in the filter picker's "Stopped" row order.
  *
- * Derived from — but not equal to — {@link TERMINAL_QUERY_STATUSES}, which
- * drives worker-lifecycle teardown where `Stopping` must count as terminal or a
- * worker on its way out would never be detached.
+ * This is a grouping only. `Stopping` belongs here — a query on its way out is
+ * not one the "Running" half should list — but it is still transitional, so it
+ * keeps the spinner on its node (see {@link isSettledQueryStatus}).
  */
 export const STOPPED_QUERY_STATUSES: readonly string[] = [
   UNSET_QUERY_STATUS,
-  ...[...TERMINAL_QUERY_STATUSES].filter(status => status !== 'Stopping'),
+  ...TERMINAL_QUERY_STATUSES,
 ];
 
 /**
- * The statuses the Persistent Queries view treats as *live* — running, or still
- * in motion on the way to or from it. The complement of
- * {@link STOPPED_QUERY_STATUSES} over the vocabulary this extension knows, and
- * the order the filter picker lists them in.
+ * The "Running" half of the Persistent Queries status filter — running, or on
+ * the way to it. The complement of {@link STOPPED_QUERY_STATUSES} over the
+ * vocabulary this extension knows, and the order the filter picker lists them
+ * in.
  *
  * Spelled out rather than derived from `QueryStatus` (the enterprise
  * `query-utils` class) so the picker's row order is stable regardless of what
@@ -138,7 +137,6 @@ export const LIVE_QUERY_STATUSES: readonly string[] = [
   'FindingDispatcher',
   'Initializing',
   'Executing',
-  'Stopping',
 ];
 
 /** The two halves the Persistent Queries status filter can toggle at once. */
@@ -154,20 +152,27 @@ export function getQueryStatusSectionStatuses(
   return section === 'Running' ? LIVE_QUERY_STATUSES : STOPPED_QUERY_STATUSES;
 }
 
-const STOPPED_QUERY_STATUS_SET: ReadonlySet<string> = new Set(
-  STOPPED_QUERY_STATUSES
+/**
+ * The statuses that mean a query has finished moving — the terminal ones minus
+ * `Stopping`, which is still winding down. Every other status is either running
+ * or transitional.
+ */
+const SETTLED_QUERY_STATUSES: ReadonlySet<string> = new Set(
+  [...TERMINAL_QUERY_STATUSES].filter(status => status !== 'Stopping')
 );
 
 /**
- * Whether a status means the query has finished moving — see
- * {@link STOPPED_QUERY_STATUSES}. Not the same as {@link isTerminalQueryStatus}:
- * `Stopping` is terminal for worker teardown but still in motion to the user.
+ * Whether a status means the query has finished moving. Narrower than both
+ * {@link isTerminalQueryStatus} (which counts `Stopping`, so a worker on its way
+ * out is still torn down) and {@link STOPPED_QUERY_STATUSES} (which groups
+ * `Stopping` under "Stopped" in the filter). Drives the node icon, so a
+ * transitional status keeps its spinner.
  * @param status The status to check.
  */
-export function isStoppedQueryStatus(
+export function isSettledQueryStatus(
   status: string | null | undefined
 ): boolean {
-  return STOPPED_QUERY_STATUS_SET.has(status ?? UNSET_QUERY_STATUS);
+  return SETTLED_QUERY_STATUSES.has(status ?? UNSET_QUERY_STATUS);
 }
 
 /**
