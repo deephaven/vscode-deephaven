@@ -13,6 +13,7 @@ import {
   STATUS_BAR_CONNECTING_TEXT,
   STATUS_BAR_DISCONNECTED_TEXT,
   ICON_ID,
+  LIVE_QUERY_STATUSES,
   STOPPED_QUERY_STATUSES,
   UNSET_QUERY_STATUS,
   type ViewID,
@@ -653,28 +654,6 @@ export async function saveRequirementsTxt(
   vscode.window.showTextDocument(uri);
 }
 
-/**
- * The picker's "Running" section: every status a user watching the view might
- * still care about — `Running` itself, the transitional statuses in
- * `QueryStatus` declaration order, and `Stopping`, which is winding down but has
- * not finished. The complement is {@link STOPPED_QUERY_STATUSES}.
- *
- * Listed explicitly (rather than derived by subtraction) so the row order is
- * stable regardless of what `QueryStatus` gains later; anything new simply falls
- * in with the unrecognized rows at the end of this section.
- */
-const LIVE_QUERY_STATUSES: readonly string[] = [
-  QueryStatus.running,
-  QueryStatus.uninitialized,
-  QueryStatus.connecting,
-  QueryStatus.authenticating,
-  QueryStatus.acquiringWorker,
-  QueryStatus.findingDispatcher,
-  QueryStatus.initializing,
-  QueryStatus.executing,
-  QueryStatus.stopping,
-];
-
 /** A row in the {@link promptForQueryStatusFilter} picker. */
 interface QueryStatusPickItem extends vscode.QuickPickItem {
   readonly status: string;
@@ -684,20 +663,12 @@ interface QueryStatusPickItem extends vscode.QuickPickItem {
  * Prompt for the persistent-query statuses to show, as a multi-select checkbox
  * list with one row per status and its current count.
  *
- * The rows sit in two separator-headed sections, splitting queries that have
- * finished moving from ones still worth watching:
- * - **Running** — `Running`, the transitional statuses, and `Stopping` (winding
- *   down, but not gone), followed by any status observed in the data that this
- *   extension doesn't recognize. An unknown status is not known to have stopped,
- *   so it belongs with the live ones and stays visible by default.
+ * The rows sit in two separator-headed sections:
+ * - **Running** — {@link LIVE_QUERY_STATUSES}, followed by any status observed
+ *   in the data that this extension doesn't recognize. An unknown status is not
+ *   known to have stopped, so it belongs with the live ones.
  * - **Stopped** — {@link STOPPED_QUERY_STATUSES}, including the unset row, since
  *   a query that reports no status has stopped without saying so.
- *
- * The Stopped section is exactly what the filter hides on first run.
- *
- * Separators are visual only: VS Code ignores every property but `label` on
- * them and they cannot be picked, so there is no way to toggle a whole section
- * in one click.
  *
  * Returns the new set of statuses to HIDE — the storage the filter actually
  * uses — or `undefined` if the picker was dismissed. A dismissal must be
@@ -783,14 +754,6 @@ export function setViewIsVisible(viewId: ViewID, isVisible: boolean): void {
 }
 
 /**
- * Set the `isFiltered` state of a given view id. Uses extension context
- * `${viewId}.isFiltered` to store the state. This lets package.json swap between
- * two view-title actions bound to the same handler, since VS Code takes an
- * action's icon from its command (hollow funnel vs. filled funnel).
- * @param viewId The view ID to set the filtered state for.
- * @param isFiltered Whether a filter is currently hiding anything.
- */
-/**
  * Set the visibility of a filter section for a given view id, as
  * `${viewId}.${section}Visible`, so package.json `when` clauses can pick which
  * of a checked / unchecked menu row pair to show.
@@ -810,6 +773,14 @@ export function setViewSectionIsVisible(
   );
 }
 
+/**
+ * Set the `isFiltered` state of a given view id. Uses extension context
+ * `${viewId}.isFiltered` to store the state. This lets package.json swap between
+ * two view-title actions bound to the same handler, since VS Code takes an
+ * action's icon from its command (hollow funnel vs. filled funnel).
+ * @param viewId The view ID to set the filtered state for.
+ * @param isFiltered Whether a filter is currently hiding anything.
+ */
 export function setViewIsFiltered(viewId: ViewID, isFiltered: boolean): void {
   vscode.commands.executeCommand(
     'setContext',

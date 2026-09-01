@@ -212,8 +212,7 @@ export function sortByStringProp<TPropName extends string>(
  * unseparated run of digits is hard to size up at a glance.
  *
  * The locale is pinned to `en-US` rather than left to the host so the separator
- * is always a comma. Drop the argument if these counts should follow the user's
- * locale instead.
+ * is always a comma.
  * @param count The number to format.
  */
 export function formatCount(count: number): string {

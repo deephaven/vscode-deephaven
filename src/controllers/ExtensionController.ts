@@ -639,7 +639,6 @@ export class ExtensionController implements IDisposable {
       url: URL
     ): Promise<DheUnauthenticatedClientWrapper> => {
       assertDefined(this._dheJsApiCache, 'dheJsApiCache');
-
       const dhe = await this._dheJsApiCache.get(url);
 
       const client: DheUnauthenticatedClient = await createDheClient(
@@ -756,8 +755,7 @@ export class ExtensionController implements IDisposable {
     );
     this._context.subscriptions.push(this._serverManager);
 
-    // Shared PQ source for every view that lists persistent queries (the
-    // Persistent Queries tree and the Panels tree).
+    // Shared PQ source for every view that lists persistent queries.
     this._persistentQueryService = new PersistentQueryService(
       this._serverManager,
       this._dheServiceCache,
@@ -868,19 +866,13 @@ export class ExtensionController implements IDisposable {
       this.onRefreshServerStatus
     );
 
-    /** Refresh variable panels tree */
-
     /** Refresh persistent query tree */
     this.registerCommand(
       REFRESH_PERSISTENT_QUERY_TREE_CMD,
       this.onRefreshPersistentQueryTree
     );
 
-    /**
-     * Filter persistent queries by status. Two command ids share one handler so
-     * the view-title action can render a filled funnel while a filter is active
-     * (VS Code reads an action's icon from its command).
-     */
+    /** Filter persistent queries by status */
     this.registerCommand(
       FILTER_PERSISTENT_QUERIES_CMD,
       this.onFilterPersistentQueries
@@ -1300,11 +1292,6 @@ export class ExtensionController implements IDisposable {
   };
 
   /**
-   * Prompt for the persistent-query statuses to show. Shared by both filter
-   * command ids. A dismissed picker resolves `undefined` and must leave the
-   * filter untouched — treating it as an empty selection would hide everything.
-   */
-  /**
    * Push the filter state into context keys the Persistent Queries menu reads:
    * which submenu icon to show (hollow / filled funnel), and which of each
    * checked / unchecked row pair to render. Driven off the filter service's
@@ -1346,6 +1333,11 @@ export class ExtensionController implements IDisposable {
     );
   };
 
+  /**
+   * Prompt for the persistent-query statuses to show. Shared by both filter
+   * command ids. A dismissed picker resolves `undefined` and must leave the
+   * filter untouched — treating it as an empty selection would hide everything.
+   */
   onFilterPersistentQueries = async (): Promise<void> => {
     if (
       this._persistentQueryTreeProvider == null ||

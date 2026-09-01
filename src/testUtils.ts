@@ -41,26 +41,6 @@ export function getLastEventListener<
 }
 
 /**
- * Build a mock `QueryInfoTableSubscription` reporting the given query serials.
- * Used to test consumers of the ticking `QueryInfo` table without a live server.
- * @param options.serials The serials the latest tick reported (child-replica
- * rows are already excluded by the real subscription).
- * @returns A mocked subscription.
- */
-export function getQueryInfoTableMock({
-  serials,
-}: {
-  serials: string[];
-}): unknown {
-  return {
-    table: {},
-    onDidUpdate: vi.fn(() => () => {}),
-    getQuerySerials: () => new Set(serials),
-    dispose: vi.fn(async () => {}),
-  };
-}
-
-/**
  * Return last registered event handler for 'message' event. Assumes that
  * `window.addEventListener` has been mocked or spied on.
  */

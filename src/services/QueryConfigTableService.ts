@@ -28,7 +28,7 @@ type CoreApi = Awaited<ReturnType<CorePlusManager['getApi']>>;
 /**
  * Error thrown when the `WebClientData` Core+ system query required to fetch the
  * `QueryInfo` table is unavailable (not visible to the current user or not
- * running). This surfaces a clear failure instead of hanging (Gotcha 7).
+ * running).
  */
 export class WebClientDataUnavailableError extends Error {
   constructor(serverUrl: URL) {
@@ -64,7 +64,7 @@ export interface QueryTableFilters {
 /**
  * Build the server-side `FilterCondition[]` for the `QueryInfo` table from the
  * given filters. Pure — no I/O or subscription side effects, so it can be unit
- * tested against a mocked table. Mirrors `PQExplorerPanel.getQueryTableFilters`.
+ * tested against a mocked table.
  * @param dh The community DH API that created `table`, providing `FilterValue`.
  * Must be the table's own API (see {@link CoreApi}).
  * @param table The `QueryInfo` table to build columns/filters from.
@@ -78,53 +78,38 @@ export function getQueryTableFilters(
 ): DhcType.FilterCondition[] {
   const conditions: DhcType.FilterCondition[] = [];
 
-  const inColumn = (
+  const isIn = (
     columnName: string,
     values: readonly string[]
-  ): DhcType.FilterCondition | null => {
-    if (values.length === 0) {
-      return null;
-    }
+  ): DhcType.FilterCondition =>
+    table
+      .findColumn(columnName)
+      .filter()
+      .in(values.map(value => dh.FilterValue.ofString(value)));
 
-    const filterValue = table.findColumn(columnName).filter();
-    return filterValue.in(values.map(value => dh.FilterValue.ofString(value)));
-  };
-
-  const pushIfNonEmpty = (condition: DhcType.FilterCondition | null): void => {
-    if (condition != null) {
-      conditions.push(condition);
-    }
-  };
-
-  if (filters.owners != null) {
-    pushIfNonEmpty(inColumn(QueryColumns.OWNER.name, filters.owners));
+  if (filters.owners != null && filters.owners.length > 0) {
+    conditions.push(isIn(QueryColumns.OWNER.name, filters.owners));
   }
 
-  if (filters.types != null) {
-    // Explicit type allow-list takes precedence over the helper-type exclusion.
-    pushIfNonEmpty(inColumn(QueryColumns.QUERY_TYPE.name, filters.types));
-  } else if (filters.excludeHelperTypes === true) {
-    // Exclude the helper/system query types the PQ explorer never lists.
-    const excluded = [...EXCLUDED_QUERY_TYPES];
-    if (excluded.length > 0) {
-      conditions.push(
-        table
-          .findColumn(QueryColumns.QUERY_TYPE.name)
-          .filter()
-          .in(excluded.map(value => dh.FilterValue.ofString(value)))
-          .not()
-      );
-    }
+  const excludedTypes = [...EXCLUDED_QUERY_TYPES];
+
+  if (filters.types != null && filters.types.length > 0) {
+    // An explicit type allow-list takes precedence over the helper exclusion.
+    conditions.push(isIn(QueryColumns.QUERY_TYPE.name, filters.types));
+  } else if (filters.excludeHelperTypes === true && excludedTypes.length > 0) {
+    conditions.push(isIn(QueryColumns.QUERY_TYPE.name, excludedTypes).not());
   }
 
-  if (filters.statuses != null) {
-    pushIfNonEmpty(inColumn(QueryColumns.STATUS.name, filters.statuses));
+  if (filters.statuses != null && filters.statuses.length > 0) {
+    conditions.push(isIn(QueryColumns.STATUS.name, filters.statuses));
   }
 
   if (filters.search != null && filters.search.length > 0) {
-    const nameFilter = table.findColumn(QueryColumns.NAME.name).filter();
     conditions.push(
-      nameFilter.containsIgnoreCase(dh.FilterValue.ofString(filters.search))
+      table
+        .findColumn(QueryColumns.NAME.name)
+        .filter()
+        .containsIgnoreCase(dh.FilterValue.ofString(filters.search))
     );
   }
 
@@ -151,9 +136,8 @@ export interface QueryInfoTableSubscription extends IDisposable {
 }
 
 /**
- * Reusable service exposing a server-side-filtered, ticking subscription over
- * the Core+ `QueryInfo` table (built on the `EnterpriseCorePlusManager`
- * substrate). Consumed by the Persistent Queries explorer feature.
+ * Exposes a server-side-filtered, ticking subscription over the Core+
+ * `QueryInfo` table, built on the server's `CorePlusManager`.
  */
 export class QueryConfigTableService extends DisposableBase {
   /**
@@ -179,9 +163,7 @@ export class QueryConfigTableService extends DisposableBase {
 
   /**
    * Fetch the (unfiltered) `QueryInfo` table via the WebClientData factory
-   * service, along with the community API that created it. Throws a clear error
-   * when `WebClientData` is unavailable (Gotcha 7) rather than hanging on the
-   * upstream widget-message path.
+   * service, along with the community API that created it.
    * @returns The `QueryInfo` table and the community API that created it. Filter
    * values must be built from that API (see {@link CoreApi}).
    */
@@ -206,7 +188,7 @@ export class QueryConfigTableService extends DisposableBase {
     // Pre-check that the always-on WebClientData system query is visible +
     // running. `makeFactoryServiceTablePromise` routes through a widget-message
     // helper whose rejection is not reliably propagated (upstream DH-20345), so
-    // guard here to surface a clear error instead of hanging (Gotcha 7).
+    // guard here to surface a clear error instead of hanging.
     const webClientData = dheClient.client
       .getKnownConfigs()
       .find(
@@ -242,9 +224,8 @@ export class QueryConfigTableService extends DisposableBase {
   }
 
   /**
-   * Get a filtered, ticking `QueryInfo` table subscription. The returned
-   * subscription emits a viewport snapshot on every update and must be disposed
-   * by the caller (or with this service).
+   * Get a filtered, ticking `QueryInfo` table subscription. Disposed with this
+   * service, or earlier by the caller.
    * @param filters Server-side filters to apply.
    * @returns The subscription.
    */
@@ -264,18 +245,15 @@ export class QueryConfigTableService extends DisposableBase {
 
     let querySerials: ReadonlySet<string> = new Set();
 
-    // Subscribe to the whole filtered table rather than tracking a viewport.
-    // A viewport has to be re-pinned as the filtered size changes, and
-    // `getViewportData()` only returns the snapshot that has arrived so far, so
-    // rows that tick in later were silently dropped (PQs missing from the
-    // tree). A full subscription's `EVENT_UPDATED` carries every row the client
-    // has, so each tick is a complete picture of the filtered set.
+    // A full-table subscription rather than a viewport: `EVENT_UPDATED` carries
+    // every row the client has, so each tick is a complete picture of the
+    // filtered set with no viewport to re-pin as the filtered size changes.
     //
     // Only the columns consumers act on are subscribed, so the table ticks on
     // row add/remove and status transitions but not on churn like heap usage.
-    // `Status` earns its place even though the value is unused here: a PQ going
-    // Running → Stopped must re-render, and the resolved `QueryInfo` carries the
-    // new status.
+    // `Status` is included even though its value is unused here: a PQ going
+    // Running -> Stopped must re-render, and the resolved `QueryInfo` carries
+    // the new status.
     const tableSubscription = table.subscribe([
       serialColumn,
       parentColumn,
@@ -302,8 +280,8 @@ export class QueryConfigTableService extends DisposableBase {
             serials.add(String(row.get(serialColumn)));
           }
 
-          // The serial set is updated on every tick so `getQuerySerials` is
-          // never stale; only the notification is rate limited.
+          // Updated on every tick so `getQuerySerials` is never stale; only
+          // the notification is rate limited.
           querySerials = serials;
           throttledUpdate.trigger();
         }

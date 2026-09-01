@@ -222,10 +222,10 @@ describe('ServerManager._createOrAttachToWorkers', () => {
     expect(manager._createWorker).not.toHaveBeenCalled();
   });
 
-  it('creates a worker when none are attachable and createWorkerIfNone defaults to true', async () => {
+  it('creates a worker when none are attachable and createWorkerIfNone is true', async () => {
     const dheService = mockDheServiceWithNoWorkers();
 
-    await manager._createOrAttachToWorkers(dheService);
+    await manager._createOrAttachToWorkers(dheService, undefined, true);
 
     expect(manager._createWorker).toHaveBeenCalledTimes(1);
   });

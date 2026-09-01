@@ -19,7 +19,7 @@ const logger = new Logger('PersistentQueryService');
 
 /**
  * Per-DHE-server source of the ACL-visible persistent queries, shared by every
- * view that lists PQs (the Persistent Queries tree and the Panels tree).
+ * view that lists PQs.
  *
  * Serials come from the ticking `QueryInfo` table (server-side filtered to
  * non-InteractiveConsole / non-helper types, any status) and are resolved to
@@ -160,7 +160,7 @@ export class PersistentQueryService
   /**
    * The persistent queries visible on a DHE server, sorted by name. Any status
    * (running, stopped, failed) — InteractiveConsole workers are never included;
-   * those belong to the Workers tree.
+   * those belong to the Interactive Consoles tree.
    * @param serverUrl The DHE server URL.
    */
   getPersistentQueries = async (serverUrl: URL): Promise<QueryInfo[]> => {
@@ -190,7 +190,7 @@ export class PersistentQueryService
         queryInfo.serial != null &&
         serials.has(String(queryInfo.serial)) &&
         // Defense in depth: never list InteractiveConsole workers here (they
-        // live in the WORKERS tree).
+        // live in the Interactive Consoles tree).
         queryInfo.type !== INTERACTIVE_CONSOLE_QUERY_TYPE
     );
 
@@ -199,8 +199,7 @@ export class PersistentQueryService
     const unresolved = [...serials].filter(serial => !knownSerials.has(serial));
     if (unresolved.length > 0) {
       // Capped: this fires on every tree refresh, and a server can hold tens of
-      // thousands of queries — stringifying the whole array each time would cost
-      // more than the lookup it is reporting on.
+      // thousands of queries.
       logger.debug(
         `Table serials with no known config for ${serverUrl.href}: ${unresolved.length} total,`,
         unresolved.slice(0, 20)

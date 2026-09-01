@@ -297,7 +297,6 @@ export class UserLoginController extends ControllerBase {
     operateAsAnotherUser: boolean
   ): Promise<void> => {
     const dheClient = await this.dheClientFactory(serverUrl);
-
     const authConfig = await getDheAuthConfig(dheClient.client, logger);
 
     if (isNoAuthConfig(authConfig)) {
@@ -371,11 +370,7 @@ export class UserLoginController extends ControllerBase {
               });
       }
 
-      const isInteractive = await hasInteractivePermission(
-        authenticatedClient.client
-      );
-
-      if (!isInteractive) {
+      if (!(await hasInteractivePermission(authenticatedClient.client))) {
         throw new Error('User does not have interactive permissions.');
       }
 

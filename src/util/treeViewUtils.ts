@@ -174,16 +174,13 @@ export function getPanelVariableLeaves(
 /**
  * Get the status icon for a persistent query, using the same circle vocabulary
  * as the Servers tree:
- * - `Running` → filled circle.
- * - stopped (`Stopped`, `Failed`, …) → stop sign. `Stopping` is deliberately not
- *   one of these: it is still winding down, so it gets the spinner alongside the
- *   other statuses in motion (see `isStoppedQueryStatus`).
- * - unset → open circle. An unknown status is NOT the same as a stopped one: a
- *   PQ can be listed with no status yet (no `designated` block), and claiming it
- *   stopped would be wrong. A spinner would be equally wrong — nothing is known
- *   to be in progress.
- * - anything else (`Initializing`, `Connecting`, …) → spinner.
- * @param status The PQ status (`designated.status`, falling back to `status`).
+ * - `Running` -> filled circle.
+ * - unset -> open circle. A PQ can be listed before it has a `designated` block,
+ *   and neither the stop sign nor the spinner would be true of it.
+ * - stopped (`Stopped`, `Failed`, ...) -> stop sign. `Stopping` is not one of
+ *   these — it is still winding down, so it gets the spinner.
+ * - anything else (`Initializing`, `Connecting`, ...) -> spinner.
+ * @param status The PQ status.
  */
 export function getPersistentQueryIconId(
   status: string | null | undefined
@@ -224,18 +221,14 @@ const TABLE_VARIABLE_TYPES: ReadonlySet<VariableType> = new Set([
 
 /**
  * The exported objects of a PQ, read straight from `designated.objects` — no
- * worker connection or node expansion required — filtered to the named + typed
- * entries that render as object leaves. This is the same set
- * {@link getPersistentQueryObjectLeaves} produces, so a caller can cheaply tell
- * whether a PQ has any (or any table-typed) objects before expanding it.
+ * worker connection or node expansion required — filtered to the ones that can
+ * open as a panel, so a PQ never gets an expander whose children open onto
+ * nothing.
  * @param queryInfo The PQ whose exported objects to read.
  */
-export function getPersistentQueryObjects(
-  queryInfo: QueryInfo
-): VariableDefintion[] {
+function getPersistentQueryObjects(queryInfo: QueryInfo): VariableDefintion[] {
   const objects = queryInfo.designated?.objects ?? [];
-  // Only objects that can actually open as a panel: counting an unopenable one
-  // would put an expander on a PQ whose children open onto nothing.
+
   return objects.filter((obj): obj is VariableDefintion =>
     isOpenablePanelVariable(obj)
   );
@@ -263,17 +256,6 @@ export function canBrowsePersistentQueryObjects(queryInfo: QueryInfo): boolean {
 }
 
 /**
- * Whether a PQ exposes at least one table-typed object, determined from
- * `designated.objects` without connecting to or expanding the PQ.
- * @param queryInfo The PQ to check.
- */
-export function persistentQueryHasTables(queryInfo: QueryInfo): boolean {
-  return getPersistentQueryObjects(queryInfo).some(obj =>
-    TABLE_VARIABLE_TYPES.has(obj.type)
-  );
-}
-
-/**
  * Get `TreeItem` for a persistent-query node. The node carries the PQ name plus
  * its {@link getPersistentQueryIconId} status circle, and is collapsible only when
  * the PQ exposes objects *and* those objects can be opened
@@ -294,12 +276,24 @@ export function getPersistentQueryTreeItem(
   ).length;
   const canBrowse = canBrowsePersistentQueryObjects(queryInfo);
 
-  const plural = (n: number, noun: string): string =>
-    `${n} ${noun}${n === 1 ? '' : 's'}`;
-  const countSuffix =
-    objects.length === 0
-      ? ' — no objects'
-      : ` — ${plural(objects.length, 'object')}${tableCount > 0 ? ` (${plural(tableCount, 'table')})` : ''}${canBrowse ? '' : ' (worker not browsable)'}`;
+  const plural = (count: number, noun: string): string =>
+    `${count} ${noun}${count === 1 ? '' : 's'}`;
+
+  const tooltipParts = [queryInfo.name];
+  if (status != null) {
+    tooltipParts.push(` (${status})`);
+  }
+  if (objects.length === 0) {
+    tooltipParts.push(' — no objects');
+  } else {
+    tooltipParts.push(` — ${plural(objects.length, 'object')}`);
+    if (tableCount > 0) {
+      tooltipParts.push(` (${plural(tableCount, 'table')})`);
+    }
+    if (!canBrowse) {
+      tooltipParts.push(' (worker not browsable)');
+    }
+  }
 
   return {
     // Serial, not name: VS Code falls back to generating an id from the label
@@ -308,7 +302,7 @@ export function getPersistentQueryTreeItem(
     id: `pq:${node.dheServerUrl.href}:${queryInfo.serial}`,
     label: queryInfo.name,
     description: queryInfo.owner ?? undefined,
-    tooltip: `${queryInfo.name}${status == null ? '' : ` (${status})`}${countSuffix}`,
+    tooltip: tooltipParts.join(''),
     iconPath: new vscode.ThemeIcon(getPersistentQueryIconId(status)),
     collapsibleState:
       objects.length > 0 && canBrowse
@@ -395,7 +389,7 @@ export function isPersistentQueryNode(
 /**
  * Map a `QueryInfo`'s exported objects (`designated.objects`) to
  * `VariableDefintion` leaves paired with the given worker URL — the same
- * `[URL, VariableDefintion]` shape the Panels tree uses for object leaves.
+ * `[URL, VariableDefintion]` shape the Interactive Consoles tree uses.
  * Filters out unnamed / untyped entries defensively.
  * @param workerUrl The worker URL objects are hosted on (for the open command).
  * @param queryInfo The running PQ whose objects to enumerate.
@@ -408,7 +402,7 @@ export function getPersistentQueryObjectLeaves(
 }
 
 /**
- * Type guard for a (DHE) server node within the connection / panel tree root.
+ * Type guard for a (DHE) server node within the connection tree root.
  * `ServerState` carries `url`; `ConnectionState` carries `serverUrl`.
  * @param node A server or connection root node.
  */
@@ -419,7 +413,7 @@ export function isServerStateNode(
 }
 
 /**
- * Get the label shown for a server node in the connection / panel tree views.
+ * Get the label shown for a server node in the connection tree views.
  * @param server Server state.
  */
 export function getConnectionServerLabel(server: ServerState): string {
@@ -427,7 +421,7 @@ export function getConnectionServerLabel(server: ServerState): string {
 }
 
 /**
- * Compute the root nodes for the connection / panel tree views. Every
+ * Compute the root nodes for the connection tree view. Every
  * connection is grouped under its parent server node (DHC and DHE alike), so a
  * community server with a single worker has the same hierarchy shape as an
  * enterprise server with many. Roots are sorted by their displayed label.
@@ -466,7 +460,7 @@ export function getConnectionTreeRootNodes(
 }
 
 /**
- * Get `TreeItem` for a DHE server node in the connection / panel tree views.
+ * Get `TreeItem` for a DHE server node in the connection tree view.
  * This is a grouping container whose children are the server's worker
  * connections.
  * @param server DHE server state
@@ -630,10 +624,6 @@ export function getServerIconID({
 /**
  * Get tree item for a server.
  * @param server Server state
- * @param connectionCount The number of connections to the server (will be the
- * number of connected workers in the case of DHE)
- * @param isManaged Whether the server is managed
- * @param isRunning Whether the server is running
  * @param isConnecting Whether a client connection is currently being established
  * @returns Tree item representing the server
  */

@@ -2,12 +2,11 @@
  * Ambient module declarations for packages that are referenced by the type
  * declarations of our dependencies but are not installed in this project.
  *
- * IMPORTANT: This file must stay a global *script* — do NOT add any top-level
- * `import` or `export`. A `.d.ts` with a top-level import/export becomes a
- * *module*, and inside a module `declare module 'x'` is treated as
- * *augmentation* of an already-existing module. These modules are not
- * installed, so there is nothing to augment; only a script-file *ambient module
- * declaration* actually creates the module and lets the import resolve.
+ * IMPORTANT: this file must stay a global *script* — do NOT add a top-level
+ * `import` or `export`. That would make it a module, where `declare module 'x'`
+ * means *augmenting* an existing module; these modules are not installed, so
+ * there would be nothing to augment. Only a script-file ambient declaration
+ * creates the module and lets the import resolve.
  */
 
 // `@deephaven-enterprise/query-utils@2026.x` ships a `.d.ts` (QueryUtils.d.ts)

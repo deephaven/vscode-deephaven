@@ -52,7 +52,8 @@ export type PersistentQueryHiddenNode = {
  * - `PersistentQueryNode`: a non-InteractiveConsole PQ (expandable to objects).
  * - `PersistentQueryHiddenNode`: the trailing "N hidden" node, when filtered.
  * - `[URL, VariableDefintion]`: an exported object leaf (worker URL + variable),
- *   rendered/opened exactly like the Panels tree's object leaves.
+ *   rendered and opened exactly like the Interactive Consoles tree's panel
+ *   leaves.
  */
 export type PersistentQueryTreeNode =
   | ServerState

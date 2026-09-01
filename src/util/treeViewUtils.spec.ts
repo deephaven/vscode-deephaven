@@ -13,7 +13,6 @@ import {
   getPersistentQueryTreeItem,
   isPersistentQueryNode,
   getWorkerNodeLabel,
-  persistentQueryHasTables,
   getServerContextValue,
   getServerDescription,
   getServerGroupContextValue,
@@ -593,36 +592,6 @@ describe('canBrowsePersistentQueryObjects', () => {
   });
 });
 
-describe('persistentQueryHasTables', () => {
-  const makeQueryInfo = (
-    objects: unknown
-  ): Parameters<typeof persistentQueryHasTables>[0] =>
-    ({ designated: { objects } }) as unknown as Parameters<
-      typeof persistentQueryHasTables
-    >[0];
-
-  it('returns true when a table-typed object is present', () => {
-    expect(
-      persistentQueryHasTables(
-        makeQueryInfo([
-          { title: 'f1', type: 'Figure' },
-          { title: 't1', type: 'TreeTable' },
-        ])
-      )
-    ).toBe(true);
-  });
-
-  it('returns false when only non-table objects are present', () => {
-    expect(
-      persistentQueryHasTables(makeQueryInfo([{ title: 'f1', type: 'Figure' }]))
-    ).toBe(false);
-  });
-
-  it('returns false when there are no objects', () => {
-    expect(persistentQueryHasTables(makeQueryInfo([]))).toBe(false);
-  });
-});
-
 describe('getPersistentQueryServerTreeItem', () => {
   it('renders an expanded server grouping node', () => {
     const server = {
@@ -633,7 +602,7 @@ describe('getPersistentQueryServerTreeItem', () => {
     const item = getPersistentQueryServerTreeItem(server);
     expect(item.label).toBe('DHE');
     expect(item.contextValue).toBe('isPersistentQueryServer');
-    // Server icon, matching the Workers / Panels tree server nodes.
+    // Server icon, matching the Interactive Consoles tree server nodes.
     expect((item.iconPath as vscode.ThemeIcon).id).toBe('vm-connect');
     // Expanded = 2 in the vscode mock enum.
     expect(item.collapsibleState).toBe(2);

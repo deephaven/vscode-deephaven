@@ -895,7 +895,7 @@
         },
         {
           "command": "vscode-deephaven.generateDHEKeyPair",
-          "when:": "false"
+          "when": "false"
         },
         {
           "command": "vscode-deephaven.generateRequirementsTxt",

@@ -22,7 +22,7 @@ import {
 import { DhcService, getFirstSupportedConsoleType } from '../services';
 
 /**
- * Provider for the server connection tree view. Each server node lists its
+ * Provider for the Interactive Consoles tree view. Each server node lists its
  * console worker connections, and each worker lists the editor files associated
  * with it followed by the panels open on its session.
  */
@@ -32,7 +32,7 @@ export class ServerConnectionTreeProvider extends ServerTreeProviderBase<ServerC
     this._panelService = panelService;
 
     // Refresh whenever a worker's variables change (panel opened / closed, code
-    // run), since worker nodes now list them.
+    // run), since worker nodes list them.
     this.disposables.add(
       this._panelService.onDidUpdate(() => {
         this._onDidChangeTreeData.fire();

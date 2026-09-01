@@ -217,12 +217,9 @@ export class DheService implements IDheService {
   private _onDidDheClientCacheInvalidate = (url: URL): void => {
     // Only reset when the client was actually removed from the cache (logout /
     // disconnect / failed login). The cache also fires `onDidChange` on `set`,
-    // which happens during a successful login from inside `_initClient` itself.
-    // Resetting on that `set` would null out the in-flight `_clientPromise` we
-    // are currently awaiting, so a subsequent `getClient(false)` (e.g. from
-    // `listAttachableWorkers`) would see `null` and short-circuit — silently
-    // skipping the attach path. Guard on the client being absent so we only
-    // reset for genuine invalidations.
+    // which happens during a successful login from inside `_initClient`;
+    // resetting then would null out the `_clientPromise` still being awaited,
+    // leaving a subsequent `getClient(false)` to short-circuit on `null`.
     if (
       url.toString() === this.serverUrl.toString() &&
       !this._dheClientCache.has(this.serverUrl)
@@ -234,7 +231,7 @@ export class DheService implements IDheService {
       // The CorePlusManager is bound to the specific (now stale) client
       // instance, so dispose + null it. The next `getCorePlusManager` call will
       // rebuild one from the fresh client.
-      this._disposeCorePlusManager();
+      void this._disposeCorePlusManager();
     }
   };
 
@@ -242,25 +239,21 @@ export class DheService implements IDheService {
    * Dispose the current CorePlusManager (if any) and reset the cached promise so
    * a subsequent `getCorePlusManager` rebuilds one from the current client.
    */
-  private _disposeCorePlusManager = (): void => {
+  private _disposeCorePlusManager = async (): Promise<void> => {
     const managerPromise = this._corePlusManagerPromise;
     this._corePlusManagerPromise = null;
 
-    if (managerPromise == null) {
-      return;
+    try {
+      await managerPromise?.then(manager => manager?.dispose());
+    } catch (err) {
+      logger.error('Failed to dispose CorePlusManager', err);
     }
-
-    void managerPromise
-      .then(manager => manager?.dispose())
-      .catch(err => {
-        logger.error('Failed to dispose CorePlusManager', err);
-      });
   };
 
   /**
    * Subscribe to DHE config added/updated/removed events. Emits
-   * `onDidWorkerAttachable` when an IC worker becomes attachable, and
-   * `onDidWorkerRemoved` when a tracked worker is removed or enters a terminal
+   * `onWorkerAttachable` when an IC worker becomes attachable, and
+   * `onWorkerRemoved` when a tracked worker is removed or enters a terminal
    * state. Replaces any previous subscription.
    * @param dheClient DHE client to use.
    */
@@ -391,8 +384,8 @@ export class DheService implements IDheService {
 
   /**
    * Lazily create the `EnterpriseCorePlusManager` for this DHE server, built
-   * from the client this service already authenticates (Decision 1 — no second
-   * login). Returns null when no client is available. The manager is cached on
+   * from the client this service already authenticates, so there is no second
+   * login. Returns null when no client is available. The manager is cached on
    * the instance and disposed with the service / on client-cache invalidation.
    * @returns The CorePlusManager or null if the client is not available.
    */
@@ -414,9 +407,9 @@ export class DheService implements IDheService {
 
   /**
    * Build the `EnterpriseCorePlusManager` from the already-authenticated DHE
-   * client (Decision 1). Replicates `initCorePlusManager`'s assembly minus the
-   * login so the manager reuses the extension's existing session. Reuses the
-   * extension's jsapi storage dir (Gotcha 6) and `NodeHttp2gRPCTransport`.
+   * client. Replicates the upstream `initCorePlusManager` assembly minus the
+   * login, so the manager reuses the extension's existing session, jsapi storage
+   * dir, and transport factory.
    * @returns The CorePlusManager or null if the client is not available.
    */
   private _initCorePlusManager = async (): Promise<CorePlusManager | null> => {
@@ -429,8 +422,8 @@ export class DheService implements IDheService {
     const { workerKinds } = await dheClient.client.getServerConfigValues();
 
     // Only the `loadCorePlusApi` (worker api loader) and `createCoreClient`
-    // (construct-only, un-logged-in — Gotcha 2) hooks are needed. The manager
-    // owns worker login via an auth token off the DHE client.
+    // (construct-only, un-logged-in) hooks are needed — the manager owns worker
+    // login via an auth token off the DHE client.
     const { loadCorePlusApi, createCoreClient } = createJsApiFactories({
       storageDir: getTempDir({
         subDirectory: urlToDirectoryName(this.serverUrl),
@@ -463,7 +456,7 @@ export class DheService implements IDheService {
       for (const tagId of this._pendingQueryTagIds) {
         // Created workers are named `IC - VS Code - <tagId>` (the iframe create
         // flow may append a `_vN` version suffix), so a prefix match against
-        // in-flight tagIds covers both forms
+        // in-flight tagIds covers both forms.
         const namePrefix = createQueryName(tagId);
 
         if (name.startsWith(namePrefix)) {
@@ -509,10 +502,10 @@ export class DheService implements IDheService {
 
     // Suppress auto-attach for this worker while it is being created. The
     // config event that flips it to `Running` would otherwise race the create
-    // path and auto-attach it (see `onDidWorkerAttachable` guard). Cleared in
-    // the `finally` below, by which point its serial is in `_querySerialSet`
-    // (added synchronously right after, with no `await` in between), so the
-    // serial-based guard takes over without a gap.
+    // path and auto-attach it (see the `_isQueryOwned` guard in
+    // `_subscribeToWorkerEvents`). Cleared in the `finally` below, by which
+    // point its serial is in `_querySerialSet`, so the serial-based guard takes
+    // over without a gap.
     this._pendingQueryTagIds.add(tagId);
 
     const removeStartupFailureListener = dheClient.client.addEventListener(
@@ -662,8 +655,6 @@ export class DheService implements IDheService {
 
   dispose = async (): Promise<void> => {
     const querySerials = [...this._querySerialSet];
-    const managerPromise = this._corePlusManagerPromise;
-    this._corePlusManagerPromise = null;
 
     this._querySerialSet.clear();
     this._removeConfigListeners?.();
@@ -674,11 +665,7 @@ export class DheService implements IDheService {
     await Promise.all([
       this._workerInfoMap.dispose(),
       this._disposeQueries(querySerials),
-      managerPromise
-        ?.then(manager => manager?.dispose())
-        .catch(err => {
-          logger.error('Failed to dispose CorePlusManager', err);
-        }),
+      this._disposeCorePlusManager(),
     ]);
   };
 }

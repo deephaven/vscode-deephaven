@@ -49,11 +49,9 @@ export const MCP_DOCS_SERVER_URL =
 
 /**
  * Minimum milliseconds between `QueryInfo` table update notifications. The table
- * ticks on every row add/remove and status transition, and a server can hold
- * tens of thousands of queries, so an unthrottled tick would refresh the whole
- * Persistent Queries tree continuously — expensive, and it lands mid-interaction
- * with the tree's find widget. The serial set behind `getQuerySerials` is still
- * updated on every tick; only the notification is rate limited.
+ * ticks on every row add/remove and status transition, so on a server holding
+ * tens of thousands of queries an unthrottled tick would refresh the Persistent
+ * Queries tree continuously, landing mid-interaction with its find widget.
  */
 export const QUERY_INFO_UPDATE_INTERVAL_MS = 250;
 
@@ -106,20 +104,14 @@ export function isTerminalQueryStatus(
 export const UNSET_QUERY_STATUS = '' as const;
 
 /**
- * The statuses the Persistent Queries view treats as *completely stopped* — the
+ * The statuses the Persistent Queries view treats as *completely stopped*: the
  * unset one (a stopped PQ can report no status at all) followed by the terminal
- * statuses minus `Stopping`. A query that is `Stopping` is still in motion, so
- * it belongs with the live ones where someone watching the view can see it wind
- * down; everything here has finished moving.
+ * statuses minus `Stopping`, which is still in motion and belongs with the live
+ * ones. Listed in the filter picker's "Stopped" row order.
  *
- * The order is the filter picker's row order for its "Stopped" section, with the
- * unset row leading because "reported nothing at all" is the vaguest case and
- * reads best before the specific ones.
- *
- * Deliberately derived from — but not equal to — {@link TERMINAL_QUERY_STATUSES}.
- * That set drives worker-lifecycle teardown in `DheService` / `dhe.ts`, where
- * `Stopping` must keep counting as terminal or a worker on its way out would
- * never be detached. Widening the terminal set automatically widens this one.
+ * Derived from — but not equal to — {@link TERMINAL_QUERY_STATUSES}, which
+ * drives worker-lifecycle teardown where `Stopping` must count as terminal or a
+ * worker on its way out would never be detached.
  */
 export const STOPPED_QUERY_STATUSES: readonly string[] = [
   UNSET_QUERY_STATUS,
@@ -127,23 +119,15 @@ export const STOPPED_QUERY_STATUSES: readonly string[] = [
 ];
 
 /**
- * Statuses hidden by the Persistent Queries status filter on first run — exactly
- * {@link STOPPED_QUERY_STATUSES}, so the view opens showing every query that is
- * running or still in motion. The filter stores what to HIDE rather than what to
- * show, so a status this extension has never heard of (a new one from a future
- * DHE release) stays visible instead of silently disappearing.
- */
-/**
  * The statuses the Persistent Queries view treats as *live* — running, or still
  * in motion on the way to or from it. The complement of
  * {@link STOPPED_QUERY_STATUSES} over the vocabulary this extension knows, and
  * the order the filter picker lists them in.
  *
  * Spelled out rather than derived from `QueryStatus` (the enterprise
- * `query-utils` class) so `constants` stays free of that runtime import, and so
- * the picker's row order is stable regardless of what `QueryStatus` gains later:
- * anything new simply lands in the picker's "unrecognized" rows and is visible
- * by default.
+ * `query-utils` class) so the picker's row order is stable regardless of what
+ * `QueryStatus` gains later: anything new lands in the picker's "unrecognized"
+ * rows and is visible by default.
  */
 export const LIVE_QUERY_STATUSES: readonly string[] = [
   'Running',
@@ -176,9 +160,8 @@ const STOPPED_QUERY_STATUS_SET: ReadonlySet<string> = new Set(
 
 /**
  * Whether a status means the query has finished moving — see
- * {@link STOPPED_QUERY_STATUSES}. Note this is NOT
- * {@link isTerminalQueryStatus}: `Stopping` is terminal for worker-teardown
- * purposes but is still in motion as far as the user is concerned.
+ * {@link STOPPED_QUERY_STATUSES}. Not the same as {@link isTerminalQueryStatus}:
+ * `Stopping` is terminal for worker teardown but still in motion to the user.
  * @param status The status to check.
  */
 export function isStoppedQueryStatus(
@@ -187,9 +170,14 @@ export function isStoppedQueryStatus(
   return STOPPED_QUERY_STATUS_SET.has(status ?? UNSET_QUERY_STATUS);
 }
 
-export const DEFAULT_HIDDEN_QUERY_STATUSES: readonly string[] = [
-  ...STOPPED_QUERY_STATUSES,
-];
+/**
+ * Statuses hidden by the Persistent Queries status filter on first run, so the
+ * view opens showing every query that is running or still in motion. The filter
+ * stores what to HIDE rather than what to show, so a status this extension has
+ * never heard of (a new one from a future DHE release) stays visible instead of
+ * silently disappearing.
+ */
+export const DEFAULT_HIDDEN_QUERY_STATUSES = STOPPED_QUERY_STATUSES;
 
 export const PIP_SERVER_SUPPORTED_PLATFORMS = new Set<NodeJS.Platform>([
   'darwin',
@@ -245,9 +233,8 @@ export const ICON_ID = {
   varTable: 'dh-table',
   /**
    * Fallback icon for a worker node (connection / persistent query) whose script
-   * language isn't known. Deliberately not `connected` (`vm-connect`) — that's
-   * the parent server node's icon, and a worker should never look like its
-   * server.
+   * language isn't known. Not `connected` (`vm-connect`) — that is the parent
+   * server node's icon, and a worker should never look like its server.
    */
   worker: 'remote',
 } as const;
@@ -256,30 +243,23 @@ export const ICON_ID = {
  * Variable types that can open as a Deephaven panel. Anything not listed is
  * hidden from panel lists rather than opening a panel that never renders.
  *
- * This is an allow-list because a worker's exported objects include plenty of
- * things that are not panels at all — DHE service objects (`AclService` and
- * friends), dashboards, and legacy widget types — and nothing on the object says
- * so. The web UI decides by looking the type up in its widget-plugin registry
- * (`WidgetLoaderPlugin.handlePanelOpen` silently returns when no plugin claims
- * the type), a registry assembled at runtime from the plugins a given worker
- * kind serves and therefore not inspectable from the extension host.
+ * An allow-list because a worker's exported objects also include things that are
+ * not panels at all — DHE service objects (`AclService` and friends), dashboards
+ * and legacy widget types — and nothing on the object says so. The web UI
+ * decides by looking the type up in its widget-plugin registry, which is
+ * assembled at runtime from the plugins a given worker kind serves and so is not
+ * inspectable from the extension host.
  *
  * The entries mirror the types the bundled web plugins claim — Grid
  * (`Table`/`TreeTable`/`HierarchicalTable`/`PartitionedTable`), Chart (`Figure`),
  * Pandas (`pandas.DataFrame`) — plus the two first-party plugin widgets
  * (`deephaven.ui.Element`, `deephaven.plot.express.DeephavenFigure`).
+ * `deephaven.ui.Dashboard`, the legacy `TableMap` / `Treemap` types, and the
+ * catch-all `OtherWidget` are excluded: no bundled plugin renders them as a
+ * panel.
  *
- * Deliberately absent:
- * - `deephaven.ui.Dashboard`: a dashboard, not a panel (the web client excludes
- *   it from its own Panels menu — iris `QueryListUtils.filterPanelWidgets`).
- * - `TableMap` / `Treemap`: legacy `dh.VariableType` members no plugin claims
- *   (`TableMap` was superseded by `PartitionedTable`).
- * - `OtherWidget`: the server's catch-all for a widget with no specific type;
- *   no bundled plugin claims it.
- *
- * TRADEOFF: a server-side JS plugin defining its own widget type will be hidden
- * until its type is added here. That is the cost of the allow-list — the
- * alternative surfaces unopenable service objects.
+ * The tradeoff is that a server-side JS plugin defining its own widget type is
+ * hidden until its type is added here.
  */
 export const OPENABLE_PANEL_VARIABLE_TYPES: ReadonlySet<string> = new Set([
   'deephaven.plot.express.DeephavenFigure',

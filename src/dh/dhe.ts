@@ -42,7 +42,7 @@ import {
   UnsupportedFeatureQueryError,
 } from '../common';
 import { withResolvers } from '../util';
-import { type QuerySerial } from '../shared';
+import type { QuerySerial } from '../shared';
 
 export type IDraftQuery = EditableQueryInfo & {
   isClientSide: boolean;

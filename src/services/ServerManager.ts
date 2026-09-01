@@ -236,9 +236,10 @@ export class ServerManager implements IServerManager {
    * the server. For DHE, if no workers are available and `createWorkerIfNone`
    * is `true`, creates one and attaches to it; if `false`, the server connects
    * (letting persistent queries populate) without provisioning a worker.
-   * @param serverUrl
-   * @param workerConsoleType
-   * @param operateAsAnotherUser
+   * @param serverUrl The server to connect to.
+   * @param workerConsoleType Console type to create a DHE worker with, if one
+   * has to be created.
+   * @param operateAsAnotherUser Whether to prompt for a DHE `operateAs` user.
    * @param createWorkerIfNone When no attachable DHE worker exists, whether to
    * auto-create one. Defaults to `true` (e.g. the run-code flow needs a live
    * console). The plain "connect to server" action passes `false`.
@@ -278,7 +279,7 @@ export class ServerManager implements IServerManager {
 
   private _doConnectToServer = async (
     serverState: ServerState,
-    workerConsoleType: ConsoleType | undefined = undefined,
+    workerConsoleType: ConsoleType | undefined,
     operateAsAnotherUser: boolean,
     createWorkerIfNone: boolean
   ): Promise<ConnectionState | null> => {
@@ -295,32 +296,30 @@ export class ServerManager implements IServerManager {
 
     try {
       if (serverState.type === 'DHC') {
-        // DHC attach to Core worker
         firstConnection = await this._attachToWorker('Core', serverUrl, true);
-
-        this._resolvePendingServerConnection(serverUrl);
       } else {
         const dheService = await this._connectToDheServer(
           serverUrl,
           operateAsAnotherUser
         );
 
-        // server connection is done
+        // The server-level connection is settled at this point; workers attach
+        // after, and the server node should stop showing "connecting" now.
         this._resolvePendingServerConnection(serverUrl);
 
-        if (dheService == null) {
-          return null;
+        if (dheService != null) {
+          [firstConnection = null] = await this._createOrAttachToWorkers(
+            dheService,
+            workerConsoleType,
+            createWorkerIfNone
+          );
         }
-
-        [firstConnection = null] = await this._createOrAttachToWorkers(
-          dheService,
-          workerConsoleType,
-          createWorkerIfNone
-        );
-
-        return firstConnection;
       }
     } finally {
+      // Both are no-ops when already resolved above; here they also cover the
+      // paths that threw, which would otherwise leave the server node stuck
+      // showing "connecting".
+      this._resolvePendingServerConnection(serverUrl);
       this._resolvePendingConnection(serverUrl, firstConnection);
     }
 
@@ -328,13 +327,15 @@ export class ServerManager implements IServerManager {
   };
 
   /**
-   * Create a Core+ JS API connection to an existing worker. Populates
-   * `_workerURLToServerURLMap` for auth lookup and `_attachedWorkerSerials`
-   * for idempotency/teardown. Used by both the create path and the attach path.
-   * Does NOT touch placeholder connections — that is the create path's concern.
+   * Create a JS API connection to a worker, used by both the create and attach
+   * paths. Populates `_workerURLToServerURLMap` for auth lookup and
+   * `_attachedWorkerSerials` for idempotency / teardown. Placeholder connections
+   * are the create path's concern and are not touched here.
    * @param label The connection label to show in the UI for this worker.
-   * @param serverUrl The DHE server this worker belongs to.
-   * @param workerInfo Worker info built from the query.
+   * @param serverUrl The server this worker belongs to.
+   * @param isOwned Whether this extension created the worker (and may delete it).
+   * @param workerInfo Worker info built from the query. Omitted for DHC, where
+   * the server URL is the connection URL.
    * @returns The new connection state, or null on failure.
    */
   private _attachToWorker = async (
@@ -415,9 +416,8 @@ export class ServerManager implements IServerManager {
     serverUrl: URL,
     operateAsAnotherUser: boolean
   ): Promise<IDheService | null> => {
-    const dheServerUrl = serverUrl;
-    const isNewDheService = !this._dheServiceCache.has(dheServerUrl);
-    const dheService = await this._dheServiceCache.get(dheServerUrl);
+    const isNewDheService = !this._dheServiceCache.has(serverUrl);
+    const dheService = await this._dheServiceCache.get(serverUrl);
 
     // Get client. Client will be initialized if it doesn't exist (including
     // prompting user for login).
@@ -425,50 +425,55 @@ export class ServerManager implements IServerManager {
       return null;
     }
 
-    // Mark the DHE server as connected now that we have a live client.
-    // (connectionCount stays 0 until workers attach; isConnected reflects
-    // the server-level connection, which is now established.)
-    const currentServerState = this._serverMap.get(dheServerUrl);
+    // A live client means the server itself is connected, even though
+    // `connectionCount` stays 0 until workers attach.
+    const currentServerState = this._serverMap.get(serverUrl);
     if (currentServerState != null && !currentServerState.isConnected) {
-      this._serverMap.set(dheServerUrl, {
+      this._serverMap.set(serverUrl, {
         ...currentServerState,
         isConnected: true,
       });
       this._onDidUpdate.fire();
     }
 
-    // Wire the config-event subscription exactly once per DHE service
-    // instance, BEFORE snapshotting, so any worker that appears or disappears
-    // between the snapshot and now is not missed. `_connectWorker` reserves
-    // each serial synchronously (before any `await`), so an event-driven
-    // attach and the snapshot batch below can never double-connect the same
-    // worker — whichever reaches `_connectWorker` first wins and the other is
-    // a no-op.
+    // Subscribe once per DHE service instance, and before the caller enumerates
+    // attachable workers, so a worker appearing between the two is not missed.
+    // `_attachToWorker` reserves each serial synchronously, so an event-driven
+    // attach and the enumeration can never double-connect the same worker.
     if (isNewDheService) {
-      dheService.onWorkerAttachable(qi =>
-        this._reconcileAttach(dheServerUrl, dheService, qi)
+      dheService.onWorkerAttachable(queryInfo =>
+        this._attachToAttachableWorker(serverUrl, dheService, queryInfo)
       );
-      dheService.onWorkerRemoved(serial => this._reconcileDetach(serial));
+      dheService.onWorkerRemoved(serial => this._detachWorker(serial));
     }
 
     return dheService;
   };
 
+  /**
+   * Attach to every worker on a DHE server the user can attach to. When there
+   * are none and `createWorkerIfNone` is true, one is created instead;
+   * otherwise the server stays connected with no worker, so persistent queries
+   * can populate without provisioning one.
+   * @param dheService The DHE service for the server.
+   * @param workerConsoleType Console type to create a worker with, if one has
+   * to be created.
+   * @param createWorkerIfNone Whether to create a worker when none are
+   * attachable.
+   * @returns The connections that were established.
+   */
   private _createOrAttachToWorkers = async (
     dheService: IDheService,
-    workerConsoleType: ConsoleType | undefined = undefined,
-    createWorkerIfNone: boolean = true
+    workerConsoleType: ConsoleType | undefined,
+    createWorkerIfNone: boolean
   ): Promise<ConnectionState[]> => {
     const attachableWorkers = await dheService.listAttachableWorkers(
       this._attachedWorkerSerials.keys()
     );
 
-    let workerInfos: [boolean, WorkerInfo][];
+    // `isOwned` marks a worker this extension created, which it may also delete.
+    const workerInfos: { isOwned: boolean; workerInfo: WorkerInfo }[] = [];
 
-    // If no attachable workers exist, optionally create a new one. When
-    // `createWorkerIfNone` is false (the plain "connect to server" action), the
-    // server stays connected with no worker so persistent queries can populate
-    // without forcing worker creation.
     if (attachableWorkers.length === 0) {
       if (!createWorkerIfNone) {
         return [];
@@ -483,14 +488,14 @@ export class ServerManager implements IServerManager {
         return [];
       }
 
-      workerInfos = [[true, workerInfo]];
-    }
-    // register attachable workers
-    else {
-      workerInfos = [];
+      workerInfos.push({ isOwned: true, workerInfo });
+    } else {
       for (const queryInfo of attachableWorkers) {
         try {
-          workerInfos.push([false, dheService.registerWorkerInfo(queryInfo)]);
+          workerInfos.push({
+            isOwned: false,
+            workerInfo: dheService.registerWorkerInfo(queryInfo),
+          });
         } catch (err) {
           logger.error(
             'Failed to register attachable worker; skipping:',
@@ -501,10 +506,9 @@ export class ServerManager implements IServerManager {
       }
     }
 
-    // Connect to workers in parallel
     const connections = (
       await Promise.all(
-        workerInfos.map(([isOwned, workerInfo]) =>
+        workerInfos.map(({ isOwned, workerInfo }) =>
           this._attachToWorker(
             workerInfo.name,
             dheService.serverUrl,
@@ -513,10 +517,10 @@ export class ServerManager implements IServerManager {
           )
         )
       )
-    ).filter(c => c != null);
+    ).filter(connection => connection != null);
 
-    if (attachableWorkers.length > 1) {
-      this._toaster.info(`Attached to ${connections.length} worker(s).`);
+    if (connections.length > 1) {
+      this._toaster.info(`Attached to ${connections.length} workers.`);
     }
 
     return connections;
@@ -608,8 +612,11 @@ export class ServerManager implements IServerManager {
   /**
    * Attach a single worker when a config event indicates it became attachable.
    * Idempotent: no-ops if the serial is already connected.
+   * @param dheServerUrl The DHE server the worker belongs to.
+   * @param dheService The DHE service for that server.
+   * @param queryInfo The query that became attachable.
    */
-  private _reconcileAttach = async (
+  private _attachToAttachableWorker = async (
     dheServerUrl: URL,
     dheService: IDheService,
     queryInfo: QueryInfo
@@ -633,8 +640,9 @@ export class ServerManager implements IServerManager {
   /**
    * Detach a worker when a config event indicates it was removed or died.
    * No-ops if the serial is not tracked.
+   * @param serial The serial of the removed query.
    */
-  private _reconcileDetach = async (serial: QuerySerial): Promise<void> => {
+  private _detachWorker = async (serial: QuerySerial): Promise<void> => {
     const workerUrl = this._attachedWorkerSerials.get(serial);
     if (workerUrl == null) {
       return;
@@ -643,18 +651,17 @@ export class ServerManager implements IServerManager {
   };
 
   /**
-   * Register a lightweight, NON-console "browse" connection for a persistent
+   * Register a lightweight, non-console "browse" connection for a persistent
    * query's worker so the DH embed panel (`OPEN_VARIABLE_PANELS_CMD`) can open
-   * its objects read-only. This wires up exactly the three lookups the panel
-   * path needs — `getConnection`, `getWorkerInfo`, `getWorkerCredentials` — all
-   * keyed by the worker URL, WITHOUT creating a console session.
+   * its objects read-only. It wires up exactly the three lookups the panel path
+   * needs — `getConnection`, `getWorkerInfo`, `getWorkerCredentials` — keyed by
+   * the worker URL, without creating a console session.
    *
-   * Browse connections are a view layer over someone else's PQ. They are
-   * deliberately NOT worker connections: no `initSession`, no
-   * `connectionCount` increment, no `_attachedWorkerSerials` entry, and the
-   * server-side PQ is NEVER deleted on teardown (`unregisterBrowseConnection`).
-   * Idempotent — re-registering the same worker URL is a no-op that returns the
-   * existing worker info.
+   * A browse connection is a view over someone else's PQ, so it is not a worker
+   * connection: no `initSession`, no `connectionCount` increment, no
+   * `_attachedWorkerSerials` entry, and `unregisterBrowseConnection` never
+   * deletes the server-side PQ. Idempotent — re-registering the same worker URL
+   * returns the existing worker info.
    * @param dheServerUrl The DHE server the PQ belongs to (for auth resolution).
    * @param queryInfo The running PQ whose worker to register.
    * @returns The registered `WorkerInfo`, or `null` if the DHE service/worker
@@ -710,10 +717,10 @@ export class ServerManager implements IServerManager {
 
   /**
    * Tear down a browse connection previously registered with
-   * `registerBrowseConnection`. Removes the lightweight connection + auth
-   * mapping ONLY — it never deletes the server-side PQ and never touches
-   * `connectionCount` / `_attachedWorkerSerials` (browse connections never
-   * contributed to those). No-op if the worker URL is not a browse connection.
+   * `registerBrowseConnection`. Removes only the lightweight connection and its
+   * auth mapping — it never deletes the server-side PQ and never touches
+   * `connectionCount` / `_attachedWorkerSerials`, which browse connections never
+   * contributed to. No-op if the worker URL is not a browse connection.
    * @param workerUrl The worker URL to unregister.
    */
   unregisterBrowseConnection = (workerUrl: URL): void => {
@@ -935,9 +942,9 @@ export class ServerManager implements IServerManager {
   /**
    * Get all worker connections. Optionally filter connections by server or
    * worker URL. PQ browse connections are always excluded — they are panel-auth
-   * shims, not worker connections, so they must not show up in the Workers tree,
-   * the connection picker, or any "run code here" target list. Use
-   * `getConnection` to look one up directly by worker URL.
+   * shims, not worker connections, so they must not show up in the Interactive
+   * Consoles tree, the connection picker, or any "run code here" target list.
+   * Use `getConnection` to look one up directly by worker URL.
    * @param serverOrWorkerUrl The server or worker URL to filter connections by.
    * @returns An array of all worker connections.
    */

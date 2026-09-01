@@ -25,14 +25,13 @@ import {
  * ACL-visible non-InteractiveConsole persistent queries of each connected DHE
  * server (from the shared `IPersistentQueryService`), each expandable to its
  * exported objects. Selecting an object opens it read-only via
- * `OPEN_VARIABLE_PANELS_CMD` — the same panel path the Panels tree uses.
- * Browse-only: no console session, no "attach", and the server-side PQ is never
- * deleted.
+ * `OPEN_VARIABLE_PANELS_CMD` — the same panel path the Interactive Consoles
+ * tree uses. Browse-only: no console session, no "attach", and the server-side
+ * PQ is never deleted.
  *
  * Which queries are listed is governed by the shared status filter
- * (`IPersistentQueryStatusFilterService`); the server node's description states
- * what the filter is doing, since a filter with no visible effect reads as a
- * missing query.
+ * (`IPersistentQueryStatusFilterService`). A server whose filter hides anything
+ * gets a trailing "More (N)" node, so a filter is never a silent omission.
  *
  * Tree shape:
  *   root      → DHE `ServerState[]`
@@ -70,9 +69,9 @@ export class PersistentQueryTreeProvider extends ServerTreeProviderBase<Persiste
   getTreeItem = async (
     node: PersistentQueryTreeNode
   ): Promise<vscode.TreeItem> => {
-    // Object leaf node (worker URL + variable). Reuse the Panels tree renderer
-    // so the click command is `OPEN_VARIABLE_PANELS_CMD` verbatim. Browse-only:
-    // this view never deletes anything from a PQ.
+    // Object leaf node (worker URL + variable). Rendered with the shared panel
+    // renderer so the click command is `OPEN_VARIABLE_PANELS_CMD` verbatim.
+    // Browse-only: this view never deletes anything from a PQ.
     if (Array.isArray(node)) {
       return getPanelVariableTreeItem(node, false);
     }
@@ -172,13 +171,14 @@ export class PersistentQueryTreeProvider extends ServerTreeProviderBase<Persiste
     const queries =
       await this._persistentQueryService.getPersistentQueries(dheServerUrl);
 
+    // Already sorted by name by the service.
     const visible = queries.filter(queryInfo =>
       this._statusFilterService.isVisible(getPersistentQueryStatus(queryInfo))
     );
 
-    const children: PersistentQueryTreeNode[] = visible
-      .sort((a, b) => a.name.localeCompare(b.name))
-      .map((queryInfo): PersistentQueryNode => ({ dheServerUrl, queryInfo }));
+    const children: PersistentQueryTreeNode[] = visible.map(
+      (queryInfo): PersistentQueryNode => ({ dheServerUrl, queryInfo })
+    );
 
     const hiddenCount = queries.length - visible.length;
 

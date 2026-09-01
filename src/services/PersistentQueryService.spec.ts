@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { QueryInfo } from '@deephaven-enterprise/jsapi-types';
 import { PersistentQueryService } from './PersistentQueryService';
-import { getQueryInfoTableMock } from '../testUtils';
+import type { QueryInfoTableSubscription } from './QueryConfigTableService';
 import type { IAsyncCacheService, IDheService, IServerManager } from '../types';
 
 // See __mocks__/vscode.ts for the mock implementation
@@ -34,9 +34,17 @@ function makeQueryInfo(overrides: Partial<QueryInfo> = {}): QueryInfo {
   } as unknown as QueryInfo;
 }
 
-/** A `QueryInfoTableSubscription` mock over the given serials. */
-const makeSubscription = (serials: string[]): unknown =>
-  getQueryInfoTableMock({ serials });
+/**
+ * A `QueryInfoTableSubscription` mock reporting the given serials, as the latest
+ * tick would (child-replica rows already excluded by the real subscription).
+ */
+const makeSubscription = (serials: string[]): QueryInfoTableSubscription =>
+  ({
+    table: {},
+    onDidUpdate: vi.fn(() => () => {}),
+    getQuerySerials: () => new Set(serials),
+    dispose: vi.fn(async () => {}),
+  }) as unknown as QueryInfoTableSubscription;
 
 describe('PersistentQueryService', () => {
   let serverManager: IServerManager;
@@ -91,7 +99,7 @@ describe('PersistentQueryService', () => {
     knownConfigs = [
       makeQueryInfo({ serial: 'serial-1', name: 'Zeta PQ' }),
       makeQueryInfo({ serial: 'serial-2', name: 'Alpha PQ' }),
-      // InteractiveConsole — belongs to the Workers tree, never listed here.
+      // InteractiveConsole — belongs to the Interactive Consoles tree.
       makeQueryInfo({ serial: 'serial-ic', type: 'InteractiveConsole' }),
       // Not in the filtered table — excluded.
       makeQueryInfo({ serial: 'serial-hidden', name: 'Hidden' }),
