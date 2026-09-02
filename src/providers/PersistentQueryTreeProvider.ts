@@ -24,10 +24,10 @@ import {
  * Tree data provider backing the **Persistent Queries** view. Lists the
  * ACL-visible non-InteractiveConsole persistent queries of each connected DHE
  * server (from the shared `IPersistentQueryService`), each expandable to its
- * exported objects. Selecting an object opens it read-only via
- * `OPEN_VARIABLE_PANELS_CMD` — the same panel path the Interactive Consoles
- * tree uses. Browse-only: no console session, no "attach", and the server-side
- * PQ is never deleted.
+ * exported objects. Selecting an object opens it via `OPEN_VARIABLE_PANELS_CMD`,
+ * the same panel path — and the same panel — the Interactive Consoles tree uses.
+ * Browse-only: no console session, no "attach", the object nodes offer no delete
+ * action, and the server-side PQ is never deleted.
  *
  * Which queries are listed is governed by the shared status filter
  * (`IPersistentQueryStatusFilterService`). A server whose filter hides anything

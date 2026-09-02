@@ -255,9 +255,9 @@ export interface IServerManager extends IDisposable {
   getWorkerInfo: (maybeWorkerUrl: URL) => Promise<WorkerInfo | undefined>;
   /**
    * Register a lightweight, non-console "browse" connection for a persistent
-   * query's worker so the DH embed panel can open its objects read-only. Never
-   * creates a console session, never increments `connectionCount`, and never
-   * deletes the server-side PQ.
+   * query's worker so the DH embed panel can open its objects. Never creates a
+   * console session, never increments `connectionCount`, and never deletes the
+   * server-side PQ.
    */
   registerBrowseConnection: (
     dheServerUrl: URL,

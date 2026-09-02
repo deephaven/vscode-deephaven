@@ -653,9 +653,9 @@ export class ServerManager implements IServerManager {
   /**
    * Register a lightweight, non-console "browse" connection for a persistent
    * query's worker so the DH embed panel (`OPEN_VARIABLE_PANELS_CMD`) can open
-   * its objects read-only. It wires up exactly the three lookups the panel path
-   * needs — `getConnection`, `getWorkerInfo`, `getWorkerCredentials` — keyed by
-   * the worker URL, without creating a console session.
+   * its objects. It wires up exactly the three lookups the panel path needs —
+   * `getConnection`, `getWorkerInfo`, `getWorkerCredentials` — keyed by the
+   * worker URL, without creating a console session.
    *
    * A browse connection is a view over someone else's PQ, so it is not a worker
    * connection: no `initSession`, no `connectionCount` increment, and no

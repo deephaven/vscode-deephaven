@@ -517,9 +517,12 @@ export class DheService implements IDheService {
     // Suppress auto-attach for this worker while it is being created. The
     // config event that flips it to `Running` would otherwise race the create
     // path and auto-attach it (see the `_isQueryOwned` guard in
-    // `_subscribeToWorkerEvents`). Cleared in the `finally` below, by which
-    // point its serial is in `_querySerialSet`, so the serial-based guard takes
-    // over without a gap.
+    // `_subscribeToWorkerEvents`).
+    //
+    // The `finally` below clears this guard *before* `_querySerialSet.add`
+    // engages the serial-based one. The handoff is only safe because nothing
+    // awaits in between, so no config event can be delivered in that window —
+    // do not introduce an `await` between the `finally` and the `add`.
     this._pendingQueryTagIds.add(tagId);
 
     const removeStartupFailureListener = dheClient.client.addEventListener(

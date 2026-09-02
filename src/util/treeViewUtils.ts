@@ -261,8 +261,10 @@ export function canBrowsePersistentQueryObjects(queryInfo: QueryInfo): boolean {
  * Get `TreeItem` for a persistent-query node. The node carries the PQ name plus
  * its {@link getPersistentQueryIconId} status circle, and is collapsible only
  * when the PQ exposes objects *and* those objects can be opened
- * ({@link canBrowsePersistentQueryObjects}), so the tree never expands onto an
- * empty list.
+ * ({@link canBrowsePersistentQueryObjects}) — both known from `designated`, with
+ * no connection required. That keeps an expander off PQs that could only ever
+ * show an empty list; an expanded node can still come up empty if registering
+ * the browse connection fails.
  * @param node The persistent-query node.
  */
 export function getPersistentQueryTreeItem(
