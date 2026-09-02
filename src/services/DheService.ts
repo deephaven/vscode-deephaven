@@ -3,10 +3,7 @@ import type {
   EnterpriseDhType as DheType,
   QueryInfo,
 } from '@deephaven-enterprise/jsapi-types';
-import type {
-  AuthenticatedEnterpriseClient,
-  CorePlusManager,
-} from '@deephaven-enterprise/client-utils';
+import type { CorePlusManager } from '@deephaven-enterprise/client-utils';
 import { EnterpriseCorePlusManager } from '@deephaven-enterprise/jsapi-manager';
 import { createJsApiFactories } from '@deephaven-enterprise/jsapi-nodejs';
 import {
@@ -454,11 +451,7 @@ export class DheService implements IDheService {
 
     return new EnterpriseCorePlusManager(
       dhe,
-      // `DheAuthenticatedClientWrapper.client` is branded
-      // `AuthenticatedClient` (auth-nodejs); the manager expects the
-      // structurally-identical `AuthenticatedEnterpriseClient` brand
-      // (client-utils). Same underlying `EnterpriseClient`.
-      dheClient.client as unknown as AuthenticatedEnterpriseClient,
+      dheClient.client,
       workerKinds,
       loadCorePlusApi,
       createCoreClient

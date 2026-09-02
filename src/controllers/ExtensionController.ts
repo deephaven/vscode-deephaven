@@ -6,9 +6,9 @@ import type {
   EnterpriseDhType as DheType,
 } from '@deephaven-enterprise/jsapi-types';
 import {
-  createClient as createDheClient,
-  type UnauthenticatedClient as DheUnauthenticatedClient,
-} from '@deephaven-enterprise/auth-nodejs';
+  createEnterpriseClient as createDheClient,
+  type UnauthenticatedEnterpriseClient as DheUnauthenticatedClient,
+} from '@deephaven-enterprise/client-utils';
 import { NodeHttp2gRPCTransport } from '@deephaven/jsapi-nodejs';
 import { McpController } from './McpController';
 import {

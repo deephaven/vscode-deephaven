@@ -1,14 +1,16 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type {
-  AuthenticatedClient as DheAuthenticatedClientBase,
   Base64KeyPair,
   KeyPairCredentials,
   OperateAsUsername,
   PasswordCredentials,
-  UnauthenticatedClient as DheUnauthenticatedClientBase,
   Username,
 } from '@deephaven-enterprise/auth-nodejs';
+import type {
+  AuthenticatedEnterpriseClient as DheAuthenticatedClientBase,
+  UnauthenticatedEnterpriseClient as DheUnauthenticatedClientBase,
+} from '@deephaven-enterprise/client-utils';
 import type { Brand, QuerySerial, SerializableRefreshToken } from '../shared';
 
 export type ExtensionVersion = Brand<'ExtensionVersion', string>;

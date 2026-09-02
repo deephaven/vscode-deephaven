@@ -25,10 +25,7 @@ import type {
   DheServerFeatures,
   DheUnauthenticatedClientWrapper,
 } from '../types/commonTypes';
-import type {
-  UnauthenticatedClient as DheUnauthenticatedClient,
-  Username,
-} from '@deephaven-enterprise/auth-nodejs';
+import type { Username } from '@deephaven-enterprise/auth-nodejs';
 import type { QuerySerial } from '../shared';
 
 export interface IAsyncCacheService<TKey, TValue> extends IDisposable {

@@ -9,9 +9,9 @@ import type {
 } from '@deephaven-enterprise/jsapi-types';
 import { DraftQuery, QueryScheduler } from '@deephaven-enterprise/query-utils';
 import type {
-  AuthenticatedClient as DheAuthenticatedClient,
-  UnauthenticatedClient as DheUnauthenticatedClient,
-} from '@deephaven-enterprise/auth-nodejs';
+  AuthenticatedEnterpriseClient as DheAuthenticatedClient,
+  UnauthenticatedEnterpriseClient as DheUnauthenticatedClient,
+} from '@deephaven-enterprise/client-utils';
 import { hasStatusCode, loadModules } from '@deephaven/jsapi-nodejs';
 import type {
   AuthConfig,
