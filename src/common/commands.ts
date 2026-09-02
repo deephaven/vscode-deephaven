@@ -109,17 +109,14 @@ export const DISCONNECT_FROM_SERVER_CMD = cmd('disconnectFromServer');
 export const DISCONNECT_FROM_WORKER_CMD = cmd('disconnectFromWorker');
 export const DOWNLOAD_LOGS_CMD = cmd('downloadLogs');
 export const FILTER_PERSISTENT_QUERIES_CMD = cmd('filterPersistentQueries');
-/**
- * The four rows of the Persistent Queries filter menu: one pair per section,
- * gated on complementary `when` clauses so exactly one of each pair shows. The
- * "checked" variant carries a literal U+2713 in its title — extension menus
- * cannot render a real checked state, and a `$(check)` codicon does not render
- * in a menu at all.
- */
-export const SHOW_RUNNING_QUERIES_CMD = cmd('showRunningQueries');
+// The Persistent Queries filter menu's section rows: one show / hide pair per
+// section, gated on complementary `when` clauses so exactly one of each pair
+// shows. Extension menus cannot render a checked state, so the "hide" variant's
+// title carries a literal U+2713 to stand in for one.
 export const HIDE_RUNNING_QUERIES_CMD = cmd('hideRunningQueries');
-export const SHOW_STOPPED_QUERIES_CMD = cmd('showStoppedQueries');
 export const HIDE_STOPPED_QUERIES_CMD = cmd('hideStoppedQueries');
+export const SHOW_RUNNING_QUERIES_CMD = cmd('showRunningQueries');
+export const SHOW_STOPPED_QUERIES_CMD = cmd('showStoppedQueries');
 export const GENERATE_DHE_KEY_PAIR_CMD = cmd('generateDHEKeyPair');
 export const GENERATE_REQUIREMENTS_TXT_CMD = cmd('generateRequirementsTxt');
 export const OPEN_IN_BROWSER_CMD = cmd('openInBrowser');

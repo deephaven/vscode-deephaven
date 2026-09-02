@@ -22,6 +22,12 @@ Editors can be dragged from one active connection to another.
 
 ## Persistent Queries
 
-The `PERSISTENT QUERIES` panel shows the persistent queries visible to you on each connected enterprise server, listed directly beneath the server that owns them. Each query's icon shows its status: a filled circle for a running query, a slashed circle for a stopped or failed one, a hollow circle when the server reports no status, and a spinner while it is still in motion — starting up, or stopping. Expanding a running query lists the objects it exports; clicking one opens it read-only in a panel.
+The `PERSISTENT QUERIES` panel shows the persistent queries visible to you on each connected enterprise server, listed beneath the server that owns them. Each query's icon shows its status: a filled circle for running, a slashed circle for stopped or failed, a hollow circle when the server reports no status, and a spinner while it is still in motion (starting up or stopping). Expanding a running query lists the objects it exports; clicking one opens it read-only in a panel.
 
-The funnel in the panel title chooses which statuses are listed. It opens a menu with a `Running` and a `Stopped` entry: `Running` covers queries that are running or starting up, and `Stopped` covers those that have finished or are shutting down, plus queries reporting no status at all. An entry is checked only while every status in its group is listed — clicking a checked entry hides the whole group, and clicking an unchecked one (whether the group is partly or entirely hidden) lists all of it. By default `Running` is checked and `Stopped` is not. `Filter by Status...` in the same menu opens a per-status checkbox list, with the number of queries currently in each status, for finer control. The funnel is filled while a filter is hiding something, and each affected server node gets a trailing `More (N)` entry after its queries, where `N` is how many it is hiding; clicking that entry reopens the filter.
+The funnel in the panel title chooses which statuses are listed:
+
+- `Running` covers queries that are running or starting up; `Stopped` covers those that have finished or are shutting down, plus queries reporting no status at all. By default `Running` is checked and `Stopped` is not.
+- An entry is checked only while every status in its group is listed. Clicking a checked entry hides the whole group; clicking an unchecked one lists all of it.
+- `Filter by Status...` opens a per-status checkbox list, with the number of queries currently in each status, for finer control.
+
+While a filter is hiding something the funnel is filled, and each affected server node gets a trailing `More (N)` entry, where `N` is how many queries it is hiding. Clicking that entry reopens the filter.

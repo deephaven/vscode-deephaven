@@ -65,18 +65,17 @@ export interface WorkspaceFolderConfig {
 /**
  * Create options for a connection quick pick.
  *
- * Active-connection items mirror the WORKERS-tree worker node: a leading
- * language icon plus the worker name, with the server host:port shown in the
- * description.
+ * Connection items mirror the Interactive Consoles tree's worker node: a leading
+ * language icon plus the worker name, with the parent server in the description.
  * @param servers The available servers
  * @param connections The available connections
  * @param editorLanguageId The language id of the editor
  * @param serverManager The server manager used to resolve each connection's
- * parent server and worker info.
+ * parent server.
  * @param editorActiveConnectionUrl The active connection url of the editor
  * @returns
  */
-export async function createConnectionQuickPickOptions<
+export function createConnectionQuickPickOptions<
   TConnection extends ConnectionState,
 >(
   servers: ServerState[],
@@ -84,7 +83,7 @@ export async function createConnectionQuickPickOptions<
   editorLanguageId: string,
   serverManager: IServerManager,
   editorActiveConnectionUrl?: URL | null
-): Promise<ConnectionPickOption<TConnection>[]> {
+): ConnectionPickOption<TConnection>[] {
   const serverOptions: ConnectionPickItem<'server', ServerState>[] =
     servers.map(data => ({
       type: 'server',
@@ -95,32 +94,30 @@ export async function createConnectionQuickPickOptions<
     }));
 
   const connectionOptions: ConnectionPickItem<'connection', TConnection>[] =
-    await Promise.all(
-      connections.map(async dhService => {
-        const isActiveConnection =
-          editorActiveConnectionUrl?.toString() ===
-          dhService.serverUrl.toString();
+    connections.map(dhService => {
+      const isActiveConnection =
+        editorActiveConnectionUrl?.toString() ===
+        dhService.serverUrl.toString();
 
-        const parentServer = serverManager.getServerForConnection(dhService);
-        assertDefined(parentServer, 'parentServer');
+      const parentServer = serverManager.getServerForConnection(dhService);
+      assertDefined(parentServer, 'parentServer');
 
-        const descriptionTokens = [parentServer.label ?? parentServer.url.host];
+      const descriptionTokens = [parentServer.label ?? parentServer.url.host];
 
-        if (isActiveConnection) {
-          descriptionTokens.push('(current)');
-        }
+      if (isActiveConnection) {
+        descriptionTokens.push('(current)');
+      }
 
-        return {
-          type: 'connection' as const,
-          label: dhService.label,
-          iconPath: new vscode.ThemeIcon(
-            getConsoleTypeIconId(editorLanguageId as ConsoleType)
-          ),
-          description: descriptionTokens.join(' '),
-          data: dhService,
-        };
-      })
-    );
+      return {
+        type: 'connection' as const,
+        label: dhService.label,
+        iconPath: new vscode.ThemeIcon(
+          getConsoleTypeIconId(editorLanguageId as ConsoleType)
+        ),
+        description: descriptionTokens.join(' '),
+        data: dhService,
+      };
+    });
 
   if (serverOptions.length === 0 && connectionOptions.length === 0) {
     throw new Error('No available servers to connect to.');
@@ -670,9 +667,9 @@ interface QueryStatusPickItem extends vscode.QuickPickItem {
  * - **Stopped** — {@link STOPPED_QUERY_STATUSES}, including the unset row, since
  *   a query that reports no status has stopped without saying so.
  *
- * Returns the new set of statuses to HIDE — the storage the filter actually
- * uses — or `undefined` if the picker was dismissed. A dismissal must be
- * treated as "no change" by the caller; an empty set means "hide nothing".
+ * Returns the new set of statuses to HIDE — the form the filter is stored in —
+ * or `undefined` if the picker was dismissed. A dismissal must be treated as
+ * "no change" by the caller; an empty set means "hide nothing".
  * @param statusCounts How many queries currently carry each status (unset
  * bucketed under `''`).
  * @param hiddenStatuses The statuses currently hidden, used to seed the
@@ -713,9 +710,6 @@ export async function promptForQueryStatusFilter(
     ...STOPPED_QUERY_STATUSES.map(toItem),
   ];
 
-  // `canPickMany` (a `QuickPickOptions` field) is what makes this a checkbox
-  // list. `canSelectMany` is the `QuickPick` *class* property and would silently
-  // give a single-select picker here.
   const picked = await vscode.window.showQuickPick(items, {
     canPickMany: true,
     ignoreFocusOut: true,
@@ -777,8 +771,8 @@ export function setViewSectionIsChecked(
 /**
  * Set the `isFiltered` state of a given view id. Uses extension context
  * `${viewId}.isFiltered` to store the state. This lets package.json swap between
- * two view-title actions bound to the same handler, since VS Code takes an
- * action's icon from its command (hollow funnel vs. filled funnel).
+ * two view-title submenus with the same rows but different icons (hollow funnel
+ * vs. filled funnel), since a submenu's icon is fixed by its declaration.
  * @param viewId The view ID to set the filtered state for.
  * @param isFiltered Whether a filter is currently hiding anything.
  */

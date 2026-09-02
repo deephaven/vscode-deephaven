@@ -14,11 +14,10 @@ import { NodeHttp2gRPCTransport } from '@deephaven/jsapi-nodejs';
 const INITIAL_WINDOW_SIZE = 4 * 1024 * 1024;
 
 /**
- * Connection-level HTTP/2 receive window. Shared by every stream on a session,
- * so it is set to 2x {@link INITIAL_WINDOW_SIZE} rather than left to default
- * (which would derive it as equal): the controller stream runs alongside
- * concurrent unary calls (`getToken`, `ping`, `getGroupsForUser`) on the same
- * session, and 4MiB/8MiB is the pair measured end to end.
+ * Connection-level HTTP/2 receive window, shared by every stream on a session.
+ * Set to 2x {@link INITIAL_WINDOW_SIZE} because the controller stream runs
+ * alongside concurrent unary calls (`getToken`, `ping`, `getGroupsForUser`) on
+ * the same session.
  */
 const SESSION_LOCAL_WINDOW_SIZE = 8 * 1024 * 1024;
 
@@ -29,10 +28,9 @@ let sharedFactory: DhcType.grpc.GrpcTransportFactory | null = null;
  * extension makes — Core/DHC clients, the DHE client, and the Core+ manager
  * behind worker connections.
  *
- * There is deliberately exactly one instance. `createFactory` allocates a
+ * There is deliberately exactly one instance: `createFactory` allocates a
  * session map per call, so calling it per site would open one TCP connection per
- * origin *per site* instead of sharing them, which is what the deprecated static
- * `NodeHttp2gRPCTransport.factory` used to do for free.
+ * origin *per site* instead of sharing them.
  * @returns The shared transport factory.
  */
 export function getSharedTransportFactory(): DhcType.grpc.GrpcTransportFactory {

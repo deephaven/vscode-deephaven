@@ -467,7 +467,11 @@ export function getWorkerInfoFromQueryInfo(
   tagId: UniqueID,
   queryInfo: QueryInfo
 ): WorkerInfo | undefined {
-  if (queryInfo.designated == null || queryInfo.designated.ideUrl == null) {
+  if (
+    queryInfo.designated == null ||
+    queryInfo.designated.ideUrl == null ||
+    queryInfo.designated.jsApiUrl == null
+  ) {
     return;
   }
 

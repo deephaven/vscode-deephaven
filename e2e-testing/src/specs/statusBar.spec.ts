@@ -90,7 +90,7 @@ describe('Status Bar Tests', () => {
 
     await step(4, 'Verify connection node', async stepLabel => {
       const simpleTickingEditor = await getSidebarViewItem(
-        VIEW_NAME.workers,
+        VIEW_NAME.interactiveConsoles,
         SIMPLE_TICKING3_PY.name
       );
 

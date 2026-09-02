@@ -171,10 +171,8 @@ export interface ConnectionState {
   /**
    * True for a lightweight PQ browse connection: an auth/panel shim registered
    * by `ServerManager.registerBrowseConnection`, with no console session behind
-   * it. These are excluded from `getConnections` — they are not worker
-   * connections and must never appear in the Interactive Consoles tree or the
-   * connection picker. PQs surface as their own nodes, sourced from
-   * `IPersistentQueryService`.
+   * it. Excluded from `getConnections`, so it never appears in the Interactive
+   * Consoles tree or the connection picker.
    */
   readonly isBrowseConnection?: boolean;
   readonly isConnected: boolean;

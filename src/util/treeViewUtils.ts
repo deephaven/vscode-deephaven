@@ -203,7 +203,7 @@ export function getPersistentQueryIconId(
 }
 
 /**
- * Get the the status of a persistent query.
+ * Get the status of a persistent query.
  * @param queryInfo The PQ whose status to read.
  */
 export function getPersistentQueryStatus(
@@ -259,11 +259,10 @@ export function canBrowsePersistentQueryObjects(queryInfo: QueryInfo): boolean {
 
 /**
  * Get `TreeItem` for a persistent-query node. The node carries the PQ name plus
- * its {@link getPersistentQueryIconId} status circle, and is collapsible only when
- * the PQ exposes objects *and* those objects can be opened
- * ({@link canBrowsePersistentQueryObjects}) — otherwise it renders
- * non-expandable so the tree never opens onto an empty list (both are known
- * cheaply from `designated`, no connection required).
+ * its {@link getPersistentQueryIconId} status circle, and is collapsible only
+ * when the PQ exposes objects *and* those objects can be opened
+ * ({@link canBrowsePersistentQueryObjects}), so the tree never expands onto an
+ * empty list.
  * @param node The persistent-query node.
  */
 export function getPersistentQueryTreeItem(
@@ -389,10 +388,9 @@ export function isPersistentQueryNode(
 }
 
 /**
- * Map a `QueryInfo`'s exported objects (`designated.objects`) to
- * `VariableDefintion` leaves paired with the given worker URL — the same
- * `[URL, VariableDefintion]` shape the Interactive Consoles tree uses.
- * Filters out unnamed / untyped entries defensively.
+ * Map a PQ's openable exported objects to `[URL, VariableDefintion]` leaves
+ * paired with the given worker URL — the same shape the Interactive Consoles
+ * tree uses.
  * @param workerUrl The worker URL objects are hosted on (for the open command).
  * @param queryInfo The running PQ whose objects to enumerate.
  */

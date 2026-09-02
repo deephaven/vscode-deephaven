@@ -19,7 +19,10 @@ import {
   CREATE_NEW_TEXT_DOC_CMD,
   DELETE_VARIABLE_CMD,
   DOWNLOAD_LOGS_CMD,
+  FILTER_PERSISTENT_QUERIES_CMD,
   GENERATE_REQUIREMENTS_TXT_CMD,
+  HIDE_RUNNING_QUERIES_CMD,
+  HIDE_STOPPED_QUERIES_CMD,
   OPEN_IN_BROWSER_CMD,
   REFRESH_PERSISTENT_QUERY_TREE_CMD,
   REFRESH_REMOTE_IMPORT_SOURCE_TREE_CMD,
@@ -27,25 +30,22 @@ import {
   REFRESH_SERVER_TREE_CMD,
   REMOVE_GROOVY_REMOTE_FILE_SOURCE_CMD,
   REMOVE_PYTHON_REMOTE_FILE_SOURCE_CMD,
-  FILTER_PERSISTENT_QUERIES_CMD,
-  HIDE_RUNNING_QUERIES_CMD,
-  HIDE_STOPPED_QUERIES_CMD,
-  SHOW_RUNNING_QUERIES_CMD,
-  SHOW_STOPPED_QUERIES_CMD,
   REVEAL_IN_EXPLORER_CMD,
   RUN_CODE_COMMAND,
   RUN_MARKDOWN_CODEBLOCK_CMD,
   RUN_SELECTION_COMMAND,
   SEARCH_CONNECTIONS_CMD,
   SEARCH_PERSISTENT_QUERIES_CMD,
+  SHOW_RUNNING_QUERIES_CMD,
+  SHOW_STOPPED_QUERIES_CMD,
   START_SERVER_CMD,
   STOP_SERVER_CMD,
   VIEW_ID,
   type AddRemoteFileSourceCmdArgs,
+  type QueryStatusSection,
   type RemoveRemoteFileSourceCmdArgs,
   type RunCodeCmdArgs,
   type RunMarkdownCodeblockCmdArgs,
-  type QueryStatusSection,
   type RunSelectionCmdArgs,
   type ViewID,
 } from '../common';
@@ -651,8 +651,6 @@ export class ExtensionController implements IDisposable {
           // should just be ignored if provided. We don't really have a good way
           // to determine if the server supports it or not, and gplus and beyond
           // require it on non-envoy servers, so we just always provide it.
-          //
-          // The shared factory carries the HTTP/2 window sizes.
           transportFactory: getSharedTransportFactory(),
         }
       );
@@ -1287,7 +1285,7 @@ export class ExtensionController implements IDisposable {
     await this._serverManager?.updateStatus();
   };
 
-  onRefreshPersistentQueryTree = async (): Promise<void> => {
+  onRefreshPersistentQueryTree = (): void => {
     this._persistentQueryTreeProvider?.refresh();
   };
 

@@ -64,7 +64,7 @@ describe('createConnectionQuickPickOptions', () => {
     ['Active A', serverUrlA],
   ])(
     'should return quick pick options: editorActiveConnectionUrl=%s',
-    async (_label, editorActiveConnectionUrl) => {
+    (_label, editorActiveConnectionUrl) => {
       const serversWithoutConnections: ServerState[] = [
         {
           type: 'DHC',
@@ -104,10 +104,9 @@ describe('createConnectionQuickPickOptions', () => {
             connectionCount: 1,
           })
         ),
-        getWorkerInfo: vi.fn(async () => undefined),
       } as unknown as IServerManager;
 
-      const actual = await createConnectionQuickPickOptions(
+      const actual = createConnectionQuickPickOptions(
         serversWithoutConnections,
         connections,
         'python',
@@ -118,23 +117,22 @@ describe('createConnectionQuickPickOptions', () => {
     }
   );
 
-  it('should throw if no servers or connections', async () => {
+  it('should throw if no servers or connections', () => {
     const servers: ServerState[] = [];
     const connections: IDhcService[] = [];
 
     const serverManager = {
       getServerForConnection: vi.fn(),
-      getWorkerInfo: vi.fn(async () => undefined),
     } as unknown as IServerManager;
 
-    await expect(
+    expect(() =>
       createConnectionQuickPickOptions(
         servers,
         connections,
         'python',
         serverManager
       )
-    ).rejects.toThrowError('No available servers to connect to.');
+    ).toThrowError('No available servers to connect to.');
   });
 });
 

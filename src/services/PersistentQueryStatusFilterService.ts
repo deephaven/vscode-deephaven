@@ -13,16 +13,9 @@ import { DisposableBase } from './DisposableBase';
 const logger = new Logger('PersistentQueryStatusFilterService');
 
 /**
- * Backs the Persistent Queries view's status filter.
- *
- * The persisted state is the set of statuses to HIDE, not the set to show. An
- * inclusion set would make any status this extension has never heard of — a new
- * one from a future DHE release — invisible by default and unreachable from the
- * picker; with an exclusion set an unknown status is visible until the user
- * hides it, and a filter persisted today stays meaningful as the status
- * vocabulary grows.
- *
- * The set lives in `globalState` so one filter applies across every workspace.
+ * Backs the Persistent Queries view's status filter. The persisted state is the
+ * set of statuses to HIDE (see {@link IPersistentQueryStatusFilterService}), and
+ * lives in `globalState` so one filter applies across every workspace.
  */
 export class PersistentQueryStatusFilterService
   extends DisposableBase
@@ -138,10 +131,9 @@ function normalizeQueryStatus(status: string | null | undefined): string {
 /**
  * Read the persisted hidden set, falling back to the default only when nothing
  * has ever been stored. An empty stored array means the user deliberately unhid
- * everything, so it must be distinguished from "never set" (`undefined`) —
- * treating it as falsy would spring the default filter back on every reload. A
- * value that isn't an array of strings (a hand-edited or stale state file) is
- * discarded in favour of the default rather than throwing on startup.
+ * everything, so it must be distinguished from "never set" (`undefined`). A
+ * value that isn't an array of strings is discarded in favour of the default
+ * rather than throwing on startup.
  * @param context Extension context holding the `globalState`.
  */
 function readHiddenStatuses(context: vscode.ExtensionContext): string[] {

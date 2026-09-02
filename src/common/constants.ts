@@ -51,7 +51,7 @@ export const MCP_DOCS_SERVER_URL =
  * Minimum milliseconds between `QueryInfo` table update notifications. The table
  * ticks on every row add/remove and status transition, so on a server holding
  * tens of thousands of queries an unthrottled tick would refresh the Persistent
- * Queries tree continuously, landing mid-interaction with its find widget.
+ * Queries tree continuously.
  */
 export const QUERY_INFO_UPDATE_INTERVAL_MS = 250;
 
@@ -104,13 +104,10 @@ export function isTerminalQueryStatus(
 export const UNSET_QUERY_STATUS = '' as const;
 
 /**
- * The "Stopped" half of the Persistent Queries status filter: the terminal
- * statuses plus the unset one, since a stopped PQ can report no status at all.
- * Listed in the filter picker's "Stopped" row order.
- *
- * This is a grouping only. `Stopping` belongs here — a query on its way out is
- * not one the "Running" half should list — but it is still transitional, so it
- * keeps the spinner on its node (see {@link isSettledQueryStatus}).
+ * The "Stopped" half of the Persistent Queries status filter, in the filter
+ * picker's row order: the terminal statuses plus the unset one, since a stopped
+ * PQ can report no status at all. `Stopping` groups here, but is still
+ * transitional for icon purposes (see {@link isSettledQueryStatus}).
  */
 export const STOPPED_QUERY_STATUSES: readonly string[] = [
   UNSET_QUERY_STATUS,
@@ -118,15 +115,11 @@ export const STOPPED_QUERY_STATUSES: readonly string[] = [
 ];
 
 /**
- * The "Running" half of the Persistent Queries status filter — running, or on
- * the way to it. The complement of {@link STOPPED_QUERY_STATUSES} over the
- * vocabulary this extension knows, and the order the filter picker lists them
- * in.
- *
- * Spelled out rather than derived from `QueryStatus` (the enterprise
- * `query-utils` class) so the picker's row order is stable regardless of what
- * `QueryStatus` gains later: anything new lands in the picker's "unrecognized"
- * rows and is visible by default.
+ * The "Running" half of the Persistent Queries status filter, in the filter
+ * picker's row order — running, or on the way to it. Spelled out rather than
+ * derived from the enterprise `QueryStatus` class so row order stays stable as
+ * that vocabulary grows; anything new lands in the picker's "unrecognized" rows
+ * and is visible by default.
  */
 export const LIVE_QUERY_STATUSES: readonly string[] = [
   'Running',
@@ -162,11 +155,10 @@ const SETTLED_QUERY_STATUSES: ReadonlySet<string> = new Set(
 );
 
 /**
- * Whether a status means the query has finished moving. Narrower than both
- * {@link isTerminalQueryStatus} (which counts `Stopping`, so a worker on its way
- * out is still torn down) and {@link STOPPED_QUERY_STATUSES} (which groups
- * `Stopping` under "Stopped" in the filter). Drives the node icon, so a
- * transitional status keeps its spinner.
+ * Whether a status means the query has finished moving. Narrower than
+ * {@link isTerminalQueryStatus} and {@link STOPPED_QUERY_STATUSES}, which both
+ * count `Stopping`. Drives the node icon, so a transitional status keeps its
+ * spinner.
  * @param status The status to check.
  */
 export function isSettledQueryStatus(
@@ -177,10 +169,7 @@ export function isSettledQueryStatus(
 
 /**
  * Statuses hidden by the Persistent Queries status filter on first run, so the
- * view opens showing every query that is running or still in motion. The filter
- * stores what to HIDE rather than what to show, so a status this extension has
- * never heard of (a new one from a future DHE release) stays visible instead of
- * silently disappearing.
+ * view opens showing every query that is running or still in motion.
  */
 export const DEFAULT_HIDDEN_QUERY_STATUSES = STOPPED_QUERY_STATUSES;
 
@@ -248,23 +237,16 @@ export const ICON_ID = {
  * Variable types that can open as a Deephaven panel. Anything not listed is
  * hidden from panel lists rather than opening a panel that never renders.
  *
- * An allow-list because a worker's exported objects also include things that are
- * not panels at all — DHE service objects (`AclService` and friends), dashboards
- * and legacy widget types — and nothing on the object says so. The web UI
- * decides by looking the type up in its widget-plugin registry, which is
- * assembled at runtime from the plugins a given worker kind serves and so is not
- * inspectable from the extension host.
+ * An allow-list is necessary because a worker's exported objects also include
+ * non-panel things — DHE service objects (`AclService` and friends), dashboards,
+ * legacy widget types — and nothing on the object says so. The web UI decides by
+ * looking the type up in its widget-plugin registry, which is assembled at
+ * runtime and not inspectable from the extension host.
  *
- * The entries mirror the types the bundled web plugins claim — Grid
- * (`Table`/`TreeTable`/`HierarchicalTable`/`PartitionedTable`), Chart (`Figure`),
- * Pandas (`pandas.DataFrame`) — plus the two first-party plugin widgets
- * (`deephaven.ui.Element`, `deephaven.plot.express.DeephavenFigure`).
- * `deephaven.ui.Dashboard`, the legacy `TableMap` / `Treemap` types, and the
- * catch-all `OtherWidget` are excluded: no bundled plugin renders them as a
- * panel.
- *
- * The tradeoff is that a server-side JS plugin defining its own widget type is
- * hidden until its type is added here.
+ * Entries mirror the types the bundled web plugins claim: Grid, Chart, Pandas,
+ * plus the `deephaven.ui.Element` and `deephaven.plot.express.DeephavenFigure`
+ * plugin widgets. The tradeoff is that a server-side JS plugin defining its own
+ * widget type stays hidden until its type is added here.
  */
 export const OPENABLE_PANEL_VARIABLE_TYPES: ReadonlySet<string> = new Set([
   'deephaven.plot.express.DeephavenFigure',

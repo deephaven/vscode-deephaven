@@ -48,14 +48,13 @@ export class PersistentQueryTreeProvider extends ServerTreeProviderBase<Persiste
     this._persistentQueryService = persistentQueryService;
     this._statusFilterService = statusFilterService;
 
-    // Refresh whenever the PQ set ticks.
+    // Refresh whenever the PQ set ticks, or the user changes which statuses are
+    // listed.
     this.disposables.add(
       this._persistentQueryService.onDidUpdate(() => {
         this._onDidChangeTreeData.fire();
       })
     );
-
-    // ...or whenever the user changes which statuses are listed.
     this.disposables.add(
       this._statusFilterService.onDidUpdate(() => {
         this._onDidChangeTreeData.fire();
@@ -93,10 +92,9 @@ export class PersistentQueryTreeProvider extends ServerTreeProviderBase<Persiste
   /**
    * How many queries carry each status, summed across every connected DHE
    * server — the counts shown beside each row of the filter picker. Unset
-   * statuses bucket under {@link UNSET_QUERY_STATUS}, matching the filter's own
-   * normalisation. Counts are of *all* queries, not just the visible ones:
-   * a hidden status still needs its count so the user can see what unhiding it
-   * would bring back.
+   * statuses bucket under {@link UNSET_QUERY_STATUS}. Counts cover *all*
+   * queries, not just visible ones, so a hidden status still shows what unhiding
+   * it would bring back.
    */
   getStatusCounts = async (): Promise<Map<string, number>> => {
     const servers = this.serverManager

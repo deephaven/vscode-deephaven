@@ -390,19 +390,40 @@ export class DheService implements IDheService {
    * @returns The CorePlusManager or null if the client is not available.
    */
   getCorePlusManager = async (): Promise<CorePlusManager | null> => {
-    if (this._corePlusManagerPromise == null) {
-      this._corePlusManagerPromise = this._initCorePlusManager();
+    const managerPromise =
+      this._corePlusManagerPromise ?? this._initCorePlusManager();
+    this._corePlusManagerPromise = managerPromise;
+
+    let manager: CorePlusManager | null;
+    try {
+      manager = await managerPromise;
+    } catch (err) {
+      // Don't cache a rejection; a later call should be able to retry.
+      this._clearCorePlusManagerPromise(managerPromise);
+      throw err;
     }
 
-    const manager = await this._corePlusManagerPromise;
-
-    // If construction failed, clear the cached rejection/null so a later call
-    // can retry once the client is available.
+    // Construction can also fail softly (no client yet). Clear so a later call
+    // can retry once one is available.
     if (manager == null) {
-      this._corePlusManagerPromise = null;
+      this._clearCorePlusManagerPromise(managerPromise);
     }
 
     return manager;
+  };
+
+  /**
+   * Clear the cached CorePlusManager promise, but only if it is still the one
+   * the caller was awaiting — a concurrent `_disposeCorePlusManager` or a retry
+   * may already have replaced it.
+   * @param managerPromise The promise the caller awaited.
+   */
+  private _clearCorePlusManagerPromise = (
+    managerPromise: Promise<CorePlusManager | null>
+  ): void => {
+    if (this._corePlusManagerPromise === managerPromise) {
+      this._corePlusManagerPromise = null;
+    }
   };
 
   /**

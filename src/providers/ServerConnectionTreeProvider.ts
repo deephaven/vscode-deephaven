@@ -122,7 +122,7 @@ export class ServerConnectionTreeProvider extends ServerTreeProviderBase<ServerC
   getChildren = (
     elementOrRoot?: ServerConnectionNode
   ): vscode.ProviderResult<ServerConnectionNode[]> => {
-    // Root: one server node per server that has connections.
+    // Root: one node per server with connections, plus connected DHE servers.
     if (elementOrRoot == null) {
       return getConnectionTreeRootNodes(this.serverManager);
     }

@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
-import type { QueryInfo } from '@deephaven-enterprise/jsapi-types';
-import type { EnterpriseDhType as DheType } from '@deephaven-enterprise/jsapi-types';
+import type {
+  EnterpriseDhType as DheType,
+  QueryInfo,
+} from '@deephaven-enterprise/jsapi-types';
 import { INTERACTIVE_CONSOLE_QUERY_TYPE } from '../common';
 import type {
   IAsyncCacheService,
@@ -181,9 +183,6 @@ export class PersistentQueryService
     const serials = subscription.getQuerySerials();
 
     const knownConfigs = dheClient.client.getKnownConfigs();
-    const knownSerials = new Set(
-      knownConfigs.map(queryInfo => String(queryInfo.serial))
-    );
 
     const queries = knownConfigs.filter(
       queryInfo =>
@@ -193,18 +192,6 @@ export class PersistentQueryService
         // live in the Interactive Consoles tree).
         queryInfo.type !== INTERACTIVE_CONSOLE_QUERY_TYPE
     );
-
-    // A serial in the table with no matching config would silently vanish from
-    // the tree, so surface it rather than dropping it quietly.
-    const unresolved = [...serials].filter(serial => !knownSerials.has(serial));
-    if (unresolved.length > 0) {
-      // Capped: this fires on every tree refresh, and a server can hold tens of
-      // thousands of queries.
-      logger.debug(
-        `Table serials with no known config for ${serverUrl.href}: ${unresolved.length} total,`,
-        unresolved.slice(0, 20)
-      );
-    }
 
     logger.debug(
       `PQs for ${serverUrl.href}: table serials=${serials.size}, known configs=${knownConfigs.length}, resolved=${queries.length}`

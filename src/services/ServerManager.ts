@@ -658,10 +658,15 @@ export class ServerManager implements IServerManager {
    * the worker URL, without creating a console session.
    *
    * A browse connection is a view over someone else's PQ, so it is not a worker
-   * connection: no `initSession`, no `connectionCount` increment, no
-   * `_attachedWorkerSerials` entry, and `unregisterBrowseConnection` never
-   * deletes the server-side PQ. Idempotent — re-registering the same worker URL
-   * returns the existing worker info.
+   * connection: no `initSession`, no `connectionCount` increment, and no
+   * `_attachedWorkerSerials` entry. Idempotent — re-registering the same worker
+   * URL returns the existing worker info.
+   *
+   * Torn down when the DHE server disconnects: `disconnectFromDHEServer` walks
+   * every worker URL mapped to the server, which includes these, and
+   * `deleteWorker` leaves the PQ running because the serial was never marked
+   * owned. There is no per-PQ teardown — a browse connection outlives collapsing
+   * its tree node.
    * @param dheServerUrl The DHE server the PQ belongs to (for auth resolution).
    * @param queryInfo The running PQ whose worker to register.
    * @returns The registered `WorkerInfo`, or `null` if the DHE service/worker
@@ -713,24 +718,6 @@ export class ServerManager implements IServerManager {
     }
 
     return workerInfo;
-  };
-
-  /**
-   * Tear down a browse connection previously registered with
-   * `registerBrowseConnection`. Removes only the lightweight connection and its
-   * auth mapping — it never deletes the server-side PQ and never touches
-   * `connectionCount` / `_attachedWorkerSerials`, which browse connections never
-   * contributed to. No-op if the worker URL is not a browse connection.
-   * @param workerUrl The worker URL to unregister.
-   */
-  unregisterBrowseConnection = (workerUrl: URL): void => {
-    const hadConnection = this._connectionMap.has(workerUrl);
-    this._connectionMap.delete(workerUrl);
-    this._workerURLToServerURLMap.delete(workerUrl);
-
-    if (hadConnection) {
-      this._onDidUpdate.fire();
-    }
   };
 
   /**

@@ -167,10 +167,9 @@ export interface IPersistentQueryService extends IDisposable {
 
 /**
  * The Persistent Queries view's status filter. Stores the set of statuses to
- * HIDE rather than the set to show: an inclusion set would make any status this
- * extension has never heard of (a new one from a future DHE release) invisible
- * by default and unreachable, whereas an exclusion set keeps an unknown status
- * visible until the user hides it. `onDidUpdate` fires whenever the set changes.
+ * HIDE rather than the set to show, so a status this extension has never heard
+ * of (a new one from a future DHE release) stays visible until the user hides
+ * it. `onDidUpdate` fires whenever the set changes.
  */
 export interface IPersistentQueryStatusFilterService extends IDisposable {
   readonly onDidUpdate: vscode.Event<void>;
@@ -267,8 +266,6 @@ export interface IServerManager extends IDisposable {
     dheServerUrl: URL,
     queryInfo: QueryInfo
   ) => Promise<WorkerInfo | null>;
-  /** Tear down a browse connection (never deletes the server-side PQ). */
-  unregisterBrowseConnection: (workerUrl: URL) => void;
   setEditorConnection: (
     uri: vscode.Uri,
     languageId: string,
