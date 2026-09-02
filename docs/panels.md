@@ -22,12 +22,12 @@ Editors can be dragged from one active connection to another.
 
 ## Persistent Queries
 
-The `PERSISTENT QUERIES` panel shows the persistent queries visible to you on each connected enterprise server, listed beneath the server that owns them. Each query's icon shows its status: a filled circle for running, a slashed circle for stopped or failed, a hollow circle when the server reports no status, and a spinner while it is still in motion (starting up or stopping). Expanding a running query lists the objects it exports; clicking one opens it read-only in a panel.
+The `PERSISTENT QUERIES` panel shows the persistent queries visible to you on each connected enterprise server, listed beneath the server that owns them. Each query's icon shows its status: a filled circle for running, a slashed circle for stopped or failed, a hollow circle when the server reports no status, and a spinner while it is still in motion (starting up or stopping). Expanding a running query lists the objects it exports; clicking one opens it in a panel.
 
-The funnel in the panel title chooses which statuses are listed:
+The filter icon in the panel title chooses which statuses are listed:
+
+![Persistent Query Filters](assets/persistent-query-filters.png)
 
 - `Running` covers queries that are running or starting up; `Stopped` covers those that have finished or are shutting down, plus queries reporting no status at all. By default `Running` is checked and `Stopped` is not.
 - An entry is checked only while every status in its group is listed. Clicking a checked entry hides the whole group; clicking an unchecked one lists all of it.
 - `Filter by Status...` opens a per-status checkbox list, with the number of queries currently in each status, for finer control.
-
-While a filter is hiding something the funnel is filled, and each affected server node gets a trailing `More (N)` entry, where `N` is how many queries it is hiding. Clicking that entry reopens the filter.
