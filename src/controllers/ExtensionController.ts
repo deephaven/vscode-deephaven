@@ -761,9 +761,8 @@ export class ExtensionController implements IDisposable {
     );
     this._context.subscriptions.push(this._persistentQueryService);
 
-    // The Persistent Queries status filter. Owned here rather than by the tree
-    // provider so the `isFiltered` context key can be seeded from the persisted
-    // set at startup, before any command has run.
+    // The Persistent Queries status filter, shared by the tree provider (which
+    // filters rows with it) and the filter commands (which read and write it).
     this._persistentQueryStatusFilterService =
       new PersistentQueryStatusFilterService(this._context);
     this._context.subscriptions.push(this._persistentQueryStatusFilterService);
