@@ -761,8 +761,6 @@ export class ExtensionController implements IDisposable {
     );
     this._context.subscriptions.push(this._persistentQueryService);
 
-    // The Persistent Queries status filter, shared by the tree provider (which
-    // filters rows with it) and the filter commands (which read and write it).
     this._persistentQueryStatusFilterService =
       new PersistentQueryStatusFilterService(this._context);
     this._context.subscriptions.push(this._persistentQueryStatusFilterService);
@@ -942,6 +940,11 @@ export class ExtensionController implements IDisposable {
     assertDefined(this._groovyWorkspace, 'groovyWorkspace');
     assertDefined(this._pythonWorkspace, 'pythonWorkspace');
     assertDefined(this._panelService, 'panelService');
+    assertDefined(this._persistentQueryService, 'persistentQueryService');
+    assertDefined(
+      this._persistentQueryStatusFilterService,
+      'persistentQueryStatusFilterService'
+    );
     assertDefined(this._serverManager, 'serverManager');
 
     // Server tree
@@ -987,11 +990,6 @@ export class ExtensionController implements IDisposable {
     );
 
     // Persistent Queries tree
-    assertDefined(this._persistentQueryService, 'persistentQueryService');
-    assertDefined(
-      this._persistentQueryStatusFilterService,
-      'persistentQueryStatusFilterService'
-    );
     this._persistentQueryTreeProvider = new PersistentQueryTreeProvider(
       this._serverManager,
       this._persistentQueryService,
