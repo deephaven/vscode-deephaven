@@ -344,8 +344,7 @@ export class ServerManager implements IServerManager {
     isOwned: boolean,
     workerInfo?: WorkerInfo
   ): Promise<ConnectionState | null> => {
-    const workerUrl =
-      workerInfo == null ? serverUrl : new URL(workerInfo.workerUrl);
+    const workerUrl = new URL(workerInfo?.workerUrl ?? serverUrl);
 
     if (workerInfo != null) {
       // Idempotency gate: reserve the serial synchronously, before any `await`,
@@ -356,7 +355,10 @@ export class ServerManager implements IServerManager {
       if (this._attachedWorkerSerials.has(workerInfo.serial)) {
         return this._connectionMap.get(workerUrl) ?? null;
       }
-      this._attachedWorkerSerials.set(workerInfo.serial, workerInfo.workerUrl);
+      this._attachedWorkerSerials.set(
+        workerInfo.serial,
+        workerUrl as WorkerURL
+      );
 
       // Map the worker URL to its DHE server so the auth flow can resolve creds.
       this._workerURLToServerURLMap.set(workerUrl, serverUrl);

@@ -158,10 +158,7 @@ export class PersistentQueryTreeProvider extends ServerTreeProviderBase<Persiste
         return [];
       }
 
-      return getPersistentQueryObjectLeaves(
-        new URL(workerInfo.workerUrl),
-        queryInfo
-      );
+      return getPersistentQueryObjectLeaves(workerInfo.workerUrl, queryInfo);
     }
 
     // Server node → its persistent queries, filtered by status and sorted by
