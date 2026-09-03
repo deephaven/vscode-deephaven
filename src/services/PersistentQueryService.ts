@@ -165,7 +165,7 @@ export class PersistentQueryService
    * those belong to the Interactive Consoles tree.
    * @param serverUrl The DHE server URL.
    */
-  getPersistentQueries = async (serverUrl: URL): Promise<QueryInfo[]> => {
+  getPersistentQueryInfos = async (serverUrl: URL): Promise<QueryInfo[]> => {
     const dheService = await this._dheServiceCache.get(serverUrl);
     const dheClient = await dheService.getClient(false);
     if (dheClient == null) {

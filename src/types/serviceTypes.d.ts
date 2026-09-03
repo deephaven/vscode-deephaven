@@ -159,7 +159,7 @@ export interface IPanelService extends IDisposable {
 export interface IPersistentQueryService extends IDisposable {
   readonly onDidUpdate: vscode.Event<void>;
 
-  getPersistentQueries: (serverUrl: URL) => Promise<QueryInfo[]>;
+  getPersistentQueryInfos: (serverUrl: URL) => Promise<QueryInfo[]>;
 }
 
 /**

@@ -33,10 +33,12 @@ import {
  * (`IPersistentQueryStatusFilterService`). A server whose filter hides anything
  * gets a trailing "More (N)" node, so a filter is never a silent omission.
  *
- * Tree shape:
- *   root      → DHE `ServerState[]`
- *   server    → `PersistentQueryNode[]`      (alphabetized, status-filtered)
- *   PQ        → `[URL, VariableDefintion][]` (object leaves, opened on click)
+ * Tree shape — each node is one member of `PersistentQueryTreeNode`:
+ *
+ *   ServerState                        connected DHE servers, sorted by label
+ *   ├── PersistentQueryNode            alphabetized, status-filtered
+ *   │   └── [URL, VariableDefintion]   object leaf, opens a panel on click
+ *   └── PersistentQueryHiddenNode      trailing "More (N)", only when filtered
  */
 export class PersistentQueryTreeProvider extends ServerTreeProviderBase<PersistentQueryTreeNode> {
   constructor(
@@ -68,7 +70,7 @@ export class PersistentQueryTreeProvider extends ServerTreeProviderBase<Persiste
   getTreeItem = async (
     node: PersistentQueryTreeNode
   ): Promise<vscode.TreeItem> => {
-    // Object leaf node (worker URL + variable). Rendered with the shared panel
+    // Object leaf node ([URL, VariableDefintion]). Rendered with the shared panel
     // renderer so the click command is `OPEN_VARIABLE_PANELS_CMD` verbatim.
     // Browse-only: this view never deletes anything from a PQ.
     if (Array.isArray(node)) {
@@ -104,11 +106,10 @@ export class PersistentQueryTreeProvider extends ServerTreeProviderBase<Persiste
     const counts = new Map<string, number>();
 
     for (const server of servers) {
-      const queries = await this._persistentQueryService.getPersistentQueries(
-        server.url
-      );
+      const queryInfos =
+        await this._persistentQueryService.getPersistentQueryInfos(server.url);
 
-      for (const queryInfo of queries) {
+      for (const queryInfo of queryInfos) {
         const status =
           getPersistentQueryStatus(queryInfo) ?? UNSET_QUERY_STATUS;
         counts.set(status, (counts.get(status) ?? 0) + 1);
@@ -167,7 +168,7 @@ export class PersistentQueryTreeProvider extends ServerTreeProviderBase<Persiste
     // name, with a trailing node accounting for whatever the filter hid.
     const dheServerUrl = elementOrRoot.url;
     const queries =
-      await this._persistentQueryService.getPersistentQueries(dheServerUrl);
+      await this._persistentQueryService.getPersistentQueryInfos(dheServerUrl);
 
     // Already sorted by name by the service.
     const visible = queries.filter(queryInfo =>
