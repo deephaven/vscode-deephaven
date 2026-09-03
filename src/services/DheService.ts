@@ -512,7 +512,7 @@ export class DheService implements IDheService {
     // path and auto-attach it (see the `_isQueryOwned` guard in
     // `_subscribeToWorkerEvents`).
     //
-    // The `finally` below clears this guard *before* `_querySerialSet.add`
+    // The `finally` below clears this guard *before* `_ownedQuerySerialSet.add`
     // engages the serial-based one. The handoff is only safe because nothing
     // awaits in between, so no config event can be delivered in that window —
     // do not introduce an `await` between the `finally` and the `add`.
@@ -591,7 +591,7 @@ export class DheService implements IDheService {
 
   /**
    * Register a pre-existing Running worker by building WorkerInfo from the
-   * given QueryInfo. Does NOT add the serial to `_querySerialSet` — registered
+   * given QueryInfo. Does NOT add the serial to `_ownedQuerySerialSet` — registered
    * workers are never owned and must never be deleted by the extension.
    * @param queryInfo The already-Running QueryInfo for the worker to register.
    * @returns WorkerInfo for the registered worker.
@@ -628,8 +628,8 @@ export class DheService implements IDheService {
 
   /**
    * Delete a worker. Only deletes the server-side PQ when the worker is owned
-   * by this extension (serial is in `_querySerialSet`). Attached workers are
-   * removed from `_workerInfoMap` but the PQ is left running.
+   * by this extension (serial is in `_ownedQuerySerialSet`). Attached workers
+   * are removed from `_workerInfoMap` but the PQ is left running.
    * @param workerUrl Worker URL to delete.
    */
   deleteWorker = async (workerUrl: WorkerURL): Promise<void> => {
@@ -672,7 +672,7 @@ export class DheService implements IDheService {
     this._onWorkerAttachable.dispose();
     this._onWorkerRemoved.dispose();
 
-    await Promise.all([
+    await Promise.allSettled([
       this._workerInfoMap.dispose(),
       this._disposeQueries(querySerials),
       this._disposeCorePlusManager(),
