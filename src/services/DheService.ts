@@ -15,7 +15,6 @@ import {
   type IDheService,
   type IDheServiceFactory,
   type IInteractiveConsoleQueryFactory,
-  type IToastService,
   type UniqueID,
   type WorkerConfig,
   type WorkerInfo,
@@ -32,7 +31,7 @@ import {
 import {
   getWorkerInfoFromQueryInfo,
   createInteractiveConsoleQuery,
-  createQueryName,
+  createOwnedICQueryName,
   deleteQueries,
   getDheFeatures,
   getSerialFromTagId,
@@ -63,15 +62,13 @@ export class DheService implements IDheService {
    * @param dheJsApiCache DHE JS API cache.
    * @param interactiveConsoleQueryFactory Factory for creating interactive console
    * queries.
-   * @param toaster Toast service for notifications.
    * @returns A factory function that can be used to create DheService instances.
    */
   static factory = (
     configService: IConfigService,
     dheClientCache: URLMap<DheAuthenticatedClientWrapper>,
     dheJsApiCache: IAsyncCacheService<URL, DheType>,
-    interactiveConsoleQueryFactory: IInteractiveConsoleQueryFactory,
-    toaster: IToastService
+    interactiveConsoleQueryFactory: IInteractiveConsoleQueryFactory
   ): IDheServiceFactory => {
     return {
       create: (serverUrl: URL): IDheService => {
@@ -85,8 +82,7 @@ export class DheService implements IDheService {
           configService,
           dheClientCache,
           dheJsApiCache,
-          interactiveConsoleQueryFactory,
-          toaster
+          interactiveConsoleQueryFactory
         );
       },
     };
@@ -102,8 +98,7 @@ export class DheService implements IDheService {
     configService: IConfigService,
     dheClientCache: URLMap<DheAuthenticatedClientWrapper>,
     dheJsApiCache: IAsyncCacheService<URL, DheType>,
-    interactiveConsoleQueryFactory: IInteractiveConsoleQueryFactory,
-    toaster: IToastService
+    interactiveConsoleQueryFactory: IInteractiveConsoleQueryFactory
   ) {
     this.label = label;
     this.serverUrl = serverUrl;
@@ -111,9 +106,8 @@ export class DheService implements IDheService {
     this._dheClientCache = dheClientCache;
     this._dheJsApiCache = dheJsApiCache;
     this._dheServerFeaturesCache = new URLMap<DheServerFeatures>();
-    this._querySerialSet = new Set<QuerySerial>();
+    this._ownedQuerySerialSet = new Set<QuerySerial>();
     this._interactiveConsoleQueryFactory = interactiveConsoleQueryFactory;
-    this._toaster = toaster;
     this._workerInfoMap = new URLMap<WorkerInfo, WorkerURL>();
 
     this._dheClientCache.onDidChange(this._onDidDheClientCacheInvalidate);
@@ -132,9 +126,8 @@ export class DheService implements IDheService {
   private readonly _dheJsApiCache: IAsyncCacheService<URL, DheType>;
   private readonly _dheServerFeaturesCache: URLMap<DheServerFeatures>;
   private readonly _pendingQueryTagIds = new Set<UniqueID>();
-  private readonly _querySerialSet: Set<QuerySerial>;
+  private readonly _ownedQuerySerialSet: Set<QuerySerial>;
   private readonly _interactiveConsoleQueryFactory: IInteractiveConsoleQueryFactory;
-  private readonly _toaster: IToastService;
   private readonly _workerInfoMap: URLMap<WorkerInfo, WorkerURL>;
 
   private readonly _onWorkerAttachable = new vscode.EventEmitter<QueryInfo>();
@@ -278,7 +271,7 @@ export class DheService implements IDheService {
       }
 
       if (
-        !this._isQueryOwned(queryInfo) &&
+        !this._isQueryOwnedByExtension(queryInfo) &&
         isAttachableWorker(queryInfo, this._operateAs)
       ) {
         this._onWorkerAttachable.fire(queryInfo);
@@ -387,26 +380,27 @@ export class DheService implements IDheService {
    * @returns The CorePlusManager or null if the client is not available.
    */
   getCorePlusManager = async (): Promise<CorePlusManager | null> => {
-    const managerPromise =
-      this._corePlusManagerPromise ?? this._initCorePlusManager();
-    this._corePlusManagerPromise = managerPromise;
+    this._corePlusManagerPromise ??= this._initCorePlusManager();
 
-    let manager: CorePlusManager | null;
+    // Held in a local so the clear below can identity-check the promise we
+    // actually awaited, rather than clobbering one a concurrent call installed.
+    const managerPromise = this._corePlusManagerPromise;
+
     try {
-      manager = await managerPromise;
+      const manager = await managerPromise;
+
+      // A null manager means no client was available yet rather than a hard
+      // failure, but either way nothing is worth caching — clear so a later
+      // call can retry.
+      if (manager == null) {
+        this._clearCorePlusManagerPromise(managerPromise);
+      }
+
+      return manager;
     } catch (err) {
-      // Don't cache a rejection; a later call should be able to retry.
       this._clearCorePlusManagerPromise(managerPromise);
       throw err;
     }
-
-    // Construction can also fail softly (no client yet). Clear so a later call
-    // can retry once one is available.
-    if (manager == null) {
-      this._clearCorePlusManagerPromise(managerPromise);
-    }
-
-    return manager;
   };
 
   /**
@@ -458,7 +452,7 @@ export class DheService implements IDheService {
     );
   };
 
-  private _isQueryOwned = (
+  private _isQueryOwnedByExtension = (
     querySerialOrInfo: QuerySerial | QueryInfo
   ): boolean => {
     const { name, serial } =
@@ -468,18 +462,17 @@ export class DheService implements IDheService {
 
     if (name != null) {
       for (const tagId of this._pendingQueryTagIds) {
-        // Created workers are named `IC - VS Code - <tagId>` (the iframe create
-        // flow may append a `_vN` version suffix), so a prefix match against
-        // in-flight tagIds covers both forms.
-        const namePrefix = createQueryName(tagId);
+        // Workers created by the extension can have `_vN` version suffixes
+        // added by the iframe create flow check names by prefix.
+        const icQueryNamePrefix = createOwnedICQueryName(tagId);
 
-        if (name.startsWith(namePrefix)) {
+        if (name.startsWith(icQueryNamePrefix)) {
           return true;
         }
       }
     }
 
-    return this._querySerialSet.has(serial as QuerySerial);
+    return this._ownedQuerySerialSet.has(serial as QuerySerial);
   };
 
   private _isQueryTracked = ({ serial }: QueryInfo): boolean => {
@@ -512,7 +505,7 @@ export class DheService implements IDheService {
 
     let startupFailureStatus: string | null = null;
 
-    const queryName = createQueryName(tagId);
+    const queryName = createOwnedICQueryName(tagId);
 
     // Suppress auto-attach for this worker while it is being created. The
     // config event that flips it to `Running` would otherwise race the create
@@ -579,7 +572,7 @@ export class DheService implements IDheService {
     if (querySerial == null) {
       throw new Error('Failed to create query.');
     }
-    this._querySerialSet.add(querySerial);
+    this._ownedQuerySerialSet.add(querySerial);
 
     const workerInfo = await getWorkerInfoFromQuerySerial(
       tagId,
@@ -647,8 +640,8 @@ export class DheService implements IDheService {
 
     this._workerInfoMap.delete(workerUrl);
 
-    if (this._isQueryOwned(workerInfo.serial)) {
-      this._querySerialSet.delete(workerInfo.serial);
+    if (this._isQueryOwnedByExtension(workerInfo.serial)) {
+      this._ownedQuerySerialSet.delete(workerInfo.serial);
       await this._disposeQueries([workerInfo.serial]);
     }
   };
@@ -671,9 +664,9 @@ export class DheService implements IDheService {
   };
 
   dispose = async (): Promise<void> => {
-    const querySerials = [...this._querySerialSet];
+    const querySerials = [...this._ownedQuerySerialSet];
 
-    this._querySerialSet.clear();
+    this._ownedQuerySerialSet.clear();
     this._removeConfigListeners?.();
     this._removeConfigListeners = null;
     this._onWorkerAttachable.dispose();

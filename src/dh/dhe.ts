@@ -264,7 +264,7 @@ export async function createInteractiveConsoleQuery(
     );
   }
 
-  const name = createQueryName(tagId);
+  const name = createOwnedICQueryName(tagId);
   const dbServerName =
     workerConfig?.dbServerName ?? dbServers[0]?.name ?? 'Query 1';
   const heapSize = workerConfig?.heapSize ?? queryConstants.pqDefaultHeap;
@@ -342,11 +342,11 @@ export async function createInteractiveConsoleQuery(
 }
 
 /**
- * Create a query name based on the tag id.
+ * Create an interactive console query name based on the tag id.
  * @param tagId Unique tag id to include in the query name.
  * @returns The query name.
  */
-export function createQueryName(tagId: UniqueID): string {
+export function createOwnedICQueryName(tagId: UniqueID): string {
   return `IC - VS Code - ${tagId}`;
 }
 
@@ -507,7 +507,7 @@ export function getSerialFromTagId(
 ): QuerySerial | null {
   const queryConfig = dheClient
     .getKnownConfigs()
-    .find(({ name }) => name === createQueryName(tagId));
+    .find(({ name }) => name === createOwnedICQueryName(tagId));
 
   return (queryConfig?.serial ?? null) as QuerySerial | null;
 }

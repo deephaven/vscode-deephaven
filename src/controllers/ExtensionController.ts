@@ -734,8 +734,7 @@ export class ExtensionController implements IDisposable {
       this._config,
       this._dheClientCache,
       this._dheJsApiCache,
-      this._interactiveConsoleQueryFactory,
-      this._toaster
+      this._interactiveConsoleQueryFactory
     );
 
     this._dheServiceCache = new DheServiceCache(this._dheServiceFactory);
