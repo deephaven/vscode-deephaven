@@ -651,28 +651,27 @@ export class ServerManager implements IServerManager {
   };
 
   /**
-   * Register a lightweight, non-console "browse" connection for a persistent
-   * query's worker so the DH embed panel (`OPEN_VARIABLE_PANELS_CMD`) can open
-   * its objects. It wires up exactly the three lookups the panel path needs —
-   * `getConnection`, `getWorkerInfo`, `getWorkerCredentials` — keyed by the
-   * worker URL, without creating a console session.
+   * Register a sessionless connection for a persistent query's worker so the DH
+   * embed panel (`OPEN_VARIABLE_PANELS_CMD`) can open its objects. It wires up
+   * exactly the three lookups the panel path needs — `getConnection`,
+   * `getWorkerInfo`, `getWorkerCredentials` — keyed by the worker URL, without
+   * creating a console session. See {@link ConnectionState.isSessionless}.
    *
-   * A browse connection is a view over someone else's PQ, so it is not a worker
-   * connection: no `initSession`, no `connectionCount` increment, and no
-   * `_attachedWorkerSerials` entry. Idempotent — re-registering the same worker
-   * URL returns the existing worker info.
+   * Not a worker connection: no `initSession`, no `connectionCount` increment,
+   * and no `_attachedWorkerSerials` entry. Idempotent — re-registering the same
+   * worker URL returns the existing worker info.
    *
    * Torn down when the DHE server disconnects: `disconnectFromDHEServer` walks
    * every worker URL mapped to the server, which includes these, and
    * `deleteWorker` leaves the PQ running because the serial was never marked
-   * owned. There is no per-PQ teardown — a browse connection outlives collapsing
-   * its tree node.
+   * owned. There is no per-PQ teardown — one of these outlives collapsing its
+   * tree node.
    * @param dheServerUrl The DHE server the PQ belongs to (for auth resolution).
    * @param queryInfo The running PQ whose worker to register.
    * @returns The registered `WorkerInfo`, or `null` if the DHE service/worker
    * info could not be resolved.
    */
-  registerBrowseConnection = async (
+  registerSessionlessConnection = async (
     dheServerUrl: URL,
     queryInfo: QueryInfo
   ): Promise<WorkerInfo | null> => {
@@ -687,7 +686,7 @@ export class ServerManager implements IServerManager {
       workerInfo = dheService.registerWorkerInfo(queryInfo);
     } catch (err) {
       logger.error(
-        'Failed to register browse worker info:',
+        'Failed to register sessionless worker info:',
         queryInfo.serial,
         err
       );
@@ -708,7 +707,7 @@ export class ServerManager implements IServerManager {
       this._connectionMap.set(workerUrl, {
         // Flagged so `getConnections` can exclude it: this is an auth/panel
         // shim, not a worker connection the user can select or run code on.
-        isBrowseConnection: true,
+        isSessionless: true,
         label: workerInfo.name,
         isConnected: true,
         isRunningCode: false,
@@ -928,16 +927,16 @@ export class ServerManager implements IServerManager {
 
   /**
    * Get all worker connections. Optionally filter connections by server or
-   * worker URL. PQ browse connections are always excluded — they are panel-auth
-   * shims, not worker connections, so they must not show up in the Interactive
-   * Consoles tree, the connection picker, or any "run code here" target list.
-   * Use `getConnection` to look one up directly by worker URL.
+   * worker URL. Sessionless connections are always excluded — panel-auth shims
+   * with no console session must not show up in the Interactive Consoles tree,
+   * the connection picker, or any "run code here" target list. Use
+   * `getConnection` to look one up directly by worker URL.
    * @param serverOrWorkerUrl The server or worker URL to filter connections by.
    * @returns An array of all worker connections.
    */
   getConnections = (serverOrWorkerUrl?: URL): ConnectionState[] => {
     const isWorkerConnection = (connection: ConnectionState): boolean =>
-      connection.isBrowseConnection !== true;
+      connection.isSessionless !== true;
 
     if (serverOrWorkerUrl == null) {
       return [...this._connectionMap.values()].filter(isWorkerConnection);

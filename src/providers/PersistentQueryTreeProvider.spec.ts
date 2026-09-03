@@ -100,7 +100,7 @@ describe('PersistentQueryTreeProvider', () => {
       onDidUpdate: vi.fn(() => vi.fn()),
       onDidDisconnect: vi.fn(() => vi.fn()),
       getServers: vi.fn(() => [makeServerState()]),
-      registerBrowseConnection: vi.fn(
+      registerSessionlessConnection: vi.fn(
         async (): Promise<WorkerInfo> =>
           ({ workerUrl: WORKER_URL, name: 'My PQ' }) as WorkerInfo
       ),
@@ -217,7 +217,7 @@ describe('PersistentQueryTreeProvider', () => {
   });
 
   describe('getChildren (PQ -> object leaves)', () => {
-    it('registers a browse connection and returns object leaves opened via OPEN_VARIABLE_PANELS_CMD', async () => {
+    it('registers a sessionless connection and returns object leaves opened via OPEN_VARIABLE_PANELS_CMD', async () => {
       const node: PersistentQueryNode = {
         dheServerUrl: DHE_URL,
         queryInfo: makeQueryInfo(),
@@ -228,14 +228,14 @@ describe('PersistentQueryTreeProvider', () => {
         VariableDefintion,
       ][];
 
-      expect(serverManager.registerBrowseConnection).toHaveBeenCalledWith(
+      expect(serverManager.registerSessionlessConnection).toHaveBeenCalledWith(
         DHE_URL,
         node.queryInfo
       );
 
       expect(leaves).toHaveLength(2);
       expect(leaves.map(([, v]) => v.title)).toEqual(['my_table', 'my_figure']);
-      // Leaves are keyed by the worker URL (from the browse connection).
+      // Leaves are keyed by the worker URL (from the sessionless connection).
       leaves.forEach(([url]) => expect(url.href).toBe(WORKER_URL.href));
 
       // Verify the open command wiring via the tree item.
@@ -244,9 +244,9 @@ describe('PersistentQueryTreeProvider', () => {
       expect(item.command?.arguments?.[0]).toBe(leaves[0][0]);
     });
 
-    it('returns no leaves when the browse connection cannot be registered', async () => {
+    it('returns no leaves when the sessionless connection cannot be registered', async () => {
       (
-        serverManager.registerBrowseConnection as ReturnType<typeof vi.fn>
+        serverManager.registerSessionlessConnection as ReturnType<typeof vi.fn>
       ).mockResolvedValue(null);
 
       const node: PersistentQueryNode = {

@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import type * as vscode from 'vscode';
 import { bitValues, boolValues, matrix } from '../testUtils';
 import {
-  canBrowsePersistentQueryObjects,
+  canOpenPersistentQueryObjects,
   getConnectionServerTreeItem,
   getPanelVariableLeaves,
   getPanelVariableTreeItem,
@@ -166,7 +166,7 @@ describe('getPanelVariableTreeItem', () => {
     );
   });
 
-  it('offers no delete action for a browse-only (PQ) object', () => {
+  it('offers no delete action for a sessionless (PQ) object', () => {
     const variable = {
       title: 'some title',
       name: 'some_name',
@@ -394,8 +394,8 @@ describe('isPersistentQueryNode', () => {
 });
 
 describe('getPersistentQueryTreeItem', () => {
-  /** The designated-worker endpoints a browsable PQ must have. */
-  const browsableUrls = {
+  /** The designated-worker endpoints an openable PQ must have. */
+  const openableUrls = {
     jsApiUrl: 'https://dhe.example.com/worker/1/jsapi/dh-core.js',
     ideUrl: 'https://dhe.example.com/worker/1/ide',
   };
@@ -419,7 +419,7 @@ describe('getPersistentQueryTreeItem', () => {
   it('renders name + owner + context value', () => {
     const item = getPersistentQueryTreeItem(
       makeNode({
-        ...browsableUrls,
+        ...openableUrls,
         status: 'Running',
         objects: [{ title: 't1', type: 'Table' }],
       })
@@ -462,10 +462,10 @@ describe('getPersistentQueryTreeItem', () => {
     expect((item.iconPath as vscode.ThemeIcon).id).toBe('sync~spin');
   });
 
-  it('is collapsible when the PQ exposes browsable objects (Collapsed = 1)', () => {
+  it('is collapsible when the PQ exposes openable objects (Collapsed = 1)', () => {
     const item = getPersistentQueryTreeItem(
       makeNode({
-        ...browsableUrls,
+        ...openableUrls,
         status: 'Running',
         objects: [
           { title: 't1', type: 'Table' },
@@ -487,7 +487,7 @@ describe('getPersistentQueryTreeItem', () => {
     (_label, overrides) => {
       const item = getPersistentQueryTreeItem(
         makeNode({
-          ...browsableUrls,
+          ...openableUrls,
           ...overrides,
           status: 'Running',
           objects: [{ title: 't1', type: 'Table' }],
@@ -495,7 +495,7 @@ describe('getPersistentQueryTreeItem', () => {
       );
       expect(item.collapsibleState).toBe(0);
       expect(item.tooltip).toBe(
-        'My PQ (Running) — 1 object (1 table) (worker not browsable)'
+        'My PQ (Running) — 1 object (1 table) (worker not openable)'
       );
     }
   );
@@ -503,7 +503,7 @@ describe('getPersistentQueryTreeItem', () => {
   it('ignores object entries with an empty title or type', () => {
     const item = getPersistentQueryTreeItem(
       makeNode({
-        ...browsableUrls,
+        ...openableUrls,
         status: 'Running',
         objects: [
           { title: '', type: 'Table' },
@@ -518,7 +518,7 @@ describe('getPersistentQueryTreeItem', () => {
   it('ignores objects whose type is not an openable panel', () => {
     const item = getPersistentQueryTreeItem(
       makeNode({
-        ...browsableUrls,
+        ...openableUrls,
         status: 'Running',
         objects: [
           { title: 'd1', type: 'deephaven.ui.Dashboard' },
@@ -536,7 +536,7 @@ describe('getPersistentQueryTreeItem', () => {
   it('counts deephaven.ui panels as openable objects', () => {
     const item = getPersistentQueryTreeItem(
       makeNode({
-        ...browsableUrls,
+        ...openableUrls,
         status: 'Running',
         objects: [{ title: 'ui1', type: 'deephaven.ui.Element' }],
       })
@@ -560,17 +560,17 @@ describe('getPersistentQueryTreeItem', () => {
   });
 });
 
-describe('canBrowsePersistentQueryObjects', () => {
+describe('canOpenPersistentQueryObjects', () => {
   const makeQueryInfo = (
     designated: unknown
-  ): Parameters<typeof canBrowsePersistentQueryObjects>[0] =>
+  ): Parameters<typeof canOpenPersistentQueryObjects>[0] =>
     ({ designated }) as unknown as Parameters<
-      typeof canBrowsePersistentQueryObjects
+      typeof canOpenPersistentQueryObjects
     >[0];
 
   it('is true when the designated worker has both endpoints', () => {
     expect(
-      canBrowsePersistentQueryObjects(
+      canOpenPersistentQueryObjects(
         makeQueryInfo({
           jsApiUrl: 'https://w/jsapi/dh-core.js',
           ideUrl: 'https://w/ide',
@@ -586,7 +586,7 @@ describe('canBrowsePersistentQueryObjects', () => {
     [{ jsApiUrl: null, ideUrl: 'https://w/ide' }],
     [{ jsApiUrl: '', ideUrl: 'https://w/ide' }],
   ])('is false without both endpoints: %s', designated => {
-    expect(canBrowsePersistentQueryObjects(makeQueryInfo(designated))).toBe(
+    expect(canOpenPersistentQueryObjects(makeQueryInfo(designated))).toBe(
       false
     );
   });

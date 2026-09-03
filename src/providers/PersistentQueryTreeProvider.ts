@@ -26,8 +26,8 @@ import {
  * server (from the shared `IPersistentQueryService`), each expandable to its
  * exported objects. Selecting an object opens it via `OPEN_VARIABLE_PANELS_CMD`,
  * the same panel path — and the same panel — the Interactive Consoles tree uses.
- * Browse-only: no console session, no "attach", the object nodes offer no delete
- * action, and the server-side PQ is never deleted.
+ * No console session and no "attach": the object nodes offer no delete action,
+ * and the server-side PQ is never deleted.
  *
  * Which queries are listed is governed by the shared status filter
  * (`IPersistentQueryStatusFilterService`). A server whose filter hides anything
@@ -72,7 +72,7 @@ export class PersistentQueryTreeProvider extends ServerTreeProviderBase<Persiste
   ): Promise<vscode.TreeItem> => {
     // Object leaf node ([URL, VariableDefintion]). Rendered with the shared panel
     // renderer so the click command is `OPEN_VARIABLE_PANELS_CMD` verbatim.
-    // Browse-only: this view never deletes anything from a PQ.
+    // No delete action: this view never removes anything from a PQ.
     if (Array.isArray(node)) {
       return getPanelVariableTreeItem(node, false);
     }
@@ -145,11 +145,11 @@ export class PersistentQueryTreeProvider extends ServerTreeProviderBase<Persiste
     // PQ node → its exported object leaves. Objects come straight off the
     // running PQ's `designated.objects` (no console session, no connect-on-
     // expand needed — the QueryInfo already carries them). The worker URL is
-    // registered as a browse connection so the embed panel can authenticate.
+    // registered as a sessionless connection so the panel can authenticate.
     if (isPersistentQueryNode(elementOrRoot)) {
       const { dheServerUrl, queryInfo } = elementOrRoot;
 
-      const workerInfo = await this.serverManager.registerBrowseConnection(
+      const workerInfo = await this.serverManager.registerSessionlessConnection(
         dheServerUrl,
         queryInfo
       );

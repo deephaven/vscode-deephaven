@@ -88,7 +88,7 @@ describe('PersistentQueryService', () => {
   it('applies an exclude-helper-types filter with no status filter', async () => {
     getQueryInfoTable.mockResolvedValue(makeSubscription(['serial-1']));
 
-    await service.getPersistentQueries(DHE_URL);
+    await service.getPersistentQueryInfos(DHE_URL);
 
     expect(getQueryInfoTable).toHaveBeenCalledWith({
       excludeHelperTypes: true,
@@ -109,7 +109,7 @@ describe('PersistentQueryService', () => {
       makeSubscription(['serial-1', 'serial-2', 'serial-ic'])
     );
 
-    const queries = await service.getPersistentQueries(DHE_URL);
+    const queries = await service.getPersistentQueryInfos(DHE_URL);
     expect(queries.map(q => q.name)).toEqual(['Alpha PQ', 'Zeta PQ']);
   });
 
@@ -124,21 +124,21 @@ describe('PersistentQueryService', () => {
 
     getQueryInfoTable.mockResolvedValue(makeSubscription(['serial-stopped']));
 
-    const queries = await service.getPersistentQueries(DHE_URL);
+    const queries = await service.getPersistentQueryInfos(DHE_URL);
     expect(queries.map(q => q.name)).toEqual(['Stopped PQ']);
   });
 
   it('returns an empty list when the table fails to load', async () => {
     getQueryInfoTable.mockRejectedValue(new Error('WebClientData down'));
 
-    expect(await service.getPersistentQueries(DHE_URL)).toEqual([]);
+    expect(await service.getPersistentQueryInfos(DHE_URL)).toEqual([]);
   });
 
   it('reuses one subscription per server across calls', async () => {
     getQueryInfoTable.mockResolvedValue(makeSubscription(['serial-1']));
 
-    await service.getPersistentQueries(DHE_URL);
-    await service.getPersistentQueries(DHE_URL);
+    await service.getPersistentQueryInfos(DHE_URL);
+    await service.getPersistentQueryInfos(DHE_URL);
 
     expect(getQueryInfoTable).toHaveBeenCalledTimes(1);
   });

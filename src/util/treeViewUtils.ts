@@ -127,7 +127,7 @@ export function getWorkerNodeLabel(label: string): string {
  * @param variable The worker URL + variable to render.
  * @param canDelete Whether the node offers the delete (trash) action. Only
  * variables living in a console session can be deleted — a persistent query's
- * exported objects are browse-only, so the action must not be offered for them
+ * exported objects have no session, so the action must not be offered for them
  * (`ExtensionController.onDeleteVariable` would ignore it anyway, leaving a
  * button that does nothing).
  */
@@ -238,14 +238,14 @@ function getPersistentQueryObjects(queryInfo: QueryInfo): VariableDefintion[] {
 
 /**
  * Whether a PQ's exported objects can actually be opened. The tree opens them
- * through a browse connection derived from the designated worker
+ * through a sessionless connection derived from the designated worker
  * (`getWorkerInfoFromQueryInfo`), which requires both `jsApiUrl` and `ideUrl`.
  * Helper / system queries (e.g. `RevertHelper`) can be `Running` and report
  * objects while having no IDE endpoint (`designated.ideUrl` is nullable), so
  * without this check they render an expander that can never produce children.
  * @param queryInfo The PQ to check.
  */
-export function canBrowsePersistentQueryObjects(queryInfo: QueryInfo): boolean {
+export function canOpenPersistentQueryObjects(queryInfo: QueryInfo): boolean {
   const { designated } = queryInfo;
 
   return (
@@ -261,10 +261,10 @@ export function canBrowsePersistentQueryObjects(queryInfo: QueryInfo): boolean {
  * Get `TreeItem` for a persistent-query node. The node carries the PQ name plus
  * its {@link getPersistentQueryIconId} status circle, and is collapsible only
  * when the PQ exposes objects *and* those objects can be opened
- * ({@link canBrowsePersistentQueryObjects}) — both known from `designated`, with
+ * ({@link canOpenPersistentQueryObjects}) — both known from `designated`, with
  * no connection required. That keeps an expander off PQs that could only ever
  * show an empty list; an expanded node can still come up empty if registering
- * the browse connection fails.
+ * the sessionless connection fails.
  * @param node The persistent-query node.
  */
 export function getPersistentQueryTreeItem(
@@ -277,7 +277,7 @@ export function getPersistentQueryTreeItem(
   const tableCount = objects.filter(obj =>
     TABLE_VARIABLE_TYPES.has(obj.type)
   ).length;
-  const canBrowse = canBrowsePersistentQueryObjects(queryInfo);
+  const canOpen = canOpenPersistentQueryObjects(queryInfo);
 
   const plural = (count: number, noun: string): string =>
     `${count} ${noun}${count === 1 ? '' : 's'}`;
@@ -293,8 +293,8 @@ export function getPersistentQueryTreeItem(
     if (tableCount > 0) {
       tooltipParts.push(` (${plural(tableCount, 'table')})`);
     }
-    if (!canBrowse) {
-      tooltipParts.push(' (worker not browsable)');
+    if (!canOpen) {
+      tooltipParts.push(' (worker not openable)');
     }
   }
 
@@ -308,7 +308,7 @@ export function getPersistentQueryTreeItem(
     tooltip: tooltipParts.join(''),
     iconPath: new vscode.ThemeIcon(getPersistentQueryIconId(status)),
     collapsibleState:
-      objects.length > 0 && canBrowse
+      objects.length > 0 && canOpen
         ? vscode.TreeItemCollapsibleState.Collapsed
         : vscode.TreeItemCollapsibleState.None,
     contextValue: PERSISTENT_QUERY_TREE_ITEM_CONTEXT.isPersistentQuery,

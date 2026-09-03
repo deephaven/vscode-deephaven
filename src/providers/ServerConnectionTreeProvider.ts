@@ -61,9 +61,7 @@ export class ServerConnectionTreeProvider extends ServerTreeProviderBase<ServerC
   getTreeItem = async (
     node: ServerConnectionNode
   ): Promise<vscode.TreeItem> => {
-    // Panel leaf node associated with a parent connection node. Worker
-    // connections always own a console session (`getConnections` excludes
-    // browse connections), so their variables can be deleted.
+    // Panel leaf node associated with a parent connection node
     if (Array.isArray(node)) {
       return getPanelVariableTreeItem(node, true);
     }
