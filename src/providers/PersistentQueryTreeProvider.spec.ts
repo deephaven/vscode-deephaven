@@ -93,7 +93,7 @@ describe('PersistentQueryTreeProvider', () => {
 
     persistentQueryService = {
       onDidUpdate: vi.fn(() => vi.fn()),
-      getPersistentQueries: vi.fn(async () => [makeQueryInfo()]),
+      getPersistentQueryInfos: vi.fn(async () => [makeQueryInfo()]),
     } as unknown as IPersistentQueryService;
 
     serverManager = {
@@ -133,7 +133,9 @@ describe('PersistentQueryTreeProvider', () => {
   describe('getChildren (server -> persistent queries)', () => {
     beforeEach(() => {
       (
-        persistentQueryService.getPersistentQueries as ReturnType<typeof vi.fn>
+        persistentQueryService.getPersistentQueryInfos as ReturnType<
+          typeof vi.fn
+        >
       ).mockResolvedValue([
         makeQueryInfo({ serial: 'serial-3', name: 'Alpha PQ' }),
         makeQueryInfo({
@@ -156,9 +158,9 @@ describe('PersistentQueryTreeProvider', () => {
         server
       )) as PersistentQueryTreeNode[];
 
-      expect(persistentQueryService.getPersistentQueries).toHaveBeenCalledWith(
-        server.url
-      );
+      expect(
+        persistentQueryService.getPersistentQueryInfos
+      ).toHaveBeenCalledWith(server.url);
       // Two visible queries, then the trailing hidden-count node.
       expect(
         children
@@ -185,7 +187,9 @@ describe('PersistentQueryTreeProvider', () => {
 
     it('shows a status it does not recognize (not in the hidden set)', async () => {
       (
-        persistentQueryService.getPersistentQueries as ReturnType<typeof vi.fn>
+        persistentQueryService.getPersistentQueryInfos as ReturnType<
+          typeof vi.fn
+        >
       ).mockResolvedValue([
         makeQueryInfo({
           name: 'Future PQ',
@@ -202,7 +206,9 @@ describe('PersistentQueryTreeProvider', () => {
 
     it('returns an empty list when the service reports none', async () => {
       (
-        persistentQueryService.getPersistentQueries as ReturnType<typeof vi.fn>
+        persistentQueryService.getPersistentQueryInfos as ReturnType<
+          typeof vi.fn
+        >
       ).mockResolvedValue([]);
 
       const children = await provider.getChildren(makeServerState());
@@ -256,7 +262,9 @@ describe('PersistentQueryTreeProvider', () => {
   describe('getTreeItem', () => {
     it('renders a DHE server node with no count description', async () => {
       (
-        persistentQueryService.getPersistentQueries as ReturnType<typeof vi.fn>
+        persistentQueryService.getPersistentQueryInfos as ReturnType<
+          typeof vi.fn
+        >
       ).mockResolvedValue([
         makeQueryInfo({ serial: 'serial-1', name: 'Alpha PQ' }),
       ]);
@@ -333,7 +341,9 @@ describe('PersistentQueryTreeProvider', () => {
       ]);
 
       (
-        persistentQueryService.getPersistentQueries as ReturnType<typeof vi.fn>
+        persistentQueryService.getPersistentQueryInfos as ReturnType<
+          typeof vi.fn
+        >
       ).mockImplementation(async (url: URL) =>
         url === otherUrl
           ? [
