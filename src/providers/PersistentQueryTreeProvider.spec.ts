@@ -137,22 +137,23 @@ describe('PersistentQueryTreeProvider', () => {
           typeof vi.fn
         >
       ).mockResolvedValue([
+        // The service returns these in unspecified order; the provider sorts.
+        makeQueryInfo({ serial: 'serial-1', name: 'Zeta PQ' }),
+        makeQueryInfo({
+          serial: 'serial-2',
+          name: 'Terminated PQ',
+          designated: { status: 'Failed' },
+        } as unknown as Partial<QueryInfo>),
         makeQueryInfo({ serial: 'serial-3', name: 'Alpha PQ' }),
         makeQueryInfo({
           serial: 'serial-4',
           name: 'No Status PQ',
           designated: undefined,
         } as Partial<QueryInfo>),
-        makeQueryInfo({
-          serial: 'serial-2',
-          name: 'Terminated PQ',
-          designated: { status: 'Failed' },
-        } as unknown as Partial<QueryInfo>),
-        makeQueryInfo({ serial: 'serial-1', name: 'Zeta PQ' }),
       ]);
     });
 
-    it('lists the visible queries directly under the server', async () => {
+    it('lists the visible queries under the server, alphabetized', async () => {
       const server = makeServerState();
       const children = (await provider.getChildren(
         server

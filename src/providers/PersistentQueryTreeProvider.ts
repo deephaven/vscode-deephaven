@@ -167,10 +167,15 @@ export class PersistentQueryTreeProvider extends ServerTreeProviderBase<Persiste
     const queries =
       await this._persistentQueryService.getPersistentQueryInfos(dheServerUrl);
 
-    // Already sorted by name by the service.
-    const visible = queries.filter(queryInfo =>
-      this._statusFilterService.isVisible(getPersistentQueryStatus(queryInfo))
-    );
+    // Filter before sorting: the filter is a set lookup per query, while the
+    // sort is `localeCompare` over whatever survives. On a server with tens of
+    // thousands of queries and a filter showing a handful, that is the
+    // difference between sorting the handful and sorting everything.
+    const visible = queries
+      .filter(queryInfo =>
+        this._statusFilterService.isVisible(getPersistentQueryStatus(queryInfo))
+      )
+      .sort((a, b) => a.name.localeCompare(b.name));
 
     const children: PersistentQueryTreeNode[] = visible.map(
       (queryInfo): PersistentQueryNode => ({ dheServerUrl, queryInfo })

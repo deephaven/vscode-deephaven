@@ -95,7 +95,7 @@ describe('PersistentQueryService', () => {
     });
   });
 
-  it('resolves the ticking serials to known configs, sorted by name', async () => {
+  it('resolves the ticking serials to known configs', async () => {
     knownConfigs = [
       makeQueryInfo({ serial: 'serial-1', name: 'Zeta PQ' }),
       makeQueryInfo({ serial: 'serial-2', name: 'Alpha PQ' }),
@@ -110,7 +110,8 @@ describe('PersistentQueryService', () => {
     );
 
     const queries = await service.getPersistentQueryInfos(DHE_URL);
-    expect(queries.map(q => q.name)).toEqual(['Alpha PQ', 'Zeta PQ']);
+    // Order is unspecified — assert the resolved set, not its sequence.
+    expect(queries.map(q => q.name).sort()).toEqual(['Alpha PQ', 'Zeta PQ']);
   });
 
   it('includes stopped queries (no status filter, no designated worker)', async () => {

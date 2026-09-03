@@ -160,9 +160,14 @@ export class PersistentQueryService
   };
 
   /**
-   * The persistent queries visible on a DHE server, sorted by name. Any status
-   * (running, stopped, failed) — InteractiveConsole workers are never included;
-   * those belong to the Interactive Consoles tree.
+   * The persistent queries visible on a DHE server, in unspecified order. Any
+   * status (running, stopped, failed) — InteractiveConsole workers are never
+   * included; those belong to the Interactive Consoles tree.
+   *
+   * Deliberately unsorted: a server can hold tens of thousands of queries, and
+   * callers narrow that set before they need an order (or, like
+   * `getStatusCounts`, never need one). Sorting here would make every caller
+   * pay `localeCompare` over the whole set.
    * @param serverUrl The DHE server URL.
    */
   getPersistentQueryInfos = async (serverUrl: URL): Promise<QueryInfo[]> => {
@@ -197,7 +202,7 @@ export class PersistentQueryService
       `PQs for ${serverUrl.href}: table serials=${serials.size}, known configs=${knownConfigs.length}, resolved=${queries.length}`
     );
 
-    return queries.sort((a, b) => a.name.localeCompare(b.name));
+    return queries;
   };
 
   protected override async onDisposing(): Promise<void> {
