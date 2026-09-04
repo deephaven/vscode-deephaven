@@ -16,7 +16,7 @@ import { DisposableBase } from './DisposableBase';
 const logger = new Logger('QueryConfigTableService');
 
 /**
- * The community (Core) JS API object returned by `CorePlusManager.getApi`. The
+ * Core+ JS API object returned by `CorePlusManager.getApi`. The
  * `QueryInfo` table is created by the WebClientData worker's community API, so
  * server-side filter values must be built from *this* API — a `FilterValue`
  * from any other API instance (e.g. the enterprise `dhe`) throws a
@@ -64,7 +64,7 @@ export interface QueryTableFilters {
  * Build the server-side `FilterCondition[]` for the `QueryInfo` table from the
  * given filters. Pure — no I/O or subscription side effects, so it can be unit
  * tested against a mocked table.
- * @param dh The community DH API that created `table`, providing `FilterValue`.
+ * @param dh The core DH API that created `table`, providing `FilterValue`.
  * Must be the table's own API (see {@link CoreApi}).
  * @param table The `QueryInfo` table to build columns/filters from.
  * @param filters The filters to apply.
@@ -165,22 +165,17 @@ export class QueryConfigTableService extends DisposableBase {
   }> {
     const dheClient = await this._dheService.getClient(false);
     if (dheClient == null) {
-      throw new Error(
-        `Cannot fetch '${QUERY_CONFIG_TABLE}' table: DHE client is not available for ${this._serverUrl}.`
-      );
+      throw new Error(`DHE client is not available for ${this._serverUrl}.`);
     }
 
     const corePlusManager = await this._dheService.getCorePlusManager();
     if (corePlusManager == null) {
       throw new Error(
-        `Cannot fetch '${QUERY_CONFIG_TABLE}' table: CorePlusManager is not available for ${this._serverUrl}.`
+        `CorePlusManager is not available for ${this._serverUrl}.`
       );
     }
 
-    // Pre-check that the always-on WebClientData system query is visible +
-    // running. `fetchQueryConfigTable` routes through a widget-message helper
-    // whose rejection is not reliably propagated (upstream DH-20345), so guard
-    // here to surface a clear error instead of hanging.
+    // Ensure WebClientData query is running
     const webClientData = dheClient.client
       .getKnownConfigs()
       .find(
@@ -193,16 +188,11 @@ export class QueryConfigTableService extends DisposableBase {
       throw new WebClientDataUnavailableError(this._serverUrl);
     }
 
-    // `client` / `dh` / `userInfo` are all reachable from `corePlusManager`,
-    // which resolves them itself.
     const table = await fetchQueryConfigTable({
       corePlusManager,
       tableName: QUERY_CONFIG_TABLE,
     });
 
-    // The table is served by the WebClientData worker's *community* API. Grab
-    // that same (cached) API instance so filter values are castable by the
-    // table — `getApi` returns the instance the factory used above.
     const coreApi = await corePlusManager.getApi(
       webClientData.workerKind,
       webClientData.designated.jsApiUrl
