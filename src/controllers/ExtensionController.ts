@@ -755,8 +755,7 @@ export class ExtensionController implements IDisposable {
     // Shared PQ source for every view that lists persistent queries.
     this._persistentQueryService = new PersistentQueryService(
       this._serverManager,
-      this._dheServiceCache,
-      this._dheJsApiCache
+      this._dheServiceCache
     );
     this._context.subscriptions.push(this._persistentQueryService);
 

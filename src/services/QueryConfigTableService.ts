@@ -1,16 +1,15 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
-import type { EnterpriseDhType as DheType } from '@deephaven-enterprise/jsapi-types';
 import type { CorePlusManager } from '@deephaven-enterprise/client-utils';
 import {
   EXCLUDED_QUERY_TYPES,
-  makeFactoryServiceTablePromise,
+  fetchQueryConfigTable,
   QueryColumns,
   QUERY_CONFIG_TABLE,
   WEB_CLIENT_DATA_CORE_QUERY,
 } from '@deephaven-enterprise/query-utils';
 import { QUERY_INFO_UPDATE_INTERVAL_MS } from '../common';
-import type { IAsyncCacheService, IDheService, IDisposable } from '../types';
+import type { IDheService, IDisposable } from '../types';
 import { createThrottledTrigger, Logger } from '../util';
 import { DisposableBase } from './DisposableBase';
 
@@ -144,22 +143,15 @@ export class QueryConfigTableService extends DisposableBase {
    * @param serverUrl The DHE server URL this service is scoped to.
    * @param dheService The DHE service providing the authenticated client and
    * the `CorePlusManager`.
-   * @param dheJsApiCache Cache providing the DHE JS API for `serverUrl`.
    */
-  constructor(
-    serverUrl: URL,
-    dheService: IDheService,
-    dheJsApiCache: IAsyncCacheService<URL, DheType>
-  ) {
+  constructor(serverUrl: URL, dheService: IDheService) {
     super();
     this._serverUrl = serverUrl;
     this._dheService = dheService;
-    this._dheJsApiCache = dheJsApiCache;
   }
 
   private readonly _serverUrl: URL;
   private readonly _dheService: IDheService;
-  private readonly _dheJsApiCache: IAsyncCacheService<URL, DheType>;
 
   /**
    * Fetch the (unfiltered) `QueryInfo` table via the WebClientData factory
@@ -186,9 +178,9 @@ export class QueryConfigTableService extends DisposableBase {
     }
 
     // Pre-check that the always-on WebClientData system query is visible +
-    // running. `makeFactoryServiceTablePromise` routes through a widget-message
-    // helper whose rejection is not reliably propagated (upstream DH-20345), so
-    // guard here to surface a clear error instead of hanging.
+    // running. `fetchQueryConfigTable` routes through a widget-message helper
+    // whose rejection is not reliably propagated (upstream DH-20345), so guard
+    // here to surface a clear error instead of hanging.
     const webClientData = dheClient.client
       .getKnownConfigs()
       .find(
@@ -201,14 +193,10 @@ export class QueryConfigTableService extends DisposableBase {
       throw new WebClientDataUnavailableError(this._serverUrl);
     }
 
-    const dhe = await this._dheJsApiCache.get(this._serverUrl);
-    const userInfo = await dheClient.client.getUserInfo();
-
-    const table = await makeFactoryServiceTablePromise({
-      client: dheClient.client,
+    // `client` / `dh` / `userInfo` are all reachable from `corePlusManager`,
+    // which resolves them itself.
+    const table = await fetchQueryConfigTable({
       corePlusManager,
-      dh: dhe,
-      userInfo,
       tableName: QUERY_CONFIG_TABLE,
     });
 

@@ -1,8 +1,5 @@
 import * as vscode from 'vscode';
-import type {
-  EnterpriseDhType as DheType,
-  QueryInfo,
-} from '@deephaven-enterprise/jsapi-types';
+import type { QueryInfo } from '@deephaven-enterprise/jsapi-types';
 import { INTERACTIVE_CONSOLE_QUERY_TYPE } from '../common';
 import type {
   IAsyncCacheService,
@@ -26,16 +23,13 @@ export class PersistentQueryService
   /**
    * @param serverManager Server manager (for disconnect teardown).
    * @param dheServiceCache Cache providing the DHE service per server URL.
-   * @param dheJsApiCache Cache providing the DHE JS API per server URL.
    */
   constructor(
     serverManager: IServerManager,
-    dheServiceCache: IAsyncCacheService<URL, IDheService>,
-    dheJsApiCache: IAsyncCacheService<URL, DheType>
+    dheServiceCache: IAsyncCacheService<URL, IDheService>
   ) {
     super();
     this._dheServiceCache = dheServiceCache;
-    this._dheJsApiCache = dheJsApiCache;
 
     // Tear down per-server table subscriptions for any server that goes away
     // (disconnect / config change removing the server).
@@ -47,7 +41,6 @@ export class PersistentQueryService
   }
 
   private readonly _dheServiceCache: IAsyncCacheService<URL, IDheService>;
-  private readonly _dheJsApiCache: IAsyncCacheService<URL, DheType>;
 
   private readonly _onDidUpdate = new vscode.EventEmitter<void>();
   readonly onDidUpdate = this._onDidUpdate.event;
@@ -69,11 +62,7 @@ export class PersistentQueryService
 
     let tableService = this._tableServiceMap.get(serverUrl);
     if (tableService == null) {
-      tableService = new QueryConfigTableService(
-        serverUrl,
-        dheService,
-        this._dheJsApiCache
-      );
+      tableService = new QueryConfigTableService(serverUrl, dheService);
       this._tableServiceMap.set(serverUrl, tableService);
       this.disposables.add(tableService);
     }

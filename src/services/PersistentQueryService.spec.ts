@@ -49,7 +49,6 @@ const makeSubscription = (serials: string[]): QueryInfoTableSubscription =>
 describe('PersistentQueryService', () => {
   let serverManager: IServerManager;
   let dheServiceCache: IAsyncCacheService<URL, IDheService>;
-  let dheJsApiCache: IAsyncCacheService<URL, never>;
   let service: PersistentQueryService;
   let knownConfigs: QueryInfo[];
 
@@ -69,20 +68,11 @@ describe('PersistentQueryService', () => {
       has: vi.fn(() => true),
     } as unknown as IAsyncCacheService<URL, IDheService>;
 
-    dheJsApiCache = {
-      get: vi.fn(async () => ({}) as never),
-      has: vi.fn(() => true),
-    } as unknown as IAsyncCacheService<URL, never>;
-
     serverManager = {
       onDidDisconnect: vi.fn(() => vi.fn()),
     } as unknown as IServerManager;
 
-    service = new PersistentQueryService(
-      serverManager,
-      dheServiceCache,
-      dheJsApiCache
-    );
+    service = new PersistentQueryService(serverManager, dheServiceCache);
   });
 
   it('applies an exclude-helper-types filter with no status filter', async () => {

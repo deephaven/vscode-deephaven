@@ -470,6 +470,7 @@ export class ServerManager implements IServerManager {
     createWorkerIfNone: boolean
   ): Promise<ConnectionState[]> => {
     const attachableWorkers = await dheService.listAttachableWorkers(
+      // exclude workers we are already attached to
       this._attachedWorkerSerials.keys()
     );
 
