@@ -10,7 +10,7 @@ import type {
   IPersistentQueryService,
   IServerManager,
 } from '../types';
-import { Logger } from '../util';
+import { Logger, URLMap } from '../util';
 import { DisposableBase } from './DisposableBase';
 import {
   QueryConfigTableService,
@@ -19,16 +19,6 @@ import {
 
 const logger = new Logger('PersistentQueryService');
 
-/**
- * Per-DHE-server source of the ACL-visible persistent queries, shared by every
- * view that lists PQs.
- *
- * Serials come from the ticking `QueryInfo` table (server-side filtered to
- * non-InteractiveConsole / non-helper types, any status) and are resolved to
- * full `QueryInfo` objects via `getKnownConfigs()` — the table rows carry no
- * `designated` block, which is where a PQ's status and exported objects live.
- * `onDidUpdate` fires on every table tick so consumers can refresh.
- */
 export class PersistentQueryService
   extends DisposableBase
   implements IPersistentQueryService
@@ -63,13 +53,9 @@ export class PersistentQueryService
   readonly onDidUpdate = this._onDidUpdate.event;
 
   /** One `QueryConfigTableService` per DHE server URL. */
-  private readonly _tableServiceMap = new Map<
-    string,
-    QueryConfigTableService
-  >();
+  private readonly _tableServiceMap = new URLMap<QueryConfigTableService>();
   /** The ticking `QueryInfo` table subscription per DHE server URL. */
-  private readonly _subscriptionMap = new Map<
-    string,
+  private readonly _subscriptionMap = new URLMap<
     Promise<QueryInfoTableSubscription>
   >();
 
@@ -81,9 +67,7 @@ export class PersistentQueryService
   private _getSubscription = (
     serverUrl: URL
   ): Promise<QueryInfoTableSubscription> => {
-    const key = serverUrl.toString();
-
-    let subscriptionPromise = this._subscriptionMap.get(key);
+    let subscriptionPromise = this._subscriptionMap.get(serverUrl);
     if (subscriptionPromise != null) {
       return subscriptionPromise;
     }
@@ -91,14 +75,14 @@ export class PersistentQueryService
     subscriptionPromise = (async (): Promise<QueryInfoTableSubscription> => {
       const dheService = await this._dheServiceCache.get(serverUrl);
 
-      let tableService = this._tableServiceMap.get(key);
+      let tableService = this._tableServiceMap.get(serverUrl);
       if (tableService == null) {
         tableService = new QueryConfigTableService(
           serverUrl,
           dheService,
           this._dheJsApiCache
         );
-        this._tableServiceMap.set(key, tableService);
+        this._tableServiceMap.set(serverUrl, tableService);
         this.disposables.add(tableService);
       }
 
@@ -118,14 +102,14 @@ export class PersistentQueryService
       return subscription;
     })();
 
-    this._subscriptionMap.set(key, subscriptionPromise);
+    this._subscriptionMap.set(serverUrl, subscriptionPromise);
 
     // If the table fails to load (e.g. WebClientData unavailable), drop the
     // cached rejection so a later refresh can retry.
     subscriptionPromise.catch(err => {
       logger.error(`Failed to load QueryInfo table for ${serverUrl}:`, err);
-      if (this._subscriptionMap.get(key) === subscriptionPromise) {
-        this._subscriptionMap.delete(key);
+      if (this._subscriptionMap.get(serverUrl) === subscriptionPromise) {
+        this._subscriptionMap.delete(serverUrl);
       }
     });
 
@@ -137,10 +121,8 @@ export class PersistentQueryService
    * @param serverUrl The DHE server URL.
    */
   private _disposeServer = (serverUrl: URL): void => {
-    const key = serverUrl.toString();
-
-    const subscriptionPromise = this._subscriptionMap.get(key);
-    this._subscriptionMap.delete(key);
+    const subscriptionPromise = this._subscriptionMap.get(serverUrl);
+    this._subscriptionMap.delete(serverUrl);
     if (subscriptionPromise != null) {
       void subscriptionPromise
         .then(subscription => subscription.dispose())
@@ -149,8 +131,8 @@ export class PersistentQueryService
         });
     }
 
-    const tableService = this._tableServiceMap.get(key);
-    this._tableServiceMap.delete(key);
+    const tableService = this._tableServiceMap.get(serverUrl);
+    this._tableServiceMap.delete(serverUrl);
     if (tableService != null) {
       this.disposables.delete(tableService);
       void tableService.dispose();
