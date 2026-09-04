@@ -193,7 +193,11 @@ export class ConnectionController
     if ('url' in connectionOrServer) {
       const cn = await this._serverManager.connectToServer(
         connectionOrServer.url,
-        getConsoleType(languageId)
+        getConsoleType(languageId),
+        // A server (rather than an existing connection) was selected, so the
+        // editor needs a console of its own: create a worker instead of adopting
+        // one of the user's existing non-owned consoles.
+        { createWorker: true }
       );
 
       if (cn == null) {
@@ -349,8 +353,7 @@ export class ConnectionController
     await this._serverManager?.connectToServer(
       serverState.url,
       workerConsoleType,
-      operateAsAnotherUser,
-      false
+      { operateAsAnotherUser }
     );
   };
 

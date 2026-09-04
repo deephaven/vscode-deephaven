@@ -233,24 +233,28 @@ export class ServerManager implements IServerManager {
 
   /**
    * Connect to a server and attach to any Core / Core+ workers available for
-   * the server. For DHE, if no workers are available and `createWorkerIfNone`
-   * is `true`, creates one and attaches to it; if `false`, the server connects
-   * (letting persistent queries populate) without provisioning a worker.
+   * the server. For DHE, `flags.createWorker` decides whether a new worker is
+   * provisioned for the caller to run code on; either way the user's existing
+   * consoles are attached so they populate the tree.
    * @param serverUrl The server to connect to.
    * @param workerConsoleType Console type to create a DHE worker with, if one
-   * has to be created.
-   * @param operateAsAnotherUser Whether to prompt for a DHE `operateAs` user.
-   * @param createWorkerIfNone When no attachable DHE worker exists, whether to
-   * auto-create one. Defaults to `true` (e.g. the run-code flow needs a live
-   * console). The plain "connect to server" action passes `false`.
-   * @returns The connection state of the attached worker, or `null` if the
-   * connection or worker creation/attachment failed (or none was created).
+   * has to be created. Required, but may be `undefined` when the caller has no
+   * preference.
+   * @param flags Optional connection flags.
+   * @param flags.createWorker Whether to provision a new DHE worker owned by
+   * this extension and return it. Defaults to `false`.
+   * @param flags.operateAsAnotherUser Whether to prompt for a DHE `operateAs`
+   * user. Defaults to `false`.
+   * @returns The connection state to bind to, or `null` if the connection or
+   * worker creation/attachment failed (or none was created).
    */
   connectToServer = async (
     serverUrl: URL,
-    workerConsoleType?: ConsoleType,
-    operateAsAnotherUser: boolean = false,
-    createWorkerIfNone: boolean = true
+    workerConsoleType: ConsoleType | undefined,
+    {
+      createWorker = false,
+      operateAsAnotherUser = false,
+    }: { createWorker?: boolean; operateAsAnotherUser?: boolean } = {}
   ): Promise<ConnectionState | null> => {
     const serverState = this._serverMap.get(serverUrl);
 
@@ -273,7 +277,7 @@ export class ServerManager implements IServerManager {
       serverState,
       workerConsoleType,
       operateAsAnotherUser,
-      createWorkerIfNone
+      createWorker
     );
   };
 
@@ -281,7 +285,7 @@ export class ServerManager implements IServerManager {
     serverState: ServerState,
     workerConsoleType: ConsoleType | undefined,
     operateAsAnotherUser: boolean,
-    createWorkerIfNone: boolean
+    createWorker: boolean
   ): Promise<ConnectionState | null> => {
     const serverUrl = serverState.url;
 
@@ -308,10 +312,10 @@ export class ServerManager implements IServerManager {
         this._resolvePendingServerConnection(serverUrl);
 
         if (dheService != null) {
-          [firstConnection = null] = await this._createOrAttachToWorkers(
+          firstConnection = await this._createOrAttachToWorkers(
             dheService,
             workerConsoleType,
-            createWorkerIfNone
+            createWorker
           );
         }
       }
@@ -453,80 +457,98 @@ export class ServerManager implements IServerManager {
   };
 
   /**
-   * Attach to every worker on a DHE server the user can attach to. When there
-   * are none and `createWorkerIfNone` is true, one is created instead;
-   * otherwise the server stays connected with no worker, so persistent queries
-   * can populate without provisioning one.
+   * Attach to every worker on a DHE server the user can attach to, and — when
+   * `createWorker` is set — provision a new one for the caller to run code on.
+   *
+   * Attachable workers are the user's own running InteractiveConsole queries
+   * that this extension did *not* create: started from the web UI, another
+   * VS Code window, or a previous session. They are attached so they populate
+   * the Interactive Consoles tree, but they are deliberately never handed back
+   * as the connection to run code against — a script would then execute in a
+   * console the user never picked, sharing its variables and panels, and the
+   * extension will not clean it up on disconnect because it does not own it.
+   * Picking such a console explicitly from the connection picker is fine; that
+   * path does not come through here.
    * @param dheService The DHE service for the server.
    * @param workerConsoleType Console type to create a worker with, if one has
    * to be created.
-   * @param createWorkerIfNone Whether to create a worker when none are
-   * attachable.
-   * @returns The connections that were established.
+   * @param createWorker Whether to provision a new worker owned by this
+   * extension. Set by the run-code path; the plain "connect to server" action
+   * leaves it false so the server connects without provisioning anything.
+   * @returns The connection to hand back to `connectToServer`: the newly
+   * created worker when `createWorker` is set (or `null` if creating it
+   * failed), otherwise the first worker attached.
    */
   private _createOrAttachToWorkers = async (
     dheService: IDheService,
     workerConsoleType: ConsoleType | undefined,
-    createWorkerIfNone: boolean
-  ): Promise<ConnectionState[]> => {
+    createWorker: boolean
+  ): Promise<ConnectionState | null> => {
+    // Listed before creating, so the worker created below — itself a running
+    // InteractiveConsole owned by the user — cannot appear here and be attached
+    // a second time.
     const attachableWorkers = await dheService.listAttachableWorkers(
       // exclude workers we are already attached to
       this._attachedWorkerSerials.keys()
     );
 
     // `isOwned` marks a worker this extension created, which it may also delete.
-    const workerInfos: { isOwned: boolean; workerInfo: WorkerInfo }[] = [];
+    let ownedConnection: ConnectionState | null = null;
 
-    if (attachableWorkers.length === 0) {
-      if (!createWorkerIfNone) {
-        return [];
-      }
-
+    if (createWorker) {
       const workerInfo = await this._createWorker(
         dheService,
         workerConsoleType
       );
 
-      if (workerInfo == null) {
-        return [];
-      }
-
-      workerInfos.push({ isOwned: true, workerInfo });
-    } else {
-      for (const queryInfo of attachableWorkers) {
-        try {
-          workerInfos.push({
-            isOwned: false,
-            workerInfo: dheService.registerWorkerInfo(queryInfo),
-          });
-        } catch (err) {
-          logger.error(
-            'Failed to register attachable worker; skipping:',
-            queryInfo.serial,
-            err
-          );
-        }
+      // Creation failed or the user cancelled — already reported by
+      // `_createWorker`. Still attach the existing consoles below so the tree
+      // reflects the server, but return `null` rather than a worker the caller
+      // did not ask for.
+      if (workerInfo != null) {
+        ownedConnection = await this._attachToWorker(
+          workerInfo.name,
+          dheService.serverUrl,
+          true,
+          workerInfo
+        );
       }
     }
 
-    const connections = (
+    const attachedConnections = (
       await Promise.all(
-        workerInfos.map(({ isOwned, workerInfo }) =>
-          this._attachToWorker(
+        attachableWorkers.map(async queryInfo => {
+          let workerInfo: WorkerInfo;
+
+          try {
+            workerInfo = dheService.registerWorkerInfo(queryInfo);
+          } catch (err) {
+            logger.error(
+              'Failed to register attachable worker; skipping:',
+              queryInfo.serial,
+              err
+            );
+            return null;
+          }
+
+          return this._attachToWorker(
             workerInfo.name,
             dheService.serverUrl,
-            isOwned,
+            false,
             workerInfo
-          )
-        )
+          );
+        })
       )
     ).filter(connection => connection != null);
 
-    if (connections.length > 1) {
-      this._toaster.info(`Attached to ${connections.length} workers.`);
+    const connectionCount =
+      attachedConnections.length + (ownedConnection == null ? 0 : 1);
+
+    if (connectionCount > 1) {
+      this._toaster.info(`Attached to ${connectionCount} workers.`);
     }
 
-    return connections;
+    return createWorker ? ownedConnection : (attachedConnections[0] ?? null);
   };
 
   private _createWorker = async (
@@ -578,10 +600,9 @@ export class ServerManager implements IServerManager {
   };
 
   /**
-   * Explicitly create a new worker on a DHE server and attach to it. Unlike
-   * `connectToServer` (which only auto-creates a worker when none are
-   * attachable), this always creates a worker — it backs the "+" create-worker
-   * action on DHE server nodes.
+   * Explicitly create a new worker on a DHE server and attach to it. Backs the
+   * "+" create-worker action on DHE server nodes; `connectToServer` reaches the
+   * same create path via its `createWorker` flag.
    * @param dheServerUrl The DHE server to create the worker on.
    * @param workerConsoleType Optional console type for the new worker.
    * @returns The new connection state, or `null` if client/worker

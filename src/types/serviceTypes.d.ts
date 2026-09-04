@@ -222,9 +222,8 @@ export interface IServerManager extends IDisposable {
 
   connectToServer: (
     serverUrl: URL,
-    workerConsoleType?: ConsoleType,
-    operateAsAnotherUser?: boolean,
-    createWorkerIfNone?: boolean
+    workerConsoleType: ConsoleType | undefined,
+    flags?: { createWorker?: boolean; operateAsAnotherUser?: boolean }
   ) => Promise<ConnectionState | null>;
   createWorker: (
     dheServerUrl: URL,

@@ -47,9 +47,10 @@ type TestServerManager = PublicOf<ServerManager> & {
   _createOrAttachToWorkers: (
     dheService: IDheService,
     workerConsoleType?: unknown,
-    createWorkerIfNone?: boolean
-  ) => Promise<ConnectionState[]>;
+    createWorker?: boolean
+  ) => Promise<ConnectionState | null>;
   _createWorker: ReturnType<typeof vi.fn>;
+  _attachToWorker: ReturnType<typeof vi.fn>;
 };
 
 /** Build a `ServerManager` with minimal mocked dependencies. */
@@ -129,7 +130,7 @@ describe('ServerManager.connectToServer', () => {
   });
 
   it('throws when the server is not found', async () => {
-    await expect(manager.connectToServer(serverUrl)).rejects.toThrow(
+    await expect(manager.connectToServer(serverUrl, undefined)).rejects.toThrow(
       `Server with URL '${serverUrl}' not found.`
     );
   });
@@ -138,7 +139,7 @@ describe('ServerManager.connectToServer', () => {
     manager._serverMap.set(dhcServer1.url, dhcServer1);
     manager._connectionMap.set(serverUrl, cn1);
 
-    const result = await manager.connectToServer(serverUrl);
+    const result = await manager.connectToServer(serverUrl, undefined);
 
     expect(result).toBe(cn1);
     expect(manager._dhcServiceFactory.create).not.toHaveBeenCalled();
@@ -158,8 +159,8 @@ describe('ServerManager.connectToServer', () => {
     };
     manager._dhcServiceFactory.create.mockReturnValue(connection);
 
-    const first = manager.connectToServer(serverUrl);
-    const second = manager.connectToServer(serverUrl);
+    const first = manager.connectToServer(serverUrl, undefined);
+    const second = manager.connectToServer(serverUrl, undefined);
 
     // The second call dedupes against the in-flight connection rather than
     // creating a new one.
@@ -180,8 +181,8 @@ describe('ServerManager.connectToServer', () => {
     const { promise } = withResolvers<IDheService>();
     manager._dheServiceCache.get.mockReturnValue(promise);
 
-    void manager.connectToServer(serverUrl);
-    void manager.connectToServer(serverUrl);
+    void manager.connectToServer(serverUrl, undefined);
+    void manager.connectToServer(serverUrl, undefined);
 
     // The DHE client connection is singular, so concurrent attempts reuse the
     // in-flight connection rather than starting a second one (multiple workers
@@ -202,15 +203,25 @@ describe('ServerManager._createOrAttachToWorkers', () => {
     manager._createWorker = vi.fn().mockResolvedValue(null);
   });
 
-  function mockDheServiceWithNoWorkers(): IDheService {
+  /**
+   * A DHE service exposing `attachable` as the user's own consoles that this
+   * extension did not create.
+   */
+  function mockDheService(attachable: string[] = []): IDheService {
     return {
-      listAttachableWorkers: vi.fn().mockResolvedValue([]),
-      registerWorkerInfo: vi.fn(),
+      serverUrl,
+      listAttachableWorkers: vi
+        .fn()
+        .mockResolvedValue(attachable.map(serial => ({ serial }))),
+      registerWorkerInfo: vi.fn((queryInfo: { serial: string }) => ({
+        name: `worker-${queryInfo.serial}`,
+        serial: queryInfo.serial,
+      })),
     } as unknown as IDheService;
   }
 
-  it('does not create a worker when none are attachable and createWorkerIfNone is false', async () => {
-    const dheService = mockDheServiceWithNoWorkers();
+  it('does not create a worker when createWorker is false', async () => {
+    const dheService = mockDheService();
 
     const result = await manager._createOrAttachToWorkers(
       dheService,
@@ -218,16 +229,79 @@ describe('ServerManager._createOrAttachToWorkers', () => {
       false
     );
 
-    expect(result).toEqual([]);
+    expect(result).toBeNull();
     expect(manager._createWorker).not.toHaveBeenCalled();
   });
 
-  it('creates a worker when none are attachable and createWorkerIfNone is true', async () => {
-    const dheService = mockDheServiceWithNoWorkers();
+  it('creates a worker when none are attachable and createWorker is true', async () => {
+    const dheService = mockDheService();
 
     await manager._createOrAttachToWorkers(dheService, undefined, true);
 
     expect(manager._createWorker).toHaveBeenCalledTimes(1);
+  });
+
+  it('creates an owned worker even when the user already has consoles to attach', async () => {
+    // The reported bug: connecting a server in order to run a script adopted
+    // one of the user's existing (non-owned) consoles instead of creating one.
+    const dheService = mockDheService(['existing-1', 'existing-2']);
+
+    const owned = mockConnectionState(serverUrl);
+    manager._createWorker = vi
+      .fn()
+      .mockResolvedValue({ name: 'owned', serial: 'owned-1' });
+    manager._attachToWorker = vi.fn(async (_label, _url, isOwned) =>
+      isOwned ? owned : mockConnectionState(serverUrl)
+    );
+
+    const result = await manager._createOrAttachToWorkers(
+      dheService,
+      undefined,
+      true
+    );
+
+    expect(manager._createWorker).toHaveBeenCalledTimes(1);
+    // The existing consoles are still attached so they populate the tree...
+    expect(manager._attachToWorker).toHaveBeenCalledTimes(3);
+    // ...but the connection handed back is the one we own.
+    expect(result).toBe(owned);
+  });
+
+  it('attaches existing consoles without creating one when createWorker is false', async () => {
+    const dheService = mockDheService(['existing-1', 'existing-2']);
+
+    const attached = mockConnectionState(serverUrl);
+    manager._attachToWorker = vi.fn().mockResolvedValue(attached);
+
+    const result = await manager._createOrAttachToWorkers(
+      dheService,
+      undefined,
+      false
+    );
+
+    expect(manager._createWorker).not.toHaveBeenCalled();
+    expect(manager._attachToWorker).toHaveBeenCalledTimes(2);
+    expect(result).toBe(attached);
+  });
+
+  it('returns null rather than a non-owned console when worker creation fails', async () => {
+    const dheService = mockDheService(['existing-1']);
+
+    // `_createWorker` returns null on failure / cancellation (already reported).
+    manager._createWorker = vi.fn().mockResolvedValue(null);
+    manager._attachToWorker = vi
+      .fn()
+      .mockResolvedValue(mockConnectionState(serverUrl));
+
+    const result = await manager._createOrAttachToWorkers(
+      dheService,
+      undefined,
+      true
+    );
+
+    expect(result).toBeNull();
+    // The existing console is still attached for the tree.
+    expect(manager._attachToWorker).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -286,12 +360,14 @@ describe('ServerManager.isServerConnecting', () => {
       .mockReturnValueOnce(failConnection)
       .mockReturnValueOnce(okConnection);
 
-    expect(await manager.connectToServer(serverUrl)).toBeNull();
+    expect(await manager.connectToServer(serverUrl, undefined)).toBeNull();
     expect(manager.isServerConnecting(serverUrl)).toBe(false);
 
     // The retry is not blocked by a stale pending entry — it starts a new
     // connection rather than deduping against the failed one.
-    expect(await manager.connectToServer(serverUrl)).toBe(okConnection);
+    expect(await manager.connectToServer(serverUrl, undefined)).toBe(
+      okConnection
+    );
     expect(manager._dhcServiceFactory.create).toHaveBeenCalledTimes(2);
     expect(manager.isServerConnecting(serverUrl)).toBe(false);
   });
