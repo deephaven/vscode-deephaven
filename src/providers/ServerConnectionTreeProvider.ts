@@ -1,91 +1,153 @@
 import * as vscode from 'vscode';
+import * as path from 'node:path';
 import { ServerTreeProviderBase } from './ServerTreeProviderBase';
 import { CONNECTION_TREE_ITEM_CONTEXT, ICON_ID } from '../common';
 import type {
-  IDhcService,
   ConnectionState,
+  IPanelService,
+  IServerManager,
   ServerConnectionNode,
 } from '../types';
-import { isInstanceOf, sortByStringProp } from '../util';
-import { DhcService } from '../services';
-import { getServerMatchPortIfLocalHost } from '../mcp/utils';
+import {
+  getConnectionServerTreeItem,
+  getConnectionTreeRootNodes,
+  getConsoleTypeIconId,
+  getPanelVariableLeaves,
+  getPanelVariableTreeItem,
+  getWorkerNodeLabel,
+  isInstanceOf,
+  isServerStateNode,
+  sortByStringProp,
+} from '../util';
+import { DhcService, getFirstSupportedConsoleType } from '../services';
 
 /**
- * Provider for the server connection tree view.
+ * Provider for the Interactive Consoles tree view. Each server node lists its
+ * console worker connections, and each worker lists the editor files associated
+ * with it followed by the panels open on its session.
  */
 export class ServerConnectionTreeProvider extends ServerTreeProviderBase<ServerConnectionNode> {
+  constructor(serverManager: IServerManager, panelService: IPanelService) {
+    super(serverManager);
+    this._panelService = panelService;
+
+    // Refresh whenever a worker's variables change (panel opened / closed, code
+    // run), since worker nodes list them.
+    this.disposables.add(
+      this._panelService.onDidUpdate(() => {
+        this._onDidChangeTreeData.fire();
+      })
+    );
+  }
+
+  private readonly _panelService: IPanelService;
+
+  /**
+   * The editor uris associated with a connection, alphabetized by the file name
+   * the node shows (the full path is only the node description).
+   * @param connection The worker connection.
+   */
+  private _getSortedUris = (connection: ConnectionState): vscode.Uri[] =>
+    this.serverManager
+      .getConnectionUris(connection)
+      .sort(
+        (a, b) =>
+          path.posix
+            .basename(a.path)
+            .localeCompare(path.posix.basename(b.path)) ||
+          a.path.localeCompare(b.path)
+      );
+
   getTreeItem = async (
-    connectionOrUri: ServerConnectionNode
+    node: ServerConnectionNode
   ): Promise<vscode.TreeItem> => {
+    // Panel leaf node associated with a parent connection node
+    if (Array.isArray(node)) {
+      return getPanelVariableTreeItem(node, true);
+    }
+
     // Uri node associated with a parent connection node
-    if (connectionOrUri instanceof vscode.Uri) {
+    if (node instanceof vscode.Uri) {
       return {
-        description: connectionOrUri.path,
+        description: node.path,
         contextValue: CONNECTION_TREE_ITEM_CONTEXT.isUri,
         command: {
           command: 'vscode.open',
           title: 'Open Uri',
-          arguments: [connectionOrUri],
+          arguments: [node],
         },
-        resourceUri: connectionOrUri,
+        resourceUri: node,
       };
     }
 
-    const descriptionTokens: string[] = [];
-
-    if (
-      isInstanceOf(connectionOrUri, DhcService) &&
-      connectionOrUri.isInitialized
-    ) {
-      const [consoleType] = await connectionOrUri.getConsoleTypes();
-      if (consoleType) {
-        descriptionTokens.push(consoleType);
-      }
+    // DHE server node grouping its worker connections.
+    if (isServerStateNode(node)) {
+      return getConnectionServerTreeItem(node);
     }
 
-    if (connectionOrUri.tagId) {
-      descriptionTokens.push(connectionOrUri.tagId);
-    }
+    // Console type (language) drives the node icon rather than the description.
+    const consoleType = await getFirstSupportedConsoleType(node);
 
-    const hasUris = this.serverManager.hasConnectionUris(connectionOrUri);
+    const hasChildren =
+      this.serverManager.hasConnectionUris(node) ||
+      getPanelVariableLeaves(this._panelService, node.serverUrl).length > 0;
 
-    const serverLabel = getServerMatchPortIfLocalHost(
-      this.serverManager,
-      connectionOrUri.serverUrl
-    )?.label;
-
-    const label = serverLabel ?? connectionOrUri.serverUrl.host;
+    // Identify connections created by the extension or in-flight placeholders
+    const isOwned = isInstanceOf(node, DhcService) ? node.isOwned : true;
 
     // Connection node
     return {
-      label,
-      description: descriptionTokens.join(' - '),
-      contextValue: connectionOrUri.isConnected
-        ? CONNECTION_TREE_ITEM_CONTEXT.isConnectionConnected
-        : CONNECTION_TREE_ITEM_CONTEXT.isConnectionConnecting,
-      collapsibleState: hasUris
+      // Worker names end in a long generated id, so the node shows a shortened
+      // form and keeps the full name on hover.
+      label: getWorkerNodeLabel(node.label),
+      tooltip: node.label,
+      contextValue: node.isConnected
+        ? CONNECTION_TREE_ITEM_CONTEXT.isConnectionConnected(isOwned)
+        : CONNECTION_TREE_ITEM_CONTEXT.isConnectionConnecting(isOwned),
+      collapsibleState: hasChildren
         ? vscode.TreeItemCollapsibleState.Expanded
         : undefined,
+      // Show the language (Python/Groovy) icon when idle/connected; show the
+      // spinner while busy (connecting or running code).
       iconPath: new vscode.ThemeIcon(
-        connectionOrUri.isRunningCode
-          ? ICON_ID.runningCode
-          : connectionOrUri.isConnected
-            ? ICON_ID.connected
-            : ICON_ID.connecting
+        node.isRunningCode || !node.isConnected
+          ? ICON_ID.connecting
+          : getConsoleTypeIconId(consoleType)
       ),
     };
   };
 
   getChildren = (
-    elementOrRoot?: IDhcService
+    elementOrRoot?: ServerConnectionNode
   ): vscode.ProviderResult<ServerConnectionNode[]> => {
+    // Root: one node per server with connections, plus connected DHE servers.
     if (elementOrRoot == null) {
+      return getConnectionTreeRootNodes(this.serverManager);
+    }
+
+    // Panel leaf nodes have no children.
+    if (Array.isArray(elementOrRoot)) {
+      return [];
+    }
+
+    // Uri leaf nodes have no children.
+    if (elementOrRoot instanceof vscode.Uri) {
+      return [];
+    }
+
+    // Server node -> its worker connections.
+    if (isServerStateNode(elementOrRoot)) {
       return this.serverManager
-        .getConnections()
+        .getConnections(elementOrRoot.url)
         .sort(sortByStringProp('serverUrl'));
     }
 
-    return this.serverManager.getConnectionUris(elementOrRoot);
+    // Connection node -> its editor uris, then its open panels. Files sort to
+    // the top since they are the association the user manages; panels follow.
+    return [
+      ...this._getSortedUris(elementOrRoot),
+      ...getPanelVariableLeaves(this._panelService, elementOrRoot.serverUrl),
+    ];
   };
 
   /**
@@ -93,11 +155,22 @@ export class ServerConnectionTreeProvider extends ServerTreeProviderBase<ServerC
    * for `TreeView.reveal` method to work.
    * @param element
    */
-  getParent = (element: ServerConnectionNode): ConnectionState | null => {
+  getParent = (element: ServerConnectionNode): ServerConnectionNode | null => {
+    // Panel leaf node -> the connection hosting the variable.
+    if (Array.isArray(element)) {
+      const [workerUrl] = element;
+      return this.serverManager.getConnection(workerUrl) ?? null;
+    }
+
     if (element instanceof vscode.Uri) {
       return this.serverManager.getUriConnection(element);
     }
 
-    return null;
+    if (isServerStateNode(element)) {
+      return null;
+    }
+
+    // Connection node -> its parent server.
+    return this.serverManager.getServerForConnection(element) ?? null;
   };
 }

@@ -26,6 +26,11 @@ export type ConnectToServerCmdArgs = [
   operateAsAnotherUser?: boolean,
 ];
 
+/** Arguments passed to `CREATE_WORKER_CMD` handler */
+export type CreateWorkerCmdArgs = [
+  serverState: Pick<ServerState, 'type' | 'url'>,
+];
+
 /** Arguments passed to `OPEN_VARIABLE_PANELS_CMD` handler */
 export type OpenVariablePanelsCmdArgs = [
   serverUrl: URL,
@@ -97,10 +102,21 @@ export const CREATE_DHE_AUTHENTICATED_CLIENT_CMD = cmd(
   'createDHEAuthenticatedClient'
 );
 export const CREATE_NEW_TEXT_DOC_CMD = cmd('createNewTextDoc');
+export const CREATE_WORKER_CMD = cmd('createWorker');
 export const DELETE_VARIABLE_CMD = cmd('deleteVariable');
 export const DISCONNECT_EDITOR_CMD = cmd('disconnectEditor');
 export const DISCONNECT_FROM_SERVER_CMD = cmd('disconnectFromServer');
+export const DISCONNECT_FROM_WORKER_CMD = cmd('disconnectFromWorker');
 export const DOWNLOAD_LOGS_CMD = cmd('downloadLogs');
+export const FILTER_PERSISTENT_QUERIES_CMD = cmd('filterPersistentQueries');
+// The Persistent Queries filter menu's section rows: one show / hide pair per
+// section, gated on complementary `when` clauses so exactly one of each pair
+// shows. Extension menus cannot render a checked state, so the "hide" variant's
+// title carries a literal U+2713 to stand in for one.
+export const HIDE_RUNNING_QUERIES_CMD = cmd('hideRunningQueries');
+export const HIDE_STOPPED_QUERIES_CMD = cmd('hideStoppedQueries');
+export const SHOW_RUNNING_QUERIES_CMD = cmd('showRunningQueries');
+export const SHOW_STOPPED_QUERIES_CMD = cmd('showStoppedQueries');
 export const GENERATE_DHE_KEY_PAIR_CMD = cmd('generateDHEKeyPair');
 export const GENERATE_REQUIREMENTS_TXT_CMD = cmd('generateRequirementsTxt');
 export const OPEN_IN_BROWSER_CMD = cmd('openInBrowser');
@@ -112,7 +128,9 @@ export const REFRESH_SERVER_TREE_CMD = cmd('refreshServerTree');
 export const REFRESH_SERVER_CONNECTION_TREE_CMD = cmd(
   'refreshServerConnectionTree'
 );
-export const REFRESH_PANELS_TREE_CMD = cmd('refreshPanelsTree');
+export const REFRESH_PERSISTENT_QUERY_TREE_CMD = cmd(
+  'refreshPersistentQueryTree'
+);
 export const REFRESH_VARIABLE_PANELS_CMD = cmd('refreshVariablePanels');
 export const REMOVE_GROOVY_REMOTE_FILE_SOURCE_CMD = cmd(
   'removeGroovyRemoteFileSource'
@@ -125,7 +143,7 @@ export const RUN_CODE_COMMAND = cmd('runCode');
 export const RUN_MARKDOWN_CODEBLOCK_CMD = cmd('runMarkdownCodeBlock');
 export const RUN_SELECTION_COMMAND = cmd('runSelection');
 export const SEARCH_CONNECTIONS_CMD = cmd('searchConnections');
-export const SEARCH_PANELS_CMD = cmd('searchPanels');
+export const SEARCH_PERSISTENT_QUERIES_CMD = cmd('searchPersistentQueries');
 export const SELECT_CONNECTION_COMMAND = cmd('selectConnection');
 export const SHOW_MCP_QUICK_PICK_CMD = cmd('showMcpQuickPick');
 export const START_SERVER_CMD = cmd('startServer');

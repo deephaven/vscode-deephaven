@@ -9,11 +9,20 @@ import {
   createConnectionQuickPickOptions,
   createSeparatorPickItem,
   promptForCredentials,
+  promptForQueryStatusFilter,
+  setViewIsFiltered,
 } from './uiUtils';
+import {
+  DEFAULT_HIDDEN_QUERY_STATUSES,
+  STOPPED_QUERY_STATUSES,
+  UNSET_QUERY_STATUS,
+  type ViewID,
+} from '../common';
 import type {
   ConnectionState,
   CoreConnectionConfig,
   IDhcService,
+  IServerManager,
   ServerState,
 } from '../types';
 
@@ -73,14 +82,35 @@ describe('createConnectionQuickPickOptions', () => {
         },
       ];
       const connections: ConnectionState[] = [
-        { serverUrl: serverUrlA, isConnected: true },
-        { serverUrl: serverUrlC, isConnected: true },
+        {
+          label: 'ServerA Connection',
+          serverUrl: serverUrlA,
+          isConnected: true,
+        },
+        {
+          label: 'ServerC Connection',
+          serverUrl: serverUrlC,
+          isConnected: true,
+        },
       ];
+
+      const serverManager = {
+        getServerForConnection: vi.fn(
+          (connection: ConnectionState): ServerState => ({
+            type: 'DHC',
+            url: connection.serverUrl,
+            isConnected: true,
+            isRunning: true,
+            connectionCount: 1,
+          })
+        ),
+      } as unknown as IServerManager;
 
       const actual = createConnectionQuickPickOptions(
         serversWithoutConnections,
         connections,
         'python',
+        serverManager,
         editorActiveConnectionUrl
       );
       expect(actual).toMatchSnapshot();
@@ -91,8 +121,17 @@ describe('createConnectionQuickPickOptions', () => {
     const servers: ServerState[] = [];
     const connections: IDhcService[] = [];
 
+    const serverManager = {
+      getServerForConnection: vi.fn(),
+    } as unknown as IServerManager;
+
     expect(() =>
-      createConnectionQuickPickOptions(servers, connections, 'python')
+      createConnectionQuickPickOptions(
+        servers,
+        connections,
+        'python',
+        serverManager
+      )
     ).toThrowError('No available servers to connect to.');
   });
 });
@@ -239,4 +278,228 @@ describe('promptForCredentials', () => {
       expect(actual).toEqual(expected);
     }
   );
+});
+
+describe('setViewIsFiltered', () => {
+  it.each([[true], [false]])(
+    'should set the `${viewId}.isFiltered` context key: %s',
+    isFiltered => {
+      const viewId = 'mock.viewId' as ViewID;
+
+      setViewIsFiltered(viewId, isFiltered);
+
+      expect(vscode.commands.executeCommand).toHaveBeenCalledWith(
+        'setContext',
+        'mock.viewId.isFiltered',
+        isFiltered
+      );
+    }
+  );
+});
+
+describe('promptForQueryStatusFilter', () => {
+  /** Grab the items the picker was shown, ignoring the options argument. */
+  function shownItems(): {
+    label: string;
+    description?: string;
+    picked?: boolean;
+    kind?: vscode.QuickPickItemKind;
+  }[] {
+    return vi.mocked(vscode.window.showQuickPick).mock.calls[0][0] as never;
+  }
+
+  /** The checkbox rows only, with the group separators dropped. */
+  function shownStatusRows(): ReturnType<typeof shownItems> {
+    return shownItems().filter(
+      item => item.kind !== vscode.QuickPickItemKind.Separator
+    );
+  }
+
+  it('splits the rows into a Running and a Stopped section', async () => {
+    vi.mocked(vscode.window.showQuickPick).mockResolvedValue(
+      undefined as never
+    );
+
+    await promptForQueryStatusFilter(new Map(), new Set());
+
+    // `Stopping` groups with the stopped statuses, and the unset row leads them
+    // (a query reporting no status has stopped without saying so).
+    expect(
+      shownItems().map(item =>
+        item.kind === vscode.QuickPickItemKind.Separator
+          ? `-- ${item.label} --`
+          : item.label
+      )
+    ).toEqual([
+      '-- Running --',
+      'Running',
+      'Uninitialized',
+      'Connecting',
+      'Authenticating',
+      'Acquiring Worker',
+      'Finding Dispatcher',
+      'Initializing',
+      'Executing',
+      '-- Stopped --',
+      '(no status)',
+      'Stopping',
+      'Stopped',
+      'Failed',
+      'Error',
+      'Disconnected',
+      'Completed',
+    ]);
+  });
+
+  it('checks exactly the Running section under the default filter', async () => {
+    vi.mocked(vscode.window.showQuickPick).mockResolvedValue(
+      undefined as never
+    );
+
+    await promptForQueryStatusFilter(
+      new Map(),
+      new Set(DEFAULT_HIDDEN_QUERY_STATUSES)
+    );
+
+    const rows = shownStatusRows();
+    // The Stopped section is the tail of the list, one row per stopped status.
+    const stoppedIndex = rows.length - STOPPED_QUERY_STATUSES.length;
+
+    expect(rows.slice(0, stoppedIndex).every(row => row.picked)).toBe(true);
+    expect(rows.slice(stoppedIndex).some(row => row.picked)).toBe(false);
+  });
+
+  it('is a multi-select picker (canPickMany, not canSelectMany)', async () => {
+    vi.mocked(vscode.window.showQuickPick).mockResolvedValue(
+      undefined as never
+    );
+
+    await promptForQueryStatusFilter(new Map(), new Set());
+
+    expect(
+      vi.mocked(vscode.window.showQuickPick).mock.calls[0][1]
+    ).toMatchObject({
+      canPickMany: true,
+      ignoreFocusOut: true,
+      placeHolder: 'Select the query statuses to show',
+    });
+  });
+
+  it('shows counts (0 when absent) and checks the statuses that are not hidden', async () => {
+    vi.mocked(vscode.window.showQuickPick).mockResolvedValue(
+      undefined as never
+    );
+
+    await promptForQueryStatusFilter(
+      new Map([
+        ['Running', 13],
+        [UNSET_QUERY_STATUS, 2],
+      ]),
+      new Set(['Stopped', UNSET_QUERY_STATUS])
+    );
+
+    const byLabel = new Map(shownItems().map(item => [item.label, item]));
+
+    expect(byLabel.get('Running')).toMatchObject({
+      description: '13',
+      picked: true,
+    });
+    expect(byLabel.get('(no status)')).toMatchObject({
+      description: '2',
+      picked: false,
+    });
+    expect(byLabel.get('Stopped')).toMatchObject({
+      description: '0',
+      picked: false,
+    });
+    expect(byLabel.get('Connecting')).toMatchObject({
+      description: '0',
+      picked: true,
+    });
+  });
+
+  it('formats large counts with thousands separators', async () => {
+    vi.mocked(vscode.window.showQuickPick).mockResolvedValue(
+      undefined as never
+    );
+
+    await promptForQueryStatusFilter(
+      new Map([
+        ['Running', 20007],
+        [UNSET_QUERY_STATUS, 20001],
+      ]),
+      new Set()
+    );
+
+    const byLabel = new Map(shownItems().map(item => [item.label, item]));
+
+    expect(byLabel.get('Running')?.description).toBe('20,007');
+    expect(byLabel.get('(no status)')?.description).toBe('20,001');
+  });
+
+  it('puts unrecognized statuses at the end of the Running section, alphabetized', async () => {
+    vi.mocked(vscode.window.showQuickPick).mockResolvedValue(
+      undefined as never
+    );
+
+    await promptForQueryStatusFilter(
+      new Map([
+        ['Zombie', 1],
+        ['Hibernating', 3],
+      ]),
+      new Set(DEFAULT_HIDDEN_QUERY_STATUSES)
+    );
+
+    const items = shownItems();
+    // Note both the separator and a status row are labelled 'Stopped'; match on
+    // the kind so this finds the section header.
+    const stoppedSeparator = items.findIndex(
+      item =>
+        item.kind === vscode.QuickPickItemKind.Separator &&
+        item.label === 'Stopped'
+    );
+
+    // Immediately before the Stopped separator, i.e. last in the Running list.
+    expect(
+      items
+        .slice(stoppedSeparator - 2, stoppedSeparator)
+        .map(item => item.label)
+    ).toEqual(['Hibernating', 'Zombie']);
+    // An unknown status is not known to have stopped, so it stays visible.
+    const byLabel = new Map(shownItems().map(item => [item.label, item]));
+    expect(byLabel.get('Zombie')?.picked).toBe(true);
+  });
+
+  it('returns the statuses that were NOT picked (the hidden set)', async () => {
+    vi.mocked(vscode.window.showQuickPick).mockImplementation((async (
+      items: { status: string }[]
+    ) => items.filter(item => item.status === 'Running')) as never);
+
+    const hidden = await promptForQueryStatusFilter(new Map(), new Set());
+
+    expect(hidden).toBeDefined();
+    expect(hidden?.has('Running')).toBe(false);
+    expect(hidden?.has('Stopped')).toBe(true);
+    expect(hidden?.has(UNSET_QUERY_STATUS)).toBe(true);
+  });
+
+  it('returns an empty hidden set when everything is picked', async () => {
+    vi.mocked(vscode.window.showQuickPick).mockImplementation(
+      (async (items: unknown[]) => items) as never
+    );
+
+    const hidden = await promptForQueryStatusFilter(new Map(), new Set());
+
+    expect(hidden?.size).toBe(0);
+  });
+
+  it('returns undefined when the picker is dismissed, so the caller leaves the filter alone', async () => {
+    vi.mocked(vscode.window.showQuickPick).mockResolvedValue(
+      undefined as never
+    );
+
+    expect(
+      await promptForQueryStatusFilter(new Map(), new Set(['Stopped']))
+    ).toBeUndefined();
+  });
 });

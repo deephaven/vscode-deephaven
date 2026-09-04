@@ -18,6 +18,7 @@ vi.mock('vscode');
 
 const MOCK_CONNECTION_1: ConnectionState = {
   serverUrl: MOCK_DHC_URL,
+  label: 'Connection 1',
   isConnected: true,
   isRunningCode: false,
   tagId: 'conn1' as UniqueID,
@@ -25,6 +26,7 @@ const MOCK_CONNECTION_1: ConnectionState = {
 
 const MOCK_CONNECTION_2: ConnectionState = {
   serverUrl: new URL('http://localhost:10001'),
+  label: 'Connection 2',
   isConnected: true,
   isRunningCode: true,
   tagId: 'conn2' as UniqueID,

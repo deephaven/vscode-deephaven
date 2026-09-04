@@ -10,16 +10,24 @@ If the `deephaven-server` pip package is available in your local workspace, the 
 
 ![Servers Panel](./assets/servers-panel.png)
 
-## Connections
+## Interactive Consoles
 
-The `CONNECTIONS` panel shows all active connections + editors currently associated with them. Hovering over nodes will show additional contextual action icons.
+The `INTERACTIVE CONSOLES` panel shows all active connections grouped under their server. Each worker node lists the editors currently associated with it, followed by the exported variables available on its session. Clicking a variable will open or refresh the respective output panel. Hovering over nodes will show additional contextual action icons.
+
+Worker names end in a generated id, so nodes show a shortened form of the name — hover a worker node to see its full name.
 
 ![Connections Panel](./assets/connections-panel.png)
 
 Editors can be dragged from one active connection to another.
 
-## Panels
+## Persistent Queries
 
-The `PANELS` panel shows exported variables available on an active connection. Clicking a variable will open or refresh the respective output panel.
+The `PERSISTENT QUERIES` panel shows the persistent queries visible to you on each connected enterprise server, listed beneath the server that owns them. Each query's icon shows its status: a filled circle for running, a slashed circle for stopped or failed, a hollow circle when the server reports no status, and a spinner while it is still in motion (starting up or stopping). Expanding a running query lists the objects it exports; clicking one opens it in a panel.
 
-![Panels Panel](./assets/panels-panel.png)
+The filter icon in the panel title chooses which statuses are listed:
+
+![Persistent Query Filters](assets/persistent-query-filters.png)
+
+- `Running` covers queries that are running or starting up; `Stopped` covers those that have finished or are shutting down, plus queries reporting no status at all. By default `Running` is checked and `Stopped` is not.
+- An entry is checked only while every status in its group is listed. Clicking a checked entry hides the whole group; clicking an unchecked one lists all of it.
+- `Filter by Status...` opens a per-status checkbox list, with the number of queries currently in each status, for finer control.

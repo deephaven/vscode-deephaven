@@ -31,27 +31,29 @@ exports[`createConnectionQuickPickOptions > should return quick pick options: ed
   {
     "data": {
       "isConnected": true,
+      "label": "ServerA Connection",
       "serverUrl": "http://localhost:10000/",
     },
-    "description": "python (current)",
+    "description": "localhost:10000 (current)",
     "iconPath": ThemeIcon {
       "color": undefined,
-      "id": "vm-connect",
+      "id": "dh-python",
     },
-    "label": "http://localhost:10000/",
+    "label": "ServerA Connection",
     "type": "connection",
   },
   {
     "data": {
       "isConnected": true,
+      "label": "ServerC Connection",
       "serverUrl": "http://localhost:10002/",
     },
-    "description": "python",
+    "description": "localhost:10002",
     "iconPath": ThemeIcon {
       "color": undefined,
-      "id": "vm-connect",
+      "id": "dh-python",
     },
-    "label": "http://localhost:10002/",
+    "label": "ServerC Connection",
     "type": "connection",
   },
   {
@@ -102,27 +104,29 @@ exports[`createConnectionQuickPickOptions > should return quick pick options: ed
   {
     "data": {
       "isConnected": true,
+      "label": "ServerA Connection",
       "serverUrl": "http://localhost:10000/",
     },
-    "description": "python",
+    "description": "localhost:10000",
     "iconPath": ThemeIcon {
       "color": undefined,
-      "id": "vm-connect",
+      "id": "dh-python",
     },
-    "label": "http://localhost:10000/",
+    "label": "ServerA Connection",
     "type": "connection",
   },
   {
     "data": {
       "isConnected": true,
+      "label": "ServerC Connection",
       "serverUrl": "http://localhost:10002/",
     },
-    "description": "python",
+    "description": "localhost:10002",
     "iconPath": ThemeIcon {
       "color": undefined,
-      "id": "vm-connect",
+      "id": "dh-python",
     },
-    "label": "http://localhost:10002/",
+    "label": "ServerC Connection",
     "type": "connection",
   },
   {

@@ -36,6 +36,7 @@
     "docs:start": "./scripts/startDocs",
     "docs:format": "./scripts/formatDocs",
     "docs:validate": "./scripts/validateDocs",
+    "format": "prettier --write \"src/**/*.{ts,js}\"",
     "icon:gen:dh": "node icons/generate.mjs dh",
     "icon:gen:ext": "node icons/generate.mjs dh-ext icons/src",
     "package:dev": "./scripts/package-dev.sh",
@@ -245,6 +246,11 @@
         "icon": "$(account)"
       },
       {
+        "command": "vscode-deephaven.createWorker",
+        "title": "Create Worker",
+        "icon": "$(add)"
+      },
+      {
         "command": "vscode-deephaven.createNewTextDoc",
         "title": "New File",
         "icon": "$(new-file)"
@@ -257,6 +263,11 @@
       {
         "command": "vscode-deephaven.disconnectFromServer",
         "title": "Disconnect from Server",
+        "icon": "$(debug-disconnect)"
+      },
+      {
+        "command": "vscode-deephaven.disconnectFromWorker",
+        "title": "Disconnect from Worker",
         "icon": "$(debug-disconnect)"
       },
       {
@@ -294,8 +305,8 @@
         "icon": "$(refresh)"
       },
       {
-        "command": "vscode-deephaven.refreshPanelsTree",
-        "title": "Refresh Panels Tree",
+        "command": "vscode-deephaven.refreshPersistentQueryTree",
+        "title": "Refresh Persistent Queries",
         "icon": "$(refresh)"
       },
       {
@@ -317,9 +328,29 @@
         "icon": "$(search)"
       },
       {
-        "command": "vscode-deephaven.searchPanels",
-        "title": "Search Panels",
+        "command": "vscode-deephaven.searchPersistentQueries",
+        "title": "Search Persistent Queries",
         "icon": "$(search)"
+      },
+      {
+        "command": "vscode-deephaven.hideRunningQueries",
+        "title": "✓ Running"
+      },
+      {
+        "command": "vscode-deephaven.showRunningQueries",
+        "title": "Running"
+      },
+      {
+        "command": "vscode-deephaven.hideStoppedQueries",
+        "title": "✓ Stopped"
+      },
+      {
+        "command": "vscode-deephaven.showStoppedQueries",
+        "title": "Stopped"
+      },
+      {
+        "command": "vscode-deephaven.filterPersistentQueries",
+        "title": "Filter by Status..."
       },
       {
         "command": "vscode-deephaven.startServer",
@@ -788,6 +819,18 @@
         "label": "Deephaven VS Code MCP Server"
       }
     ],
+    "submenus": [
+      {
+        "id": "vscode-deephaven.persistentQueryFilterMenu",
+        "label": "Filter Persistent Queries",
+        "icon": "$(filter)"
+      },
+      {
+        "id": "vscode-deephaven.persistentQueryFilterMenuActive",
+        "label": "Filter Persistent Queries",
+        "icon": "$(filter-filled)"
+      }
+    ],
     "menus": {
       "commandPalette": [
         {
@@ -835,6 +878,10 @@
           "when": "false"
         },
         {
+          "command": "vscode-deephaven.createWorker",
+          "when": "false"
+        },
+        {
           "command": "vscode-deephaven.disconnectEditor",
           "when": "false"
         },
@@ -843,8 +890,12 @@
           "when": "false"
         },
         {
+          "command": "vscode-deephaven.disconnectFromWorker",
+          "when": "false"
+        },
+        {
           "command": "vscode-deephaven.generateDHEKeyPair",
-          "when:": "false"
+          "when": "false"
         },
         {
           "command": "vscode-deephaven.generateRequirementsTxt",
@@ -863,10 +914,6 @@
           "when": "false"
         },
         {
-          "command": "vscode-deephaven.refreshPanelsTree",
-          "when": "false"
-        },
-        {
           "command": "vscode-deephaven.refreshRemoteImportSourceTree",
           "when": "false"
         },
@@ -879,7 +926,27 @@
           "when": "false"
         },
         {
-          "command": "vscode-deephaven.searchPanels",
+          "command": "vscode-deephaven.searchPersistentQueries",
+          "when": "false"
+        },
+        {
+          "command": "vscode-deephaven.hideRunningQueries",
+          "when": "false"
+        },
+        {
+          "command": "vscode-deephaven.showRunningQueries",
+          "when": "false"
+        },
+        {
+          "command": "vscode-deephaven.hideStoppedQueries",
+          "when": "false"
+        },
+        {
+          "command": "vscode-deephaven.showStoppedQueries",
+          "when": "false"
+        },
+        {
+          "command": "vscode-deephaven.filterPersistentQueries",
           "when": "false"
         },
         {
@@ -964,38 +1031,100 @@
       "view/title": [
         {
           "command": "vscode-deephaven.refreshServerTree",
-          "group": "navigation",
+          "group": "navigation@99",
           "when": "view == vscode-deephaven.view.serverTree"
         },
         {
           "command": "vscode-deephaven.refreshServerConnectionTree",
-          "group": "navigation",
+          "group": "navigation@99",
           "when": "view == vscode-deephaven.view.serverConnectionTree"
         },
         {
           "command": "vscode-deephaven.refreshRemoteImportSourceTree",
-          "group": "navigation@1",
+          "group": "navigation@99",
           "when": "view == vscode-deephaven.view.remoteImportSourceTree"
         },
         {
-          "command": "vscode-deephaven.refreshPanelsTree",
-          "group": "navigation",
-          "when": "view == vscode-deephaven.view.serverConnectionPanelTree"
+          "submenu": "vscode-deephaven.persistentQueryFilterMenu",
+          "group": "navigation@1",
+          "when": "view == vscode-deephaven.view.persistentQueryTree && !vscode-deephaven.view.persistentQueryTree.isFiltered"
+        },
+        {
+          "submenu": "vscode-deephaven.persistentQueryFilterMenuActive",
+          "group": "navigation@1",
+          "when": "view == vscode-deephaven.view.persistentQueryTree && vscode-deephaven.view.persistentQueryTree.isFiltered"
+        },
+        {
+          "command": "vscode-deephaven.refreshPersistentQueryTree",
+          "group": "navigation@99",
+          "when": "view == vscode-deephaven.view.persistentQueryTree"
         },
         {
           "command": "vscode-deephaven.searchConnections",
-          "group": "navigation",
+          "group": "navigation@2",
           "when": "view == vscode-deephaven.view.serverConnectionTree"
         },
         {
-          "command": "vscode-deephaven.searchPanels",
-          "group": "navigation",
-          "when": "view == vscode-deephaven.view.serverConnectionPanelTree"
+          "command": "vscode-deephaven.searchPersistentQueries",
+          "group": "navigation@2",
+          "when": "view == vscode-deephaven.view.persistentQueryTree"
         },
         {
           "command": "vscode-deephaven.view.createQuery.close",
           "group": "navigation",
           "when": "view == vscode-deephaven.view.createQuery"
+        }
+      ],
+      "vscode-deephaven.persistentQueryFilterMenu": [
+        {
+          "command": "vscode-deephaven.hideRunningQueries",
+          "group": "1_sections@1",
+          "when": "vscode-deephaven.view.persistentQueryTree.runningChecked"
+        },
+        {
+          "command": "vscode-deephaven.showRunningQueries",
+          "group": "1_sections@1",
+          "when": "!vscode-deephaven.view.persistentQueryTree.runningChecked"
+        },
+        {
+          "command": "vscode-deephaven.hideStoppedQueries",
+          "group": "1_sections@2",
+          "when": "vscode-deephaven.view.persistentQueryTree.stoppedChecked"
+        },
+        {
+          "command": "vscode-deephaven.showStoppedQueries",
+          "group": "1_sections@2",
+          "when": "!vscode-deephaven.view.persistentQueryTree.stoppedChecked"
+        },
+        {
+          "command": "vscode-deephaven.filterPersistentQueries",
+          "group": "2_more@1"
+        }
+      ],
+      "vscode-deephaven.persistentQueryFilterMenuActive": [
+        {
+          "command": "vscode-deephaven.hideRunningQueries",
+          "group": "1_sections@1",
+          "when": "vscode-deephaven.view.persistentQueryTree.runningChecked"
+        },
+        {
+          "command": "vscode-deephaven.showRunningQueries",
+          "group": "1_sections@1",
+          "when": "!vscode-deephaven.view.persistentQueryTree.runningChecked"
+        },
+        {
+          "command": "vscode-deephaven.hideStoppedQueries",
+          "group": "1_sections@2",
+          "when": "vscode-deephaven.view.persistentQueryTree.stoppedChecked"
+        },
+        {
+          "command": "vscode-deephaven.showStoppedQueries",
+          "group": "1_sections@2",
+          "when": "!vscode-deephaven.view.persistentQueryTree.stoppedChecked"
+        },
+        {
+          "command": "vscode-deephaven.filterPersistentQueries",
+          "group": "2_more@1"
         }
       ],
       "view/item/context": [
@@ -1005,8 +1134,13 @@
         },
         {
           "command": "vscode-deephaven.createNewTextDoc",
-          "when": "view == vscode-deephaven.view.serverConnectionTree && viewItem == isConnectionConnected",
+          "when": "view == vscode-deephaven.view.serverConnectionTree && (viewItem == isConnectionConnected || viewItem == isConnectionConnectedRemovable)",
           "group": "inline@1"
+        },
+        {
+          "command": "vscode-deephaven.createWorker",
+          "when": "view == vscode-deephaven.view.serverConnectionTree && viewItem == isDHEServerConnectionParent",
+          "group": "inline"
         },
         {
           "command": "vscode-deephaven.disconnectEditor",
@@ -1015,7 +1149,12 @@
         },
         {
           "command": "vscode-deephaven.disconnectFromServer",
-          "when": "(view == vscode-deephaven.view.serverTree && (viewItem == isServerRunningConnected || viewItem == isDHEServerRunningConnected)) || (view == vscode-deephaven.view.serverConnectionTree && (viewItem == isConnectionConnected || viewItem == isConnectionConnecting))",
+          "when": "view == vscode-deephaven.view.serverTree && (viewItem == isServerRunningConnected || viewItem == isDHEServerRunningConnected)",
+          "group": "inline@2"
+        },
+        {
+          "command": "vscode-deephaven.disconnectFromWorker",
+          "when": "view == vscode-deephaven.view.serverConnectionTree && (viewItem == isConnectionConnectedRemovable || viewItem == isConnectionConnectingRemovable)",
           "group": "inline@2"
         },
         {
@@ -1024,7 +1163,7 @@
         },
         {
           "command": "vscode-deephaven.generateRequirementsTxt",
-          "when": "view == vscode-deephaven.view.serverConnectionTree && viewItem == isConnectionConnected"
+          "when": "view == vscode-deephaven.view.serverConnectionTree && (viewItem == isConnectionConnected || viewItem == isConnectionConnectedRemovable)"
         },
         {
           "command": "vscode-deephaven.openInBrowser",
@@ -1043,7 +1182,7 @@
         },
         {
           "command": "vscode-deephaven.deleteVariable",
-          "when": "view == vscode-deephaven.view.serverConnectionPanelTree && viewItem == canDeleteDeephavenVariable",
+          "when": "view == vscode-deephaven.view.serverConnectionTree && viewItem == canDeleteDeephavenVariable",
           "group": "inline@2"
         },
         {
@@ -1096,13 +1235,13 @@
         },
         {
           "id": "vscode-deephaven.view.serverConnectionTree",
-          "name": "Connections",
+          "name": "Interactive Consoles",
           "type": "tree",
           "icon": "images/dh-logo-28.svg"
         },
         {
-          "id": "vscode-deephaven.view.serverConnectionPanelTree",
-          "name": "Panels",
+          "id": "vscode-deephaven.view.persistentQueryTree",
+          "name": "Persistent Queries",
           "type": "tree",
           "icon": "images/dh-logo-28.svg"
         },
@@ -1125,9 +1264,12 @@
     }
   },
   "dependencies": {
-    "@deephaven-enterprise/auth-nodejs": "^1.20250219.134-beta",
-    "@deephaven-enterprise/query-utils": "^1.20250219.134-beta",
-    "@deephaven/jsapi-nodejs": "^1.15.0",
+    "@deephaven-enterprise/auth-nodejs": "^2026.1.48",
+    "@deephaven-enterprise/client-utils": "^2026.1.48",
+    "@deephaven-enterprise/jsapi-manager": "^2026.1.48",
+    "@deephaven-enterprise/jsapi-nodejs": "^2026.1.48",
+    "@deephaven-enterprise/query-utils": "^2026.1.48",
+    "@deephaven/jsapi-nodejs": "^1.28.0",
     "@deephaven/jsapi-utils": "^1.16.0",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "archiver": "^7.0.1",
@@ -1137,7 +1279,7 @@
   },
   "devDependencies": {
     "@cfworker/json-schema": "^4.1.1",
-    "@deephaven-enterprise/jsapi-types": "^1.20250219.134-beta",
+    "@deephaven-enterprise/jsapi-types": "^2026.1.48",
     "@deephaven/jsapi-types": "^41.2.0",
     "@react-types/shared": "^3.33.1",
     "@types/archiver": "^6.0.3",

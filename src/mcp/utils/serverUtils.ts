@@ -14,6 +14,7 @@ import { createConnectionNotFoundHint } from './runCodeUtils';
 export const connectionResultSchema = z.object({
   isConnected: z.boolean(),
   isRunningCode: z.boolean().optional(),
+  label: z.string(),
   serverUrl: z.string(),
   tagId: z.string().optional(),
 });
@@ -57,12 +58,14 @@ export type GetFirstConnectionOrCreateResult =
 export function connectionToResult({
   isConnected,
   isRunningCode,
+  label,
   serverUrl,
   tagId,
 }: ConnectionState): ConnectionResult {
   return {
     isConnected,
     isRunningCode,
+    label,
     serverUrl: serverUrl.toString(),
     tagId,
   };

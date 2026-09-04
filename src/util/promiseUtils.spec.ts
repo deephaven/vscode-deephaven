@@ -1,5 +1,14 @@
-import { beforeEach, describe, it, expect, vi, afterAll } from 'vitest';
 import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
+import {
+  createThrottledTrigger,
   rejectAfterTimeout,
   waitFor,
   waitForEvent,
@@ -119,5 +128,77 @@ describe('withResolvers', () => {
 
     await vi.advanceTimersToNextTimerAsync();
     expect(rejected).toHaveBeenCalledWith('Some Error');
+  });
+});
+
+describe('createThrottledTrigger', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('runs immediately on the leading edge', () => {
+    const callback = vi.fn();
+    const throttled = createThrottledTrigger(callback, 250);
+
+    throttled.trigger();
+
+    expect(callback).toHaveBeenCalledTimes(1);
+  });
+
+  it('coalesces a burst into one trailing run', () => {
+    const callback = vi.fn();
+    const throttled = createThrottledTrigger(callback, 250);
+
+    throttled.trigger();
+    throttled.trigger();
+    throttled.trigger();
+    throttled.trigger();
+    expect(callback).toHaveBeenCalledTimes(1);
+
+    vi.advanceTimersByTime(250);
+    expect(callback).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not run again when nothing arrived during the window', () => {
+    const callback = vi.fn();
+    const throttled = createThrottledTrigger(callback, 250);
+
+    throttled.trigger();
+    vi.advanceTimersByTime(1000);
+
+    expect(callback).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps running under a source that never goes quiet', () => {
+    // The reason this is a throttle and not a debounce: a debounce timer would
+    // be reset forever here and the callback would never run at all.
+    const callback = vi.fn();
+    const throttled = createThrottledTrigger(callback, 250);
+
+    for (let i = 0; i < 100; ++i) {
+      throttled.trigger();
+      vi.advanceTimersByTime(100);
+    }
+
+    // ~10,000ms of ticks every 100ms, rate limited to one run per 250ms.
+    expect(callback.mock.calls.length).toBeGreaterThan(30);
+    expect(callback.mock.calls.length).toBeLessThan(45);
+  });
+
+  it('drops a pending trailing run when disposed', () => {
+    const callback = vi.fn();
+    const throttled = createThrottledTrigger(callback, 250);
+
+    throttled.trigger();
+    throttled.trigger();
+    throttled.dispose();
+
+    vi.advanceTimersByTime(1000);
+
+    expect(callback).toHaveBeenCalledTimes(1);
   });
 });

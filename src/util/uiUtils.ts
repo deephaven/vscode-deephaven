@@ -7,11 +7,15 @@ import type {
   PasswordCredentials,
   Username,
 } from '@deephaven-enterprise/auth-nodejs';
+import { QueryStatus } from '@deephaven-enterprise/query-utils';
 import {
   SELECT_CONNECTION_COMMAND,
   STATUS_BAR_CONNECTING_TEXT,
   STATUS_BAR_DISCONNECTED_TEXT,
   ICON_ID,
+  LIVE_QUERY_STATUSES,
+  STOPPED_QUERY_STATUSES,
+  UNSET_QUERY_STATUS,
   type ViewID,
 } from '../common';
 import { assertDefined, type BaseThemeKey } from '../shared';
@@ -19,6 +23,7 @@ import type {
   ConnectionType,
   ConsoleType,
   ConnectionPickItem,
+  IServerManager,
   ServerState,
   SeparatorPickItem,
   ConnectionPickOption,
@@ -31,7 +36,12 @@ import type {
   LoginPromptCredentials,
   MultiAuthConfig,
 } from '../types';
-import { getFilePathDateToken, sortByStringProp } from './dataUtils';
+import {
+  formatCount,
+  getFilePathDateToken,
+  sortByStringProp,
+} from './dataUtils';
+import { getConsoleTypeIconId } from './treeViewUtils';
 import { Logger } from './Logger';
 
 const logger = new Logger('uiUtils');
@@ -54,9 +64,14 @@ export interface WorkspaceFolderConfig {
 
 /**
  * Create options for a connection quick pick.
+ *
+ * Connection items mirror the Interactive Consoles tree's worker node: a leading
+ * language icon plus the worker name, with the parent server in the description.
  * @param servers The available servers
  * @param connections The available connections
  * @param editorLanguageId The language id of the editor
+ * @param serverManager The server manager used to resolve each connection's
+ * parent server.
  * @param editorActiveConnectionUrl The active connection url of the editor
  * @returns
  */
@@ -66,33 +81,43 @@ export function createConnectionQuickPickOptions<
   servers: ServerState[],
   connections: TConnection[],
   editorLanguageId: string,
+  serverManager: IServerManager,
   editorActiveConnectionUrl?: URL | null
 ): ConnectionPickOption<TConnection>[] {
   const serverOptions: ConnectionPickItem<'server', ServerState>[] =
     servers.map(data => ({
       type: 'server',
-      label: data.url.toString(),
-      description: data.label ?? (data.isManaged ? 'pip' : undefined),
+      label: data.label ?? data.url.toString(),
+      description: data.isManaged ? 'pip' : undefined,
       iconPath: new vscode.ThemeIcon(ICON_ID.server),
       data,
     }));
 
-  const connectionOptions: ConnectionPickItem<'connection', TConnection>[] = [];
+  const connectionOptions: ConnectionPickItem<'connection', TConnection>[] =
+    connections.map(dhService => {
+      const isActiveConnection =
+        editorActiveConnectionUrl?.toString() ===
+        dhService.serverUrl.toString();
 
-  for (const dhService of connections) {
-    const isActiveConnection =
-      editorActiveConnectionUrl?.toString() === dhService.serverUrl.toString();
+      const parentServer = serverManager.getServerForConnection(dhService);
+      assertDefined(parentServer, 'parentServer');
 
-    connectionOptions.push({
-      type: 'connection',
-      label: dhService.serverUrl.toString(),
-      iconPath: new vscode.ThemeIcon(ICON_ID.connected),
-      description: isActiveConnection
-        ? `${editorLanguageId} (current)`
-        : editorLanguageId,
-      data: dhService,
+      const descriptionTokens = [parentServer.label ?? parentServer.url.host];
+
+      if (isActiveConnection) {
+        descriptionTokens.push('(current)');
+      }
+
+      return {
+        type: 'connection' as const,
+        label: dhService.label,
+        iconPath: new vscode.ThemeIcon(
+          getConsoleTypeIconId(editorLanguageId as ConsoleType)
+        ),
+        description: descriptionTokens.join(' '),
+        data: dhService,
+      };
     });
-  }
 
   if (serverOptions.length === 0 && connectionOptions.length === 0) {
     throw new Error('No available servers to connect to.');
@@ -626,6 +651,87 @@ export async function saveRequirementsTxt(
   vscode.window.showTextDocument(uri);
 }
 
+/** A row in the {@link promptForQueryStatusFilter} picker. */
+interface QueryStatusPickItem extends vscode.QuickPickItem {
+  readonly status: string;
+}
+
+/**
+ * Prompt for the persistent-query statuses to show, as a multi-select checkbox
+ * list with one row per status and its current count.
+ *
+ * The rows sit in two separator-headed sections:
+ * - **Running** — {@link LIVE_QUERY_STATUSES}, followed by any status observed
+ *   in the data that this extension doesn't recognize. An unknown status is not
+ *   known to have stopped, so it belongs with the live ones.
+ * - **Stopped** — {@link STOPPED_QUERY_STATUSES}, including the unset row, since
+ *   a query that reports no status has stopped without saying so.
+ *
+ * Returns the new set of statuses to HIDE — the form the filter is stored in —
+ * or `undefined` if the picker was dismissed. A dismissal must be treated as
+ * "no change" by the caller; an empty set means "hide nothing".
+ * @param statusCounts How many queries currently carry each status (unset
+ * bucketed under `''`).
+ * @param hiddenStatuses The statuses currently hidden, used to seed the
+ * checkboxes.
+ */
+export async function promptForQueryStatusFilter(
+  statusCounts: ReadonlyMap<string, number>,
+  hiddenStatuses: ReadonlySet<string>
+): Promise<Set<string> | undefined> {
+  const known = [...LIVE_QUERY_STATUSES, ...STOPPED_QUERY_STATUSES];
+  const knownSet = new Set(known);
+
+  // Any status the server reported that isn't in the known vocabulary still
+  // gets a row so it can be hidden / shown like the rest. It goes in the
+  // Running section: nothing says it has stopped.
+  const unrecognized = [...statusCounts.keys()]
+    .filter(status => !knownSet.has(status))
+    .sort((a, b) => a.localeCompare(b));
+
+  const statuses = [...known, ...unrecognized];
+
+  const toItem = (status: string): QueryStatusPickItem => ({
+    status,
+    // `getDisplayString` returns 'None' for the unset status, which reads like
+    // a status literally named "None" — spell it out instead.
+    label:
+      status === UNSET_QUERY_STATUS
+        ? '(no status)'
+        : QueryStatus.getDisplayString(status),
+    description: formatCount(statusCounts.get(status) ?? 0),
+    picked: !hiddenStatuses.has(status),
+  });
+
+  const items: (SeparatorPickItem | QueryStatusPickItem)[] = [
+    createSeparatorPickItem('Running'),
+    ...[...LIVE_QUERY_STATUSES, ...unrecognized].map(toItem),
+    createSeparatorPickItem('Stopped'),
+    ...STOPPED_QUERY_STATUSES.map(toItem),
+  ];
+
+  const picked = await vscode.window.showQuickPick(items, {
+    canPickMany: true,
+    ignoreFocusOut: true,
+    title: 'Filter Persistent Queries',
+    placeHolder: 'Select the query statuses to show',
+  });
+
+  if (picked == null) {
+    return undefined;
+  }
+
+  // Separators are never returned by the picker, but the item union includes
+  // them — narrow before reading `status`.
+  const visible = new Set(
+    picked
+      .filter((item): item is QueryStatusPickItem => 'status' in item)
+      .map(item => item.status)
+  );
+
+  return new Set(statuses.filter(status => !visible.has(status)));
+}
+
 /**
  * Set the `isVisible` state of a given view id. Uses extension context
  * `${viewId}.isVisible` to store the state. This can then be used in package.json
@@ -638,5 +744,42 @@ export function setViewIsVisible(viewId: ViewID, isVisible: boolean): void {
     'setContext',
     `${viewId}.isVisible`,
     isVisible
+  );
+}
+
+/**
+ * Set the checked state of a filter section for a given view id, as
+ * `${viewId}.${section}Checked`, so package.json `when` clauses can pick which
+ * of a checked / unchecked menu row pair to show. Extension menus cannot render
+ * a real checkbox, so the pair stands in for one.
+ * @param viewId The view the section belongs to.
+ * @param section The section name (used verbatim, lower-cased, in the key).
+ * @param isChecked Whether the section's row should render as checked.
+ */
+export function setViewSectionIsChecked(
+  viewId: ViewID,
+  section: string,
+  isChecked: boolean
+): void {
+  vscode.commands.executeCommand(
+    'setContext',
+    `${viewId}.${section.toLowerCase()}Checked`,
+    isChecked
+  );
+}
+
+/**
+ * Set the `isFiltered` state of a given view id. Uses extension context
+ * `${viewId}.isFiltered` to store the state. This lets package.json swap between
+ * two view-title submenus with the same rows but different icons (hollow funnel
+ * vs. filled funnel), since a submenu's icon is fixed by its declaration.
+ * @param viewId The view ID to set the filtered state for.
+ * @param isFiltered Whether a filter is currently hiding anything.
+ */
+export function setViewIsFiltered(viewId: ViewID, isFiltered: boolean): void {
+  vscode.commands.executeCommand(
+    'setContext',
+    `${viewId}.isFiltered`,
+    isFiltered
   );
 }

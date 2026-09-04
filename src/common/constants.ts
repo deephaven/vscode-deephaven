@@ -47,6 +47,14 @@ export const MCP_DOCS_SERVER_NAME = 'Deephaven Documentation' as const;
 export const MCP_DOCS_SERVER_URL =
   'https://deephaven-mcp-docs-prod.dhc-demo.deephaven.io/mcp' as const;
 
+/**
+ * Minimum milliseconds between `QueryInfo` table update notifications. The table
+ * ticks on every row add/remove and status transition, so on a server holding
+ * tens of thousands of queries an unthrottled tick would refresh the Persistent
+ * Queries tree continuously.
+ */
+export const QUERY_INFO_UPDATE_INTERVAL_MS = 250;
+
 export const PIP_SERVER_STATUS_CHECK_INTERVAL = 3000;
 export const PIP_SERVER_STATUS_CHECK_TIMEOUT = 30000;
 
@@ -88,6 +96,83 @@ export function isTerminalQueryStatus(
   );
 }
 
+/**
+ * The canonical hidden-set key for "no status". A PQ can report its status as
+ * `null`, `undefined`, or `''` (the JS API maps a null status to an empty
+ * string), so all three normalise to this single entry.
+ */
+export const UNSET_QUERY_STATUS = '' as const;
+
+/**
+ * The "Stopped" half of the Persistent Queries status filter, in the filter
+ * picker's row order: the terminal statuses plus the unset one, since a stopped
+ * PQ can report no status at all. `Stopping` groups here, but is still
+ * transitional for icon purposes (see {@link isSettledQueryStatus}).
+ */
+export const STOPPED_QUERY_STATUSES: readonly string[] = [
+  UNSET_QUERY_STATUS,
+  ...TERMINAL_QUERY_STATUSES,
+];
+
+/**
+ * The "Running" half of the Persistent Queries status filter, in the filter
+ * picker's row order — running, or on the way to it. Spelled out rather than
+ * derived from the enterprise `QueryStatus` class so row order stays stable as
+ * that vocabulary grows; anything new lands in the picker's "unrecognized" rows
+ * and is visible by default.
+ */
+export const LIVE_QUERY_STATUSES: readonly string[] = [
+  'Running',
+  'Uninitialized',
+  'Connecting',
+  'Authenticating',
+  'AcquiringWorker',
+  'FindingDispatcher',
+  'Initializing',
+  'Executing',
+];
+
+/** The two halves the Persistent Queries status filter can toggle at once. */
+export type QueryStatusSection = 'Running' | 'Stopped';
+
+/**
+ * The statuses making up a {@link QueryStatusSection}.
+ * @param section The section whose statuses to list.
+ */
+export function getQueryStatusSectionStatuses(
+  section: QueryStatusSection
+): readonly string[] {
+  return section === 'Running' ? LIVE_QUERY_STATUSES : STOPPED_QUERY_STATUSES;
+}
+
+/**
+ * The statuses that mean a query has finished moving — the terminal ones minus
+ * `Stopping`, which is still winding down. Every other status is either running
+ * or transitional.
+ */
+const SETTLED_QUERY_STATUSES: ReadonlySet<string> = new Set(
+  [...TERMINAL_QUERY_STATUSES].filter(status => status !== 'Stopping')
+);
+
+/**
+ * Whether a status means the query has finished moving. Narrower than
+ * {@link isTerminalQueryStatus} and {@link STOPPED_QUERY_STATUSES}, which both
+ * count `Stopping`. Drives the node icon, so a transitional status keeps its
+ * spinner.
+ * @param status The status to check.
+ */
+export function isSettledQueryStatus(
+  status: string | null | undefined
+): boolean {
+  return SETTLED_QUERY_STATUSES.has(status ?? UNSET_QUERY_STATUS);
+}
+
+/**
+ * Statuses hidden by the Persistent Queries status filter on first run, so the
+ * view opens showing every query that is running or still in motion.
+ */
+export const DEFAULT_HIDDEN_QUERY_STATUSES = STOPPED_QUERY_STATUSES;
+
 export const PIP_SERVER_SUPPORTED_PLATFORMS = new Set<NodeJS.Platform>([
   'darwin',
   'linux',
@@ -113,7 +198,7 @@ export const VIEW_ID = {
   remoteImportSourceTree: `${VIEW_ID_PREFIX}remoteImportSourceTree`,
   serverTree: `${VIEW_ID_PREFIX}serverTree`,
   serverConnectionTree: `${VIEW_ID_PREFIX}serverConnectionTree`,
-  serverConnectionPanelTree: `${VIEW_ID_PREFIX}serverConnectionPanelTree`,
+  persistentQueryTree: `${VIEW_ID_PREFIX}persistentQueryTree`,
   variablePanel: `${VIEW_ID_PREFIX}variablePanel`,
 } as const;
 
@@ -124,6 +209,8 @@ export const ICON_ID = {
   connected: 'vm-connect',
   connecting: 'sync~spin',
   disconnected: 'plug',
+  /** Trailing node standing in for the queries a filter is hiding. */
+  hidden: 'ellipsis',
   groovy: 'coffee',
   python: 'dh-python',
   runAll: 'run-all',
@@ -138,7 +225,39 @@ export const ICON_ID = {
   varElement: 'preview',
   varPandas: 'dh-pandas',
   varTable: 'dh-table',
+  /**
+   * Fallback icon for a worker node (connection / persistent query) whose script
+   * language isn't known. Not `connected` (`vm-connect`) — that is the parent
+   * server node's icon, and a worker should never look like its server.
+   */
+  worker: 'remote',
 } as const;
+
+/**
+ * Variable types that can open as a Deephaven panel. Anything not listed is
+ * hidden from panel lists rather than opening a panel that never renders.
+ *
+ * An allow-list is necessary because a worker's exported objects also include
+ * non-panel things — DHE service objects (`AclService` and friends), dashboards,
+ * legacy widget types — and nothing on the object says so. The web UI decides by
+ * looking the type up in its widget-plugin registry, which is assembled at
+ * runtime and not inspectable from the extension host.
+ *
+ * Entries mirror the types the bundled web plugins claim: Grid, Chart, Pandas,
+ * plus the `deephaven.ui.Element` and `deephaven.plot.express.DeephavenFigure`
+ * plugin widgets. The tradeoff is that a server-side JS plugin defining its own
+ * widget type stays hidden until its type is added here.
+ */
+export const OPENABLE_PANEL_VARIABLE_TYPES: ReadonlySet<string> = new Set([
+  'deephaven.plot.express.DeephavenFigure',
+  'deephaven.ui.Element',
+  'Figure',
+  'HierarchicalTable',
+  'pandas.DataFrame',
+  'PartitionedTable',
+  'Table',
+  'TreeTable',
+]);
 
 /* eslint-disable @typescript-eslint/naming-convention */
 export const VARIABLE_UNICODE_ICONS = {
@@ -157,9 +276,21 @@ export const VARIABLE_UNICODE_ICONS = {
 /* eslint-enable @typescript-eslint/naming-convention */
 
 export const CONNECTION_TREE_ITEM_CONTEXT = {
-  isConnectionConnected: 'isConnectionConnected',
-  isConnectionConnecting: 'isConnectionConnecting',
+  isConnectionConnected: (isOwned: boolean) =>
+    `isConnectionConnected${isOwned ? 'Removable' : ''}`,
+  isConnectionConnecting: (isOwned: boolean) =>
+    `isConnectionConnecting${isOwned ? 'Removable' : ''}`,
+  isDHEServerConnectionParent: 'isDHEServerConnectionParent',
   isUri: 'isUri',
+} as const;
+
+export const PERSISTENT_QUERY_TREE_ITEM_CONTEXT = {
+  /** A DHE server grouping its persistent queries. */
+  isPersistentQueryServer: 'isPersistentQueryServer',
+  /** A (non-InteractiveConsole) persistent query node. */
+  isPersistentQuery: 'isPersistentQuery',
+  /** The trailing "N hidden" node under a filtered server. */
+  isPersistentQueryHidden: 'isPersistentQueryHidden',
 } as const;
 
 export const PIP_SERVER_STATUS_DIRECTORY = 'pip-server-status';
@@ -171,6 +302,7 @@ export const SERVER_TREE_ITEM_CONTEXT = {
   isManagedServerConnected: 'isManagedServerConnected',
   isManagedServerConnecting: 'isManagedServerConnecting',
   isManagedServerDisconnected: 'isManagedServerDisconnected',
+  isServerConnecting: 'isServerConnecting',
   isServerRunningConnected: 'isServerRunningConnected',
   isServerRunningDisconnected: 'isServerRunningDisconnected',
   isServerStopped: 'isServerStopped',
@@ -210,6 +342,14 @@ export const AUTH_CONFIG_SAML_LOGIN_URL =
   'authentication.client.samlauth.login.url' as const;
 
 export const CREATE_QUERY_SETTINGS_STORAGE_KEY = 'createQuerySettings' as const;
+
+/**
+ * `globalState` key for the Persistent Queries status filter (the set of
+ * statuses to hide). Global rather than workspace scoped so the filter follows
+ * the user across workspaces, matching `CREATE_QUERY_SETTINGS_STORAGE_KEY`.
+ */
+export const PERSISTENT_QUERY_HIDDEN_STATUSES_STORAGE_KEY =
+  'persistentQueryHiddenStatuses' as const;
 
 export const DH_SAML_AUTH_PROVIDER_TYPE = 'dhsaml' as const;
 export const DH_SAML_SERVER_URL_SCOPE_KEY = 'deephaven.samlServerUrl' as const;

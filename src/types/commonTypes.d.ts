@@ -1,14 +1,16 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type {
-  AuthenticatedClient as DheAuthenticatedClientBase,
   Base64KeyPair,
   KeyPairCredentials,
   OperateAsUsername,
   PasswordCredentials,
-  UnauthenticatedClient as DheUnauthenticatedClientBase,
   Username,
 } from '@deephaven-enterprise/auth-nodejs';
+import type {
+  AuthenticatedEnterpriseClient as DheAuthenticatedClientBase,
+  UnauthenticatedEnterpriseClient as DheUnauthenticatedClientBase,
+} from '@deephaven-enterprise/client-utils';
 import type { Brand, QuerySerial, SerializableRefreshToken } from '../shared';
 
 export type ExtensionVersion = Brand<'ExtensionVersion', string>;
@@ -168,8 +170,26 @@ export interface WorkerConfig {
 }
 
 export interface ConnectionState {
+  /**
+   * True when this entry has NO console session behind it — it exists only so
+   * the DH embed panel can authenticate against a persistent query's worker
+   * (`getConnection` / `getWorkerInfo` / `getWorkerCredentials`, all keyed by
+   * worker URL). Registered by `ServerManager.registerSessionlessConnection`
+   * when a PQ node is expanded.
+   *
+   * Because there is no session, no code can run against it, it never counts
+   * toward `connectionCount`, and `getConnections` excludes it so it cannot
+   * appear in the Interactive Consoles tree or the connection picker.
+   *
+   * Absent (not `false`) on real worker connections — read it as `!== true`.
+   * Mutually exclusive with attachable workers, but only because
+   * `isAttachableWorker` and `getPersistentQueryInfos` partition every DHE worker
+   * by `queryInfo.type`; nothing here enforces it.
+   */
+  readonly isSessionless?: boolean;
   readonly isConnected: boolean;
   readonly isRunningCode?: boolean;
+  readonly label: string;
   readonly serverUrl: URL;
   readonly tagId?: UniqueID;
 }
@@ -185,6 +205,8 @@ export interface WorkerInfo {
   grpcUrl: GrpcURL;
   ideUrl: IdeURL;
   jsapiUrl: JsapiURL;
+  /** Persistent query name (`queryInfo.name`), as shown in the Query Monitor. */
+  name: string;
   processInfoId: string | null;
   serial: QuerySerial;
   workerName: string | null;

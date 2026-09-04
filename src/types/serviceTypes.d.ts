@@ -1,5 +1,8 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
+import type { QueryStatusSection } from '../common';
+import type { QueryInfo } from '@deephaven-enterprise/jsapi-types';
+import type { CorePlusManager } from '@deephaven-enterprise/client-utils';
 import type {
   ConsoleType,
   CoreConnectionConfig,
@@ -22,10 +25,7 @@ import type {
   DheServerFeatures,
   DheUnauthenticatedClientWrapper,
 } from '../types/commonTypes';
-import type {
-  UnauthenticatedClient as DheUnauthenticatedClient,
-  Username,
-} from '@deephaven-enterprise/auth-nodejs';
+import type { Username } from '@deephaven-enterprise/auth-nodejs';
 import type { QuerySerial } from '../shared';
 
 export interface IAsyncCacheService<TKey, TValue> extends IDisposable {
@@ -57,6 +57,7 @@ export interface IConfigService {
 export interface IDhcService extends IDisposable, ConnectionState {
   readonly isInitialized: boolean;
   readonly isConnected: boolean;
+  readonly isOwned: boolean;
   isRunningCode: boolean;
 
   readonly onDidDisconnect: vscode.Event<URL>;
@@ -80,7 +81,8 @@ export interface IDhcService extends IDisposable, ConnectionState {
 }
 
 export interface IDheService extends ConnectionState, IDisposable {
-  readonly onDidWorkerTerminate: vscode.Event<WorkerURL>;
+  readonly onWorkerAttachable: vscode.Event<QueryInfo>;
+  readonly onWorkerRemoved: vscode.Event<QuerySerial>;
 
   getClient(
     initializeIfNull: false
@@ -89,9 +91,14 @@ export interface IDheService extends ConnectionState, IDisposable {
     initializeIfNull: true,
     operateAsAnotherUser: boolean
   ): Promise<DheAuthenticatedClientWrapper | null>;
+  getCorePlusManager(): Promise<CorePlusManager | null>;
   getQuerySerialFromTag(tagId: UniqueID): Promise<QuerySerial | null>;
   getServerFeatures(): DheServerFeatures | undefined;
   getWorkerInfo: (workerUrl: WorkerURL) => WorkerInfo | undefined;
+  registerWorkerInfo: (queryInfo: QueryInfo) => WorkerInfo;
+  listAttachableWorkers: (
+    exclude: Iterable<QuerySerial>
+  ) => Promise<QueryInfo[]>;
   createWorker: (
     tagId: UniqueID,
     consoleType?: ConsoleType
@@ -112,7 +119,7 @@ export type ICoreClientFactory = (
  */
 export type IDhcServiceFactory = IFactory<
   IDhcService,
-  [serverUrl: URL, tagId?: UniqueID]
+  [label: string, serverUrl: URL, isOwned: boolean, tagId?: UniqueID]
 >;
 export type IDheClientFactory = (
   serverUrl: URL
@@ -145,6 +152,48 @@ export interface IPanelService extends IDisposable {
 }
 
 /**
+ * Source of the persistent queries visible on a DHE server, shared by every view
+ * that lists PQs. `onDidUpdate` fires whenever the underlying (ticking)
+ * `QueryInfo` table changes.
+ */
+export interface IPersistentQueryService extends IDisposable {
+  readonly onDidUpdate: vscode.Event<void>;
+
+  /**
+   * The PQs on a server, in unspecified order — sort after narrowing, since a
+   * server can hold tens of thousands.
+   */
+  getPersistentQueryInfos: (serverUrl: URL) => Promise<QueryInfo[]>;
+}
+
+/**
+ * The Persistent Queries view's status filter. Stores the set of statuses to
+ * HIDE rather than the set to show, so a status this extension has never heard
+ * of (a new one from a future DHE release) stays visible until the user hides
+ * it. `onDidUpdate` fires whenever the set changes.
+ */
+export interface IPersistentQueryStatusFilterService extends IDisposable {
+  readonly onDidUpdate: vscode.Event<void>;
+  /** Whether a query with this status should be listed. */
+  isVisible: (status: string | null | undefined) => boolean;
+  /** The statuses currently hidden (normalised; unset is ''). */
+  getHiddenStatuses: () => ReadonlySet<string>;
+  /** Replace the hidden set, persist it, and fire `onDidUpdate`. */
+  setHiddenStatuses: (hidden: Iterable<string>) => Promise<void>;
+  /**
+   * Whether *every* status in the section is currently listed. The section's
+   * menu row is checked only then; a partly hidden section reads as unchecked,
+   * so clicking it fills the section in.
+   */
+  isSectionFullyVisible: (section: QueryStatusSection) => boolean;
+  /** Show or hide every status in the section at once. */
+  setSectionVisible: (
+    section: QueryStatusSection,
+    isVisible: boolean
+  ) => Promise<void>;
+}
+
+/**
  * Secret service interface.
  */
 export interface ISecretService {
@@ -173,8 +222,12 @@ export interface IServerManager extends IDisposable {
 
   connectToServer: (
     serverUrl: URL,
-    workerConsoleType?: ConsoleType,
-    operateAsAnotherUser?: boolean
+    workerConsoleType: ConsoleType | undefined,
+    flags?: { createWorker?: boolean; operateAsAnotherUser?: boolean }
+  ) => Promise<ConnectionState | null>;
+  createWorker: (
+    dheServerUrl: URL,
+    workerConsoleType?: ConsoleType
   ) => Promise<ConnectionState | null>;
   disconnectEditor: (uri: vscode.Uri) => void;
   disconnectFromDHEServer: (dheServerUrl: URL) => Promise<void>;
@@ -183,15 +236,36 @@ export interface IServerManager extends IDisposable {
 
   hasConnectionUris: (connection: ConnectionState) => boolean;
 
+  /** Whether a client connection to the given server is currently being established. */
+  isServerConnecting: (serverUrl: URL) => boolean;
+
   getConnection: (serverUrl: URL) => ConnectionState | undefined;
   getConnections: (serverOrWorkerUrl?: URL) => ConnectionState[];
   getConnectionUris: (connection: ConnectionState) => vscode.Uri[];
+  /**
+   * Get the parent server for a connection. Resolves the DHE server for a DHE
+   * worker, or the DHC server for a plain DHC connection. Returns `undefined`
+   * only when no matching server is registered.
+   */
+  getServerForConnection: (
+    connection: ConnectionState
+  ) => ServerState | undefined;
   getDheServiceForWorker: (maybeWorkerUrl: URL) => Promise<IDheService | null>;
   getEditorConnection: (uri: vscode.Uri) => Promise<ConnectionState | null>;
   getWorkerCredentials: (
     serverOrWorkerUrl: URL | WorkerURL
   ) => Promise<DhcType.LoginCredentials | null>;
   getWorkerInfo: (maybeWorkerUrl: URL) => Promise<WorkerInfo | undefined>;
+  /**
+   * Register a sessionless connection for a persistent query's worker so the DH
+   * embed panel can open its objects — see
+   * {@link ConnectionState.isSessionless}. Never creates a console session,
+   * never increments `connectionCount`, and never deletes the server-side PQ.
+   */
+  registerSessionlessConnection: (
+    dheServerUrl: URL,
+    queryInfo: QueryInfo
+  ) => Promise<WorkerInfo | null>;
   setEditorConnection: (
     uri: vscode.Uri,
     languageId: string,
