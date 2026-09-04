@@ -52,12 +52,47 @@ export class PersistentQueryService
   private readonly _onDidUpdate = new vscode.EventEmitter<void>();
   readonly onDidUpdate = this._onDidUpdate.event;
 
-  /** One `QueryConfigTableService` per DHE server URL. */
   private readonly _tableServiceMap = new URLMap<QueryConfigTableService>();
-  /** The ticking `QueryInfo` table subscription per DHE server URL. */
   private readonly _subscriptionMap = new URLMap<
     Promise<QueryInfoTableSubscription>
   >();
+
+  /**
+   * Create the ticking `QueryInfo` table subscription for a DHE server, reusing
+   * the server's `QueryConfigTableService` if one already exists.
+   * @param serverUrl The DHE server URL.
+   */
+  private _createSubscription = async (
+    serverUrl: URL
+  ): Promise<QueryInfoTableSubscription> => {
+    const dheService = await this._dheServiceCache.get(serverUrl);
+
+    let tableService = this._tableServiceMap.get(serverUrl);
+    if (tableService == null) {
+      tableService = new QueryConfigTableService(
+        serverUrl,
+        dheService,
+        this._dheJsApiCache
+      );
+      this._tableServiceMap.set(serverUrl, tableService);
+      this.disposables.add(tableService);
+    }
+
+    // Server-side filter: exclude InteractiveConsole + other helper/system
+    // query types. Status filtering is done client-side so the user can choose
+    // to show/hide any status they want.
+    const subscription = await tableService.getQueryInfoTable({
+      excludeHelperTypes: true,
+    });
+
+    this.disposables.add(
+      subscription.onDidUpdate(() => {
+        this._onDidUpdate.fire();
+      })
+    );
+
+    return subscription;
+  };
 
   /**
    * Get (creating if needed) the ticking `QueryInfo` table subscription for a
@@ -67,41 +102,11 @@ export class PersistentQueryService
   private _getSubscription = (
     serverUrl: URL
   ): Promise<QueryInfoTableSubscription> => {
-    let subscriptionPromise = this._subscriptionMap.get(serverUrl);
-    if (subscriptionPromise != null) {
-      return subscriptionPromise;
+    if (this._subscriptionMap.has(serverUrl)) {
+      return this._subscriptionMap.getOrThrow(serverUrl)!;
     }
 
-    subscriptionPromise = (async (): Promise<QueryInfoTableSubscription> => {
-      const dheService = await this._dheServiceCache.get(serverUrl);
-
-      let tableService = this._tableServiceMap.get(serverUrl);
-      if (tableService == null) {
-        tableService = new QueryConfigTableService(
-          serverUrl,
-          dheService,
-          this._dheJsApiCache
-        );
-        this._tableServiceMap.set(serverUrl, tableService);
-        this.disposables.add(tableService);
-      }
-
-      // Server-side filter: exclude InteractiveConsole + other helper/system
-      // query types. Deliberately unfiltered by status so stopped / failed PQs
-      // still list (their state is rendered on the node).
-      const subscription = await tableService.getQueryInfoTable({
-        excludeHelperTypes: true,
-      });
-
-      this.disposables.add(
-        subscription.onDidUpdate(() => {
-          this._onDidUpdate.fire();
-        })
-      );
-
-      return subscription;
-    })();
-
+    const subscriptionPromise = this._createSubscription(serverUrl);
     this._subscriptionMap.set(serverUrl, subscriptionPromise);
 
     // If the table fails to load (e.g. WebClientData unavailable), drop the
@@ -173,10 +178,7 @@ export class PersistentQueryService
 
     const queries = knownConfigs.filter(
       queryInfo =>
-        queryInfo.serial != null &&
-        serials.has(String(queryInfo.serial)) &&
-        // Defense in depth: never list InteractiveConsole workers here (they
-        // live in the Interactive Consoles tree).
+        serials.has(queryInfo.serial) &&
         queryInfo.type !== INTERACTIVE_CONSOLE_QUERY_TYPE
     );
 

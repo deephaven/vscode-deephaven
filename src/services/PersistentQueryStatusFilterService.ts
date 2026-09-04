@@ -34,7 +34,11 @@ export class PersistentQueryStatusFilterService
   }
 
   private readonly _context: vscode.ExtensionContext;
-  private _hiddenStatuses: Set<string>;
+  /**
+   * Never reassigned — `getHiddenStatuses` hands out this very set, so callers
+   * holding it must keep seeing updates. `setHiddenStatuses` mutates in place.
+   */
+  private readonly _hiddenStatuses: Set<string>;
 
   private readonly _onDidUpdate = new vscode.EventEmitter<void>();
   readonly onDidUpdate = this._onDidUpdate.event;
@@ -82,15 +86,18 @@ export class PersistentQueryStatusFilterService
     await this.setHiddenStatuses(hidden);
   };
 
-  /** The statuses currently hidden (normalised; unset is `''`). */
+  /**
+   * The statuses currently hidden (normalised; unset is `''`). This is a live
+   * view of the service's own set, not a copy — it tracks later changes.
+   */
   getHiddenStatuses = (): ReadonlySet<string> => {
     return this._hiddenStatuses;
   };
 
   /**
-   * Replace the hidden set and persist it. `onDidUpdate` only fires when the
-   * set actually changed, so a picker dismissed on the same selection doesn't
-   * churn the tree.
+   * Replace the hidden statuses and persist them. `onDidUpdate` only fires when
+   * the set actually changed, so a picker dismissed on the same selection
+   * doesn't churn the tree.
    * @param hidden The statuses to hide.
    */
   setHiddenStatuses = async (hidden: Iterable<string>): Promise<void> => {
@@ -103,7 +110,13 @@ export class PersistentQueryStatusFilterService
       return;
     }
 
-    this._hiddenStatuses = next;
+    // Mutated in place rather than replaced — see `_hiddenStatuses`. `next` is
+    // already a copy, so this is safe even when a caller passes the set
+    // returned by `getHiddenStatuses`.
+    this._hiddenStatuses.clear();
+    for (const status of next) {
+      this._hiddenStatuses.add(status);
+    }
 
     await this._context.globalState.update(
       PERSISTENT_QUERY_HIDDEN_STATUSES_STORAGE_KEY,
@@ -131,9 +144,9 @@ function normalizeQueryStatus(status: string | null | undefined): string {
 /**
  * Read the persisted hidden set, falling back to the default only when nothing
  * has ever been stored. An empty stored array means the user deliberately unhid
- * everything, so it must be distinguished from "never set" (`undefined`). A
- * value that isn't an array of strings is discarded in favour of the default
- * rather than throwing on startup.
+ * everything, so it must be distinguished from "never set". A value that isn't
+ * an array of strings is discarded in favour of the default rather than
+ * throwing on startup.
  * @param context Extension context holding the `globalState`.
  */
 function readHiddenStatuses(context: vscode.ExtensionContext): string[] {
@@ -141,7 +154,10 @@ function readHiddenStatuses(context: vscode.ExtensionContext): string[] {
     PERSISTENT_QUERY_HIDDEN_STATUSES_STORAGE_KEY
   );
 
-  if (stored === undefined) {
+  // `Memento.get` is documented to return `undefined` when unset, but it is
+  // typed `unknown` here — `== null` also covers a `null` slipping through
+  // (which is "no value" too, not a malformed one worth logging).
+  if (stored == null) {
     return [...DEFAULT_HIDDEN_QUERY_STATUSES];
   }
 
