@@ -164,6 +164,13 @@ export interface IPersistentQueryService extends IDisposable {
    * server can hold tens of thousands.
    */
   getPersistentQueryInfos: (serverUrl: URL) => Promise<QueryInfo[]>;
+
+  /**
+   * Whether a DHE server exposes the APIs this service needs to list its
+   * queries. A server that answers `false` cannot back the Persistent Queries
+   * view at all, and is omitted from it rather than shown empty or erroring.
+   */
+  isSupported: (serverUrl: URL) => Promise<boolean>;
 }
 
 /**

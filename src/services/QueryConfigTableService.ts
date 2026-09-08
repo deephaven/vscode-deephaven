@@ -9,6 +9,7 @@ import {
   WEB_CLIENT_DATA_CORE_QUERY,
 } from '@deephaven-enterprise/query-utils';
 import { QUERY_INFO_UPDATE_INTERVAL_MS } from '../common';
+import { subscribeToColumns } from '../dh/dhc';
 import type { IDheService, IDisposable } from '../types';
 import { createThrottledTrigger, Logger } from '../util';
 import { DisposableBase } from './DisposableBase';
@@ -61,13 +62,29 @@ export interface QueryTableFilters {
 }
 
 /**
- * Build the server-side `FilterCondition[]` for the `QueryInfo` table from the
- * given filters. Pure — no I/O or subscription side effects, so it can be unit
- * tested against a mocked table.
+ * Build the server-side filter restricting the table to parent queries.
+ * @param table The `QueryInfo` table to build the column filter from.
+ * @returns A `FilterCondition` matching parent queries only.
+ */
+export function getExcludeReplicasFilter(
+  table: DhcType.Table
+): DhcType.FilterCondition {
+  return table.findColumn(QueryColumns.PARENT_ID.name).filter().isNull();
+}
+
+/**
+ * Build the complete set of server-side `FilterCondition`s for the `QueryInfo`
+ * table: the always-on parent-query restriction, followed by whichever of
+ * `filters` were provided. The single source of what this extension filters
+ * server-side — pass the result straight to `table.applyFilter`.
+ *
+ * Pure — no I/O or subscription side effects, so it can be unit tested against
+ * a mocked table.
  * @param dh The core DH API that created `table`, providing `FilterValue`.
  * Must be the table's own API (see {@link CoreApi}).
  * @param table The `QueryInfo` table to build columns/filters from.
- * @param filters The filters to apply.
+ * @param filters The caller's filters. All fields are optional; only provided
+ * fields add a condition.
  * @returns An array of `FilterCondition` to pass to `table.applyFilter`.
  */
 export function getQueryTableFilters(
@@ -75,7 +92,11 @@ export function getQueryTableFilters(
   table: DhcType.Table,
   filters: QueryTableFilters
 ): DhcType.FilterCondition[] {
-  const conditions: DhcType.FilterCondition[] = [];
+  // Not caller-controlled: no view lists replicas, so this applies whatever
+  // else was asked for.
+  const conditions: DhcType.FilterCondition[] = [
+    getExcludeReplicasFilter(table),
+  ];
 
   const isIn = (
     columnName: string,
@@ -126,10 +147,10 @@ export interface QueryInfoTableSubscription extends IDisposable {
   /** Fires on every tick of the filtered row set. */
   readonly onDidUpdate: vscode.Event<void>;
   /**
-   * Serials of the current filtered rows, excluding child-replica rows (rows
-   * with `Parent` set). Reflects the most recent tick — empty until the first
-   * one arrives, so consumers must refresh on {@link onDidUpdate} rather than
-   * treating an empty set as "no queries".
+   * Serials of the current filtered rows. Child-replica rows are excluded by
+   * the server-side filter, so each entry is a query. Reflects the most recent
+   * tick — empty until the first one arrives, so consumers must refresh on
+   * {@link onDidUpdate} rather than treating an empty set as "no queries".
    */
   getQuerySerials: () => ReadonlySet<string>;
 }
@@ -212,13 +233,11 @@ export class QueryConfigTableService extends DisposableBase {
   ): Promise<QueryInfoTableSubscription> => {
     const { table, coreApi } = await this._fetchQueryInfoTable();
 
-    const conditions = getQueryTableFilters(coreApi, table, filters);
-    table.applyFilter(conditions);
+    table.applyFilter(getQueryTableFilters(coreApi, table, filters));
 
     const onDidUpdateEmitter = new vscode.EventEmitter<void>();
 
     const serialColumn = table.findColumn(QueryColumns.SERIAL.name);
-    const parentColumn = table.findColumn(QueryColumns.PARENT_ID.name);
     const statusColumn = table.findColumn(QueryColumns.STATUS.name);
 
     let querySerials: ReadonlySet<string> = new Set();
@@ -231,10 +250,10 @@ export class QueryConfigTableService extends DisposableBase {
     // row add/remove and status transitions but not on churn like heap usage.
     // `Status` is included even though its value is unused here: a PQ going
     // Running -> Stopped must re-render, and the resolved `QueryInfo` carries
-    // the new status.
-    const tableSubscription = table.subscribe([
+    // the new status. `Parent` is absent because replicas are filtered out
+    // server-side, so their churn cannot tick this subscription at all.
+    const tableSubscription = subscribeToColumns(table, [
       serialColumn,
-      parentColumn,
       statusColumn,
     ]);
 
@@ -247,16 +266,9 @@ export class QueryConfigTableService extends DisposableBase {
       tableSubscription.addEventListener<DhcType.SubscriptionTableData>(
         coreApi.Table.EVENT_UPDATED,
         ({ detail }) => {
-          const serials = new Set<string>();
-
-          for (const row of detail.rows) {
-            // Skip child-replica rows; the parent row represents the query.
-            const parent = row.get(parentColumn);
-            if (parent != null && String(parent).length > 0) {
-              continue;
-            }
-            serials.add(String(row.get(serialColumn)));
-          }
+          const serials = new Set(
+            detail.rows.map(row => String(row.get(serialColumn)))
+          );
 
           // Updated on every tick so `getQuerySerials` is never stale; only
           // the notification is rate limited.

@@ -5,6 +5,7 @@ import type {
   IServerManager,
   PersistentQueryNode,
   PersistentQueryTreeNode,
+  ServerState,
 } from '../types';
 import { UNSET_QUERY_STATUS } from '../common';
 import { ServerTreeProviderBase } from './ServerTreeProviderBase';
@@ -32,6 +33,11 @@ import {
  * Which queries are listed is governed by the shared status filter
  * (`IPersistentQueryStatusFilterService`). A server whose filter hides anything
  * gets a trailing "More (N)" node, so a filter is never a silent omission.
+ *
+ * Servers whose API set cannot back this view are omitted entirely — see
+ * `IPersistentQueryService.isSupported`. Unlike the status filter, this
+ * omission is silent: the view cannot work against those servers at all, so
+ * there is nothing to unhide.
  *
  * Tree shape — each node is one member of `PersistentQueryTreeNode`:
  *
@@ -99,9 +105,7 @@ export class PersistentQueryTreeProvider extends ServerTreeProviderBase<Persiste
    * it would bring back.
    */
   getStatusCounts = async (): Promise<Map<string, number>> => {
-    const servers = this.serverManager
-      .getServers({ type: 'DHE' })
-      .filter(server => server.isConnected);
+    const servers = await this._getSupportedServers();
 
     const counts = new Map<string, number>();
 
@@ -119,17 +123,35 @@ export class PersistentQueryTreeProvider extends ServerTreeProviderBase<Persiste
     return counts;
   };
 
+  /**
+   * The connected DHE servers this view can actually list queries for, in
+   * arbitrary order. Unsupported servers are dropped here, so no other part of
+   * the view has to account for them.
+   */
+  private _getSupportedServers = async (): Promise<ServerState[]> => {
+    const connectedServers = this.serverManager
+      .getServers({ type: 'DHE' })
+      .filter(server => server.isConnected);
+
+    // Resolved in parallel: each is a cache hit on an already-connected
+    // server's DHE service, so this costs nothing per server.
+    const isSupported = await Promise.all(
+      connectedServers.map(server =>
+        this._persistentQueryService.isSupported(server.url)
+      )
+    );
+
+    return connectedServers.filter((_server, i) => isSupported[i]);
+  };
+
   getChildren = async (
     elementOrRoot?: PersistentQueryTreeNode
   ): Promise<PersistentQueryTreeNode[]> => {
-    // Root: one node per connected DHE server.
+    // Root: one node per connected DHE server the view supports.
     if (elementOrRoot == null) {
-      return this.serverManager
-        .getServers({ type: 'DHE' })
-        .filter(server => server.isConnected)
-        .sort((a, b) =>
-          getConnectionServerLabel(a).localeCompare(getConnectionServerLabel(b))
-        );
+      return (await this._getSupportedServers()).sort((a, b) =>
+        getConnectionServerLabel(a).localeCompare(getConnectionServerLabel(b))
+      );
     }
 
     // The hidden-count node is a leaf.

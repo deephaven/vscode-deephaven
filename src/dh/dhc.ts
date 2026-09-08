@@ -211,3 +211,29 @@ export async function loginClient(
   await client.login(credentials);
   return client as unknown as CoreAuthenticatedClient;
 }
+
+/**
+ * Subscribe to `columns` across all rows, preferring `createSubscription` and
+ * falling back to the deprecated `subscribe` when the server predates it.
+ *
+ * The Core API backing this table is loaded from the DHE server's WebClientData
+ * worker (see {@link CoreApi}), so its version is whatever that server ships —
+ * not the `@deephaven/jsapi-types` this extension compiles against, which
+ * declares `createSubscription` unconditionally. `createSubscription` replaced
+ * `subscribe` in Core v0.40.0; until a minimum Core+ version is declared,
+ * workers older than that still have to work, so the method is probed rather
+ * than assumed.
+ * @param table The table to subscribe to.
+ * @param columns The columns to include in each tick.
+ * @returns The new subscription, which the caller must `close()`.
+ */
+export function subscribeToColumns(
+  table: DhType.Table,
+  columns: DhType.Column[]
+): DhType.TableSubscription {
+  if (typeof table.createSubscription === 'function') {
+    return table.createSubscription({ columns });
+  }
+
+  return table.subscribe(columns);
+}

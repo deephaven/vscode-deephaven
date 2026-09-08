@@ -51,16 +51,22 @@ describe('PersistentQueryService', () => {
   let dheServiceCache: IAsyncCacheService<URL, IDheService>;
   let service: PersistentQueryService;
   let knownConfigs: QueryInfo[];
+  const getServerFeatures = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
 
     knownConfigs = [makeQueryInfo()];
 
+    // Populated only when the server's feature probe succeeded — see
+    // `DheService.getClient`.
+    getServerFeatures.mockReturnValue(() => ({ version: 1, features: {} }));
+
     const dheService = {
       getClient: vi.fn(async () => ({
         client: { getKnownConfigs: vi.fn(() => knownConfigs) },
       })),
+      getServerFeatures,
     } as unknown as IDheService;
 
     dheServiceCache = {
@@ -132,5 +138,19 @@ describe('PersistentQueryService', () => {
     await service.getPersistentQueryInfos(DHE_URL);
 
     expect(getQueryInfoTable).toHaveBeenCalledTimes(1);
+  });
+
+  describe('isSupported', () => {
+    it('is true when the server reports its features', async () => {
+      expect(await service.isSupported(DHE_URL)).toBe(true);
+    });
+
+    it('is false when the server reports no features', async () => {
+      // `DheService` leaves the features cache empty when the probe fails —
+      // `getDheFeatures` throws `UnsupportedFeatureQueryError`.
+      getServerFeatures.mockReturnValue(undefined);
+
+      expect(await service.isSupported(DHE_URL)).toBe(false);
+    });
   });
 });

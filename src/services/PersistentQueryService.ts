@@ -178,6 +178,23 @@ export class PersistentQueryService
     return queries;
   };
 
+  /**
+   * Whether a DHE server can back the Persistent Queries view. Keyed off the
+   * `/features` endpoint, which only exists from Grizzly+ — `getServerFeatures`
+   * is `undefined` when the fetch 404s (see `getDheFeatures`), which is exactly
+   * the pre-gplus servers this view cannot support.
+   *
+   * A transient fetch failure also reads as unsupported, so a server can drop
+   * out of the view until it reconnects. That is deliberate: the features probe
+   * is only re-attempted on connect, and showing a pre-gplus server is worse
+   * than briefly hiding a supported one.
+   * @param serverUrl The DHE server URL.
+   */
+  isSupported = async (serverUrl: URL): Promise<boolean> => {
+    const dheService = await this._dheServiceCache.get(serverUrl);
+    return dheService.getServerFeatures() != null;
+  };
+
   protected override async onDisposing(): Promise<void> {
     this._onDidUpdate.dispose();
   }

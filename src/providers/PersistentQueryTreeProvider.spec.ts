@@ -94,6 +94,7 @@ describe('PersistentQueryTreeProvider', () => {
     persistentQueryService = {
       onDidUpdate: vi.fn(() => vi.fn()),
       getPersistentQueryInfos: vi.fn(async () => [makeQueryInfo()]),
+      isSupported: vi.fn(async () => true),
     } as unknown as IPersistentQueryService;
 
     serverManager = {
@@ -382,6 +383,44 @@ describe('PersistentQueryTreeProvider', () => {
       onFilterDidUpdate?.();
 
       expect(onDidChangeTreeData).toHaveBeenCalled();
+    });
+  });
+
+  describe('unsupported servers', () => {
+    it('omits a server that cannot back the view from the root', async () => {
+      vi.mocked(persistentQueryService.isSupported).mockResolvedValue(false);
+
+      expect(await provider.getChildren()).toEqual([]);
+    });
+
+    it('omits only the unsupported servers when servers are mixed', async () => {
+      const supported = makeServerState({
+        url: new URL('https://supported.com:8123/'),
+        label: 'A supported',
+      });
+      const unsupported = makeServerState({
+        url: new URL('https://unsupported.com:8123/'),
+        label: 'B unsupported',
+      });
+
+      vi.mocked(serverManager.getServers).mockReturnValue([
+        supported,
+        unsupported,
+      ]);
+      vi.mocked(persistentQueryService.isSupported).mockImplementation(
+        async url => url.href === supported.url.href
+      );
+
+      expect(await provider.getChildren()).toEqual([supported]);
+    });
+
+    it('leaves an unsupported server out of the status counts', async () => {
+      vi.mocked(persistentQueryService.isSupported).mockResolvedValue(false);
+
+      expect(await provider.getStatusCounts()).toEqual(new Map());
+      expect(
+        persistentQueryService.getPersistentQueryInfos
+      ).not.toHaveBeenCalled();
     });
   });
 });
