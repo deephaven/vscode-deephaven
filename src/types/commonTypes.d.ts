@@ -9,7 +9,6 @@ import type {
 } from '@deephaven-enterprise/auth-nodejs';
 import type {
   AuthenticatedEnterpriseClient,
-  CorePlusManager,
   UnauthenticatedEnterpriseClient,
 } from '@deephaven-enterprise/client-utils';
 import type { Brand, QuerySerial, SerializableRefreshToken } from '../shared';
@@ -177,15 +176,6 @@ export interface ConnectionState {
    * (`getConnection` / `getWorkerInfo` / `getWorkerCredentials`, all keyed by
    * worker URL). Registered by `ServerManager.registerSessionlessConnection`
    * when a PQ node is expanded.
-   *
-   * Because there is no session, no code can run against it, it never counts
-   * toward `connectionCount`, and `getConnections` excludes it so it cannot
-   * appear in the Interactive Consoles tree or the connection picker.
-   *
-   * Absent (not `false`) on real worker connections — read it as `!== true`.
-   * Mutually exclusive with attachable workers, but only because
-   * `isAttachableWorker` and `getPersistentQueryInfos` partition every DHE worker
-   * by `queryInfo.type`; nothing here enforces it.
    */
   readonly isSessionless?: boolean;
   readonly isConnected: boolean;
@@ -206,7 +196,6 @@ export interface WorkerInfo {
   grpcUrl: GrpcURL;
   ideUrl: IdeURL;
   jsapiUrl: JsapiURL;
-  /** Persistent query name (`queryInfo.name`), as shown in the Query Monitor. */
   name: string;
   processInfoId: string | null;
   serial: QuerySerial;
