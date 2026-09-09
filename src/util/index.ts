@@ -14,6 +14,7 @@ export * from './OutputChannelWithHistory';
 export * from './panelUtils';
 export * from './promiseUtils';
 export * from './pythonUtils';
+export * from './queryUtils';
 export * from './remoteFileSourceMsgUtils';
 export * from './remoteFileSourceUtils';
 export * from './sanitizeUtils';

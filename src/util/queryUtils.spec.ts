@@ -1,9 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
-import {
-  getExcludeReplicasFilter,
-  getQueryTableFilters,
-} from './QueryConfigTableService';
+import { getExcludeReplicasFilter, getQueryTableFilters } from './queryUtils';
 
 /** The API-object parameter type of `getQueryTableFilters`. */
 type QueryFilterApi = Parameters<typeof getQueryTableFilters>[0];

@@ -1,159 +1,26 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
-import type { CorePlusManager } from '@deephaven-enterprise/client-utils';
 import {
-  EXCLUDED_QUERY_TYPES,
   fetchQueryConfigTable,
   QueryColumns,
   QUERY_CONFIG_TABLE,
   WEB_CLIENT_DATA_CORE_QUERY,
 } from '@deephaven-enterprise/query-utils';
-import { QUERY_INFO_UPDATE_INTERVAL_MS } from '../common';
+import {
+  QUERY_INFO_UPDATE_INTERVAL_MS,
+  WebClientDataUnavailableError,
+} from '../common';
 import { subscribeToColumns } from '../dh/dhc';
-import type { IDheService, IDisposable } from '../types';
-import { createThrottledTrigger, Logger } from '../util';
+import type {
+  CoreApi,
+  IDheService,
+  QueryInfoTableSubscription,
+  QueryTableFilters,
+} from '../types';
+import { createThrottledTrigger, getQueryTableFilters, Logger } from '../util';
 import { DisposableBase } from './DisposableBase';
 
 const logger = new Logger('QueryConfigTableService');
-
-/**
- * Core+ JS API object returned by `CorePlusManager.getApi`. The
- * `QueryInfo` table is created by the WebClientData worker's community API, so
- * server-side filter values must be built from *this* API — a `FilterValue`
- * from any other API instance (e.g. the enterprise `dhe`) throws a
- * `java.lang.ClassCastException` when the table tries to cast it.
- */
-type CoreApi = Awaited<ReturnType<CorePlusManager['getApi']>>;
-
-/**
- * Error thrown when the `WebClientData` Core+ system query required to fetch the
- * `QueryInfo` table is unavailable (not visible to the current user or not
- * running).
- */
-export class WebClientDataUnavailableError extends Error {
-  constructor(serverUrl: URL) {
-    super(
-      `The '${WEB_CLIENT_DATA_CORE_QUERY}' system query is unavailable on ${serverUrl}. ` +
-        `The Persistent Queries table cannot be loaded until it is running and visible to you.`
-    );
-    this.name = 'WebClientDataUnavailableError';
-  }
-}
-
-/**
- * Server-side filters to apply to the `QueryInfo` table. All fields are
- * optional; only provided fields are applied. Multiple fields are AND'd
- * together. Mirrors iris `PQExplorerPanel.getQueryTableFilters`.
- */
-export interface QueryTableFilters {
-  /** Restrict to queries owned by these owners (OR'd). */
-  owners?: readonly string[];
-  /** Restrict to these query types (OR'd), e.g. `InteractiveConsole`. */
-  types?: readonly string[];
-  /** Restrict to these statuses (OR'd), e.g. `Running`. */
-  statuses?: readonly string[];
-  /** Case-insensitive substring match against the query name. */
-  search?: string;
-  /**
-   * When true, exclude the query types the PQ explorer never lists (helper /
-   * system queries) via `EXCLUDED_QUERY_TYPES`. Defaults to false.
-   */
-  excludeHelperTypes?: boolean;
-}
-
-/**
- * Build the server-side filter restricting the table to parent queries.
- * @param table The `QueryInfo` table to build the column filter from.
- * @returns A `FilterCondition` matching parent queries only.
- */
-export function getExcludeReplicasFilter(
-  table: DhcType.Table
-): DhcType.FilterCondition {
-  return table.findColumn(QueryColumns.PARENT_ID.name).filter().isNull();
-}
-
-/**
- * Build the complete set of server-side `FilterCondition`s for the `QueryInfo`
- * table: the always-on parent-query restriction, followed by whichever of
- * `filters` were provided. The single source of what this extension filters
- * server-side — pass the result straight to `table.applyFilter`.
- *
- * Pure — no I/O or subscription side effects, so it can be unit tested against
- * a mocked table.
- * @param dh The core DH API that created `table`, providing `FilterValue`.
- * Must be the table's own API (see {@link CoreApi}).
- * @param table The `QueryInfo` table to build columns/filters from.
- * @param filters The caller's filters. All fields are optional; only provided
- * fields add a condition.
- * @returns An array of `FilterCondition` to pass to `table.applyFilter`.
- */
-export function getQueryTableFilters(
-  dh: CoreApi,
-  table: DhcType.Table,
-  filters: QueryTableFilters
-): DhcType.FilterCondition[] {
-  // Not caller-controlled: no view lists replicas, so this applies whatever
-  // else was asked for.
-  const conditions: DhcType.FilterCondition[] = [
-    getExcludeReplicasFilter(table),
-  ];
-
-  const isIn = (
-    columnName: string,
-    values: readonly string[]
-  ): DhcType.FilterCondition =>
-    table
-      .findColumn(columnName)
-      .filter()
-      .in(values.map(value => dh.FilterValue.ofString(value)));
-
-  if (filters.owners != null && filters.owners.length > 0) {
-    conditions.push(isIn(QueryColumns.OWNER.name, filters.owners));
-  }
-
-  const excludedTypes = [...EXCLUDED_QUERY_TYPES];
-
-  if (filters.types != null && filters.types.length > 0) {
-    // An explicit type allow-list takes precedence over the helper exclusion.
-    conditions.push(isIn(QueryColumns.QUERY_TYPE.name, filters.types));
-  } else if (filters.excludeHelperTypes === true && excludedTypes.length > 0) {
-    conditions.push(isIn(QueryColumns.QUERY_TYPE.name, excludedTypes).not());
-  }
-
-  if (filters.statuses != null && filters.statuses.length > 0) {
-    conditions.push(isIn(QueryColumns.STATUS.name, filters.statuses));
-  }
-
-  if (filters.search != null && filters.search.length > 0) {
-    conditions.push(
-      table
-        .findColumn(QueryColumns.NAME.name)
-        .filter()
-        .containsIgnoreCase(dh.FilterValue.ofString(filters.search))
-    );
-  }
-
-  return conditions;
-}
-
-/**
- * A subscription over a filtered `QueryInfo` table. Ticks on every server
- * update (`EVENT_UPDATED`) until disposed, keeping {@link getQuerySerials} in
- * sync with the filtered row set.
- */
-export interface QueryInfoTableSubscription extends IDisposable {
-  /** The underlying (filtered) `QueryInfo` table. */
-  readonly table: DhcType.Table;
-  /** Fires on every tick of the filtered row set. */
-  readonly onDidUpdate: vscode.Event<void>;
-  /**
-   * Serials of the current filtered rows. Child-replica rows are excluded by
-   * the server-side filter, so each entry is a query. Reflects the most recent
-   * tick — empty until the first one arrives, so consumers must refresh on
-   * {@link onDidUpdate} rather than treating an empty set as "no queries".
-   */
-  getQuerySerials: () => ReadonlySet<string>;
-}
 
 /**
  * Exposes a server-side-filtered, ticking subscription over the Core+

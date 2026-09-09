@@ -28,6 +28,46 @@ import type {
 import type { Username } from '@deephaven-enterprise/auth-nodejs';
 import type { QuerySerial } from '../shared';
 
+/**
+ * Server-side filters to apply to the `QueryInfo` table. All fields are
+ * optional; only provided fields are applied. Multiple fields are AND'd
+ * together. Mirrors iris `PQExplorerPanel.getQueryTableFilters`.
+ */
+export interface QueryTableFilters {
+  /** Restrict to queries owned by these owners (OR'd). */
+  owners?: readonly string[];
+  /** Restrict to these query types (OR'd), e.g. `InteractiveConsole`. */
+  types?: readonly string[];
+  /** Restrict to these statuses (OR'd), e.g. `Running`. */
+  statuses?: readonly string[];
+  /** Case-insensitive substring match against the query name. */
+  search?: string;
+  /**
+   * When true, exclude the query types the PQ explorer never lists (helper /
+   * system queries) via `EXCLUDED_QUERY_TYPES`. Defaults to false.
+   */
+  excludeHelperTypes?: boolean;
+}
+
+/**
+ * A subscription over a filtered `QueryInfo` table. Ticks on every server
+ * update (`EVENT_UPDATED`) until disposed, keeping {@link getQuerySerials} in
+ * sync with the filtered row set.
+ */
+export interface QueryInfoTableSubscription extends IDisposable {
+  /** The underlying (filtered) `QueryInfo` table. */
+  readonly table: DhcType.Table;
+  /** Fires on every tick of the filtered row set. */
+  readonly onDidUpdate: vscode.Event<void>;
+  /**
+   * Serials of the current filtered rows. Child-replica rows are excluded by
+   * the server-side filter, so each entry is a query. Reflects the most recent
+   * tick — empty until the first one arrives, so consumers must refresh on
+   * {@link onDidUpdate} rather than treating an empty set as "no queries".
+   */
+  getQuerySerials: () => ReadonlySet<string>;
+}
+
 export interface IAsyncCacheService<TKey, TValue> extends IDisposable {
   get: (key: TKey) => Promise<TValue>;
   has: (key: TKey) => boolean;

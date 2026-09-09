@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { QueryInfo } from '@deephaven-enterprise/jsapi-types';
 import { PersistentQueryService } from './PersistentQueryService';
-import type { QueryInfoTableSubscription } from './QueryConfigTableService';
+import type { QueryInfoTableSubscription } from '../types';
 import type { IAsyncCacheService, IDheService, IServerManager } from '../types';
 
 // See __mocks__/vscode.ts for the mock implementation

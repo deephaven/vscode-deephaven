@@ -6,13 +6,11 @@ import type {
   IDheService,
   IPersistentQueryService,
   IServerManager,
+  QueryInfoTableSubscription,
 } from '../types';
 import { Logger, URLMap } from '../util';
 import { DisposableBase } from './DisposableBase';
-import {
-  QueryConfigTableService,
-  type QueryInfoTableSubscription,
-} from './QueryConfigTableService';
+import { QueryConfigTableService } from './QueryConfigTableService';
 
 const logger = new Logger('PersistentQueryService');
 

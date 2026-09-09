@@ -1,16 +1,12 @@
 import * as vscode from 'vscode';
 import {
-  DEFAULT_HIDDEN_QUERY_STATUSES,
   PERSISTENT_QUERY_HIDDEN_STATUSES_STORAGE_KEY,
   getQueryStatusSectionStatuses,
   type QueryStatusSection,
-  UNSET_QUERY_STATUS,
 } from '../common';
 import type { IPersistentQueryStatusFilterService } from '../types';
-import { Logger } from '../util';
+import { normalizeQueryStatus, parseHiddenQueryStatuses } from '../util';
 import { DisposableBase } from './DisposableBase';
-
-const logger = new Logger('PersistentQueryStatusFilterService');
 
 /**
  * Backs the Persistent Queries view's status filter. The persisted state is the
@@ -29,7 +25,9 @@ export class PersistentQueryStatusFilterService
     super();
     this._context = context;
     this._hiddenStatuses = new Set(
-      readHiddenStatuses(context).map(normalizeQueryStatus)
+      parseHiddenQueryStatuses(
+        context.globalState.get(PERSISTENT_QUERY_HIDDEN_STATUSES_STORAGE_KEY)
+      ).map(normalizeQueryStatus)
     );
   }
 
@@ -129,48 +127,4 @@ export class PersistentQueryStatusFilterService
   protected override async onDisposing(): Promise<void> {
     this._onDidUpdate.dispose();
   }
-}
-
-/**
- * Normalise a PQ status to its hidden-set key. `null`, `undefined`, and `''`
- * are all ways the server / JS API report "no status", so they collapse to one
- * entry.
- * @param status The status to normalise.
- */
-function normalizeQueryStatus(status: string | null | undefined): string {
-  return status == null ? UNSET_QUERY_STATUS : status;
-}
-
-/**
- * Read the persisted hidden set, falling back to the default only when nothing
- * has ever been stored. An empty stored array means the user deliberately unhid
- * everything, so it must be distinguished from "never set". A value that isn't
- * an array of strings is discarded in favour of the default rather than
- * throwing on startup.
- * @param context Extension context holding the `globalState`.
- */
-function readHiddenStatuses(context: vscode.ExtensionContext): string[] {
-  const stored = context.globalState.get(
-    PERSISTENT_QUERY_HIDDEN_STATUSES_STORAGE_KEY
-  );
-
-  // `Memento.get` is documented to return `undefined` when unset, but it is
-  // typed `unknown` here — `== null` also covers a `null` slipping through
-  // (which is "no value" too, not a malformed one worth logging).
-  if (stored == null) {
-    return [...DEFAULT_HIDDEN_QUERY_STATUSES];
-  }
-
-  if (
-    !Array.isArray(stored) ||
-    stored.some(status => typeof status !== 'string')
-  ) {
-    logger.debug(
-      'Discarding malformed persisted PQ status filter:',
-      JSON.stringify(stored)
-    );
-    return [...DEFAULT_HIDDEN_QUERY_STATUSES];
-  }
-
-  return stored as string[];
 }

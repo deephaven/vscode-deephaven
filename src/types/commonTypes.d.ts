@@ -9,9 +9,19 @@ import type {
 } from '@deephaven-enterprise/auth-nodejs';
 import type {
   AuthenticatedEnterpriseClient as DheAuthenticatedClientBase,
+  CorePlusManager,
   UnauthenticatedEnterpriseClient as DheUnauthenticatedClientBase,
 } from '@deephaven-enterprise/client-utils';
 import type { Brand, QuerySerial, SerializableRefreshToken } from '../shared';
+
+/**
+ * Core+ JS API object returned by `CorePlusManager.getApi`. The `QueryInfo`
+ * table is created by the WebClientData worker's community API, so server-side
+ * filter values must be built from *this* API — a `FilterValue` from any other
+ * API instance (e.g. the enterprise `dhe`) throws a
+ * `java.lang.ClassCastException` when the table tries to cast it.
+ */
+export type CoreApi = Awaited<ReturnType<CorePlusManager['getApi']>>;
 
 export type ExtensionVersion = Brand<'ExtensionVersion', string>;
 
