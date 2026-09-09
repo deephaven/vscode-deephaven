@@ -16,7 +16,7 @@ import type { Brand, QuerySerial, SerializableRefreshToken } from '../shared';
 
 /**
  * Core+ JS API object returned by `CorePlusManager.getApi`. The `QueryInfo`
- * table is created by the WebClientData worker's community API, so server-side
+ * table is created by the WebClientData worker's Core+ API, so server-side
  * filter values must be built from *this* API — a `FilterValue` from any other
  * API instance (e.g. the enterprise `dhe`) throws a
  * `java.lang.ClassCastException` when the table tries to cast it.

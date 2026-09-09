@@ -46,8 +46,7 @@ export class UnsupportedFeatureQueryError extends Error {
 export class WebClientDataUnavailableError extends Error {
   constructor(serverUrl: URL) {
     super(
-      `The '${WEB_CLIENT_DATA_CORE_QUERY}' system query is unavailable on ${serverUrl}. ` +
-        `The Persistent Queries table cannot be loaded until it is running and visible to you.`
+      `The '${WEB_CLIENT_DATA_CORE_QUERY}' system query is unavailable on ${serverUrl}.`
     );
     this.name = 'WebClientDataUnavailableError';
   }

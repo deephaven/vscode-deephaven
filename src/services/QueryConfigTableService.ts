@@ -43,8 +43,8 @@ export class QueryConfigTableService extends DisposableBase {
 
   /**
    * Fetch the (unfiltered) `QueryInfo` table via the WebClientData factory
-   * service, along with the community API that created it.
-   * @returns The `QueryInfo` table and the community API that created it. Filter
+   * service, along with the Core+ API that created it.
+   * @returns The `QueryInfo` table and the Core+ API that created it. Filter
    * values must be built from that API (see {@link CoreApi}).
    */
   private async _fetchQueryInfoTable(): Promise<{
@@ -109,16 +109,6 @@ export class QueryConfigTableService extends DisposableBase {
 
     let querySerials: ReadonlySet<string> = new Set();
 
-    // A full-table subscription rather than a viewport: `EVENT_UPDATED` carries
-    // every row the client has, so each tick is a complete picture of the
-    // filtered set with no viewport to re-pin as the filtered size changes.
-    //
-    // Only the columns consumers act on are subscribed, so the table ticks on
-    // row add/remove and status transitions but not on churn like heap usage.
-    // `Status` is included even though its value is unused here: a PQ going
-    // Running -> Stopped must re-render, and the resolved `QueryInfo` carries
-    // the new status. `Parent` is absent because replicas are filtered out
-    // server-side, so their churn cannot tick this subscription at all.
     const tableSubscription = subscribeToColumns(table, [
       serialColumn,
       statusColumn,
@@ -138,7 +128,7 @@ export class QueryConfigTableService extends DisposableBase {
           );
 
           // Updated on every tick so `getQuerySerials` is never stale; only
-          // the notification is rate limited.
+          // the throttledUpdate notification is rate limited.
           querySerials = serials;
           throttledUpdate.trigger();
         }
@@ -150,8 +140,6 @@ export class QueryConfigTableService extends DisposableBase {
       getQuerySerials: () => querySerials,
       dispose: async (): Promise<void> => {
         removeUpdateListener();
-        // Before the emitter, so a pending trailing fire cannot land on a
-        // disposed emitter.
         throttledUpdate.dispose();
         onDidUpdateEmitter.dispose();
         try {
