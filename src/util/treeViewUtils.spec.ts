@@ -24,12 +24,14 @@ import {
 } from './treeViewUtils';
 import type {
   IPanelService,
+  PersistentQueryNode,
   Psk,
   ServerState,
   VariableDefintion,
   VariableType,
 } from '../types';
 import { DH_PROTECTED_VARIABLE_NAMES } from '../common';
+import type { QueryInfo } from '@deephaven-enterprise/jsapi-types';
 
 // See __mocks__/vscode.ts for the mock implementation
 vi.mock('vscode');
@@ -372,18 +374,19 @@ describe('getPersistentQueryStatus', () => {
 });
 
 describe('isPersistentQueryNode', () => {
-  it('is true for a node carrying queryInfo', () => {
-    const node = {
-      dheServerUrl: new URL('https://dhe.example.com/'),
-      queryInfo: { name: 'PQ' },
-    } as unknown as Parameters<typeof isPersistentQueryNode>[0];
-    expect(isPersistentQueryNode(node)).toBe(true);
-  });
-
-  it('is false for a server state node', () => {
-    const server = { url: new URL('https://dhe.example.com/') } as ServerState;
-    expect(isPersistentQueryNode(server)).toBe(false);
-  });
+  it.each([
+    [{ queryInfo: { name: 'PQ' } }, true],
+    [{}, false],
+  ])(
+    'returns true if it is a persistent query node, false otherwise: %o',
+    (node, expected) => {
+      expect(
+        isPersistentQueryNode(
+          node as unknown as Parameters<typeof isPersistentQueryNode>[0]
+        )
+      ).toBe(expected);
+    }
+  );
 });
 
 describe('getPersistentQueryTreeItem', () => {
@@ -396,7 +399,7 @@ describe('getPersistentQueryTreeItem', () => {
   function makeNode(
     designated: unknown,
     scriptLanguage = 'Python'
-  ): Parameters<typeof getPersistentQueryTreeItem>[0] {
+  ): PersistentQueryNode {
     return {
       dheServerUrl: new URL('https://dhe.example.com/'),
       queryInfo: {
@@ -406,7 +409,7 @@ describe('getPersistentQueryTreeItem', () => {
         designated,
         scriptLanguage,
       },
-    } as unknown as Parameters<typeof getPersistentQueryTreeItem>[0];
+    } as PersistentQueryNode;
   }
 
   it('renders name + owner + context value', () => {
@@ -429,88 +432,97 @@ describe('getPersistentQueryTreeItem', () => {
     expect(item.id).toBe('pq:https://dhe.example.com/:serial-1');
   });
 
-  it('renders the status circle for a running PQ', () => {
-    const item = getPersistentQueryTreeItem(
-      makeNode({ status: 'Running', objects: [] })
-    );
-    expect((item.iconPath as vscode.ThemeIcon).id).toBe('circle-large-filled');
+  it.each([
+    ['a running PQ', { status: 'Running', objects: [] }, 'circle-large-filled'],
+    ['a stopped PQ', { status: 'Stopped', objects: [] }, 'circle-slash'],
+    ['a transitional PQ', { status: 'Initializing', objects: [] }, 'sync~spin'],
+    ['a PQ with no designated worker', undefined, 'circle-large-outline'],
+  ])('renders the status icon for %s', (_label, designated, iconId) => {
+    const item = getPersistentQueryTreeItem(makeNode(designated));
+    expect((item.iconPath as vscode.ThemeIcon).id).toBe(iconId);
   });
 
-  it('renders the stop sign for a stopped PQ', () => {
-    const item = getPersistentQueryTreeItem(
-      makeNode({ status: 'Stopped', objects: [] })
-    );
-    expect((item.iconPath as vscode.ThemeIcon).id).toBe('circle-slash');
-  });
-
-  it('renders the open circle for a PQ with no status', () => {
-    const item = getPersistentQueryTreeItem(makeNode(undefined));
-    expect((item.iconPath as vscode.ThemeIcon).id).toBe('circle-large-outline');
-  });
-
-  it('renders the spinner for a transitional PQ', () => {
-    const item = getPersistentQueryTreeItem(
-      makeNode({ status: 'Initializing', objects: [] })
-    );
-    expect((item.iconPath as vscode.ThemeIcon).id).toBe('sync~spin');
-  });
-
-  it('is collapsible when the PQ exposes openable objects (Collapsed = 1)', () => {
-    const item = getPersistentQueryTreeItem(
-      makeNode({
+  // Collapsible state and tooltip are derived from the same objects +
+  // openability check, so they are asserted together. Collapsed = 1, None = 0.
+  it.each<{
+    label: string;
+    designated: unknown;
+    collapsibleState: number;
+    tooltip: string;
+  }>([
+    {
+      label: 'openable objects make the PQ expandable',
+      designated: {
         ...openableUrls,
         status: 'Running',
         objects: [
           { title: 't1', type: 'Table' },
           { title: 'f1', type: 'Figure' },
         ],
-      })
-    );
-    expect(item.collapsibleState).toBe(1);
-    // Object + table counts surfaced in the tooltip (no expansion needed).
-    expect(item.tooltip).toBe('My PQ (Running) — 2 objects (1 table)');
-  });
-
-  it.each([
-    ['no ideUrl (e.g. a RevertHelper query)', { ideUrl: null }],
-    ['an empty ideUrl', { ideUrl: '' }],
-    ['no jsApiUrl', { jsApiUrl: null }],
-  ])(
-    'is non-expandable when the objects cannot be opened: %s',
-    (_label, overrides) => {
-      const item = getPersistentQueryTreeItem(
-        makeNode({
-          ...openableUrls,
-          ...overrides,
-          status: 'Running',
-          objects: [{ title: 't1', type: 'Table' }],
-        })
-      );
-      expect(item.collapsibleState).toBe(0);
-      expect(item.tooltip).toBe(
-        'My PQ (Running) — 1 object (1 table) (worker not openable)'
-      );
-    }
-  );
-
-  it('ignores object entries with an empty title or type', () => {
-    const item = getPersistentQueryTreeItem(
-      makeNode({
+      },
+      collapsibleState: 1,
+      // Object + table counts surfaced in the tooltip (no expansion needed).
+      tooltip: 'My PQ (Running) — 2 objects (1 table)',
+    },
+    {
+      label: 'deephaven.ui panels count as openable objects',
+      designated: {
+        ...openableUrls,
+        status: 'Running',
+        objects: [{ title: 'ui1', type: 'deephaven.ui.Element' }],
+      },
+      collapsibleState: 1,
+      tooltip: 'My PQ (Running) — 1 object',
+    },
+    {
+      label: 'no ideUrl (e.g. a RevertHelper query) blocks opening',
+      designated: {
+        ...openableUrls,
+        ideUrl: null,
+        status: 'Running',
+        objects: [{ title: 't1', type: 'Table' }],
+      },
+      collapsibleState: 0,
+      tooltip: 'My PQ (Running) — 1 object (1 table) (worker not openable)',
+    },
+    {
+      label: 'an empty ideUrl blocks opening',
+      designated: {
+        ...openableUrls,
+        ideUrl: '',
+        status: 'Running',
+        objects: [{ title: 't1', type: 'Table' }],
+      },
+      collapsibleState: 0,
+      tooltip: 'My PQ (Running) — 1 object (1 table) (worker not openable)',
+    },
+    {
+      label: 'no jsApiUrl blocks opening',
+      designated: {
+        ...openableUrls,
+        jsApiUrl: null,
+        status: 'Running',
+        objects: [{ title: 't1', type: 'Table' }],
+      },
+      collapsibleState: 0,
+      tooltip: 'My PQ (Running) — 1 object (1 table) (worker not openable)',
+    },
+    {
+      label: 'object entries with an empty title or type are ignored',
+      designated: {
         ...openableUrls,
         status: 'Running',
         objects: [
           { title: '', type: 'Table' },
           { title: 't1', type: '' },
         ],
-      })
-    );
-    expect(item.collapsibleState).toBe(0);
-    expect(item.tooltip).toBe('My PQ (Running) — no objects');
-  });
-
-  it('ignores objects whose type is not an openable panel', () => {
-    const item = getPersistentQueryTreeItem(
-      makeNode({
+      },
+      collapsibleState: 0,
+      tooltip: 'My PQ (Running) — no objects',
+    },
+    {
+      label: 'objects whose type is not an openable panel are ignored',
+      designated: {
         ...openableUrls,
         status: 'Running',
         objects: [
@@ -520,46 +532,35 @@ describe('getPersistentQueryTreeItem', () => {
           { title: 'w1', type: 'OtherWidget' },
           { title: 'acl', type: 'AclService' },
         ],
-      })
-    );
-    expect(item.collapsibleState).toBe(0);
-    expect(item.tooltip).toBe('My PQ (Running) — no objects');
-  });
-
-  it('counts deephaven.ui panels as openable objects', () => {
-    const item = getPersistentQueryTreeItem(
-      makeNode({
-        ...openableUrls,
-        status: 'Running',
-        objects: [{ title: 'ui1', type: 'deephaven.ui.Element' }],
-      })
-    );
-    expect(item.collapsibleState).toBe(1);
-    expect(item.tooltip).toBe('My PQ (Running) — 1 object');
-  });
-
-  it('is non-expandable when the PQ exposes no objects (None = 0)', () => {
-    const item = getPersistentQueryTreeItem(
-      makeNode({ status: 'Running', objects: [] })
-    );
-    expect(item.collapsibleState).toBe(0);
-    expect(item.tooltip).toBe('My PQ (Running) — no objects');
-  });
-
-  it('treats a PQ with no designated worker as non-expandable', () => {
-    const item = getPersistentQueryTreeItem(makeNode(undefined));
-    expect(item.collapsibleState).toBe(0);
-    expect(item.tooltip).toBe('My PQ — no objects');
-  });
+      },
+      collapsibleState: 0,
+      tooltip: 'My PQ (Running) — no objects',
+    },
+    {
+      label: 'a PQ exposing no objects is not expandable',
+      designated: { status: 'Running', objects: [] },
+      collapsibleState: 0,
+      tooltip: 'My PQ (Running) — no objects',
+    },
+    {
+      label: 'a PQ with no designated worker is not expandable',
+      designated: undefined,
+      collapsibleState: 0,
+      tooltip: 'My PQ — no objects',
+    },
+  ])(
+    'sets collapsible state + tooltip from openable objects: $label',
+    ({ designated, collapsibleState, tooltip }) => {
+      const item = getPersistentQueryTreeItem(makeNode(designated));
+      expect(item.collapsibleState).toBe(collapsibleState);
+      expect(item.tooltip).toBe(tooltip);
+    }
+  );
 });
 
 describe('canOpenPersistentQueryObjects', () => {
-  const makeQueryInfo = (
-    designated: unknown
-  ): Parameters<typeof canOpenPersistentQueryObjects>[0] =>
-    ({ designated }) as unknown as Parameters<
-      typeof canOpenPersistentQueryObjects
-    >[0];
+  const makeQueryInfo = (designated: unknown): QueryInfo =>
+    ({ designated }) as unknown as QueryInfo;
 
   it('is true when the designated worker has both endpoints', () => {
     expect(
@@ -613,7 +614,7 @@ describe('getPersistentQueryObjectLeaves', () => {
           { title: 'f', name: 'f', type: 'Figure', id: 'v2' },
         ],
       },
-    } as unknown as Parameters<typeof getPersistentQueryObjectLeaves>[1];
+    } as unknown as QueryInfo;
 
     const leaves = getPersistentQueryObjectLeaves(workerUrl, queryInfo);
     expect(leaves).toHaveLength(2);
@@ -624,7 +625,7 @@ describe('getPersistentQueryObjectLeaves', () => {
   it('returns an empty array when there are no objects', () => {
     const queryInfo = {
       designated: { objects: [] },
-    } as unknown as Parameters<typeof getPersistentQueryObjectLeaves>[1];
+    } as unknown as QueryInfo;
     expect(getPersistentQueryObjectLeaves(workerUrl, queryInfo)).toEqual([]);
   });
 
@@ -637,7 +638,7 @@ describe('getPersistentQueryObjectLeaves', () => {
           { title: 'y', name: 'y', type: null, id: 'v3' },
         ],
       },
-    } as unknown as Parameters<typeof getPersistentQueryObjectLeaves>[1];
+    } as unknown as QueryInfo;
     const leaves = getPersistentQueryObjectLeaves(workerUrl, queryInfo);
     expect(leaves).toHaveLength(1);
   });

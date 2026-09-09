@@ -1,9 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { getExcludeReplicasFilter, getQueryTableFilters } from './queryUtils';
-
-/** The API-object parameter type of `getQueryTableFilters`. */
-type QueryFilterApi = Parameters<typeof getQueryTableFilters>[0];
+import { EXCLUDED_QUERY_TYPES } from '@deephaven-enterprise/jsapi-nodejs';
 
 // See __mocks__/vscode.ts for the mock implementation
 vi.mock('vscode');
@@ -68,7 +66,7 @@ const dh = {
   FilterValue: {
     ofString: (value: string): { value: string } => ({ value }),
   },
-} as unknown as QueryFilterApi;
+} as unknown as typeof DhcType;
 
 describe('getQueryTableFilters', () => {
   let mock: ReturnType<typeof createMockTable>;
@@ -164,7 +162,11 @@ describe('getQueryTableFilters', () => {
       excludeHelperTypes: true,
     });
 
-    expect(type).toMatchObject({ column: 'QueryType', op: 'notIn' });
+    expect(type).toMatchObject({
+      column: 'QueryType',
+      op: 'notIn',
+      terms: [...EXCLUDED_QUERY_TYPES].map(value => ({ value })),
+    });
   });
 
   it('prefers an explicit type allow-list over excludeHelperTypes', () => {
