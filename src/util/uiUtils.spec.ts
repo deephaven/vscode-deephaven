@@ -281,7 +281,7 @@ describe('promptForCredentials', () => {
 });
 
 describe('setViewIsFiltered', () => {
-  it.each([[true], [false]])(
+  it.each([true, false])(
     'should set the `${viewId}.isFiltered` context key: %s',
     isFiltered => {
       const viewId = 'mock.viewId' as ViewID;
@@ -315,11 +315,13 @@ describe('promptForQueryStatusFilter', () => {
     );
   }
 
-  it('splits the rows into a Running and a Stopped section', async () => {
+  beforeEach(() => {
     vi.mocked(vscode.window.showQuickPick).mockResolvedValue(
       undefined as never
     );
+  });
 
+  it('splits the rows into a Running and a Stopped section', async () => {
     await promptForQueryStatusFilter(new Map(), new Set());
 
     // `Stopping` groups with the stopped statuses, and the unset row leads them
@@ -352,10 +354,6 @@ describe('promptForQueryStatusFilter', () => {
   });
 
   it('checks exactly the Running section under the default filter', async () => {
-    vi.mocked(vscode.window.showQuickPick).mockResolvedValue(
-      undefined as never
-    );
-
     await promptForQueryStatusFilter(
       new Map(),
       new Set(DEFAULT_HIDDEN_QUERY_STATUSES)
@@ -370,10 +368,6 @@ describe('promptForQueryStatusFilter', () => {
   });
 
   it('is a multi-select picker (canPickMany, not canSelectMany)', async () => {
-    vi.mocked(vscode.window.showQuickPick).mockResolvedValue(
-      undefined as never
-    );
-
     await promptForQueryStatusFilter(new Map(), new Set());
 
     expect(
@@ -386,10 +380,6 @@ describe('promptForQueryStatusFilter', () => {
   });
 
   it('shows counts (0 when absent) and checks the statuses that are not hidden', async () => {
-    vi.mocked(vscode.window.showQuickPick).mockResolvedValue(
-      undefined as never
-    );
-
     await promptForQueryStatusFilter(
       new Map([
         ['Running', 13],
@@ -419,10 +409,6 @@ describe('promptForQueryStatusFilter', () => {
   });
 
   it('formats large counts with thousands separators', async () => {
-    vi.mocked(vscode.window.showQuickPick).mockResolvedValue(
-      undefined as never
-    );
-
     await promptForQueryStatusFilter(
       new Map([
         ['Running', 20007],
@@ -438,10 +424,6 @@ describe('promptForQueryStatusFilter', () => {
   });
 
   it('puts unrecognized statuses at the end of the Running section, alphabetized', async () => {
-    vi.mocked(vscode.window.showQuickPick).mockResolvedValue(
-      undefined as never
-    );
-
     await promptForQueryStatusFilter(
       new Map([
         ['Zombie', 1],
