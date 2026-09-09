@@ -12,7 +12,6 @@ import {
 } from '../common';
 import { subscribeToColumns } from '../dh/dhc';
 import type {
-  CoreApi,
   IDheService,
   QueryInfoTableSubscription,
   QueryTableFilters,
@@ -44,12 +43,13 @@ export class QueryConfigTableService extends DisposableBase {
   /**
    * Fetch the (unfiltered) `QueryInfo` table via the WebClientData factory
    * service, along with the Core+ API that created it.
-   * @returns The `QueryInfo` table and the Core+ API that created it. Filter
-   * values must be built from that API (see {@link CoreApi}).
+   * @returns The `QueryInfo` table and the Core+ API that created it. The two
+   * travel together because filters must be built from the table's own API —
+   * see `getQueryTableFilters`.
    */
   private async _fetchQueryInfoTable(): Promise<{
     table: DhcType.Table;
-    coreApi: CoreApi;
+    coreApi: typeof DhcType;
   }> {
     const dheClient = await this._dheService.getClient(false);
     if (dheClient == null) {

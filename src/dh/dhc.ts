@@ -160,8 +160,9 @@ export async function initDhcSession(
 
   const groovyRemoteFileSourcePlugin: DhType.remotefilesource.RemoteFileSourceService | null =
     // The presence of `getRemoteFileSourceService` determines if the Groovy
-    // plugin is available on the server.
-    type === 'groovy' && 'getRemoteFileSourceService' in client
+    // plugin is available on the server — it is absent until the backing core
+    // PR ships (see `modules.d.ts`).
+    type === 'groovy' && typeof client.getRemoteFileSourceService === 'function'
       ? await client.getRemoteFileSourceService()
       : null;
 
@@ -217,7 +218,7 @@ export async function loginClient(
  * falling back to the deprecated `subscribe` when the server predates it.
  *
  * The Core API backing this table is loaded from the DHE server's WebClientData
- * worker (see {@link CoreApi}), so its version is whatever that server ships —
+ * worker, so its version is whatever that server ships —
  * not the `@deephaven/jsapi-types` this extension compiles against, which
  * declares `createSubscription` unconditionally. `createSubscription` replaced
  * `subscribe` in Core v0.40.0; until a minimum Core+ version is declared,

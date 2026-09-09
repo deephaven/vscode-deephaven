@@ -1280,7 +1280,7 @@
   "devDependencies": {
     "@cfworker/json-schema": "^4.1.1",
     "@deephaven-enterprise/jsapi-types": "^2026.1.48",
-    "@deephaven/jsapi-types": "^41.2.0",
+    "@deephaven/jsapi-types": "41.8.0",
     "@react-types/shared": "^3.33.1",
     "@types/archiver": "^6.0.3",
     "@types/chai": "^4.3.20",
@@ -1318,6 +1318,7 @@
   "overrides": {
     "undici": "^6.24.0",
     "diff": "^8.0.3",
-    "serialize-javascript": "^7.0.3"
+    "serialize-javascript": "^7.0.3",
+    "@deephaven/jsapi-types": "41.8.0"
   }
 }

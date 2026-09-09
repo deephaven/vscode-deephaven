@@ -4,7 +4,7 @@ import {
   QueryColumns,
 } from '@deephaven-enterprise/query-utils';
 import { DEFAULT_HIDDEN_QUERY_STATUSES, UNSET_QUERY_STATUS } from '../common';
-import type { CoreApi, QueryTableFilters } from '../types';
+import type { QueryTableFilters } from '../types';
 import { Logger } from './Logger';
 
 const logger = new Logger('queryUtils');
@@ -25,15 +25,16 @@ export function getExcludeReplicasFilter(
  * table: the always-on parent-query restriction, followed by whichever of
  * `filters` were provided. The single source of what this extension filters
  * server-side — pass the result straight to `table.applyFilter`.
- * @param dh The Core+ API that created `table`, providing `FilterValue`.
- * Must be the table's own API (see {@link CoreApi}).
+ * @param dh The Core+ API that created `table`, providing `FilterValue`. Must
+ * be that same instance: `getApi` loads a separate API per worker, and values
+ * from two separately loaded APIs are not assumed to be interchangeable.
  * @param table The `QueryInfo` table to build columns/filters from.
  * @param filters The caller's filters. All fields are optional; only provided
  * fields add a condition.
  * @returns An array of `FilterCondition` to pass to `table.applyFilter`.
  */
 export function getQueryTableFilters(
-  dh: CoreApi,
+  dh: typeof DhcType,
   table: DhcType.Table,
   filters: QueryTableFilters
 ): DhcType.FilterCondition[] {

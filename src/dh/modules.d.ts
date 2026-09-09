@@ -8,7 +8,12 @@ export {};
 declare module '@deephaven/jsapi-types' {
   namespace dh {
     interface CoreClient {
-      getRemoteFileSourceService(): Promise<dh.remotefilesource.RemoteFileSourceService>;
+      // Ideally this should always remain optional even after #7451 lands
+      // since gplus servers may still have older versions of Core+ prior to
+      // the PR. We don't yet have a great way to account for differeing types
+      // across Core+ versions, so this will likely show as required once upstream
+      // changes. TBD how to handle this.
+      getRemoteFileSourceService?(): Promise<dh.remotefilesource.RemoteFileSourceService>;
     }
   }
 
@@ -18,9 +23,7 @@ declare module '@deephaven/jsapi-types' {
       get resourceName(): string;
     }
 
-    class RemoteFileSourceService {
-      static readonly EVENT_REQUEST_SOURCE: string;
-
+    interface RemoteFileSourceService {
       addEventListener<T>(
         name: string,
         callback: (e: dh.Event<T>) => void
