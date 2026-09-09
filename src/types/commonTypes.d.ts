@@ -8,9 +8,9 @@ import type {
   Username,
 } from '@deephaven-enterprise/auth-nodejs';
 import type {
-  AuthenticatedEnterpriseClient as DheAuthenticatedClientBase,
+  AuthenticatedEnterpriseClient,
   CorePlusManager,
-  UnauthenticatedEnterpriseClient as DheUnauthenticatedClientBase,
+  UnauthenticatedEnterpriseClient,
 } from '@deephaven-enterprise/client-utils';
 import type { Brand, QuerySerial, SerializableRefreshToken } from '../shared';
 
@@ -80,11 +80,11 @@ export type CoreUnauthenticatedClient = Brand<
 >;
 
 export type DheAuthenticatedClientWrapper = Partial<IDisposable> & {
-  client: DheAuthenticatedClientBase;
+  client: AuthenticatedEnterpriseClient;
   refreshTokenSerialized: Promise<SerializableRefreshToken | null>;
 };
 export type DheUnauthenticatedClientWrapper = Partial<IDisposable> & {
-  client: DheUnauthenticatedClientBase;
+  client: UnauthenticatedEnterpriseClient;
   refreshTokenSerialized: Promise<SerializableRefreshToken | null>;
 };
 

@@ -43,8 +43,8 @@ export interface QueryTableFilters {
   /** Case-insensitive substring match against the query name. */
   search?: string;
   /**
-   * When true, exclude the query types the PQ explorer never lists (helper /
-   * system queries) via `EXCLUDED_QUERY_TYPES`. Defaults to false.
+   * When true, exclude helper / system query types (`EXCLUDED_QUERY_TYPES`).
+   * Defaults to false.
    */
   excludeHelperTypes?: boolean;
 }
@@ -60,10 +60,9 @@ export interface QueryInfoTableSubscription extends IDisposable {
   /** Fires on every tick of the filtered row set. */
   readonly onDidUpdate: vscode.Event<void>;
   /**
-   * Serials of the current filtered rows. Child-replica rows are excluded by
-   * the server-side filter, so each entry is a query. Reflects the most recent
-   * tick — empty until the first one arrives, so consumers must refresh on
-   * {@link onDidUpdate} rather than treating an empty set as "no queries".
+   * Serials of the current filtered rows, excluding child-replica rows, so each
+   * entry is a query. Reflects the most recent tick, and is empty until the
+   * first one arrives.
    */
   getQuerySerials: () => ReadonlySet<string>;
 }
@@ -192,23 +191,22 @@ export interface IPanelService extends IDisposable {
 }
 
 /**
- * Source of the persistent queries visible on a DHE server, shared by every view
- * that lists PQs. `onDidUpdate` fires whenever the underlying (ticking)
- * `QueryInfo` table changes.
+ * Source of the persistent queries visible on a DHE server. `onDidUpdate` fires
+ * whenever the underlying (ticking) `QueryInfo` table changes.
  */
 export interface IPersistentQueryService extends IDisposable {
   readonly onDidUpdate: vscode.Event<void>;
 
   /**
-   * The PQs on a server, in unspecified order — sort after narrowing, since a
-   * server can hold tens of thousands.
+   * The PQs on a server, in unspecified order. The set can be large — tens of
+   * thousands on a busy server.
    */
   getPersistentQueryInfos: (serverUrl: URL) => Promise<QueryInfo[]>;
 
   /**
    * Whether a DHE server exposes the APIs this service needs to list its
-   * queries. A server that answers `false` cannot back the Persistent Queries
-   * view at all, and is omitted from it rather than shown empty or erroring.
+   * queries. `getPersistentQueryInfos` returns an empty list for a server that
+   * answers `false`.
    */
   isSupported: (serverUrl: URL) => Promise<boolean>;
 }
@@ -228,9 +226,8 @@ export interface IPersistentQueryStatusFilterService extends IDisposable {
   /** Replace the hidden set, persist it, and fire `onDidUpdate`. */
   setHiddenStatuses: (hidden: Iterable<string>) => Promise<void>;
   /**
-   * Whether *every* status in the section is currently listed. The section's
-   * menu row is checked only then; a partly hidden section reads as unchecked,
-   * so clicking it fills the section in.
+   * Whether *every* status in the section is currently listed. A section with
+   * any status hidden answers `false`.
    */
   isSectionFullyVisible: (section: QueryStatusSection) => boolean;
   /** Show or hide every status in the section at once. */
@@ -304,8 +301,7 @@ export interface IServerManager extends IDisposable {
   ) => Promise<DhcType.LoginCredentials | null>;
   getWorkerInfo: (maybeWorkerUrl: URL) => Promise<WorkerInfo | undefined>;
   /**
-   * Register a sessionless connection for a persistent query's worker so the DH
-   * embed panel can open its objects — see
+   * Register a sessionless connection for a persistent query's worker — see
    * {@link ConnectionState.isSessionless}. Never creates a console session,
    * never increments `connectionCount`, and never deletes the server-side PQ.
    */
