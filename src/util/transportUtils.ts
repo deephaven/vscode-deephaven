@@ -19,7 +19,7 @@ const INITIAL_WINDOW_SIZE = 4 * 1024 * 1024;
  * alongside concurrent unary calls (`getToken`, `ping`, `getGroupsForUser`) on
  * the same session.
  */
-const SESSION_LOCAL_WINDOW_SIZE = 8 * 1024 * 1024;
+const SESSION_LOCAL_WINDOW_SIZE = 2 * INITIAL_WINDOW_SIZE;
 
 let sharedFactory: DhcType.grpc.GrpcTransportFactory | null = null;
 
@@ -28,9 +28,9 @@ let sharedFactory: DhcType.grpc.GrpcTransportFactory | null = null;
  * extension makes — Core/DHC clients, the DHE client, and the Core+ manager
  * behind worker connections.
  *
- * There is deliberately exactly one instance: `createFactory` allocates a
- * session map per call, so calling it per site would open one TCP connection per
- * origin *per site* instead of sharing them.
+ * Each call to `NodeHttp2gRPCTransport.createFactory` allocates an
+ * origin -> session map, so we memoize a single call so that all sessions per
+ * origin get grouped.
  * @returns The shared transport factory.
  */
 export function getSharedTransportFactory(): DhcType.grpc.GrpcTransportFactory {
