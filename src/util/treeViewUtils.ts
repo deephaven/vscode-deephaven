@@ -63,9 +63,7 @@ export function getVariableIconPath(
 /**
  * Get the icon id for a console type / language, used for worker (connection /
  * persistent query) tree nodes. Falls back to the generic worker icon when the
- * console type is unknown (e.g. a plain DHC connection or one whose console type
- * has not resolved yet) — never the server icon, so a worker node is always
- * distinguishable from its parent server.
+ * console type is unknown.
  * @param consoleType Console type (language) of the connection, if known.
  * @returns Icon id from `ICON_ID`.
  */
@@ -93,10 +91,8 @@ const WORKER_LABEL_ID_LENGTH = 6;
 
 /**
  * Shorten a worker name for display in a tree node. DHE worker names end in a
- * generated id (`Code Studio - Web - l9hnYDTiEosKmJwe4Fma5`) that is long enough
- * to push the meaningful part of the name out of the sidebar, so the trailing
- * segment is clipped to its first few characters. Callers pair this with the
- * untruncated name as the node tooltip.
+ * generated id (`Code Studio - Web - l9hnYDTiEosKmJwe4Fma5`). Shorten it for
+ * cleaner display.
  *
  * Only a name with at least three ` - ` segments is touched, and only when its
  * last segment looks like an id (no whitespace) and is long enough to be worth
@@ -212,7 +208,7 @@ export function getPersistentQueryStatus(
   return queryInfo.designated?.status;
 }
 
-/** Variable types that render as tables (mirrors the table icon set). */
+/** Variable types that render as tables. */
 const TABLE_VARIABLE_TYPES: ReadonlySet<VariableType> = new Set([
   'Table',
   'TableMap',
@@ -404,17 +400,6 @@ export function getPersistentQueryObjectLeaves(
 }
 
 /**
- * Type guard for a (DHE) server node within the connection tree root.
- * `ServerState` carries `url`; `ConnectionState` carries `serverUrl`.
- * @param node A server or connection root node.
- */
-export function isServerStateNode(
-  node: ServerState | ConnectionState
-): node is ServerState {
-  return 'url' in node;
-}
-
-/**
  * Get the label shown for a server node in the connection tree views.
  * @param server Server state.
  */
@@ -479,6 +464,17 @@ export function getConnectionServerTreeItem(
         ? CONNECTION_TREE_ITEM_CONTEXT.isDHEServerConnectionParent
         : undefined,
   };
+}
+
+/**
+ * Type guard for a (DHE) server node within the connection tree root.
+ * `ServerState` carries `url`; `ConnectionState` carries `serverUrl`.
+ * @param node A server or connection root node.
+ */
+export function isServerStateNode(
+  node: ServerState | ConnectionState
+): node is ServerState {
+  return 'url' in node;
 }
 
 /**
