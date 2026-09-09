@@ -154,42 +154,35 @@ describe('getPanelVariableTreeItem', () => {
     }
   );
 
-  it('offers the delete action when the variable can be deleted', () => {
-    const variable = {
-      title: 'some title',
-      name: 'some_name',
-      type: 'Table',
-    } as VariableDefintion;
+  it.each(boolValues)(
+    'should offer the delete action based on the canDelete flag: canDelete=%s',
+    canDelete => {
+      const variable = {
+        title: 'some title',
+        name: 'some_name',
+        type: 'Table',
+      } as VariableDefintion;
 
-    expect(getPanelVariableTreeItem([url, variable], true).contextValue).toBe(
-      'canDeleteDeephavenVariable'
-    );
-  });
+      expect(
+        getPanelVariableTreeItem([url, variable], canDelete).contextValue
+      ).toBe(canDelete ? 'canDeleteDeephavenVariable' : undefined);
+    }
+  );
 
-  it('offers no delete action for a sessionless (PQ) object', () => {
-    const variable = {
-      title: 'some title',
-      name: 'some_name',
-      type: 'Table',
-    } as VariableDefintion;
+  it.each([...DH_PROTECTED_VARIABLE_NAMES])(
+    'should offer no delete action for a protected variable name: %s',
+    name => {
+      const variable = {
+        title: 'some title',
+        name,
+        type: 'Table',
+      } as VariableDefintion;
 
-    expect(
-      getPanelVariableTreeItem([url, variable], false).contextValue
-    ).toBeUndefined();
-  });
-
-  it('offers no delete action for a protected variable name', () => {
-    const [protectedName] = DH_PROTECTED_VARIABLE_NAMES;
-    const variable = {
-      title: 'some title',
-      name: protectedName,
-      type: 'Table',
-    } as VariableDefintion;
-
-    expect(
-      getPanelVariableTreeItem([url, variable], true).contextValue
-    ).toBeUndefined();
-  });
+      expect(
+        getPanelVariableTreeItem([url, variable], true).contextValue
+      ).toBeUndefined();
+    }
+  );
 });
 
 describe('getServerContextValue', () => {
