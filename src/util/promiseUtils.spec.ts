@@ -184,9 +184,10 @@ describe('createThrottledTrigger', () => {
       vi.advanceTimersByTime(100);
     }
 
-    // ~10,000ms of ticks every 100ms, rate limited to one run per 250ms.
-    expect(callback.mock.calls.length).toBeGreaterThan(30);
-    expect(callback.mock.calls.length).toBeLessThan(45);
+    // 100 ticks x 100ms = 10,000ms of virtual time. The leading edge runs at
+    // t=0, then the trailing run repeats every 250ms while triggers keep
+    // arriving: t=0, 250, 500 ... 10,000, so 1 + 10,000/250 runs.
+    expect(callback).toHaveBeenCalledTimes(41);
   });
 
   it('drops a pending trailing run when disposed', () => {

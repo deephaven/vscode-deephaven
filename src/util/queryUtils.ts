@@ -38,8 +38,7 @@ export function getQueryTableFilters(
   table: DhcType.Table,
   filters: QueryTableFilters
 ): DhcType.FilterCondition[] {
-  // Not caller-controlled: no view lists replicas, so this applies whatever
-  // else was asked for.
+  // Always exclude replicas
   const conditions: DhcType.FilterCondition[] = [
     getExcludeReplicasFilter(table),
   ];
@@ -57,13 +56,18 @@ export function getQueryTableFilters(
     conditions.push(isIn(QueryColumns.OWNER.name, filters.owners));
   }
 
-  const excludedTypes = [...EXCLUDED_QUERY_TYPES];
-
   if (filters.types != null && filters.types.length > 0) {
     // An explicit type allow-list takes precedence over the helper exclusion.
     conditions.push(isIn(QueryColumns.QUERY_TYPE.name, filters.types));
-  } else if (filters.excludeHelperTypes === true && excludedTypes.length > 0) {
-    conditions.push(isIn(QueryColumns.QUERY_TYPE.name, excludedTypes).not());
+  } else if (
+    filters.excludeHelperTypes === true &&
+    EXCLUDED_QUERY_TYPES.size > 0
+  ) {
+    // Spread because `EXCLUDED_QUERY_TYPES` is a `ReadonlySet` and `isIn` maps
+    // over an array.
+    conditions.push(
+      isIn(QueryColumns.QUERY_TYPE.name, [...EXCLUDED_QUERY_TYPES]).not()
+    );
   }
 
   if (filters.statuses != null && filters.statuses.length > 0) {
