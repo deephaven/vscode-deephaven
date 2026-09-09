@@ -25,7 +25,7 @@ import {
   SERVER_TREE_ITEM_CONTEXT,
   type ServerTreeItemContextValue,
 } from '../common';
-import { formatCount, sortByStringProp } from './dataUtils';
+import { sortByStringProp } from './dataUtils';
 import { isOpenablePanelVariable } from './panelUtils';
 
 /**
@@ -330,8 +330,8 @@ export function getPersistentQueryHiddenTreeItem(
     // Fixed id: the label carries a count that changes on every table tick, and
     // a label-generated id would make this a different node each time.
     id: `pq:${node.dheServerUrl.href}:more`,
-    label: `More (${formatCount(hiddenCount)})`,
-    tooltip: `${formatCount(hiddenCount)} ${
+    label: `More (${hiddenCount.toLocaleString()})`,
+    tooltip: `${hiddenCount.toLocaleString()} ${
       hiddenCount === 1 ? 'query is' : 'queries are'
     } hidden by the status filter. Click to change it.`,
     iconPath: new vscode.ThemeIcon(ICON_ID.hidden),

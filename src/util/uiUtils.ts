@@ -36,11 +36,7 @@ import type {
   LoginPromptCredentials,
   MultiAuthConfig,
 } from '../types';
-import {
-  formatCount,
-  getFilePathDateToken,
-  sortByStringProp,
-} from './dataUtils';
+import { getFilePathDateToken, sortByStringProp } from './dataUtils';
 import { getConsoleTypeIconId } from './treeViewUtils';
 import { Logger } from './Logger';
 
@@ -699,7 +695,7 @@ export async function promptForQueryStatusFilter(
       status === UNSET_QUERY_STATUS
         ? '(no status)'
         : QueryStatus.getDisplayString(status),
-    description: formatCount(statusCounts.get(status) ?? 0),
+    description: (statusCounts.get(status) ?? 0).toLocaleString(),
     picked: !hiddenStatuses.has(status),
   });
 
