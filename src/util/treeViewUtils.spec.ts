@@ -241,8 +241,8 @@ describe('getServerGroupTreeItem', () => {
 
 describe('getServerIconID', () => {
   it.each(matrix(boolValues, boolValues, boolValues, boolValues))(
-    'should return icon id based on server state: isConnected=%s, isConnecting=%s, isManaged=%s, isRunning=%s',
-    (isConnected, isConnecting, isManaged, isRunning) => {
+    'should return icon id based on server state: isManaged=%s, isRunning=%s, isConnecting=%s, isConnected=%s',
+    (isManaged, isRunning, isConnecting, isConnected) => {
       const actual = getServerIconID({
         isConnected,
         isConnecting,

@@ -392,37 +392,37 @@ exports[`getServerGroupTreeItem > should return server group tree item: group=Ru
 }
 `;
 
-exports[`getServerIconID > should return icon id based on server state: isConnected=false, isConnecting=false, isManaged=false, isRunning=false 1`] = `"circle-slash"`;
+exports[`getServerIconID > should return icon id based on server state: isManaged=false, isRunning=false, isConnecting=false, isConnected=false 1`] = `"circle-slash"`;
 
-exports[`getServerIconID > should return icon id based on server state: isConnected=false, isConnecting=false, isManaged=false, isRunning=true 1`] = `"circle-large-outline"`;
+exports[`getServerIconID > should return icon id based on server state: isManaged=false, isRunning=false, isConnecting=false, isConnected=true 1`] = `"circle-slash"`;
 
-exports[`getServerIconID > should return icon id based on server state: isConnected=false, isConnecting=false, isManaged=true, isRunning=false 1`] = `"sync~spin"`;
+exports[`getServerIconID > should return icon id based on server state: isManaged=false, isRunning=false, isConnecting=true, isConnected=false 1`] = `"circle-slash"`;
 
-exports[`getServerIconID > should return icon id based on server state: isConnected=false, isConnecting=false, isManaged=true, isRunning=true 1`] = `"circle-large-outline"`;
+exports[`getServerIconID > should return icon id based on server state: isManaged=false, isRunning=false, isConnecting=true, isConnected=true 1`] = `"circle-slash"`;
 
-exports[`getServerIconID > should return icon id based on server state: isConnected=false, isConnecting=true, isManaged=false, isRunning=false 1`] = `"circle-slash"`;
+exports[`getServerIconID > should return icon id based on server state: isManaged=false, isRunning=true, isConnecting=false, isConnected=false 1`] = `"circle-large-outline"`;
 
-exports[`getServerIconID > should return icon id based on server state: isConnected=false, isConnecting=true, isManaged=false, isRunning=true 1`] = `"sync~spin"`;
+exports[`getServerIconID > should return icon id based on server state: isManaged=false, isRunning=true, isConnecting=false, isConnected=true 1`] = `"circle-large-filled"`;
 
-exports[`getServerIconID > should return icon id based on server state: isConnected=false, isConnecting=true, isManaged=true, isRunning=false 1`] = `"sync~spin"`;
+exports[`getServerIconID > should return icon id based on server state: isManaged=false, isRunning=true, isConnecting=true, isConnected=false 1`] = `"sync~spin"`;
 
-exports[`getServerIconID > should return icon id based on server state: isConnected=false, isConnecting=true, isManaged=true, isRunning=true 1`] = `"sync~spin"`;
+exports[`getServerIconID > should return icon id based on server state: isManaged=false, isRunning=true, isConnecting=true, isConnected=true 1`] = `"sync~spin"`;
 
-exports[`getServerIconID > should return icon id based on server state: isConnected=true, isConnecting=false, isManaged=false, isRunning=false 1`] = `"circle-slash"`;
+exports[`getServerIconID > should return icon id based on server state: isManaged=true, isRunning=false, isConnecting=false, isConnected=false 1`] = `"sync~spin"`;
 
-exports[`getServerIconID > should return icon id based on server state: isConnected=true, isConnecting=false, isManaged=false, isRunning=true 1`] = `"circle-large-filled"`;
+exports[`getServerIconID > should return icon id based on server state: isManaged=true, isRunning=false, isConnecting=false, isConnected=true 1`] = `"sync~spin"`;
 
-exports[`getServerIconID > should return icon id based on server state: isConnected=true, isConnecting=false, isManaged=true, isRunning=false 1`] = `"sync~spin"`;
+exports[`getServerIconID > should return icon id based on server state: isManaged=true, isRunning=false, isConnecting=true, isConnected=false 1`] = `"sync~spin"`;
 
-exports[`getServerIconID > should return icon id based on server state: isConnected=true, isConnecting=false, isManaged=true, isRunning=true 1`] = `"circle-large-filled"`;
+exports[`getServerIconID > should return icon id based on server state: isManaged=true, isRunning=false, isConnecting=true, isConnected=true 1`] = `"sync~spin"`;
 
-exports[`getServerIconID > should return icon id based on server state: isConnected=true, isConnecting=true, isManaged=false, isRunning=false 1`] = `"circle-slash"`;
+exports[`getServerIconID > should return icon id based on server state: isManaged=true, isRunning=true, isConnecting=false, isConnected=false 1`] = `"circle-large-outline"`;
 
-exports[`getServerIconID > should return icon id based on server state: isConnected=true, isConnecting=true, isManaged=false, isRunning=true 1`] = `"sync~spin"`;
+exports[`getServerIconID > should return icon id based on server state: isManaged=true, isRunning=true, isConnecting=false, isConnected=true 1`] = `"circle-large-filled"`;
 
-exports[`getServerIconID > should return icon id based on server state: isConnected=true, isConnecting=true, isManaged=true, isRunning=false 1`] = `"sync~spin"`;
+exports[`getServerIconID > should return icon id based on server state: isManaged=true, isRunning=true, isConnecting=true, isConnected=false 1`] = `"sync~spin"`;
 
-exports[`getServerIconID > should return icon id based on server state: isConnected=true, isConnecting=true, isManaged=true, isRunning=true 1`] = `"sync~spin"`;
+exports[`getServerIconID > should return icon id based on server state: isManaged=true, isRunning=true, isConnecting=true, isConnected=true 1`] = `"sync~spin"`;
 
 exports[`getServerTreeItem > should return server tree item: type=DHC, isManaged=false, isRunning=false, isConnecting=false, isConnected=false 1`] = `
 {
