@@ -247,9 +247,8 @@ describe('ServerManager._createOrAttachToWorkers', () => {
     const dheService = mockDheService(['existing-1', 'existing-2']);
 
     const owned = mockConnectionState(serverUrl);
-    manager._createWorker = vi
-      .fn()
-      .mockResolvedValue({ name: 'owned', serial: 'owned-1' });
+    const ownedWorkerInfo = { name: 'owned', serial: 'owned-1' };
+    manager._createWorker = vi.fn().mockResolvedValue(ownedWorkerInfo);
     manager._attachToWorker = vi.fn(async (_label, _url, isOwned) =>
       isOwned ? owned : mockConnectionState(serverUrl)
     );
@@ -261,10 +260,37 @@ describe('ServerManager._createOrAttachToWorkers', () => {
     );
 
     expect(manager._createWorker).toHaveBeenCalledTimes(1);
+    // The created worker is the one attached as owned.
+    expect(manager._attachToWorker).toHaveBeenCalledWith(
+      ownedWorkerInfo.name,
+      serverUrl,
+      true,
+      ownedWorkerInfo
+    );
     // The existing consoles are still attached so they populate the tree...
     expect(manager._attachToWorker).toHaveBeenCalledTimes(3);
     // ...but the connection handed back is the one we own.
     expect(result).toBe(owned);
+  });
+
+  it('lists the attachable workers before creating one', async () => {
+    // The created worker is itself a running InteractiveConsole owned by the
+    // user, so listing after creating would enumerate it and attach it a
+    // second time.
+    const dheService = mockDheService(['existing-1']);
+
+    manager._createWorker = vi
+      .fn()
+      .mockResolvedValue({ name: 'owned', serial: 'owned-1' });
+    manager._attachToWorker = vi
+      .fn()
+      .mockResolvedValue(mockConnectionState(serverUrl));
+
+    await manager._createOrAttachToWorkers(dheService, undefined, true);
+
+    expect(
+      vi.mocked(dheService.listAttachableWorkers).mock.invocationCallOrder[0]
+    ).toBeLessThan(manager._createWorker.mock.invocationCallOrder[0]);
   });
 
   it('attaches existing consoles without creating one when createWorker is false', async () => {
@@ -361,6 +387,7 @@ describe('ServerManager.isServerConnecting', () => {
       .mockReturnValueOnce(okConnection);
 
     expect(await manager.connectToServer(serverUrl, undefined)).toBeNull();
+    expect(manager._dhcServiceFactory.create).toHaveBeenCalledTimes(1);
     expect(manager.isServerConnecting(serverUrl)).toBe(false);
 
     // The retry is not blocked by a stale pending entry — it starts a new
