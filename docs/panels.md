@@ -12,9 +12,7 @@ If the `deephaven-server` pip package is available in your local workspace, the 
 
 ## Interactive Consoles
 
-The `INTERACTIVE CONSOLES` panel shows all active connections grouped under their server. Each worker node lists the editors currently associated with it, followed by the exported variables available on its session. Clicking a variable will open or refresh the respective output panel. Hovering over nodes will show additional contextual action icons.
-
-Worker names end in a generated id, so nodes show a shortened form of the name — hover a worker node to see its full name.
+The `INTERACTIVE CONSOLES` panel shows all active connections grouped under their server. Each worker node lists the editors currently associated with it, followed by associated files and the exported variables available on its session. Clicking a variable will open or refresh the respective output panel. Hovering over nodes will show additional contextual action icons.
 
 ![Connections Panel](./assets/connections-panel.png)
 
