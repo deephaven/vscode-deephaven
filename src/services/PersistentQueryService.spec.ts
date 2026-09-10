@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { QueryInfo } from '@deephaven-enterprise/jsapi-types';
 import { PersistentQueryService } from './PersistentQueryService';
-import type { QueryInfoTableSubscription } from '../types';
+import type { DheServerFeatures, QueryInfoTableSubscription } from '../types';
 import type { IAsyncCacheService, IDheService, IServerManager } from '../types';
 
 // See __mocks__/vscode.ts for the mock implementation
@@ -51,7 +51,7 @@ describe('PersistentQueryService', () => {
   let dheServiceCache: IAsyncCacheService<URL, IDheService>;
   let service: PersistentQueryService;
   let knownConfigs: QueryInfo[];
-  const getServerFeatures = vi.fn();
+  const getServerFeatures = vi.fn<IDheService['getServerFeatures']>();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -60,7 +60,10 @@ describe('PersistentQueryService', () => {
 
     // Populated only when the server's feature probe succeeded — see
     // `DheService.getClient`.
-    getServerFeatures.mockReturnValue(() => ({ version: 1, features: {} }));
+    getServerFeatures.mockReturnValue({
+      version: 1,
+      features: {},
+    } as DheServerFeatures);
 
     const dheService = {
       getClient: vi.fn(async () => ({
@@ -116,7 +119,7 @@ describe('PersistentQueryService', () => {
         serial: 'serial-stopped',
         name: 'Stopped PQ',
         designated: undefined,
-      } as Partial<QueryInfo>),
+      }),
     ];
 
     getQueryInfoTable.mockResolvedValue(makeSubscription(['serial-stopped']));
@@ -141,16 +144,15 @@ describe('PersistentQueryService', () => {
   });
 
   describe('isSupported', () => {
-    it('is true when the server reports its features', async () => {
-      expect(await service.isSupported(DHE_URL)).toBe(true);
-    });
-
-    it('is false when the server reports no features', async () => {
-      // `DheService` leaves the features cache empty when the probe fails —
-      // `getDheFeatures` throws `UnsupportedFeatureQueryError`.
-      getServerFeatures.mockReturnValue(undefined);
-
-      expect(await service.isSupported(DHE_URL)).toBe(false);
-    });
+    it.each([
+      [true, { version: 1, features: {} } as DheServerFeatures],
+      [false, undefined],
+    ])(
+      'returns %p when the server features are %p',
+      async (expected, features) => {
+        getServerFeatures.mockReturnValue(features);
+        expect(await service.isSupported(DHE_URL)).toBe(expected);
+      }
+    );
   });
 });
