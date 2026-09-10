@@ -42,20 +42,33 @@ describe('PersistentQueryStatusFilterService', () => {
       expect([...service.getHiddenStatuses()].sort()).toEqual(
         [...DEFAULT_HIDDEN_QUERY_STATUSES].sort()
       );
-      expect(service.isVisible('Running')).toBe(true);
-      expect(service.isVisible('Initializing')).toBe(true);
-      // Grouped with the stopped statuses, so hidden by default.
-      expect(service.isVisible('Stopping')).toBe(false);
-      expect(service.isVisible('Stopped')).toBe(false);
-      expect(service.isVisible(null)).toBe(false);
+    });
+
+    it.each([...LIVE_QUERY_STATUSES])('lists %s on first run', status => {
+      const service = new PersistentQueryStatusFilterService(makeContext());
+
+      expect(service.isVisible(status)).toBe(true);
+    });
+
+    // `Stopping` groups with the stopped statuses, so it is hidden here too.
+    it.each([...STOPPED_QUERY_STATUSES])('hides %j on first run', status => {
+      const service = new PersistentQueryStatusFilterService(makeContext());
+
+      expect(service.isVisible(status)).toBe(false);
     });
 
     it('treats a stored empty array as "show everything", not as unset', () => {
       const service = new PersistentQueryStatusFilterService(makeContext([]));
 
       expect(service.getHiddenStatuses().size).toBe(0);
-      expect(service.isVisible('Stopped')).toBe(true);
-      expect(service.isVisible(null)).toBe(true);
+      for (const status of [
+        ...LIVE_QUERY_STATUSES,
+        ...STOPPED_QUERY_STATUSES,
+        null,
+        'unrecognized',
+      ]) {
+        expect(service.isVisible(status)).toBe(true);
+      }
     });
 
     it('restores a persisted hidden set', () => {
@@ -85,14 +98,14 @@ describe('PersistentQueryStatusFilterService', () => {
   });
 
   describe('isVisible', () => {
-    it.each([[null], [undefined], ['']])(
+    it.each([null, undefined, ''])(
       'normalises an unset status to the same entry: %s',
       status => {
         const service = new PersistentQueryStatusFilterService(
           makeContext([UNSET_QUERY_STATUS])
         );
 
-        expect(service.isVisible(status as string | null)).toBe(false);
+        expect(service.isVisible(status)).toBe(false);
       }
     );
 
@@ -150,93 +163,95 @@ describe('PersistentQueryStatusFilterService', () => {
       expect(onDidUpdate).not.toHaveBeenCalled();
     });
   });
-});
 
-describe('status sections', () => {
-  it('reports the default filter as Running checked, Stopped unchecked', () => {
-    const service = new PersistentQueryStatusFilterService(makeContext());
+  describe('status sections', () => {
+    it('reports the default filter as Running checked, Stopped unchecked', () => {
+      const service = new PersistentQueryStatusFilterService(makeContext());
 
-    expect(service.isSectionFullyVisible('Running')).toBe(true);
-    expect(service.isSectionFullyVisible('Stopped')).toBe(false);
-  });
+      expect(service.isSectionFullyVisible('Running')).toBe(true);
+      expect(service.isSectionFullyVisible('Stopped')).toBe(false);
+    });
 
-  it('reports a partly hidden section as unchecked', async () => {
-    const service = new PersistentQueryStatusFilterService(makeContext([]));
+    it('reports a partly hidden section as unchecked', async () => {
+      const service = new PersistentQueryStatusFilterService(makeContext([]));
 
-    // Hide all of Running except `Running` itself.
-    await service.setHiddenStatuses(
-      LIVE_QUERY_STATUSES.filter(status => status !== 'Running')
-    );
+      // Hide all of Running except `Running` itself.
+      await service.setHiddenStatuses(
+        LIVE_QUERY_STATUSES.filter(status => status !== 'Running')
+      );
 
-    // Partial is not checked, so the row's command fills the section in rather
-    // than clearing the one status still showing.
-    expect(service.isSectionFullyVisible('Running')).toBe(false);
-    expect(service.isVisible('Running')).toBe(true);
-  });
+      // Partial is not checked, so the row's command fills the section in rather
+      // than clearing the one status still showing.
+      expect(service.isSectionFullyVisible('Running')).toBe(false);
+      expect(service.isVisible('Running')).toBe(true);
+    });
 
-  it('hides every status in a section', async () => {
-    const service = new PersistentQueryStatusFilterService(makeContext([]));
+    it('hides every status in a section', async () => {
+      const service = new PersistentQueryStatusFilterService(makeContext([]));
 
-    await service.setSectionVisible('Running', false);
+      await service.setSectionVisible('Running', false);
 
-    expect(service.isSectionFullyVisible('Running')).toBe(false);
-    for (const status of LIVE_QUERY_STATUSES) {
-      expect(service.isVisible(status)).toBe(false);
-    }
-    // The other section is untouched.
-    expect(service.isSectionFullyVisible('Stopped')).toBe(true);
-  });
+      for (const status of LIVE_QUERY_STATUSES) {
+        expect(service.isVisible(status)).toBe(false);
+      }
+      // The other section is untouched.
+      expect(service.isSectionFullyVisible('Stopped')).toBe(true);
+    });
 
-  it('shows every status in a section, including the unset one', async () => {
-    const service = new PersistentQueryStatusFilterService(makeContext());
+    it('shows every status in a section, including the unset one', async () => {
+      const service = new PersistentQueryStatusFilterService(makeContext());
 
-    await service.setSectionVisible('Stopped', true);
+      await service.setSectionVisible('Stopped', true);
 
-    expect(service.isSectionFullyVisible('Stopped')).toBe(true);
-    expect(service.isVisible('Stopped')).toBe(true);
-    expect(service.isVisible(null)).toBe(true);
-  });
+      expect(service.isSectionFullyVisible('Stopped')).toBe(true);
+      for (const status of STOPPED_QUERY_STATUSES) {
+        expect(service.isVisible(status)).toBe(true);
+      }
+      // The unset status's other spellings resolve to the same entry.
+      expect(service.isVisible(null)).toBe(true);
+    });
 
-  it('checks a partly hidden section by filling it in, then clears it', async () => {
-    const service = new PersistentQueryStatusFilterService(makeContext());
+    it('checks a partly hidden section by filling it in, then clears it', async () => {
+      const service = new PersistentQueryStatusFilterService(makeContext());
 
-    // The default leaves Stopped partly visible if one of its statuses is
-    // unhidden — the state a filter persisted under older defaults can land in.
-    await service.setHiddenStatuses(
-      STOPPED_QUERY_STATUSES.filter(status => status !== 'Stopping')
-    );
-    expect(service.isSectionFullyVisible('Stopped')).toBe(false);
+      // The default leaves Stopped partly visible if one of its statuses is
+      // unhidden — the state a filter persisted under older defaults can land in.
+      await service.setHiddenStatuses(
+        STOPPED_QUERY_STATUSES.filter(status => status !== 'Stopping')
+      );
+      expect(service.isSectionFullyVisible('Stopped')).toBe(false);
 
-    // Unchecked row -> show all.
-    await service.setSectionVisible('Stopped', true);
-    expect(service.isSectionFullyVisible('Stopped')).toBe(true);
+      // Unchecked row -> show all.
+      await service.setSectionVisible('Stopped', true);
+      expect(service.isSectionFullyVisible('Stopped')).toBe(true);
 
-    // Now checked -> hide all.
-    await service.setSectionVisible('Stopped', false);
-    expect(service.isSectionFullyVisible('Stopped')).toBe(false);
-    for (const status of STOPPED_QUERY_STATUSES) {
-      expect(service.isVisible(status)).toBe(false);
-    }
-  });
+      // Now checked -> hide all.
+      await service.setSectionVisible('Stopped', false);
+      for (const status of STOPPED_QUERY_STATUSES) {
+        expect(service.isVisible(status)).toBe(false);
+      }
+    });
 
-  it('leaves an unrecognized status alone when toggling a section', async () => {
-    const service = new PersistentQueryStatusFilterService(makeContext([]));
+    it('leaves an unrecognized status alone when toggling a section', async () => {
+      const service = new PersistentQueryStatusFilterService(makeContext([]));
 
-    await service.setSectionVisible('Running', false);
+      await service.setSectionVisible('Running', false);
+      await service.setSectionVisible('Stopped', false);
 
-    // Not part of either section's status list, so the toggle cannot hide it.
-    expect(service.isVisible('Hibernating')).toBe(true);
-  });
+      // Not part of either section's status list, so the toggle cannot hide it.
+      expect(service.isVisible('Hibernating')).toBe(true);
+    });
 
-  it('persists a section toggle', async () => {
-    const context = makeContext([]);
-    const service = new PersistentQueryStatusFilterService(context);
+    it('persists a section toggle', async () => {
+      const context = makeContext([]);
+      const service = new PersistentQueryStatusFilterService(context);
 
-    await service.setSectionVisible('Stopped', false);
+      await service.setSectionVisible('Stopped', false);
 
-    expect(context.globalState.update).toHaveBeenCalledWith(
-      PERSISTENT_QUERY_HIDDEN_STATUSES_STORAGE_KEY,
-      expect.arrayContaining(['Stopped', UNSET_QUERY_STATUS])
-    );
+      expect(context.globalState.update).toHaveBeenCalledWith(
+        PERSISTENT_QUERY_HIDDEN_STATUSES_STORAGE_KEY,
+        [...STOPPED_QUERY_STATUSES]
+      );
+    });
   });
 });
