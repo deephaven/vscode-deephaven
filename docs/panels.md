@@ -18,13 +18,27 @@ The `INTERACTIVE CONSOLES` panel shows all active connections grouped under thei
 
 Editors can be dragged from one active connection to another.
 
+### Creating a Worker
+
+To start a new interactive console worker on an enterprise server, hover the server node in this panel and click the `+` (`Create Worker`) action.
+
+![Create Worker](assets/create-worker.png)
+
+Servers that support the query creation UI will present it so you can configure the worker. [Grizzly servers](configuration.md#enterprise-servers) do not, and use the `experimentalWorkerConfig` setting instead.
+
+### Disconnecting from a Worker
+
+Hover a worker node and click the disconnect icon to disconnect from it. This action is only available on workers that were started from `VS Code`. Workers that were already running when you connected to the server are left running.
+
+![Disconnect Worker](assets/disconnect-worker.png)
+
 ## Persistent Queries
 
-The `PERSISTENT QUERIES` panel shows the persistent queries visible to you on each connected enterprise server, listed beneath the server that owns them. Each query's icon shows its status: a filled circle for running, a slashed circle for stopped or failed, a hollow circle when the server reports no status, and a spinner while it is still in motion (starting up or stopping). Expanding a running query lists the objects it exports; clicking one opens it in a panel.
+The `PERSISTENT QUERIES` panel shows the persistent queries visible to you on each connected enterprise server, listed beneath the server that owns them. Servers older than Grizzly+ cannot provide this list and are omitted from the panel entirely. Expanding a running query lists the objects it exports; clicking one opens it in a panel.
+
+![Persistent Queries Panel](assets/persistent-queries-panel.png)
 
 The filter icon in the panel title chooses which statuses are listed:
-
-![Persistent Query Filters](assets/persistent-query-filters.png)
 
 - `Running` covers queries that are running or starting up; `Stopped` covers those that have finished or are shutting down, plus queries reporting no status at all. By default `Running` is checked and `Stopped` is not.
 - An entry is checked only while every status in its group is listed. Clicking a checked entry hides the whole group; clicking an unchecked one lists all of it.
