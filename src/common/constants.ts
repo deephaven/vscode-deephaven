@@ -302,6 +302,7 @@ export const SERVER_TREE_ITEM_CONTEXT = {
   isManagedServerConnected: 'isManagedServerConnected',
   isManagedServerConnecting: 'isManagedServerConnecting',
   isManagedServerDisconnected: 'isManagedServerDisconnected',
+  isManagedServerStarting: 'isManagedServerStarting',
   isServerConnecting: 'isServerConnecting',
   isServerRunningConnected: 'isServerRunningConnected',
   isServerRunningDisconnected: 'isServerRunningDisconnected',

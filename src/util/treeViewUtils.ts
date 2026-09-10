@@ -498,31 +498,35 @@ export function getServerContextValue({
   isManaged: boolean;
   isRunning: boolean;
 }): ServerTreeItemContextValue {
-  if (isConnecting) {
-    return SERVER_TREE_ITEM_CONTEXT.isServerConnecting;
-  }
-
   if (isManaged) {
+    if (isConnecting) {
+      return SERVER_TREE_ITEM_CONTEXT.isManagedServerConnecting;
+    }
+
     return isConnected
       ? SERVER_TREE_ITEM_CONTEXT.isManagedServerConnected
       : isRunning
         ? SERVER_TREE_ITEM_CONTEXT.isManagedServerDisconnected
-        : SERVER_TREE_ITEM_CONTEXT.isManagedServerConnecting;
+        : SERVER_TREE_ITEM_CONTEXT.isManagedServerStarting;
   }
 
-  if (isRunning) {
-    if (isDHE) {
-      return isConnected
-        ? SERVER_TREE_ITEM_CONTEXT.isDHEServerRunningConnected
-        : SERVER_TREE_ITEM_CONTEXT.isDHEServerRunningDisconnected;
-    }
+  if (!isRunning) {
+    return SERVER_TREE_ITEM_CONTEXT.isServerStopped;
+  }
 
+  if (isConnecting) {
+    return SERVER_TREE_ITEM_CONTEXT.isServerConnecting;
+  }
+
+  if (isDHE) {
     return isConnected
-      ? SERVER_TREE_ITEM_CONTEXT.isServerRunningConnected
-      : SERVER_TREE_ITEM_CONTEXT.isServerRunningDisconnected;
+      ? SERVER_TREE_ITEM_CONTEXT.isDHEServerRunningConnected
+      : SERVER_TREE_ITEM_CONTEXT.isDHEServerRunningDisconnected;
   }
 
-  return SERVER_TREE_ITEM_CONTEXT.isServerStopped;
+  return isConnected
+    ? SERVER_TREE_ITEM_CONTEXT.isServerRunningConnected
+    : SERVER_TREE_ITEM_CONTEXT.isServerRunningDisconnected;
 }
 
 /**
@@ -606,17 +610,17 @@ export function getServerIconID({
   isManaged: boolean;
   isRunning: boolean;
 }): string {
-  if (isConnecting) {
+  if (!isManaged && !isRunning) {
+    return ICON_ID.serverStopped;
+  }
+
+  // A managed server that has not answered a health check yet is still coming
+  // up, so it spins like an in-flight client connection.
+  if (isConnecting || !isRunning) {
     return ICON_ID.connecting;
   }
 
-  return isRunning
-    ? isConnected
-      ? ICON_ID.serverConnected
-      : ICON_ID.serverRunning
-    : isManaged
-      ? ICON_ID.connecting
-      : ICON_ID.serverStopped;
+  return isConnected ? ICON_ID.serverConnected : ICON_ID.serverRunning;
 }
 
 /**
@@ -653,12 +657,19 @@ export function getServerTreeItem(
     contextValue === SERVER_TREE_ITEM_CONTEXT.isDHEServerRunningConnected ||
     contextValue === SERVER_TREE_ITEM_CONTEXT.isDHEServerRunningDisconnected;
 
+  // Derived from `contextValue`, not the raw `isConnecting` flag, so the tooltip
+  // cannot contradict the icon and actions — a configured server that is not
+  // running reads as stopped even with a handshake still in flight.
+  const isConnectingToServer =
+    contextValue === SERVER_TREE_ITEM_CONTEXT.isServerConnecting ||
+    contextValue === SERVER_TREE_ITEM_CONTEXT.isManagedServerConnecting;
+
   const label = getConnectionServerLabel(server);
 
   return {
     label,
     description,
-    tooltip: isConnecting
+    tooltip: isConnectingToServer
       ? `Connecting to ${label}…`
       : canConnect
         ? `Click to connect to ${label}`

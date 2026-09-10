@@ -288,37 +288,37 @@ exports[`getPanelVariableTreeItem > should return panel variable tree item: type
 }
 `;
 
-exports[`getServerContextValue > should return contextValue based on server state: isConnected=false, isConnecting=false, isManaged=false, isRunning=false 1`] = `"isServerStopped"`;
+exports[`getServerContextValue > should return contextValue based on server state: isManaged=false, isRunning=false, isConnecting=false, isConnected=false 1`] = `"isServerStopped"`;
 
-exports[`getServerContextValue > should return contextValue based on server state: isConnected=false, isConnecting=false, isManaged=false, isRunning=true 1`] = `"isServerRunningDisconnected"`;
+exports[`getServerContextValue > should return contextValue based on server state: isManaged=false, isRunning=false, isConnecting=false, isConnected=true 1`] = `"isServerStopped"`;
 
-exports[`getServerContextValue > should return contextValue based on server state: isConnected=false, isConnecting=false, isManaged=true, isRunning=false 1`] = `"isManagedServerConnecting"`;
+exports[`getServerContextValue > should return contextValue based on server state: isManaged=false, isRunning=false, isConnecting=true, isConnected=false 1`] = `"isServerStopped"`;
 
-exports[`getServerContextValue > should return contextValue based on server state: isConnected=false, isConnecting=false, isManaged=true, isRunning=true 1`] = `"isManagedServerDisconnected"`;
+exports[`getServerContextValue > should return contextValue based on server state: isManaged=false, isRunning=false, isConnecting=true, isConnected=true 1`] = `"isServerStopped"`;
 
-exports[`getServerContextValue > should return contextValue based on server state: isConnected=false, isConnecting=true, isManaged=false, isRunning=false 1`] = `"isServerConnecting"`;
+exports[`getServerContextValue > should return contextValue based on server state: isManaged=false, isRunning=true, isConnecting=false, isConnected=false 1`] = `"isServerRunningDisconnected"`;
 
-exports[`getServerContextValue > should return contextValue based on server state: isConnected=false, isConnecting=true, isManaged=false, isRunning=true 1`] = `"isServerConnecting"`;
+exports[`getServerContextValue > should return contextValue based on server state: isManaged=false, isRunning=true, isConnecting=false, isConnected=true 1`] = `"isServerRunningConnected"`;
 
-exports[`getServerContextValue > should return contextValue based on server state: isConnected=false, isConnecting=true, isManaged=true, isRunning=false 1`] = `"isServerConnecting"`;
+exports[`getServerContextValue > should return contextValue based on server state: isManaged=false, isRunning=true, isConnecting=true, isConnected=false 1`] = `"isServerConnecting"`;
 
-exports[`getServerContextValue > should return contextValue based on server state: isConnected=false, isConnecting=true, isManaged=true, isRunning=true 1`] = `"isServerConnecting"`;
+exports[`getServerContextValue > should return contextValue based on server state: isManaged=false, isRunning=true, isConnecting=true, isConnected=true 1`] = `"isServerConnecting"`;
 
-exports[`getServerContextValue > should return contextValue based on server state: isConnected=true, isConnecting=false, isManaged=false, isRunning=false 1`] = `"isServerStopped"`;
+exports[`getServerContextValue > should return contextValue based on server state: isManaged=true, isRunning=false, isConnecting=false, isConnected=false 1`] = `"isManagedServerStarting"`;
 
-exports[`getServerContextValue > should return contextValue based on server state: isConnected=true, isConnecting=false, isManaged=false, isRunning=true 1`] = `"isServerRunningConnected"`;
+exports[`getServerContextValue > should return contextValue based on server state: isManaged=true, isRunning=false, isConnecting=false, isConnected=true 1`] = `"isManagedServerConnected"`;
 
-exports[`getServerContextValue > should return contextValue based on server state: isConnected=true, isConnecting=false, isManaged=true, isRunning=false 1`] = `"isManagedServerConnected"`;
+exports[`getServerContextValue > should return contextValue based on server state: isManaged=true, isRunning=false, isConnecting=true, isConnected=false 1`] = `"isManagedServerConnecting"`;
 
-exports[`getServerContextValue > should return contextValue based on server state: isConnected=true, isConnecting=false, isManaged=true, isRunning=true 1`] = `"isManagedServerConnected"`;
+exports[`getServerContextValue > should return contextValue based on server state: isManaged=true, isRunning=false, isConnecting=true, isConnected=true 1`] = `"isManagedServerConnecting"`;
 
-exports[`getServerContextValue > should return contextValue based on server state: isConnected=true, isConnecting=true, isManaged=false, isRunning=false 1`] = `"isServerConnecting"`;
+exports[`getServerContextValue > should return contextValue based on server state: isManaged=true, isRunning=true, isConnecting=false, isConnected=false 1`] = `"isManagedServerDisconnected"`;
 
-exports[`getServerContextValue > should return contextValue based on server state: isConnected=true, isConnecting=true, isManaged=false, isRunning=true 1`] = `"isServerConnecting"`;
+exports[`getServerContextValue > should return contextValue based on server state: isManaged=true, isRunning=true, isConnecting=false, isConnected=true 1`] = `"isManagedServerConnected"`;
 
-exports[`getServerContextValue > should return contextValue based on server state: isConnected=true, isConnecting=true, isManaged=true, isRunning=false 1`] = `"isServerConnecting"`;
+exports[`getServerContextValue > should return contextValue based on server state: isManaged=true, isRunning=true, isConnecting=true, isConnected=false 1`] = `"isManagedServerConnecting"`;
 
-exports[`getServerContextValue > should return contextValue based on server state: isConnected=true, isConnecting=true, isManaged=true, isRunning=true 1`] = `"isServerConnecting"`;
+exports[`getServerContextValue > should return contextValue based on server state: isManaged=true, isRunning=true, isConnecting=true, isConnected=true 1`] = `"isManagedServerConnecting"`;
 
 exports[`getServerDescription > should return server description based on parameters: connectionCount=0, isManaged=false, label=some label 1`] = `"some label"`;
 
@@ -400,7 +400,7 @@ exports[`getServerIconID > should return icon id based on server state: isConnec
 
 exports[`getServerIconID > should return icon id based on server state: isConnected=false, isConnecting=false, isManaged=true, isRunning=true 1`] = `"circle-large-outline"`;
 
-exports[`getServerIconID > should return icon id based on server state: isConnected=false, isConnecting=true, isManaged=false, isRunning=false 1`] = `"sync~spin"`;
+exports[`getServerIconID > should return icon id based on server state: isConnected=false, isConnecting=true, isManaged=false, isRunning=false 1`] = `"circle-slash"`;
 
 exports[`getServerIconID > should return icon id based on server state: isConnected=false, isConnecting=true, isManaged=false, isRunning=true 1`] = `"sync~spin"`;
 
@@ -416,7 +416,7 @@ exports[`getServerIconID > should return icon id based on server state: isConnec
 
 exports[`getServerIconID > should return icon id based on server state: isConnected=true, isConnecting=false, isManaged=true, isRunning=true 1`] = `"circle-large-filled"`;
 
-exports[`getServerIconID > should return icon id based on server state: isConnected=true, isConnecting=true, isManaged=false, isRunning=false 1`] = `"sync~spin"`;
+exports[`getServerIconID > should return icon id based on server state: isConnected=true, isConnecting=true, isManaged=false, isRunning=false 1`] = `"circle-slash"`;
 
 exports[`getServerIconID > should return icon id based on server state: isConnected=true, isConnecting=true, isManaged=false, isRunning=true 1`] = `"sync~spin"`;
 
@@ -424,7 +424,7 @@ exports[`getServerIconID > should return icon id based on server state: isConnec
 
 exports[`getServerIconID > should return icon id based on server state: isConnected=true, isConnecting=true, isManaged=true, isRunning=true 1`] = `"sync~spin"`;
 
-exports[`getServerTreeItem > should return server tree item: type=DHC, isConnected=false, isConnecting=false, isManaged=false, isRunning=false 1`] = `
+exports[`getServerTreeItem > should return server tree item: type=DHC, isManaged=false, isRunning=false, isConnecting=false, isConnected=false 1`] = `
 {
   "command": undefined,
   "contextValue": "isServerStopped",
@@ -438,7 +438,49 @@ exports[`getServerTreeItem > should return server tree item: type=DHC, isConnect
 }
 `;
 
-exports[`getServerTreeItem > should return server tree item: type=DHC, isConnected=false, isConnecting=false, isManaged=false, isRunning=true 1`] = `
+exports[`getServerTreeItem > should return server tree item: type=DHC, isManaged=false, isRunning=false, isConnecting=false, isConnected=true 1`] = `
+{
+  "command": undefined,
+  "contextValue": "isServerStopped",
+  "description": "(1)",
+  "iconPath": ThemeIcon {
+    "color": undefined,
+    "id": "circle-slash",
+  },
+  "label": "localhost:10000",
+  "tooltip": "localhost:10000",
+}
+`;
+
+exports[`getServerTreeItem > should return server tree item: type=DHC, isManaged=false, isRunning=false, isConnecting=true, isConnected=false 1`] = `
+{
+  "command": undefined,
+  "contextValue": "isServerStopped",
+  "description": "",
+  "iconPath": ThemeIcon {
+    "color": undefined,
+    "id": "circle-slash",
+  },
+  "label": "localhost:10000",
+  "tooltip": "localhost:10000",
+}
+`;
+
+exports[`getServerTreeItem > should return server tree item: type=DHC, isManaged=false, isRunning=false, isConnecting=true, isConnected=true 1`] = `
+{
+  "command": undefined,
+  "contextValue": "isServerStopped",
+  "description": "(1)",
+  "iconPath": ThemeIcon {
+    "color": undefined,
+    "id": "circle-slash",
+  },
+  "label": "localhost:10000",
+  "tooltip": "localhost:10000",
+}
+`;
+
+exports[`getServerTreeItem > should return server tree item: type=DHC, isManaged=false, isRunning=true, isConnecting=false, isConnected=false 1`] = `
 {
   "command": {
     "arguments": [
@@ -465,10 +507,52 @@ exports[`getServerTreeItem > should return server tree item: type=DHC, isConnect
 }
 `;
 
-exports[`getServerTreeItem > should return server tree item: type=DHC, isConnected=false, isConnecting=false, isManaged=true, isRunning=false 1`] = `
+exports[`getServerTreeItem > should return server tree item: type=DHC, isManaged=false, isRunning=true, isConnecting=false, isConnected=true 1`] = `
 {
   "command": undefined,
-  "contextValue": "isManagedServerConnecting",
+  "contextValue": "isServerRunningConnected",
+  "description": "(1)",
+  "iconPath": ThemeIcon {
+    "color": undefined,
+    "id": "circle-large-filled",
+  },
+  "label": "localhost:10000",
+  "tooltip": "localhost:10000",
+}
+`;
+
+exports[`getServerTreeItem > should return server tree item: type=DHC, isManaged=false, isRunning=true, isConnecting=true, isConnected=false 1`] = `
+{
+  "command": undefined,
+  "contextValue": "isServerConnecting",
+  "description": "",
+  "iconPath": ThemeIcon {
+    "color": undefined,
+    "id": "sync~spin",
+  },
+  "label": "localhost:10000",
+  "tooltip": "Connecting to localhost:10000…",
+}
+`;
+
+exports[`getServerTreeItem > should return server tree item: type=DHC, isManaged=false, isRunning=true, isConnecting=true, isConnected=true 1`] = `
+{
+  "command": undefined,
+  "contextValue": "isServerConnecting",
+  "description": "(1)",
+  "iconPath": ThemeIcon {
+    "color": undefined,
+    "id": "sync~spin",
+  },
+  "label": "localhost:10000",
+  "tooltip": "Connecting to localhost:10000…",
+}
+`;
+
+exports[`getServerTreeItem > should return server tree item: type=DHC, isManaged=true, isRunning=false, isConnecting=false, isConnected=false 1`] = `
+{
+  "command": undefined,
+  "contextValue": "isManagedServerStarting",
   "description": "pip",
   "iconPath": ThemeIcon {
     "color": undefined,
@@ -479,7 +563,49 @@ exports[`getServerTreeItem > should return server tree item: type=DHC, isConnect
 }
 `;
 
-exports[`getServerTreeItem > should return server tree item: type=DHC, isConnected=false, isConnecting=false, isManaged=true, isRunning=true 1`] = `
+exports[`getServerTreeItem > should return server tree item: type=DHC, isManaged=true, isRunning=false, isConnecting=false, isConnected=true 1`] = `
+{
+  "command": undefined,
+  "contextValue": "isManagedServerConnected",
+  "description": "pip (1)",
+  "iconPath": ThemeIcon {
+    "color": undefined,
+    "id": "sync~spin",
+  },
+  "label": "localhost:10000",
+  "tooltip": "localhost:10000",
+}
+`;
+
+exports[`getServerTreeItem > should return server tree item: type=DHC, isManaged=true, isRunning=false, isConnecting=true, isConnected=false 1`] = `
+{
+  "command": undefined,
+  "contextValue": "isManagedServerConnecting",
+  "description": "pip",
+  "iconPath": ThemeIcon {
+    "color": undefined,
+    "id": "sync~spin",
+  },
+  "label": "localhost:10000",
+  "tooltip": "Connecting to localhost:10000…",
+}
+`;
+
+exports[`getServerTreeItem > should return server tree item: type=DHC, isManaged=true, isRunning=false, isConnecting=true, isConnected=true 1`] = `
+{
+  "command": undefined,
+  "contextValue": "isManagedServerConnecting",
+  "description": "pip (1)",
+  "iconPath": ThemeIcon {
+    "color": undefined,
+    "id": "sync~spin",
+  },
+  "label": "localhost:10000",
+  "tooltip": "Connecting to localhost:10000…",
+}
+`;
+
+exports[`getServerTreeItem > should return server tree item: type=DHC, isManaged=true, isRunning=true, isConnecting=false, isConnected=false 1`] = `
 {
   "command": {
     "arguments": [
@@ -507,105 +633,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHC, isConnect
 }
 `;
 
-exports[`getServerTreeItem > should return server tree item: type=DHC, isConnected=false, isConnecting=true, isManaged=false, isRunning=false 1`] = `
-{
-  "command": undefined,
-  "contextValue": "isServerConnecting",
-  "description": "",
-  "iconPath": ThemeIcon {
-    "color": undefined,
-    "id": "sync~spin",
-  },
-  "label": "localhost:10000",
-  "tooltip": "Connecting to localhost:10000…",
-}
-`;
-
-exports[`getServerTreeItem > should return server tree item: type=DHC, isConnected=false, isConnecting=true, isManaged=false, isRunning=true 1`] = `
-{
-  "command": undefined,
-  "contextValue": "isServerConnecting",
-  "description": "",
-  "iconPath": ThemeIcon {
-    "color": undefined,
-    "id": "sync~spin",
-  },
-  "label": "localhost:10000",
-  "tooltip": "Connecting to localhost:10000…",
-}
-`;
-
-exports[`getServerTreeItem > should return server tree item: type=DHC, isConnected=false, isConnecting=true, isManaged=true, isRunning=false 1`] = `
-{
-  "command": undefined,
-  "contextValue": "isServerConnecting",
-  "description": "pip",
-  "iconPath": ThemeIcon {
-    "color": undefined,
-    "id": "sync~spin",
-  },
-  "label": "localhost:10000",
-  "tooltip": "Connecting to localhost:10000…",
-}
-`;
-
-exports[`getServerTreeItem > should return server tree item: type=DHC, isConnected=false, isConnecting=true, isManaged=true, isRunning=true 1`] = `
-{
-  "command": undefined,
-  "contextValue": "isServerConnecting",
-  "description": "pip",
-  "iconPath": ThemeIcon {
-    "color": undefined,
-    "id": "sync~spin",
-  },
-  "label": "localhost:10000",
-  "tooltip": "Connecting to localhost:10000…",
-}
-`;
-
-exports[`getServerTreeItem > should return server tree item: type=DHC, isConnected=true, isConnecting=false, isManaged=false, isRunning=false 1`] = `
-{
-  "command": undefined,
-  "contextValue": "isServerStopped",
-  "description": "(1)",
-  "iconPath": ThemeIcon {
-    "color": undefined,
-    "id": "circle-slash",
-  },
-  "label": "localhost:10000",
-  "tooltip": "localhost:10000",
-}
-`;
-
-exports[`getServerTreeItem > should return server tree item: type=DHC, isConnected=true, isConnecting=false, isManaged=false, isRunning=true 1`] = `
-{
-  "command": undefined,
-  "contextValue": "isServerRunningConnected",
-  "description": "(1)",
-  "iconPath": ThemeIcon {
-    "color": undefined,
-    "id": "circle-large-filled",
-  },
-  "label": "localhost:10000",
-  "tooltip": "localhost:10000",
-}
-`;
-
-exports[`getServerTreeItem > should return server tree item: type=DHC, isConnected=true, isConnecting=false, isManaged=true, isRunning=false 1`] = `
-{
-  "command": undefined,
-  "contextValue": "isManagedServerConnected",
-  "description": "pip (1)",
-  "iconPath": ThemeIcon {
-    "color": undefined,
-    "id": "sync~spin",
-  },
-  "label": "localhost:10000",
-  "tooltip": "localhost:10000",
-}
-`;
-
-exports[`getServerTreeItem > should return server tree item: type=DHC, isConnected=true, isConnecting=false, isManaged=true, isRunning=true 1`] = `
+exports[`getServerTreeItem > should return server tree item: type=DHC, isManaged=true, isRunning=true, isConnecting=false, isConnected=true 1`] = `
 {
   "command": undefined,
   "contextValue": "isManagedServerConnected",
@@ -619,11 +647,11 @@ exports[`getServerTreeItem > should return server tree item: type=DHC, isConnect
 }
 `;
 
-exports[`getServerTreeItem > should return server tree item: type=DHC, isConnected=true, isConnecting=true, isManaged=false, isRunning=false 1`] = `
+exports[`getServerTreeItem > should return server tree item: type=DHC, isManaged=true, isRunning=true, isConnecting=true, isConnected=false 1`] = `
 {
   "command": undefined,
-  "contextValue": "isServerConnecting",
-  "description": "(1)",
+  "contextValue": "isManagedServerConnecting",
+  "description": "pip",
   "iconPath": ThemeIcon {
     "color": undefined,
     "id": "sync~spin",
@@ -633,24 +661,10 @@ exports[`getServerTreeItem > should return server tree item: type=DHC, isConnect
 }
 `;
 
-exports[`getServerTreeItem > should return server tree item: type=DHC, isConnected=true, isConnecting=true, isManaged=false, isRunning=true 1`] = `
+exports[`getServerTreeItem > should return server tree item: type=DHC, isManaged=true, isRunning=true, isConnecting=true, isConnected=true 1`] = `
 {
   "command": undefined,
-  "contextValue": "isServerConnecting",
-  "description": "(1)",
-  "iconPath": ThemeIcon {
-    "color": undefined,
-    "id": "sync~spin",
-  },
-  "label": "localhost:10000",
-  "tooltip": "Connecting to localhost:10000…",
-}
-`;
-
-exports[`getServerTreeItem > should return server tree item: type=DHC, isConnected=true, isConnecting=true, isManaged=true, isRunning=false 1`] = `
-{
-  "command": undefined,
-  "contextValue": "isServerConnecting",
+  "contextValue": "isManagedServerConnecting",
   "description": "pip (1)",
   "iconPath": ThemeIcon {
     "color": undefined,
@@ -661,21 +675,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHC, isConnect
 }
 `;
 
-exports[`getServerTreeItem > should return server tree item: type=DHC, isConnected=true, isConnecting=true, isManaged=true, isRunning=true 1`] = `
-{
-  "command": undefined,
-  "contextValue": "isServerConnecting",
-  "description": "pip (1)",
-  "iconPath": ThemeIcon {
-    "color": undefined,
-    "id": "sync~spin",
-  },
-  "label": "localhost:10000",
-  "tooltip": "Connecting to localhost:10000…",
-}
-`;
-
-exports[`getServerTreeItem > should return server tree item: type=DHE, isConnected=false, isConnecting=false, isManaged=false, isRunning=false 1`] = `
+exports[`getServerTreeItem > should return server tree item: type=DHE, isManaged=false, isRunning=false, isConnecting=false, isConnected=false 1`] = `
 {
   "command": undefined,
   "contextValue": "isServerStopped",
@@ -689,7 +689,49 @@ exports[`getServerTreeItem > should return server tree item: type=DHE, isConnect
 }
 `;
 
-exports[`getServerTreeItem > should return server tree item: type=DHE, isConnected=false, isConnecting=false, isManaged=false, isRunning=true 1`] = `
+exports[`getServerTreeItem > should return server tree item: type=DHE, isManaged=false, isRunning=false, isConnecting=false, isConnected=true 1`] = `
+{
+  "command": undefined,
+  "contextValue": "isServerStopped",
+  "description": "(1)",
+  "iconPath": ThemeIcon {
+    "color": undefined,
+    "id": "circle-slash",
+  },
+  "label": "localhost:10000",
+  "tooltip": "localhost:10000",
+}
+`;
+
+exports[`getServerTreeItem > should return server tree item: type=DHE, isManaged=false, isRunning=false, isConnecting=true, isConnected=false 1`] = `
+{
+  "command": undefined,
+  "contextValue": "isServerStopped",
+  "description": "",
+  "iconPath": ThemeIcon {
+    "color": undefined,
+    "id": "circle-slash",
+  },
+  "label": "localhost:10000",
+  "tooltip": "localhost:10000",
+}
+`;
+
+exports[`getServerTreeItem > should return server tree item: type=DHE, isManaged=false, isRunning=false, isConnecting=true, isConnected=true 1`] = `
+{
+  "command": undefined,
+  "contextValue": "isServerStopped",
+  "description": "(1)",
+  "iconPath": ThemeIcon {
+    "color": undefined,
+    "id": "circle-slash",
+  },
+  "label": "localhost:10000",
+  "tooltip": "localhost:10000",
+}
+`;
+
+exports[`getServerTreeItem > should return server tree item: type=DHE, isManaged=false, isRunning=true, isConnecting=false, isConnected=false 1`] = `
 {
   "command": {
     "arguments": [
@@ -716,10 +758,65 @@ exports[`getServerTreeItem > should return server tree item: type=DHE, isConnect
 }
 `;
 
-exports[`getServerTreeItem > should return server tree item: type=DHE, isConnected=false, isConnecting=false, isManaged=true, isRunning=false 1`] = `
+exports[`getServerTreeItem > should return server tree item: type=DHE, isManaged=false, isRunning=true, isConnecting=false, isConnected=true 1`] = `
+{
+  "command": {
+    "arguments": [
+      {
+        "connectionCount": 1,
+        "isConnected": true,
+        "isManaged": false,
+        "isRunning": true,
+        "type": "DHE",
+        "url": "http://localhost:10000/",
+      },
+    ],
+    "command": "vscode-deephaven.connectToServer",
+    "title": "Connect to server",
+  },
+  "contextValue": "isDHEServerRunningConnected",
+  "description": "(1)",
+  "iconPath": ThemeIcon {
+    "color": undefined,
+    "id": "circle-large-filled",
+  },
+  "label": "localhost:10000",
+  "tooltip": "Click to connect to localhost:10000",
+}
+`;
+
+exports[`getServerTreeItem > should return server tree item: type=DHE, isManaged=false, isRunning=true, isConnecting=true, isConnected=false 1`] = `
 {
   "command": undefined,
-  "contextValue": "isManagedServerConnecting",
+  "contextValue": "isServerConnecting",
+  "description": "",
+  "iconPath": ThemeIcon {
+    "color": undefined,
+    "id": "sync~spin",
+  },
+  "label": "localhost:10000",
+  "tooltip": "Connecting to localhost:10000…",
+}
+`;
+
+exports[`getServerTreeItem > should return server tree item: type=DHE, isManaged=false, isRunning=true, isConnecting=true, isConnected=true 1`] = `
+{
+  "command": undefined,
+  "contextValue": "isServerConnecting",
+  "description": "(1)",
+  "iconPath": ThemeIcon {
+    "color": undefined,
+    "id": "sync~spin",
+  },
+  "label": "localhost:10000",
+  "tooltip": "Connecting to localhost:10000…",
+}
+`;
+
+exports[`getServerTreeItem > should return server tree item: type=DHE, isManaged=true, isRunning=false, isConnecting=false, isConnected=false 1`] = `
+{
+  "command": undefined,
+  "contextValue": "isManagedServerStarting",
   "description": "pip",
   "iconPath": ThemeIcon {
     "color": undefined,
@@ -730,7 +827,49 @@ exports[`getServerTreeItem > should return server tree item: type=DHE, isConnect
 }
 `;
 
-exports[`getServerTreeItem > should return server tree item: type=DHE, isConnected=false, isConnecting=false, isManaged=true, isRunning=true 1`] = `
+exports[`getServerTreeItem > should return server tree item: type=DHE, isManaged=true, isRunning=false, isConnecting=false, isConnected=true 1`] = `
+{
+  "command": undefined,
+  "contextValue": "isManagedServerConnected",
+  "description": "pip (1)",
+  "iconPath": ThemeIcon {
+    "color": undefined,
+    "id": "sync~spin",
+  },
+  "label": "localhost:10000",
+  "tooltip": "localhost:10000",
+}
+`;
+
+exports[`getServerTreeItem > should return server tree item: type=DHE, isManaged=true, isRunning=false, isConnecting=true, isConnected=false 1`] = `
+{
+  "command": undefined,
+  "contextValue": "isManagedServerConnecting",
+  "description": "pip",
+  "iconPath": ThemeIcon {
+    "color": undefined,
+    "id": "sync~spin",
+  },
+  "label": "localhost:10000",
+  "tooltip": "Connecting to localhost:10000…",
+}
+`;
+
+exports[`getServerTreeItem > should return server tree item: type=DHE, isManaged=true, isRunning=false, isConnecting=true, isConnected=true 1`] = `
+{
+  "command": undefined,
+  "contextValue": "isManagedServerConnecting",
+  "description": "pip (1)",
+  "iconPath": ThemeIcon {
+    "color": undefined,
+    "id": "sync~spin",
+  },
+  "label": "localhost:10000",
+  "tooltip": "Connecting to localhost:10000…",
+}
+`;
+
+exports[`getServerTreeItem > should return server tree item: type=DHE, isManaged=true, isRunning=true, isConnecting=false, isConnected=false 1`] = `
 {
   "command": {
     "arguments": [
@@ -758,118 +897,7 @@ exports[`getServerTreeItem > should return server tree item: type=DHE, isConnect
 }
 `;
 
-exports[`getServerTreeItem > should return server tree item: type=DHE, isConnected=false, isConnecting=true, isManaged=false, isRunning=false 1`] = `
-{
-  "command": undefined,
-  "contextValue": "isServerConnecting",
-  "description": "",
-  "iconPath": ThemeIcon {
-    "color": undefined,
-    "id": "sync~spin",
-  },
-  "label": "localhost:10000",
-  "tooltip": "Connecting to localhost:10000…",
-}
-`;
-
-exports[`getServerTreeItem > should return server tree item: type=DHE, isConnected=false, isConnecting=true, isManaged=false, isRunning=true 1`] = `
-{
-  "command": undefined,
-  "contextValue": "isServerConnecting",
-  "description": "",
-  "iconPath": ThemeIcon {
-    "color": undefined,
-    "id": "sync~spin",
-  },
-  "label": "localhost:10000",
-  "tooltip": "Connecting to localhost:10000…",
-}
-`;
-
-exports[`getServerTreeItem > should return server tree item: type=DHE, isConnected=false, isConnecting=true, isManaged=true, isRunning=false 1`] = `
-{
-  "command": undefined,
-  "contextValue": "isServerConnecting",
-  "description": "pip",
-  "iconPath": ThemeIcon {
-    "color": undefined,
-    "id": "sync~spin",
-  },
-  "label": "localhost:10000",
-  "tooltip": "Connecting to localhost:10000…",
-}
-`;
-
-exports[`getServerTreeItem > should return server tree item: type=DHE, isConnected=false, isConnecting=true, isManaged=true, isRunning=true 1`] = `
-{
-  "command": undefined,
-  "contextValue": "isServerConnecting",
-  "description": "pip",
-  "iconPath": ThemeIcon {
-    "color": undefined,
-    "id": "sync~spin",
-  },
-  "label": "localhost:10000",
-  "tooltip": "Connecting to localhost:10000…",
-}
-`;
-
-exports[`getServerTreeItem > should return server tree item: type=DHE, isConnected=true, isConnecting=false, isManaged=false, isRunning=false 1`] = `
-{
-  "command": undefined,
-  "contextValue": "isServerStopped",
-  "description": "(1)",
-  "iconPath": ThemeIcon {
-    "color": undefined,
-    "id": "circle-slash",
-  },
-  "label": "localhost:10000",
-  "tooltip": "localhost:10000",
-}
-`;
-
-exports[`getServerTreeItem > should return server tree item: type=DHE, isConnected=true, isConnecting=false, isManaged=false, isRunning=true 1`] = `
-{
-  "command": {
-    "arguments": [
-      {
-        "connectionCount": 1,
-        "isConnected": true,
-        "isManaged": false,
-        "isRunning": true,
-        "type": "DHE",
-        "url": "http://localhost:10000/",
-      },
-    ],
-    "command": "vscode-deephaven.connectToServer",
-    "title": "Connect to server",
-  },
-  "contextValue": "isDHEServerRunningConnected",
-  "description": "(1)",
-  "iconPath": ThemeIcon {
-    "color": undefined,
-    "id": "circle-large-filled",
-  },
-  "label": "localhost:10000",
-  "tooltip": "Click to connect to localhost:10000",
-}
-`;
-
-exports[`getServerTreeItem > should return server tree item: type=DHE, isConnected=true, isConnecting=false, isManaged=true, isRunning=false 1`] = `
-{
-  "command": undefined,
-  "contextValue": "isManagedServerConnected",
-  "description": "pip (1)",
-  "iconPath": ThemeIcon {
-    "color": undefined,
-    "id": "sync~spin",
-  },
-  "label": "localhost:10000",
-  "tooltip": "localhost:10000",
-}
-`;
-
-exports[`getServerTreeItem > should return server tree item: type=DHE, isConnected=true, isConnecting=false, isManaged=true, isRunning=true 1`] = `
+exports[`getServerTreeItem > should return server tree item: type=DHE, isManaged=true, isRunning=true, isConnecting=false, isConnected=true 1`] = `
 {
   "command": undefined,
   "contextValue": "isManagedServerConnected",
@@ -883,11 +911,11 @@ exports[`getServerTreeItem > should return server tree item: type=DHE, isConnect
 }
 `;
 
-exports[`getServerTreeItem > should return server tree item: type=DHE, isConnected=true, isConnecting=true, isManaged=false, isRunning=false 1`] = `
+exports[`getServerTreeItem > should return server tree item: type=DHE, isManaged=true, isRunning=true, isConnecting=true, isConnected=false 1`] = `
 {
   "command": undefined,
-  "contextValue": "isServerConnecting",
-  "description": "(1)",
+  "contextValue": "isManagedServerConnecting",
+  "description": "pip",
   "iconPath": ThemeIcon {
     "color": undefined,
     "id": "sync~spin",
@@ -897,38 +925,10 @@ exports[`getServerTreeItem > should return server tree item: type=DHE, isConnect
 }
 `;
 
-exports[`getServerTreeItem > should return server tree item: type=DHE, isConnected=true, isConnecting=true, isManaged=false, isRunning=true 1`] = `
+exports[`getServerTreeItem > should return server tree item: type=DHE, isManaged=true, isRunning=true, isConnecting=true, isConnected=true 1`] = `
 {
   "command": undefined,
-  "contextValue": "isServerConnecting",
-  "description": "(1)",
-  "iconPath": ThemeIcon {
-    "color": undefined,
-    "id": "sync~spin",
-  },
-  "label": "localhost:10000",
-  "tooltip": "Connecting to localhost:10000…",
-}
-`;
-
-exports[`getServerTreeItem > should return server tree item: type=DHE, isConnected=true, isConnecting=true, isManaged=true, isRunning=false 1`] = `
-{
-  "command": undefined,
-  "contextValue": "isServerConnecting",
-  "description": "pip (1)",
-  "iconPath": ThemeIcon {
-    "color": undefined,
-    "id": "sync~spin",
-  },
-  "label": "localhost:10000",
-  "tooltip": "Connecting to localhost:10000…",
-}
-`;
-
-exports[`getServerTreeItem > should return server tree item: type=DHE, isConnected=true, isConnecting=true, isManaged=true, isRunning=true 1`] = `
-{
-  "command": undefined,
-  "contextValue": "isServerConnecting",
+  "contextValue": "isManagedServerConnecting",
   "description": "pip (1)",
   "iconPath": ThemeIcon {
     "color": undefined,

@@ -189,8 +189,8 @@ describe('getPanelVariableTreeItem', () => {
 
 describe('getServerContextValue', () => {
   it.each(matrix(boolValues, boolValues, boolValues, boolValues))(
-    'should return contextValue based on server state: isConnected=%s, isConnecting=%s, isManaged=%s, isRunning=%s',
-    (isConnected, isConnecting, isManaged, isRunning) => {
+    'should return contextValue based on server state: isManaged=%s, isRunning=%s, isConnecting=%s, isConnected=%s',
+    (isManaged, isRunning, isConnecting, isConnected) => {
       const actual = getServerContextValue({
         isConnected,
         isConnecting,
@@ -266,8 +266,8 @@ describe('getServerTreeItem', () => {
   };
 
   it.each(matrix(typeValues, boolValues, boolValues, boolValues, boolValues))(
-    'should return server tree item: type=%s, isConnected=%s, isConnecting=%s, isManaged=%s, isRunning=%s',
-    (type, isConnected, isConnecting, isManaged, isRunning) => {
+    'should return server tree item: type=%s, isManaged=%s, isRunning=%s, isConnecting=%s, isConnected=%s',
+    (type, isManaged, isRunning, isConnecting, isConnected) => {
       const actual = getServerTreeItem(
         {
           ...dhcServerState,

@@ -1177,7 +1177,7 @@
         },
         {
           "command": "vscode-deephaven.stopServer",
-          "when": "view == vscode-deephaven.view.serverTree && (viewItem == isManagedServerConnected || viewItem == isManagedServerConnecting || viewItem == isManagedServerDisconnected)",
+          "when": "view == vscode-deephaven.view.serverTree && (viewItem == isManagedServerConnected || viewItem == isManagedServerConnecting || viewItem == isManagedServerDisconnected || viewItem == isManagedServerStarting)",
           "group": "inline"
         },
         {
