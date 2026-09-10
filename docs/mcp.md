@@ -51,7 +51,7 @@ This automatically sets `"deephaven.mcp.enabled": true` in your workspace settin
 
 #### Docs MCP Server Configuration
 
-The Deephaven Documentation Searching skill connects to the [Deephaven Docs MCP server](https://deephaven.io/enterprise/docs/clients/mcp/#docs-server). The server is automatically configured for Github Copilot or can be manually configured for other agents as described in [Manual MCP Server Configuration](#manual-mcp-server-configuration). The extension skill makes AI assistants aware of the documentation capabilities. For more information about the Deephaven Docs MCP server itself, see the [official documentation](https://deephaven.io/enterprise/docs/clients/mcp/#docs-server).
+The Deephaven Documentation Searching skill connects to the [Deephaven Docs MCP server](https://deephaven.io/enterprise/docs/clients/mcp/). The server is automatically configured for Github Copilot or can be manually configured for other agents as described in [Manual MCP Server Configuration](#manual-mcp-server-configuration). The extension skill makes AI assistants aware of the documentation capabilities. For more information about the Deephaven Docs MCP server itself, see the [official documentation](https://deephaven.io/enterprise/docs/clients/mcp/).
 
 The documentation server can be independently enabled/disabled via the `deephaven.mcp.docsEnabled` setting:
 
@@ -124,26 +124,32 @@ Configuration format varies by IDE but should be similar to the examples above. 
 The MCP server provides tools for:
 
 - **Server Management** - Connect to and list configured Deephaven servers.
+
   - `connectToServer` - Create a connection to a server.
   - `listServers` - List all configured servers.
 
 - **Connection Management** - Query active connections.
+
   - `listConnections` - List active connections, optionally filtered by URL.
 
 - **Code Execution** - Run Python and Groovy code.
+
   - `runCode` - Execute arbitrary code text.
   - `runCodeFromUri` - Execute code from workspace files.
 
 - **Variables** - Query and interact with Deephaven variables.
+
   - `listVariables` - List all variables on a connection.
   - `openVariablePanels` - Open variable panels for specific variables.
 
 - **Table Data & Statistics** - Fetch and analyze table data.
+
   - `getTableData` - Fetch paginated data from a table.
   - `getTableStats` - Get schema information and basic statistics.
   - `getColumnStats` - Get statistical information for a column.
 
 - **Remote File Sources** - Manage server file source paths.
+
   - `addRemoteFileSources` - Add folders as remote file sources.
   - `listRemoteFileSources` - List current remote file sources.
   - `removeRemoteFileSources` - Remove remote file sources.
@@ -161,6 +167,7 @@ In addition to MCP tools, the extension provides agent skills that can be regist
 ### Provided Skills
 
 1. **Deephaven VS Code Usage** (`deephaven-vscode-using`)
+
    - Manages Deephaven server connections and code execution through VS Code MCP tools.
    - Handles connecting to DHC/DHE servers, executing Python/Groovy code.
    - Provides workflows for opening variable panels and troubleshooting connection issues.
