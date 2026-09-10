@@ -60,24 +60,22 @@ describe('PersistentQueryTreeProvider', () => {
   let serverManager: IServerManager;
   let persistentQueryService: IPersistentQueryService;
   let statusFilterService: IPersistentQueryStatusFilterService;
-  let hiddenStatuses: Set<string>;
+  // Default filter: hide the whole Stopped section.
+  const hiddenStatuses: ReadonlySet<string> = new Set([
+    'Stopping',
+    'Stopped',
+    'Failed',
+    'Error',
+    'Disconnected',
+    'Completed',
+    UNSET_QUERY_STATUS,
+  ]);
   let onFilterDidUpdate: (() => void) | undefined;
   let provider: PersistentQueryTreeProvider;
 
   beforeEach(() => {
     vi.clearAllMocks();
     onFilterDidUpdate = undefined;
-
-    // Default filter: hide the whole Stopped section.
-    hiddenStatuses = new Set([
-      'Stopping',
-      'Stopped',
-      'Failed',
-      'Error',
-      'Disconnected',
-      'Completed',
-      UNSET_QUERY_STATUS,
-    ]);
 
     statusFilterService = {
       onDidUpdate: vi.fn((listener: () => void) => {
@@ -116,7 +114,7 @@ describe('PersistentQueryTreeProvider', () => {
 
   describe('getChildren (root)', () => {
     it('returns only connected DHE servers', async () => {
-      (serverManager.getServers as ReturnType<typeof vi.fn>).mockReturnValue([
+      vi.mocked(serverManager.getServers).mockReturnValue([
         makeServerState({ isConnected: true }),
         makeServerState({
           url: new URL('https://other.example.com/'),
@@ -133,10 +131,8 @@ describe('PersistentQueryTreeProvider', () => {
 
   describe('getChildren (server -> persistent queries)', () => {
     beforeEach(() => {
-      (
-        persistentQueryService.getPersistentQueryInfos as ReturnType<
-          typeof vi.fn
-        >
+      vi.mocked(
+        persistentQueryService.getPersistentQueryInfos
       ).mockResolvedValue([
         // The service returns these in unspecified order; the provider sorts.
         makeQueryInfo({ serial: 'serial-1', name: 'Zeta PQ' }),
@@ -150,48 +146,45 @@ describe('PersistentQueryTreeProvider', () => {
           serial: 'serial-4',
           name: 'No Status PQ',
           designated: undefined,
-        } as Partial<QueryInfo>),
+        }),
       ]);
     });
 
+    const getQueryInfoName = (
+      node: PersistentQueryTreeNode
+    ): string | undefined =>
+      'queryInfo' in node ? node.queryInfo.name : undefined;
+
     it('lists the visible queries under the server, alphabetized', async () => {
       const server = makeServerState();
-      const children = (await provider.getChildren(
-        server
-      )) as PersistentQueryTreeNode[];
+      const [alpha, zeta, hiddenCounts] = await provider.getChildren(server);
 
       expect(
         persistentQueryService.getPersistentQueryInfos
       ).toHaveBeenCalledWith(server.url);
-      // Two visible queries, then the trailing hidden-count node.
-      expect(
-        children
-          .slice(0, -1)
-          .map(c => (c as PersistentQueryNode).queryInfo.name)
-      ).toEqual(['Alpha PQ', 'Zeta PQ']);
-      expect(children.at(-1)).toEqual({
+
+      expect([alpha, zeta].map(getQueryInfoName)).toEqual([
+        'Alpha PQ',
+        'Zeta PQ',
+      ]);
+
+      expect(hiddenCounts).toEqual({
         dheServerUrl: server.url,
         hiddenCount: 2,
       });
     });
 
     it('excludes the hidden statuses', async () => {
-      const children = (await provider.getChildren(
-        makeServerState()
-      )) as PersistentQueryTreeNode[];
+      const children = await provider.getChildren(makeServerState());
 
-      const names = children.map(
-        c => (c as PersistentQueryNode).queryInfo?.name
-      );
+      const names = children.map(getQueryInfoName);
       expect(names).not.toContain('Terminated PQ');
       expect(names).not.toContain('No Status PQ');
     });
 
     it('shows a status it does not recognize (not in the hidden set)', async () => {
-      (
-        persistentQueryService.getPersistentQueryInfos as ReturnType<
-          typeof vi.fn
-        >
+      vi.mocked(
+        persistentQueryService.getPersistentQueryInfos
       ).mockResolvedValue([
         makeQueryInfo({
           name: 'Future PQ',
@@ -199,18 +192,14 @@ describe('PersistentQueryTreeProvider', () => {
         } as unknown as Partial<QueryInfo>),
       ]);
 
-      const children = (await provider.getChildren(
-        makeServerState()
-      )) as PersistentQueryNode[];
+      const children = await provider.getChildren(makeServerState());
 
-      expect(children.map(c => c.queryInfo.name)).toEqual(['Future PQ']);
+      expect(children.map(getQueryInfoName)).toEqual(['Future PQ']);
     });
 
     it('returns an empty list when the service reports none', async () => {
-      (
-        persistentQueryService.getPersistentQueryInfos as ReturnType<
-          typeof vi.fn
-        >
+      vi.mocked(
+        persistentQueryService.getPersistentQueryInfos
       ).mockResolvedValue([]);
 
       const children = await provider.getChildren(makeServerState());
@@ -235,21 +224,41 @@ describe('PersistentQueryTreeProvider', () => {
         node.queryInfo
       );
 
-      expect(leaves).toHaveLength(2);
-      expect(leaves.map(([, v]) => v.title)).toEqual(['my_table', 'my_figure']);
-      // Leaves are keyed by the worker URL (from the sessionless connection).
-      leaves.forEach(([url]) => expect(url.href).toBe(WORKER_URL.href));
+      expect(leaves).toEqual([
+        [
+          WORKER_URL,
+          {
+            id: 'v1',
+            name: 'my_table',
+            title: 'my_table',
+            type: 'Table',
+          },
+        ],
+        [
+          WORKER_URL,
+          {
+            id: 'v2',
+            name: 'my_figure',
+            title: 'my_figure',
+            type: 'Figure',
+          },
+        ],
+      ]);
 
-      // Verify the open command wiring via the tree item.
-      const item = await provider.getTreeItem(leaves[0]);
-      expect(item.command?.command).toBe(OPEN_VARIABLE_PANELS_CMD);
-      expect(item.command?.arguments?.[0]).toBe(leaves[0][0]);
+      for (const [url, def] of leaves) {
+        const item = await provider.getTreeItem([url, def]);
+        expect(item.command).toEqual({
+          command: OPEN_VARIABLE_PANELS_CMD,
+          title: 'Open Panel',
+          arguments: [url, [def]],
+        });
+      }
     });
 
     it('returns no leaves when the sessionless connection cannot be registered', async () => {
-      (
-        serverManager.registerSessionlessConnection as ReturnType<typeof vi.fn>
-      ).mockResolvedValue(null);
+      vi.mocked(serverManager.registerSessionlessConnection).mockResolvedValue(
+        null
+      );
 
       const node: PersistentQueryNode = {
         dheServerUrl: DHE_URL,
@@ -263,14 +272,11 @@ describe('PersistentQueryTreeProvider', () => {
 
   describe('getTreeItem', () => {
     it('renders a DHE server node with no count description', async () => {
-      (
-        persistentQueryService.getPersistentQueryInfos as ReturnType<
-          typeof vi.fn
-        >
+      vi.mocked(
+        persistentQueryService.getPersistentQueryInfos
       ).mockResolvedValue([
         makeQueryInfo({ serial: 'serial-1', name: 'Alpha PQ' }),
       ]);
-      hiddenStatuses.clear();
 
       const item = await provider.getTreeItem(makeServerState());
       expect(item.label).toBe('DHE');
@@ -284,8 +290,6 @@ describe('PersistentQueryTreeProvider', () => {
       });
 
       expect(item.label).toBe('More (20,007)');
-      // Fixed id: the label's count changes on every table tick, and a
-      // label-generated id would make this a different node each time.
       expect(item.id).toBe(`pq:${DHE_URL.href}:more`);
       expect(item.command?.command).toBe(FILTER_PERSISTENT_QUERIES_CMD);
       expect(item.contextValue).toBe('isPersistentQueryHidden');
@@ -320,12 +324,17 @@ describe('PersistentQueryTreeProvider', () => {
     });
 
     it('renders an object leaf via the shared panel renderer', async () => {
-      const leaf: PersistentQueryTreeNode = [
+      const leaf: [URL, VariableDefintion] = [
         WORKER_URL,
-        { title: 'my_table', name: 'my_table', type: 'Table', id: 'v1' },
-      ] as [URL, VariableDefintion];
+        {
+          title: 'my_table_title',
+          name: 'my_table_name',
+          type: 'Table',
+          id: 'v1',
+        } as VariableDefintion,
+      ];
       const item = await provider.getTreeItem(leaf);
-      expect(item.label).toBe('my_table');
+      expect(item.label).toBe('my_table_title');
       expect(item.command?.command).toBe(OPEN_VARIABLE_PANELS_CMD);
     });
   });
@@ -333,7 +342,7 @@ describe('PersistentQueryTreeProvider', () => {
   describe('getStatusCounts', () => {
     it('sums across servers and buckets an unset status under the empty string', async () => {
       const otherUrl = new URL('https://other.example.com/');
-      (serverManager.getServers as ReturnType<typeof vi.fn>).mockReturnValue([
+      vi.mocked(serverManager.getServers).mockReturnValue([
         makeServerState(),
         makeServerState({ url: otherUrl }),
         makeServerState({
@@ -342,18 +351,16 @@ describe('PersistentQueryTreeProvider', () => {
         }),
       ]);
 
-      (
-        persistentQueryService.getPersistentQueryInfos as ReturnType<
-          typeof vi.fn
-        >
-      ).mockImplementation(async (url: URL) =>
+      vi.mocked(
+        persistentQueryService.getPersistentQueryInfos
+      ).mockImplementation(async url =>
         url === otherUrl
           ? [
               makeQueryInfo({ name: 'Other Running' }),
               makeQueryInfo({
                 name: 'Other Unset',
                 designated: undefined,
-              } as Partial<QueryInfo>),
+              }),
             ]
           : [
               makeQueryInfo({ name: 'Running' }),
@@ -378,6 +385,7 @@ describe('PersistentQueryTreeProvider', () => {
     it('refreshes the tree when the filter service updates', () => {
       const onDidChangeTreeData = vi.fn();
       provider.onDidChangeTreeData(onDidChangeTreeData);
+      expect(onDidChangeTreeData).not.toHaveBeenCalled();
 
       expect(onFilterDidUpdate).toBeDefined();
       onFilterDidUpdate?.();
@@ -414,13 +422,42 @@ describe('PersistentQueryTreeProvider', () => {
       expect(await provider.getChildren()).toEqual([supported]);
     });
 
-    it('leaves an unsupported server out of the status counts', async () => {
-      vi.mocked(persistentQueryService.isSupported).mockResolvedValue(false);
+    it('counts only the supported servers queries when servers are mixed', async () => {
+      const supported = makeServerState({
+        url: new URL('https://supported.com:8123/'),
+      });
+      const unsupported = makeServerState({
+        url: new URL('https://unsupported.com:8123/'),
+      });
 
-      expect(await provider.getStatusCounts()).toEqual(new Map());
+      vi.mocked(serverManager.getServers).mockReturnValue([
+        supported,
+        unsupported,
+      ]);
+      vi.mocked(persistentQueryService.isSupported).mockImplementation(
+        async url => url.href === supported.url.href
+      );
+      vi.mocked(
+        persistentQueryService.getPersistentQueryInfos
+      ).mockImplementation(async url =>
+        url.href === supported.url.href
+          ? [makeQueryInfo({ name: 'Supported Running' })]
+          : [
+              makeQueryInfo({ name: 'Unsupported Running' }),
+              makeQueryInfo({
+                name: 'Unsupported Stopped',
+                designated: { status: 'Stopped' },
+              } as unknown as Partial<QueryInfo>),
+            ]
+      );
+
+      const counts = await provider.getStatusCounts();
+
+      expect(counts).toEqual(new Map([['Running', 1]]));
+      // The unsupported server is never even asked for its queries.
       expect(
         persistentQueryService.getPersistentQueryInfos
-      ).not.toHaveBeenCalled();
+      ).not.toHaveBeenCalledWith(unsupported.url);
     });
   });
 });

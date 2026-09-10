@@ -165,7 +165,6 @@ describe('ServerConnectionTreeProvider', () => {
       ]);
       expect(item.label).toBe('t1');
       expect(item.command?.command).toBe(OPEN_VARIABLE_PANELS_CMD);
-      // Console-session variables can be deleted (PQ objects cannot).
       expect(item.contextValue).toBe('canDeleteDeephavenVariable');
     });
 
@@ -200,7 +199,7 @@ describe('ServerConnectionTreeProvider', () => {
   });
 
   it('refreshes when the panel service updates', () => {
-    const listener = (panelService.onDidUpdate as ReturnType<typeof vi.fn>).mock
+    const listener = vi.mocked(panelService.onDidUpdate).mock
       .calls[0][0] as () => void;
 
     const onDidChangeTreeData = vi.fn();
