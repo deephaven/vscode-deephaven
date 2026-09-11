@@ -18,6 +18,17 @@ import type {
 // See __mocks__/vscode.ts for the mock implementation
 vi.mock('vscode');
 
+// Connections here are plain mocks rather than real `DhcService` instances, so
+// the `instanceof` narrowing in `isDhcService` has to be stubbed — which is
+// what the `isInstanceOf` indirection exists for.
+vi.mock('../util/isInstanceOf', async () => {
+  const actual = await vi.importActual('../util/isInstanceOf');
+  return {
+    ...actual,
+    isInstanceOf: vi.fn(() => true),
+  };
+});
+
 // Avoid real server status polling triggered by the constructor's
 // `loadServerConfig` call.
 vi.mock('../dh/dhc', () => ({
@@ -184,11 +195,90 @@ describe('ServerManager.connectToServer', () => {
     void manager.connectToServer(serverUrl, undefined);
     void manager.connectToServer(serverUrl, undefined);
 
-    // The DHE client connection is singular, so concurrent attempts reuse the
-    // in-flight connection rather than starting a second one (multiple workers
-    // are created later, off the single client connection).
-    expect(manager._dheServiceCache.get).toHaveBeenCalledTimes(1);
+    // Each caller consults the cache, which memoizes the in-flight promise —
+    // so this is still a single `DheService` and a single login. The dedupe
+    // lives in `ByURLAsyncCache`, not here: `ServerManager` must not dedupe the
+    // whole connect, or a second caller's worker request would be dropped.
+    expect(manager._dheServiceCache.get).toHaveBeenCalledTimes(2);
     expect(manager.isServerConnecting(serverUrl)).toBe(true);
+  });
+
+  it('shares the DHE login but runs each concurrent worker request', async () => {
+    manager._serverMap.set(dheServer0.url, dheServer0);
+
+    // Hold the DHE service acquisition open so both calls overlap on the login.
+    const { promise: servicePromise, resolve: resolveService } =
+      withResolvers<IDheService>();
+    manager._dheServiceCache.get.mockReturnValue(servicePromise);
+
+    const createOrAttach = vi.fn().mockResolvedValue(null);
+    manager._createOrAttachToWorkers = createOrAttach;
+
+    const dheService = {
+      getClient: vi.fn().mockResolvedValue({}),
+      onWorkerAttachable: vi.fn(),
+      onWorkerRemoved: vi.fn(),
+    } as unknown as IDheService;
+
+    const first = manager.connectToServer(serverUrl, 'python');
+    const second = manager.connectToServer(serverUrl, 'groovy', {
+      createWorker: true,
+    });
+
+    // The DHE server reads as connecting while the shared login is in flight.
+    expect(manager.isServerConnecting(serverUrl)).toBe(true);
+
+    resolveService(dheService);
+    await Promise.all([first, second]);
+
+    // ...and stops once it settles.
+    expect(manager.isServerConnecting(serverUrl)).toBe(false);
+
+    // Both callers consult the cache; it memoizes, so one service and one
+    // login reach the server.
+    expect(manager._dheServiceCache.get).toHaveBeenCalledTimes(2);
+
+    // ...and the once-per-service event wiring runs once, not once per caller.
+    expect(dheService.onWorkerAttachable).toHaveBeenCalledTimes(1);
+    expect(dheService.onWorkerRemoved).toHaveBeenCalledTimes(1);
+
+    // ...but neither worker request is dropped as a duplicate: each keeps its
+    // own console type and `createWorker` flag.
+    expect(createOrAttach).toHaveBeenCalledTimes(2);
+    expect(createOrAttach).toHaveBeenCalledWith(dheService, 'python', false);
+    expect(createOrAttach).toHaveBeenCalledWith(dheService, 'groovy', true);
+  });
+});
+
+describe('ServerManager.disconnectFromDHEServer', () => {
+  let manager: TestServerManager;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    manager = createServerManager();
+  });
+
+  it('fires onDidDisconnect for the DHE server itself', async () => {
+    manager._serverMap.set(dheServer0.url, dheServer0);
+
+    const disconnected: string[] = [];
+    manager.onDidDisconnect(url => disconnected.push(url.toString()));
+
+    await manager.disconnectFromDHEServer(serverUrl);
+
+    expect(disconnected).toEqual([serverUrl.toString()]);
+  });
+
+  it('fires onDidDisconnect for a DHE server dropped from config', async () => {
+    manager._serverMap.set(dheServer0.url, dheServer0);
+
+    const disconnected: string[] = [];
+    manager.onDidDisconnect(url => disconnected.push(url.toString()));
+
+    // Config no longer lists the server, so `loadServerConfig` drops it.
+    await manager.loadServerConfig();
+
+    expect(disconnected).toEqual([serverUrl.toString()]);
   });
 });
 

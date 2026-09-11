@@ -279,7 +279,9 @@ export function getPersistentQueryTreeItem(
     `${count} ${noun}${count === 1 ? '' : 's'}`;
 
   const tooltipParts = [queryInfo.name];
-  if (status != null) {
+  // `''` means "no status" just as `null` does (see `getPersistentQueryIconId`),
+  // so it must not render as an empty `My PQ ()` suffix.
+  if (status != null && status !== '') {
     tooltipParts.push(` (${status})`);
   }
   if (objects.length === 0) {

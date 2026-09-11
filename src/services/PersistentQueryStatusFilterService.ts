@@ -108,6 +108,14 @@ export class PersistentQueryStatusFilterService
       return;
     }
 
+    // Persisted before the in-memory set is touched so a rejected write leaves
+    // storage and `_hiddenStatuses` agreeing on the old value, rather than
+    // callers observing a filter that was never saved and never announced.
+    await this._context.globalState.update(
+      PERSISTENT_QUERY_HIDDEN_STATUSES_STORAGE_KEY,
+      [...next]
+    );
+
     // Mutated in place rather than replaced — see `_hiddenStatuses`. `next` is
     // already a copy, so this is safe even when a caller passes the set
     // returned by `getHiddenStatuses`.
@@ -115,11 +123,6 @@ export class PersistentQueryStatusFilterService
     for (const status of next) {
       this._hiddenStatuses.add(status);
     }
-
-    await this._context.globalState.update(
-      PERSISTENT_QUERY_HIDDEN_STATUSES_STORAGE_KEY,
-      [...next]
-    );
 
     this._onDidUpdate.fire();
   };

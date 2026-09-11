@@ -10,6 +10,20 @@ import { Logger } from './Logger';
 const logger = new Logger('queryUtils');
 
 /**
+ * Close a table, swallowing (but logging) a failure to do so. For setup and
+ * teardown paths where a close failure must not mask the error that is actually
+ * worth propagating — or, during teardown, must not abort the rest of it.
+ * @param table The table to close.
+ */
+export function closeTableQuietly(table: DhcType.Table): void {
+  try {
+    table.close();
+  } catch (err) {
+    logger.debug('Error closing table', err);
+  }
+}
+
+/**
  * Build the server-side filter restricting the table to parent queries.
  * @param table The `QueryInfo` table to build the column filter from.
  * @returns A `FilterCondition` matching parent queries only.

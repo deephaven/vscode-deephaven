@@ -548,6 +548,14 @@ describe('getPersistentQueryTreeItem', () => {
       collapsibleState: 0,
       tooltip: 'My PQ — no objects',
     },
+    {
+      // `''` is a no-status value, so it gets no ` (status)` suffix at all
+      // rather than an empty `My PQ ()` one.
+      label: 'an empty status renders no status suffix',
+      designated: { status: '', objects: [] },
+      collapsibleState: 0,
+      tooltip: 'My PQ — no objects',
+    },
   ])(
     'sets collapsible state + tooltip from openable objects: $label',
     ({ designated, collapsibleState, tooltip }) => {

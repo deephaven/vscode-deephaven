@@ -24,6 +24,7 @@ import type {
   Psk,
   WorkerURL,
   DheAuthenticatedClientWrapper,
+  IDhcService,
 } from '../types';
 import {
   getInitialServerStates,
@@ -36,7 +37,7 @@ import {
   withResolvers,
   type PromiseWithResolvers,
 } from '../util';
-import { DhcService } from './DhcService';
+import { DhcService, isDhcService } from './DhcService';
 import { getWorkerCredentials, isDheServerRunning } from '../dh/dhe';
 import type { QuerySerial } from '../shared';
 import { isDhcServerRunning } from '../dh/dhc';
@@ -56,8 +57,8 @@ export class ServerManager implements IServerManager {
   ) {
     this._configService = configService;
     this._connectionMap = new URLMap<ConnectionState>();
-    this._pendingConnectionMap = new URLMap<
-      PromiseWithResolvers<ConnectionState | null>
+    this._pendingDhcConnectionMap = new URLMap<
+      PromiseWithResolvers<IDhcService | null>
     >();
     this._pendingServerConnections = new URLMap<PromiseWithResolvers<void>>();
     this._coreClientCache = coreClientCache;
@@ -78,10 +79,12 @@ export class ServerManager implements IServerManager {
 
   private readonly _attachedWorkerSerials: Map<QuerySerial, WorkerURL> =
     new Map();
+  /** DHE services whose once-per-instance event subscriptions are wired. */
+  private readonly _wiredDheServices = new WeakSet<IDheService>();
   private readonly _configService: IConfigService;
   private readonly _connectionMap: URLMap<ConnectionState>;
-  private readonly _pendingConnectionMap: URLMap<
-    PromiseWithResolvers<ConnectionState | null>
+  private readonly _pendingDhcConnectionMap: URLMap<
+    PromiseWithResolvers<IDhcService | null>
   >;
   private readonly _pendingServerConnections: URLMap<
     PromiseWithResolvers<void>
@@ -116,13 +119,15 @@ export class ServerManager implements IServerManager {
   private readonly _onDidUpdate = new vscode.EventEmitter<void>();
   readonly onDidUpdate = this._onDidUpdate.event;
 
-  private _resolvePendingConnection = (
+  private _resolvePendingDhcConnection = (
     serverUrl: URL,
-    connectionState: ConnectionState | null
+    connectionState: IDhcService | null
   ): void => {
-    if (this._pendingConnectionMap.has(serverUrl)) {
-      this._pendingConnectionMap.getOrThrow(serverUrl).resolve(connectionState);
-      this._pendingConnectionMap.delete(serverUrl);
+    if (this._pendingDhcConnectionMap.has(serverUrl)) {
+      this._pendingDhcConnectionMap
+        .getOrThrow(serverUrl)
+        .resolve(connectionState);
+      this._pendingDhcConnectionMap.delete(serverUrl);
       this._onDidUpdate.fire();
     }
   };
@@ -153,7 +158,8 @@ export class ServerManager implements IServerManager {
 
     await Promise.all([
       this._connectionMap.dispose(),
-      this._pendingConnectionMap.dispose(),
+      this._pendingDhcConnectionMap.dispose(),
+      this._pendingServerConnections.dispose(),
       this._serverMap.dispose(),
       this._uriConnectionsMap.dispose(),
       this._workerURLToServerURLMap.dispose(),
@@ -216,6 +222,19 @@ export class ServerManager implements IServerManager {
       }
     }
 
+    // Explicitly disconnect from any DHE servers that are no longer in the
+    // server map.
+    const removedDheServerUrls = [...previousServerMap.entries()]
+      .filter(
+        ([url, serverState]) =>
+          serverState.type === 'DHE' && !this._serverMap.has(url)
+      )
+      .map(([url]) => url);
+
+    await Promise.allSettled(
+      removedDheServerUrls.map(url => this.disconnectFromDHEServer(url))
+    );
+
     // Filter our last status tracking to servers that are still configured.
     this._lastServerRunningStatus = new URLMap<boolean>(
       this.getServers()
@@ -268,9 +287,9 @@ export class ServerManager implements IServerManager {
       return this._connectionMap.getOrThrow(serverUrl);
     }
 
-    if (this._pendingConnectionMap.has(serverUrl)) {
+    if (this._pendingDhcConnectionMap.has(serverUrl)) {
       logger.debug('Connection already in progress:', serverUrl.href);
-      return this._pendingConnectionMap.getOrThrow(serverUrl).promise;
+      return this._pendingDhcConnectionMap.getOrThrow(serverUrl).promise;
     }
 
     return this._doConnectToServer(
@@ -291,43 +310,110 @@ export class ServerManager implements IServerManager {
 
     logger.debug('Connecting to server:', serverUrl.href);
 
-    // Mark server and worker connection as pending
+    return serverState.type === 'DHC'
+      ? this._doConnectToDhcServer(serverUrl)
+      : this._doConnectToDheServer(
+          serverUrl,
+          workerConsoleType,
+          operateAsAnotherUser,
+          createWorker
+        );
+  };
+
+  /**
+   * Connect to a Community server. Such a server supports a single connection,
+   * so its pending entry is also what `connectToServer` dedupes concurrent
+   * attempts against — both are settled together once the attach resolves.
+   * @param serverUrl The DHC server URL.
+   * @returns The connection state, or `null` if the connection failed.
+   */
+  private _doConnectToDhcServer = async (
+    serverUrl: URL
+  ): Promise<IDhcService | null> => {
     this._pendingServerConnections.set(serverUrl, withResolvers());
-    this._pendingConnectionMap.set(serverUrl, withResolvers());
+    this._pendingDhcConnectionMap.set(serverUrl, withResolvers());
     this._onDidUpdate.fire();
 
-    let firstConnection: ConnectionState | null = null;
+    let connection: IDhcService | null = null;
 
     try {
-      if (serverState.type === 'DHC') {
-        firstConnection = await this._attachToWorker('Core', serverUrl, true);
-      } else {
-        const dheService = await this._connectToDheServer(
-          serverUrl,
-          operateAsAnotherUser
-        );
-
-        // The server-level connection is settled at this point; workers attach
-        // after, and the server node should stop showing "connecting" now.
-        this._resolvePendingServerConnection(serverUrl);
-
-        if (dheService != null) {
-          firstConnection = await this._createOrAttachToWorkers(
-            dheService,
-            workerConsoleType,
-            createWorker
-          );
-        }
-      }
+      connection = await this._attachToCommunityWorker('Core', serverUrl);
     } finally {
-      // Both are no-ops when already resolved above; here they also cover the
-      // paths that threw, which would otherwise leave the server node stuck
-      // showing "connecting".
       this._resolvePendingServerConnection(serverUrl);
-      this._resolvePendingConnection(serverUrl, firstConnection);
+      this._resolvePendingDhcConnection(serverUrl, connection);
     }
 
-    return firstConnection;
+    return connection;
+  };
+
+  /**
+   * Connect to an Enterprise server and service the caller's worker request.
+   * Concurrent callers share the client login but not the worker request, so
+   * each keeps its own console type and `createWorker` flag.
+   * @param serverUrl The DHE server URL.
+   * @param workerConsoleType Console type to create a worker with, if one has
+   * to be created.
+   * @param operateAsAnotherUser Whether to prompt for a DHE `operateAs` user.
+   * @param createWorker Whether to provision a new worker for the caller.
+   * @returns The connection state to bind to, or `null` if the login failed or
+   * no worker was created or attached.
+   */
+  private _doConnectToDheServer = async (
+    serverUrl: URL,
+    workerConsoleType: ConsoleType | undefined,
+    operateAsAnotherUser: boolean,
+    createWorker: boolean
+  ): Promise<ConnectionState | null> => {
+    // One DHE server connection is shared across all concurrent callers for a
+    // server URL so only mark it pending once.
+    if (!this._pendingServerConnections.has(serverUrl)) {
+      this._pendingServerConnections.set(serverUrl, withResolvers());
+      this._onDidUpdate.fire();
+    }
+
+    let dheService: IDheService | null;
+
+    // Scoped to the login alone. Once it settles there is nothing left to
+    // clean up here, so a failure to attach workers below needs no handler.
+    try {
+      dheService = await this._connectToDheServer(
+        serverUrl,
+        operateAsAnotherUser
+      );
+    } finally {
+      this._resolvePendingServerConnection(serverUrl);
+    }
+
+    if (dheService == null) {
+      return null;
+    }
+
+    return this._createOrAttachToWorkers(
+      dheService,
+      workerConsoleType,
+      createWorker
+    );
+  };
+
+  /**
+   * Attach to a community worker associated with the given server URL.
+   * @param label The connection label to show in the UI for this worker.
+   * @param serverUrl The server this worker belongs to.
+   * @returns The attached community worker, or `null` if the attachment failed.
+   */
+  private _attachToCommunityWorker = async (
+    label: string,
+    serverUrl: URL
+  ): Promise<IDhcService | null> => {
+    const worker = await this._attachToWorker(label, serverUrl, true);
+
+    // this shouldn't be possible, but _attachToWorker doesn't have a good way
+    // to narrow the type since it can serve DHE PQ connections as well
+    if (worker != null && !isDhcService(worker)) {
+      throw new Error(`Attached worker is not a DHC service: ${label}`);
+    }
+
+    return worker;
   };
 
   /**
@@ -422,7 +508,6 @@ export class ServerManager implements IServerManager {
     serverUrl: URL,
     operateAsAnotherUser: boolean
   ): Promise<IDheService | null> => {
-    const isNewDheService = !this._dheServiceCache.has(serverUrl);
     const dheService = await this._dheServiceCache.get(serverUrl);
 
     // Get client. Client will be initialized if it doesn't exist (including
@@ -446,7 +531,8 @@ export class ServerManager implements IServerManager {
     // attachable workers, so a worker appearing between the two is not missed.
     // `_attachToWorker` reserves each serial synchronously, so an event-driven
     // attach and the enumeration can never double-connect the same worker.
-    if (isNewDheService) {
+    if (!this._wiredDheServices.has(dheService)) {
+      this._wiredDheServices.add(dheService);
       dheService.onWorkerAttachable(queryInfo =>
         this._attachToAttachableWorker(serverUrl, dheService, queryInfo)
       );
@@ -810,16 +896,15 @@ export class ServerManager implements IServerManager {
     this._dheClientCache.delete(dheServerUrl);
 
     const serverState = this._serverMap.get(dheServerUrl);
-    if (serverState == null) {
-      return;
+    if (serverState != null) {
+      this._serverMap.set(dheServerUrl, {
+        ...serverState,
+        isConnected: false,
+        connectionCount: 0,
+      });
     }
 
-    this._serverMap.set(dheServerUrl, {
-      ...serverState,
-      isConnected: false,
-      connectionCount: 0,
-    });
-
+    this._onDidDisconnect.fire(dheServerUrl);
     this._onDidUpdate.fire();
   };
 

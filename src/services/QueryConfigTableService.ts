@@ -16,7 +16,12 @@ import type {
   QueryInfoTableSubscription,
   QueryTableFilters,
 } from '../types';
-import { createThrottledTrigger, getQueryTableFilters, Logger } from '../util';
+import {
+  closeTableQuietly,
+  createThrottledTrigger,
+  getQueryTableFilters,
+  Logger,
+} from '../util';
 import { DisposableBase } from './DisposableBase';
 
 const logger = new Logger('QueryConfigTableService');
@@ -81,12 +86,17 @@ export class QueryConfigTableService extends DisposableBase {
       tableName: QUERY_CONFIG_TABLE,
     });
 
-    const coreApi = await corePlusManager.getApi(
-      webClientData.workerKind,
-      webClientData.designated.jsApiUrl
-    );
+    try {
+      const coreApi = await corePlusManager.getApi(
+        webClientData.workerKind,
+        webClientData.designated.jsApiUrl
+      );
 
-    return { table, coreApi };
+      return { table, coreApi };
+    } catch (err) {
+      closeTableQuietly(table);
+      throw err;
+    }
   }
 
   /**
@@ -100,59 +110,79 @@ export class QueryConfigTableService extends DisposableBase {
   ): Promise<QueryInfoTableSubscription> => {
     const { table, coreApi } = await this._fetchQueryInfoTable();
 
-    table.applyFilter(getQueryTableFilters(coreApi, table, filters));
+    let tableSubscription: DhcType.TableSubscription | undefined;
 
-    const onDidUpdateEmitter = new vscode.EventEmitter<void>();
+    try {
+      table.applyFilter(getQueryTableFilters(coreApi, table, filters));
 
-    const serialColumn = table.findColumn(QueryColumns.SERIAL.name);
-    const statusColumn = table.findColumn(QueryColumns.STATUS.name);
+      const onDidUpdateEmitter = new vscode.EventEmitter<void>();
 
-    let querySerials: ReadonlySet<string> = new Set();
+      const serialColumn = table.findColumn(QueryColumns.SERIAL.name);
+      const statusColumn = table.findColumn(QueryColumns.STATUS.name);
 
-    const tableSubscription = subscribeToColumns(table, [
-      serialColumn,
-      statusColumn,
-    ]);
+      let querySerials: ReadonlySet<string> = new Set();
 
-    const throttledUpdate = createThrottledTrigger(
-      () => onDidUpdateEmitter.fire(),
-      QUERY_INFO_UPDATE_INTERVAL_MS
-    );
+      tableSubscription = subscribeToColumns(table, [
+        serialColumn,
+        statusColumn,
+      ]);
 
-    const removeUpdateListener =
-      tableSubscription.addEventListener<DhcType.SubscriptionTableData>(
-        coreApi.Table.EVENT_UPDATED,
-        ({ detail }) => {
-          const serials = new Set(
-            detail.rows.map(row => String(row.get(serialColumn)))
-          );
-
-          // Updated on every tick so `getQuerySerials` is never stale; only
-          // the throttledUpdate notification is rate limited.
-          querySerials = serials;
-          throttledUpdate.trigger();
-        }
+      const throttledUpdate = createThrottledTrigger(
+        () => onDidUpdateEmitter.fire(),
+        QUERY_INFO_UPDATE_INTERVAL_MS
       );
 
-    const subscription: QueryInfoTableSubscription = {
-      table,
-      onDidUpdate: onDidUpdateEmitter.event,
-      getQuerySerials: () => querySerials,
-      dispose: async (): Promise<void> => {
-        removeUpdateListener();
-        throttledUpdate.dispose();
-        onDidUpdateEmitter.dispose();
-        try {
-          tableSubscription.close();
-          table.close();
-        } catch (err) {
-          logger.debug('Error closing QueryInfo table', err);
-        }
-      },
-    };
+      const removeUpdateListener =
+        tableSubscription.addEventListener<DhcType.SubscriptionTableData>(
+          coreApi.Table.EVENT_UPDATED,
+          ({ detail }) => {
+            const serials = new Set(
+              detail.rows.map(row => String(row.get(serialColumn)))
+            );
 
-    this.disposables.add(subscription);
+            // Updated on every tick so `getQuerySerials` is never stale; only
+            // the throttledUpdate notification is rate limited.
+            querySerials = serials;
+            throttledUpdate.trigger();
+          }
+        );
 
-    return subscription;
+      const subscription: QueryInfoTableSubscription = {
+        table,
+        onDidUpdate: onDidUpdateEmitter.event,
+        getQuerySerials: () => querySerials,
+        dispose: async (): Promise<void> => {
+          // Local teardown; neither of these can throw.
+          throttledUpdate.dispose();
+          onDidUpdateEmitter.dispose();
+
+          try {
+            removeUpdateListener();
+          } catch (err) {
+            logger.debug('Error removing QueryInfo update listener', err);
+          }
+
+          try {
+            tableSubscription?.close();
+          } catch (err) {
+            logger.debug('Error closing QueryInfo table subscription', err);
+          }
+
+          closeTableQuietly(table);
+        },
+      };
+
+      this.disposables.add(subscription);
+
+      return subscription;
+    } catch (err) {
+      try {
+        tableSubscription?.close();
+      } catch (closeErr) {
+        logger.debug('Error closing QueryInfo table subscription', closeErr);
+      }
+      closeTableQuietly(table);
+      throw err;
+    }
   };
 }

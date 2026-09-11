@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
-import { getExcludeReplicasFilter, getQueryTableFilters } from './queryUtils';
+import {
+  closeTableQuietly,
+  getExcludeReplicasFilter,
+  getQueryTableFilters,
+} from './queryUtils';
 import { EXCLUDED_QUERY_TYPES } from '@deephaven-enterprise/jsapi-nodejs';
 
 // See __mocks__/vscode.ts for the mock implementation
@@ -210,5 +214,25 @@ describe('getExcludeReplicasFilter', () => {
 
     expect(mock.findColumn).toHaveBeenCalledWith('Parent');
     expect(condition).toMatchObject({ column: 'Parent', op: 'isNull' });
+  });
+});
+
+describe('closeTableQuietly', () => {
+  it('closes the table', () => {
+    const close = vi.fn();
+    closeTableQuietly({ close } as unknown as DhcType.Table);
+
+    expect(close).toHaveBeenCalledTimes(1);
+  });
+
+  it('swallows a close failure so it cannot mask the original error', () => {
+    const close = vi.fn(() => {
+      throw new Error('close failed');
+    });
+
+    expect(() =>
+      closeTableQuietly({ close } as unknown as DhcType.Table)
+    ).not.toThrow();
+    expect(close).toHaveBeenCalledTimes(1);
   });
 });
