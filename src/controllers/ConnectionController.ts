@@ -24,8 +24,11 @@ import {
   CONNECT_TO_SERVER_CMD,
   CONNECT_TO_SERVER_OPERATE_AS_CMD,
   ConnectToServerCmdArgs,
+  CREATE_WORKER_CMD,
+  CreateWorkerCmdArgs,
   DISCONNECT_EDITOR_CMD,
   DISCONNECT_FROM_SERVER_CMD,
+  DISCONNECT_FROM_WORKER_CMD,
   SELECT_CONNECTION_COMMAND,
   UnsupportedConsoleTypeError,
 } from '../common';
@@ -66,12 +69,21 @@ export class ConnectionController
       this.onConnectToServerOperateAs
     );
 
+    /** Create a new worker on a DHE server */
+    this.registerCommand(CREATE_WORKER_CMD, this.onCreateWorker);
+
     /** Disconnect editor */
     this.registerCommand(DISCONNECT_EDITOR_CMD, this.onDisconnectEditor);
 
     /** Disconnect from server */
     this.registerCommand(
       DISCONNECT_FROM_SERVER_CMD,
+      this.onDisconnectFromServer
+    );
+
+    /** Disconnect from worker (per-worker action on connection nodes) */
+    this.registerCommand(
+      DISCONNECT_FROM_WORKER_CMD,
       this.onDisconnectFromServer
     );
 
@@ -181,10 +193,18 @@ export class ConnectionController
     if ('url' in connectionOrServer) {
       const cn = await this._serverManager.connectToServer(
         connectionOrServer.url,
-        getConsoleType(languageId)
+        getConsoleType(languageId),
+        // A server (rather than an existing connection) was selected, so the
+        // editor needs a console of its own: create a worker instead of adopting
+        // one of the user's existing non-owned consoles.
+        { createWorker: true }
       );
 
       if (cn == null) {
+        updateConnectionStatusBarItem(
+          this._connectStatusBarItem,
+          'disconnected'
+        );
         return;
       }
 
@@ -318,7 +338,11 @@ export class ConnectionController
    * Handle connecting to a server
    */
   onConnectToServer = async (
-    ...[serverState, operateAsAnotherUser]: ConnectToServerCmdArgs
+    ...[
+      serverState,
+      operateAsAnotherUser,
+      createWorker = false,
+    ]: ConnectToServerCmdArgs
   ): Promise<void> => {
     const languageId = vscode.window.activeTextEditor?.document.languageId;
 
@@ -327,11 +351,34 @@ export class ConnectionController
     const workerConsoleType =
       serverState.type === 'DHE' ? getConsoleType(languageId) : undefined;
 
+    // The tree view's "connect to server" leaves `createWorker` unset — it
+    // attaches to existing workers and lets persistent queries populate, but
+    // does not provision anything. Worker creation is explicit there (the "+"
+    // action) or on-demand when running code. Callers with no tree to fall back
+    // on (the MCP `connectToServer` tool) opt in.
     await this._serverManager?.connectToServer(
       serverState.url,
       workerConsoleType,
-      operateAsAnotherUser
+      { createWorker, operateAsAnotherUser }
     );
+  };
+
+  /**
+   * Handle explicitly creating a new worker on a DHE server (the "+" action).
+   */
+  onCreateWorker = async (
+    ...[serverState]: CreateWorkerCmdArgs | [undefined]
+  ): Promise<void> => {
+    // Sometimes view/item/context commands pass undefined instead of a value.
+    // Just ignore. microsoft/vscode#283655
+    if (serverState == null) {
+      return;
+    }
+
+    const languageId = vscode.window.activeTextEditor?.document.languageId;
+    const workerConsoleType = getConsoleType(languageId);
+
+    await this._serverManager?.createWorker(serverState.url, workerConsoleType);
   };
 
   /**
@@ -477,6 +524,7 @@ export class ConnectionController
           [...runningDHCServersWithoutConnections, ...runningDHEServers],
           connectionsForConsoleType,
           languageId,
+          this._serverManager,
           editorActiveConnectionUrl
         )
       );

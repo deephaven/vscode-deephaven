@@ -313,7 +313,7 @@ export async function getDhStatusBarItem(): Promise<WebElement | null> {
   for (const item of items) {
     let ariaLabel = '';
     try {
-      ariaLabel = await item.getAttribute('aria-label');
+      ariaLabel = (await item.getAttribute('aria-label')) ?? '';
     } catch (err) {
       if (!(err instanceof selenium.error.StaleElementReferenceError)) {
         throw err;

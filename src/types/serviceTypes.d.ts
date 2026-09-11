@@ -1,5 +1,8 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
+import type { QueryStatusSection } from '../common';
+import type { QueryInfo } from '@deephaven-enterprise/jsapi-types';
+import type { CorePlusManager } from '@deephaven-enterprise/client-utils';
 import type {
   ConsoleType,
   CoreConnectionConfig,
@@ -22,11 +25,47 @@ import type {
   DheServerFeatures,
   DheUnauthenticatedClientWrapper,
 } from '../types/commonTypes';
-import type {
-  UnauthenticatedClient as DheUnauthenticatedClient,
-  Username,
-} from '@deephaven-enterprise/auth-nodejs';
+import type { Username } from '@deephaven-enterprise/auth-nodejs';
 import type { QuerySerial } from '../shared';
+
+/**
+ * Server-side filters to apply to the `QueryInfo` table. All fields are
+ * optional; only provided fields are applied. Multiple fields are AND'd
+ * together. Mirrors iris `PQExplorerPanel.getQueryTableFilters`.
+ */
+export interface QueryTableFilters {
+  /** Restrict to queries owned by these owners (OR'd). */
+  owners?: readonly string[];
+  /** Restrict to these query types (OR'd), e.g. `InteractiveConsole`. */
+  types?: readonly string[];
+  /** Restrict to these statuses (OR'd), e.g. `Running`. */
+  statuses?: readonly string[];
+  /** Case-insensitive substring match against the query name. */
+  search?: string;
+  /**
+   * When true, exclude helper / system query types (`EXCLUDED_QUERY_TYPES`).
+   * Defaults to false.
+   */
+  excludeHelperTypes?: boolean;
+}
+
+/**
+ * A subscription over a filtered `QueryInfo` table. Ticks on every server
+ * update (`EVENT_UPDATED`) until disposed, keeping {@link getQuerySerials} in
+ * sync with the filtered row set.
+ */
+export interface QueryInfoTableSubscription extends IDisposable {
+  /** The underlying (filtered) `QueryInfo` table. */
+  readonly table: DhcType.Table;
+  /** Fires on every tick of the filtered row set. */
+  readonly onDidUpdate: vscode.Event<void>;
+  /**
+   * Serials of the current filtered rows, excluding child-replica rows, so each
+   * entry is a query. Reflects the most recent tick, and is empty until the
+   * first one arrives.
+   */
+  getQuerySerials: () => ReadonlySet<string>;
+}
 
 export interface IAsyncCacheService<TKey, TValue> extends IDisposable {
   get: (key: TKey) => Promise<TValue>;
@@ -57,6 +96,7 @@ export interface IConfigService {
 export interface IDhcService extends IDisposable, ConnectionState {
   readonly isInitialized: boolean;
   readonly isConnected: boolean;
+  readonly isOwned: boolean;
   isRunningCode: boolean;
 
   readonly onDidDisconnect: vscode.Event<URL>;
@@ -80,7 +120,8 @@ export interface IDhcService extends IDisposable, ConnectionState {
 }
 
 export interface IDheService extends ConnectionState, IDisposable {
-  readonly onDidWorkerTerminate: vscode.Event<WorkerURL>;
+  readonly onWorkerAttachable: vscode.Event<QueryInfo>;
+  readonly onWorkerRemoved: vscode.Event<QuerySerial>;
 
   getClient(
     initializeIfNull: false
@@ -89,9 +130,14 @@ export interface IDheService extends ConnectionState, IDisposable {
     initializeIfNull: true,
     operateAsAnotherUser: boolean
   ): Promise<DheAuthenticatedClientWrapper | null>;
+  getCorePlusManager(): Promise<CorePlusManager | null>;
   getQuerySerialFromTag(tagId: UniqueID): Promise<QuerySerial | null>;
   getServerFeatures(): DheServerFeatures | undefined;
   getWorkerInfo: (workerUrl: WorkerURL) => WorkerInfo | undefined;
+  registerWorkerInfo: (queryInfo: QueryInfo) => WorkerInfo;
+  listAttachableWorkers: (
+    exclude: Iterable<QuerySerial>
+  ) => Promise<QueryInfo[]>;
   createWorker: (
     tagId: UniqueID,
     consoleType?: ConsoleType
@@ -112,7 +158,7 @@ export type ICoreClientFactory = (
  */
 export type IDhcServiceFactory = IFactory<
   IDhcService,
-  [serverUrl: URL, tagId?: UniqueID]
+  [label: string, serverUrl: URL, isOwned: boolean, tagId?: UniqueID]
 >;
 export type IDheClientFactory = (
   serverUrl: URL
@@ -145,6 +191,53 @@ export interface IPanelService extends IDisposable {
 }
 
 /**
+ * Source of the persistent queries visible on a DHE server. `onDidUpdate` fires
+ * whenever the underlying (ticking) `QueryInfo` table changes.
+ */
+export interface IPersistentQueryService extends IDisposable {
+  readonly onDidUpdate: vscode.Event<void>;
+
+  /**
+   * The PQs on a server, in unspecified order. The set can be large — tens of
+   * thousands on a busy server.
+   */
+  getPersistentQueryInfos: (serverUrl: URL) => Promise<QueryInfo[]>;
+
+  /**
+   * Whether a DHE server exposes the APIs this service needs to list its
+   * queries. `getPersistentQueryInfos` returns an empty list for a server that
+   * answers `false`.
+   */
+  isSupported: (serverUrl: URL) => Promise<boolean>;
+}
+
+/**
+ * The Persistent Queries view's status filter. Stores the set of statuses to
+ * HIDE rather than the set to show, so a status this extension has never heard
+ * of (a new one from a future DHE release) stays visible until the user hides
+ * it. `onDidUpdate` fires whenever the set changes.
+ */
+export interface IPersistentQueryStatusFilterService extends IDisposable {
+  readonly onDidUpdate: vscode.Event<void>;
+  /** Whether a query with this status should be listed. */
+  isVisible: (status: string | null | undefined) => boolean;
+  /** The statuses currently hidden (normalised; unset is ''). */
+  getHiddenStatuses: () => ReadonlySet<string>;
+  /** Replace the hidden set, persist it, and fire `onDidUpdate`. */
+  setHiddenStatuses: (hidden: Iterable<string>) => Promise<void>;
+  /**
+   * Whether *every* status in the section is currently listed. A section with
+   * any status hidden answers `false`.
+   */
+  isSectionFullyVisible: (section: QueryStatusSection) => boolean;
+  /** Show or hide every status in the section at once. */
+  setSectionVisible: (
+    section: QueryStatusSection,
+    isVisible: boolean
+  ) => Promise<void>;
+}
+
+/**
  * Secret service interface.
  */
 export interface ISecretService {
@@ -173,8 +266,12 @@ export interface IServerManager extends IDisposable {
 
   connectToServer: (
     serverUrl: URL,
-    workerConsoleType?: ConsoleType,
-    operateAsAnotherUser?: boolean
+    workerConsoleType: ConsoleType | undefined,
+    flags?: { createWorker?: boolean; operateAsAnotherUser?: boolean }
+  ) => Promise<ConnectionState | null>;
+  createWorker: (
+    dheServerUrl: URL,
+    workerConsoleType?: ConsoleType
   ) => Promise<ConnectionState | null>;
   disconnectEditor: (uri: vscode.Uri) => void;
   disconnectFromDHEServer: (dheServerUrl: URL) => Promise<void>;
@@ -183,15 +280,35 @@ export interface IServerManager extends IDisposable {
 
   hasConnectionUris: (connection: ConnectionState) => boolean;
 
+  /** Whether a client connection to the given server is currently being established. */
+  isServerConnecting: (serverUrl: URL) => boolean;
+
   getConnection: (serverUrl: URL) => ConnectionState | undefined;
   getConnections: (serverOrWorkerUrl?: URL) => ConnectionState[];
   getConnectionUris: (connection: ConnectionState) => vscode.Uri[];
+  /**
+   * Get the parent server for a connection. Resolves the DHE server for a DHE
+   * worker, or the DHC server for a plain DHC connection. Returns `undefined`
+   * only when no matching server is registered.
+   */
+  getServerForConnection: (
+    connection: ConnectionState
+  ) => ServerState | undefined;
   getDheServiceForWorker: (maybeWorkerUrl: URL) => Promise<IDheService | null>;
   getEditorConnection: (uri: vscode.Uri) => Promise<ConnectionState | null>;
   getWorkerCredentials: (
     serverOrWorkerUrl: URL | WorkerURL
   ) => Promise<DhcType.LoginCredentials | null>;
   getWorkerInfo: (maybeWorkerUrl: URL) => Promise<WorkerInfo | undefined>;
+  /**
+   * Register a sessionless connection for a persistent query's worker — see
+   * {@link ConnectionState.isSessionless}. Never creates a console session,
+   * never increments `connectionCount`, and never deletes the server-side PQ.
+   */
+  registerSessionlessConnection: (
+    dheServerUrl: URL,
+    queryInfo: QueryInfo
+  ) => Promise<WorkerInfo | null>;
   setEditorConnection: (
     uri: vscode.Uri,
     languageId: string,

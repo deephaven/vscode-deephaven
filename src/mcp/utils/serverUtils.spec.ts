@@ -42,11 +42,13 @@ describe('serverUtils', () => {
           isRunningCode,
           serverUrl,
           tagId,
+          label: 'mock connection',
         });
 
         expect(resultWithoutTag, 'without tag').toEqual({
           isConnected,
           isRunningCode,
+          label: 'mock connection',
           serverUrl: serverUrl.toString(),
           tagId,
         });
@@ -77,12 +79,6 @@ describe('serverUtils', () => {
       type: 'DHE',
       isRunning: true,
     } as ServerState;
-
-    // Create a connection that is not a DhcService instance
-    const nonDhcServiceConnection = {
-      serverUrl: mockUrl,
-      isConnected: true,
-    } as ConnectionState;
 
     const serverManager: IServerManager = {
       getServer: vi.fn(),
@@ -192,21 +188,32 @@ describe('serverUtils', () => {
         });
       });
 
-      it('should return error when connection is not a DhcService', async () => {
-        vi.mocked(serverManager.getServer).mockReturnValue(runningDhcServer);
+      it('should return error when a DHE server URL resolves only to external consoles', async () => {
+        const dheServerUrl = new URL('http://deephaven-server:8000');
+        const workerUrl = new URL('http://deephaven-server:8000/worker/abc');
+
+        vi.mocked(serverManager.getServer).mockReturnValue({
+          url: dheServerUrl,
+          type: 'DHE',
+          isRunning: true,
+        } as ServerState);
         vi.mocked(serverManager.getConnections).mockReturnValue([
-          nonDhcServiceConnection,
+          createMockDhcService({ serverUrl: workerUrl, isOwned: false }),
         ]);
 
         const result = await getFirstConnectionOrCreate({
           serverManager,
-          connectionUrl: mockUrl,
+          connectionUrl: dheServerUrl,
         });
 
         expect(result).toEqual({
           success: false,
-          errorMessage: 'Connection is not a Core / Core+ connection.',
-          details: { connectionUrl: mockUrl.href },
+          errorMessage: 'No connections owned by the extension',
+          hint: 'Use connectToServer first, or run against an external console by passing one of the exact URLs provided in details.externalConsoleUrls as the connectionUrl.',
+          details: {
+            connectionUrl: dheServerUrl.href,
+            externalConsoleUrls: [workerUrl.href],
+          },
         });
       });
     });
@@ -284,6 +291,41 @@ describe('serverUtils', () => {
           mockUrl,
           serverManager
         );
+      });
+
+      it('should return an attached external console when its worker URL is named explicitly', async () => {
+        const dheServerUrl = new URL('http://deephaven-server:8000');
+        const externalConsoleUrl = new URL(
+          'http://deephaven-server:8000/worker/abc'
+        );
+        const mockPanelUrlFormat = 'mock.panelUrlFormat';
+
+        // Naming the worker is an explicit choice, so ownership does not gate it.
+        const attachedConnection = createMockDhcService({
+          serverUrl: externalConsoleUrl,
+          isOwned: false,
+        });
+
+        vi.mocked(serverManager.getServer).mockReturnValue({
+          url: dheServerUrl,
+          type: 'DHE',
+          isRunning: true,
+        } as ServerState);
+        vi.mocked(serverManager.getConnections).mockReturnValue([
+          attachedConnection,
+        ]);
+        vi.mocked(getDhePanelUrlFormat).mockResolvedValue(mockPanelUrlFormat);
+
+        const result = await getFirstConnectionOrCreate({
+          serverManager,
+          connectionUrl: externalConsoleUrl,
+        });
+
+        expect(result).toEqual({
+          success: true,
+          connection: attachedConnection,
+          panelUrlFormat: mockPanelUrlFormat,
+        });
       });
 
       it('should use connection.serverUrl when DHE server URL differs from connection URL', async () => {
@@ -389,6 +431,7 @@ describe('serverUtils', () => {
     const MOCK_CONNECTION: ConnectionState = {
       isConnected: true,
       isRunningCode: true,
+      label: 'mock connection',
       serverUrl,
       tagId,
     } as ConnectionState;

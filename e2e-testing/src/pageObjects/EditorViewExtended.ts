@@ -35,7 +35,7 @@ export class EditorViewExtended extends EditorView {
         const title = await tab.getTitle();
         const isSelected = await tab.isSelected();
         const resourceName = await tab.getAttribute('data-resource-name');
-        const isWebView = resourceName.startsWith('webview-');
+        const isWebView = resourceName?.startsWith('webview-') ?? false;
 
         if (isWebView) {
           webViewCount += 1;
@@ -69,7 +69,7 @@ export class EditorViewExtended extends EditorView {
 
         for (const container of iframeContainers) {
           const style = await container.getAttribute('style');
-          const isVisible = style.includes('visibility: visible');
+          const isVisible = style?.includes('visibility: visible') ?? false;
 
           // Grab current context so we can switch back to it
           const windowHandle = await driver.getWindowHandle();
@@ -174,7 +174,7 @@ export class EditorViewExtended extends EditorView {
 
     const tab = await group.getTabByTitle(title);
     const resourceName = await tab.getAttribute('data-resource-name');
-    const isWebView = resourceName.startsWith('webview-');
+    const isWebView = resourceName?.startsWith('webview-') ?? false;
 
     if (!isWebView) {
       throw new Error('Tab is not associated with a WebView');

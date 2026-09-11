@@ -317,6 +317,7 @@ export const window = {
     .fn()
     .mockName('registerFileDecorationProvider'),
   showInputBox: vi.fn().mockName('showInputBox'),
+  showQuickPick: vi.fn().mockName('showQuickPick'),
   showTextDocument: vi.fn().mockName('showTextDocument'),
   showInformationMessage: vi.fn().mockName('showInformationMessage'),
   showErrorMessage: vi.fn().mockName('showErrorMessage'),

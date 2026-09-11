@@ -61,10 +61,14 @@ export function createConnectToServerTool({
       }
 
       try {
-        await execConnectToServer({
-          type: server.type,
-          url: parsedUrlResult.value,
-        });
+        await execConnectToServer(
+          {
+            type: server.type,
+            url: parsedUrlResult.value,
+          },
+          undefined,
+          true
+        );
 
         return response.success('Connected to server', {
           type: server.type,
