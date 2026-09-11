@@ -338,7 +338,11 @@ export class ConnectionController
    * Handle connecting to a server
    */
   onConnectToServer = async (
-    ...[serverState, operateAsAnotherUser]: ConnectToServerCmdArgs
+    ...[
+      serverState,
+      operateAsAnotherUser,
+      createWorker = false,
+    ]: ConnectToServerCmdArgs
   ): Promise<void> => {
     const languageId = vscode.window.activeTextEditor?.document.languageId;
 
@@ -347,13 +351,15 @@ export class ConnectionController
     const workerConsoleType =
       serverState.type === 'DHE' ? getConsoleType(languageId) : undefined;
 
-    // Plain "connect to server" — attach to existing workers and let
-    // persistent queries populate, but do not auto-create a worker. Worker
-    // creation is explicit (the "+" action) or on-demand when running code.
+    // The tree view's "connect to server" leaves `createWorker` unset — it
+    // attaches to existing workers and lets persistent queries populate, but
+    // does not provision anything. Worker creation is explicit there (the "+"
+    // action) or on-demand when running code. Callers with no tree to fall back
+    // on (the MCP `connectToServer` tool) opt in.
     await this._serverManager?.connectToServer(
       serverState.url,
       workerConsoleType,
-      { operateAsAnotherUser }
+      { createWorker, operateAsAnotherUser }
     );
   };
 

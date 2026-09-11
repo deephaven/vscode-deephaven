@@ -24,6 +24,7 @@ export type AddRemoteFileSourceCmdArgs = [
 export type ConnectToServerCmdArgs = [
   serverState: Pick<ServerState, 'type' | 'url'>,
   operateAsAnotherUser?: boolean,
+  createWorker?: boolean,
 ];
 
 /** Arguments passed to `CREATE_WORKER_CMD` handler */
@@ -171,6 +172,8 @@ export function execAddRemoteFileSource(
  * Execute the connect to server command with type safety.
  * @param serverState The server to connect to (type and url).
  * @param operateAsAnotherUser Whether to operate as another user.
+ * @param createWorker Whether to provision a new DHE worker as part of
+ * connecting. Ignored for DHC servers.
  */
 export function execConnectToServer(
   ...args: ConnectToServerCmdArgs

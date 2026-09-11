@@ -38,7 +38,7 @@ This guide helps you understand what the Deephaven MCP tools can do and how to u
 - Servers must be configured in VS Code settings first (see [Configuration](configuration.md)).
 - Community servers auto-start if they're pip-managed.
 - The AI can find servers by URL or label when connecting.
-- Connecting to Enterprise servers creates a new worker.
+- Connecting to Enterprise servers creates a new worker, and also attaches to any interactive consoles already running under your user.
 
 ## Running Code
 
@@ -48,7 +48,9 @@ This guide helps you understand what the Deephaven MCP tools can do and how to u
 
 **Use `runCodeFromUri`** when working with files in your workspace (like "run this file" or "run lines 10-20").
 
-**Auto-connection:** If you're not connected, `runCode` will try to connect automatically to a running server.
+**Auto-connection:** If you're not connected, `runCode` will try to connect automatically to a running Community server. Enterprise servers must be connected explicitly with `connectToServer` first.
+
+**Choosing a connection:** Passing a server URL as the `connectionUrl` behaves like picking a server in the editor's connection prompt — it looks for a worker the extension created, or reports that you need `connectToServer` to create one. You can pass a worker URL as the `connectionUrl` to attach to a specific worker. This also works for console workers created outside of the VS Code extension by the logged in user.
 
 **Common patterns:**
 

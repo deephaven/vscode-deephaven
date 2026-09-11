@@ -5,6 +5,7 @@ import {
   extractControllerImportPrefixes,
   formatTimestamp,
   getCombinedRangeLinesText,
+  isInstanceOf,
   isNonEmptyArray,
   isOpenablePanelVariable,
   Logger,
@@ -49,6 +50,15 @@ import { assertDefined } from '../shared';
 import type { RemoteFileSourceService } from './RemoteFileSourceService';
 
 const logger = new Logger('DhcService');
+
+/**
+ * Type guard for DhcService
+ * @param service The service to check.
+ * @returns True if the service is an instance of DhcService, false otherwise.
+ */
+export function isDhcService(service: unknown): service is DhcService {
+  return isInstanceOf(service, DhcService);
+}
 
 export class DhcService extends DisposableBase implements IDhcService {
   /**

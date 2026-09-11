@@ -90,6 +90,7 @@ export function createMockDhcService({
   getPsk,
   getSession,
   getConnection,
+  isOwned = true,
 }: {
   serverUrl?: URL;
   runCode?: DhcType.ide.CommandResult | null;
@@ -97,9 +98,11 @@ export function createMockDhcService({
   getPsk?: Psk | undefined;
   getSession?: DhcType.IdeSession | null;
   getConnection?: DhcType.IdeSession | null;
+  isOwned?: boolean;
 }): DhcService {
   return Object.assign(Object.create(DhcService.prototype), {
     serverUrl: serverUrl ?? MOCK_DHC_URL,
+    isOwned,
     runCode: vi.fn().mockResolvedValue(runCode ?? null),
     supportsConsoleType: vi.fn().mockReturnValue(supportsConsoleType ?? true),
     getPsk: vi.fn().mockResolvedValue(getPsk),
