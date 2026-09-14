@@ -50,7 +50,7 @@ This guide helps you understand what the Deephaven MCP tools can do and how to u
 
 **Auto-connection:** If you're not connected, `runCode` will try to connect automatically to a running Community server. Enterprise servers must be connected explicitly with `connectToServer` first.
 
-**Choosing a connection:** Passing a server URL as the `connectionUrl` behaves like picking a server in the editor's connection prompt — it looks for a worker the extension created, or reports that you need `connectToServer` to create one. You can pass a worker URL as the `connectionUrl` to attach to a specific worker. This also works for console workers created outside of the VS Code extension by the logged in user.
+**Choosing a connection:** Passing a server URL as the `connectionUrl` runs against a worker the extension already created on that server. Unlike selecting a server in the editor's connection prompt, it does not create one — if the extension owns no worker there, the response says to use `connectToServer` first, and lists any consoles already running under your user so you can target one directly. You can pass a worker URL as the `connectionUrl` to attach to a specific worker. This also works for console workers created outside of the VS Code extension by the logged in user.
 
 **Common patterns:**
 
