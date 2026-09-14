@@ -307,6 +307,7 @@ describe('ServerManager._createOrAttachToWorkers', () => {
         name: `worker-${queryInfo.serial}`,
         serial: queryInfo.serial,
       })),
+      deleteWorker: vi.fn().mockResolvedValue(undefined),
     } as unknown as IDheService;
   }
 
@@ -361,6 +362,34 @@ describe('ServerManager._createOrAttachToWorkers', () => {
     expect(manager._attachToWorker).toHaveBeenCalledTimes(3);
     // ...but the connection handed back is the one we own.
     expect(result).toBe(owned);
+    expect(dheService.deleteWorker).not.toHaveBeenCalled();
+  });
+
+  it('deletes a created worker that could not be attached', async () => {
+    const dheService = mockDheService(['existing-1']);
+
+    const ownedWorkerInfo = {
+      name: 'owned',
+      serial: 'owned-1',
+      workerUrl: new URL('http://localhost:10000/worker/owned-1/'),
+    };
+    manager._createWorker = vi.fn().mockResolvedValue(ownedWorkerInfo);
+    manager._attachToWorker = vi.fn(async (_label, _url, isOwned) =>
+      isOwned ? null : mockConnectionState(serverUrl)
+    );
+
+    const result = await manager._createOrAttachToWorkers(
+      dheService,
+      undefined,
+      true
+    );
+
+    expect(result).toBeNull();
+    expect(dheService.deleteWorker).toHaveBeenCalledWith(
+      ownedWorkerInfo.workerUrl
+    );
+    // The user's existing console is still attached for the tree.
+    expect(manager._attachToWorker).toHaveBeenCalledTimes(2);
   });
 
   it('lists the attachable workers before creating one', async () => {

@@ -475,6 +475,39 @@ describe('promptForQueryStatusFilter', () => {
     expect(hidden?.size).toBe(0);
   });
 
+  it('drops a hidden unrecognized status once no query reports it', async () => {
+    // Deliberate: an unrecognized status has no row once its last query is
+    // gone, and the section rows only toggle known statuses, so carrying it
+    // forward would strand it in storage with no way to un-hide it. The known
+    // statuses always have rows, so they are never dropped this way.
+    vi.mocked(vscode.window.showQuickPick).mockImplementation(
+      (async (items: unknown[]) => items) as never
+    );
+
+    const hidden = await promptForQueryStatusFilter(
+      new Map(),
+      new Set(['Zombie'])
+    );
+
+    expect(hidden?.has('Zombie')).toBe(false);
+  });
+
+  it('keeps hiding an unrecognized status while queries still report it', async () => {
+    vi.mocked(vscode.window.showQuickPick).mockImplementation((async (
+      items: { status?: string }[]
+    ) =>
+      items.filter(
+        item => item.status != null && item.status !== 'Zombie'
+      )) as never);
+
+    const hidden = await promptForQueryStatusFilter(
+      new Map([['Zombie', 2]]),
+      new Set(['Zombie'])
+    );
+
+    expect(hidden?.has('Zombie')).toBe(true);
+  });
+
   it('returns undefined when the picker is dismissed, so the caller leaves the filter alone', async () => {
     vi.mocked(vscode.window.showQuickPick).mockResolvedValue(
       undefined as never

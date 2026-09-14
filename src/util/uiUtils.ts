@@ -725,6 +725,14 @@ export async function promptForQueryStatusFilter(
       .map(item => item.status)
   );
 
+  // It was observed by a review agent that "unrecognized" statuses can
+  // potentially be marked as hidden by the user and then disappear from the
+  // list if all queries with such statuses disappear from the server. This is
+  // acceptable since "unrecognized" statuses are unexpected. We don't want them
+  // to crash the extension, but the proper fix is to add the statuses to the
+  // known list if / when we see any. We don't want to persist those in storage
+  // beyond when we are seeing them on the server. Otherwise a fluke would be
+  // stored indefinitely.
   return new Set(statuses.filter(status => !visible.has(status)));
 }
 

@@ -467,6 +467,7 @@ export class ServerManager implements IServerManager {
     if (coreClient == null) {
       if (workerInfo != null) {
         this._attachedWorkerSerials.delete(workerInfo.serial);
+        this._workerURLToServerURLMap.delete(workerUrl);
       }
 
       return null;
@@ -478,6 +479,7 @@ export class ServerManager implements IServerManager {
     if (!(await connection.initSession())) {
       if (workerInfo != null) {
         this._attachedWorkerSerials.delete(workerInfo.serial);
+        this._workerURLToServerURLMap.delete(workerUrl);
       }
 
       this._coreClientCache.delete(workerUrl);
@@ -598,6 +600,15 @@ export class ServerManager implements IServerManager {
           true,
           workerInfo
         );
+
+        // The worker was created but could not be attached to, so nothing holds
+        // a connection to it. Temporary queries reap themselves once idle, but
+        // that leaves its heap tied up for the termination delay, so delete it
+        // now. Safe here because the serial is freshly created — it cannot be
+        // one that another attach is already in flight for.
+        if (ownedConnection == null) {
+          await dheService.deleteWorker(workerInfo.workerUrl);
+        }
       }
     }
 
