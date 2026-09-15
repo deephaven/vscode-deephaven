@@ -450,6 +450,57 @@ describe('ServerManager._createOrAttachToWorkers', () => {
   });
 });
 
+describe('ServerManager.createWorker', () => {
+  const dheServerUrl = new URL('https://dhe.example.com:8123/');
+
+  let manager: TestServerManager;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    manager = createServerManager();
+  });
+
+  /** A DHE service with a live client, for the "+" create-worker action. */
+  function mockDheService(): IDheService {
+    return {
+      serverUrl: dheServerUrl,
+      getClient: vi.fn().mockResolvedValue({}),
+      deleteWorker: vi.fn().mockResolvedValue(undefined),
+    } as unknown as IDheService;
+  }
+
+  const workerInfo = {
+    name: 'owned',
+    serial: 'owned-1',
+    workerUrl: new URL('https://dhe.example.com:8123/worker/owned-1/'),
+  };
+
+  it('deletes a created worker that could not be attached', async () => {
+    const dheService = mockDheService();
+    manager._dheServiceCache.get = vi.fn().mockResolvedValue(dheService);
+
+    manager._createWorker = vi.fn().mockResolvedValue(workerInfo);
+    manager._attachToWorker = vi.fn().mockResolvedValue(null);
+
+    const result = await manager.createWorker(dheServerUrl);
+
+    expect(result).toBeNull();
+    expect(dheService.deleteWorker).toHaveBeenCalledWith(workerInfo.workerUrl);
+  });
+
+  it('keeps the worker when the attach succeeds', async () => {
+    const dheService = mockDheService();
+    manager._dheServiceCache.get = vi.fn().mockResolvedValue(dheService);
+
+    manager._createWorker = vi.fn().mockResolvedValue(workerInfo);
+    const connection = mockConnectionState(dheServerUrl);
+    manager._attachToWorker = vi.fn().mockResolvedValue(connection);
+
+    await expect(manager.createWorker(dheServerUrl)).resolves.toBe(connection);
+    expect(dheService.deleteWorker).not.toHaveBeenCalled();
+  });
+});
+
 describe('ServerManager.isServerConnecting', () => {
   let manager: TestServerManager;
 

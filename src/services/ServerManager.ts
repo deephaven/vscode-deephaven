@@ -722,12 +722,22 @@ export class ServerManager implements IServerManager {
       return null;
     }
 
-    return this._attachToWorker(
+    const connection = await this._attachToWorker(
       workerInfo.name,
       dheServerUrl,
       true,
       workerInfo
     );
+
+    // Nothing holds a connection to a worker we created but failed to attach
+    // to, so delete it now rather than waiting out its `TerminationDelay`. Safe
+    // because the serial is freshly created — no other attach is in flight for
+    // it.
+    if (connection == null) {
+      await dheService.deleteWorker(workerInfo.workerUrl);
+    }
+
+    return connection;
   };
 
   /**
