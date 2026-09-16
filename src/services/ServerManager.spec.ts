@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { ServerManager } from './ServerManager';
 import { URLMap, withResolvers, type PromiseWithResolvers } from '../util';
 import type {
@@ -13,6 +13,7 @@ import type {
   PublicOf,
   ServerState,
   ServerType,
+  WorkerInfo,
 } from '../types';
 
 // See __mocks__/vscode.ts for the mock implementation
@@ -61,7 +62,17 @@ type TestServerManager = PublicOf<ServerManager> & {
     createWorker?: boolean
   ) => Promise<ConnectionState | null>;
   _createWorker: ReturnType<typeof vi.fn>;
-  _attachToWorker: ReturnType<typeof vi.fn>;
+  _attachToWorker: Mock<
+    (
+      label: string,
+      serverUrl: URL,
+      isOwned: boolean,
+      workerInfo?: WorkerInfo
+    ) => Promise<ConnectionState | null>
+  >;
+  _attachedWorkerSerials: Map<string, URL>;
+  _workerURLToServerURLMap: URLMap<URL>;
+  _detachWorker: (serial: string) => Promise<void>;
 };
 
 /** Build a `ServerManager` with minimal mocked dependencies. */
@@ -498,6 +509,95 @@ describe('ServerManager.createWorker', () => {
 
     await expect(manager.createWorker(dheServerUrl)).resolves.toBe(connection);
     expect(dheService.deleteWorker).not.toHaveBeenCalled();
+  });
+});
+
+describe('ServerManager._attachToWorker', () => {
+  const dheServerUrl = new URL('https://dhe.example.com:8123/');
+  // Only the fields the attach path reads.
+  const workerInfo = {
+    name: 'worker-1',
+    serial: 'serial-1',
+    workerUrl: new URL('https://dhe.example.com:8123/worker/1/'),
+  } as unknown as WorkerInfo;
+
+  let manager: TestServerManager;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    manager = createServerManager();
+    manager._serverMap.set(
+      dheServerUrl,
+      mockServerState({ url: dheServerUrl, type: 'DHE' })
+    );
+  });
+
+  it('does not publish a connection whose reservation was torn down mid-attach', async () => {
+    const { promise: clientPromise, resolve: resolveClient } =
+      withResolvers<object>();
+    const connection = {
+      getClient: vi.fn().mockReturnValue(clientPromise),
+      initSession: vi.fn().mockResolvedValue(true),
+      onDidDisconnect: vi.fn(),
+      onDidChangeRunningCodeStatus: vi.fn(),
+      dispose: vi.fn(),
+    };
+    manager._dhcServiceFactory.create.mockReturnValue(connection);
+
+    const attach = manager._attachToWorker(
+      workerInfo.name,
+      dheServerUrl,
+      false,
+      workerInfo
+    );
+
+    // The reservation is taken synchronously, so the worker is discoverable.
+    expect(manager._attachedWorkerSerials.has(workerInfo.serial)).toBe(true);
+
+    // The server reports the worker gone. This is the real `onWorkerRemoved`
+    // handler, which drops both the reservation and the worker->server mapping.
+    await manager._detachWorker(workerInfo.serial);
+
+    resolveClient({});
+    await attach;
+
+    // The attach must not publish a connection it can no longer tear down:
+    // `disconnectFromDHEServer` finds workers via `_workerURLToServerURLMap`,
+    // and `_detachWorker` finds them via `_attachedWorkerSerials`.
+    expect(manager._connectionMap.has(workerInfo.workerUrl)).toBe(false);
+    expect(manager._serverMap.getOrThrow(dheServerUrl).connectionCount).toBe(0);
+  });
+
+  it('does not count a connection whose reservation was torn down during initSession', async () => {
+    const { promise: sessionPromise, resolve: resolveSession } =
+      withResolvers<boolean>();
+    const connection = {
+      getClient: vi.fn().mockResolvedValue({}),
+      initSession: vi.fn().mockReturnValue(sessionPromise),
+      onDidDisconnect: vi.fn(),
+      onDidChangeRunningCodeStatus: vi.fn(),
+      dispose: vi.fn(),
+    };
+    manager._dhcServiceFactory.create.mockReturnValue(connection);
+
+    const attach = manager._attachToWorker(
+      workerInfo.name,
+      dheServerUrl,
+      false,
+      workerInfo
+    );
+
+    // Let `getClient` settle so the attach parks on `initSession` with the
+    // connection already published.
+    await vi.waitUntil(() => manager._connectionMap.has(workerInfo.workerUrl));
+
+    await manager._detachWorker(workerInfo.serial);
+
+    resolveSession(true);
+
+    await expect(attach).resolves.toBeNull();
+    expect(manager._connectionMap.has(workerInfo.workerUrl)).toBe(false);
+    expect(manager._serverMap.getOrThrow(dheServerUrl).connectionCount).toBe(0);
   });
 });
 

@@ -417,6 +417,28 @@ export class ServerManager implements IServerManager {
   };
 
   /**
+   * Whether the reservation taken at the top of `_attachToWorker` is still the
+   * one that attach made. A worker can terminate while the attach is awaiting
+   * (`onWorkerRemoved` -> `_detachWorker`), which clears both the reservation
+   * and the worker -> server mapping. Always true for DHC, which reserves
+   * nothing. A false result is never rolled back — the reservation is no longer
+   * this attach's to clear.
+   * @param workerUrl The worker URL this attach reserved.
+   * @param workerInfo Worker info for the attach, or undefined for DHC.
+   * @returns True if the reservation is still this attach's to publish under.
+   */
+  private _isWorkerReservationCurrent = (
+    workerUrl: URL,
+    workerInfo?: WorkerInfo
+  ): boolean => {
+    return (
+      workerInfo == null ||
+      this._attachedWorkerSerials.get(workerInfo.serial)?.toString() ===
+        workerUrl.toString()
+    );
+  };
+
+  /**
    * Create a JS API connection to a worker, used by both the create and attach
    * paths. Populates `_workerURLToServerURLMap` for auth lookup and
    * `_attachedWorkerSerials` for idempotency / teardown. Placeholder connections
@@ -473,6 +495,14 @@ export class ServerManager implements IServerManager {
       return null;
     }
 
+    // The worker terminated while the client was initializing. The connection
+    // hasn't been published yet, so dispose() it here.
+    if (!this._isWorkerReservationCurrent(workerUrl, workerInfo)) {
+      this._coreClientCache.delete(workerUrl);
+      connection.dispose();
+      return null;
+    }
+
     this._connectionMap.set(workerUrl, connection);
     this._onDidUpdate.fire();
 
@@ -485,6 +515,15 @@ export class ServerManager implements IServerManager {
       this._coreClientCache.delete(workerUrl);
 
       connection.dispose();
+      this._connectionMap.delete(workerUrl);
+      return null;
+    }
+
+    // The worker terminated while the session was initializing. The connection
+    // was already published, so `disconnectFromServer` should handle disposal.
+    // Just cleanup the internal maps.
+    if (!this._isWorkerReservationCurrent(workerUrl, workerInfo)) {
+      this._coreClientCache.delete(workerUrl);
       this._connectionMap.delete(workerUrl);
       return null;
     }
