@@ -25,30 +25,26 @@ vi.mock('../util', async () => {
   };
 });
 
-const serverUrl = new URL('https://dhe.example.com:8123/');
 const uri = { toString: () => 'file:///test.py' } as vscode.Uri;
 
 const host1 = {
   serverUrl: new URL('https://host1.example.com:8123/'),
-  ownedCn1: mockConnection(true, 'host1', 1),
-  ownedCn2: mockConnection(true, 'host1', 2),
-  externalCn1: mockConnection(false, 'host1', 1),
+  ownedCn: mockConnection(true, 'host1'),
+  externalCn: mockConnection(false, 'host1'),
 };
 
 const host2 = {
-  serverUrl: new URL('https://host2.example.com:8123/'),
-  ownedCn1: mockConnection(true, 'host2', 1),
+  ownedCn: mockConnection(true, 'host2'),
 };
 
 function mockConnection(
   isOwned: boolean,
-  hostId: `host${number}`,
-  workerId: number
+  hostId: `host${number}`
 ): ConnectionState {
   return {
     isOwned,
     serverUrl: new URL(
-      `https://${hostId}.example.com:8123/worker/${workerId}/`
+      `https://${hostId}.example.com:8123/worker/${isOwned ? 'owned' : 'external'}/`
     ),
     supportsConsoleType: vi.fn().mockResolvedValue(true),
   } as unknown as ConnectionState;
@@ -100,12 +96,12 @@ describe('ConnectionController.getOrCreateConnection', () => {
   });
 
   it('auto-selects a sole owned connection', async () => {
-    const [controller] = createController([host1.ownedCn1]);
+    const [controller] = createController([host1.ownedCn]);
 
     await controller.getOrCreateConnection(uri, 'python');
 
     expect(controller.connectEditor).toHaveBeenCalledWith(
-      host1.ownedCn1,
+      host1.ownedCn,
       uri,
       'python'
     );
@@ -114,7 +110,7 @@ describe('ConnectionController.getOrCreateConnection', () => {
   // External consoles populate the tree but must never be auto-selected to run
   // code in — see `_createOrAttachToWorkers`.
   it('prompts rather than auto-selecting a sole external connection', async () => {
-    const [controller] = createController([host1.externalCn1]);
+    const [controller] = createController([host1.externalCn]);
 
     await controller.getOrCreateConnection(uri, 'python');
 
@@ -124,7 +120,7 @@ describe('ConnectionController.getOrCreateConnection', () => {
 
   it('connects to the sole free server rather than a lone external connection', async () => {
     const server = { url: host1.serverUrl } as ServerState;
-    const [controller] = createController([host1.externalCn1], [server]);
+    const [controller] = createController([host1.externalCn], [server]);
 
     await controller.getOrCreateConnection(uri, 'python');
 
@@ -136,63 +132,59 @@ describe('ConnectionController.getOrCreateConnection', () => {
   });
 
   it('selects an external connection named by its own worker URL', async () => {
-    const [controller] = createController([host1.externalCn1]);
+    const [controller] = createController([host1.externalCn]);
 
     await controller.getOrCreateConnection(
       uri,
       'python',
-      host1.externalCn1.serverUrl
+      host1.externalCn.serverUrl
     );
 
     expect(controller.connectEditor).toHaveBeenCalledWith(
-      host1.externalCn1,
+      host1.externalCn,
       uri,
       'python'
     );
   });
 
   it('selects an owned connection named by its server URL', async () => {
-    const [controller] = createController([host1.ownedCn1]);
+    const [controller] = createController([host1.ownedCn]);
 
-    await controller.getOrCreateConnection(
-      uri,
-      'python',
-      new URL(host1.ownedCn1.serverUrl.origin)
-    );
+    await controller.getOrCreateConnection(uri, 'python', host1.serverUrl);
 
     expect(controller.connectEditor).toHaveBeenCalledWith(
-      host1.ownedCn1,
+      host1.ownedCn,
       uri,
       'python'
     );
   });
 
   it('does not select an owned connection on a different server', async () => {
-    const [controller] = createController([host2.ownedCn1, host1.externalCn1]);
+    const [controller] = createController([host2.ownedCn, host1.externalCn]);
 
-    await controller.getOrCreateConnection(uri, 'python', serverUrl);
+    await controller.getOrCreateConnection(uri, 'python', host1.serverUrl);
 
     expect(controller.connectEditor).not.toHaveBeenCalled();
   });
 
   it('selects the named worker even when another server has an owned one', async () => {
-    const [controller] = createController([host2.ownedCn1, host1.externalCn1]);
+    const [controller] = createController([host2.ownedCn, host1.externalCn]);
 
     await controller.getOrCreateConnection(
       uri,
       'python',
-      host1.externalCn1.serverUrl
+      host1.externalCn.serverUrl
     );
 
     expect(controller.connectEditor).toHaveBeenCalledWith(
-      host1.externalCn1,
+      host1.externalCn,
       uri,
       'python'
     );
   });
 
   it('does not select an external connection named only by its server URL', async () => {
-    const [controller] = createController([host1.externalCn1]);
+    const [controller] = createController([host1.externalCn]);
 
     await controller.getOrCreateConnection(uri, 'python', host1.serverUrl);
 
