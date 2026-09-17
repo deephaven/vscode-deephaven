@@ -19,7 +19,7 @@ import {
   Logger,
   updateConnectionStatusBarItem,
 } from '../util';
-import { getConnectionsForConsoleType } from '../services';
+import { getConnectionsForConsoleType, isDhcService } from '../services';
 import {
   CONNECT_TO_SERVER_CMD,
   CONNECT_TO_SERVER_OPERATE_AS_CMD,
@@ -267,11 +267,14 @@ export class ConnectionController
       dhService = null;
     }
 
-    // Get supporting connections and available servers, filtered by serverOrWorkerUrl if provided
+    // A worker is a candidate if it is owned or if it is an exact worker URL
+    // match in which case it can also match external workers.
+    const isCandidate = (cn: ConnectionState): boolean =>
+      isDhcService(cn) &&
+      (cn.isOwned || cn.serverUrl.href === serverOrWorkerUrl?.href);
+
     const supportingConnections = await getConnectionsForConsoleType(
-      serverOrWorkerUrl == null
-        ? this._serverManager.getConnections()
-        : this._serverManager.getConnections(serverOrWorkerUrl),
+      this._serverManager.getConnections(serverOrWorkerUrl).filter(isCandidate),
       languageId as ConsoleType
     );
 
