@@ -71,6 +71,7 @@ type TestServerManager = PublicOf<ServerManager> & {
     ) => Promise<ConnectionState | null>
   >;
   _attachedWorkerSerials: Map<string, URL>;
+  _countedConnections: URLMap<boolean>;
   _workerURLToServerURLMap: URLMap<URL>;
   _detachWorker: (serial: string) => Promise<void>;
 };
@@ -598,6 +599,36 @@ describe('ServerManager._attachToWorker', () => {
     await expect(attach).resolves.toBeNull();
     expect(manager._connectionMap.has(workerInfo.workerUrl)).toBe(false);
     expect(manager._serverMap.getOrThrow(dheServerUrl).connectionCount).toBe(0);
+  });
+});
+
+describe('ServerManager.disconnectFromServer', () => {
+  const workerUrl = new URL('https://dhe.example.com:8123/worker/1/');
+
+  let manager: TestServerManager;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    manager = createServerManager();
+    manager._serverMap.set(
+      serverUrl,
+      mockServerState({ url: serverUrl, type: 'DHE', connectionCount: 1 })
+    );
+    manager._workerURLToServerURLMap.set(workerUrl, serverUrl);
+  });
+
+  it('decrements the server count for a counted connection', async () => {
+    manager._countedConnections.set(workerUrl, true);
+
+    await manager.disconnectFromServer(workerUrl);
+
+    expect(manager._serverMap.getOrThrow(serverUrl).connectionCount).toBe(0);
+  });
+
+  it('leaves the server count alone for an uncounted connection', async () => {
+    await manager.disconnectFromServer(workerUrl);
+
+    expect(manager._serverMap.getOrThrow(serverUrl).connectionCount).toBe(1);
   });
 });
 

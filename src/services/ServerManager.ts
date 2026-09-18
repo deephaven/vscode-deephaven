@@ -79,6 +79,12 @@ export class ServerManager implements IServerManager {
 
   private readonly _attachedWorkerSerials: Map<QuerySerial, WorkerURL> =
     new Map();
+  /**
+   * Connection URLs that incremented their server's `connectionCount`. Mapped
+   * URLs that never did — creation placeholders, sessionless PQ shims, attaches
+   * that failed before completing — must not decrement it on teardown.
+   */
+  private readonly _countedConnections = new URLMap<boolean>();
   /** DHE services whose once-per-instance event subscriptions are wired. */
   private readonly _wiredDheServices = new WeakSet<IDheService>();
   private readonly _configService: IConfigService;
@@ -537,6 +543,7 @@ export class ServerManager implements IServerManager {
       this._onDidUpdate.fire();
     });
 
+    this._countedConnections.set(workerUrl, true);
     this.updateConnectionCount(serverUrl, 1);
 
     this._onDidConnect.fire(workerUrl);
@@ -974,7 +981,9 @@ export class ServerManager implements IServerManager {
     const dheServerUrl = this._workerURLToServerURLMap.get(serverOrWorkerUrl);
     this._workerURLToServerURLMap.delete(serverOrWorkerUrl);
 
-    this.updateConnectionCount(dheServerUrl ?? serverOrWorkerUrl, -1);
+    if (this._countedConnections.delete(serverOrWorkerUrl)) {
+      this.updateConnectionCount(dheServerUrl ?? serverOrWorkerUrl, -1);
+    }
 
     // `dheServerUrl` can either be associated with a placeholder worker or a real
     // worker. Check if there is a corresponding DHE service in the cache, and if
