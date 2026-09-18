@@ -6,14 +6,14 @@ import type {
   ServerState,
 } from '../../types';
 import { execConnectToServer } from '../../common/commands';
-import { DhcService } from '../../services';
-import { isInstanceOf } from '../../util';
+import { DhcService, isDhcService } from '../../services';
 import { getDhcPanelUrlFormat, getDhePanelUrlFormat } from './panelUtils';
 import { createConnectionNotFoundHint } from './runCodeUtils';
 
 export const connectionResultSchema = z.object({
   isConnected: z.boolean(),
   isRunningCode: z.boolean().optional(),
+  label: z.string(),
   serverUrl: z.string(),
   tagId: z.string().optional(),
 });
@@ -44,7 +44,7 @@ type GetFirstConnectionOrCreateError = {
   errorMessage: string;
   error?: unknown;
   hint?: string;
-  details: { connectionUrl: string };
+  details: { connectionUrl: string; externalConsoleUrls?: string[] };
 };
 
 export type GetFirstConnectionOrCreateResult =
@@ -57,12 +57,14 @@ export type GetFirstConnectionOrCreateResult =
 export function connectionToResult({
   isConnected,
   isRunningCode,
+  label,
   serverUrl,
   tagId,
 }: ConnectionState): ConnectionResult {
   return {
     isConnected,
     isRunningCode,
+    label,
     serverUrl: serverUrl.toString(),
     tagId,
   };
@@ -127,17 +129,47 @@ export async function getFirstConnectionOrCreate(params: {
     };
   }
 
-  // Get existing connections
-  let connections = serverManager.getConnections(serverOrWorkerUrl);
+  let connection: DhcService | null = null;
+  const externalConsoleUrls: URL[] = [];
 
-  if (connections.length === 0) {
+  for (const cn of serverManager
+    .getConnections(serverOrWorkerUrl)
+    .filter(isDhcService)) {
+    // an exact worker URL match can always be used regardless if it is owned
+    // by the extension. This let's an agent explicitly ask to run against a
+    // web code studio console worker
+    if (cn.serverUrl.href === serverOrWorkerUrl.href) {
+      connection = cn;
+      break;
+    }
+
+    if (cn.isOwned) {
+      // first connection owned by extension
+      connection ??= cn;
+    } else {
+      externalConsoleUrls.push(cn.serverUrl);
+    }
+  }
+
+  if (connection == null) {
     // Only Core workers can be connected to if we don't already have a connection
     if (server.type !== 'DHC') {
+      const hasExternalConsoles = externalConsoleUrls.length > 0;
+
       return {
         success: false,
-        errorMessage: 'No active connection',
-        hint: 'Use connectToServer first',
-        details: { connectionUrl: serverOrWorkerUrl.href },
+        errorMessage: hasExternalConsoles
+          ? 'No connections owned by the extension'
+          : 'No active connection',
+        hint: hasExternalConsoles
+          ? 'Use connectToServer first, or run against an external console by passing one of the exact URLs provided in details.externalConsoleUrls as the connectionUrl.'
+          : 'Use connectToServer first',
+        details: {
+          connectionUrl: serverOrWorkerUrl.href,
+          externalConsoleUrls: hasExternalConsoles
+            ? externalConsoleUrls.map(url => url.href)
+            : undefined,
+        },
       };
     }
 
@@ -145,28 +177,17 @@ export async function getFirstConnectionOrCreate(params: {
 
     // this will normalize connection or server URLs if needed in case an agent
     // passes a DHE server URL instead of the worker URL
-    connections = serverManager.getConnections(serverOrWorkerUrl);
+    [connection] = serverManager
+      .getConnections(serverOrWorkerUrl)
+      .filter(isDhcService);
 
-    if (connections.length === 0) {
+    if (connection == null) {
       return {
         success: false,
         errorMessage: 'Failed to connect to server',
         details: { connectionUrl: serverOrWorkerUrl.href },
       };
     }
-  }
-
-  const [connection] = connections;
-
-  // There shouldn't really be a case where the connection is not a
-  // DhcService, but this is consistent with how we check connections
-  // elsewhere in order to narrow the type.
-  if (!isInstanceOf(connection, DhcService)) {
-    return {
-      success: false,
-      errorMessage: 'Connection is not a Core / Core+ connection.',
-      details: { connectionUrl: serverOrWorkerUrl.href },
-    };
   }
 
   const panelUrlFormat =

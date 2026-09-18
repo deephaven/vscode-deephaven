@@ -1,14 +1,16 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type {
-  AuthenticatedClient as DheAuthenticatedClientBase,
   Base64KeyPair,
   KeyPairCredentials,
   OperateAsUsername,
   PasswordCredentials,
-  UnauthenticatedClient as DheUnauthenticatedClientBase,
   Username,
 } from '@deephaven-enterprise/auth-nodejs';
+import type {
+  AuthenticatedEnterpriseClient,
+  UnauthenticatedEnterpriseClient,
+} from '@deephaven-enterprise/client-utils';
 import type { Brand, QuerySerial, SerializableRefreshToken } from '../shared';
 
 export type ExtensionVersion = Brand<'ExtensionVersion', string>;
@@ -68,11 +70,11 @@ export type CoreUnauthenticatedClient = Brand<
 >;
 
 export type DheAuthenticatedClientWrapper = Partial<IDisposable> & {
-  client: DheAuthenticatedClientBase;
+  client: AuthenticatedEnterpriseClient;
   refreshTokenSerialized: Promise<SerializableRefreshToken | null>;
 };
 export type DheUnauthenticatedClientWrapper = Partial<IDisposable> & {
-  client: DheUnauthenticatedClientBase;
+  client: UnauthenticatedEnterpriseClient;
   refreshTokenSerialized: Promise<SerializableRefreshToken | null>;
 };
 
@@ -168,8 +170,17 @@ export interface WorkerConfig {
 }
 
 export interface ConnectionState {
+  /**
+   * True when this entry has NO console session behind it — it exists only so
+   * the DH embed panel can authenticate against a persistent query's worker
+   * (`getConnection` / `getWorkerInfo` / `getWorkerCredentials`, all keyed by
+   * worker URL). Registered by `ServerManager.registerSessionlessConnection`
+   * when a PQ node is expanded.
+   */
+  readonly isSessionless?: boolean;
   readonly isConnected: boolean;
   readonly isRunningCode?: boolean;
+  readonly label: string;
   readonly serverUrl: URL;
   readonly tagId?: UniqueID;
 }
@@ -185,6 +196,7 @@ export interface WorkerInfo {
   grpcUrl: GrpcURL;
   ideUrl: IdeURL;
   jsapiUrl: JsapiURL;
+  name: string;
   processInfoId: string | null;
   serial: QuerySerial;
   workerName: string | null;

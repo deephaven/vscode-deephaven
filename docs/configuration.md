@@ -39,7 +39,7 @@ An optional label can be included:
 ]
 ```
 
-When connecting to an Enterprise server, you will be presented with a panel to configure your query using the standard query creation UI.
+When [creating a worker](panels.md#creating-a-worker) on an Enterprise server, you will be presented with a panel to configure your query using the standard query creation UI.
 
 ![Query Creation UI](./assets/create-query-ui.png)
 

@@ -9,9 +9,9 @@ import type {
 } from '@deephaven-enterprise/jsapi-types';
 import { DraftQuery, QueryScheduler } from '@deephaven-enterprise/query-utils';
 import type {
-  AuthenticatedClient as DheAuthenticatedClient,
-  UnauthenticatedClient as DheUnauthenticatedClient,
-} from '@deephaven-enterprise/auth-nodejs';
+  AuthenticatedEnterpriseClient as DheAuthenticatedClient,
+  UnauthenticatedEnterpriseClient as DheUnauthenticatedClient,
+} from '@deephaven-enterprise/client-utils';
 import { hasStatusCode, loadModules } from '@deephaven/jsapi-nodejs';
 import type {
   AuthConfig,
@@ -50,9 +50,11 @@ export type IDraftQuery = EditableQueryInfo & {
 };
 
 declare global {
-  // This gets added by the DHE jsapi.
-  // eslint-disable-next-line no-unused-vars
-  const iris: DheType;
+  // This gets added by the DHE jsapi. Declared as `var` (not `const`) so it
+  // merges with the ambient `var iris` global declared by
+  // `@deephaven-enterprise/jsapi-nodejs` rather than conflicting with it.
+  // eslint-disable-next-line no-unused-vars, no-var
+  var iris: DheType;
 }
 
 /**
@@ -220,7 +222,7 @@ export async function loginClientWrapper<TCredentials>(
  * @param consoleType The type of console to create.
  * @returns A promise that resolves to the serial of the created query. Note
  * that this will resolve before the query is actually ready to use. Use
- * `getWorkerInfoFromQuery` to get the worker info when the query is ready.
+ * `getWorkerInfoFromQuerySerial` to get the worker info when the query is ready.
  */
 export async function createInteractiveConsoleQuery(
   tagId: UniqueID,
@@ -262,7 +264,7 @@ export async function createInteractiveConsoleQuery(
     );
   }
 
-  const name = createQueryName(tagId);
+  const name = createOwnedICQueryName(tagId);
   const dbServerName =
     workerConfig?.dbServerName ?? dbServers[0]?.name ?? 'Query 1';
   const heapSize = workerConfig?.heapSize ?? queryConstants.pqDefaultHeap;
@@ -340,11 +342,11 @@ export async function createInteractiveConsoleQuery(
 }
 
 /**
- * Create a query name based on the tag id.
+ * Create an interactive console query name based on the tag id.
  * @param tagId Unique tag id to include in the query name.
  * @returns The query name.
  */
-export function createQueryName(tagId: UniqueID): string {
+export function createOwnedICQueryName(tagId: UniqueID): string {
   return `IC - VS Code - ${tagId}`;
 }
 
@@ -412,6 +414,88 @@ export async function getDheAuthConfig(
 }
 
 /**
+ * Determine if a given query info represents an attachable IC worker for the
+ * current effective user. An attachable worker is an InteractiveConsole type,
+ * owned by `operateAs`, and currently Running.
+ * @param queryInfo Query info to check.
+ * @param operateAs The effective user to match ownership against.
+ * @returns True if the query is attachable, false otherwise.
+ */
+export function isAttachableWorker(
+  queryInfo: QueryInfo,
+  operateAs: string | null
+): boolean {
+  return (
+    queryInfo.type === INTERACTIVE_CONSOLE_QUERY_TYPE &&
+    queryInfo.owner === operateAs &&
+    queryInfo.designated?.status === 'Running'
+  );
+}
+
+/**
+ * List all running InteractiveConsole workers owned by the current effective
+ * user.
+ * @param dheClient DHE client to use.
+ * @param exclude Iterable of query serials to exclude from the results.
+ * @returns A promise resolving to the filtered QueryInfo array.
+ */
+export async function listAttachableWorkers(
+  dheClient: DheAuthenticatedClient,
+  exclude: Iterable<QuerySerial>
+): Promise<QueryInfo[]> {
+  const userInfo = await dheClient.getUserInfo();
+  const operateAs = userInfo.operateAs;
+  const excludeSet = new Set(exclude);
+
+  return dheClient
+    .getKnownConfigs()
+    .filter(
+      qi =>
+        isAttachableWorker(qi, operateAs) &&
+        !excludeSet.has(qi.serial as QuerySerial)
+    );
+}
+
+/**
+ * Convert a QueryInfo object to a WorkerInfo object without any I/O or
+ * side effects. Returns undefined when `queryInfo.designated` is null.
+ * @param tagId Unique tag id to associate with the worker.
+ * @param queryInfo The running query info.
+ * @returns WorkerInfo or undefined.
+ */
+export function getWorkerInfoFromQueryInfo(
+  tagId: UniqueID,
+  queryInfo: QueryInfo
+): WorkerInfo | undefined {
+  if (
+    queryInfo.designated == null ||
+    queryInfo.designated.ideUrl == null ||
+    queryInfo.designated.jsApiUrl == null
+  ) {
+    return;
+  }
+
+  const { envoyPrefix, grpcUrl, ideUrl, jsApiUrl, processInfoId, workerName } =
+    queryInfo.designated;
+
+  const workerUrl = new URL(jsApiUrl) as WorkerURL;
+  workerUrl.pathname = workerUrl.pathname.replace(/jsapi\/dh-core.js$/, '');
+
+  return {
+    tagId,
+    serial: queryInfo.serial as QuerySerial,
+    envoyPrefix,
+    grpcUrl: new URL(grpcUrl) as GrpcURL,
+    ideUrl: new URL(ideUrl) as IdeURL,
+    jsapiUrl: new URL(jsApiUrl) as JsapiURL,
+    name: queryInfo.name,
+    processInfoId,
+    workerName,
+    workerUrl,
+  };
+}
+
+/**
  * Search existing queries for a query with the given tag id and return its serial.
  * @param tagId Unique tag id to search for.
  * @param dheClient DHE client to use for searching queries.
@@ -423,7 +507,7 @@ export function getSerialFromTagId(
 ): QuerySerial | null {
   const queryConfig = dheClient
     .getKnownConfigs()
-    .find(({ name }) => name === createQueryName(tagId));
+    .find(({ name }) => name === createOwnedICQueryName(tagId));
 
   return (queryConfig?.serial ?? null) as QuerySerial | null;
 }
@@ -436,7 +520,7 @@ export function getSerialFromTagId(
  * @param querySerial Serial of the query to get worker info for.
  * @returns A promise that resolves to the worker info when the worker is ready.
  */
-export async function getWorkerInfoFromQuery(
+export async function getWorkerInfoFromQuerySerial(
   tagId: UniqueID,
   dhe: DheType,
   dheClient: DheAuthenticatedClient,
@@ -498,27 +582,7 @@ export async function getWorkerInfoFromQuery(
     }
   }
 
-  if (queryInfo.designated == null) {
-    return;
-  }
-
-  const { envoyPrefix, grpcUrl, ideUrl, jsApiUrl, processInfoId, workerName } =
-    queryInfo.designated;
-
-  const workerUrl = new URL(jsApiUrl) as WorkerURL;
-  workerUrl.pathname = workerUrl.pathname.replace(/jsapi\/dh-core.js$/, '');
-
-  return {
-    tagId,
-    serial: querySerial,
-    envoyPrefix,
-    grpcUrl: new URL(grpcUrl) as GrpcURL,
-    ideUrl: new URL(ideUrl) as IdeURL,
-    jsapiUrl: new URL(jsApiUrl) as JsapiURL,
-    processInfoId,
-    workerName,
-    workerUrl,
-  };
+  return getWorkerInfoFromQueryInfo(tagId, queryInfo);
 }
 
 /**
