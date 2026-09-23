@@ -989,9 +989,15 @@ export class ServerManager implements IServerManager {
     // worker. Check if there is a corresponding DHE service in the cache, and if
     // so delete the associated worker. Otherwise, we are dealing with a placeholder,
     // and cleanup will happen once the worker is ready in `connectToServer`.
+    // A failed delete must not abort local teardown below, or the connection
+    // is left stale and its serial stays gated against re-attach.
     if (dheServerUrl && this._dheServiceCache.has(dheServerUrl)) {
-      const dheService = await this._dheServiceCache.get(dheServerUrl);
-      await dheService.deleteWorker(serverOrWorkerUrl as WorkerURL);
+      try {
+        const dheService = await this._dheServiceCache.get(dheServerUrl);
+        await dheService.deleteWorker(serverOrWorkerUrl as WorkerURL);
+      } catch (err) {
+        logger.error('Failed to delete worker:', serverOrWorkerUrl, err);
+      }
     }
 
     // Clear the idempotency/teardown gate so a later reconnect can re-attach.

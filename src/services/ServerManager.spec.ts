@@ -630,6 +630,33 @@ describe('ServerManager.disconnectFromServer', () => {
 
     expect(manager._serverMap.getOrThrow(serverUrl).connectionCount).toBe(1);
   });
+
+  it('completes local teardown when deleting the worker fails', async () => {
+    const dheService = {
+      deleteWorker: vi.fn().mockRejectedValue(new Error('delete failed')),
+    };
+    manager._dheServiceCache.has.mockReturnValue(true);
+    manager._dheServiceCache.get.mockResolvedValue(dheService);
+
+    const connection = {
+      ...mockConnectionState(workerUrl),
+      dispose: vi.fn(),
+    };
+    manager._connectionMap.set(workerUrl, connection);
+    manager._attachedWorkerSerials.set('serial-1', workerUrl);
+
+    const disconnected: string[] = [];
+    manager.onDidDisconnect(url => disconnected.push(url.toString()));
+
+    await manager.disconnectFromServer(workerUrl);
+
+    expect(dheService.deleteWorker).toHaveBeenCalledWith(workerUrl);
+    // Serial is released so the worker can be re-attached later.
+    expect(manager._attachedWorkerSerials.has('serial-1')).toBe(false);
+    expect(manager._connectionMap.has(workerUrl)).toBe(false);
+    expect(connection.dispose).toHaveBeenCalled();
+    expect(disconnected).toEqual([workerUrl.toString()]);
+  });
 });
 
 describe('ServerManager.isServerConnecting', () => {
