@@ -105,6 +105,13 @@ const settings = {
   // VS Code's tryShowOnboarding() only calls show() when this setting is truthy
   // (see workbench.desktop.main.js), so false short-circuits it entirely.
   'workbench.welcomePage.experimentalOnboarding': false,
+  // VS Code 1.139 flipped this setting's default to true, which turns on
+  // 'connected' editor tabs. Those split a tab's label into a name node and a
+  // separate '.label-suffix' node holding the file extension, so
+  // vscode-extension-tester's EditorTab.getTitle() (which reads only
+  // '.label-name') reports 'test' instead of 'test.txt' and every
+  // getTabByTitle() lookup throws. Disable until ExTester locators catch up.
+  'workbench.experimental.modernUI': false,
 };
 /* eslint-enable @typescript-eslint/naming-convention */
 
