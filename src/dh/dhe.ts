@@ -7,7 +7,11 @@ import type {
   TypeSpecificFields,
   WorkerKind,
 } from '@deephaven-enterprise/jsapi-types';
-import { DraftQuery, QueryScheduler } from '@deephaven-enterprise/query-utils';
+import {
+  DraftQuery,
+  isRunning,
+  QueryScheduler,
+} from '@deephaven-enterprise/query-utils';
 import type {
   AuthenticatedEnterpriseClient as DheAuthenticatedClient,
   UnauthenticatedEnterpriseClient as DheUnauthenticatedClient,
@@ -37,6 +41,7 @@ import {
   DHE_FEATURES_URL_PATH,
   INTERACTIVE_CONSOLE_QUERY_TYPE,
   INTERACTIVE_CONSOLE_TEMPORARY_QUEUE_NAME,
+  isPreInitQueryStatus,
   isTerminalQueryStatus,
   PROTOCOL,
   UnsupportedFeatureQueryError,
@@ -428,7 +433,7 @@ export function isAttachableWorker(
   return (
     queryInfo.type === INTERACTIVE_CONSOLE_QUERY_TYPE &&
     queryInfo.owner === operateAs &&
-    queryInfo.designated?.status === 'Running'
+    isRunning(queryInfo)
   );
 }
 
@@ -534,11 +539,11 @@ export async function getWorkerInfoFromQuerySerial(
   function handleQueryInfo(queryInfo: QueryInfo): QueryInfo | undefined {
     const status = queryInfo.designated?.status;
 
-    if (status === 'Running') {
+    if (isRunning(queryInfo)) {
       return queryInfo;
     }
 
-    if (isTerminalQueryStatus(status)) {
+    if (isTerminalQueryStatus(status) && !isPreInitQueryStatus(status)) {
       deleteQueries(dheClient, [querySerial]);
       throw new Error('Query failed to start');
     }

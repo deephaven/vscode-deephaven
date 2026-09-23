@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type * as vscode from 'vscode';
 import type { QueryInfo } from '@deephaven-enterprise/jsapi-types';
+import { QueryStatus } from '@deephaven-enterprise/query-utils';
 import { PersistentQueryTreeProvider } from './PersistentQueryTreeProvider';
 import type {
   IPersistentQueryService,
@@ -15,7 +16,6 @@ import type {
 import {
   FILTER_PERSISTENT_QUERIES_CMD,
   OPEN_VARIABLE_PANELS_CMD,
-  UNSET_QUERY_STATUS,
 } from '../common';
 
 // See __mocks__/vscode.ts for the mock implementation
@@ -68,7 +68,7 @@ describe('PersistentQueryTreeProvider', () => {
     'Error',
     'Disconnected',
     'Completed',
-    UNSET_QUERY_STATUS,
+    QueryStatus.none,
   ]);
   let onFilterDidUpdate: (() => void) | undefined;
   let provider: PersistentQueryTreeProvider;
@@ -375,7 +375,7 @@ describe('PersistentQueryTreeProvider', () => {
 
       expect(counts.get('Running')).toBe(2);
       expect(counts.get('Stopped')).toBe(1);
-      expect(counts.get(UNSET_QUERY_STATUS)).toBe(1);
+      expect(counts.get(QueryStatus.none)).toBe(1);
       // Disconnected servers contribute nothing.
       expect([...counts.values()].reduce((a, b) => a + b, 0)).toBe(4);
     });

@@ -96,7 +96,7 @@ describe('ServerConnectionTreeProvider', () => {
       variables = [
         makeVariable('zebra', 'v1'),
         makeVariable('apple', 'v2'),
-        // Not an openable panel type — must be dropped.
+        // A non-panel type still gets a leaf.
         {
           id: 'v3',
           title: 'acl',
@@ -109,13 +109,14 @@ describe('ServerConnectionTreeProvider', () => {
         connection
       )) as ServerConnectionNode[];
 
-      expect(children).toHaveLength(4);
+      expect(children).toHaveLength(5);
       expect((children[0] as vscode.Uri).path).toBe(
         '/workspace/nested/a_second.py'
       );
       expect((children[1] as vscode.Uri).path).toBe('/workspace/z_first.py');
-      expect((children[2] as [URL, VariableDefintion])[1].title).toBe('apple');
-      expect((children[3] as [URL, VariableDefintion])[1].title).toBe('zebra');
+      expect((children[2] as [URL, VariableDefintion])[1].title).toBe('acl');
+      expect((children[3] as [URL, VariableDefintion])[1].title).toBe('apple');
+      expect((children[4] as [URL, VariableDefintion])[1].title).toBe('zebra');
       // Panel leaves are keyed by the worker url.
       expect((children[2] as [URL, VariableDefintion])[0]).toBe(WORKER_URL);
     });

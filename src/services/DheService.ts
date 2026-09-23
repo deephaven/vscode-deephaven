@@ -42,6 +42,7 @@ import {
 import {
   CLOSE_CREATE_QUERY_VIEW_CMD,
   CREATE_DHE_AUTHENTICATED_CLIENT_CMD,
+  isPreInitQueryStatus,
   isTerminalQueryStatus,
   QueryCreationCancelledError,
   QueryStartupFailureError,
@@ -503,7 +504,7 @@ export class DheService implements IDheService {
       this._dheServerFeaturesCache.get(this.serverUrl)?.features
         .createQueryIframe ?? false;
 
-    let startupFailureStatus: string | null = null;
+    let startupFailureStatus: string | null | undefined = null;
 
     const queryName = createOwnedICQueryName(tagId);
 
@@ -524,6 +525,7 @@ export class DheService implements IDheService {
         const status = queryInfo.designated?.status;
         if (
           isTerminalQueryStatus(status) &&
+          !isPreInitQueryStatus(status) &&
           queryInfo.name.startsWith(queryName)
         ) {
           logger.info(

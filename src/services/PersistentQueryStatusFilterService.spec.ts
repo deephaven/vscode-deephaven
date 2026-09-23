@@ -1,13 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type * as vscode from 'vscode';
+import { QueryStatus } from '@deephaven-enterprise/query-utils';
 import { PersistentQueryStatusFilterService } from './PersistentQueryStatusFilterService';
 import {
   DEFAULT_HIDDEN_QUERY_STATUSES,
-  LIVE_QUERY_STATUSES,
+  getQueryStatusSectionStatuses,
   PERSISTENT_QUERY_HIDDEN_STATUSES_STORAGE_KEY,
-  STOPPED_QUERY_STATUSES,
-  UNSET_QUERY_STATUS,
 } from '../common';
+
+const LIVE_QUERY_STATUSES = getQueryStatusSectionStatuses('Running');
+const STOPPED_QUERY_STATUSES = getQueryStatusSectionStatuses('Stopped');
 
 // See __mocks__/vscode.ts for the mock implementation
 vi.mock('vscode');
@@ -102,7 +104,7 @@ describe('PersistentQueryStatusFilterService', () => {
       'normalises an unset status to the same entry: %s',
       status => {
         const service = new PersistentQueryStatusFilterService(
-          makeContext([UNSET_QUERY_STATUS])
+          makeContext([QueryStatus.none])
         );
 
         expect(service.isVisible(status)).toBe(false);
@@ -128,11 +130,11 @@ describe('PersistentQueryStatusFilterService', () => {
 
       expect(context.globalState.update).toHaveBeenCalledWith(
         PERSISTENT_QUERY_HIDDEN_STATUSES_STORAGE_KEY,
-        ['Running', UNSET_QUERY_STATUS]
+        ['Running', QueryStatus.none]
       );
       expect([...service.getHiddenStatuses()]).toEqual([
         'Running',
-        UNSET_QUERY_STATUS,
+        QueryStatus.none,
       ]);
       expect(onDidUpdate).toHaveBeenCalledTimes(1);
     });

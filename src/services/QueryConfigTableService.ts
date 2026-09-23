@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import {
   fetchQueryConfigTable,
+  isRunning,
   QueryColumns,
   QUERY_CONFIG_TABLE,
   WEB_CLIENT_DATA_CORE_QUERY,
@@ -71,11 +72,7 @@ export class QueryConfigTableService extends DisposableBase {
     // Ensure WebClientData query is running
     const webClientData = dheClient.client
       .getKnownConfigs()
-      .find(
-        qi =>
-          qi.name === WEB_CLIENT_DATA_CORE_QUERY &&
-          qi.designated?.status === 'Running'
-      );
+      .find(qi => qi.name === WEB_CLIENT_DATA_CORE_QUERY && isRunning(qi));
 
     if (webClientData?.designated == null) {
       throw new WebClientDataUnavailableError(this._serverUrl);

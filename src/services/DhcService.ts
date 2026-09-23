@@ -7,7 +7,6 @@ import {
   getCombinedRangeLinesText,
   isInstanceOf,
   isNonEmptyArray,
-  isOpenablePanelVariable,
   Logger,
   saveRequirementsTxt,
   type URLMap,
@@ -682,12 +681,7 @@ export class DhcService extends DisposableBase implements IDhcService {
       this.outputChannel.appendLine(`${icon} ${title}`);
     });
 
-    // Everything created is logged above; only open panels for variables that
-    // can actually render in one (a `deephaven.ui.Dashboard`, for example, would
-    // open a blank panel).
-    const showVariables = changed.filter(
-      v => !v.title.startsWith('_') && isOpenablePanelVariable(v)
-    );
+    const showVariables = changed.filter(v => !v.title.startsWith('_'));
 
     if (isNonEmptyArray(showVariables)) {
       logger.debug(

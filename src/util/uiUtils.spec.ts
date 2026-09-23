@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import type { Username } from '@deephaven-enterprise/auth-nodejs';
+import { QueryStatus } from '@deephaven-enterprise/query-utils';
 import {
   createConnectText,
   ConnectionOption,
@@ -14,8 +15,7 @@ import {
 } from './uiUtils';
 import {
   DEFAULT_HIDDEN_QUERY_STATUSES,
-  STOPPED_QUERY_STATUSES,
-  UNSET_QUERY_STATUS,
+  getQueryStatusSectionStatuses,
   type ViewID,
 } from '../common';
 import type {
@@ -324,8 +324,6 @@ describe('promptForQueryStatusFilter', () => {
   it('splits the rows into a Running and a Stopped section', async () => {
     await promptForQueryStatusFilter(new Map(), new Set());
 
-    // `Stopping` groups with the stopped statuses, and the unset row leads them
-    // (a query reporting no status has stopped without saying so).
     expect(
       shownItems().map(item =>
         item.kind === vscode.QuickPickItemKind.Separator
@@ -335,7 +333,6 @@ describe('promptForQueryStatusFilter', () => {
     ).toEqual([
       '-- Running --',
       'Running',
-      'Uninitialized',
       'Connecting',
       'Authenticating',
       'Acquiring Worker',
@@ -343,12 +340,13 @@ describe('promptForQueryStatusFilter', () => {
       'Initializing',
       'Executing',
       '-- Stopped --',
-      '(no status)',
-      'Stopping',
-      'Stopped',
+      '(none)',
+      'Uninitialized',
       'Failed',
       'Error',
       'Disconnected',
+      'Stopping',
+      'Stopped',
       'Completed',
     ]);
   });
@@ -361,7 +359,8 @@ describe('promptForQueryStatusFilter', () => {
 
     const rows = shownStatusRows();
     // The Stopped section is the tail of the list, one row per stopped status.
-    const stoppedIndex = rows.length - STOPPED_QUERY_STATUSES.length;
+    const stoppedIndex =
+      rows.length - getQueryStatusSectionStatuses('Stopped').length;
 
     expect(rows.slice(0, stoppedIndex).every(row => row.picked)).toBe(true);
     expect(rows.slice(stoppedIndex).some(row => row.picked)).toBe(false);
@@ -383,9 +382,9 @@ describe('promptForQueryStatusFilter', () => {
     await promptForQueryStatusFilter(
       new Map([
         ['Running', 13],
-        [UNSET_QUERY_STATUS, 2],
+        [QueryStatus.none, 2],
       ]),
-      new Set(['Stopped', UNSET_QUERY_STATUS])
+      new Set(['Stopped', QueryStatus.none])
     );
 
     const byLabel = new Map(shownItems().map(item => [item.label, item]));
@@ -394,7 +393,7 @@ describe('promptForQueryStatusFilter', () => {
       description: '13',
       picked: true,
     });
-    expect(byLabel.get('(no status)')).toMatchObject({
+    expect(byLabel.get('(none)')).toMatchObject({
       description: '2',
       picked: false,
     });
@@ -412,7 +411,7 @@ describe('promptForQueryStatusFilter', () => {
     await promptForQueryStatusFilter(
       new Map([
         ['Running', 20007],
-        [UNSET_QUERY_STATUS, 20001],
+        [QueryStatus.none, 20001],
       ]),
       new Set()
     );
@@ -420,7 +419,7 @@ describe('promptForQueryStatusFilter', () => {
     const byLabel = new Map(shownItems().map(item => [item.label, item]));
 
     expect(byLabel.get('Running')?.description).toBe('20,007');
-    expect(byLabel.get('(no status)')?.description).toBe('20,001');
+    expect(byLabel.get('(none)')?.description).toBe('20,001');
   });
 
   it('puts unrecognized statuses at the end of the Running section, alphabetized', async () => {
@@ -462,7 +461,7 @@ describe('promptForQueryStatusFilter', () => {
     expect(hidden).toBeDefined();
     expect(hidden?.has('Running')).toBe(false);
     expect(hidden?.has('Stopped')).toBe(true);
-    expect(hidden?.has(UNSET_QUERY_STATUS)).toBe(true);
+    expect(hidden?.has(QueryStatus.none)).toBe(true);
   });
 
   it('returns an empty hidden set when everything is picked', async () => {

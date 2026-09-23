@@ -1,5 +1,9 @@
 import * as path from 'node:path';
-import type { ConsoleType, TerminalQueryStatus, VariableType } from '../types';
+import {
+  NON_RUNNING_STATUSES,
+  QueryStatus,
+} from '@deephaven-enterprise/query-utils';
+import type { ConsoleType } from '../types';
 
 /**
  * This value is a little bit arbitrary, but it needs to be long enough to
@@ -74,104 +78,72 @@ export const SERVER_LANGUAGE_SET = new Set([
   'groovy',
 ]) as ReadonlySet<ConsoleType>;
 
-export const TERMINAL_QUERY_STATUSES = new Set([
-  'Stopping',
-  'Stopped',
-  'Failed',
-  'Error',
-  'Disconnected',
-  'Completed',
-]) as ReadonlySet<TerminalQueryStatus>;
-
 /**
- * Type guard to check if a status is a terminal query status.
+ * Whether a status is in NON_RUNNING_STATUSES or is `QueryStatus.stopping`.
  * @param status The status to check.
  * @returns True if the status is a terminal query status.
  */
 export function isTerminalQueryStatus(
   status: string | null | undefined
-): status is TerminalQueryStatus {
+): boolean {
   return (
-    status != null && TERMINAL_QUERY_STATUSES.has(status as TerminalQueryStatus)
+    NON_RUNNING_STATUSES.has(status ?? QueryStatus.none) ||
+    status === QueryStatus.stopping
   );
 }
 
 /**
- * The canonical hidden-set key for "no status". A PQ can report its status as
- * `null`, `undefined`, or `''` (the JS API maps a null status to an empty
- * string), so all three normalise to this single entry.
+ * For cases where we subscribe to query status updates before queries have been
+ * initialized, we want to exclude terminal statuses that could be ones just
+ * getting started.
+ * @param status The status to check.
+ * @returns True if the query has yet to start.
  */
-export const UNSET_QUERY_STATUS = '' as const;
+export function isPreInitQueryStatus(
+  status: string | null | undefined
+): boolean {
+  return (
+    status == null ||
+    status === QueryStatus.none ||
+    status === QueryStatus.uninitialized
+  );
+}
 
 /**
- * The "Stopped" half of the Persistent Queries status filter, in the filter
- * picker's row order: the terminal statuses plus the unset one, since a stopped
- * PQ can report no status at all. `Stopping` groups here, but is still
- * transitional for icon purposes (see {@link isSettledQueryStatus}).
+ * Every status the enterprise `QueryStatus` vocabulary defines, in declaration
+ * order. Read off the class so a status the package adds is picked up here
+ * (`constants.spec.ts` guards the assumption that these are enumerable).
  */
-export const STOPPED_QUERY_STATUSES: readonly string[] = [
-  UNSET_QUERY_STATUS,
-  ...TERMINAL_QUERY_STATUSES,
-];
-
-/**
- * The "Running" half of the Persistent Queries status filter, in the filter
- * picker's row order — running, or on the way to it. Spelled out rather than
- * derived from the enterprise `QueryStatus` class so row order stays stable as
- * that vocabulary grows; anything new lands in the picker's "unrecognized" rows
- * and is visible by default.
- */
-export const LIVE_QUERY_STATUSES: readonly string[] = [
-  'Running',
-  'Uninitialized',
-  'Connecting',
-  'Authenticating',
-  'AcquiringWorker',
-  'FindingDispatcher',
-  'Initializing',
-  'Executing',
-];
+export const ALL_QUERY_STATUSES: readonly string[] = Object.values(
+  QueryStatus
+).filter((value): value is string => typeof value === 'string');
 
 /** The two halves the Persistent Queries status filter can toggle at once. */
 export type QueryStatusSection = 'Running' | 'Stopped';
 
 /**
- * The statuses making up a {@link QueryStatusSection}.
+ * The statuses making up a {@link QueryStatusSection} — the vocabulary split by
+ * {@link isTerminalQueryStatus}, so the sections cannot drift from it or from
+ * each other. A status the extension doesn't recognize is in neither, and the
+ * picker gives it an "unrecognized" row of its own.
  * @param section The section whose statuses to list.
  */
 export function getQueryStatusSectionStatuses(
   section: QueryStatusSection
 ): readonly string[] {
-  return section === 'Running' ? LIVE_QUERY_STATUSES : STOPPED_QUERY_STATUSES;
-}
+  const isStoppedSection = section === 'Stopped';
 
-/**
- * The statuses that mean a query has finished moving — the terminal ones minus
- * `Stopping`, which is still winding down. Every other status is either running
- * or transitional.
- */
-const SETTLED_QUERY_STATUSES: ReadonlySet<string> = new Set(
-  [...TERMINAL_QUERY_STATUSES].filter(status => status !== 'Stopping')
-);
-
-/**
- * Whether a status means the query has finished moving. Narrower than
- * {@link isTerminalQueryStatus} and {@link STOPPED_QUERY_STATUSES}, which both
- * count `Stopping`. Drives the node icon, so a transitional status keeps its
- * spinner.
- * @param status The status to check.
- */
-export function isSettledQueryStatus(
-  status: string | null | undefined
-): boolean {
-  return SETTLED_QUERY_STATUSES.has(status ?? UNSET_QUERY_STATUS);
+  return ALL_QUERY_STATUSES.filter(
+    status => isTerminalQueryStatus(status) === isStoppedSection
+  );
 }
 
 /**
  * Statuses hidden by the Persistent Queries status filter on first run, so the
  * view opens showing every query that is running or still in motion.
  */
-export const DEFAULT_HIDDEN_QUERY_STATUSES = STOPPED_QUERY_STATUSES;
+export const DEFAULT_HIDDEN_QUERY_STATUSES =
+  getQueryStatusSectionStatuses('Stopped');
 
 export const PIP_SERVER_SUPPORTED_PLATFORMS = new Set<NodeJS.Platform>([
   'darwin',
@@ -233,34 +205,8 @@ export const ICON_ID = {
   worker: 'remote',
 } as const;
 
-/**
- * Variable types that can open as a Deephaven panel. Anything not listed is
- * hidden from panel lists rather than opening a panel that never renders.
- *
- * An allow-list is necessary because a worker's exported objects also include
- * non-panel things — DHE service objects (`AclService` and friends), dashboards,
- * legacy widget types — and nothing on the object says so. The web UI decides by
- * looking the type up in its widget-plugin registry, which is assembled at
- * runtime and not inspectable from the extension host.
- *
- * Entries mirror the types the bundled web plugins claim: Grid, Chart, Pandas,
- * plus the `deephaven.ui.Element` and `deephaven.plot.express.DeephavenFigure`
- * plugin widgets. The tradeoff is that a server-side JS plugin defining its own
- * widget type stays hidden until its type is added here.
- */
-export const OPENABLE_PANEL_VARIABLE_TYPES: ReadonlySet<string> = new Set([
-  'deephaven.plot.express.DeephavenFigure',
-  'deephaven.ui.Element',
-  'Figure',
-  'HierarchicalTable',
-  'pandas.DataFrame',
-  'PartitionedTable',
-  'Table',
-  'TreeTable',
-]);
-
 /* eslint-disable @typescript-eslint/naming-convention */
-export const VARIABLE_UNICODE_ICONS = {
+export const VARIABLE_UNICODE_ICONS: Record<string, string | undefined> = {
   'deephaven.plot.express.DeephavenFigure': '📈',
   'deephaven.ui.Element': '✨',
   Figure: '📈',
@@ -272,7 +218,7 @@ export const VARIABLE_UNICODE_ICONS = {
   TableMap: '▤',
   Treemap: '▤',
   TreeTable: '▤',
-} as const satisfies Record<VariableType, string>;
+};
 /* eslint-enable @typescript-eslint/naming-convention */
 
 export const CONNECTION_TREE_ITEM_CONTEXT = {

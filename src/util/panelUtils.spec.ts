@@ -1,51 +1,32 @@
 import { describe, it, expect, vi } from 'vitest';
+import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { isOpenablePanelVariable } from './panelUtils';
 
 // See __mocks__/vscode.ts for the mock implementation
 vi.mock('vscode');
 
 describe('isOpenablePanelVariable', () => {
-  it.each([
-    // Grid plugin.
-    ['Table'],
-    ['TreeTable'],
-    ['HierarchicalTable'],
-    ['PartitionedTable'],
-    // Chart / Pandas plugins.
-    ['Figure'],
-    ['pandas.DataFrame'],
-    // First-party plugin widgets — deephaven.ui panels are openable.
-    ['deephaven.ui.Element'],
-    ['deephaven.plot.express.DeephavenFigure'],
-  ])('is true for an openable type: %s', type => {
-    expect(isOpenablePanelVariable({ title: 't', type })).toBe(true);
-  });
-
-  it.each([
-    // A dashboard, not a panel.
-    ['deephaven.ui.Dashboard'],
-    // Legacy types no plugin claims.
-    ['TableMap'],
-    ['Treemap'],
-    // The server's catch-all widget type.
-    ['OtherWidget'],
-    // DHE service objects exported by a worker.
-    ['AclService'],
-    // An unknown server plugin type — hidden until added to the allow-list.
-    ['some.server.PluginWidget'],
-  ])('is false for a type that is not an openable panel: %s', type => {
-    expect(isOpenablePanelVariable({ title: 't', type })).toBe(false);
-  });
-
-  it.each([
-    [{ title: '', type: 'Table' }],
-    [{ title: null, type: 'Table' }],
-    [{ type: 'Table' }],
-    [{ title: 't', type: '' }],
-    [{ title: 't', type: null }],
-    [{ title: 't' }],
-    [{}],
-  ])('is false without both a title and an openable type: %s', variable => {
-    expect(isOpenablePanelVariable(variable)).toBe(false);
+  it.each<[string, Partial<DhcType.ide.VariableDefinition>, boolean]>([
+    [
+      'is true for a variable with an id and a title',
+      { id: 'v1', title: 't1' },
+      true,
+    ],
+    // Type is the server's business — which types render is up to the plugins
+    // installed on it, so an unrecognized one must not be filtered out.
+    [
+      'is true for a type no bundled plugin claims',
+      { id: 'v1', title: 't1', type: 'some.server.PluginWidget' },
+      true,
+    ],
+    // The embed widget url addresses the object by title, so an empty one could
+    // only open an empty panel.
+    ['is false for an empty title', { id: 'v1', title: '' }, false],
+    // Open panels are keyed by id; empty ids would all collide.
+    ['is false for an empty id', { id: '', title: 't1' }, false],
+  ])('%s', (_label, variable, expected) => {
+    expect(
+      isOpenablePanelVariable(variable as DhcType.ide.VariableDefinition)
+    ).toBe(expected);
   });
 });

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import type * as vscode from 'vscode';
+import type { QueryInfo } from '@deephaven-enterprise/jsapi-types';
 import { bitValues, boolValues, matrix } from '../testUtils';
 import {
   canOpenPersistentQueryObjects,
@@ -31,12 +32,11 @@ import type {
   VariableType,
 } from '../types';
 import { DH_PROTECTED_VARIABLE_NAMES } from '../common';
-import type { QueryInfo } from '@deephaven-enterprise/jsapi-types';
 
 // See __mocks__/vscode.ts for the mock implementation
 vi.mock('vscode');
 
-const variableTypes: readonly VariableType[] = [
+const variableTypes = [
   'deephaven.plot.express.DeephavenFigure',
   'deephaven.ui.Element',
   'Figure',
@@ -48,7 +48,7 @@ const variableTypes: readonly VariableType[] = [
   'TableMap',
   'Treemap',
   'TreeTable',
-] as const;
+] as VariableType[];
 
 describe('getConnectionServerTreeItem', () => {
   it('should return a labeled server tree item', () => {
@@ -112,7 +112,7 @@ describe('getPanelVariableLeaves', () => {
   const makePanelService = (variables: unknown[]): IPanelService =>
     ({ getVariables: () => variables }) as unknown as IPanelService;
 
-  it('drops variables that cannot open as a panel', () => {
+  it('lists every variable the worker reports, whatever its type', () => {
     const panelService = makePanelService([
       { id: 'v1', title: 't1', name: 't1', type: 'Table' },
       { id: 'v2', title: 'acl', name: 'acl', type: 'AclService' },
@@ -122,7 +122,7 @@ describe('getPanelVariableLeaves', () => {
       getPanelVariableLeaves(panelService, serverUrl).map(
         ([, variable]) => variable.title
       )
-    ).toEqual(['t1']);
+    ).toEqual(['acl', 't1']);
   });
 
   it('sorts the leaves by title and pairs each with the worker url', () => {
@@ -143,18 +143,14 @@ describe('getPanelVariableLeaves', () => {
 describe('getPanelVariableTreeItem', () => {
   const url = new URL('http://localhost:10000');
 
-  it.each(variableTypes)(
-    'should return panel variable tree item: type:%s',
-    type => {
-      const variable = {
-        title: 'some title',
-        type,
-      } as VariableDefintion;
+  it('renders the label, icon and open command', () => {
+    const variable = {
+      title: 'some title',
+      type: 'Table',
+    } as VariableDefintion;
 
-      const actual = getPanelVariableTreeItem([url, variable], true);
-      expect(actual).toMatchSnapshot();
-    }
-  );
+    expect(getPanelVariableTreeItem([url, variable], true)).toMatchSnapshot();
+  });
 
   it.each(boolValues)(
     'should offer the delete action based on the canDelete flag: canDelete=%s',
@@ -435,6 +431,12 @@ describe('getPersistentQueryTreeItem', () => {
   it.each([
     ['a running PQ', { status: 'Running', objects: [] }, 'circle-large-filled'],
     ['a stopped PQ', { status: 'Stopped', objects: [] }, 'circle-slash'],
+    // Uninitialized is a non-running status: it has not started, not stalled.
+    [
+      'an uninitialized PQ',
+      { status: 'Uninitialized', objects: [] },
+      'circle-slash',
+    ],
     ['a transitional PQ', { status: 'Initializing', objects: [] }, 'sync~spin'],
     ['a PQ with no designated worker', undefined, 'circle-large-outline'],
   ])('renders the status icon for %s', (_label, designated, iconId) => {
@@ -451,13 +453,13 @@ describe('getPersistentQueryTreeItem', () => {
     tooltip: string;
   }>([
     {
-      label: 'openable objects make the PQ expandable',
+      label: 'exported objects make the PQ expandable',
       designated: {
         ...openableUrls,
         status: 'Running',
         objects: [
-          { title: 't1', type: 'Table' },
-          { title: 'f1', type: 'Figure' },
+          { id: 'v1', title: 't1', type: 'Table' },
+          { id: 'v2', title: 'f1', type: 'Figure' },
         ],
       },
       collapsibleState: 1,
@@ -465,76 +467,42 @@ describe('getPersistentQueryTreeItem', () => {
       tooltip: 'My PQ (Running) — 2 objects (1 table)',
     },
     {
-      label: 'deephaven.ui panels count as openable objects',
-      designated: {
-        ...openableUrls,
-        status: 'Running',
-        objects: [{ title: 'ui1', type: 'deephaven.ui.Element' }],
-      },
-      collapsibleState: 1,
-      tooltip: 'My PQ (Running) — 1 object',
-    },
-    {
       label: 'no ideUrl (e.g. a RevertHelper query) blocks opening',
       designated: {
         ...openableUrls,
         ideUrl: null,
         status: 'Running',
-        objects: [{ title: 't1', type: 'Table' }],
+        objects: [{ id: 'v1', title: 't1', type: 'Table' }],
       },
       collapsibleState: 0,
       tooltip: 'My PQ (Running) — 1 object (1 table) (worker not openable)',
     },
     {
-      label: 'an empty ideUrl blocks opening',
-      designated: {
-        ...openableUrls,
-        ideUrl: '',
-        status: 'Running',
-        objects: [{ title: 't1', type: 'Table' }],
-      },
-      collapsibleState: 0,
-      tooltip: 'My PQ (Running) — 1 object (1 table) (worker not openable)',
-    },
-    {
-      label: 'no jsApiUrl blocks opening',
-      designated: {
-        ...openableUrls,
-        jsApiUrl: null,
-        status: 'Running',
-        objects: [{ title: 't1', type: 'Table' }],
-      },
-      collapsibleState: 0,
-      tooltip: 'My PQ (Running) — 1 object (1 table) (worker not openable)',
-    },
-    {
-      label: 'object entries with an empty title or type are ignored',
+      label: 'objects with an empty title or id are dropped',
       designated: {
         ...openableUrls,
         status: 'Running',
         objects: [
-          { title: '', type: 'Table' },
-          { title: 't1', type: '' },
+          { id: 'v1', title: '', type: 'Table' },
+          { id: '', title: 't2', type: 'Table' },
+          { id: 'v3', title: 't3', type: '' },
         ],
       },
-      collapsibleState: 0,
-      tooltip: 'My PQ (Running) — no objects',
+      collapsibleState: 1,
+      tooltip: 'My PQ (Running) — 1 object',
     },
     {
-      label: 'objects whose type is not an openable panel are ignored',
+      label: 'objects of any type count, including unrecognized ones',
       designated: {
         ...openableUrls,
         status: 'Running',
         objects: [
-          { title: 'd1', type: 'deephaven.ui.Dashboard' },
-          { title: 'm1', type: 'TableMap' },
-          { title: 'tm1', type: 'Treemap' },
-          { title: 'w1', type: 'OtherWidget' },
-          { title: 'acl', type: 'AclService' },
+          { id: 'v1', title: 'm1', type: 'TableMap' },
+          { id: 'v2', title: 'acl', type: 'AclService' },
         ],
       },
-      collapsibleState: 0,
-      tooltip: 'My PQ (Running) — no objects',
+      collapsibleState: 1,
+      tooltip: 'My PQ (Running) — 2 objects (1 table)',
     },
     {
       label: 'a PQ exposing no objects is not expandable',
@@ -557,7 +525,7 @@ describe('getPersistentQueryTreeItem', () => {
       tooltip: 'My PQ — no objects',
     },
   ])(
-    'sets collapsible state + tooltip from openable objects: $label',
+    'sets collapsible state + tooltip from exported objects: $label',
     ({ designated, collapsibleState, tooltip }) => {
       const item = getPersistentQueryTreeItem(makeNode(designated));
       expect(item.collapsibleState).toBe(collapsibleState);
@@ -637,17 +605,18 @@ describe('getPersistentQueryObjectLeaves', () => {
     expect(getPersistentQueryObjectLeaves(workerUrl, queryInfo)).toEqual([]);
   });
 
-  it('filters out untitled / untyped objects defensively', () => {
+  it('drops objects it could not open or key a panel by', () => {
     const queryInfo = {
       designated: {
         objects: [
           { title: 't', name: 't', type: 'Table', id: 'v1' },
-          { title: null, name: 'x', type: 'Table', id: 'v2' },
-          { title: 'y', name: 'y', type: null, id: 'v3' },
+          { title: '', name: 'x', type: 'Table', id: 'v2' },
+          { title: 'y', name: 'y', type: 'Table', id: '' },
+          { title: 'd', name: 'd', type: 'deephaven.ui.Dashboard', id: 'v4' },
         ],
       },
     } as unknown as QueryInfo;
     const leaves = getPersistentQueryObjectLeaves(workerUrl, queryInfo);
-    expect(leaves).toHaveLength(1);
+    expect(leaves.map(([, v]) => v.name)).toEqual(['t', 'd']);
   });
 });

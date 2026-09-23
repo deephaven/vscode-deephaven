@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
+import { EXCLUDED_QUERY_TYPES } from '@deephaven-enterprise/jsapi-nodejs';
 import {
   closeTableQuietly,
   getExcludeReplicasFilter,
   getQueryTableFilters,
 } from './queryUtils';
-import { EXCLUDED_QUERY_TYPES } from '@deephaven-enterprise/jsapi-nodejs';
 
 // See __mocks__/vscode.ts for the mock implementation
 vi.mock('vscode');

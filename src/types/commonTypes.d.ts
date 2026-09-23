@@ -40,14 +40,6 @@ export type ConnectionType = 'DHC';
 
 export type ConsoleType = 'groovy' | 'python';
 
-export type TerminalQueryStatus =
-  | 'Stopping'
-  | 'Stopped'
-  | 'Failed'
-  | 'Error'
-  | 'Disconnected'
-  | 'Completed';
-
 export type CoreConnectionConfigStored =
   | string
   | {
@@ -251,18 +243,7 @@ export interface VariableChanges {
   readonly updated: VariableDefintion[];
 }
 
-export type VariableType =
-  | 'deephaven.plot.express.DeephavenFigure'
-  | 'deephaven.ui.Element'
-  | 'Figure'
-  | 'HierarchicalTable'
-  | 'OtherWidget'
-  | 'pandas.DataFrame'
-  | 'PartitionedTable'
-  | 'Table'
-  | 'TableMap'
-  | 'Treemap'
-  | 'TreeTable';
+export type VariableType = Brand<'VariableType'>;
 
 export interface CodeBlock {
   languageId: string;

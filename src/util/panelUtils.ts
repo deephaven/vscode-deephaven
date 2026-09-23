@@ -1,11 +1,7 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
-import {
-  DH_PANEL_VIEW_TYPE,
-  OPENABLE_PANEL_VARIABLE_TYPES,
-  VIEW_ID,
-} from '../common';
-import type { WorkerInfo } from '../types';
+import { DH_PANEL_VIEW_TYPE, VIEW_ID } from '../common';
+import type { VariableDefintion, WorkerInfo } from '../types';
 import {
   VSCODE_POST_MSG,
   type VscodeLoginOptionsResponseMsg,
@@ -14,24 +10,17 @@ import {
 import { getWebViewHtml } from './webViewUtils';
 
 /**
- * Whether a variable can be opened as a Deephaven panel: its type must be one we
- * know renders ({@link OPENABLE_PANEL_VARIABLE_TYPES}), and it must carry the
- * `title` the embed widget URL addresses it by. Everything else — service objects
- * like `AclService`, dashboards, legacy widget types — is not a panel.
+ * Mostly just used to assert the type but ensures we don't get any variables
+ * with empty `id` (used for open panel keys) or `title` (used by the embed widget URL)
+ * {@link VariableDefintion}.
  * @param variable The variable (or PQ exported object) to check.
  */
-export function isOpenablePanelVariable(variable: {
-  title?: string | null;
-  type?: string | null;
-}): boolean {
-  const { title, type } = variable;
+export function isOpenablePanelVariable(
+  variable: DhcType.ide.VariableDefinition
+): variable is VariableDefintion {
+  const { id, title } = variable;
 
-  return (
-    title != null &&
-    title !== '' &&
-    type != null &&
-    OPENABLE_PANEL_VARIABLE_TYPES.has(type)
-  );
+  return id !== '' && title !== '';
 }
 
 /**

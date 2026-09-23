@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import type { QueryInfo } from '@deephaven-enterprise/jsapi-types';
+import { QueryStatus } from '@deephaven-enterprise/query-utils';
 import type {
   ConnectionState,
   ConsoleType,
@@ -19,7 +20,7 @@ import {
   DH_PROTECTED_VARIABLE_NAMES,
   FILTER_PERSISTENT_QUERIES_CMD,
   ICON_ID,
-  isSettledQueryStatus,
+  isTerminalQueryStatus,
   OPEN_VARIABLE_PANELS_CMD,
   PERSISTENT_QUERY_TREE_ITEM_CONTEXT,
   SERVER_TREE_ITEM_CONTEXT,
@@ -150,10 +151,7 @@ export function getPanelVariableTreeItem(
 }
 
 /**
- * The openable panel variables of a worker, as the `[URL, VariableDefintion]`
- * leaves both worker-hosting trees render. Variables that cannot open as a
- * panel are dropped rather than rendering a node that clicks onto nothing, and
- * the rest are alphabetized by title.
+ * Worker variables alphabetized by title.
  * @param panelService Panel service holding the worker's variables.
  * @param serverUrl The worker URL whose variables to list.
  */
@@ -173,7 +171,8 @@ export function getPanelVariableLeaves(
  * - `Running` -> filled circle.
  * - unset -> open circle. A PQ can be listed before it has a `designated` block,
  *   and neither the stop sign nor the spinner would be true of it.
- * - settled (`Stopped`, `Failed`, ...) -> stop sign.
+ * - settled (`Stopped`, `Failed`, `Uninitialized`, ...) -> stop sign, i.e. the
+ *   enterprise non-running statuses.
  * - anything else -> spinner, i.e. every transitional status (`Initializing`,
  *   `Stopping`, ...) and any status this extension doesn't recognize. Note that
  *   `Stopping` is grouped under "Stopped" by the filter but is still in motion,
@@ -183,15 +182,16 @@ export function getPanelVariableLeaves(
 export function getPersistentQueryIconId(
   status: string | null | undefined
 ): string {
-  if (status === 'Running') {
+  if (status === QueryStatus.running) {
     return ICON_ID.serverConnected;
   }
 
-  if (status == null || status === '') {
+  if (status == null || status === QueryStatus.none) {
     return ICON_ID.serverRunning;
   }
 
-  if (isSettledQueryStatus(status)) {
+  // exclude `Stopping` from the stopped icon since it is still transitioning
+  if (isTerminalQueryStatus(status) && status !== QueryStatus.stopping) {
     return ICON_ID.serverStopped;
   }
 
@@ -215,21 +215,15 @@ const TABLE_VARIABLE_TYPES: ReadonlySet<VariableType> = new Set([
   'TreeTable',
   'HierarchicalTable',
   'PartitionedTable',
-]);
+] as VariableType[]);
 
 /**
  * The exported objects of a PQ, read straight from `designated.objects` — no
- * worker connection or node expansion required — filtered to the ones that can
- * open as a panel, so a PQ never gets an expander whose children open onto
- * nothing.
+ * worker connection or node expansion required.
  * @param queryInfo The PQ whose exported objects to read.
  */
 function getPersistentQueryObjects(queryInfo: QueryInfo): VariableDefintion[] {
-  const objects = queryInfo.designated?.objects ?? [];
-
-  return objects.filter((obj): obj is VariableDefintion =>
-    isOpenablePanelVariable(obj)
-  );
+  return (queryInfo.designated?.objects ?? []).filter(isOpenablePanelVariable);
 }
 
 /**
@@ -279,9 +273,8 @@ export function getPersistentQueryTreeItem(
     `${count} ${noun}${count === 1 ? '' : 's'}`;
 
   const tooltipParts = [queryInfo.name];
-  // `''` means "no status" just as `null` does (see `getPersistentQueryIconId`),
-  // so it must not render as an empty `My PQ ()` suffix.
-  if (status != null && status !== '') {
+  // No status must not render an empty `My PQ ()` suffix.
+  if (status != null && status !== QueryStatus.none) {
     tooltipParts.push(` (${status})`);
   }
   if (objects.length === 0) {
@@ -388,7 +381,7 @@ export function isPersistentQueryNode(
 }
 
 /**
- * Map a PQ's openable exported objects to `[URL, VariableDefintion]` leaves
+ * Map a PQ's exported objects to `[URL, VariableDefintion]` leaves
  * paired with the given worker URL — the same shape the Interactive Consoles
  * tree uses.
  * @param workerUrl The worker URL objects are hosted on (for the open command).

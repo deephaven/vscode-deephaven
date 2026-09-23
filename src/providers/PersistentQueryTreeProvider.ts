@@ -1,4 +1,5 @@
 import type * as vscode from 'vscode';
+import { QueryStatus } from '@deephaven-enterprise/query-utils';
 import type {
   IPersistentQueryService,
   IPersistentQueryStatusFilterService,
@@ -7,7 +8,6 @@ import type {
   PersistentQueryTreeNode,
   ServerState,
 } from '../types';
-import { UNSET_QUERY_STATUS } from '../common';
 import { ServerTreeProviderBase } from './ServerTreeProviderBase';
 import {
   getConnectionServerLabel,
@@ -100,7 +100,7 @@ export class PersistentQueryTreeProvider extends ServerTreeProviderBase<Persiste
   /**
    * How many queries carry each status, summed across every connected DHE
    * server — the counts shown beside each row of the filter picker. Unset
-   * statuses bucket under {@link UNSET_QUERY_STATUS}. Counts cover *all*
+   * statuses bucket under {@link QueryStatus.none}. Counts cover *all*
    * queries, not just visible ones, so a hidden status still shows what unhiding
    * it would bring back.
    */
@@ -114,8 +114,7 @@ export class PersistentQueryTreeProvider extends ServerTreeProviderBase<Persiste
         await this._persistentQueryService.getPersistentQueryInfos(server.url);
 
       for (const queryInfo of queryInfos) {
-        const status =
-          getPersistentQueryStatus(queryInfo) ?? UNSET_QUERY_STATUS;
+        const status = getPersistentQueryStatus(queryInfo) ?? QueryStatus.none;
         counts.set(status, (counts.get(status) ?? 0) + 1);
       }
     }

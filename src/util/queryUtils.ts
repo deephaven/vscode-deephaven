@@ -2,8 +2,9 @@ import type { dh as DhcType } from '@deephaven/jsapi-types';
 import {
   EXCLUDED_QUERY_TYPES,
   QueryColumns,
+  QueryStatus,
 } from '@deephaven-enterprise/query-utils';
-import { DEFAULT_HIDDEN_QUERY_STATUSES, UNSET_QUERY_STATUS } from '../common';
+import { DEFAULT_HIDDEN_QUERY_STATUSES } from '../common';
 import type { QueryTableFilters } from '../types';
 import { Logger } from './Logger';
 
@@ -109,7 +110,7 @@ export function getQueryTableFilters(
 export function normalizeQueryStatus(
   status: string | null | undefined
 ): string {
-  return status == null ? UNSET_QUERY_STATUS : status;
+  return status == null ? QueryStatus.none : status;
 }
 
 /**

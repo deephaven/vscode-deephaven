@@ -13,9 +13,7 @@ import {
   STATUS_BAR_CONNECTING_TEXT,
   STATUS_BAR_DISCONNECTED_TEXT,
   ICON_ID,
-  LIVE_QUERY_STATUSES,
-  STOPPED_QUERY_STATUSES,
-  UNSET_QUERY_STATUS,
+  getQueryStatusSectionStatuses,
   type ViewID,
 } from '../common';
 import { assertDefined, type BaseThemeKey } from '../shared';
@@ -657,11 +655,11 @@ interface QueryStatusPickItem extends vscode.QuickPickItem {
  * list with one row per status and its current count.
  *
  * The rows sit in two separator-headed sections:
- * - **Running** — {@link LIVE_QUERY_STATUSES}, followed by any status observed
- *   in the data that this extension doesn't recognize. An unknown status is not
- *   known to have stopped, so it belongs with the live ones.
- * - **Stopped** — {@link STOPPED_QUERY_STATUSES}, including the unset row, since
- *   a query that reports no status has stopped without saying so.
+ * - **Running** — the live statuses, `Running` first, followed by any status
+ *   observed in the data that this extension doesn't recognize. An unknown
+ *   status is not known to have stopped, so it belongs with the live ones.
+ * - **Stopped** — the rest, including the unset row, since a query that reports
+ *   no status has stopped without saying so.
  *
  * Returns the new set of statuses to HIDE — the form the filter is stored in —
  * or `undefined` if the picker was dismissed. A dismissal must be treated as
@@ -675,7 +673,20 @@ export async function promptForQueryStatusFilter(
   statusCounts: ReadonlyMap<string, number>,
   hiddenStatuses: ReadonlySet<string>
 ): Promise<Set<string> | undefined> {
-  const known = [...LIVE_QUERY_STATUSES, ...STOPPED_QUERY_STATUSES];
+  const live = [
+    QueryStatus.running,
+    ...getQueryStatusSectionStatuses('Running').filter(
+      status => status !== QueryStatus.running
+    ),
+  ];
+  const stopped = [
+    QueryStatus.none,
+    ...getQueryStatusSectionStatuses('Stopped').filter(
+      status => status !== QueryStatus.none
+    ),
+  ];
+
+  const known = [...live, ...stopped];
   const knownSet = new Set(known);
 
   // Any status the server reported that isn't in the known vocabulary still
@@ -692,8 +703,8 @@ export async function promptForQueryStatusFilter(
     // `getDisplayString` returns 'None' for the unset status, which reads like
     // a status literally named "None" — spell it out instead.
     label:
-      status === UNSET_QUERY_STATUS
-        ? '(no status)'
+      status === QueryStatus.none
+        ? '(none)'
         : QueryStatus.getDisplayString(status),
     description: (statusCounts.get(status) ?? 0).toLocaleString(),
     picked: !hiddenStatuses.has(status),
@@ -701,9 +712,9 @@ export async function promptForQueryStatusFilter(
 
   const items: (SeparatorPickItem | QueryStatusPickItem)[] = [
     createSeparatorPickItem('Running'),
-    ...[...LIVE_QUERY_STATUSES, ...unrecognized].map(toItem),
+    ...[...live, ...unrecognized].map(toItem),
     createSeparatorPickItem('Stopped'),
-    ...STOPPED_QUERY_STATUSES.map(toItem),
+    ...stopped.map(toItem),
   ];
 
   const picked = await vscode.window.showQuickPick(items, {
