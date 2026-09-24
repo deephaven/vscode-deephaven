@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import type { QueryInfo } from '@deephaven-enterprise/jsapi-types';
 import type {
   ConnectionState,
+  PanelVariable,
   ServerState,
   VariableDefintion,
 } from './commonTypes';
@@ -51,7 +52,7 @@ export type PersistentQueryHiddenNode = {
  * - `ServerState`: a DHE server grouping its persistent queries.
  * - `PersistentQueryNode`: a non-InteractiveConsole PQ (expandable to objects).
  * - `PersistentQueryHiddenNode`: the trailing "N hidden" node, when filtered.
- * - `[URL, VariableDefintion]`: an exported object leaf (worker URL + variable),
+ * - `[URL, PanelVariable]`: an exported object leaf (worker URL + variable),
  *   rendered and opened exactly like the Interactive Consoles tree's panel
  *   leaves.
  */
@@ -59,7 +60,7 @@ export type PersistentQueryTreeNode =
   | ServerState
   | PersistentQueryNode
   | PersistentQueryHiddenNode
-  | [URL, VariableDefintion];
+  | [URL, PanelVariable];
 
 export interface PersistentQueryTreeView
   extends vscode.TreeView<PersistentQueryTreeNode> {}

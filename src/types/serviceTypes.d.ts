@@ -11,8 +11,8 @@ import type {
   ConnectionState,
   ServerState,
   VariableChanges,
+  PanelVariable,
   VariableDefintion,
-  VariableID,
   WorkerInfo,
   UniqueID,
   UserKeyPairs,
@@ -178,12 +178,12 @@ export interface IPanelService extends IDisposable {
   getPanels: (url: URL) => Iterable<vscode.WebviewPanel>;
   getPanelUrls: () => URL[];
   getPanelVariables: (url: URL) => VariableDefintion[];
-  getPanelOrThrow: (url: URL, variableId: VariableID) => vscode.WebviewPanel;
-  deletePanel: (url: URL, variableId: VariableID) => void;
-  hasPanel: (url: URL, variableId: VariableID) => boolean;
+  getPanelOrThrow: (url: URL, variable: PanelVariable) => vscode.WebviewPanel;
+  deletePanel: (url: URL, variable: PanelVariable) => void;
+  hasPanel: (url: URL, variable: PanelVariable) => boolean;
   setPanel: (
     url: URL,
-    variableId: VariableID,
+    variable: PanelVariable,
     panel: vscode.WebviewPanel
   ) => void;
   getVariables: (url: URL) => Iterable<VariableDefintion>;

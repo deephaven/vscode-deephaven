@@ -6,7 +6,7 @@ import type {
   RemoteImportSourceTreeFolderElement,
   SerializedRange,
   ServerState,
-  VariableDefintion,
+  PanelVariable,
   WorkerURL,
 } from '../types';
 
@@ -35,13 +35,13 @@ export type CreateWorkerCmdArgs = [
 /** Arguments passed to `OPEN_VARIABLE_PANELS_CMD` handler */
 export type OpenVariablePanelsCmdArgs = [
   serverUrl: URL,
-  variables: NonEmptyArray<VariableDefintion>,
+  variables: NonEmptyArray<PanelVariable>,
 ];
 
 /** Arguments passed to `REFRESH_VARIABLE_PANELS_CMD` handler */
 export type RefreshVariablePanelsCmdArgs = [
   serverUrl: URL | WorkerURL,
-  variables: NonEmptyArray<VariableDefintion>,
+  variables: NonEmptyArray<PanelVariable>,
 ];
 
 /** Arguments passed to `REMOVE_GROOVY_REMOTE_FILE_SOURCE_CMD` and `REMOVE_PYTHON_REMOTE_FILE_SOURCE_CMD` handlers */

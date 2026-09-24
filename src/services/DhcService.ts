@@ -28,7 +28,6 @@ import type {
   UniqueID,
   VariableChanges,
   VariableDefintion,
-  VariableID,
 } from '../types';
 import {
   CREATE_CORE_AUTHENTICATED_CLIENT_CMD,
@@ -272,7 +271,7 @@ export class DhcService extends DisposableBase implements IDhcService {
             (variable): variable is VariableDefintion =>
               this.panelService.hasPanel(
                 this.serverUrl,
-                variable.id as VariableID
+                variable as VariableDefintion
               )
           );
 

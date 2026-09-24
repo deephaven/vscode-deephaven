@@ -43,7 +43,7 @@ import {
  *
  *   ServerState                        connected DHE servers, sorted by label
  *   ├── PersistentQueryNode            alphabetized, status-filtered
- *   │   └── [URL, VariableDefintion]   object leaf, opens a panel on click
+ *   │   └── [URL, PanelVariable]   object leaf, opens a panel on click
  *   └── PersistentQueryHiddenNode      trailing "More (N)", only when filtered
  */
 export class PersistentQueryTreeProvider extends ServerTreeProviderBase<PersistentQueryTreeNode> {
@@ -76,7 +76,7 @@ export class PersistentQueryTreeProvider extends ServerTreeProviderBase<Persiste
   getTreeItem = async (
     node: PersistentQueryTreeNode
   ): Promise<vscode.TreeItem> => {
-    // Object leaf node ([URL, VariableDefintion]). Rendered with the shared panel
+    // Object leaf node ([URL, PanelVariable]). Rendered with the shared panel
     // renderer so the click command is `OPEN_VARIABLE_PANELS_CMD` verbatim.
     // No delete action: this view never removes anything from a PQ.
     if (Array.isArray(node)) {

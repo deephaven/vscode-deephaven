@@ -478,18 +478,18 @@ describe('getPersistentQueryTreeItem', () => {
       tooltip: 'My PQ (Running) — 1 object (1 table) (worker not openable)',
     },
     {
-      label: 'objects with an empty title or id are dropped',
+      label: 'objects with an empty title are dropped',
       designated: {
         ...openableUrls,
         status: 'Running',
         objects: [
           { id: 'v1', title: '', type: 'Table' },
           { id: '', title: 't2', type: 'Table' },
-          { id: 'v3', title: 't3', type: '' },
+          { title: 't3', type: '' },
         ],
       },
       collapsibleState: 1,
-      tooltip: 'My PQ (Running) — 1 object',
+      tooltip: 'My PQ (Running) — 2 objects (1 table)',
     },
     {
       label: 'objects of any type count, including unrecognized ones',
@@ -598,6 +598,21 @@ describe('getPersistentQueryObjectLeaves', () => {
     leaves.forEach(([url]) => expect(url).toBe(workerUrl));
   });
 
+  it('keeps objects without an id, without assigning one', () => {
+    const queryInfo = {
+      designated: {
+        objects: [
+          { title: 't', name: 't', type: 'Table' },
+          { title: 'f', name: 'f', type: 'Figure' },
+        ],
+      },
+    } as unknown as QueryInfo;
+
+    const leaves = getPersistentQueryObjectLeaves(workerUrl, queryInfo);
+    expect(leaves.map(([, v]) => v.title)).toEqual(['t', 'f']);
+    expect(leaves.map(([, v]) => v.id)).toEqual([undefined, undefined]);
+  });
+
   it('returns an empty array when there are no objects', () => {
     const queryInfo = {
       designated: { objects: [] },
@@ -605,7 +620,7 @@ describe('getPersistentQueryObjectLeaves', () => {
     expect(getPersistentQueryObjectLeaves(workerUrl, queryInfo)).toEqual([]);
   });
 
-  it('drops objects it could not open or key a panel by', () => {
+  it('drops objects without a title', () => {
     const queryInfo = {
       designated: {
         objects: [
@@ -617,6 +632,6 @@ describe('getPersistentQueryObjectLeaves', () => {
       },
     } as unknown as QueryInfo;
     const leaves = getPersistentQueryObjectLeaves(workerUrl, queryInfo);
-    expect(leaves.map(([, v]) => v.name)).toEqual(['t', 'd']);
+    expect(leaves.map(([, v]) => v.name)).toEqual(['t', 'y', 'd']);
   });
 });

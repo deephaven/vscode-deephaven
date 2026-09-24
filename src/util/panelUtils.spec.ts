@@ -23,7 +23,10 @@ describe('isOpenablePanelVariable', () => {
     // only open an empty panel.
     ['is false for an empty title', { id: 'v1', title: '' }, false],
     // Open panels are keyed by id; empty ids would all collide.
-    ['is false for an empty id', { id: '', title: 't1' }, false],
+    // PQ exported objects have no id; panel keys fall back to title.
+    ['is true without an id', { title: 't1' }, true],
+    ['is true for an empty id', { id: '', title: 't1' }, true],
+    ['is false for a missing title', { id: 'v1' }, false],
   ])('%s', (_label, variable, expected) => {
     expect(
       isOpenablePanelVariable(variable as DhcType.ide.VariableDefinition)

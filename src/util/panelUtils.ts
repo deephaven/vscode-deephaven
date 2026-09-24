@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { DH_PANEL_VIEW_TYPE, VIEW_ID } from '../common';
-import type { VariableDefintion, WorkerInfo } from '../types';
+import type { PanelVariable, WorkerInfo } from '../types';
 import {
   VSCODE_POST_MSG,
   type VscodeLoginOptionsResponseMsg,
@@ -10,17 +10,18 @@ import {
 import { getWebViewHtml } from './webViewUtils';
 
 /**
- * Mostly just used to assert the type but ensures we don't get any variables
- * with empty `id` (used for open panel keys) or `title` (used by the embed widget URL)
- * {@link VariableDefintion}.
+ * Whether a variable (or PQ exported object) can be opened in a panel. Mostly
+ * asserts the type as {@link PanelVariable}, but also rejects a missing or empty
+ * `title`, which the embed widget URL addresses objects by. `id` is not
+ * required: PQ exported objects have none, and panel keys fall back to `title`.
  * @param variable The variable (or PQ exported object) to check.
  */
 export function isOpenablePanelVariable(
-  variable: DhcType.ide.VariableDefinition
-): variable is VariableDefintion {
-  const { id, title } = variable;
+  variable: DhcType.ide.VariableDefinition | PanelVariable
+): variable is PanelVariable {
+  const { title } = variable;
 
-  return id !== '' && title !== '';
+  return title != null && title !== '';
 }
 
 /**

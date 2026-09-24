@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type { QueryInfo } from '@deephaven-enterprise/jsapi-types';
 import { QueryStatus } from '@deephaven-enterprise/query-utils';
 import type {
@@ -7,6 +8,7 @@ import type {
   IPanelService,
   IServerManager,
   NonEmptyArray,
+  PanelVariable,
   PersistentQueryHiddenNode,
   PersistentQueryNode,
   PersistentQueryTreeNode,
@@ -129,11 +131,11 @@ export function getWorkerNodeLabel(label: string): string {
  * button that does nothing).
  */
 export function getPanelVariableTreeItem(
-  [url, variable]: [URL, VariableDefintion],
+  [url, variable]: [URL, PanelVariable],
   canDelete: boolean
 ): vscode.TreeItem {
   const iconPath = getVariableIconPath(variable.type);
-  const variablesToOpen: NonEmptyArray<VariableDefintion> = [variable];
+  const variablesToOpen: NonEmptyArray<PanelVariable> = [variable];
 
   return {
     label: variable.title,
@@ -222,8 +224,13 @@ const TABLE_VARIABLE_TYPES: ReadonlySet<VariableType> = new Set([
  * worker connection or node expansion required.
  * @param queryInfo The PQ whose exported objects to read.
  */
-function getPersistentQueryObjects(queryInfo: QueryInfo): VariableDefintion[] {
-  return (queryInfo.designated?.objects ?? []).filter(isOpenablePanelVariable);
+function getPersistentQueryObjects(queryInfo: QueryInfo): PanelVariable[] {
+  // Typed as `VariableDefinition`, but DHE sends these without an `id`. Widen
+  // the element type so the filter can narrow to `PanelVariable`.
+  const objects: readonly (DhcType.ide.VariableDefinition | PanelVariable)[] =
+    queryInfo.designated?.objects ?? [];
+
+  return objects.filter(isOpenablePanelVariable);
 }
 
 /**
@@ -381,7 +388,7 @@ export function isPersistentQueryNode(
 }
 
 /**
- * Map a PQ's exported objects to `[URL, VariableDefintion]` leaves
+ * Map a PQ's exported objects to `[URL, PanelVariable]` leaves
  * paired with the given worker URL — the same shape the Interactive Consoles
  * tree uses.
  * @param workerUrl The worker URL objects are hosted on (for the open command).
@@ -390,7 +397,7 @@ export function isPersistentQueryNode(
 export function getPersistentQueryObjectLeaves(
   workerUrl: URL,
   queryInfo: QueryInfo
-): [URL, VariableDefintion][] {
+): [URL, PanelVariable][] {
   return getPersistentQueryObjects(queryInfo).map(obj => [workerUrl, obj]);
 }
 

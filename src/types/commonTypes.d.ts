@@ -234,8 +234,20 @@ export type VariableDefintion = DhcType.ide.VariableDefinition & {
   type: VariableType;
 };
 
+/**
+ * A variable that can be opened in a panel. Console variables come from the
+ * server with an `id`, but PQ exported objects (DHE `designated.objects`) have
+ * none, so `id` is optional here.
+ */
+export type PanelVariable = Omit<VariableDefintion, 'id'> & {
+  id?: VariableID;
+};
+
+/** Key identifying a panel within a connection. See `PanelService`. */
+export type PanelKey = Brand<'PanelKey'>;
+
 export type VariableMap = Map<VariableID, VariableDefintion>;
-export type VariablePanelMap = Map<VariableID, vscode.WebviewPanel>;
+export type VariablePanelMap = Map<PanelKey, vscode.WebviewPanel>;
 
 export interface VariableChanges {
   readonly created: VariableDefintion[];
