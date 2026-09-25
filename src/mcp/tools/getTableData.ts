@@ -7,7 +7,11 @@ import type {
   IServerManager,
   IAsyncCacheService,
 } from '../../types';
-import { createMcpToolOutputSchema, McpToolResponse } from '../utils';
+import {
+  createMcpToolOutputSchema,
+  externalConsoleUrlsSchema,
+  McpToolResponse,
+} from '../utils';
 import { getTablePage, getTableOrError } from '../utils/tableUtils';
 
 const spec = {
@@ -63,6 +67,7 @@ const spec = {
       .optional()
       .describe('Column metadata (name and type)'),
     connectionUrl: z.string().optional().describe('Connection URL'),
+    externalConsoleUrls: externalConsoleUrlsSchema,
     data: z
       .array(z.record(z.unknown()))
       .optional()

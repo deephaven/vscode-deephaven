@@ -23,7 +23,12 @@ type GetTableOrErrorError = {
   errorMessage: string;
   error?: unknown;
   hint?: string;
-  details: { connectionUrl: string; variableId?: string; tableName?: string };
+  details: {
+    connectionUrl: string;
+    externalConsoleUrls?: string[];
+    variableId?: string;
+    tableName?: string;
+  };
 };
 
 export type GetTableOrErrorResult =

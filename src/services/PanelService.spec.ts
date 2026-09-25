@@ -74,4 +74,16 @@ describe('PanelService panel keys', () => {
       false
     );
   });
+
+  // PQ connections have no DhcService calling updateVariables, so panel
+  // variables must come from the panels themselves (e.g. for theme reloads).
+  it('returns panel variables without tracked variables', () => {
+    const variableA = makeVariable('a');
+    const variableB = makeVariable('b');
+    panelService.setPanel(workerUrl, variableA, makePanel());
+    panelService.setPanel(workerUrl, variableB, makePanel());
+    panelService.deletePanel(workerUrl, variableB);
+
+    expect(panelService.getPanelVariables(workerUrl)).toEqual([variableA]);
+  });
 });

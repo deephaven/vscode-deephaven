@@ -278,10 +278,17 @@ export class ConnectionController
       languageId as ConsoleType
     );
 
-    const availableServers = this._serverManager.getServers({
-      isRunning: true,
-      hasConnections: false,
-    });
+    // A server is available if the extension has no connection of its own
+    // there. External consoles don't count, since they are never auto-selected
+    // and the editor would need a new worker on that server anyway.
+    const availableServers = this._serverManager
+      .getServers({ isRunning: true })
+      .filter(
+        server =>
+          !this._serverManager
+            .getConnections(server.url)
+            .some(cn => isDhcService(cn) && cn.isOwned)
+      );
 
     if (serverOrWorkerUrl != null) {
       // If serverOrWorkerUrl was specified, find and connect to that specific server

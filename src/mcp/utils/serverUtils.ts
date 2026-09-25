@@ -136,7 +136,7 @@ export async function getFirstConnectionOrCreate(params: {
     .getConnections(serverOrWorkerUrl)
     .filter(isDhcService)) {
     // an exact worker URL match can always be used regardless if it is owned
-    // by the extension. This let's an agent explicitly ask to run against a
+    // by the extension. This lets an agent explicitly ask to run against a
     // web code studio console worker
     if (cn.serverUrl.href === serverOrWorkerUrl.href) {
       connection = cn;

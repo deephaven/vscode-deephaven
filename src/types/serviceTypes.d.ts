@@ -177,7 +177,7 @@ export interface IPanelService extends IDisposable {
   clearServerData: (url: URL) => void;
   getPanels: (url: URL) => Iterable<vscode.WebviewPanel>;
   getPanelUrls: () => URL[];
-  getPanelVariables: (url: URL) => VariableDefintion[];
+  getPanelVariables: (url: URL) => PanelVariable[];
   getPanelOrThrow: (url: URL, variable: PanelVariable) => vscode.WebviewPanel;
   deletePanel: (url: URL, variable: PanelVariable) => void;
   hasPanel: (url: URL, variable: PanelVariable) => boolean;

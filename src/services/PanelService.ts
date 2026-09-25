@@ -72,7 +72,7 @@ export class PanelService implements IPanelService, IDisposable {
       );
     }
 
-    return this._cnPanelMap.get(url)!.get(getPanelKey(variable))!;
+    return this._cnPanelMap.get(url)!.get(getPanelKey(variable))!.panel;
   };
 
   /**
@@ -81,7 +81,9 @@ export class PanelService implements IPanelService, IDisposable {
    * @returns Iterable of panels
    */
   getPanels = (url: URL): Iterable<vscode.WebviewPanel> => {
-    return this._cnPanelMap.get(url)?.values() ?? [];
+    return [...(this._cnPanelMap.get(url)?.values() ?? [])].map(
+      ({ panel }) => panel
+    );
   };
 
   /**
@@ -104,12 +106,16 @@ export class PanelService implements IPanelService, IDisposable {
   };
 
   /**
-   * Get all variables for the given connection url that have panels.
+   * Get all variables for the given connection url that have panels. Read
+   * from the panel map rather than the variable map, since PQ connections have
+   * no `DhcService` to populate the latter.
    * @param url The connection url.
    * @returns Array of variables
    */
-  getPanelVariables = (url: URL): VariableDefintion[] => {
-    return [...this.getVariables(url)].filter(v => this.hasPanel(url, v));
+  getPanelVariables = (url: URL): PanelVariable[] => {
+    return [...(this._cnPanelMap.get(url)?.values() ?? [])].map(
+      ({ variable }) => variable
+    );
   };
 
   /**
@@ -136,14 +142,17 @@ export class PanelService implements IPanelService, IDisposable {
     panel: vscode.WebviewPanel
   ): void => {
     if (!this._cnPanelMap.has(url)) {
-      this._cnPanelMap.set(url, new Map<PanelKey, vscode.WebviewPanel>());
+      this._cnPanelMap.set(url, new Map());
     }
 
-    this._cnPanelMap.get(url)!.set(getPanelKey(variable), panel);
+    this._cnPanelMap.get(url)!.set(getPanelKey(variable), { panel, variable });
   };
 
   /**
-   * Get variables for the given connection url.
+   * Get variables for the given connection url, as reported by `DhcService`
+   * via `updateVariables`. Only populated for console connections, so this is
+   * always empty for PQ connections. Use `getPanelVariables` to get the
+   * variables that have open panels for any connection type.
    * @param url The connection url.
    * @returns Iterable of variables
    */

@@ -247,7 +247,10 @@ export type PanelVariable = Omit<VariableDefintion, 'id'> & {
 export type PanelKey = Brand<'PanelKey'>;
 
 export type VariableMap = Map<VariableID, VariableDefintion>;
-export type VariablePanelMap = Map<PanelKey, vscode.WebviewPanel>;
+export type VariablePanelMap = Map<
+  PanelKey,
+  { panel: vscode.WebviewPanel; variable: PanelVariable }
+>;
 
 export interface VariableChanges {
   readonly created: VariableDefintion[];

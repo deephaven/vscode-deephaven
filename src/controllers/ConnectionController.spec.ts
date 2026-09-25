@@ -68,7 +68,15 @@ function createController(
         ? connections.filter(cn => cn.serverUrl.origin === url.origin)
         : [exact];
     }),
-    getServers: vi.fn().mockReturnValue(servers),
+    // Mirrors ServerManager: `connectionCount` includes external consoles.
+    getServers: vi.fn(({ hasConnections }: { hasConnections?: boolean } = {}) =>
+      servers.filter(
+        server =>
+          hasConnections == null ||
+          connections.some(cn => cn.serverUrl.origin === server.url.origin) ===
+            hasConnections
+      )
+    ),
     onDidRegisterEditor: vi.fn(),
     onDidServerStatusChange: vi.fn(),
     onDidUpdate: vi.fn(),
@@ -126,6 +134,37 @@ describe('ConnectionController.getOrCreateConnection', () => {
 
     expect(controller.connectEditor).toHaveBeenCalledWith(
       server,
+      uri,
+      'python'
+    );
+  });
+
+  // An external console must not hide its server from the available list,
+  // otherwise the only other running server would be auto-selected.
+  it('prompts when the server of an external connection and another server are running', async () => {
+    const server1 = { url: host1.serverUrl } as ServerState;
+    const server2 = {
+      url: new URL('https://host2.example.com:8123/'),
+    } as ServerState;
+    const [controller] = createController(
+      [host1.externalCn],
+      [server1, server2]
+    );
+
+    await controller.getOrCreateConnection(uri, 'python');
+
+    expect(controller.connectEditor).not.toHaveBeenCalled();
+    expect(controller.onPromptUserToSelectConnection).toHaveBeenCalled();
+  });
+
+  it('auto-selects a sole owned connection rather than its server', async () => {
+    const server = { url: host1.serverUrl } as ServerState;
+    const [controller] = createController([host1.ownedCn], [server]);
+
+    await controller.getOrCreateConnection(uri, 'python');
+
+    expect(controller.connectEditor).toHaveBeenCalledWith(
+      host1.ownedCn,
       uri,
       'python'
     );
