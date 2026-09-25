@@ -7,6 +7,7 @@ import {
   type FilteredWorkspace,
 } from '../../services';
 import { isInstanceOf } from '../../util';
+import { externalConsoleUrlsSchema } from './mcpUtils';
 import type {
   ConnectionState,
   ConsoleType,
@@ -61,6 +62,7 @@ export const runCodeOutputSchema = {
   details: z
     .object({
       connectionUrl: z.string().optional(),
+      externalConsoleUrls: externalConsoleUrlsSchema,
       foundMatchingFolderUris: z
         .array(z.string())
         .optional()

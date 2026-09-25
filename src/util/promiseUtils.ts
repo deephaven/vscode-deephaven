@@ -86,3 +86,58 @@ export function withResolvers<T>(): PromiseWithResolvers<T> {
     reject,
   };
 }
+
+export interface ThrottledTrigger {
+  /** Request a run: immediate when idle, coalesced while cooling down. */
+  trigger: () => void;
+  /** Drop any pending trailing run. */
+  dispose: () => void;
+}
+
+/**
+ * Wrap a callback so it runs at most once per `intervalMs`: immediately on the
+ * leading edge of a burst, then once more at the end of the window if further
+ * triggers arrived during it.
+ *
+ * Deliberately a throttle and not a plain debounce. A source that never goes
+ * quiet — a ticking table on a busy server — would reset a debounce timer
+ * forever and the callback would never run at all.
+ * @param callback The callback to rate limit.
+ * @param intervalMs Minimum milliseconds between runs.
+ */
+export function createThrottledTrigger(
+  callback: () => void,
+  intervalMs: number
+): ThrottledTrigger {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  let isPending = false;
+
+  const run = (): void => {
+    callback();
+
+    timeout = setTimeout(() => {
+      timeout = undefined;
+
+      if (isPending) {
+        isPending = false;
+        run();
+      }
+    }, intervalMs);
+  };
+
+  return {
+    trigger: (): void => {
+      if (timeout == null) {
+        run();
+        return;
+      }
+
+      isPending = true;
+    },
+    dispose: (): void => {
+      clearTimeout(timeout);
+      timeout = undefined;
+      isPending = false;
+    },
+  };
+}

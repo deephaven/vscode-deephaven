@@ -13,7 +13,13 @@ export class WebViewExtended extends WebView {
    * @returns Promise resolving to the id
    */
   async getParentFlowToElementId(): Promise<string> {
-    return this.findElement(By.css('div')).getAttribute('id');
+    const id = await this.findElement(By.css('div')).getAttribute('id');
+
+    if (id == null) {
+      throw new Error('WebView element is missing a parent flow to element id');
+    }
+
+    return id;
   }
 
   /**

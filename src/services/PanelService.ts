@@ -2,13 +2,26 @@ import * as vscode from 'vscode';
 import type {
   IDisposable,
   IPanelService,
+  PanelKey,
+  PanelVariable,
   VariableChanges,
   VariableDefintion,
-  VariableID,
   VariableMap,
   VariablePanelMap,
 } from '../types';
 import { URLMap } from '../util';
+
+/**
+ * Key identifying a variable's panel within a connection. Prefer the server's
+ * `id`, falling back to `title` when it is missing or empty (PQ exported
+ * objects have no `id`).
+ * Titles are the exported variable names, so they are unique within a worker,
+ * and the embed widget url addresses objects by title anyway.
+ * @param variable The variable to get the panel key for.
+ */
+function getPanelKey({ id, title }: PanelVariable): PanelKey {
+  return (id == null || id === '' ? title : id) as PanelKey;
+}
 
 export class PanelService implements IPanelService, IDisposable {
   constructor() {
@@ -44,17 +57,22 @@ export class PanelService implements IPanelService, IDisposable {
   };
 
   /**
-   * Get the panel for the given connection url and variable id and throws if it
+   * Get the panel for the given connection url and variable and throws if it
    * does not exist.
    * @param url
-   * @param variableId
+   * @param variable
    */
-  getPanelOrThrow = (url: URL, variableId: VariableID): vscode.WebviewPanel => {
-    if (!this.hasPanel(url, variableId)) {
-      throw new Error(`Panel not found for variable: '${url}' ${variableId}`);
+  getPanelOrThrow = (
+    url: URL,
+    variable: PanelVariable
+  ): vscode.WebviewPanel => {
+    if (!this.hasPanel(url, variable)) {
+      throw new Error(
+        `Panel not found for variable: '${url}' ${getPanelKey(variable)}`
+      );
     }
 
-    return this._cnPanelMap.get(url)!.get(variableId)!;
+    return this._cnPanelMap.get(url)!.get(getPanelKey(variable))!.panel;
   };
 
   /**
@@ -63,16 +81,18 @@ export class PanelService implements IPanelService, IDisposable {
    * @returns Iterable of panels
    */
   getPanels = (url: URL): Iterable<vscode.WebviewPanel> => {
-    return this._cnPanelMap.get(url)?.values() ?? [];
+    return [...(this._cnPanelMap.get(url)?.values() ?? [])].map(
+      ({ panel }) => panel
+    );
   };
 
   /**
-   * Delete the panel for the given connection url and variable id.
+   * Delete the panel for the given connection url and variable.
    * @param url
-   * @param variableId
+   * @param variable
    */
-  deletePanel = (url: URL, variableId: VariableID): void => {
-    this._cnPanelMap.get(url)?.delete(variableId);
+  deletePanel = (url: URL, variable: PanelVariable): void => {
+    this._cnPanelMap.get(url)?.delete(getPanelKey(variable));
   };
 
   /**
@@ -86,45 +106,53 @@ export class PanelService implements IPanelService, IDisposable {
   };
 
   /**
-   * Get all variables for the given connection url that have panels.
+   * Get all variables for the given connection url that have panels. Read
+   * from the panel map rather than the variable map, since PQ connections have
+   * no `DhcService` to populate the latter.
    * @param url The connection url.
    * @returns Array of variables
    */
-  getPanelVariables = (url: URL): VariableDefintion[] => {
-    return [...this.getVariables(url)].filter(v => this.hasPanel(url, v.id));
-  };
-
-  /**
-   * Check if a panel is associated with a given connection url + variable id.
-   * @param url The connection url.
-   * @param variableId
-   */
-  hasPanel = (url: URL, variableId: VariableID): boolean => {
-    return (
-      this._cnPanelMap.has(url) && this._cnPanelMap.get(url)!.has(variableId)
+  getPanelVariables = (url: URL): PanelVariable[] => {
+    return [...(this._cnPanelMap.get(url)?.values() ?? [])].map(
+      ({ variable }) => variable
     );
   };
 
   /**
-   * Associate a panel with a given connection url + variable id.
+   * Check if a panel is associated with a given connection url + variable.
+   * @param url The connection url.
+   * @param variable
+   */
+  hasPanel = (url: URL, variable: PanelVariable): boolean => {
+    return (
+      this._cnPanelMap.has(url) &&
+      this._cnPanelMap.get(url)!.has(getPanelKey(variable))
+    );
+  };
+
+  /**
+   * Associate a panel with a given connection url + variable.
    * @param url
-   * @param variableId
+   * @param variable
    * @param panel
    */
   setPanel = (
     url: URL,
-    variableId: VariableID,
+    variable: PanelVariable,
     panel: vscode.WebviewPanel
   ): void => {
     if (!this._cnPanelMap.has(url)) {
-      this._cnPanelMap.set(url, new Map<VariableID, vscode.WebviewPanel>());
+      this._cnPanelMap.set(url, new Map());
     }
 
-    this._cnPanelMap.get(url)!.set(variableId, panel);
+    this._cnPanelMap.get(url)!.set(getPanelKey(variable), { panel, variable });
   };
 
   /**
-   * Get variables for the given connection url.
+   * Get variables for the given connection url, as reported by `DhcService`
+   * via `updateVariables`. Only populated for console connections, so this is
+   * always empty for PQ connections. Use `getPanelVariables` to get the
+   * variables that have open panels for any connection type.
    * @param url The connection url.
    * @returns Iterable of variables
    */
@@ -149,7 +177,7 @@ export class PanelService implements IPanelService, IDisposable {
 
     for (const variable of removed) {
       variableMap.delete(variable.id);
-      this.deletePanel(url, variable.id);
+      this.deletePanel(url, variable);
     }
 
     for (const variable of created) {

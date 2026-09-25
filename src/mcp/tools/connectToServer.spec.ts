@@ -62,10 +62,14 @@ describe('createConnectToServerTool', () => {
 
       expect(uriUtils.parseUrl).toHaveBeenCalledWith(MOCK_URL);
       expect(serverManager.getServer).toHaveBeenCalledWith(MOCK_PARSED_URL);
-      expect(commands.execConnectToServer).toHaveBeenCalledWith({
-        type: MOCK_SERVER.type,
-        url: MOCK_PARSED_URL,
-      });
+      expect(commands.execConnectToServer).toHaveBeenCalledWith(
+        {
+          type: MOCK_SERVER.type,
+          url: MOCK_PARSED_URL,
+        },
+        undefined,
+        true
+      );
 
       expect(result.structuredContent).toEqual(
         mcpSuccessResult('Connected to server', {
@@ -122,10 +126,16 @@ describe('createConnectToServerTool', () => {
           );
 
           if (serverResult !== undefined) {
-            expect(commands.execConnectToServer).toHaveBeenCalledWith({
-              type: serverResult.type,
-              url: parseResult.value,
-            });
+            expect(commands.execConnectToServer).toHaveBeenCalledWith(
+              {
+                type: serverResult.type,
+                url: parseResult.value,
+              },
+              undefined,
+              // Agents have no tree view to create a worker from, so the tool
+              // provisions one.
+              true
+            );
           } else {
             expect(commands.execConnectToServer).not.toHaveBeenCalled();
           }
