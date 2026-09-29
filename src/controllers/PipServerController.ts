@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import path from 'node:path';
 import {
   getPythonEnvsExtensionApi,
   getPipServerUrl,
@@ -7,6 +6,7 @@ import {
   PackageChangeKind,
   parsePort,
   type PythonEnvironment,
+  getActivePythonEnvironment,
 } from '../util';
 import type {
   IDisposable,
@@ -23,6 +23,20 @@ import { isDhcServerRunning } from '../dh/dhc';
 import { pollUntilTrue } from '../services';
 
 const logger = new Logger('PipServerController');
+
+/** PEP 503 normalized name of the package that provides the managed server. */
+const DEEPHAVEN_SERVER_PACKAGE_NAME = 'deephaven-server';
+
+/**
+ * Normalize a Python package name for comparison per PEP 503. Package managers
+ * are inconsistent about whether they report `deephaven-server` or
+ * `deephaven_server`, so normalize before comparing.
+ * @param name The package name to normalize.
+ * @returns The normalized package name.
+ */
+function normalizePackageName(name: string): string {
+  return name.replace(/[-_.]+/g, '-').toLowerCase();
+}
 
 export class PipServerController implements IDisposable {
   constructor(
@@ -60,27 +74,7 @@ export class PipServerController implements IDisposable {
 
     this._serverManager.onDidLoadConfig(this.onDidLoadConfig);
 
-    const pythonExtension = getPythonEnvsExtensionApi();
-    if (pythonExtension != null) {
-      console.log('[TESTING]', pythonExtension.exports);
-      void pythonExtension.activate().then(() => {
-        pythonExtension.exports.onDidChangePackages(
-          ({ changes }) => {
-            const deephavenServerChanged = changes.some(
-              ({ pkg, kind }) =>
-                pkg.name === 'deephaven-server' &&
-                (kind === PackageChangeKind.add ||
-                  kind === PackageChangeKind.remove)
-            );
-            if (deephavenServerChanged) {
-              void this.syncManagedServers({ forceCheck: true });
-            }
-          },
-          undefined,
-          this._context.subscriptions
-        );
-      });
-    }
+    void this.subscribeToPythonEnvChanges();
   }
 
   private readonly _context: vscode.ExtensionContext;
@@ -103,16 +97,60 @@ export class PipServerController implements IDisposable {
   };
 
   /**
-   * Attempt an import of `deephaven_server` to check if
-   * servers can be managed from the extension.
+   * Subscribe to Python Environments extension events that can change whether
+   * servers can be managed from the extension. If the extension is unavailable,
+   * managed servers stay disabled and no subscriptions are made.
    */
-  checkPipInstall = async (): Promise<
-    | {
-        isAvailable: true;
-        interpreterPath: string;
-        environment: PythonEnvironment;
-      }
-    | { isAvailable: false; interpreterPath?: never; environment?: never }
+  subscribeToPythonEnvChanges = async (): Promise<void> => {
+    const api = await getPythonEnvsExtensionApi();
+
+    if (api == null) {
+      logger.debug(
+        'Python Environments extension unavailable. Managed servers disabled.'
+      );
+      return;
+    }
+
+    // Installing or removing `deephaven-server` in the active environment
+    // toggles whether servers can be managed.
+    api.onDidChangePackages(
+      ({ changes }) => {
+        const deephavenServerChanged = changes.some(
+          ({ pkg, kind }) =>
+            normalizePackageName(pkg.name) === DEEPHAVEN_SERVER_PACKAGE_NAME &&
+            (kind === PackageChangeKind.add ||
+              kind === PackageChangeKind.remove)
+        );
+        if (deephavenServerChanged) {
+          void this.syncManagedServers({ forceCheck: true });
+        }
+      },
+      undefined,
+      this._context.subscriptions
+    );
+
+    // Selecting a different interpreter (venv -> uv, etc.) swaps the set of
+    // installed packages, so re-check availability against the new environment.
+    api.onDidChangeEnvironment(
+      () => {
+        void this.syncManagedServers({ forceCheck: true });
+      },
+      undefined,
+      this._context.subscriptions
+    );
+  };
+
+  /**
+   * Check whether `deephaven-server` is installed in the active Python
+   * environment to determine if servers can be managed from the extension.
+   * @param options Optional options:
+   *  - skipCache If true, bypass the package manager cache.
+   */
+  checkPipInstall = async ({
+    skipCache = false,
+  }: { skipCache?: boolean } = {}): Promise<
+    | { isAvailable: true; environment: PythonEnvironment }
+    | { isAvailable: false; environment?: never }
   > => {
     if (!PIP_SERVER_SUPPORTED_PLATFORMS.has(process.platform)) {
       logger.debug(`Pip server not supported on platform: ${process.platform}`);
@@ -121,43 +159,47 @@ export class PipServerController implements IDisposable {
 
     logger.debug('Checking pip install');
 
-    const pythonInterpreterPath = await this.getPythonInterpreterPath();
-    if (pythonInterpreterPath == null) {
-      logger.debug('Python interpreter path not found');
+    const api = await getPythonEnvsExtensionApi();
+    if (api == null) {
       return { isAvailable: false };
     }
 
-    logger.debug('Using Python interpreter:', pythonInterpreterPath);
-
-    const pythonExtension = getPythonEnvsExtensionApi();
-    if (pythonExtension == null) {
+    const environment = await getActivePythonEnvironment(api);
+    if (environment == null) {
+      logger.debug('No active Python environment');
       return { isAvailable: false };
     }
 
-    if (!pythonExtension.isActive) {
-      await pythonExtension.activate();
-    }
+    logger.debug(
+      'Using Python interpreter:',
+      environment.execInfo.run.executable
+    );
 
-    const api = pythonExtension.exports;
-    const env = await api.getEnvironment(undefined);
-    if (env == null) {
+    // Package lists are cached. Bypass the cache on an explicit re-check so
+    // that packages installed outside of VS Code get picked up.
+    let packages;
+    try {
+      packages = await api.getPackages(environment, { skipCache });
+    } catch (err) {
+      // Listing packages shells out to the underlying package manager, which
+      // can fail for reasons unrelated to Deephaven. Treat it as "unavailable"
+      // rather than failing the surrounding server status refresh.
+      logger.debug('Failed to list packages:', err);
       return { isAvailable: false };
     }
 
-    const packages = await api.getPackages(env);
     const hasDeephavenServer = packages?.some(
-      pkg => pkg.name === 'deephaven-server'
+      pkg => normalizePackageName(pkg.name) === DEEPHAVEN_SERVER_PACKAGE_NAME
     );
 
     if (!hasDeephavenServer) {
+      logger.debug(
+        `${DEEPHAVEN_SERVER_PACKAGE_NAME} not installed in active environment`
+      );
       return { isAvailable: false };
     }
 
-    return {
-      isAvailable: true,
-      interpreterPath: pythonInterpreterPath,
-      environment: env,
-    };
+    return { isAvailable: true, environment };
   };
 
   /**
@@ -206,29 +248,6 @@ export class PipServerController implements IDisposable {
     }
 
     return null;
-  };
-
-  /**
-   * Get Python interpreter path from the Python Environments extension (ms-python.vscode-python-envs).
-   * @returns The Python interpreter path or `null` if not found.
-   */
-  getPythonInterpreterPath = async (): Promise<string | null> => {
-    const pythonExtension = getPythonEnvsExtensionApi();
-
-    if (pythonExtension == null) {
-      logger.debug('Python extension not found');
-      return null;
-    }
-
-    if (!pythonExtension.isActive) {
-      await pythonExtension.activate();
-    }
-
-    const api = pythonExtension.exports;
-    const env = await api.getEnvironment(undefined);
-    logger.debug('Python interpreter:', env?.execInfo.run.executable);
-
-    return env?.execInfo.run.executable ?? null;
   };
 
   /**
@@ -298,8 +317,7 @@ export class PipServerController implements IDisposable {
     }
 
     // In case pip env has changed since last server check
-    const { isAvailable, interpreterPath, environment } =
-      await this.checkPipInstall();
+    const { isAvailable, environment } = await this.checkPipInstall();
     this._isPipServerInstalled = isAvailable;
 
     if (!isAvailable) {
@@ -307,33 +325,29 @@ export class PipServerController implements IDisposable {
       return;
     }
 
-    const interpreterBinDirPath = path.dirname(interpreterPath);
+    const api = await getPythonEnvsExtensionApi();
+    if (api == null) {
+      this._logAndShowError('Python Environments extension is not available.');
+      return;
+    }
 
-    const terminal = vscode.window.createTerminal({
+    // Let the Python Environments extension activate the environment for us.
+    // It owns terminal activation for every environment manager it supports
+    // (venv, uv, conda, ...)
+    const terminal = await api.createTerminal(environment, {
       name: `Deephaven (${port})`,
       env: {
         /* eslint-disable @typescript-eslint/naming-convention */
-        // This allows us to use the `venv` configured by the Python extension
-        // without having to wait for the extension to activate it.
-        PATH: `${interpreterBinDirPath}:${process.env.PATH}`,
         // Set the workspace root as PYTHONPATH so we can use Python modules in
         // the workspace.
         PYTHONPATH: './',
-        // Venv activation typically sets this, so mimic that here.
-        VIRTUAL_ENV: environment.sysPrefix,
         /* eslint-enable @typescript-eslint/naming-convention */
       },
       isTransient: true,
-      // The MS Python extension injects a venv activation command into new
-      // terminals. There is a race condition such that it doesn't always inject
-      // early enough and can interrupt other processes. In this case it kills
-      // the pip server process and breaks the managed servers feature. Hiding
-      // the terminal prevents the Python extension from injecting the command.
-      // Since server output is sent to Output -> Deephaven panel, the terminal
+      // Server output is sent to the Output -> Deephaven panel, so the terminal
       // doesn't need to be visible.
       hideFromUser: true,
     });
-
     this._serverUrlTerminalMap.set(port, terminal);
     await this.syncManagedServers();
 
@@ -398,7 +412,9 @@ export class PipServerController implements IDisposable {
     preferExistingPsk?: boolean;
   } = {}): Promise<void> => {
     if (forceCheck || !this._isPipServerInstalled) {
-      this._isPipServerInstalled = (await this.checkPipInstall()).isAvailable;
+      this._isPipServerInstalled = (
+        await this.checkPipInstall({ skipCache: forceCheck })
+      ).isAvailable;
     }
 
     this._serverManager.canStartServer =

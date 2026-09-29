@@ -1,79 +1,20 @@
 import * as vscode from 'vscode';
+import {
+  PythonEnvironments,
+  type PythonEnvironment,
+  type PythonEnvironmentApi,
+} from '@vscode/python-environments';
 import type { ExtensionInfo, ExtensionVersion, McpVersion } from '../types';
 import { uniqueId } from './idUtils';
+import { Logger } from './Logger';
 
-const MS_PYTHON_ENVS_EXTENSION_ID = 'ms-python.vscode-python-envs';
+const logger = new Logger('extensionApiUtils');
 
-/** Options for executing a Python executable */
-interface PythonCommandRunConfiguration {
-  executable: string;
-  args?: string[];
-}
-
-/** Execution details for a Python environment */
-interface PythonEnvironmentExecutionInfo {
-  run: PythonCommandRunConfiguration;
-  activatedRun?: PythonCommandRunConfiguration;
-  activation?: PythonCommandRunConfiguration[];
-  deactivation?: PythonCommandRunConfiguration[];
-}
-
-/** Unique identifier for a Python environment */
-interface PythonEnvironmentId {
-  id: string;
-  managerId: string;
-}
-
-/** A Python environment from the ms-python.vscode-python-envs extension */
-export interface PythonEnvironment {
-  readonly envId: PythonEnvironmentId;
-  readonly name: string;
-  readonly displayName: string;
-  readonly displayPath: string;
-  readonly version: string;
-  readonly environmentPath: vscode.Uri;
-  readonly execInfo: PythonEnvironmentExecutionInfo;
-  readonly sysPrefix: string;
-  readonly description?: string;
-}
-
-/** Unique identifier for a Python package */
-interface PackageId {
-  id: string;
-  managerId: string;
-  environmentId: string;
-}
-
-/** A Python package from the ms-python.vscode-python-envs extension */
-interface Package {
-  readonly pkgId: PackageId;
-  readonly name: string;
-  readonly displayName: string;
-  readonly version?: string;
-  readonly description?: string;
-}
-
-export enum PackageChangeKind {
-  add = 'add',
-  remove = 'remove',
-}
-
-/** Arguments for the onDidChangePackages event */
-interface DidChangePackagesEventArgs {
-  environment: PythonEnvironment;
-  changes: { kind: PackageChangeKind; pkg: Package }[];
-}
-
-export type GetEnvironmentScope = undefined | vscode.Uri;
-
-/** Python Environments extension API (ms-python.vscode-python-envs) */
-export interface PythonEnvironmentApi {
-  getEnvironment(
-    scope: GetEnvironmentScope
-  ): Promise<PythonEnvironment | undefined>;
-  getPackages(environment: PythonEnvironment): Promise<Package[] | undefined>;
-  onDidChangePackages: vscode.Event<DidChangePackagesEventArgs>;
-}
+export {
+  PackageChangeKind,
+  type PythonEnvironment,
+  type PythonEnvironmentApi,
+} from '@vscode/python-environments';
 
 /** Create ExtensionInfo from the ExtensionContext */
 export function createExtensionInfo(
@@ -110,11 +51,55 @@ export function getExtensionVersion(
   return version as ExtensionVersion;
 }
 
-/** Get the Python Environments extension api (ms-python.vscode-python-envs) */
-export function getPythonEnvsExtensionApi():
-  | vscode.Extension<PythonEnvironmentApi>
-  | undefined {
-  return vscode.extensions.getExtension<PythonEnvironmentApi>(
-    MS_PYTHON_ENVS_EXTENSION_ID
-  );
+/**
+ * Get the Python Environments extension api (ms-python.vscode-python-envs).
+ * The extension is declared in `extensionDependencies`, but it can still be
+ * missing at runtime if the user disabled it, so callers get `undefined` rather
+ * than a thrown error. Features that depend on it should degrade gracefully.
+ * @returns The api or `undefined` if the extension is unavailable.
+ */
+export async function getPythonEnvsExtensionApi(): Promise<
+  PythonEnvironmentApi | undefined
+> {
+  try {
+    return await PythonEnvironments.api();
+  } catch (err) {
+    logger.debug('Python Environments extension unavailable:', err);
+    return undefined;
+  }
+}
+
+/**
+ * Get the workspace scope to resolve a Python environment against. The Python
+ * Environments extension resolves `undefined` to the global scope, which would
+ * miss a workspace-local venv, so prefer a workspace folder whenever we can
+ * identify one.
+ * @returns A workspace folder uri or `undefined` if there is no workspace.
+ */
+export function getActivePythonScope(): vscode.Uri | undefined {
+  const activeUri = vscode.window.activeTextEditor?.document.uri;
+
+  if (activeUri != null) {
+    const activeWorkspaceUri =
+      vscode.workspace.getWorkspaceFolder(activeUri)?.uri;
+
+    if (activeWorkspaceUri != null) {
+      return activeWorkspaceUri;
+    }
+  }
+
+  // The active editor may be a non-file document (output, settings, etc.) or
+  // there may be no editor at all. Fall back to the first workspace folder.
+  return vscode.workspace.workspaceFolders?.[0]?.uri;
+}
+
+/**
+ * Get the Python environment associated with the active workspace scope.
+ * @param api The Python Environments extension api.
+ * @returns The environment or `undefined` if none is selected.
+ */
+export async function getActivePythonEnvironment(
+  api: PythonEnvironmentApi
+): Promise<PythonEnvironment | undefined> {
+  return api.getEnvironment(getActivePythonScope());
 }

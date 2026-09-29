@@ -1,7 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as vscode from 'vscode';
 import { PipServerController } from './PipServerController';
-import type { PythonEnvironment, PythonEnvironmentApi } from '../util';
+import {
+  PackageChangeKind,
+  type PythonEnvironment,
+  type PythonEnvironmentApi,
+} from '../util';
 import type { IServerManager, IToastService } from '../types';
 
 // See __mocks__/vscode.ts for the mock implementation
@@ -11,6 +15,8 @@ vi.mock('../util', async () => {
   const actual = await vi.importActual<typeof import('../util')>('../util');
   return {
     ...actual,
+    // Only the extension lookup is mocked. `getActivePythonEnvironment` and its
+    // scope resolution run for real against the mocked `vscode` module.
     getPythonEnvsExtensionApi: vi.fn(),
   };
 });
@@ -33,7 +39,7 @@ vi.mock('../dh/dhc', () => ({
 // Import after mocks are set up
 const { getPythonEnvsExtensionApi } = await import('../util');
 
-const mockEnvironment: PythonEnvironment = {
+const mockEnvironment = {
   envId: { id: 'env1', managerId: 'venv' },
   name: 'myenv',
   displayName: 'My Env',
@@ -44,35 +50,63 @@ const mockEnvironment: PythonEnvironment = {
     run: { executable: '/path/to/env/bin/python' },
   },
   sysPrefix: '/path/to/env',
-};
+} as PythonEnvironment;
 
-const mockPackages = [
-  {
-    pkgId: { id: 'dh', managerId: 'pip', environmentId: 'env1' },
-    name: 'deephaven-server',
-    displayName: 'Deephaven Server',
-    version: '0.36.0',
-  },
-];
-
-function createMockExtension(
-  isActive: boolean,
-  envResult: PythonEnvironment | undefined,
-  packagesResult: typeof mockPackages | undefined
-): vscode.Extension<PythonEnvironmentApi> {
-  const api = {
-    getEnvironment: vi.fn().mockResolvedValue(envResult),
-    getPackages: vi.fn().mockResolvedValue(packagesResult),
-    onDidChangePackages: vi.fn().mockReturnValue({ dispose: vi.fn() }),
-  };
-  return {
-    isActive,
-    activate: vi.fn().mockResolvedValue(undefined),
-    exports: api,
-  } as unknown as vscode.Extension<PythonEnvironmentApi>;
+function createPackage(name: string): { name: string } {
+  return { name };
 }
 
-function createController(): PipServerController {
+type MockApi = {
+  getEnvironment: ReturnType<typeof vi.fn>;
+  getPackages: ReturnType<typeof vi.fn>;
+  createTerminal: ReturnType<typeof vi.fn>;
+  onDidChangePackages: ReturnType<typeof vi.fn>;
+  onDidChangeEnvironment: ReturnType<typeof vi.fn>;
+};
+
+/**
+ * Create a mock Python Environments api and register it as the result of
+ * `getPythonEnvsExtensionApi`.
+ */
+function mockApi(
+  options: {
+    environment?: PythonEnvironment | undefined;
+    packages?: { name: string }[] | undefined;
+  } = {}
+): MockApi {
+  // Check key presence rather than using destructuring defaults so that an
+  // explicit `undefined` can be distinguished from an omitted option.
+  const environment =
+    'environment' in options ? options.environment : mockEnvironment;
+  const packages =
+    'packages' in options
+      ? options.packages
+      : [createPackage('deephaven-server')];
+
+  const api: MockApi = {
+    getEnvironment: vi.fn().mockResolvedValue(environment),
+    getPackages: vi.fn().mockResolvedValue(packages),
+    createTerminal: vi.fn(),
+    onDidChangePackages: vi.fn().mockReturnValue({ dispose: vi.fn() }),
+    onDidChangeEnvironment: vi.fn().mockReturnValue({ dispose: vi.fn() }),
+  };
+
+  vi.mocked(getPythonEnvsExtensionApi).mockResolvedValue(
+    api as unknown as PythonEnvironmentApi
+  );
+
+  return api;
+}
+
+/** Register a missing / disabled Python Environments extension. */
+function mockApiUnavailable(): void {
+  vi.mocked(getPythonEnvsExtensionApi).mockResolvedValue(undefined);
+}
+
+function createController(): {
+  controller: PipServerController;
+  serverManager: IServerManager;
+} {
   const context = {
     subscriptions: [],
     extension: { packageJSON: { version: '1.0.0' } },
@@ -97,218 +131,344 @@ function createController(): PipServerController {
     info: vi.fn(),
   } as unknown as IToastService;
 
-  return new PipServerController(
+  const controller = new PipServerController(
     context,
     serverManager,
     outputChannel,
     toastService
   );
+
+  return { controller, serverManager };
 }
+
+let originalPlatform: NodeJS.Platform;
 
 beforeEach(() => {
   vi.clearAllMocks();
 
-  // Add missing properties to the vscode.window mock
+  originalPlatform = process.platform;
+
+  // `checkPipInstall` short circuits on unsupported platforms, so pin a
+  // supported one for the majority of tests.
+  Object.defineProperty(process, 'platform', {
+    value: 'linux',
+    configurable: true,
+  });
+
+  // Add missing properties to the vscode mocks
   Object.assign(vscode.window, {
     onDidCloseTerminal: vi
       .fn()
       .mockName('onDidCloseTerminal')
       .mockReturnValue({ dispose: vi.fn() }),
     terminals: [],
+    activeTextEditor: undefined,
     createTerminal: vi.fn().mockReturnValue({
       sendText: vi.fn(),
       exitStatus: undefined,
       dispose: vi.fn(),
     }),
   });
+
+  Object.assign(vscode.workspace, {
+    workspaceFolders: undefined,
+  });
+
+  vi.mocked(vscode.workspace.getWorkspaceFolder).mockReturnValue(undefined);
+
+  mockApi();
 });
 
-describe('getPythonInterpreterPath', () => {
-  it('returns null when Python Environments extension is not found', async () => {
-    vi.mocked(getPythonEnvsExtensionApi).mockReturnValue(undefined);
-
-    const controller = createController();
-    const result = await controller.getPythonInterpreterPath();
-
-    expect(result).toBeNull();
-  });
-
-  it('returns null when getEnvironment returns undefined', async () => {
-    const mockExt = createMockExtension(true, undefined, undefined);
-    vi.mocked(getPythonEnvsExtensionApi).mockReturnValue(
-      mockExt as unknown as ReturnType<typeof getPythonEnvsExtensionApi>
-    );
-
-    const controller = createController();
-    const result = await controller.getPythonInterpreterPath();
-
-    expect(result).toBeNull();
-  });
-
-  it('returns executable path when environment is found (extension already active)', async () => {
-    const mockExt = createMockExtension(true, mockEnvironment, undefined);
-    vi.mocked(getPythonEnvsExtensionApi).mockReturnValue(
-      mockExt as unknown as ReturnType<typeof getPythonEnvsExtensionApi>
-    );
-
-    const controller = createController();
-    // Clear mocks after constructor to only track calls from getPythonInterpreterPath
-    vi.clearAllMocks();
-    vi.mocked(getPythonEnvsExtensionApi).mockReturnValue(
-      mockExt as unknown as ReturnType<typeof getPythonEnvsExtensionApi>
-    );
-
-    const result = await controller.getPythonInterpreterPath();
-
-    expect(result).toBe('/path/to/env/bin/python');
-    // When extension is already active, activate should not be called
-    expect(mockExt.activate).not.toHaveBeenCalled();
-    expect(mockExt.exports.getEnvironment).toHaveBeenCalledWith(undefined);
-  });
-
-  it('activates extension and returns executable path when extension is not yet active', async () => {
-    const mockExt = createMockExtension(false, mockEnvironment, undefined);
-    vi.mocked(getPythonEnvsExtensionApi).mockReturnValue(
-      mockExt as unknown as ReturnType<typeof getPythonEnvsExtensionApi>
-    );
-
-    const controller = createController();
-    const result = await controller.getPythonInterpreterPath();
-
-    expect(mockExt.activate).toHaveBeenCalled();
-    expect(result).toBe('/path/to/env/bin/python');
+afterEach(() => {
+  Object.defineProperty(process, 'platform', {
+    value: originalPlatform,
+    configurable: true,
   });
 });
 
 describe('checkPipInstall', () => {
-  it('returns isAvailable false on unsupported platform', async () => {
-    vi.stubEnv('PLATFORM', 'win32');
-    const originalPlatform = process.platform;
-    Object.defineProperty(process, 'platform', {
-      value: 'win32',
-      configurable: true,
-    });
+  it.each(['win32', 'aix'] as const)(
+    'returns isAvailable false on unsupported platform: %s',
+    async platform => {
+      Object.defineProperty(process, 'platform', {
+        value: platform,
+        configurable: true,
+      });
 
-    const controller = createController();
-    const result = await controller.checkPipInstall();
+      const { controller } = createController();
+      const result = await controller.checkPipInstall();
 
-    expect(result.isAvailable).toBe(false);
+      expect(result.isAvailable).toBe(false);
+    }
+  );
 
-    Object.defineProperty(process, 'platform', {
-      value: originalPlatform,
-      configurable: true,
-    });
-  });
+  it('returns isAvailable false when the Python Environments extension is unavailable', async () => {
+    mockApiUnavailable();
 
-  it('returns isAvailable false when Python interpreter not found', async () => {
-    vi.mocked(getPythonEnvsExtensionApi).mockReturnValue(undefined);
-
-    const controller = createController();
+    const { controller } = createController();
     const result = await controller.checkPipInstall();
 
     expect(result.isAvailable).toBe(false);
   });
 
-  it('returns isAvailable false when Python extension not found for package check', async () => {
-    // First call (getPythonInterpreterPath) returns extension, second call (checkPipInstall body) returns undefined
-    const mockExt = createMockExtension(true, mockEnvironment, undefined);
-    vi.mocked(getPythonEnvsExtensionApi)
-      .mockReturnValueOnce(
-        mockExt as unknown as ReturnType<typeof getPythonEnvsExtensionApi>
-      )
-      .mockReturnValueOnce(undefined);
+  it('returns isAvailable false when no environment is selected', async () => {
+    mockApi({ environment: undefined });
 
-    const controller = createController();
-    const result = await controller.checkPipInstall();
-
-    expect(result.isAvailable).toBe(false);
-  });
-
-  it('returns isAvailable false when getEnvironment returns null during package check', async () => {
-    const mockExtWithEnv = createMockExtension(
-      true,
-      mockEnvironment,
-      undefined
-    );
-    const mockExtNoEnv = createMockExtension(true, undefined, undefined);
-
-    vi.mocked(getPythonEnvsExtensionApi)
-      .mockReturnValueOnce(
-        mockExtWithEnv as unknown as ReturnType<
-          typeof getPythonEnvsExtensionApi
-        >
-      )
-      .mockReturnValueOnce(
-        mockExtNoEnv as unknown as ReturnType<typeof getPythonEnvsExtensionApi>
-      );
-
-    const controller = createController();
-    const result = await controller.checkPipInstall();
-
-    expect(result.isAvailable).toBe(false);
-  });
-
-  it('returns isAvailable false when deephaven-server is not in packages', async () => {
-    const packagesWithoutDh = [
-      {
-        pkgId: { id: 'np', managerId: 'pip', environmentId: 'env1' },
-        name: 'numpy',
-        displayName: 'NumPy',
-        version: '1.26.0',
-      },
-    ];
-    const mockExt = createMockExtension(
-      true,
-      mockEnvironment,
-      packagesWithoutDh
-    );
-    vi.mocked(getPythonEnvsExtensionApi).mockReturnValue(
-      mockExt as unknown as ReturnType<typeof getPythonEnvsExtensionApi>
-    );
-
-    const controller = createController();
+    const { controller } = createController();
     const result = await controller.checkPipInstall();
 
     expect(result.isAvailable).toBe(false);
   });
 
   it('returns isAvailable false when getPackages returns undefined', async () => {
-    const mockExt = createMockExtension(true, mockEnvironment, undefined);
-    vi.mocked(getPythonEnvsExtensionApi).mockReturnValue(
-      mockExt as unknown as ReturnType<typeof getPythonEnvsExtensionApi>
-    );
+    mockApi({ packages: undefined });
 
-    const controller = createController();
+    const { controller } = createController();
     const result = await controller.checkPipInstall();
 
     expect(result.isAvailable).toBe(false);
   });
 
-  it('returns isAvailable true with interpreter path and environment when deephaven-server is installed', async () => {
-    const mockExt = createMockExtension(true, mockEnvironment, mockPackages);
-    vi.mocked(getPythonEnvsExtensionApi).mockReturnValue(
-      mockExt as unknown as ReturnType<typeof getPythonEnvsExtensionApi>
-    );
+  it('returns isAvailable false when deephaven-server is not installed', async () => {
+    mockApi({ packages: [createPackage('numpy')] });
 
-    const controller = createController();
+    const { controller } = createController();
+    const result = await controller.checkPipInstall();
+
+    expect(result.isAvailable).toBe(false);
+  });
+
+  it('returns isAvailable false when getPackages throws', async () => {
+    const api = mockApi();
+    api.getPackages.mockRejectedValue(new Error('pip list failed'));
+
+    const { controller } = createController();
+    const result = await controller.checkPipInstall();
+
+    expect(result.isAvailable).toBe(false);
+  });
+
+  it.each([
+    'deephaven-server',
+    'deephaven_server',
+    'Deephaven-Server',
+    'deephaven.server',
+  ])('detects the package reported as %s', async packageName => {
+    mockApi({ packages: [createPackage(packageName)] });
+
+    const { controller } = createController();
     const result = await controller.checkPipInstall();
 
     expect(result.isAvailable).toBe(true);
-    if (result.isAvailable) {
-      expect(result.interpreterPath).toBe('/path/to/env/bin/python');
-      expect(result.environment).toBe(mockEnvironment);
-    }
+    expect(result.environment).toBe(mockEnvironment);
   });
 
   it('calls getPackages with the environment returned by getEnvironment', async () => {
-    const mockExt = createMockExtension(true, mockEnvironment, mockPackages);
-    vi.mocked(getPythonEnvsExtensionApi).mockReturnValue(
-      mockExt as unknown as ReturnType<typeof getPythonEnvsExtensionApi>
-    );
+    const api = mockApi();
 
-    const controller = createController();
+    const { controller } = createController();
     await controller.checkPipInstall();
 
-    expect(mockExt.exports.getPackages).toHaveBeenCalledWith(mockEnvironment);
+    expect(api.getPackages).toHaveBeenCalledWith(mockEnvironment, {
+      skipCache: false,
+    });
+  });
+
+  it('bypasses the package cache when skipCache is true', async () => {
+    const api = mockApi();
+
+    const { controller } = createController();
+    await controller.checkPipInstall({ skipCache: true });
+
+    expect(api.getPackages).toHaveBeenCalledWith(mockEnvironment, {
+      skipCache: true,
+    });
+  });
+});
+
+describe('environment scope resolution', () => {
+  const workspaceUri = { fsPath: '/workspace/a' } as vscode.Uri;
+  const otherWorkspaceUri = { fsPath: '/workspace/b' } as vscode.Uri;
+
+  it('resolves the workspace folder containing the active editor', async () => {
+    const api = mockApi();
+
+    const activeUri = { fsPath: '/workspace/a/main.py' } as vscode.Uri;
+    Object.assign(vscode.window, {
+      activeTextEditor: { document: { uri: activeUri } },
+    });
+    Object.assign(vscode.workspace, {
+      workspaceFolders: [{ uri: otherWorkspaceUri }],
+    });
+    vi.mocked(vscode.workspace.getWorkspaceFolder).mockReturnValue({
+      uri: workspaceUri,
+    } as vscode.WorkspaceFolder);
+
+    const { controller } = createController();
+    await controller.checkPipInstall();
+
+    expect(api.getEnvironment).toHaveBeenCalledWith(workspaceUri);
+  });
+
+  it('falls back to the first workspace folder when the active editor is not in a workspace', async () => {
+    const api = mockApi();
+
+    Object.assign(vscode.window, {
+      activeTextEditor: {
+        document: { uri: { fsPath: '/elsewhere/scratch.py' } as vscode.Uri },
+      },
+    });
+    Object.assign(vscode.workspace, {
+      workspaceFolders: [{ uri: workspaceUri }],
+    });
+    vi.mocked(vscode.workspace.getWorkspaceFolder).mockReturnValue(undefined);
+
+    const { controller } = createController();
+    await controller.checkPipInstall();
+
+    expect(api.getEnvironment).toHaveBeenCalledWith(workspaceUri);
+  });
+
+  it('falls back to the first workspace folder when there is no active editor', async () => {
+    const api = mockApi();
+
+    Object.assign(vscode.workspace, {
+      workspaceFolders: [{ uri: workspaceUri }],
+    });
+
+    const { controller } = createController();
+    await controller.checkPipInstall();
+
+    expect(api.getEnvironment).toHaveBeenCalledWith(workspaceUri);
+  });
+
+  it('resolves to global scope when there is no workspace', async () => {
+    const api = mockApi();
+
+    const { controller } = createController();
+    await controller.checkPipInstall();
+
+    expect(api.getEnvironment).toHaveBeenCalledWith(undefined);
+  });
+});
+
+describe('subscribeToPythonEnvChanges', () => {
+  it('resolves without throwing when the extension is unavailable', async () => {
+    mockApiUnavailable();
+
+    const { controller } = createController();
+    await expect(
+      controller.subscribeToPythonEnvChanges()
+    ).resolves.not.toThrow();
+  });
+
+  it.each([
+    { kind: PackageChangeKind.add, name: 'deephaven_server', shouldSync: true },
+    {
+      kind: PackageChangeKind.remove,
+      name: 'deephaven-server',
+      shouldSync: true,
+    },
+    { kind: PackageChangeKind.add, name: 'numpy', shouldSync: false },
+    { kind: PackageChangeKind.remove, name: 'numpy', shouldSync: false },
+  ])(
+    'package change: $kind $name -> re-check: $shouldSync',
+    async ({ kind, name, shouldSync }) => {
+      const api = mockApi();
+      const { controller } = createController();
+      await controller.subscribeToPythonEnvChanges();
+
+      const syncSpy = vi
+        .spyOn(controller, 'syncManagedServers')
+        .mockResolvedValue(undefined);
+
+      const [onPackagesChange] = api.onDidChangePackages.mock.calls.at(-1)!;
+
+      onPackagesChange({ changes: [{ kind, pkg: createPackage(name) }] });
+
+      if (shouldSync) {
+        expect(syncSpy).toHaveBeenCalledWith({ forceCheck: true });
+      } else {
+        expect(syncSpy).not.toHaveBeenCalled();
+      }
+    }
+  );
+
+  it('re-checks availability when the selected environment changes', async () => {
+    const api = mockApi();
+    const { controller } = createController();
+    await controller.subscribeToPythonEnvChanges();
+
+    const syncSpy = vi
+      .spyOn(controller, 'syncManagedServers')
+      .mockResolvedValue(undefined);
+
+    const [onEnvironmentChange] = api.onDidChangeEnvironment.mock.calls.at(-1)!;
+
+    onEnvironmentChange({ uri: undefined, old: undefined, new: undefined });
+
+    expect(syncSpy).toHaveBeenCalledWith({ forceCheck: true });
+  });
+});
+
+describe('syncManagedServers', () => {
+  it.each([
+    {
+      label: 'not installed',
+      packages: [createPackage('numpy')],
+      canStartServer: false,
+      expectedSyncArgs: [[]],
+    },
+    {
+      label: 'installed',
+      packages: [createPackage('deephaven-server')],
+      canStartServer: true,
+      expectedSyncArgs: [[], false],
+    },
+  ])(
+    'syncs server manager when deephaven-server is $label',
+    async ({ packages, canStartServer, expectedSyncArgs }) => {
+      mockApi({ packages });
+
+      const { controller, serverManager } = createController();
+      await controller.syncManagedServers({ forceCheck: true });
+
+      expect(serverManager.canStartServer).toBe(canStartServer);
+      expect(serverManager.syncManagedServers).toHaveBeenCalledWith(
+        ...expectedSyncArgs
+      );
+    }
+  );
+
+  it.each([
+    { forceCheck: true, skipCache: true },
+    { forceCheck: false, skipCache: false },
+  ])(
+    'checks packages with skipCache $skipCache when forceCheck is $forceCheck',
+    async ({ forceCheck, skipCache }) => {
+      const api = mockApi();
+
+      const { controller } = createController();
+      await controller.syncManagedServers({ forceCheck });
+
+      expect(api.getPackages).toHaveBeenCalledWith(mockEnvironment, {
+        skipCache,
+      });
+    }
+  );
+
+  it('skips the package check when already installed and forceCheck is false', async () => {
+    const api = mockApi();
+
+    const { controller } = createController();
+
+    // Not yet known to be installed, so the first sync still checks packages
+    await controller.syncManagedServers({ forceCheck: false });
+    expect(api.getPackages).toHaveBeenCalledOnce();
+    api.getPackages.mockClear();
+
+    await controller.syncManagedServers({ forceCheck: false });
+
+    expect(api.getPackages).not.toHaveBeenCalled();
   });
 });

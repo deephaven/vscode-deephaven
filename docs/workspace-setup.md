@@ -14,11 +14,11 @@ A `requirements.txt` file can be generated containing all of the packages instal
 
 ## Managed pip Servers (Community only)
 
-> **Requirement:** Managed pip servers require the [Python Environments](https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-python-envs) extension (`ms-python.vscode-python-envs`) to be installed in VS Code.
+Managed pip servers are driven by the [Python Environments](https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-python-envs) extension (`ms-python.vscode-python-envs`), which VS Code installs automatically alongside this extension. The Deephaven server is started in whichever environment that extension has selected, so any environment manager it supports works — `venv`, `uv`, `conda`, and others. If the extension is disabled, the `Managed` servers node is hidden and the rest of the extension continues to work.
 
-If you want to manage Deephaven servers from within the extension, include `deephaven-server` in the venv pip installation.
+If you want to manage Deephaven servers from within the extension, install `deephaven-server` into the selected environment.
 
-Once installed, clicking the `refresh` button in the server tree panel should reveal a `Managed` servers node.
+Once installed, the `Managed` servers node appears in the server tree panel. The extension watches for `deephaven-server` being installed or removed and for the selected environment changing, so the node normally updates on its own. If the node seems out of date, click the `refresh` button to force a re-check.
 
 ![Refresh Servers](./assets/refresh-servers.png)
 
