@@ -170,8 +170,10 @@ Releases should be published from a tagged commit for an existing `pre-release`.
 To verify the package will include what you expect, run:
 
 ```sh
-npx vsce ls
+npm run vscode:prepublish && npx vsce ls
 ```
+
+`vsce ls` does not run the `vscode:prepublish` build step the way `vsce package` / `vsce publish` do, so it lists whatever is currently in `out/`. Running the prepublish step first cleans and rebuilds `out/` so the listing matches what will actually be packaged.
 
 1. If expected content is missing or unexpected content is included, the `.vscodeignore` file will likely need to be updated in a separate PR before doing the release (this should not be common).
 1. Optionally run `npm run package:dev` if you want to locally install a `.vsix` for testing before publishing.
