@@ -1293,7 +1293,7 @@
     "@typescript-eslint/eslint-plugin": "^7.16.0",
     "@typescript-eslint/parser": "^7.16.0",
     "@vitest/coverage-v8": "^4.0.17",
-    "@vscode/vsce": "^2.30.0",
+    "@vscode/vsce": "^3.9.2",
     "ctrf": "^0.0.9",
     "dotenv": "^16.4.7",
     "esbuild-wasm": "^0.24.0",
