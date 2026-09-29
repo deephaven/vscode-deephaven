@@ -8,7 +8,6 @@
 !README.md
 
 !assets/**/*
-!docs/**/*
 !images/**/*
 !out/**/*.js
 !out/**/*.css
