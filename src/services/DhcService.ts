@@ -5,6 +5,7 @@ import {
   extractControllerImportPrefixes,
   formatTimestamp,
   getCombinedRangeLinesText,
+  isInstanceOf,
   isNonEmptyArray,
   Logger,
   saveRequirementsTxt,
@@ -27,7 +28,6 @@ import type {
   UniqueID,
   VariableChanges,
   VariableDefintion,
-  VariableID,
 } from '../types';
 import {
   CREATE_CORE_AUTHENTICATED_CLIENT_CMD,
@@ -48,6 +48,15 @@ import { assertDefined } from '../shared';
 import type { RemoteFileSourceService } from './RemoteFileSourceService';
 
 const logger = new Logger('DhcService');
+
+/**
+ * Type guard for DhcService
+ * @param service The service to check.
+ * @returns True if the service is an instance of DhcService, false otherwise.
+ */
+export function isDhcService(service: unknown): service is DhcService {
+  return isInstanceOf(service, DhcService);
+}
 
 export class DhcService extends DisposableBase implements IDhcService {
   /**
@@ -72,9 +81,16 @@ export class DhcService extends DisposableBase implements IDhcService {
     toaster: IToastService
   ): IDhcServiceFactory => {
     return {
-      create: (serverUrl: URL, tagId?: UniqueID): IDhcService => {
+      create: (
+        label: string,
+        serverUrl: URL,
+        isOwned: boolean,
+        tagId?: UniqueID
+      ): IDhcService => {
         return new DhcService(
+          label,
           serverUrl,
+          isOwned,
           coreClientCache,
           groovyDiagnosticsCollection,
           diagnosticsCollection,
@@ -94,7 +110,9 @@ export class DhcService extends DisposableBase implements IDhcService {
    * mechanism for instantiating.
    */
   private constructor(
+    label: string,
     serverUrl: URL,
+    isOwned: boolean,
     coreClientCache: URLMap<CoreAuthenticatedClient>,
     groovyDiagnosticsCollection: vscode.DiagnosticCollection,
     diagnosticsCollection: vscode.DiagnosticCollection,
@@ -108,6 +126,8 @@ export class DhcService extends DisposableBase implements IDhcService {
     super();
 
     this.coreClientCache = coreClientCache;
+    this.isOwned = isOwned;
+    this.label = label;
     this.groovyDiagnosticsCollection = groovyDiagnosticsCollection;
     this.diagnosticsCollection = diagnosticsCollection;
     this.remoteFileSourceService = remoteFileSourceService;
@@ -132,6 +152,8 @@ export class DhcService extends DisposableBase implements IDhcService {
   private readonly _onDidDisconnect = new vscode.EventEmitter<URL>();
   readonly onDidDisconnect = this._onDidDisconnect.event;
 
+  public readonly isOwned: boolean;
+  public readonly label: string;
   public readonly serverUrl: URL;
   public readonly tagId?: UniqueID;
 
@@ -249,7 +271,7 @@ export class DhcService extends DisposableBase implements IDhcService {
             (variable): variable is VariableDefintion =>
               this.panelService.hasPanel(
                 this.serverUrl,
-                variable.id as VariableID
+                variable as VariableDefintion
               )
           );
 

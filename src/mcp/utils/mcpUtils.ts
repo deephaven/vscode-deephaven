@@ -56,6 +56,17 @@ export type McpToolResult<TSuccess extends boolean, TDetails = unknown> = {
  * };
  * ```
  */
+/**
+ * Output schema for `details.externalConsoleUrls`, returned by any tool that
+ * resolves its connection via `getFirstConnectionOrCreate`.
+ */
+export const externalConsoleUrlsSchema = z
+  .array(z.string())
+  .optional()
+  .describe(
+    'Worker URLs for consoles running on the server that this extension did not create. Pass one as the connectionUrl to use it.'
+  );
+
 export function createMcpToolOutputSchema<TDetailsShape extends z.ZodRawShape>(
   detailsShape?: TDetailsShape
 ): {

@@ -1,14 +1,16 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import type {
-  AuthenticatedClient as DheAuthenticatedClientBase,
   Base64KeyPair,
   KeyPairCredentials,
   OperateAsUsername,
   PasswordCredentials,
-  UnauthenticatedClient as DheUnauthenticatedClientBase,
   Username,
 } from '@deephaven-enterprise/auth-nodejs';
+import type {
+  AuthenticatedEnterpriseClient,
+  UnauthenticatedEnterpriseClient,
+} from '@deephaven-enterprise/client-utils';
 import type { Brand, QuerySerial, SerializableRefreshToken } from '../shared';
 
 export type ExtensionVersion = Brand<'ExtensionVersion', string>;
@@ -38,14 +40,6 @@ export type ConnectionType = 'DHC';
 
 export type ConsoleType = 'groovy' | 'python';
 
-export type TerminalQueryStatus =
-  | 'Stopping'
-  | 'Stopped'
-  | 'Failed'
-  | 'Error'
-  | 'Disconnected'
-  | 'Completed';
-
 export type CoreConnectionConfigStored =
   | string
   | {
@@ -68,11 +62,11 @@ export type CoreUnauthenticatedClient = Brand<
 >;
 
 export type DheAuthenticatedClientWrapper = Partial<IDisposable> & {
-  client: DheAuthenticatedClientBase;
+  client: AuthenticatedEnterpriseClient;
   refreshTokenSerialized: Promise<SerializableRefreshToken | null>;
 };
 export type DheUnauthenticatedClientWrapper = Partial<IDisposable> & {
-  client: DheUnauthenticatedClientBase;
+  client: UnauthenticatedEnterpriseClient;
   refreshTokenSerialized: Promise<SerializableRefreshToken | null>;
 };
 
@@ -168,8 +162,17 @@ export interface WorkerConfig {
 }
 
 export interface ConnectionState {
+  /**
+   * True when this entry has NO console session behind it — it exists only so
+   * the DH embed panel can authenticate against a persistent query's worker
+   * (`getConnection` / `getWorkerInfo` / `getWorkerCredentials`, all keyed by
+   * worker URL). Registered by `ServerManager.registerSessionlessConnection`
+   * when a PQ node is expanded.
+   */
+  readonly isSessionless?: boolean;
   readonly isConnected: boolean;
   readonly isRunningCode?: boolean;
+  readonly label: string;
   readonly serverUrl: URL;
   readonly tagId?: UniqueID;
 }
@@ -185,6 +188,7 @@ export interface WorkerInfo {
   grpcUrl: GrpcURL;
   ideUrl: IdeURL;
   jsapiUrl: JsapiURL;
+  name: string;
   processInfoId: string | null;
   serial: QuerySerial;
   workerName: string | null;
@@ -230,8 +234,23 @@ export type VariableDefintion = DhcType.ide.VariableDefinition & {
   type: VariableType;
 };
 
+/**
+ * A variable that can be opened in a panel. Console variables come from the
+ * server with an `id`, but PQ exported objects (DHE `designated.objects`) have
+ * none, so `id` is optional here.
+ */
+export type PanelVariable = Omit<VariableDefintion, 'id'> & {
+  id?: VariableID;
+};
+
+/** Key identifying a panel within a connection. See `PanelService`. */
+export type PanelKey = Brand<'PanelKey'>;
+
 export type VariableMap = Map<VariableID, VariableDefintion>;
-export type VariablePanelMap = Map<VariableID, vscode.WebviewPanel>;
+export type VariablePanelMap = Map<
+  PanelKey,
+  { panel: vscode.WebviewPanel; variable: PanelVariable }
+>;
 
 export interface VariableChanges {
   readonly created: VariableDefintion[];
@@ -239,18 +258,7 @@ export interface VariableChanges {
   readonly updated: VariableDefintion[];
 }
 
-export type VariableType =
-  | 'deephaven.plot.express.DeephavenFigure'
-  | 'deephaven.ui.Element'
-  | 'Figure'
-  | 'HierarchicalTable'
-  | 'OtherWidget'
-  | 'pandas.DataFrame'
-  | 'PartitionedTable'
-  | 'Table'
-  | 'TableMap'
-  | 'Treemap'
-  | 'TreeTable';
+export type VariableType = Brand<'VariableType'>;
 
 export interface CodeBlock {
   languageId: string;

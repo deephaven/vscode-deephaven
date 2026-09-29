@@ -312,11 +312,13 @@ export enum TreeItemCollapsibleState {
 
 export const window = {
   onDidChangeActiveColorTheme: vi.fn().mockName('onDidChangeActiveColorTheme'),
+  onDidChangeActiveTextEditor: vi.fn().mockName('onDidChangeActiveTextEditor'),
   onDidReceiveMessage: vi.fn().mockName('onDidReceiveMessage'),
   registerFileDecorationProvider: vi
     .fn()
     .mockName('registerFileDecorationProvider'),
   showInputBox: vi.fn().mockName('showInputBox'),
+  showQuickPick: vi.fn().mockName('showQuickPick'),
   showTextDocument: vi.fn().mockName('showTextDocument'),
   showInformationMessage: vi.fn().mockName('showInformationMessage'),
   showErrorMessage: vi.fn().mockName('showErrorMessage'),
@@ -324,6 +326,8 @@ export const window = {
 
 export const workspace = {
   asRelativePath: vi.fn().mockName('asRelativePath'),
+  onDidChangeConfiguration: vi.fn().mockName('onDidChangeConfiguration'),
+  onDidOpenTextDocument: vi.fn().mockName('onDidOpenTextDocument'),
   createFileSystemWatcher: vi
     .fn()
     .mockName('createFileSystemWatcher')
@@ -394,6 +398,7 @@ export class Uri {
 
 export const commands = {
   executeCommand: vi.fn().mockName('executeCommand'),
+  registerCommand: vi.fn().mockName('registerCommand'),
 };
 
 export const languages = {

@@ -6,9 +6,9 @@ import type {
   EnterpriseDhType as DheType,
 } from '@deephaven-enterprise/jsapi-types';
 import {
-  createClient as createDheClient,
-  type UnauthenticatedClient as DheUnauthenticatedClient,
-} from '@deephaven-enterprise/auth-nodejs';
+  createEnterpriseClient as createDheClient,
+  type UnauthenticatedEnterpriseClient as DheUnauthenticatedClient,
+} from '@deephaven-enterprise/client-utils';
 import { NodeHttp2gRPCTransport } from '@deephaven/jsapi-nodejs';
 import { McpController } from './McpController';
 import {
@@ -19,9 +19,12 @@ import {
   CREATE_NEW_TEXT_DOC_CMD,
   DELETE_VARIABLE_CMD,
   DOWNLOAD_LOGS_CMD,
+  FILTER_PERSISTENT_QUERIES_CMD,
   GENERATE_REQUIREMENTS_TXT_CMD,
+  HIDE_RUNNING_QUERIES_CMD,
+  HIDE_STOPPED_QUERIES_CMD,
   OPEN_IN_BROWSER_CMD,
-  REFRESH_PANELS_TREE_CMD,
+  REFRESH_PERSISTENT_QUERY_TREE_CMD,
   REFRESH_REMOTE_IMPORT_SOURCE_TREE_CMD,
   REFRESH_SERVER_CONNECTION_TREE_CMD,
   REFRESH_SERVER_TREE_CMD,
@@ -32,11 +35,14 @@ import {
   RUN_MARKDOWN_CODEBLOCK_CMD,
   RUN_SELECTION_COMMAND,
   SEARCH_CONNECTIONS_CMD,
-  SEARCH_PANELS_CMD,
+  SEARCH_PERSISTENT_QUERIES_CMD,
+  SHOW_RUNNING_QUERIES_CMD,
+  SHOW_STOPPED_QUERIES_CMD,
   START_SERVER_CMD,
   STOP_SERVER_CMD,
   VIEW_ID,
   type AddRemoteFileSourceCmdArgs,
+  type QueryStatusSection,
   type RemoveRemoteFileSourceCmdArgs,
   type RunCodeCmdArgs,
   type RunMarkdownCodeblockCmdArgs,
@@ -49,6 +55,7 @@ import {
   getEditorForUri,
   getGroovyTopLevelPackageName,
   getPythonTopLevelModuleFullname,
+  getSharedTransportFactory,
   getTempDir,
   isInstanceOf,
   isSerializedRange,
@@ -57,9 +64,12 @@ import {
   Logger,
   OutputChannelWithHistory,
   parseMarkdownCodeblocks,
+  promptForQueryStatusFilter,
   sanitizeGRPCLogMessageArgs,
   saveLogFiles,
   serializeRefreshToken,
+  setViewIsFiltered,
+  setViewSectionIsChecked,
   Toaster,
   URLMap,
   withResolvers,
@@ -69,7 +79,7 @@ import {
   RunCommandCodeLensProvider,
   ServerTreeProvider,
   ServerConnectionTreeProvider,
-  ServerConnectionPanelTreeProvider,
+  PersistentQueryTreeProvider,
   runSelectedLinesHoverProvider,
   RunMarkdownCodeBlockCodeLensProvider,
   SamlAuthProvider,
@@ -87,6 +97,8 @@ import {
   RemoteFileSourceService,
   PanelService,
   ParsedDocumentCache,
+  PersistentQueryService,
+  PersistentQueryStatusFilterService,
   PYTHON_FILE_PATTERN,
   SecretService,
   ServerManager,
@@ -102,11 +114,14 @@ import type {
   IDhcService,
   IDhcServiceFactory,
   IPanelService,
+  IPersistentQueryService,
+  IPersistentQueryStatusFilterService,
   ISecretService,
   IServerManager,
   IToastService,
-  ServerConnectionPanelNode,
-  ServerConnectionPanelTreeView,
+  ServerConnectionNode,
+  PersistentQueryTreeNode,
+  PersistentQueryTreeView,
   ServerConnectionTreeView,
   ServerState,
   ServerTreeView,
@@ -194,6 +209,9 @@ export class ExtensionController implements IDisposable {
   private _logFileHandler: LogFileHandler | null = null;
   private _panelController: PanelController | null = null;
   private _panelService: IPanelService | null = null;
+  private _persistentQueryService: IPersistentQueryService | null = null;
+  private _persistentQueryStatusFilterService: IPersistentQueryStatusFilterService | null =
+    null;
   private _pipServerController: PipServerController | null = null;
   private _dhcServiceFactory: IDhcServiceFactory | null = null;
   private _dheJsApiCache: IAsyncCacheService<URL, DheType> | null = null;
@@ -211,7 +229,7 @@ export class ExtensionController implements IDisposable {
   private _serverTreeProvider: ServerTreeProvider | null = null;
   private _serverConnectionTreeProvider: ServerConnectionTreeProvider | null =
     null;
-  private _serverConnectionPanelTreeProvider: ServerConnectionPanelTreeProvider | null =
+  private _persistentQueryTreeProvider: PersistentQueryTreeProvider | null =
     null;
   private _remoteImportSourceTreeProvider: RemoteImportSourceTreeProvider | null =
     null;
@@ -219,8 +237,7 @@ export class ExtensionController implements IDisposable {
   // Tree views
   private _serverTreeView: ServerTreeView | null = null;
   private _serverConnectionTreeView: ServerConnectionTreeView | null = null;
-  private _serverConnectionPanelTreeView: ServerConnectionPanelTreeView | null =
-    null;
+  private _persistentQueryTreeView: PersistentQueryTreeView | null = null;
   private _remoteImportSourceTreeView: RemoteImportSourceTreeView | null = null;
 
   // Web views
@@ -593,7 +610,7 @@ export class ExtensionController implements IDisposable {
         // so that we can provide a working NodeJS version of http2.
         transportFactory: isElectronFetchEnabled
           ? undefined
-          : NodeHttp2gRPCTransport.factory,
+          : getSharedTransportFactory(),
       };
 
       if (envoyPrefix != null) {
@@ -634,7 +651,7 @@ export class ExtensionController implements IDisposable {
           // should just be ignored if provided. We don't really have a good way
           // to determine if the server supports it or not, and gplus and beyond
           // require it on non-envoy servers, so we just always provide it.
-          transportFactory: NodeHttp2gRPCTransport.factory,
+          transportFactory: getSharedTransportFactory(),
         }
       );
 
@@ -717,8 +734,7 @@ export class ExtensionController implements IDisposable {
       this._config,
       this._dheClientCache,
       this._dheJsApiCache,
-      this._interactiveConsoleQueryFactory,
-      this._toaster
+      this._interactiveConsoleQueryFactory
     );
 
     this._dheServiceCache = new DheServiceCache(this._dheServiceFactory);
@@ -735,6 +751,27 @@ export class ExtensionController implements IDisposable {
       this._toaster
     );
     this._context.subscriptions.push(this._serverManager);
+
+    // Shared PQ source for every view that lists persistent queries.
+    this._persistentQueryService = new PersistentQueryService(
+      this._serverManager,
+      this._dheServiceCache
+    );
+    this._context.subscriptions.push(this._persistentQueryService);
+
+    this._persistentQueryStatusFilterService =
+      new PersistentQueryStatusFilterService(this._context);
+    this._context.subscriptions.push(this._persistentQueryStatusFilterService);
+
+    this.syncPersistentQueryFilterContext();
+
+    this._persistentQueryStatusFilterService.onDidUpdate(
+      () => {
+        this.syncPersistentQueryFilterContext();
+      },
+      undefined,
+      this._context.subscriptions
+    );
 
     this._serverManager.onDidDisconnect(
       serverUrl => {
@@ -822,8 +859,29 @@ export class ExtensionController implements IDisposable {
       this.onRefreshServerStatus
     );
 
-    /** Refresh variable panels tree */
-    this.registerCommand(REFRESH_PANELS_TREE_CMD, this.onRefreshServerStatus);
+    /** Refresh persistent query tree */
+    this.registerCommand(
+      REFRESH_PERSISTENT_QUERY_TREE_CMD,
+      this.onRefreshPersistentQueryTree
+    );
+
+    /** Filter persistent queries by status */
+    this.registerCommand(
+      FILTER_PERSISTENT_QUERIES_CMD,
+      this.onFilterPersistentQueries
+    );
+    this.registerCommand(SHOW_RUNNING_QUERIES_CMD, () =>
+      this.onSetQuerySectionVisible('Running', true)
+    );
+    this.registerCommand(HIDE_RUNNING_QUERIES_CMD, () =>
+      this.onSetQuerySectionVisible('Running', false)
+    );
+    this.registerCommand(SHOW_STOPPED_QUERIES_CMD, () =>
+      this.onSetQuerySectionVisible('Stopped', true)
+    );
+    this.registerCommand(HIDE_STOPPED_QUERIES_CMD, () =>
+      this.onSetQuerySectionVisible('Stopped', false)
+    );
 
     /** Remote import source tree */
     this.registerCommand(
@@ -854,11 +912,11 @@ export class ExtensionController implements IDisposable {
       VIEW_ID.serverConnectionTree
     );
 
-    /** Search variable panels */
+    /** Search persistent queries */
     this.registerCommand(
-      SEARCH_PANELS_CMD,
+      SEARCH_PERSISTENT_QUERIES_CMD,
       this.onSearchTree,
-      VIEW_ID.serverConnectionPanelTree
+      VIEW_ID.persistentQueryTree
     );
 
     this.registerCommand(DELETE_VARIABLE_CMD, this.onDeleteVariable);
@@ -875,9 +933,16 @@ export class ExtensionController implements IDisposable {
    */
   initializeWebViews = (): void => {
     assertDefined(this._dheClientCache, 'dheClientCache');
+    assertDefined(this._dheJsApiCache, 'dheJsApiCache');
+    assertDefined(this._dheServiceCache, 'dheServiceCache');
     assertDefined(this._groovyWorkspace, 'groovyWorkspace');
     assertDefined(this._pythonWorkspace, 'pythonWorkspace');
     assertDefined(this._panelService, 'panelService');
+    assertDefined(this._persistentQueryService, 'persistentQueryService');
+    assertDefined(
+      this._persistentQueryStatusFilterService,
+      'persistentQueryStatusFilterService'
+    );
     assertDefined(this._serverManager, 'serverManager');
 
     // Server tree
@@ -889,19 +954,21 @@ export class ExtensionController implements IDisposable {
 
     // Connection tree
     this._serverConnectionTreeProvider = new ServerConnectionTreeProvider(
-      this._serverManager
+      this._serverManager,
+      this._panelService
     );
     const serverConnectionTreeDragAndDropController =
       new ServerConnectionTreeDragAndDropController(this._serverManager);
 
-    this._serverConnectionTreeView = vscode.window.createTreeView(
-      VIEW_ID.serverConnectionTree,
-      {
-        dragAndDropController: serverConnectionTreeDragAndDropController,
-        showCollapseAll: true,
-        treeDataProvider: this._serverConnectionTreeProvider,
-      }
-    );
+    this._serverConnectionTreeView =
+      vscode.window.createTreeView<ServerConnectionNode>(
+        VIEW_ID.serverConnectionTree,
+        {
+          dragAndDropController: serverConnectionTreeDragAndDropController,
+          showCollapseAll: true,
+          treeDataProvider: this._serverConnectionTreeProvider,
+        }
+      );
 
     // Create Query View
     this._createQueryViewProvider = new CreateQueryViewProvider(
@@ -920,18 +987,18 @@ export class ExtensionController implements IDisposable {
       )
     );
 
-    // Connection Panel tree
-    this._serverConnectionPanelTreeProvider =
-      new ServerConnectionPanelTreeProvider(
-        this._serverManager,
-        this._panelService
-      );
-    this._serverConnectionPanelTreeView =
-      vscode.window.createTreeView<ServerConnectionPanelNode>(
-        VIEW_ID.serverConnectionPanelTree,
+    // Persistent Queries tree
+    this._persistentQueryTreeProvider = new PersistentQueryTreeProvider(
+      this._serverManager,
+      this._persistentQueryService,
+      this._persistentQueryStatusFilterService
+    );
+    this._persistentQueryTreeView =
+      vscode.window.createTreeView<PersistentQueryTreeNode>(
+        VIEW_ID.persistentQueryTree,
         {
           showCollapseAll: true,
-          treeDataProvider: this._serverConnectionPanelTreeProvider,
+          treeDataProvider: this._persistentQueryTreeProvider,
         }
       );
 
@@ -952,11 +1019,11 @@ export class ExtensionController implements IDisposable {
     this._context.subscriptions.push(
       this._serverTreeView,
       this._serverConnectionTreeView,
-      this._serverConnectionPanelTreeView,
+      this._persistentQueryTreeView,
       this._remoteImportSourceTreeView,
       this._serverTreeProvider,
       this._serverConnectionTreeProvider,
-      this._serverConnectionPanelTreeProvider,
+      this._persistentQueryTreeProvider,
       this._remoteImportSourceTreeProvider
     );
   };
@@ -1211,6 +1278,80 @@ export class ExtensionController implements IDisposable {
   onRefreshServerStatus = async (): Promise<void> => {
     await this._pipServerController?.syncManagedServers({ forceCheck: true });
     await this._serverManager?.updateStatus();
+  };
+
+  onRefreshPersistentQueryTree = (): void => {
+    this._persistentQueryTreeProvider?.refresh();
+  };
+
+  /**
+   * Push the filter state into context keys the Persistent Queries menu reads:
+   * which submenu icon to show (hollow / filled funnel), and which of each
+   * checked / unchecked row pair to render. Driven off the filter service's
+   * event rather than the commands, so the keys are correct at startup too,
+   * where no command has run.
+   */
+  syncPersistentQueryFilterContext = (): void => {
+    const filterService = this._persistentQueryStatusFilterService;
+    if (filterService == null) {
+      return;
+    }
+
+    setViewIsFiltered(
+      VIEW_ID.persistentQueryTree,
+      filterService.getHiddenStatuses().size > 0
+    );
+
+    for (const section of ['Running', 'Stopped'] as const) {
+      setViewSectionIsChecked(
+        VIEW_ID.persistentQueryTree,
+        section,
+        filterService.isSectionFullyVisible(section)
+      );
+    }
+  };
+
+  /**
+   * Show or hide a whole status section from the filter menu's checkbox rows.
+   * @param section The section to toggle.
+   * @param isVisible Whether its queries should be listed.
+   */
+  onSetQuerySectionVisible = async (
+    section: QueryStatusSection,
+    isVisible: boolean
+  ): Promise<void> => {
+    await this._persistentQueryStatusFilterService?.setSectionVisible(
+      section,
+      isVisible
+    );
+  };
+
+  /**
+   * Prompt for the persistent-query statuses to show. Shared by both filter
+   * command ids. A dismissed picker resolves `undefined` and must leave the
+   * filter untouched — treating it as an empty selection would hide everything.
+   */
+  onFilterPersistentQueries = async (): Promise<void> => {
+    if (
+      this._persistentQueryTreeProvider == null ||
+      this._persistentQueryStatusFilterService == null
+    ) {
+      return;
+    }
+
+    const statusCounts =
+      await this._persistentQueryTreeProvider.getStatusCounts();
+
+    const hidden = await promptForQueryStatusFilter(
+      statusCounts,
+      this._persistentQueryStatusFilterService.getHiddenStatuses()
+    );
+
+    if (hidden == null) {
+      return;
+    }
+
+    await this._persistentQueryStatusFilterService.setHiddenStatuses(hidden);
   };
 
   onRevealInExplorer = async (

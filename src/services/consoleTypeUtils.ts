@@ -1,8 +1,4 @@
-import type {
-  ConnectionState,
-  ConsoleType,
-  ServerConnectionPanelNode,
-} from '../types';
+import type { ConnectionState, ConsoleType } from '../types';
 import { isInstanceOf } from '../util';
 import DhcService from './DhcService';
 
@@ -29,12 +25,11 @@ export async function getConnectionsForConsoleType(
 }
 
 export async function getFirstSupportedConsoleType(
-  connectionOrVariable: ServerConnectionPanelNode
+  connection: ConnectionState
 ): Promise<ConsoleType | undefined> {
   const [consoleType] =
-    isInstanceOf(connectionOrVariable, DhcService) &&
-    connectionOrVariable.isInitialized
-      ? await connectionOrVariable.getConsoleTypes()
+    isInstanceOf(connection, DhcService) && connection.isInitialized
+      ? await connection.getConsoleTypes()
       : [];
 
   return consoleType;

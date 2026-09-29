@@ -26,6 +26,7 @@ const spec = {
       .array(
         z.object({
           serverUrl: z.string(),
+          label: z.string(),
           isConnected: z.boolean(),
           isRunningCode: z.boolean().optional(),
           querySerial: z.string().optional(),
@@ -66,7 +67,7 @@ export function createListConnectionsTool({
 
         const connections = await Promise.all(
           rawConnections.map(
-            async ({ serverUrl, isConnected, isRunningCode, tagId }) => {
+            async ({ serverUrl, label, isConnected, isRunningCode, tagId }) => {
               // Get worker info to retrieve querySerial for DHE connections
               const workerInfo = await serverManager.getWorkerInfo(
                 serverUrl as WorkerURL
@@ -74,6 +75,7 @@ export function createListConnectionsTool({
 
               return {
                 serverUrl: serverUrl.toString(),
+                label,
                 isConnected,
                 isRunningCode,
                 tagId,

@@ -9,6 +9,7 @@ import type {
 } from '../../types';
 import {
   createMcpToolOutputSchema,
+  externalConsoleUrlsSchema,
   getTableOrError,
   McpToolResponse,
 } from '../utils';
@@ -41,6 +42,7 @@ const spec = {
   outputSchema: createMcpToolOutputSchema({
     columnName: z.string().optional(),
     connectionUrl: z.string().optional(),
+    externalConsoleUrls: externalConsoleUrlsSchema,
     statistics: z
       .record(z.unknown())
       .optional()

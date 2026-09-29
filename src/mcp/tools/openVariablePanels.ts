@@ -11,6 +11,7 @@ import type {
 import { parseUrl } from '../../util';
 import {
   createMcpToolOutputSchema,
+  externalConsoleUrlsSchema,
   getFirstConnectionOrCreate,
   McpToolResponse,
 } from '../utils';
@@ -32,6 +33,7 @@ const spec = {
   },
   outputSchema: createMcpToolOutputSchema({
     connectionUrl: z.string().optional(),
+    externalConsoleUrls: externalConsoleUrlsSchema,
   }),
 } as const;
 

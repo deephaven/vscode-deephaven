@@ -3,7 +3,7 @@ import type {
   ConnectionState,
   IPanelService,
   IServerManager,
-  VariableDefintion,
+  PanelVariable,
   WorkerInfo,
   WorkerURL,
 } from '../types';
@@ -72,7 +72,7 @@ export class PanelController extends ControllerBase {
   >();
   private readonly _panelsPendingInitialLoad = new Map<
     vscode.WebviewPanel,
-    VariableDefintion
+    PanelVariable
   >();
 
   private _debounceRefreshPanels?: NodeJS.Timeout;
@@ -93,7 +93,7 @@ export class PanelController extends ControllerBase {
       const visiblePanels: {
         url: URL;
         panel: vscode.WebviewPanel;
-        variable: VariableDefintion;
+        variable: PanelVariable;
       }[] = [];
 
       // Get details for visible panels that are pending initial load
@@ -236,9 +236,9 @@ export class PanelController extends ControllerBase {
       firstExistingPanel?.viewColumn ?? vscode.window.tabGroups.all.length + 1;
 
     for (const variable of variables) {
-      const { id, title } = variable;
+      const { title } = variable;
 
-      const isNewPanel = !this._panelService.hasPanel(serverUrl, id);
+      const isNewPanel = !this._panelService.hasPanel(serverUrl, variable);
 
       const panel: vscode.WebviewPanel = isNewPanel
         ? vscode.window.createWebviewPanel(
@@ -250,7 +250,7 @@ export class PanelController extends ControllerBase {
               retainContextWhenHidden: true,
             }
           )
-        : this._panelService.getPanelOrThrow(serverUrl, id);
+        : this._panelService.getPanelOrThrow(serverUrl, variable);
 
       this._lastPanelInViewColumn.set(panel.viewColumn, panel);
       this._panelsPendingInitialLoad.set(panel, variable);
@@ -262,7 +262,7 @@ export class PanelController extends ControllerBase {
             this._onPanelMessage(serverUrl, data, postMessage);
           });
 
-        this._panelService.setPanel(serverUrl, id, panel);
+        this._panelService.setPanel(serverUrl, variable, panel);
 
         // If panel gets disposed, remove it from the cache and dispose subscriptions.
         panel.onDidDispose(() => {
@@ -270,7 +270,7 @@ export class PanelController extends ControllerBase {
           // can cause exceptions if the panel has already been disposed.
           logger.debug2('Panel disposed:', title);
 
-          this._panelService.deletePanel(serverUrl, id);
+          this._panelService.deletePanel(serverUrl, variable);
           this._panelsPendingInitialLoad.delete(panel);
 
           onDidReceiveMessageSubscription.dispose();
@@ -309,8 +309,8 @@ export class PanelController extends ControllerBase {
     );
 
     for (const variable of variables) {
-      const { id, title } = variable;
-      const panel = this._panelService.getPanelOrThrow(serverUrl, id);
+      const { title } = variable;
+      const panel = this._panelService.getPanelOrThrow(serverUrl, variable);
 
       // For any panels that are not visible at time of refresh, flag them as
       // pending so that they will be loaded the first time they become visible.

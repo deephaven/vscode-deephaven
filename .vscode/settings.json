@@ -10,6 +10,10 @@
     "out": true // set this to false to include "out" folder in search results
   },
   // Turn off tsc task auto detection since we have the necessary tasks as npm scripts
-  "typescript.tsc.autoDetect": "off",
-  "typescript.tsdk": "node_modules/typescript/lib"
+  "js/ts.tsc.autoDetect": "off",
+  // Unit tests are excluded from the primary tsconfig.json used by VS Code
+  // editor. Setting the implicit project target to match the tsconfig.json so
+  // that the editor shows proper language features for the test files.
+  "js/ts.implicitProjectConfig.target": "ES2023",
+  "js/ts.tsdk.path": "node_modules/typescript/lib"
 }
