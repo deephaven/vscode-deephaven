@@ -1,0 +1,98 @@
+{
+  "name": "Default",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "nodeGypDependencies": true,
+      // Prefer "lts" over "latest". "latest" floats onto whatever nodejs.org currently
+      // resolves as newest, which has included an unreleased alpha whose own `node --version`
+      // disagreed with the directory nvm installed it under — enough to break nvm.
+      "version": "lts",
+      "pnpmVersion": "none",
+      "nvmVersion": "latest"
+    },
+    "ghcr.io/devcontainers/features/python:1": {
+      "installTools": true,
+      "version": "3.12"
+    },
+    "ghcr.io/devc-tools/features/agents:0": {
+      "installClaudeCli": true,
+      "installCopilotCli": true,
+      "installHerdr": true,
+      "installPiCli": true,
+      "piPackages": "npm:@andrewjacop/pi-herdr"
+    },
+    "ghcr.io/devc-tools/features/git-container-config:0": {},
+    "ghcr.io/devc-tools/features/node-nvmrc:0": {}
+  },
+  "remoteEnv": {
+    "LANG": "en_US.utf8",
+    "PROJECT_PATH": "${containerWorkspaceFolder}",
+    "SHELL": "/bin/bash",
+    // Provided by host $TZ, or defaults to America/New_York if not set.
+    "TZ": "${localEnv:TZ:America/New_York}"
+  },
+  "initializeCommand": "bash \"${localWorkspaceFolder}/.devcontainer/initialize-command.sh\"",
+  "mounts": [
+    // Bind mount agent feature config directories on host so that they can be shared across containers
+    "type=bind,source=${localEnv:HOME}/.config/devc/.claude,target=/home/vscode/.claude,consistency=cached",
+    "type=bind,source=${localEnv:HOME}/.config/devc/.copilot,target=/home/vscode/.copilot,consistency=cached",
+    "type=bind,source=${localEnv:HOME}/.config/devc/.pi,target=/home/vscode/.pi,consistency=cached",
+
+    // Herdr config folder contains session state related files that would not be good to share cross container, so
+    // we only bind mount the config.toml file.
+    "type=bind,source=${localEnv:HOME}/.config/devc/herdr/config.toml,target=/home/vscode/.config/herdr/config.toml,consistency=cached",
+
+    // Your git name and email, extracted from the host by initialize-command.sh. The directory,
+    // not the file inside it, so a regenerated identity reaches containers already running.
+    "type=bind,source=${localEnv:HOME}/.config/devc/git-identity,target=/usr/local/share/devc-features/git-container-config/identity,consistency=cached,readonly"
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ],
+      "settings": {
+        // No permission mode is pinned here. With claudeCode.initialPermissionMode unset the
+        // extension passes no mode to the CLI, which resolves it from ~/.claude/settings.json
+        // (permissions.defaultMode) — the same mode you get in a terminal. One source of
+        // truth, and changeable without a container rebuild.
+        //
+        // allowDangerouslySkipPermissions does not select bypass; it only keeps the bypass
+        // toggle reachable from the UI. The CLI can reach bypass too, so this is parity with
+        // the CLI rather than a widening.
+        "claudeCode.allowDangerouslySkipPermissions": true,
+
+        // Copilot Chat ships built-in with the VS Code server and cannot be removed from here,
+        // so these chat.* settings are live whether or not it is listed in "extensions".
+        //
+        // Approve anything VS Code's own rules do not explicitly deny. Those built-in rules still
+        // apply on top of this (ignoreDefaultAutoApproveRules stays false) and downgrade a
+        // command to a confirmation prompt rather than blocking it, so nothing is unreachable.
+        // See README.md § "Agent permissions".
+        "chat.tools.terminal.autoApprove": { "/.*/": true },
+        "chat.tools.terminal.ignoreDefaultAutoApproveRules": false,
+
+        // The default, 50, halts the agent partway through a Gradle task.
+        "chat.agent.maxRequests": 500,
+        "editor.formatOnSave": true,
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "workbench.colorCustomizations": {
+          "statusBar.background": "#7c3aed",
+          "statusBar.foreground": "#ffffff",
+          "titleBar.activeBackground": "#7c3aed",
+          "titleBar.activeForeground": "#ffffff",
+          "titleBar.inactiveBackground": "#5b21b6",
+          "titleBar.inactiveForeground": "#ffffff",
+          "chat.requestBorder": "#e21010",
+          "statusBarItem.remoteBackground": "#e21010"
+        }
+      }
+    }
+  }
+}
