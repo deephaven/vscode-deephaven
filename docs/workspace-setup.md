@@ -18,6 +18,9 @@ Managed pip servers are driven by the [Python Environments](https://marketplace.
 
 If you want to manage Deephaven servers from within the extension, install `deephaven-server` into the selected environment.
 
+> [!NOTE]
+> The server is started with the environment's `bin` directory prepended to `PATH` rather than through a full shell activation. For conda environments, this means `activate.d` scripts are not run, so variables they set (e.g. `JAVA_HOME` from conda's `openjdk` package) are not available. Make sure a compatible Java is available outside of the conda environment.
+
 Once installed, the `Managed` servers node appears in the server tree panel. The extension watches for `deephaven-server` being installed or removed and for the selected environment changing, so the node normally updates on its own. If the node seems out of date, click the `refresh` button to force a re-check.
 
 ![Refresh Servers](./assets/refresh-servers.png)

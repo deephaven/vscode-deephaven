@@ -70,36 +70,36 @@ export async function getPythonEnvsExtensionApi(): Promise<
 }
 
 /**
- * Get the workspace scope to resolve a Python environment against. The Python
- * Environments extension resolves `undefined` to the global scope, which would
- * miss a workspace-local venv, so prefer a workspace folder whenever we can
- * identify one.
- * @returns A workspace folder uri or `undefined` if there is no workspace.
+ * Get the scope to resolve a Python environment against. Python Environments
+ * resolves a uri to the Python project that contains it, falling back to the
+ * workspace folder, so pass a file uri whenever possible. Resolving `undefined`
+ * returns the global environment, which would miss a workspace-local venv, so
+ * prefer a workspace folder when there is no suitable file.
+ * @param uri Uri of the file to resolve the environment for.
+ * @returns `uri` if it is in a workspace folder, otherwise the first workspace
+ * folder uri, or `undefined` if there is no workspace.
  */
-export function getActivePythonScope(): vscode.Uri | undefined {
-  const activeUri = vscode.window.activeTextEditor?.document.uri;
-
-  if (activeUri != null) {
-    const activeWorkspaceUri =
-      vscode.workspace.getWorkspaceFolder(activeUri)?.uri;
-
-    if (activeWorkspaceUri != null) {
-      return activeWorkspaceUri;
-    }
+export function getPythonScope(
+  uri: vscode.Uri | undefined
+): vscode.Uri | undefined {
+  if (uri != null && vscode.workspace.getWorkspaceFolder(uri) != null) {
+    return uri;
   }
 
-  // The active editor may be a non-file document (output, settings, etc.) or
-  // there may be no editor at all. Fall back to the first workspace folder.
+  // The uri may be a non-file document (output, settings, etc.) or there may
+  // be no editor at all. Fall back to the first workspace folder.
   return vscode.workspace.workspaceFolders?.[0]?.uri;
 }
 
 /**
- * Get the Python environment associated with the active workspace scope.
+ * Get the Python environment that applies to a given file.
  * @param api The Python Environments extension api.
+ * @param uri Uri of the file to resolve the environment for.
  * @returns The environment or `undefined` if none is selected.
  */
-export async function getActivePythonEnvironment(
-  api: PythonEnvironmentApi
+export async function getPythonEnvironment(
+  api: PythonEnvironmentApi,
+  uri: vscode.Uri | undefined
 ): Promise<PythonEnvironment | undefined> {
-  return api.getEnvironment(getActivePythonScope());
+  return api.getEnvironment(getPythonScope(uri));
 }

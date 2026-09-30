@@ -2,10 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as vscode from 'vscode';
 import { PipServerController } from './PipServerController';
 import {
+  getPythonEnvsExtensionApi,
   PackageChangeKind,
   type PythonEnvironment,
   type PythonEnvironmentApi,
+  withResolvers,
 } from '../util';
+import { PIP_SERVER_LIST_PACKAGES_TIMEOUT_MS } from '../common';
 import type { IServerManager, IToastService } from '../types';
 
 // See __mocks__/vscode.ts for the mock implementation
@@ -15,7 +18,7 @@ vi.mock('../util', async () => {
   const actual = await vi.importActual<typeof import('../util')>('../util');
   return {
     ...actual,
-    // Only the extension lookup is mocked. `getActivePythonEnvironment` and its
+    // Only the extension lookup is mocked. `getPythonEnvironment` and its
     // scope resolution run for real against the mocked `vscode` module.
     getPythonEnvsExtensionApi: vi.fn(),
   };
@@ -35,9 +38,6 @@ vi.mock('../services', async () => {
 vi.mock('../dh/dhc', () => ({
   isDhcServerRunning: vi.fn().mockResolvedValue(true),
 }));
-
-// Import after mocks are set up
-const { getPythonEnvsExtensionApi } = await import('../util');
 
 const mockEnvironment = {
   envId: { id: 'env1', managerId: 'venv' },
@@ -59,7 +59,6 @@ function createPackage(name: string): { name: string } {
 type MockApi = {
   getEnvironment: ReturnType<typeof vi.fn>;
   getPackages: ReturnType<typeof vi.fn>;
-  createTerminal: ReturnType<typeof vi.fn>;
   onDidChangePackages: ReturnType<typeof vi.fn>;
   onDidChangeEnvironment: ReturnType<typeof vi.fn>;
 };
@@ -86,7 +85,6 @@ function mockApi(
   const api: MockApi = {
     getEnvironment: vi.fn().mockResolvedValue(environment),
     getPackages: vi.fn().mockResolvedValue(packages),
-    createTerminal: vi.fn(),
     onDidChangePackages: vi.fn().mockReturnValue({ dispose: vi.fn() }),
     onDidChangeEnvironment: vi.fn().mockReturnValue({ dispose: vi.fn() }),
   };
@@ -263,6 +261,23 @@ describe('checkPipInstall', () => {
     expect(result.environment).toBe(mockEnvironment);
   });
 
+  it('returns isAvailable false when getPackages never settles', async () => {
+    vi.useFakeTimers();
+    try {
+      const api = mockApi();
+      api.getPackages.mockReturnValue(new Promise(() => {}));
+
+      const { controller } = createController();
+      const resultPromise = controller.checkPipInstall();
+
+      await vi.advanceTimersByTimeAsync(PIP_SERVER_LIST_PACKAGES_TIMEOUT_MS);
+
+      await expect(resultPromise).resolves.toEqual({ isAvailable: false });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('calls getPackages with the environment returned by getEnvironment', async () => {
     const api = mockApi();
 
@@ -288,17 +303,16 @@ describe('checkPipInstall', () => {
 
 describe('environment scope resolution', () => {
   const workspaceUri = { fsPath: '/workspace/a' } as vscode.Uri;
-  const otherWorkspaceUri = { fsPath: '/workspace/b' } as vscode.Uri;
+  const activeUri = { fsPath: '/workspace/a/project/main.py' } as vscode.Uri;
 
-  it('resolves the workspace folder containing the active editor', async () => {
+  it('resolves the active editor file when it is in a workspace folder', async () => {
     const api = mockApi();
 
-    const activeUri = { fsPath: '/workspace/a/main.py' } as vscode.Uri;
     Object.assign(vscode.window, {
       activeTextEditor: { document: { uri: activeUri } },
     });
     Object.assign(vscode.workspace, {
-      workspaceFolders: [{ uri: otherWorkspaceUri }],
+      workspaceFolders: [{ uri: workspaceUri }],
     });
     vi.mocked(vscode.workspace.getWorkspaceFolder).mockReturnValue({
       uri: workspaceUri,
@@ -307,7 +321,7 @@ describe('environment scope resolution', () => {
     const { controller } = createController();
     await controller.checkPipInstall();
 
-    expect(api.getEnvironment).toHaveBeenCalledWith(workspaceUri);
+    expect(api.getEnvironment).toHaveBeenCalledWith(activeUri);
   });
 
   it('falls back to the first workspace folder when the active editor is not in a workspace', async () => {
@@ -350,6 +364,114 @@ describe('environment scope resolution', () => {
 
     expect(api.getEnvironment).toHaveBeenCalledWith(undefined);
   });
+});
+
+describe('active editor changes', () => {
+  const workspaceUri = { fsPath: '/workspace' } as vscode.Uri;
+  const fileA = { fsPath: '/workspace/a/main.py' } as vscode.Uri;
+  const fileB = { fsPath: '/workspace/b/main.py' } as vscode.Uri;
+  const otherEnvironment = {
+    ...mockEnvironment,
+    envId: { id: 'env2', managerId: 'ms-python.python:conda' },
+  } as PythonEnvironment;
+
+  beforeEach(() => {
+    Object.assign(vscode.workspace, {
+      workspaceFolders: [{ uri: workspaceUri }],
+    });
+    vi.mocked(vscode.workspace.getWorkspaceFolder).mockImplementation(uri =>
+      uri.fsPath.startsWith('/workspace/')
+        ? ({ uri: workspaceUri } as vscode.WorkspaceFolder)
+        : undefined
+    );
+  });
+
+  /**
+   * Create a controller that has checked pip install against `fileA` and
+   * return the registered active editor change handler.
+   */
+  async function setup(): Promise<{
+    api: MockApi;
+    controller: PipServerController;
+    onEditorChange: (editor: vscode.TextEditor | undefined) => Promise<void>;
+    syncSpy: ReturnType<typeof vi.spyOn>;
+  }> {
+    Object.assign(vscode.window, {
+      activeTextEditor: { document: { uri: fileA } },
+    });
+
+    const api = mockApi();
+    const { controller } = createController();
+    await controller.subscribeToPythonEnvChanges();
+    await controller.checkPipInstall();
+
+    const [onEditorChange] = vi
+      .mocked(vscode.window.onDidChangeActiveTextEditor)
+      .mock.calls.at(-1) as [
+      (editor: vscode.TextEditor | undefined) => Promise<void>,
+    ];
+
+    const syncSpy = vi
+      .spyOn(controller, 'syncManagedServers')
+      .mockResolvedValue(undefined);
+
+    api.getEnvironment.mockClear();
+
+    return {
+      api,
+      controller,
+      onEditorChange,
+      syncSpy,
+    };
+  }
+
+  function editorFor(uri: vscode.Uri): vscode.TextEditor {
+    return { document: { uri } } as vscode.TextEditor;
+  }
+
+  it('re-checks availability when the new file resolves to a different environment', async () => {
+    const { api, onEditorChange, syncSpy } = await setup();
+    api.getEnvironment.mockResolvedValue(otherEnvironment);
+
+    await onEditorChange(editorFor(fileB));
+
+    expect(api.getEnvironment).toHaveBeenCalledWith(fileB);
+    expect(syncSpy).toHaveBeenCalledWith({ forceCheck: true });
+  });
+
+  it('does not re-check when the new file resolves to the same environment', async () => {
+    const { onEditorChange, syncSpy } = await setup();
+
+    await onEditorChange(editorFor(fileB));
+
+    expect(syncSpy).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { label: 'no text editor', editor: undefined },
+    {
+      label: 'a non-workspace document',
+      editor: editorFor({ fsPath: '/elsewhere/scratch.py' } as vscode.Uri),
+    },
+  ])(
+    'keeps the previous file scope when focus moves to $label',
+    async ({ editor }) => {
+      const { api, controller, onEditorChange, syncSpy } = await setup();
+
+      await onEditorChange(editorFor(fileB));
+      syncSpy.mockClear();
+      api.getEnvironment.mockClear();
+
+      await onEditorChange(editor);
+
+      expect(api.getEnvironment).not.toHaveBeenCalled();
+      expect(syncSpy).not.toHaveBeenCalled();
+
+      await controller.checkPipInstall();
+
+      expect(api.getEnvironment).toHaveBeenCalledWith(fileB);
+    }
+  );
 });
 
 describe('subscribeToPythonEnvChanges', () => {
@@ -411,6 +533,23 @@ describe('subscribeToPythonEnvChanges', () => {
   });
 });
 
+describe('recheckPipInstall', () => {
+  it('forces a sync and handles a failed sync', async () => {
+    const { controller } = createController();
+    const syncSpy = vi
+      .spyOn(controller, 'syncManagedServers')
+      .mockRejectedValue(new Error('sync failed'));
+
+    // Vitest fails the run on unhandled rejections, so this also verifies the
+    // error is caught.
+    controller.recheckPipInstall();
+    await vi.waitFor(() => expect(syncSpy).toHaveBeenCalledOnce());
+    await Promise.resolve();
+
+    expect(syncSpy).toHaveBeenCalledWith({ forceCheck: true });
+  });
+});
+
 describe('syncManagedServers', () => {
   it.each([
     {
@@ -457,6 +596,29 @@ describe('syncManagedServers', () => {
     }
   );
 
+  it('discards the result of a superseded check', async () => {
+    const api = mockApi();
+
+    // First check (e.g. for a previously active file) is slow and reports
+    // installed. Second check is fast and reports not installed.
+    const slow = withResolvers<{ name: string }[]>();
+    api.getPackages
+      .mockReturnValueOnce(slow.promise)
+      .mockResolvedValueOnce([createPackage('numpy')]);
+
+    const { controller, serverManager } = createController();
+
+    const first = controller.syncManagedServers({ forceCheck: true });
+    await controller.syncManagedServers({ forceCheck: true });
+
+    slow.resolve([createPackage('deephaven-server')]);
+    await first;
+
+    expect(serverManager.canStartServer).toBe(false);
+    expect(serverManager.syncManagedServers).toHaveBeenCalledOnce();
+    expect(serverManager.syncManagedServers).toHaveBeenCalledWith([]);
+  });
+
   it('skips the package check when already installed and forceCheck is false', async () => {
     const api = mockApi();
 
@@ -471,4 +633,58 @@ describe('syncManagedServers', () => {
 
     expect(api.getPackages).not.toHaveBeenCalled();
   });
+});
+
+describe('startServer', () => {
+  beforeEach(() => {
+    vi.stubEnv('PATH', '/usr/bin');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it.each([
+    {
+      label: 'venv',
+      managerId: 'ms-python.python:venv',
+      envPrefixVarName: 'VIRTUAL_ENV',
+    },
+    {
+      label: 'conda',
+      managerId: 'ms-python.python:conda',
+      envPrefixVarName: 'CONDA_PREFIX',
+    },
+  ])(
+    'creates a hidden terminal configured for a $label environment',
+    async ({ managerId, envPrefixVarName }) => {
+      mockApi({
+        environment: {
+          ...mockEnvironment,
+          envId: { id: 'env1', managerId },
+        },
+      });
+
+      const { controller, serverManager } = createController();
+      vi.mocked(serverManager.getServer).mockReturnValue({
+        isManaged: true,
+        psk: 'mock.psk',
+      } as ReturnType<IServerManager['getServer']>);
+
+      await controller.startServer();
+
+      expect(vscode.window.createTerminal).toHaveBeenCalledWith({
+        name: 'Deephaven (10000)',
+        env: {
+          /* eslint-disable @typescript-eslint/naming-convention */
+          PATH: '/path/to/env/bin:/usr/bin',
+          PYTHONPATH: './',
+          [envPrefixVarName]: '/path/to/env',
+          /* eslint-enable @typescript-eslint/naming-convention */
+        },
+        isTransient: true,
+        hideFromUser: true,
+      });
+    }
+  );
 });

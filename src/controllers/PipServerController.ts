@@ -1,12 +1,14 @@
 import * as vscode from 'vscode';
+import path from 'node:path';
 import {
   getPythonEnvsExtensionApi,
   getPipServerUrl,
   Logger,
   PackageChangeKind,
   parsePort,
+  rejectAfterTimeout,
   type PythonEnvironment,
-  getActivePythonEnvironment,
+  getPythonEnvironment,
 } from '../util';
 import type {
   IDisposable,
@@ -17,6 +19,7 @@ import type {
 import {
   PIP_SERVER_STATUS_CHECK_INTERVAL,
   PIP_SERVER_STATUS_CHECK_TIMEOUT,
+  PIP_SERVER_LIST_PACKAGES_TIMEOUT_MS,
   PIP_SERVER_SUPPORTED_PLATFORMS,
 } from '../common';
 import { isDhcServerRunning } from '../dh/dhc';
@@ -51,6 +54,7 @@ export class PipServerController implements IDisposable {
     this._serverManager = serverManager;
     this._outputChannel = outputChannel;
     this._toaster = toastService;
+    this._pythonScopeUri = vscode.window.activeTextEditor?.document.uri;
 
     this.reconnectToExistingTerminals();
 
@@ -84,6 +88,21 @@ export class PipServerController implements IDisposable {
   private readonly _serverManager: IServerManager;
   private readonly _toaster: IToastService;
   private _isPipServerInstalled = false;
+  /**
+   * Incremented on every `syncManagedServers` package check so that results
+   * from a superseded check (e.g. a slow check for a previously active file)
+   * are discarded.
+   */
+  private _pipInstallCheckId = 0;
+  /** Id of the environment used by the most recent `checkPipInstall`. */
+  private _lastEnvironmentId: string | undefined;
+  /**
+   * Uri of the most recently active workspace file. Used to resolve the Python
+   * environment. Only updated for text editors in a workspace folder so that
+   * focusing a webview (e.g. a Deephaven panel) or a non-workspace document
+   * doesn't change which environment is used.
+   */
+  private _pythonScopeUri: vscode.Uri | undefined;
   private _reservedPorts: ReadonlySet<Port> = new Set();
 
   /**
@@ -94,6 +113,16 @@ export class PipServerController implements IDisposable {
     logger.error(msg);
     this._outputChannel.appendLine(msg);
     this._toaster.error(msg);
+  };
+
+  /**
+   * Force a re-check of whether servers can be managed. Errors are logged
+   * rather than left as unhandled rejections since callers are event handlers.
+   */
+  recheckPipInstall = (): void => {
+    this.syncManagedServers({ forceCheck: true }).catch(err => {
+      logger.error('Failed to re-check pip install:', err);
+    });
   };
 
   /**
@@ -122,7 +151,7 @@ export class PipServerController implements IDisposable {
               kind === PackageChangeKind.remove)
         );
         if (deephavenServerChanged) {
-          void this.syncManagedServers({ forceCheck: true });
+          this.recheckPipInstall();
         }
       },
       undefined,
@@ -133,7 +162,31 @@ export class PipServerController implements IDisposable {
     // installed packages, so re-check availability against the new environment.
     api.onDidChangeEnvironment(
       () => {
-        void this.syncManagedServers({ forceCheck: true });
+        this.recheckPipInstall();
+      },
+      undefined,
+      this._context.subscriptions
+    );
+
+    // Python Environments selects environments per Python project, so switching
+    // to a file in a different project can change the environment.
+    vscode.window.onDidChangeActiveTextEditor(
+      async editor => {
+        const uri = editor?.document.uri;
+        if (uri == null || vscode.workspace.getWorkspaceFolder(uri) == null) {
+          return;
+        }
+
+        this._pythonScopeUri = uri;
+
+        try {
+          const environment = await getPythonEnvironment(api, uri);
+          if (environment?.envId.id !== this._lastEnvironmentId) {
+            this.recheckPipInstall();
+          }
+        } catch (err) {
+          logger.error('Failed to resolve Python environment:', err);
+        }
       },
       undefined,
       this._context.subscriptions
@@ -164,7 +217,9 @@ export class PipServerController implements IDisposable {
       return { isAvailable: false };
     }
 
-    const environment = await getActivePythonEnvironment(api);
+    const environment = await getPythonEnvironment(api, this._pythonScopeUri);
+    this._lastEnvironmentId = environment?.envId.id;
+
     if (environment == null) {
       logger.debug('No active Python environment');
       return { isAvailable: false };
@@ -177,15 +232,27 @@ export class PipServerController implements IDisposable {
 
     // Package lists are cached. Bypass the cache on an explicit re-check so
     // that packages installed outside of VS Code get picked up.
+    // Bound the call with a timeout so a stuck package manager can't leave
+    // managed server status unresolved.
+    const timeoutDisposables: vscode.Disposable[] = [];
     let packages;
     try {
-      packages = await api.getPackages(environment, { skipCache });
+      packages = await Promise.race([
+        api.getPackages(environment, { skipCache }),
+        rejectAfterTimeout(
+          PIP_SERVER_LIST_PACKAGES_TIMEOUT_MS,
+          `Timed out listing packages after ${PIP_SERVER_LIST_PACKAGES_TIMEOUT_MS}ms`,
+          timeoutDisposables
+        ),
+      ]);
     } catch (err) {
       // Listing packages shells out to the underlying package manager, which
       // can fail for reasons unrelated to Deephaven. Treat it as "unavailable"
       // rather than failing the surrounding server status refresh.
       logger.debug('Failed to list packages:', err);
       return { isAvailable: false };
+    } finally {
+      timeoutDisposables.forEach(d => d.dispose());
     }
 
     const hasDeephavenServer = packages?.some(
@@ -198,6 +265,10 @@ export class PipServerController implements IDisposable {
       );
       return { isAvailable: false };
     }
+
+    logger.debug(
+      `${DEEPHAVEN_SERVER_PACKAGE_NAME} installed in active environment`
+    );
 
     return { isAvailable: true, environment };
   };
@@ -325,27 +396,41 @@ export class PipServerController implements IDisposable {
       return;
     }
 
-    const api = await getPythonEnvsExtensionApi();
-    if (api == null) {
-      this._logAndShowError('Python Environments extension is not available.');
-      return;
-    }
+    const interpreterBinDirPath = path.dirname(
+      environment.execInfo.run.executable
+    );
 
-    // Let the Python Environments extension activate the environment for us.
-    // It owns terminal activation for every environment manager it supports
-    // (venv, uv, conda, ...)
-    const terminal = await api.createTerminal(environment, {
+    // Conda activation sets `CONDA_PREFIX`. venv, uv, and other virtual
+    // environments set `VIRTUAL_ENV`.
+    const envPrefixVarName = environment.envId.managerId.endsWith(':conda')
+      ? 'CONDA_PREFIX'
+      : 'VIRTUAL_ENV';
+
+    // Create the terminal directly rather than through the Python Environments
+    // `createTerminal` api. In its default `command` activation mode, that api
+    // calls `terminal.show()` regardless of `hideFromUser` and then skips
+    // activation for hidden terminals, so we'd get a visible, unactivated
+    // terminal. Keeping the terminal hidden ensures that activation commands do
+    // not interfere with the pip server process.
+    const terminal = vscode.window.createTerminal({
       name: `Deephaven (${port})`,
       env: {
         /* eslint-disable @typescript-eslint/naming-convention */
+        // Mimic environment activation by putting the environment's bin dir
+        // first on the PATH. Note that this does not run conda `activate.d`
+        // scripts (e.g. `JAVA_HOME` set by conda's `openjdk` package).
+        PATH: `${interpreterBinDirPath}${path.delimiter}${process.env.PATH}`,
         // Set the workspace root as PYTHONPATH so we can use Python modules in
         // the workspace.
         PYTHONPATH: './',
+        [envPrefixVarName]: environment.sysPrefix,
         /* eslint-enable @typescript-eslint/naming-convention */
       },
       isTransient: true,
-      // Server output is sent to the Output -> Deephaven panel, so the terminal
-      // doesn't need to be visible.
+      // Environment activation commands injected into visible terminals can
+      // race with and kill the pip server process. Hiding the terminal prevents
+      // activation from being injected. Server output is sent to the
+      // Output -> Deephaven panel, so the terminal doesn't need to be visible.
       hideFromUser: true,
     });
     this._serverUrlTerminalMap.set(port, terminal);
@@ -412,9 +497,18 @@ export class PipServerController implements IDisposable {
     preferExistingPsk?: boolean;
   } = {}): Promise<void> => {
     if (forceCheck || !this._isPipServerInstalled) {
-      this._isPipServerInstalled = (
-        await this.checkPipInstall({ skipCache: forceCheck })
-      ).isAvailable;
+      const checkId = ++this._pipInstallCheckId;
+      const { isAvailable } = await this.checkPipInstall({
+        skipCache: forceCheck,
+      });
+
+      // A newer check started while this one was in flight. Let it win.
+      if (checkId !== this._pipInstallCheckId) {
+        logger.debug('Discarding superseded pip install check');
+        return;
+      }
+
+      this._isPipServerInstalled = isAvailable;
     }
 
     this._serverManager.canStartServer =
