@@ -36,6 +36,7 @@
     "TZ": "${localEnv:TZ:America/New_York}"
   },
   "initializeCommand": "bash \"${localWorkspaceFolder}/.devcontainer/initialize-command.sh\"",
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
   "mounts": [
     // Bind mount agent feature config directories on host so that they can be shared across containers
     "type=bind,source=${localEnv:HOME}/.config/devc/.claude,target=/home/vscode/.claude,consistency=cached",
