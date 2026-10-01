@@ -162,17 +162,26 @@ ensure_extension_dependencies() {
 }
 
 # Seeds user settings on first run; DH_SERVER_URL (when set) is merged every run.
+# settings.json is JSONC, so edits go through jsonc-parser (via
+# vscode-extension-tester) to keep the user's comments and trailing commas.
 ensure_settings() {
   local settings="$USER_DATA/User/settings.json"
   mkdir -p "$(dirname "$settings")"
-  SETTINGS_PATH="$settings" node -e '
+  SETTINGS_PATH="$settings" REPO="$REPO" node -e '
     const fs = require("fs");
+    const jsonc = require(require.resolve("jsonc-parser", { paths: [process.env.REPO] }));
     const p = process.env.SETTINGS_PATH;
-    let s;
+    let text;
     if (fs.existsSync(p)) {
-      s = JSON.parse(fs.readFileSync(p, "utf8"));
+      text = fs.readFileSync(p, "utf8");
+      const errors = [];
+      jsonc.parse(text, errors, { allowTrailingComma: true });
+      if (errors.length) {
+        console.error(`ERR ${p} is not valid JSONC (offset ${errors[0].offset}).`);
+        process.exit(1);
+      }
     } else {
-      s = {
+      text = JSON.stringify({
         // Keep dialogs and the title bar in the DOM so CDP can see them.
         "window.titleBarStyle": "custom",
         "window.dialogStyle": "custom",
@@ -183,13 +192,16 @@ ensure_settings() {
         // The default workspace lives inside this repo; skip the "open parent repo?" toast.
         "git.openRepositoryInParentFolders": "never",
         "deephaven.mcp.enabled": true,
-      };
+      }, null, 2) + "\n";
     }
     if (process.env.DH_SERVER_URL) {
-      s["deephaven.coreServers"] = [process.env.DH_SERVER_URL];
+      const edits = jsonc.modify(text, ["deephaven.coreServers"], [process.env.DH_SERVER_URL], {
+        formattingOptions: { insertSpaces: true, tabSize: 2 },
+      });
+      text = jsonc.applyEdits(text, edits);
     }
-    fs.writeFileSync(p, JSON.stringify(s, null, 2) + "\n");
-  '
+    fs.writeFileSync(p, text);
+  ' || die "could not update $settings."
 }
 
 # Bare Xvfb has no window manager, so "maximized" is a no-op; size it by hand.
@@ -222,7 +234,8 @@ cmd_start() {
   eval "$("$SCRIPT_DIR/ensure-headless-env.sh")"
   echo "$DISPLAY" >"$DISPLAY_FILE"
 
-  # node_modules is a volume mount, so the directory exists even when empty.
+  # node_modules is a container volume (declared by the node-nvmrc feature), so
+  # it never holds the host's install and the directory exists even when empty.
   # npm writes .package-lock.json on every install; missing or older than
   # package-lock.json means deps are absent or stale.
   if [ ! "$REPO/node_modules/.package-lock.json" -nt "$REPO/package-lock.json" ]; then
