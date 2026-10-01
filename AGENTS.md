@@ -38,6 +38,10 @@ For detailed instructions on writing tests (mocking patterns, test structure, MC
 - **IMPORTANT**: The `get_errors` tool may not catch all linting issues, especially in files that aren't currently open in the editor
 - Always run `npm run test:lint` before committing to ensure all files pass linting
 
+## Running VS Code Headlessly
+
+When running in a devcontainer, you can launch a real VS Code with the dev build of this extension on an Xvfb display, then drive it via `chrome-devtools-mcp`, take screenshots, and call the extension's MCP server directly. See `.devcontainer/scripts/README.md` for commands and gotchas (e.g. every chrome-devtools tool call needs `pageId: 1`; Deephaven grid cells are canvas, so use `getTableData` or a screenshot).
+
 ## MCP Tools
 
 ### Writing MCP Tools

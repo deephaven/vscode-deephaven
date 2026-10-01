@@ -71,6 +71,28 @@ For release testing:
 
    Some servers satisfy multiple of these cases, so can consolidate test runs.
 
+On linux-arm64 (e.g. when running in a devcontainer on Apple Silicon), `vscode-extension-tester` downloads an x86-64 ChromeDriver. The e2e setup detects this and swaps in Electron's ChromeDriver for the downloaded VS Code version.
+
+### Headless VS Code when running in a devcontainer
+
+When running in a devcontainer, you can run a real VS Code desktop with the dev build of the extension on a virtual (Xvfb) display, so an agent can drive the UI over the Chrome DevTools Protocol, take screenshots, and call the extension's MCP tools. `.devcontainer/post-create.sh` installs the display / Electron dependencies and registers the `chrome-devtools-mcp` UI driver for Claude Code.
+
+The extension needs a Deephaven server running on the **host** at `localhost:10000` (Docker isn't available inside the container). Any Deephaven server listening there works for scenarios that just need a server to connect to. To use the repo's included server config (e.g. for e2e tests), start it with:
+
+```sh
+docker compose --project-directory e2e-testing up -d dhc-server
+```
+
+The container reaches the host server as `http://host.docker.internal:10000/`; `localhost` inside the container does not reach the host.
+
+Then, inside the container:
+
+```sh
+DH_SERVER_URL=http://host.docker.internal:10000/ .devcontainer/scripts/vscode-dev.sh start
+```
+
+See [`.devcontainer/scripts/README.md`](./.devcontainer/scripts/README.md) for the full command set (`restart`, `status`, `screenshot`, `stop`) and agent usage notes.
+
 ### Documentation
 
 The `/docs` directory contains the documentation for Deephaven VS Code Extension.
