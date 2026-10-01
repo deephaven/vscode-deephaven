@@ -95,7 +95,16 @@ fi
 
 # Run e2e tests
 echo "Running E2E tests..."
-node e2e-testing/out/runner.mjs --setup
+if [[ "${DH_E2E_HEADLESS:-}" == "1" ]]; then
+    if ! command -v xvfb-run >/dev/null 2>&1; then
+        echo "Error: DH_E2E_HEADLESS=1 but xvfb-run is unavailable."
+        echo "Install the headless environment with .devcontainer/scripts/ensure-headless-env.sh --install."
+        exit 1
+    fi
+    xvfb-run -a node e2e-testing/out/runner.mjs --setup
+else
+    node e2e-testing/out/runner.mjs --setup
+fi
 test_exit_code=$?
 
 if [ $test_exit_code -ne 0 ]; then

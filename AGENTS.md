@@ -12,6 +12,11 @@
 - **AVOID** using the `runTests` tool - it has issues with workspace selection and requires manual UI refresh
 - Always run vitest from the correct workspace directory
 
+### E2E Tests
+
+- Run E2E tests with `npm run test:e2e -- --core <server-url>` or `--coreplus <server-url>`
+- In the devcontainer, `DH_E2E_HEADLESS=1` runs the VS Code test instance under Xvfb automatically; do not add a separate `xvfb-run` prefix
+
 ### Checking for TypeScript Errors
 
 - **ALWAYS** use the `get_errors` tool after editing test files to catch TypeScript errors

@@ -35,6 +35,8 @@
     "LANG": "en_US.utf8",
     "PROJECT_PATH": "${containerWorkspaceFolder}",
     "SHELL": "/bin/bash",
+    // Run E2E-launched VS Code in a virtual display instead of forwarding it to the host.
+    "DH_E2E_HEADLESS": "1",
     // Provided by host $TZ, or defaults to America/New_York if not set.
     "TZ": "${localEnv:TZ:America/New_York}"
   },
