@@ -25,17 +25,9 @@ workbench (its main frame resolves to the panel iframe).
 
 ## Deephaven server
 
-Run a Deephaven server on the **host** at `localhost:10000` (Docker isn't
-available in the container). Any DH server listening there works when you just
-need a server to connect to. To use the repo's included server config (e.g. to
-match the e2e tests):
-
-```bash
-docker compose --project-directory e2e-testing up -d dhc-server
-```
-
-From the container it's `http://host.docker.internal:10000/` (`localhost`
-does not reach the host).
+A Deephaven Community server must be running on the **host** at
+`localhost:10000`. From the container it's `http://host.docker.internal:10000/`
+(`localhost` does not reach the host).
 
 ## Commands
 

@@ -15,6 +15,7 @@
 ### E2E Tests
 
 - Run E2E tests with `npm run test:e2e -- --core <server-url>` or `--coreplus <server-url>`
+- `--core` tests need a Deephaven Community server running on the host at `localhost:10000`; in the devcontainer, pass `http://host.docker.internal:10000/` as the server URL
 - In the devcontainer, `DH_E2E_HEADLESS=1` runs the VS Code test instance under Xvfb automatically; do not add a separate `xvfb-run` prefix
 
 ### Checking for TypeScript Errors
