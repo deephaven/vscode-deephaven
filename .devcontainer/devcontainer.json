@@ -5,6 +5,9 @@
     "context": "."
   },
   "features": {
+    "ghcr.io/devcontainers/features/git-lfs:1": {
+      "autoPull": false
+    },
     "ghcr.io/devcontainers/features/node:1": {
       "nodeGypDependencies": true,
       // Prefer "lts" over "latest". "latest" floats onto whatever nodejs.org currently
