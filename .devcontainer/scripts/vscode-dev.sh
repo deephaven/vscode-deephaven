@@ -54,6 +54,8 @@ running_pid() {
   [ -r "$PID_FILE" ] || return 1
   pid="$(tr -dc '0-9' <"$PID_FILE")"
   [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null || return 1
+  # The pid may have been reused by an unrelated process since we wrote it.
+  [ "$(readlink -f "/proc/$pid/exe" 2>/dev/null)" = "$(readlink -f "$VSCODE_BIN")" ] || return 1
   echo "$pid"
 }
 
@@ -101,7 +103,17 @@ find_mcp_url() {
 }
 
 json_str() {
-  if [ -n "$1" ]; then printf '"%s"' "$1"; else printf 'null'; fi
+  local s="$1"
+  [ -n "$s" ] || {
+    printf 'null'
+    return
+  }
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  s="${s//$'\n'/\\n}"
+  s="${s//$'\r'/\\r}"
+  s="${s//$'\t'/\\t}"
+  printf '"%s"' "$s"
 }
 
 print_status() {
@@ -114,9 +126,9 @@ print_status() {
   else
     pid=""
   fi
-  printf '{"running":%s,"pid":%s,"display":%s,"cdpEndpoint":%s,"mcpUrl":%s,"log":"%s"}\n' \
+  printf '{"running":%s,"pid":%s,"display":%s,"cdpEndpoint":%s,"mcpUrl":%s,"log":%s}\n' \
     "$running" "${pid:-null}" "$(json_str "$display")" "$(json_str "$cdp")" \
-    "$(json_str "$mcp")" "$LOG_FILE"
+    "$(json_str "$mcp")" "$(json_str "$LOG_FILE")"
 }
 
 # --- setup --------------------------------------------------------------------

@@ -40,6 +40,8 @@
     // Provided by host $TZ, or defaults to America/New_York if not set.
     "TZ": "${localEnv:TZ:America/New_York}"
   },
+  // Docker Desktop provides host.docker.internal; Docker Engine on Linux needs it mapped.
+  "runArgs": ["--add-host=host.docker.internal:host-gateway"],
   "initializeCommand": "bash \"${localWorkspaceFolder}/.devcontainer/initialize-command.sh\"",
   "postCreateCommand": "bash .devcontainer/post-create.sh",
   "mounts": [
