@@ -24,7 +24,7 @@
     "onFileSystem:dhfs",
     "onStartupFinished"
   ],
-  "extensionDependencies": [
+  "extensionPack": [
     "ms-python.vscode-python-envs"
   ],
   "main": "./out/extension.js",

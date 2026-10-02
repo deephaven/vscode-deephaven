@@ -89,9 +89,9 @@ export class PipServerController implements IDisposable {
   private readonly _toaster: IToastService;
   private _isPipServerInstalled = false;
   /**
-   * Incremented on every `syncManagedServers` package check so that results
-   * from a superseded check (e.g. a slow check for a previously active file)
-   * are discarded.
+   * Incremented on every package check (`syncManagedServers` and `startServer`)
+   * so that results from a superseded check (e.g. a slow check for a previously
+   * active file) are discarded.
    */
   private _pipInstallCheckId = 0;
   /** Id of the environment used by the most recent `checkPipInstall`. */
@@ -140,6 +140,15 @@ export class PipServerController implements IDisposable {
       return;
     }
 
+    // The active editor may have changed while the api was activating.
+    const previousScopeUri = this._pythonScopeUri;
+    if (
+      this._updatePythonScopeUri(vscode.window.activeTextEditor) &&
+      this._pythonScopeUri?.toString() !== previousScopeUri?.toString()
+    ) {
+      this.recheckPipInstall();
+    }
+
     // Installing or removing `deephaven-server` in the active environment
     // toggles whether servers can be managed.
     api.onDidChangePackages(
@@ -172,15 +181,15 @@ export class PipServerController implements IDisposable {
     // to a file in a different project can change the environment.
     vscode.window.onDidChangeActiveTextEditor(
       async editor => {
-        const uri = editor?.document.uri;
-        if (uri == null || vscode.workspace.getWorkspaceFolder(uri) == null) {
+        if (!this._updatePythonScopeUri(editor)) {
           return;
         }
 
-        this._pythonScopeUri = uri;
-
         try {
-          const environment = await getPythonEnvironment(api, uri);
+          const environment = await getPythonEnvironment(
+            api,
+            this._pythonScopeUri
+          );
           if (environment?.envId.id !== this._lastEnvironmentId) {
             this.recheckPipInstall();
           }
@@ -191,6 +200,23 @@ export class PipServerController implements IDisposable {
       undefined,
       this._context.subscriptions
     );
+  };
+
+  /**
+   * Update `_pythonScopeUri` if the given editor is in a workspace folder.
+   * @param editor The editor to update from.
+   * @returns True if `_pythonScopeUri` was updated.
+   */
+  private _updatePythonScopeUri = (
+    editor: vscode.TextEditor | undefined
+  ): boolean => {
+    const uri = editor?.document.uri;
+    if (uri == null || vscode.workspace.getWorkspaceFolder(uri) == null) {
+      return false;
+    }
+
+    this._pythonScopeUri = uri;
+    return true;
   };
 
   /**
@@ -388,7 +414,17 @@ export class PipServerController implements IDisposable {
     }
 
     // In case pip env has changed since last server check
+    const checkId = ++this._pipInstallCheckId;
     const { isAvailable, environment } = await this.checkPipInstall();
+
+    // Python environment changed while checking, so this result is stale.
+    if (checkId !== this._pipInstallCheckId) {
+      this._logAndShowError(
+        'Python environment changed while starting server. Please try again.'
+      );
+      return;
+    }
+
     this._isPipServerInstalled = isAvailable;
 
     if (!isAvailable) {
