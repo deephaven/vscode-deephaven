@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as fs from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PipServerController } from './PipServerController';
 import {
@@ -13,6 +14,7 @@ import type { IServerManager, IToastService } from '../types';
 
 // See __mocks__/vscode.ts for the mock implementation
 vi.mock('vscode');
+vi.mock('node:fs');
 
 vi.mock('../util/extensionApiUtils', async () => {
   const actual = await vi.importActual<
@@ -654,16 +656,28 @@ describe('startServer', () => {
     {
       label: 'venv',
       managerId: 'ms-python.python:venv',
-      envPrefixVarName: 'VIRTUAL_ENV',
+      isVenv: true,
+      condaPrefix: null,
+      virtualEnv: '/path/to/env',
     },
     {
       label: 'conda',
       managerId: 'ms-python.python:conda',
-      envPrefixVarName: 'CONDA_PREFIX',
+      isVenv: false,
+      condaPrefix: '/path/to/env',
+      virtualEnv: null,
+    },
+    {
+      label: 'system',
+      managerId: 'ms-python.python:system',
+      isVenv: false,
+      condaPrefix: null,
+      virtualEnv: null,
     },
   ])(
     'creates a hidden terminal configured for a $label environment',
-    async ({ managerId, envPrefixVarName }) => {
+    async ({ managerId, isVenv, condaPrefix, virtualEnv }) => {
+      vi.mocked(fs.existsSync).mockReturnValue(isVenv);
       mockApi({
         environment: {
           ...mockEnvironment,
@@ -685,7 +699,8 @@ describe('startServer', () => {
           /* eslint-disable @typescript-eslint/naming-convention */
           PATH: '/path/to/env/bin:/usr/bin',
           PYTHONPATH: './',
-          [envPrefixVarName]: '/path/to/env',
+          CONDA_PREFIX: condaPrefix,
+          VIRTUAL_ENV: virtualEnv,
           /* eslint-enable @typescript-eslint/naming-convention */
         },
         isTransient: true,

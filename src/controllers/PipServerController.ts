@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as fs from 'node:fs';
 import path from 'node:path';
 import {
   getPythonEnvsExtensionApi,
@@ -454,11 +455,10 @@ export class PipServerController implements IDisposable {
       environment.execInfo.run.executable
     );
 
-    // Conda activation sets `CONDA_PREFIX`. venv, uv, and other virtual
-    // environments set `VIRTUAL_ENV`.
-    const envPrefixVarName = environment.envId.managerId.endsWith(':conda')
-      ? 'CONDA_PREFIX'
-      : 'VIRTUAL_ENV';
+    const { managerId } = environment.envId;
+    const { sysPrefix } = environment;
+    const isConda = managerId.endsWith(':conda');
+    const isVenv = fs.existsSync(path.join(sysPrefix, 'pyvenv.cfg'));
 
     // Create the terminal directly rather than through the Python Environments
     // `createTerminal` api. In its default `command` activation mode, that api
@@ -477,7 +477,9 @@ export class PipServerController implements IDisposable {
         // Set the workspace root as PYTHONPATH so we can use Python modules in
         // the workspace.
         PYTHONPATH: './',
-        [envPrefixVarName]: environment.sysPrefix,
+        // `null` unsets values inherited from VS Code's environment.
+        CONDA_PREFIX: isConda ? sysPrefix : null,
+        VIRTUAL_ENV: isVenv ? sysPrefix : null,
         /* eslint-enable @typescript-eslint/naming-convention */
       },
       isTransient: true,
