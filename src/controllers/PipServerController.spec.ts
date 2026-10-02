@@ -26,16 +26,11 @@ vi.mock('../util/extensionApiUtils', async () => {
   };
 });
 
-vi.mock('../services', async () => {
-  const actual =
-    await vi.importActual<typeof import('../services')>('../services');
-  return {
-    ...actual,
-    pollUntilTrue: vi
-      .fn()
-      .mockReturnValue({ promise: Promise.resolve(), cancel: vi.fn() }),
-  };
-});
+vi.mock('../services/PollingService', () => ({
+  pollUntilTrue: vi
+    .fn()
+    .mockReturnValue({ promise: Promise.resolve(), cancel: vi.fn() }),
+}));
 
 vi.mock('../dh/dhc', () => ({
   isDhcServerRunning: vi.fn().mockResolvedValue(true),
@@ -238,15 +233,18 @@ describe('checkPipInstall', () => {
     expect(result.isAvailable).toBe(false);
   });
 
-  it('returns isAvailable false when getPackages throws', async () => {
-    const api = mockApi();
-    api.getPackages.mockRejectedValue(new Error('pip list failed'));
+  it.each(['getEnvironment', 'getPackages'] as const)(
+    'returns isAvailable false when %s throws',
+    async method => {
+      const api = mockApi();
+      api[method].mockRejectedValue(new Error(`${method} failed`));
 
-    const { controller } = createController();
-    const result = await controller.checkPipInstall();
+      const { controller } = createController();
+      const result = await controller.checkPipInstall();
 
-    expect(result.isAvailable).toBe(false);
-  });
+      expect(result.isAvailable).toBe(false);
+    }
+  );
 
   it.each([
     'deephaven-server',

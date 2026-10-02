@@ -23,7 +23,7 @@ import {
   PIP_SERVER_SUPPORTED_PLATFORMS,
 } from '../common';
 import { isDhcServerRunning } from '../dh/dhc';
-import { pollUntilTrue } from '../services';
+import { pollUntilTrue } from '../services/PollingService';
 
 const logger = new Logger('PipServerController');
 
@@ -102,11 +102,7 @@ export class PipServerController implements IDisposable {
   private readonly _serverManager: IServerManager;
   private readonly _toaster: IToastService;
   private _isPipServerInstalled = false;
-  /**
-   * Incremented on every package check (`syncManagedServers` and `startServer`)
-   * so that results from a superseded check (e.g. a slow check for a previously
-   * active file) are discarded.
-   */
+  /** Incremented per package check so superseded results can be discarded. */
   private _pipInstallCheckId = 0;
   /** Key of the environment used by the most recent `checkPipInstall`. */
   private _lastEnvironmentKey: string | undefined;
@@ -217,9 +213,8 @@ export class PipServerController implements IDisposable {
   };
 
   /**
-   * Update `_pythonScopeUri` if the given editor is in a workspace folder.
-   * @param editor The editor to update from.
-   * @returns True if `_pythonScopeUri` was updated.
+   * Update `_pythonScopeUri` if the editor is in a workspace folder.
+   * @returns True if updated.
    */
   private _updatePythonScopeUri = (
     editor: vscode.TextEditor | undefined
@@ -257,8 +252,18 @@ export class PipServerController implements IDisposable {
       return { isAvailable: false };
     }
 
-    const environment = await getPythonEnvironment(api, this._pythonScopeUri);
-    this._lastEnvironmentKey = getEnvironmentKey(environment);
+    const checkId = this._pipInstallCheckId;
+    let environment;
+    try {
+      environment = await getPythonEnvironment(api, this._pythonScopeUri);
+    } catch (err) {
+      logger.debug('Failed to resolve Python environment:', err);
+      return { isAvailable: false };
+    }
+
+    if (checkId === this._pipInstallCheckId) {
+      this._lastEnvironmentKey = getEnvironmentKey(environment);
+    }
 
     if (environment == null) {
       logger.debug('No active Python environment');
@@ -431,7 +436,6 @@ export class PipServerController implements IDisposable {
     const checkId = ++this._pipInstallCheckId;
     const { isAvailable, environment } = await this.checkPipInstall();
 
-    // Python environment changed while checking, so this result is stale.
     if (checkId !== this._pipInstallCheckId) {
       this._logAndShowError(
         'Python environment changed while starting server. Please try again.'
