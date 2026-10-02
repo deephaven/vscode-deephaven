@@ -568,11 +568,6 @@ export class PipServerController implements IDisposable {
     this._serverManager.canStartServer =
       this._isPipServerInstalled && this.getNextAvailablePort() != null;
 
-    if (!this._isPipServerInstalled) {
-      await this._serverManager.syncManagedServers([]);
-      return;
-    }
-
     const runningPorts = [...this._serverUrlTerminalMap.keys()];
 
     await this._serverManager.syncManagedServers(

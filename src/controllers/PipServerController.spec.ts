@@ -551,30 +551,36 @@ describe('recheckPipInstall', () => {
 });
 
 describe('syncManagedServers', () => {
+  afterEach(() => {
+    Object.assign(vscode.window, { terminals: [] });
+  });
+
   it.each([
     {
       label: 'not installed',
       packages: [createPackage('numpy')],
       canStartServer: false,
-      expectedSyncArgs: [[]],
     },
     {
       label: 'installed',
       packages: [createPackage('deephaven-server')],
       canStartServer: true,
-      expectedSyncArgs: [[], false],
     },
   ])(
-    'syncs server manager when deephaven-server is $label',
-    async ({ packages, canStartServer, expectedSyncArgs }) => {
+    'keeps running servers when deephaven-server is $label',
+    async ({ packages, canStartServer }) => {
+      Object.assign(vscode.window, {
+        terminals: [{ name: 'Deephaven (10000)' }],
+      });
       mockApi({ packages });
 
       const { controller, serverManager } = createController();
       await controller.syncManagedServers({ forceCheck: true });
 
       expect(serverManager.canStartServer).toBe(canStartServer);
-      expect(serverManager.syncManagedServers).toHaveBeenCalledWith(
-        ...expectedSyncArgs
+      expect(serverManager.syncManagedServers).toHaveBeenLastCalledWith(
+        [new URL('http://localhost:10000')],
+        false
       );
     }
   );
@@ -616,7 +622,7 @@ describe('syncManagedServers', () => {
 
     expect(serverManager.canStartServer).toBe(false);
     expect(serverManager.syncManagedServers).toHaveBeenCalledOnce();
-    expect(serverManager.syncManagedServers).toHaveBeenCalledWith([]);
+    expect(serverManager.syncManagedServers).toHaveBeenCalledWith([], false);
   });
 
   it('skips the package check when already installed and forceCheck is false', async () => {
