@@ -14,7 +14,7 @@
     "url": "https://github.com/deephaven/vscode-deephaven"
   },
   "engines": {
-    "vscode": "^1.105.0"
+    "vscode": "^1.110.0"
   },
   "categories": [
     "Data Science",
@@ -23,6 +23,9 @@
   "activationEvents": [
     "onFileSystem:dhfs",
     "onStartupFinished"
+  ],
+  "extensionPack": [
+    "ms-python.vscode-python-envs"
   ],
   "main": "./out/extension.js",
   "workspaces": [
@@ -1272,6 +1275,7 @@
     "@deephaven/jsapi-nodejs": "^1.28.0",
     "@deephaven/jsapi-utils": "^1.16.0",
     "@modelcontextprotocol/sdk": "^1.27.1",
+    "@vscode/python-environments": "^1.4.0",
     "archiver": "^7.0.1",
     "chai": "^4.5.0",
     "nanoid": "^5.0.7",
@@ -1287,7 +1291,7 @@
     "@types/mocha": "^10.0.10",
     "@types/node": "22.19.1",
     "@types/react": "^19.2.14",
-    "@types/vscode": "^1.105.0",
+    "@types/vscode": "^1.110.0",
     "@types/vscode-webview": "^1.57.5",
     "@types/ws": "^8.5.10",
     "@typescript-eslint/eslint-plugin": "^7.16.0",
