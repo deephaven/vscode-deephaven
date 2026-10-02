@@ -14,7 +14,7 @@ A `requirements.txt` file can be generated containing all of the packages instal
 
 ## Managed pip Servers (Community only)
 
-Managed pip servers are driven by the [Python Environments](https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-python-envs) extension (`ms-python.vscode-python-envs`), which VS Code installs automatically alongside this extension. The Deephaven server is started in whichever environment that extension has selected, so any environment manager it supports works — `venv`, `uv`, `conda`, and others. If the extension is disabled, the `Managed` servers node is hidden and the rest of the extension continues to work.
+Managed pip servers are driven by the [Python Environments](https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-python-envs) extension (`ms-python.vscode-python-envs`), which VS Code installs automatically alongside this extension. The Deephaven server is started in whichever environment that extension has selected, so any environment manager it supports works — `venv`, `uv`, `conda`, and others. If the extension is disabled, new managed servers can't be started, but already running ones stay listed under the `Managed` servers node so they can be stopped. The rest of the extension continues to work.
 
 If you want to manage Deephaven servers from within the extension, install `deephaven-server` into the selected environment.
 
