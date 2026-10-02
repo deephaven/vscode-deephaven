@@ -689,4 +689,26 @@ describe('startServer', () => {
       });
     }
   );
+
+  it('does not start a server when superseded by a newer check', async () => {
+    const api = mockApi();
+
+    // Start-time check is slow and reports installed. Newer check is fast and
+    // reports not installed.
+    const slow = withResolvers<{ name: string }[]>();
+    api.getPackages
+      .mockReturnValueOnce(slow.promise)
+      .mockResolvedValueOnce([createPackage('numpy')]);
+
+    const { controller, serverManager } = createController();
+
+    const start = controller.startServer();
+    await controller.syncManagedServers({ forceCheck: true });
+
+    slow.resolve([createPackage('deephaven-server')]);
+    await start;
+
+    expect(vscode.window.createTerminal).not.toHaveBeenCalled();
+    expect(serverManager.canStartServer).toBe(false);
+  });
 });
