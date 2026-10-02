@@ -138,6 +138,18 @@ function createController(): {
   return { controller, serverManager };
 }
 
+/** Create a controller and wait for its initial sync to finish. */
+async function createSettledController(): Promise<
+  ReturnType<typeof createController>
+> {
+  const result = createController();
+  await vi.waitFor(() =>
+    expect(result.serverManager.syncManagedServers).toHaveBeenCalled()
+  );
+  vi.mocked(result.serverManager.syncManagedServers).mockClear();
+  return result;
+}
+
 let originalPlatform: NodeJS.Platform;
 
 beforeEach(() => {
@@ -604,8 +616,25 @@ describe('syncManagedServers', () => {
     }
   );
 
+  it('reconnects existing terminals with their existing PSKs', async () => {
+    Object.assign(vscode.window, {
+      terminals: [{ name: 'Deephaven (10000)' }],
+    });
+    mockApi();
+
+    const { serverManager } = createController();
+
+    await vi.waitFor(() =>
+      expect(serverManager.syncManagedServers).toHaveBeenCalledWith(
+        [new URL('http://localhost:10000')],
+        true
+      )
+    );
+  });
+
   it('discards the result of a superseded check', async () => {
     const api = mockApi();
+    const { controller, serverManager } = await createSettledController();
 
     // First check (e.g. for a previously active file) is slow and reports
     // installed. Second check is fast and reports not installed.
@@ -613,8 +642,6 @@ describe('syncManagedServers', () => {
     api.getPackages
       .mockReturnValueOnce(slow.promise)
       .mockResolvedValueOnce([createPackage('numpy')]);
-
-    const { controller, serverManager } = createController();
 
     const first = controller.syncManagedServers({ forceCheck: true });
     await controller.syncManagedServers({ forceCheck: true });
@@ -629,11 +656,9 @@ describe('syncManagedServers', () => {
 
   it('skips the package check when already installed and forceCheck is false', async () => {
     const api = mockApi();
+    const { controller } = await createSettledController();
 
-    const { controller } = createController();
-
-    // Not yet known to be installed, so the first sync still checks packages
-    await controller.syncManagedServers({ forceCheck: false });
+    // Initial sync found it installed.
     expect(api.getPackages).toHaveBeenCalledOnce();
     api.getPackages.mockClear();
 
@@ -711,6 +736,7 @@ describe('startServer', () => {
 
   it('does not start a server when superseded by a newer check', async () => {
     const api = mockApi();
+    const { controller, serverManager } = await createSettledController();
 
     // Start-time check is slow and reports installed. Newer check is fast and
     // reports not installed.
@@ -718,8 +744,6 @@ describe('startServer', () => {
     api.getPackages
       .mockReturnValueOnce(slow.promise)
       .mockResolvedValueOnce([createPackage('numpy')]);
-
-    const { controller, serverManager } = createController();
 
     const start = controller.startServer();
     await controller.syncManagedServers({ forceCheck: true });

@@ -341,12 +341,11 @@ export class PipServerController implements IDisposable {
       }
     }
 
-    if (this._serverUrlTerminalMap.size > 0) {
-      await this.syncManagedServers({ preferExistingPsk: true });
+    // Also serves as the initial availability check.
+    await this.syncManagedServers({ preferExistingPsk: true });
 
-      for (const port of this._serverUrlTerminalMap.keys()) {
-        await this.pollUntilServerStarts(port);
-      }
+    for (const port of this._serverUrlTerminalMap.keys()) {
+      await this.pollUntilServerStarts(port);
     }
   };
 

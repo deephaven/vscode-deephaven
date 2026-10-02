@@ -35,12 +35,9 @@ jobs:
             fail "No JUnit report found"
           fi
 
-          npm run report:junit2ctrf
-
-          # The junit-to-ctrf npm package exits with a 0 status code even if
-          # it fails to parse the JUnit report, so check for the CTRF file manually
-          # and explicitly exit with a non-zero status code if it's not found.
-          if [ ! -f test-reports/ctrf-report.json ]; then
+          # junit-to-ctrf can exit 0 without writing the CTRF file, so check
+          # for the file as well as the exit code.
+          if ! npm run report:junit2ctrf || [ ! -f test-reports/ctrf-report.json ]; then
             fail "CTRF report not created - junit-to-ctrf may have failed to parse JUnit report"
           fi
 
