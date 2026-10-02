@@ -41,6 +41,20 @@ function normalizePackageName(name: string): string {
   return name.replace(/[-_.]+/g, '-').toLowerCase();
 }
 
+/**
+ * Get a key that uniquely identifies a Python environment. Environment ids are
+ * only unique per environment manager.
+ * @param environment The environment.
+ * @returns The key or `undefined` if no environment.
+ */
+function getEnvironmentKey(
+  environment: PythonEnvironment | undefined
+): string | undefined {
+  return environment == null
+    ? undefined
+    : `${environment.envId.managerId}:${environment.envId.id}`;
+}
+
 export class PipServerController implements IDisposable {
   constructor(
     context: vscode.ExtensionContext,
@@ -94,8 +108,8 @@ export class PipServerController implements IDisposable {
    * active file) are discarded.
    */
   private _pipInstallCheckId = 0;
-  /** Id of the environment used by the most recent `checkPipInstall`. */
-  private _lastEnvironmentId: string | undefined;
+  /** Key of the environment used by the most recent `checkPipInstall`. */
+  private _lastEnvironmentKey: string | undefined;
   /**
    * Uri of the most recently active workspace file. Used to resolve the Python
    * environment. Only updated for text editors in a workspace folder so that
@@ -190,7 +204,7 @@ export class PipServerController implements IDisposable {
             api,
             this._pythonScopeUri
           );
-          if (environment?.envId.id !== this._lastEnvironmentId) {
+          if (getEnvironmentKey(environment) !== this._lastEnvironmentKey) {
             this.recheckPipInstall();
           }
         } catch (err) {
@@ -244,7 +258,7 @@ export class PipServerController implements IDisposable {
     }
 
     const environment = await getPythonEnvironment(api, this._pythonScopeUri);
-    this._lastEnvironmentId = environment?.envId.id;
+    this._lastEnvironmentKey = getEnvironmentKey(environment);
 
     if (environment == null) {
       logger.debug('No active Python environment');

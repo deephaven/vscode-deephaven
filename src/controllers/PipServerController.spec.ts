@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as vscode from 'vscode';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PipServerController } from './PipServerController';
 import {
   getPythonEnvsExtensionApi,
@@ -14,8 +14,10 @@ import type { IServerManager, IToastService } from '../types';
 // See __mocks__/vscode.ts for the mock implementation
 vi.mock('vscode');
 
-vi.mock('../util', async () => {
-  const actual = await vi.importActual<typeof import('../util')>('../util');
+vi.mock('../util/extensionApiUtils', async () => {
+  const actual = await vi.importActual<
+    typeof import('../util/extensionApiUtils')
+  >('../util/extensionApiUtils');
   return {
     ...actual,
     // Only the extension lookup is mocked. `getPythonEnvironment` and its

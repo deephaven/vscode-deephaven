@@ -396,6 +396,10 @@ export class ExtensionController implements IDisposable {
     );
 
     this._context.subscriptions.push(this._pipServerController);
+
+    // Initial server status refresh runs before this controller exists, so
+    // check managed server availability now.
+    this._pipServerController.recheckPipInstall();
   };
 
   /**

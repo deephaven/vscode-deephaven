@@ -53,9 +53,9 @@ export function getExtensionVersion(
 
 /**
  * Get the Python Environments extension api (ms-python.vscode-python-envs).
- * The extension is declared in `extensionDependencies`, but it can still be
- * missing at runtime if the user disabled it, so callers get `undefined` rather
- * than a thrown error. Features that depend on it should degrade gracefully.
+ * The extension is included in this extension's `extensionPack`, but it can be
+ * disabled or uninstalled, so callers get `undefined` rather than a thrown
+ * error. Features that depend on it should degrade gracefully.
  * @returns The api or `undefined` if the extension is unavailable.
  */
 export async function getPythonEnvsExtensionApi(): Promise<
