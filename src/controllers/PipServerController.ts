@@ -342,7 +342,7 @@ export class PipServerController implements IDisposable {
     }
 
     // Also serves as the initial availability check.
-    await this.syncManagedServers({ preferExistingPsk: true });
+    await this.syncManagedServers();
 
     for (const port of this._serverUrlTerminalMap.keys()) {
       await this.pollUntilServerStarts(port);
@@ -540,16 +540,11 @@ export class PipServerController implements IDisposable {
    * Sync current managed server state with the server manager.
    * @param options Optional options:
    *  - forceCheck If true, force a re-check of pip server availability
-   *  - preferExistingPsk If true, use existing PSK if one exists for each
-   * server.
-   * @returns
    */
   syncManagedServers = async ({
     forceCheck = false,
-    preferExistingPsk = false,
   }: {
     forceCheck?: boolean;
-    preferExistingPsk?: boolean;
   } = {}): Promise<void> => {
     if (forceCheck || !this._isPipServerInstalled) {
       const checkId = ++this._pipInstallCheckId;
@@ -571,9 +566,11 @@ export class PipServerController implements IDisposable {
 
     const runningPorts = [...this._serverUrlTerminalMap.keys()];
 
+    // Reuse stored PSKs so reconnected terminals stay authenticated even if
+    // a newer sync supersedes the reconnect sync.
     await this._serverManager.syncManagedServers(
       runningPorts.map(getPipServerUrl),
-      preferExistingPsk
+      true
     );
   };
 

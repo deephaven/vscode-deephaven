@@ -594,7 +594,7 @@ describe('syncManagedServers', () => {
       expect(serverManager.canStartServer).toBe(canStartServer);
       expect(serverManager.syncManagedServers).toHaveBeenLastCalledWith(
         [new URL('http://localhost:10000')],
-        false
+        true
       );
     }
   );
@@ -651,7 +651,7 @@ describe('syncManagedServers', () => {
 
     expect(serverManager.canStartServer).toBe(false);
     expect(serverManager.syncManagedServers).toHaveBeenCalledOnce();
-    expect(serverManager.syncManagedServers).toHaveBeenCalledWith([], false);
+    expect(serverManager.syncManagedServers).toHaveBeenCalledWith([], true);
   });
 
   it('skips the package check when already installed and forceCheck is false', async () => {
