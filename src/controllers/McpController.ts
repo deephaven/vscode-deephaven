@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as fs from 'node:fs';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
 import { ControllerBase } from './ControllerBase';
 import { McpServer } from '../mcp';
@@ -25,7 +26,7 @@ import {
 import {
   CLAUDE_MCP_DOCS_SERVER_NAME,
   CLAUDE_MCP_PORT_ENV_VAR,
-  CLAUDE_MCP_REGISTERED_STORAGE_KEY,
+  CLAUDE_MCP_REGISTERED_FOLDERS_STORAGE_KEY,
   CLAUDE_MCP_SERVER_NAME,
   COPY_MCP_URL_CMD,
   MCP_SERVER_KEY,
@@ -127,22 +128,10 @@ export class McpController extends ControllerBase {
       this.disposables
     );
 
-    // Register MCP servers for Claude in newly added workspace folders
     // Register MCP servers for Claude in added workspace folders, and remove
     // them from removed folders
     vscode.workspace.onDidChangeWorkspaceFolders(
-      ({ added, removed }) => {
-        if (removed.length > 0) {
-          this.removeClaudeMcpConfig(removed);
-
-          // Re-sync all remaining folders, since a removed folder can share a
-          // Claude project with a remaining one (e.g. the same git repo). This
-          // also covers any added folders.
-          this.syncClaudeMcpConfig();
-        } else if (added.length > 0) {
-          this.syncClaudeMcpConfig(added);
-        }
-      },
+      () => this.syncClaudeMcpConfig(),
       null,
       this.disposables
     );
@@ -272,7 +261,9 @@ export class McpController extends ControllerBase {
    * all git worktrees of a repo, so the URL can't contain the port itself.
    * Instead, each window provides its own port to the Claude processes it
    * starts: `process.env` is inherited by the Claude VS Code extension, and the
-   * environment variable collection is applied to integrated terminals.
+   * environment variable collection is applied to integrated terminals. Child
+   * processes of other extensions in this extension host inherit it too, which
+   * is harmless since the variable is specific to this extension.
    * @param port The MCP server port, or null to remove the variable
    */
   private setClaudeMcpPortEnvVar(port: number | null): void {
@@ -318,35 +309,64 @@ export class McpController extends ControllerBase {
   }
 
   /**
-   * Sync Deephaven MCP servers in Claude `local` scope config with the current
-   * MCP enabled state. `local` scope config is stored in `~/.claude.json` under
-   * `projects["<path>"].mcpServers`, where `<path>` is the git root of the
-   * folder (the main repo root for git worktrees), or the folder itself if it
-   * is not in a git repo. Registers servers if MCP is enabled, otherwise
-   * removes any servers previously registered by this workspace. Does nothing
-   * if the Claude CLI is not installed. State is read when a sync runs rather
-   * than when it is queued.
-   * @param folders Workspace folders to sync. Defaults to all workspace folders.
+   * Get the paths of workspace folders that this workspace registered Claude
+   * MCP servers for and hasn't removed them from yet.
    */
-  private syncClaudeMcpConfig(
-    folders: readonly vscode.WorkspaceFolder[] = vscode.workspace
-      .workspaceFolders ?? []
-  ): void {
-    const folderPaths = getClaudeFolderPaths(folders);
+  private getClaudeMcpRegisteredFolders(): string[] {
+    return (
+      this._context.workspaceState.get<string[]>(
+        CLAUDE_MCP_REGISTERED_FOLDERS_STORAGE_KEY
+      ) ?? []
+    );
+  }
 
-    if (folderPaths.length === 0) {
-      return;
-    }
+  /**
+   * Set the paths of workspace folders that this workspace registered Claude
+   * MCP servers for.
+   * @param folderPaths The folder paths
+   */
+  private async setClaudeMcpRegisteredFolders(
+    folderPaths: Iterable<string>
+  ): Promise<void> {
+    await this._context.workspaceState.update(
+      CLAUDE_MCP_REGISTERED_FOLDERS_STORAGE_KEY,
+      [...new Set(folderPaths)]
+    );
+  }
 
+  /**
+   * Sync Deephaven MCP servers in Claude `local` scope config with the current
+   * MCP enabled state and workspace folders. `local` scope config is stored in
+   * `~/.claude.json` under `projects["<path>"].mcpServers`, where `<path>` is
+   * the git root of the folder (the main repo root for git worktrees), or the
+   * folder itself if it is not in a git repo.
+   *
+   * Registered folders are persisted so removals can be retried. A removal can
+   * fail or never finish (e.g. VS Code restarts the extension host when the
+   * first folder of a multi-root workspace is removed), and by the next sync
+   * the folder is no longer a workspace folder.
+   *
+   * 1. Remove servers from registered folders that are no longer workspace
+   *    folders (all registered folders if MCP is disabled). This runs first so
+   *    a remaining folder sharing a Claude project with a removed one ends up
+   *    registered.
+   * 2. Register servers for all workspace folders if MCP is enabled.
+   *
+   * Does nothing if the Claude CLI is not installed. State is read when a sync
+   * runs rather than when it is queued.
+   */
+  private syncClaudeMcpConfig(): void {
     this.queueClaudeMcpConfigTask(async () => {
-      const isEnabled = this._config.isMcpEnabled();
-      const isRegistered =
-        this._context.workspaceState.get<boolean>(
-          CLAUDE_MCP_REGISTERED_STORAGE_KEY
-        ) ?? false;
+      const folderPaths = this._config.isMcpEnabled()
+        ? getClaudeFolderPaths(vscode.workspace.workspaceFolders ?? [])
+        : [];
+      const registeredPaths = new Set(this.getClaudeMcpRegisteredFolders());
+      const stalePaths = [...registeredPaths].filter(
+        folderPath => !folderPaths.includes(folderPath)
+      );
 
       // Avoid spawning the Claude CLI if there is nothing to do
-      if (!isEnabled && !isRegistered) {
+      if (folderPaths.length === 0 && stalePaths.length === 0) {
         return;
       }
 
@@ -355,61 +375,37 @@ export class McpController extends ControllerBase {
         return;
       }
 
-      if (!isEnabled) {
-        // Leave the registered flag set if cleanup didn't complete so it is
-        // retried on the next sync
-        if (await unregisterClaudeMcpServers(cliPath, folderPaths)) {
-          await this._context.workspaceState.update(
-            CLAUDE_MCP_REGISTERED_STORAGE_KEY,
-            false
-          );
+      // Record folders before registering so they are cleaned up later even
+      // if registration is interrupted
+      await this.setClaudeMcpRegisteredFolders([
+        ...registeredPaths,
+        ...folderPaths,
+      ]);
+
+      for (const folderPath of stalePaths) {
+        // The Claude CLI can't run in a deleted folder, so its config can't be
+        // removed. Stop tracking it.
+        const isRemoved =
+          !fs.existsSync(folderPath) ||
+          (await unregisterClaudeMcpServers(cliPath, folderPath));
+
+        // Keep tracking the folder if cleanup didn't complete so it is retried
+        // on the next sync
+        if (isRemoved) {
+          registeredPaths.delete(folderPath);
+          await this.setClaudeMcpRegisteredFolders([
+            ...registeredPaths,
+            ...folderPaths,
+          ]);
         }
-        return;
       }
 
-      if (
+      for (const folderPath of folderPaths) {
         await registerClaudeMcpServers(
           cliPath,
-          folderPaths,
+          folderPath,
           this._config.isMcpDocsEnabled()
-        )
-      ) {
-        await this._context.workspaceState.update(
-          CLAUDE_MCP_REGISTERED_STORAGE_KEY,
-          true
         );
-      }
-    });
-  }
-
-  /**
-   * Remove Deephaven MCP servers from Claude `local` scope config for workspace
-   * folders removed from the workspace. Any other window using the same Claude
-   * project restores them when it gains focus.
-   * @param folders Removed workspace folders
-   */
-  private removeClaudeMcpConfig(
-    folders: readonly vscode.WorkspaceFolder[]
-  ): void {
-    const folderPaths = getClaudeFolderPaths(folders);
-
-    if (folderPaths.length === 0) {
-      return;
-    }
-
-    this.queueClaudeMcpConfigTask(async () => {
-      const isRegistered =
-        this._context.workspaceState.get<boolean>(
-          CLAUDE_MCP_REGISTERED_STORAGE_KEY
-        ) ?? false;
-
-      if (!isRegistered) {
-        return;
-      }
-
-      const cliPath = await this.getClaudeCliPath();
-      if (cliPath != null) {
-        await unregisterClaudeMcpServers(cliPath, folderPaths);
       }
     });
   }

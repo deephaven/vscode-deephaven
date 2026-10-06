@@ -58,9 +58,11 @@ export const CLAUDE_MCP_SERVER_NAME = 'deephaven-vscode' as const;
 export const CLAUDE_MCP_PORT_ENV_VAR = 'DEEPHAVEN_VSCODE_MCP_PORT' as const;
 export const CLAUDE_MCP_SERVER_URL =
   `http://localhost:\${${CLAUDE_MCP_PORT_ENV_VAR}}/mcp` as const;
-export const CLAUDE_MCP_DOCS_SERVER_NAME = 'deephaven-docs' as const;
-export const CLAUDE_MCP_REGISTERED_STORAGE_KEY =
-  `${EXTENSION_ID}.claudeMcpRegistered` as const;
+// Distinct from names users are likely to configure themselves (e.g.
+// `deephaven-docs`), so any server with this name was added by the extension
+export const CLAUDE_MCP_DOCS_SERVER_NAME = 'deephaven-vscode-docs' as const;
+export const CLAUDE_MCP_REGISTERED_FOLDERS_STORAGE_KEY =
+  `${EXTENSION_ID}.claudeMcpRegisteredFolders` as const;
 
 /**
  * Minimum milliseconds between `QueryInfo` table update notifications. The table

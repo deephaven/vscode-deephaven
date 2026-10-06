@@ -199,8 +199,11 @@ async function upsertClaudeMcpServer(
 }
 
 /**
- * Check if an MCP server is configured for the given folder in any Claude
- * config scope.
+ * Check if an MCP server is configured for the given folder. Any Claude config
+ * scope counts, which is fine since the Deephaven server names are specific to
+ * this extension, so a server with one of those names was added by it at
+ * `local` scope. Checking the scope itself would mean parsing human-readable
+ * `claude mcp get` output, since the CLI has no machine-readable format.
  * @param cliPath Path to the Claude CLI executable
  * @param folderPath Folder to check
  * @param name MCP server name
@@ -221,84 +224,71 @@ export async function hasClaudeMcpServer(
 
 /**
  * Register Deephaven MCP servers in Claude `local` scope config for the given
- * folders. Claude keys `local` scope config by git root (or by the exact folder
- * if not in a git repo). The Deephaven MCP server
- * URL references the port via an environment variable that Claude expands, so
- * the config doesn't depend on which window registered it.
+ * folder. Claude keys `local` scope config by git root (or by the exact folder
+ * if not in a git repo). The Deephaven MCP server URL references the port via
+ * an environment variable that Claude expands, so the config doesn't depend on
+ * which window registered it.
  * @param cliPath Path to the Claude CLI executable
- * @param folderPaths Workspace folder paths
+ * @param folderPath Workspace folder path
  * @param isDocsEnabled Whether to register the Deephaven docs MCP server
- * @returns true if any server was registered for any folder
+ * @returns true if any server was registered
  */
 export async function registerClaudeMcpServers(
   cliPath: string,
-  folderPaths: string[],
+  folderPath: string,
   isDocsEnabled: boolean
 ): Promise<boolean> {
-  let isRegistered = false;
+  const isRegistered = await upsertClaudeMcpServer(
+    cliPath,
+    folderPath,
+    CLAUDE_MCP_SERVER_NAME,
+    CLAUDE_MCP_SERVER_URL
+  );
 
-  for (const folderPath of folderPaths) {
-    if (
-      await upsertClaudeMcpServer(
-        cliPath,
-        folderPath,
-        CLAUDE_MCP_SERVER_NAME,
-        CLAUDE_MCP_SERVER_URL
-      )
-    ) {
-      isRegistered = true;
-    }
-
-    if (isDocsEnabled) {
-      if (
-        await upsertClaudeMcpServer(
-          cliPath,
-          folderPath,
-          CLAUDE_MCP_DOCS_SERVER_NAME,
-          MCP_DOCS_SERVER_URL
-        )
-      ) {
-        isRegistered = true;
-      }
-    } else {
-      await removeClaudeMcpServer(
-        cliPath,
-        folderPath,
-        CLAUDE_MCP_DOCS_SERVER_NAME
-      );
-    }
+  if (!isDocsEnabled) {
+    await removeClaudeMcpServer(
+      cliPath,
+      folderPath,
+      CLAUDE_MCP_DOCS_SERVER_NAME
+    );
+    return isRegistered;
   }
 
-  return isRegistered;
+  const isDocsRegistered = await upsertClaudeMcpServer(
+    cliPath,
+    folderPath,
+    CLAUDE_MCP_DOCS_SERVER_NAME,
+    MCP_DOCS_SERVER_URL
+  );
+
+  return isRegistered || isDocsRegistered;
 }
 
 /**
  * Remove Deephaven MCP servers from Claude `local` scope config for the given
- * folders.
+ * folder.
  * @param cliPath Path to the Claude CLI executable
- * @param folderPaths Workspace folder paths
+ * @param folderPath Workspace folder path
  * @returns true if every remove command ran to completion. A non-zero exit
  * counts as completed since it is expected for servers that don't exist.
  */
 export async function unregisterClaudeMcpServers(
   cliPath: string,
-  folderPaths: string[]
+  folderPath: string
 ): Promise<boolean> {
   let isComplete = true;
 
-  for (const folderPath of folderPaths) {
-    for (const name of [CLAUDE_MCP_SERVER_NAME, CLAUDE_MCP_DOCS_SERVER_NAME]) {
-      const result = await removeClaudeMcpServer(cliPath, folderPath, name);
+  for (const name of [CLAUDE_MCP_SERVER_NAME, CLAUDE_MCP_DOCS_SERVER_NAME]) {
+    const result = await removeClaudeMcpServer(cliPath, folderPath, name);
 
-      if (result === 'success') {
-        logger.info(`Removed Claude MCP server '${name}' for`, folderPath);
-      } else if (result === 'failed') {
-        logger.warn(
-          `Failed to remove Claude MCP server '${name}' for`,
-          folderPath
-        );
-        isComplete = false;
-      }
+    if (result === 'success') {
+      logger.info(`Removed Claude MCP server '${name}' for`, folderPath);
+    } else if (result === 'failed') {
+      logger.warn(
+        `Failed to remove Claude MCP server '${name}' for`,
+        folderPath
+      );
+      isComplete = false;
     }
   }
 

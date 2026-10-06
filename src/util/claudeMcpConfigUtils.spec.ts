@@ -192,44 +192,38 @@ describe('resolveClaudeCliPath', () => {
 });
 
 describe('registerClaudeMcpServers', () => {
-  const folders = ['/mock/folderA', '/mock/folderB'];
+  const folder = '/mock/folderA';
 
-  it('should upsert servers for each folder sequentially', async () => {
-    const result = await registerClaudeMcpServers(cliPath, folders, true);
+  it('should upsert servers for the folder', async () => {
+    const result = await registerClaudeMcpServers(cliPath, folder, true);
 
     expect(result).toBe(true);
-    expect(getExecFileCalls()).toEqual(
-      folders.flatMap(folder => [
-        remove(folder, 'deephaven-vscode'),
-        add(folder, 'deephaven-vscode', mcpUrl),
-        remove(folder, 'deephaven-docs'),
-        add(folder, 'deephaven-docs', MCP_DOCS_SERVER_URL),
-      ])
-    );
+    expect(getExecFileCalls()).toEqual([
+      remove(folder, 'deephaven-vscode'),
+      add(folder, 'deephaven-vscode', mcpUrl),
+      remove(folder, 'deephaven-vscode-docs'),
+      add(folder, 'deephaven-vscode-docs', MCP_DOCS_SERVER_URL),
+    ]);
   });
 
   it('should remove docs server if docs are disabled', async () => {
-    await registerClaudeMcpServers(cliPath, ['/mock/folderA'], false);
+    await registerClaudeMcpServers(cliPath, folder, false);
 
     expect(getExecFileCalls()).toEqual([
-      remove('/mock/folderA', 'deephaven-vscode'),
-      add('/mock/folderA', 'deephaven-vscode', mcpUrl),
-      remove('/mock/folderA', 'deephaven-docs'),
+      remove(folder, 'deephaven-vscode'),
+      add(folder, 'deephaven-vscode', mcpUrl),
+      remove(folder, 'deephaven-vscode-docs'),
     ]);
   });
 
   it('should add servers even if remove fails', async () => {
     mockExecFile((_file, args) => args[1] === 'remove');
 
-    const result = await registerClaudeMcpServers(
-      cliPath,
-      ['/mock/folderA'],
-      false
-    );
+    const result = await registerClaudeMcpServers(cliPath, folder, false);
 
     expect(result).toBe(true);
     expect(getExecFileCalls()).toContainEqual(
-      add('/mock/folderA', 'deephaven-vscode', mcpUrl)
+      add(folder, 'deephaven-vscode', mcpUrl)
     );
   });
 
@@ -238,13 +232,13 @@ describe('registerClaudeMcpServers', () => {
       (_file, args) => args[1] === 'add' && args.includes('deephaven-vscode')
     );
 
-    expect(await registerClaudeMcpServers(cliPath, folders, true)).toBe(true);
+    expect(await registerClaudeMcpServers(cliPath, folder, true)).toBe(true);
   });
 
-  it('should return false if add fails for all folders', async () => {
+  it('should return false if add fails for all servers', async () => {
     mockExecFile((_file, args) => args[1] === 'add');
 
-    expect(await registerClaudeMcpServers(cliPath, folders, true)).toBe(false);
+    expect(await registerClaudeMcpServers(cliPath, folder, true)).toBe(false);
   });
 });
 
@@ -270,11 +264,11 @@ describe('hasClaudeMcpServer', () => {
 
 describe('unregisterClaudeMcpServers', () => {
   it('should only remove servers from local scope', async () => {
-    await unregisterClaudeMcpServers(cliPath, ['/mock/folderA']);
+    await unregisterClaudeMcpServers(cliPath, '/mock/folderA');
 
     expect(getExecFileCalls()).toEqual([
       remove('/mock/folderA', 'deephaven-vscode'),
-      remove('/mock/folderA', 'deephaven-docs'),
+      remove('/mock/folderA', 'deephaven-vscode-docs'),
     ]);
   });
 
@@ -288,7 +282,7 @@ describe('unregisterClaudeMcpServers', () => {
     async (label, errorCode, expected) => {
       mockExecFile(() => label !== 'all succeed', errorCode);
 
-      expect(await unregisterClaudeMcpServers(cliPath, ['/mock/folderA'])).toBe(
+      expect(await unregisterClaudeMcpServers(cliPath, '/mock/folderA')).toBe(
         expected
       );
     }

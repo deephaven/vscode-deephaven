@@ -77,12 +77,14 @@ If the [Claude Code CLI](https://code.claude.com/docs) (`claude`) is installed, 
 
 The following servers are registered (Claude Code doesn't support spaces in MCP server names):
 
-| Server Name        | URL                                                         | Registered When                                                    |
-| ------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------ |
-| `deephaven-vscode` | `http://localhost:${DEEPHAVEN_VSCODE_MCP_PORT}/mcp`         | `deephaven.mcp.enabled` is `true`                                  |
-| `deephaven-docs`   | `https://deephaven-mcp-docs-prod.dhc-demo.deephaven.io/mcp` | `deephaven.mcp.enabled` and `deephaven.mcp.docsEnabled` are `true` |
+| Server Name             | URL                                                         | Registered When                                                    |
+| ----------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------ |
+| `deephaven-vscode`      | `http://localhost:${DEEPHAVEN_VSCODE_MCP_PORT}/mcp`         | `deephaven.mcp.enabled` is `true`                                  |
+| `deephaven-vscode-docs` | `https://deephaven-mcp-docs-prod.dhc-demo.deephaven.io/mcp` | `deephaven.mcp.enabled` and `deephaven.mcp.docsEnabled` are `true` |
 
 The servers are removed when the corresponding setting is disabled.
+
+> **Note:** If you've already configured the Deephaven Documentation MCP server for Claude Code yourself (under any name), set `deephaven.mcp.docsEnabled` to `false` to avoid registering it twice. Note that this setting also applies to GitHub Copilot.
 
 Claude Code expands `${DEEPHAVEN_VSCODE_MCP_PORT}` from its own environment. Each VS Code window sets this variable to the port of its own MCP server, both for its integrated terminals and for the Claude Code IDE extension. This way, Claude Code always talks to the VS Code window it was started from, even when several windows share the same Claude project (e.g. multiple git worktrees of the same repository, which Claude Code configures as a single project).
 
