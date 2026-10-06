@@ -29,7 +29,11 @@
       "piPackages": "npm:@andrewjacop/pi-herdr"
     },
     "ghcr.io/devc-tools/features/git-container-config:0": {},
-    "ghcr.io/devc-tools/features/node-nvmrc:0": {}
+    "ghcr.io/devc-tools/features/node-nvmrc:0": {},
+    // On a rootless Linux Docker host the workspace bind mount is owned by container uid 0, so
+    // this makes `vscode` uid 0 there (same name, same home). A no-op on Docker Desktop and
+    // on rootful daemons — `id` still says uid 1000 on a Mac.
+    "ghcr.io/devc-tools/features/rootless-remap:0": {}
   },
   "remoteEnv": {
     "LANG": "en_US.utf8",
