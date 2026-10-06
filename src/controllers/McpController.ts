@@ -23,6 +23,7 @@ import {
   unregisterClaudeMcpServers,
 } from '../util';
 import {
+  CLAUDE_MCP_DOCS_SERVER_NAME,
   CLAUDE_MCP_PORT_ENV_VAR,
   CLAUDE_MCP_REGISTERED_STORAGE_KEY,
   CLAUDE_MCP_SERVER_NAME,
@@ -127,9 +128,18 @@ export class McpController extends ControllerBase {
     );
 
     // Register MCP servers for Claude in newly added workspace folders
+    // Register MCP servers for Claude in added workspace folders, and remove
+    // them from removed folders
     vscode.workspace.onDidChangeWorkspaceFolders(
-      ({ added }) => {
-        if (this._config.isMcpEnabled()) {
+      ({ added, removed }) => {
+        if (removed.length > 0) {
+          this.removeClaudeMcpConfig(removed);
+
+          // Re-sync all remaining folders, since a removed folder can share a
+          // Claude project with a remaining one (e.g. the same git repo). This
+          // also covers any added folders.
+          this.syncClaudeMcpConfig();
+        } else if (added.length > 0) {
           this.syncClaudeMcpConfig(added);
         }
       },
@@ -279,9 +289,8 @@ export class McpController extends ControllerBase {
   }
 
   /**
-   * Queue a Claude MCP config task so tasks run in order and never run
-   * concurrently, since concurrent Claude CLI calls can race writing the
-   * Claude config file.
+   * Queue a Claude MCP config task so this window's tasks run in the order
+   * they were requested (e.g. rapid enable / disable toggles).
    * @param task The task to run
    */
   private queueClaudeMcpConfigTask(task: () => Promise<void>): void {
@@ -323,7 +332,7 @@ export class McpController extends ControllerBase {
     folders: readonly vscode.WorkspaceFolder[] = vscode.workspace
       .workspaceFolders ?? []
   ): void {
-    const folderPaths = getFileFolderPaths(folders);
+    const folderPaths = getClaudeFolderPaths(folders);
 
     if (folderPaths.length === 0) {
       return;
@@ -374,21 +383,53 @@ export class McpController extends ControllerBase {
   }
 
   /**
-   * Re-register Claude MCP servers when the window gains focus if they are
+   * Remove Deephaven MCP servers from Claude `local` scope config for workspace
+   * folders removed from the workspace. Any other window using the same Claude
+   * project restores them when it gains focus.
+   * @param folders Removed workspace folders
+   */
+  private removeClaudeMcpConfig(
+    folders: readonly vscode.WorkspaceFolder[]
+  ): void {
+    const folderPaths = getClaudeFolderPaths(folders);
+
+    if (folderPaths.length === 0) {
+      return;
+    }
+
+    this.queueClaudeMcpConfigTask(async () => {
+      const isRegistered =
+        this._context.workspaceState.get<boolean>(
+          CLAUDE_MCP_REGISTERED_STORAGE_KEY
+        ) ?? false;
+
+      if (!isRegistered) {
+        return;
+      }
+
+      const cliPath = await this.getClaudeCliPath();
+      if (cliPath != null) {
+        await unregisterClaudeMcpServers(cliPath, folderPaths);
+      }
+    });
+  }
+
+  /**
+   * Re-register Claude MCP servers when the window gains focus if any are
    * missing. Claude local scope config is shared by windows on the same Claude
    * project (e.g. git worktrees of the same repo), so another window disabling
-   * MCP removes the servers for this one too. Throttled since it spawns the
-   * Claude CLI.
+   * MCP (or docs) removes the servers for this one too. Throttled since it
+   * spawns the Claude CLI.
    */
   private maybeRestoreClaudeMcpConfig(): void {
-    const [folderPath] = getFileFolderPaths(
+    const folderPaths = getClaudeFolderPaths(
       vscode.workspace.workspaceFolders ?? []
     );
 
     if (
       !vscode.window.state.focused ||
       !this._config.isMcpEnabled() ||
-      folderPath == null ||
+      folderPaths.length === 0 ||
       Date.now() - this._claudeMcpFocusCheckLastMs <
         CLAUDE_MCP_FOCUS_CHECK_THROTTLE_MS
     ) {
@@ -399,16 +440,25 @@ export class McpController extends ControllerBase {
 
     this.queueClaudeMcpConfigTask(async () => {
       const cliPath = await this.getClaudeCliPath();
-
-      if (
-        cliPath == null ||
-        (await hasClaudeMcpServer(cliPath, folderPath, CLAUDE_MCP_SERVER_NAME))
-      ) {
+      if (cliPath == null) {
         return;
       }
 
-      logger.info('Claude MCP config is missing. Restoring.');
-      this.syncClaudeMcpConfig();
+      const names = this._config.isMcpDocsEnabled()
+        ? [CLAUDE_MCP_SERVER_NAME, CLAUDE_MCP_DOCS_SERVER_NAME]
+        : [CLAUDE_MCP_SERVER_NAME];
+
+      for (const folderPath of folderPaths) {
+        for (const name of names) {
+          if (!(await hasClaudeMcpServer(cliPath, folderPath, name))) {
+            logger.info(
+              `Claude MCP server '${name}' is missing for ${folderPath}. Restoring.`
+            );
+            this.syncClaudeMcpConfig();
+            return;
+          }
+        }
+      }
     });
   }
 
@@ -547,15 +597,22 @@ export class McpController extends ControllerBase {
 }
 
 /**
- * Get the file system paths of the given workspace folders, excluding
- * non-`file` folders, since the Claude CLI has to run in a local folder.
+ * Get the file system paths of the given workspace folders that the Claude CLI
+ * can run in. The extension runs in the remote extension host for remote
+ * workspaces (e.g. Dev Containers, Remote - SSH), where workspace folders have
+ * the `vscode-remote` scheme and `fsPath` is a path on the remote machine.
  * @param folders Workspace folders
- * @returns File system paths of local folders
+ * @returns File system paths of the folders
  */
-function getFileFolderPaths(
+function getClaudeFolderPaths(
   folders: readonly vscode.WorkspaceFolder[]
 ): string[] {
+  const isRemote = vscode.env.remoteName != null;
+
   return folders
-    .filter(folder => folder.uri.scheme === 'file')
-    .map(folder => folder.uri.fsPath);
+    .filter(
+      ({ uri }) =>
+        uri.scheme === 'file' || (isRemote && uri.scheme === 'vscode-remote')
+    )
+    .map(({ uri }) => uri.fsPath);
 }

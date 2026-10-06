@@ -222,8 +222,7 @@ export async function hasClaudeMcpServer(
 /**
  * Register Deephaven MCP servers in Claude `local` scope config for the given
  * folders. Claude keys `local` scope config by git root (or by the exact folder
- * if not in a git repo). Folders are processed sequentially since concurrent
- * CLI calls can race writing the Claude config file. The Deephaven MCP server
+ * if not in a git repo). The Deephaven MCP server
  * URL references the port via an environment variable that Claude expands, so
  * the config doesn't depend on which window registered it.
  * @param cliPath Path to the Claude CLI executable
