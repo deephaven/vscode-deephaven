@@ -13,8 +13,16 @@ import type {
   PythonModuleFullname,
 } from '../types';
 import type { FilteredWorkspace } from '../services';
-import { isWindsurf, Logger, OutputChannelWithHistory } from '../util';
 import {
+  isWindsurf,
+  Logger,
+  OutputChannelWithHistory,
+  registerClaudeMcpServers,
+  resolveClaudeCliPath,
+  unregisterClaudeMcpServers,
+} from '../util';
+import {
+  CLAUDE_MCP_REGISTERED_STORAGE_KEY,
   COPY_MCP_URL_CMD,
   MCP_SERVER_KEY,
   MCP_SERVER_NAME,
@@ -38,6 +46,8 @@ export class McpController extends ControllerBase {
   private _mcpServerDefinitionProvider: McpServerDefinitionProvider | null =
     null;
   private _mcpStatusBarItem: vscode.StatusBarItem | null = null;
+  private _claudeCliPathPromise: Promise<string | null> | null = null;
+  private _claudeMcpConfigQueue: Promise<void> = Promise.resolve();
 
   constructor(
     private readonly _config: IConfigService,
@@ -85,6 +95,7 @@ export class McpController extends ControllerBase {
           this._config.updateWindsurfMcpConfig(
             this._mcpServer?.getPort() ?? null
           );
+          this.syncClaudeMcpConfig();
         }
 
         isMcpEnabledPrev = isMcpEnabledCur;
@@ -97,6 +108,17 @@ export class McpController extends ControllerBase {
     // Register window state change handler to update Windsurf MCP config
     vscode.window.onDidChangeWindowState(
       () => this.maybeUpdateWindsurfMcpConfig(),
+      null,
+      this.disposables
+    );
+
+    // Register MCP servers for Claude in newly added workspace folders
+    vscode.workspace.onDidChangeWorkspaceFolders(
+      ({ added }) => {
+        if (this._mcpServer?.getPort() != null) {
+          this.syncClaudeMcpConfig(added);
+        }
+      },
       null,
       this.disposables
     );
@@ -149,6 +171,7 @@ export class McpController extends ControllerBase {
       this.updateStatusBar(null);
       await this._config.updateWindsurfMcpConfig(null);
       this._mcpServerDefinitionProvider?.refresh();
+      this.syncClaudeMcpConfig();
       return;
     }
 
@@ -190,6 +213,9 @@ export class McpController extends ControllerBase {
         );
       }
 
+      // Claude CLI config is editor independent, so sync in all editors
+      this.syncClaudeMcpConfig();
+
       // Auto-configure Windsurf MCP config if running in Windsurf
       if (isWindsurf()) {
         await this._config.updateWindsurfMcpConfig(actualPort);
@@ -208,6 +234,77 @@ export class McpController extends ControllerBase {
         `Failed to initialize MCP server: ${error instanceof Error ? error.message : String(error)}`
       );
     }
+  }
+
+  /**
+   * Sync Deephaven MCP servers in Claude `local` scope config with the current
+   * MCP server state. `local` scope config is stored in `~/.claude.json` under
+   * `projects["<path>"].mcpServers`, where `<path>` is the git root of the
+   * folder, or the folder itself if it is not in a git repo. Registers servers
+   * if the MCP server is running, otherwise removes any servers previously
+   * registered by this workspace. Does nothing if the Claude CLI is not
+   * installed. Syncs are queued so they run in order, and state is read when a
+   * sync runs rather than when it is queued.
+   * @param folders Workspace folders to sync. Defaults to all workspace folders.
+   */
+  private syncClaudeMcpConfig(
+    folders: readonly vscode.WorkspaceFolder[] = vscode.workspace
+      .workspaceFolders ?? []
+  ): void {
+    const folderPaths = folders
+      .filter(folder => folder.uri.scheme === 'file')
+      .map(folder => folder.uri.fsPath);
+
+    if (folderPaths.length === 0) {
+      return;
+    }
+
+    this._claudeMcpConfigQueue = this._claudeMcpConfigQueue
+      .then(async () => {
+        const port = this._mcpServer?.getPort() ?? null;
+        const isRegistered =
+          this._context.workspaceState.get<boolean>(
+            CLAUDE_MCP_REGISTERED_STORAGE_KEY
+          ) ?? false;
+
+        // Avoid spawning the Claude CLI if there is nothing to do
+        if (port == null && !isRegistered) {
+          return;
+        }
+
+        this._claudeCliPathPromise ??= resolveClaudeCliPath();
+        const cliPath = await this._claudeCliPathPromise;
+        if (cliPath == null) {
+          logger.debug('Claude CLI not found. Skipping Claude MCP config.');
+          return;
+        }
+
+        if (port == null) {
+          await unregisterClaudeMcpServers(cliPath, folderPaths);
+          await this._context.workspaceState.update(
+            CLAUDE_MCP_REGISTERED_STORAGE_KEY,
+            false
+          );
+          return;
+        }
+
+        if (
+          await registerClaudeMcpServers(
+            cliPath,
+            folderPaths,
+            port,
+            this._config.isMcpDocsEnabled()
+          )
+        ) {
+          await this._context.workspaceState.update(
+            CLAUDE_MCP_REGISTERED_STORAGE_KEY,
+            true
+          );
+        }
+      })
+      .catch(error => {
+        logger.error('Failed to sync Claude MCP config:', error);
+      });
   }
 
   /**

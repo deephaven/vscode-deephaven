@@ -51,6 +51,12 @@ export const MCP_DOCS_SERVER_NAME = 'Deephaven Documentation' as const;
 export const MCP_DOCS_SERVER_URL =
   'https://deephaven-mcp-docs-prod.dhc-demo.deephaven.io/mcp' as const;
 
+// Claude CLI doesn't support spaces in MCP server names
+export const CLAUDE_MCP_SERVER_NAME = 'deephaven-vscode' as const;
+export const CLAUDE_MCP_DOCS_SERVER_NAME = 'deephaven-docs' as const;
+export const CLAUDE_MCP_REGISTERED_STORAGE_KEY =
+  `${EXTENSION_ID}.claudeMcpRegistered` as const;
+
 /**
  * Minimum milliseconds between `QueryInfo` table update notifications. The table
  * ticks on every row add/remove and status transition, so on a server holding

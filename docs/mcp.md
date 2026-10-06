@@ -51,7 +51,7 @@ This automatically sets `"deephaven.mcp.enabled": true` in your workspace settin
 
 #### Docs MCP Server Configuration
 
-The Deephaven Documentation Searching skill connects to the [Deephaven Docs MCP server](https://deephaven.io/enterprise/docs/clients/mcp/). The server is automatically configured for GitHub Copilot or can be manually configured for other agents as described in [Manual MCP Server Configuration](#manual-mcp-server-configuration). The extension skill makes AI assistants aware of the documentation capabilities. For more information about the Deephaven Docs MCP server itself, see the [official documentation](https://deephaven.io/enterprise/docs/clients/mcp/).
+The Deephaven Documentation Searching skill connects to the [Deephaven Docs MCP server](https://deephaven.io/enterprise/docs/clients/mcp/). The server is automatically configured for GitHub Copilot and Claude Code or can be manually configured for other agents as described in [Manual MCP Server Configuration](#manual-mcp-server-configuration). The extension skill makes AI assistants aware of the documentation capabilities. For more information about the Deephaven Docs MCP server itself, see the [official documentation](https://deephaven.io/enterprise/docs/clients/mcp/).
 
 The documentation server can be independently enabled/disabled via the `deephaven.mcp.docsEnabled` setting:
 
@@ -63,17 +63,36 @@ When `deephaven.mcp.enabled` is `true`, documentation queries are enabled by def
 
 Different IDEs require different MCP server configuration:
 
-| IDE                             | Auto-Configured              | MCP Configuration File                |
-| ------------------------------- | ---------------------------- | ------------------------------------- |
-| **VS Code with GitHub Copilot** | ✅ Yes                       | None required                         |
-| **Windsurf**                    | ✅ Yes (after user approval) | `~/.codeium/windsurf/mcp_config.json` |
-| **Claude in VS Code-based IDE** | ❌ No                        | `<wksp-folder>/.mcp.json`             |
-| **Cursor**                      | ❌ No                        | `<wksp-folder>/.cursor/mcp.json`      |
-| **Other VS Code-based IDEs**    | ❌ No                        | Varies by IDE                         |
+| IDE                                    | Auto-Configured                    | MCP Configuration File                |
+| -------------------------------------- | ---------------------------------- | ------------------------------------- |
+| **VS Code with GitHub Copilot**        | ✅ Yes                             | None required                         |
+| **Windsurf**                           | ✅ Yes (after user approval)       | `~/.codeium/windsurf/mcp_config.json` |
+| **Claude Code (CLI or IDE extension)** | ✅ Yes (if `claude` CLI installed) | `~/.claude.json` (`local` scope)      |
+| **Cursor**                             | ❌ No                              | `<wksp-folder>/.cursor/mcp.json`      |
+| **Other VS Code-based IDEs**           | ❌ No                              | Varies by IDE                         |
+
+#### Claude Code Configuration
+
+If the [Claude Code CLI](https://code.claude.com/docs) (`claude`) is installed, the extension registers its MCP servers with Claude Code using `local` scope for each workspace folder. `local` scope config is stored in `~/.claude.json` keyed by the project directory (the git repository root, or the workspace folder if not in a git repository), so no files are added to your workspace. This applies to Claude Code running in a terminal as well as the Claude Code IDE extension, in any VS Code-based IDE.
+
+The following servers are registered (Claude Code doesn't support spaces in MCP server names):
+
+| Server Name        | Registered When                                                    |
+| ------------------ | ------------------------------------------------------------------ |
+| `deephaven-vscode` | `deephaven.mcp.enabled` is `true`                                  |
+| `deephaven-docs`   | `deephaven.mcp.enabled` and `deephaven.mcp.docsEnabled` are `true` |
+
+The servers are removed when the corresponding setting is disabled. To verify the configuration, run the following from your workspace folder:
+
+```sh
+claude mcp get deephaven-vscode
+```
+
+> **Note:** Claude Code sessions that are already running won't see a new registration or port change until they are restarted or reconnected using the `/mcp` command.
 
 #### Manual MCP Server Configuration
 
-For IDEs that require manual configuration (Cursor and other VS Code-based IDEs) or Claude running in VS Code-based IDEs, you'll need to configure the MCP server endpoint. The MCP server port is displayed in the status bar as `MCP:<port>` when running. You can click the status bar item to copy the full endpoint URL to your clipboard. The endpoint URL follows the format: `http://localhost:<port>/mcp`.
+For IDEs that require manual configuration (Cursor and other VS Code-based IDEs), you'll need to configure the MCP server endpoint. The MCP server port is displayed in the status bar as `MCP:<port>` when running. You can click the status bar item to copy the full endpoint URL to your clipboard. The endpoint URL follows the format: `http://localhost:<port>/mcp`.
 
 **Cursor:**
 
@@ -92,7 +111,7 @@ Create a `.cursor/mcp.json` file in your workspace root:
 }
 ```
 
-**Claude in VS Code-based IDE:**
+**Claude in VS Code-based IDE (without the `claude` CLI installed):**
 
 Create a `.mcp.json` file in your workspace root:
 
