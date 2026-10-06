@@ -12,6 +12,12 @@
 - **AVOID** using the `runTests` tool - it has issues with workspace selection and requires manual UI refresh
 - Always run vitest from the correct workspace directory
 
+### E2E Tests
+
+- Run E2E tests with `npm run test:e2e -- --core <server-url>` or `--coreplus <server-url>`
+- `--core` tests need a Deephaven Community server running on the host at `localhost:10000`; in the devcontainer, pass `http://host.docker.internal:10000/` as the server URL
+- In the devcontainer, `DH_E2E_HEADLESS=1` runs the VS Code test instance under Xvfb automatically; do not add a separate `xvfb-run` prefix
+
 ### Checking for TypeScript Errors
 
 - **ALWAYS** use the `get_errors` tool after editing test files to catch TypeScript errors
@@ -37,6 +43,10 @@ For detailed instructions on writing tests (mocking patterns, test structure, MC
 - Use `npm run test:lint` to check all TypeScript files for linting errors
 - **IMPORTANT**: The `get_errors` tool may not catch all linting issues, especially in files that aren't currently open in the editor
 - Always run `npm run test:lint` before committing to ensure all files pass linting
+
+## Running VS Code Headlessly
+
+When running in a devcontainer, you can launch a real VS Code with the dev build of this extension on an Xvfb display, then drive it via `chrome-devtools-mcp`, take screenshots, and call the extension's MCP server directly. See `.devcontainer/scripts/README.md` for commands and gotchas (e.g. every chrome-devtools tool call needs `pageId: 1`; Deephaven grid cells are canvas, so use `getTableData` or a screenshot).
 
 ## MCP Tools
 
