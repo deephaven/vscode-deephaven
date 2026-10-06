@@ -233,6 +233,10 @@ export class McpController extends ControllerBase {
       vscode.window.showErrorMessage(
         `Failed to initialize MCP server: ${error instanceof Error ? error.message : String(error)}`
       );
+
+      // Remove any Claude MCP config from a previous session, since there is
+      // no server listening on its port
+      this.syncClaudeMcpConfig();
     }
   }
 
