@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process';
+import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import {
@@ -13,6 +14,7 @@ const logger = new Logger('claudeMcpConfigUtils');
 const CLAUDE_CLI_NAME = 'claude';
 const CLAUDE_VERSION_TIMEOUT_MS = 5000;
 const CLAUDE_MCP_TIMEOUT_MS = 15000;
+const WINDOWS_DEFAULT_PATHEXT = '.COM;.EXE;.BAT;.CMD';
 
 /**
  * Result of running the Claude CLI.
@@ -36,17 +38,17 @@ function runClaudeCli(
   args: string[],
   { cwd, timeout }: { cwd?: string; timeout: number }
 ): Promise<ClaudeCliResult> {
+  // npm installs `claude.cmd` on Windows, and Node refuses to run `.cmd` /
+  // `.bat` files without a shell. `cliPath` is always absolute, so the shell
+  // won't resolve it from `cwd`. Quote it in case it contains spaces.
+  const isWindowsScript =
+    process.platform === 'win32' && /\.(bat|cmd)$/i.test(cliPath);
+
   return new Promise(resolve => {
     execFile(
-      cliPath,
+      isWindowsScript ? `"${cliPath}"` : cliPath,
       args,
-      {
-        cwd,
-        timeout,
-        // npm installs `claude.cmd` on Windows, which can't be run without a
-        // shell. Only needed for the bare command name resolved via PATH.
-        shell: process.platform === 'win32' && cliPath === CLAUDE_CLI_NAME,
-      },
+      { cwd, timeout, shell: isWindowsScript },
       (error, _stdout, stderr) => {
         if (error != null) {
           logger.debug(
@@ -66,25 +68,62 @@ function runClaudeCli(
 }
 
 /**
- * Get the candidate paths for the Claude CLI. The extension host doesn't
- * always inherit the user's shell PATH (e.g. when VS Code is launched from the
- * macOS Dock), so include default install locations as fallbacks.
+ * Check if the given path is an executable file.
+ */
+function isExecutableFile(filePath: string): boolean {
+  try {
+    fs.accessSync(filePath, fs.constants.X_OK);
+    return fs.statSync(filePath).isFile();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Get the absolute paths of Claude CLI executables on PATH, in PATH order.
+ * Resolve these ourselves rather than running the bare command name, since
+ * Windows command lookup checks the current directory first, and Claude CLI
+ * commands run with a workspace folder as `cwd`. That would allow a workspace
+ * to contain a `claude.cmd` that runs instead of the real CLI. Relative PATH
+ * entries are skipped for the same reason.
+ */
+function getClaudeCliPathsOnPath(): string[] {
+  const dirs = (process.env.PATH ?? '')
+    .split(path.delimiter)
+    .filter(dir => path.isAbsolute(dir));
+
+  const exts =
+    process.platform === 'win32'
+      ? (process.env.PATHEXT ?? WINDOWS_DEFAULT_PATHEXT)
+          .split(';')
+          .filter(ext => ext !== '')
+      : [''];
+
+  return dirs.flatMap(dir =>
+    exts.map(ext => path.join(dir, `${CLAUDE_CLI_NAME}${ext.toLowerCase()}`))
+  );
+}
+
+/**
+ * Get the absolute paths of installed Claude CLI candidates. The extension
+ * host doesn't always inherit the user's shell PATH (e.g. when VS Code is
+ * launched from the macOS Dock), so include default install locations as
+ * fallbacks.
  */
 export function getClaudeCliCandidates(): string[] {
   const homeDir = os.homedir();
 
-  if (process.platform === 'win32') {
-    return [
-      CLAUDE_CLI_NAME,
-      path.join(homeDir, '.local', 'bin', `${CLAUDE_CLI_NAME}.exe`),
-    ];
-  }
+  const fallbacks =
+    process.platform === 'win32'
+      ? [path.join(homeDir, '.local', 'bin', `${CLAUDE_CLI_NAME}.exe`)]
+      : [
+          path.join(homeDir, '.local', 'bin', CLAUDE_CLI_NAME),
+          path.join(homeDir, '.claude', 'local', CLAUDE_CLI_NAME),
+        ];
 
-  return [
-    CLAUDE_CLI_NAME,
-    path.join(homeDir, '.local', 'bin', CLAUDE_CLI_NAME),
-    path.join(homeDir, '.claude', 'local', CLAUDE_CLI_NAME),
-  ];
+  return [...new Set([...getClaudeCliPathsOnPath(), ...fallbacks])].filter(
+    isExecutableFile
+  );
 }
 
 /**

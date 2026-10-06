@@ -1,5 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { execFile } from 'node:child_process';
+import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import {
@@ -11,6 +12,7 @@ import { MCP_DOCS_SERVER_URL } from '../common';
 
 vi.mock('vscode');
 vi.mock('node:child_process');
+vi.mock('node:fs');
 vi.mock('node:os');
 
 const mockHomeDir = '/mock/home';
@@ -53,6 +55,23 @@ function mockExecFile(
   }) as unknown as typeof execFile);
 }
 
+/** Mock the file system so only the given paths are executable files. */
+function mockExecutableFiles(filePaths: string[]): void {
+  vi.mocked(fs.accessSync).mockImplementation(filePath => {
+    if (!filePaths.includes(String(filePath))) {
+      throw new Error('ENOENT');
+    }
+  });
+  vi.mocked(fs.statSync).mockReturnValue({
+    isFile: () => true,
+  } as fs.Stats);
+}
+
+/** Override `process.platform` for the current test. */
+function mockPlatform(platform: NodeJS.Platform): void {
+  vi.spyOn(process, 'platform', 'get').mockReturnValue(platform);
+}
+
 /** Get [file, args, cwd] for each `execFile` call. */
 function getExecFileCalls(): [string, string[], string | undefined][] {
   return vi
@@ -87,31 +106,87 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(os.homedir).mockReturnValue(mockHomeDir);
   mockExecFile();
+  mockExecutableFiles([]);
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllEnvs();
 });
 
 describe('resolveClaudeCliPath', () => {
-  it('should return `claude` if found on PATH', async () => {
-    expect(await resolveClaudeCliPath()).toBe('claude');
-    expect(getExecFileCalls()).toEqual([['claude', ['--version'], undefined]]);
+  const binA = path.join('/mock', 'binA');
+  const binB = path.join('/mock', 'binB');
+  const localBinClaude = path.join(mockHomeDir, '.local', 'bin', 'claude');
+
+  beforeEach(() => {
+    mockPlatform('linux');
+    vi.stubEnv('PATH', ['relative/bin', binA, binB].join(path.delimiter));
+  });
+
+  it('should return absolute path of first `claude` on PATH', async () => {
+    const binBClaude = path.join(binB, 'claude');
+    mockExecutableFiles([binBClaude, localBinClaude]);
+
+    expect(await resolveClaudeCliPath()).toBe(binBClaude);
+    expect(getExecFileCalls()).toEqual([
+      [binBClaude, ['--version'], undefined],
+    ]);
+    expect(vi.mocked(execFile).mock.calls[0][2]).toMatchObject({
+      shell: false,
+    });
+  });
+
+  it('should ignore relative PATH entries', async () => {
+    mockExecutableFiles([path.join('relative/bin', 'claude')]);
+
+    expect(await resolveClaudeCliPath()).toBeNull();
+    expect(execFile).not.toHaveBeenCalled();
   });
 
   it('should fall back to default install location if not on PATH', async () => {
-    mockExecFile(file => file === 'claude', 'ENOENT');
+    mockExecutableFiles([localBinClaude]);
 
-    expect(await resolveClaudeCliPath()).toBe(
-      path.join(
-        mockHomeDir,
-        '.local',
-        'bin',
-        process.platform === 'win32' ? 'claude.exe' : 'claude'
-      )
-    );
+    expect(await resolveClaudeCliPath()).toBe(localBinClaude);
+  });
+
+  it('should skip candidates that fail to run', async () => {
+    const binAClaude = path.join(binA, 'claude');
+    mockExecutableFiles([binAClaude, localBinClaude]);
+    mockExecFile(file => file === binAClaude, 'EACCES');
+
+    expect(await resolveClaudeCliPath()).toBe(localBinClaude);
   });
 
   it('should return null if Claude CLI is not installed', async () => {
-    mockExecFile(() => true);
-
     expect(await resolveClaudeCliPath()).toBeNull();
+    expect(execFile).not.toHaveBeenCalled();
+  });
+
+  it('should run Windows `.cmd` scripts by quoted absolute path in a shell', async () => {
+    mockPlatform('win32');
+    vi.stubEnv('PATHEXT', '.EXE;.CMD');
+    const binAClaudeCmd = path.join(binA, 'claude.cmd');
+    mockExecutableFiles([binAClaudeCmd]);
+
+    expect(await resolveClaudeCliPath()).toBe(binAClaudeCmd);
+    expect(vi.mocked(execFile).mock.calls[0][0]).toBe(`"${binAClaudeCmd}"`);
+    expect(vi.mocked(execFile).mock.calls[0][2]).toMatchObject({
+      shell: true,
+    });
+  });
+
+  it('should fall back to `claude.exe` default install location on Windows', async () => {
+    mockPlatform('win32');
+    const localBinClaudeExe = path.join(
+      mockHomeDir,
+      '.local',
+      'bin',
+      'claude.exe'
+    );
+    mockExecutableFiles([localBinClaudeExe]);
+
+    expect(await resolveClaudeCliPath()).toBe(localBinClaudeExe);
   });
 });
 
