@@ -46,7 +46,7 @@ export class McpController extends ControllerBase {
   private _mcpServerDefinitionProvider: McpServerDefinitionProvider | null =
     null;
   private _mcpStatusBarItem: vscode.StatusBarItem | null = null;
-  private _claudeCliPathPromise: Promise<string | null> | null = null;
+  private _claudeCliPath: string | null = null;
   private _claudeMcpConfigQueue: Promise<void> = Promise.resolve();
 
   constructor(
@@ -272,15 +272,22 @@ export class McpController extends ControllerBase {
           return;
         }
 
-        this._claudeCliPathPromise ??= resolveClaudeCliPath();
-        const cliPath = await this._claudeCliPathPromise;
+        // Only cache a found CLI so a later sync can pick up a CLI installed
+        // after activation. Syncs are queued, so this never runs concurrently.
+        this._claudeCliPath ??= await resolveClaudeCliPath();
+        const cliPath = this._claudeCliPath;
         if (cliPath == null) {
           logger.debug('Claude CLI not found. Skipping Claude MCP config.');
           return;
         }
 
         if (port == null) {
-          await unregisterClaudeMcpServers(cliPath, folderPaths);
+          // Leave the registered flag set if cleanup didn't complete so it is
+          // retried on the next sync
+          if (!(await unregisterClaudeMcpServers(cliPath, folderPaths))) {
+            return;
+          }
+
           await this._context.workspaceState.update(
             CLAUDE_MCP_REGISTERED_STORAGE_KEY,
             false

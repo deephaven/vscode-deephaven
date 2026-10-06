@@ -27,9 +27,13 @@ type ExecFileCallback = (
 /**
  * Mock `execFile` to call back with an error for any call where `shouldFail`
  * returns true.
+ * @param shouldFail Determines which calls fail
+ * @param errorCode Error `code`. A number is a process exit code. A string or
+ * null means the process didn't run or didn't finish (e.g. `ENOENT`, timeout).
  */
 function mockExecFile(
-  shouldFail: (file: string, args: string[]) => boolean = () => false
+  shouldFail: (file: string, args: string[]) => boolean = () => false,
+  errorCode: number | string | null = 1
 ): void {
   vi.mocked(execFile).mockImplementation(((
     file: string,
@@ -38,7 +42,11 @@ function mockExecFile(
     callback: ExecFileCallback
   ) => {
     if (shouldFail(file, args)) {
-      callback(new Error('mock error'), '', 'mock stderr');
+      callback(
+        Object.assign(new Error('mock error'), { code: errorCode }),
+        '',
+        'mock stderr'
+      );
     } else {
       callback(null, '', '');
     }
@@ -88,10 +96,15 @@ describe('resolveClaudeCliPath', () => {
   });
 
   it('should fall back to default install location if not on PATH', async () => {
-    mockExecFile(file => file === 'claude');
+    mockExecFile(file => file === 'claude', 'ENOENT');
 
     expect(await resolveClaudeCliPath()).toBe(
-      path.join(mockHomeDir, '.local', 'bin', 'claude')
+      path.join(
+        mockHomeDir,
+        '.local',
+        'bin',
+        process.platform === 'win32' ? 'claude.exe' : 'claude'
+      )
     );
   });
 
@@ -145,6 +158,16 @@ describe('registerClaudeMcpServers', () => {
     );
   });
 
+  it('should return true if only docs server is registered', async () => {
+    mockExecFile(
+      (_file, args) => args[1] === 'add' && args.includes('deephaven-vscode')
+    );
+
+    expect(await registerClaudeMcpServers(cliPath, folders, port, true)).toBe(
+      true
+    );
+  });
+
   it('should return false if add fails for all folders', async () => {
     mockExecFile((_file, args) => args[1] === 'add');
 
@@ -163,4 +186,20 @@ describe('unregisterClaudeMcpServers', () => {
       remove('/mock/folderA', 'deephaven-docs'),
     ]);
   });
+
+  it.each([
+    ['all succeed', null, true],
+    ['servers do not exist (non-zero exit)', 1, true],
+    ['remove does not run (e.g. not found)', 'ENOENT', false],
+    ['remove does not finish (e.g. timeout)', null, false],
+  ] as const)(
+    'should return whether cleanup completed: %s',
+    async (label, errorCode, expected) => {
+      mockExecFile(() => label !== 'all succeed', errorCode);
+
+      expect(await unregisterClaudeMcpServers(cliPath, ['/mock/folderA'])).toBe(
+        expected
+      );
+    }
+  );
 });

@@ -15,17 +15,27 @@ const CLAUDE_VERSION_TIMEOUT_MS = 5000;
 const CLAUDE_MCP_TIMEOUT_MS = 15000;
 
 /**
+ * Result of running the Claude CLI.
+ * - `success`: exited with code 0
+ * - `nonZeroExit`: ran to completion but exited with a non-zero code. The CLI
+ *   uses exit code 1 both for real failures and for expected cases such as
+ *   removing a server that doesn't exist.
+ * - `failed`: didn't run or didn't finish (e.g. not found or timed out)
+ */
+type ClaudeCliResult = 'success' | 'nonZeroExit' | 'failed';
+
+/**
  * Run the Claude CLI with the given args.
  * @param cliPath Path to the Claude CLI executable
  * @param args CLI arguments
  * @param options cwd and timeout
- * @returns true if the command exited successfully, false otherwise
+ * @returns The result of running the command
  */
 function runClaudeCli(
   cliPath: string,
   args: string[],
   { cwd, timeout }: { cwd?: string; timeout: number }
-): Promise<boolean> {
+): Promise<ClaudeCliResult> {
   return new Promise(resolve => {
     execFile(
       cliPath,
@@ -43,11 +53,13 @@ function runClaudeCli(
             `'${cliPath} ${args.join(' ')}' failed:`,
             stderr || error.message
           );
-          resolve(false);
+          // `code` is the exit code if the process exited, or a string error
+          // code (e.g. `ENOENT`) / null (e.g. killed on timeout) otherwise
+          resolve(typeof error.code === 'number' ? 'nonZeroExit' : 'failed');
           return;
         }
 
-        resolve(true);
+        resolve('success');
       }
     );
   });
@@ -82,11 +94,11 @@ export function getClaudeCliCandidates(): string[] {
  */
 export async function resolveClaudeCliPath(): Promise<string | null> {
   for (const candidate of getClaudeCliCandidates()) {
-    if (
-      await runClaudeCli(candidate, ['--version'], {
-        timeout: CLAUDE_VERSION_TIMEOUT_MS,
-      })
-    ) {
+    const result = await runClaudeCli(candidate, ['--version'], {
+      timeout: CLAUDE_VERSION_TIMEOUT_MS,
+    });
+
+    if (result === 'success') {
       return candidate;
     }
   }
@@ -98,13 +110,13 @@ export async function resolveClaudeCliPath(): Promise<string | null> {
  * Remove an MCP server from Claude `local` scope config. Note that `--scope`
  * must always be specified, otherwise the CLI removes the server from whichever
  * scope it is found in (e.g. a user-scoped server configured by the user).
- * @returns true if the server was removed, false if it didn't exist or failed
+ * @returns The result of running the remove command
  */
 function removeClaudeMcpServer(
   cliPath: string,
   folderPath: string,
   name: string
-): Promise<boolean> {
+): Promise<ClaudeCliResult> {
   return runClaudeCli(cliPath, ['mcp', 'remove', '--scope', 'local', name], {
     cwd: folderPath,
     timeout: CLAUDE_MCP_TIMEOUT_MS,
@@ -124,11 +136,12 @@ async function upsertClaudeMcpServer(
 ): Promise<boolean> {
   await removeClaudeMcpServer(cliPath, folderPath, name);
 
-  const isSuccess = await runClaudeCli(
-    cliPath,
-    ['mcp', 'add', '--scope', 'local', '--transport', 'http', name, url],
-    { cwd: folderPath, timeout: CLAUDE_MCP_TIMEOUT_MS }
-  );
+  const isSuccess =
+    (await runClaudeCli(
+      cliPath,
+      ['mcp', 'add', '--scope', 'local', '--transport', 'http', name, url],
+      { cwd: folderPath, timeout: CLAUDE_MCP_TIMEOUT_MS }
+    )) === 'success';
 
   if (isSuccess) {
     logger.info(
@@ -154,7 +167,7 @@ async function upsertClaudeMcpServer(
  * @param folderPaths Workspace folder paths
  * @param port Port the Deephaven MCP server is running on
  * @param isDocsEnabled Whether to register the Deephaven docs MCP server
- * @returns true if the Deephaven MCP server was registered for any folder
+ * @returns true if any server was registered for any folder
  */
 export async function registerClaudeMcpServers(
   cliPath: string,
@@ -177,12 +190,16 @@ export async function registerClaudeMcpServers(
     }
 
     if (isDocsEnabled) {
-      await upsertClaudeMcpServer(
-        cliPath,
-        folderPath,
-        CLAUDE_MCP_DOCS_SERVER_NAME,
-        MCP_DOCS_SERVER_URL
-      );
+      if (
+        await upsertClaudeMcpServer(
+          cliPath,
+          folderPath,
+          CLAUDE_MCP_DOCS_SERVER_NAME,
+          MCP_DOCS_SERVER_URL
+        )
+      ) {
+        isRegistered = true;
+      }
     } else {
       await removeClaudeMcpServer(
         cliPath,
@@ -200,16 +217,30 @@ export async function registerClaudeMcpServers(
  * folders.
  * @param cliPath Path to the Claude CLI executable
  * @param folderPaths Workspace folder paths
+ * @returns true if every remove command ran to completion. A non-zero exit
+ * counts as completed since it is expected for servers that don't exist.
  */
 export async function unregisterClaudeMcpServers(
   cliPath: string,
   folderPaths: string[]
-): Promise<void> {
+): Promise<boolean> {
+  let isComplete = true;
+
   for (const folderPath of folderPaths) {
     for (const name of [CLAUDE_MCP_SERVER_NAME, CLAUDE_MCP_DOCS_SERVER_NAME]) {
-      if (await removeClaudeMcpServer(cliPath, folderPath, name)) {
+      const result = await removeClaudeMcpServer(cliPath, folderPath, name);
+
+      if (result === 'success') {
         logger.info(`Removed Claude MCP server '${name}' for`, folderPath);
+      } else if (result === 'failed') {
+        logger.warn(
+          `Failed to remove Claude MCP server '${name}' for`,
+          folderPath
+        );
+        isComplete = false;
       }
     }
   }
+
+  return isComplete;
 }
