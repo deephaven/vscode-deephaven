@@ -53,6 +53,11 @@ export const MCP_DOCS_SERVER_URL =
 
 // Claude CLI doesn't support spaces in MCP server names
 export const CLAUDE_MCP_SERVER_NAME = 'deephaven-vscode' as const;
+// Claude expands this from its own environment. Claude local scope config is
+// shared by all git worktrees of a repo, so the port can't be stored in it.
+export const CLAUDE_MCP_PORT_ENV_VAR = 'DEEPHAVEN_VSCODE_MCP_PORT' as const;
+export const CLAUDE_MCP_SERVER_URL =
+  `http://localhost:\${${CLAUDE_MCP_PORT_ENV_VAR}}/mcp` as const;
 export const CLAUDE_MCP_DOCS_SERVER_NAME = 'deephaven-docs' as const;
 export const CLAUDE_MCP_REGISTERED_STORAGE_KEY =
   `${EXTENSION_ID}.claudeMcpRegistered` as const;

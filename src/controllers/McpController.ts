@@ -16,13 +16,16 @@ import type { FilteredWorkspace } from '../services';
 import {
   isWindsurf,
   Logger,
+  hasClaudeMcpServer,
   OutputChannelWithHistory,
   registerClaudeMcpServers,
   resolveClaudeCliPath,
   unregisterClaudeMcpServers,
 } from '../util';
 import {
+  CLAUDE_MCP_PORT_ENV_VAR,
   CLAUDE_MCP_REGISTERED_STORAGE_KEY,
+  CLAUDE_MCP_SERVER_NAME,
   COPY_MCP_URL_CMD,
   MCP_SERVER_KEY,
   MCP_SERVER_NAME,
@@ -32,6 +35,8 @@ import {
 } from '../common';
 
 const logger = new Logger('McpController');
+
+const CLAUDE_MCP_FOCUS_CHECK_THROTTLE_MS = 10000;
 
 interface McpQuickPickItem extends vscode.QuickPickItem {
   action: 'enable' | 'disable' | 'copy';
@@ -48,6 +53,7 @@ export class McpController extends ControllerBase {
   private _mcpStatusBarItem: vscode.StatusBarItem | null = null;
   private _claudeCliPath: string | null = null;
   private _claudeMcpConfigQueue: Promise<void> = Promise.resolve();
+  private _claudeMcpFocusCheckLastMs = 0;
 
   constructor(
     private readonly _config: IConfigService,
@@ -112,16 +118,27 @@ export class McpController extends ControllerBase {
       this.disposables
     );
 
+    // Restore Claude MCP config removed by another window sharing the same
+    // Claude project (e.g. a sibling git worktree that disabled MCP)
+    vscode.window.onDidChangeWindowState(
+      () => this.maybeRestoreClaudeMcpConfig(),
+      null,
+      this.disposables
+    );
+
     // Register MCP servers for Claude in newly added workspace folders
     vscode.workspace.onDidChangeWorkspaceFolders(
       ({ added }) => {
-        if (this._mcpServer?.getPort() != null) {
+        if (this._config.isMcpEnabled()) {
           this.syncClaudeMcpConfig(added);
         }
       },
       null,
       this.disposables
     );
+
+    this._context.environmentVariableCollection.description =
+      'Deephaven MCP server port for Claude Code';
 
     this.initializeStatusBar();
     this.initializeDefinitionProvider();
@@ -156,6 +173,8 @@ export class McpController extends ControllerBase {
    * Initialize and start the MCP server if enabled.
    */
   private async initializeMcpServer(): Promise<void> {
+    this.setClaudeMcpPortEnvVar(null);
+
     // If server is already running, stop it
     if (this._mcpServer != null) {
       this._mcpServer.stop();
@@ -214,6 +233,7 @@ export class McpController extends ControllerBase {
       }
 
       // Claude CLI config is editor independent, so sync in all editors
+      this.setClaudeMcpPortEnvVar(actualPort);
       this.syncClaudeMcpConfig();
 
       // Auto-configure Windsurf MCP config if running in Windsurf
@@ -233,89 +253,163 @@ export class McpController extends ControllerBase {
       vscode.window.showErrorMessage(
         `Failed to initialize MCP server: ${error instanceof Error ? error.message : String(error)}`
       );
-
-      // Remove any Claude MCP config from a previous session, since there is
-      // no server listening on its port
-      this.syncClaudeMcpConfig();
     }
   }
 
   /**
+   * Set the environment variable Claude uses to expand the port in the
+   * `deephaven-vscode` MCP server URL. Claude local scope config is shared by
+   * all git worktrees of a repo, so the URL can't contain the port itself.
+   * Instead, each window provides its own port to the Claude processes it
+   * starts: `process.env` is inherited by the Claude VS Code extension, and the
+   * environment variable collection is applied to integrated terminals.
+   * @param port The MCP server port, or null to remove the variable
+   */
+  private setClaudeMcpPortEnvVar(port: number | null): void {
+    const collection = this._context.environmentVariableCollection;
+
+    if (port == null) {
+      delete process.env[CLAUDE_MCP_PORT_ENV_VAR];
+      collection.delete(CLAUDE_MCP_PORT_ENV_VAR);
+      return;
+    }
+
+    process.env[CLAUDE_MCP_PORT_ENV_VAR] = String(port);
+    collection.replace(CLAUDE_MCP_PORT_ENV_VAR, String(port));
+  }
+
+  /**
+   * Queue a Claude MCP config task so tasks run in order and never run
+   * concurrently, since concurrent Claude CLI calls can race writing the
+   * Claude config file.
+   * @param task The task to run
+   */
+  private queueClaudeMcpConfigTask(task: () => Promise<void>): void {
+    this._claudeMcpConfigQueue = this._claudeMcpConfigQueue
+      .then(task)
+      .catch(error => {
+        logger.error('Failed to sync Claude MCP config:', error);
+      });
+  }
+
+  /**
+   * Get the path to the Claude CLI. Only a found CLI is cached so a CLI
+   * installed after activation is picked up later. Only call from a queued
+   * task so resolution never runs concurrently.
+   * @returns The Claude CLI path, or null if not installed
+   */
+  private async getClaudeCliPath(): Promise<string | null> {
+    this._claudeCliPath ??= await resolveClaudeCliPath();
+
+    if (this._claudeCliPath == null) {
+      logger.debug('Claude CLI not found. Skipping Claude MCP config.');
+    }
+
+    return this._claudeCliPath;
+  }
+
+  /**
    * Sync Deephaven MCP servers in Claude `local` scope config with the current
-   * MCP server state. `local` scope config is stored in `~/.claude.json` under
+   * MCP enabled state. `local` scope config is stored in `~/.claude.json` under
    * `projects["<path>"].mcpServers`, where `<path>` is the git root of the
-   * folder, or the folder itself if it is not in a git repo. Registers servers
-   * if the MCP server is running, otherwise removes any servers previously
-   * registered by this workspace. Does nothing if the Claude CLI is not
-   * installed. Syncs are queued so they run in order, and state is read when a
-   * sync runs rather than when it is queued.
+   * folder (the main repo root for git worktrees), or the folder itself if it
+   * is not in a git repo. Registers servers if MCP is enabled, otherwise
+   * removes any servers previously registered by this workspace. Does nothing
+   * if the Claude CLI is not installed. State is read when a sync runs rather
+   * than when it is queued.
    * @param folders Workspace folders to sync. Defaults to all workspace folders.
    */
   private syncClaudeMcpConfig(
     folders: readonly vscode.WorkspaceFolder[] = vscode.workspace
       .workspaceFolders ?? []
   ): void {
-    const folderPaths = folders
-      .filter(folder => folder.uri.scheme === 'file')
-      .map(folder => folder.uri.fsPath);
+    const folderPaths = getFileFolderPaths(folders);
 
     if (folderPaths.length === 0) {
       return;
     }
 
-    this._claudeMcpConfigQueue = this._claudeMcpConfigQueue
-      .then(async () => {
-        const port = this._mcpServer?.getPort() ?? null;
-        const isRegistered =
-          this._context.workspaceState.get<boolean>(
-            CLAUDE_MCP_REGISTERED_STORAGE_KEY
-          ) ?? false;
+    this.queueClaudeMcpConfigTask(async () => {
+      const isEnabled = this._config.isMcpEnabled();
+      const isRegistered =
+        this._context.workspaceState.get<boolean>(
+          CLAUDE_MCP_REGISTERED_STORAGE_KEY
+        ) ?? false;
 
-        // Avoid spawning the Claude CLI if there is nothing to do
-        if (port == null && !isRegistered) {
-          return;
-        }
+      // Avoid spawning the Claude CLI if there is nothing to do
+      if (!isEnabled && !isRegistered) {
+        return;
+      }
 
-        // Only cache a found CLI so a later sync can pick up a CLI installed
-        // after activation. Syncs are queued, so this never runs concurrently.
-        this._claudeCliPath ??= await resolveClaudeCliPath();
-        const cliPath = this._claudeCliPath;
-        if (cliPath == null) {
-          logger.debug('Claude CLI not found. Skipping Claude MCP config.');
-          return;
-        }
+      const cliPath = await this.getClaudeCliPath();
+      if (cliPath == null) {
+        return;
+      }
 
-        if (port == null) {
-          // Leave the registered flag set if cleanup didn't complete so it is
-          // retried on the next sync
-          if (!(await unregisterClaudeMcpServers(cliPath, folderPaths))) {
-            return;
-          }
-
+      if (!isEnabled) {
+        // Leave the registered flag set if cleanup didn't complete so it is
+        // retried on the next sync
+        if (await unregisterClaudeMcpServers(cliPath, folderPaths)) {
           await this._context.workspaceState.update(
             CLAUDE_MCP_REGISTERED_STORAGE_KEY,
             false
           );
-          return;
         }
+        return;
+      }
 
-        if (
-          await registerClaudeMcpServers(
-            cliPath,
-            folderPaths,
-            port,
-            this._config.isMcpDocsEnabled()
-          )
-        ) {
-          await this._context.workspaceState.update(
-            CLAUDE_MCP_REGISTERED_STORAGE_KEY,
-            true
-          );
-        }
-      })
-      .catch(error => {
-        logger.error('Failed to sync Claude MCP config:', error);
-      });
+      if (
+        await registerClaudeMcpServers(
+          cliPath,
+          folderPaths,
+          this._config.isMcpDocsEnabled()
+        )
+      ) {
+        await this._context.workspaceState.update(
+          CLAUDE_MCP_REGISTERED_STORAGE_KEY,
+          true
+        );
+      }
+    });
+  }
+
+  /**
+   * Re-register Claude MCP servers when the window gains focus if they are
+   * missing. Claude local scope config is shared by windows on the same Claude
+   * project (e.g. git worktrees of the same repo), so another window disabling
+   * MCP removes the servers for this one too. Throttled since it spawns the
+   * Claude CLI.
+   */
+  private maybeRestoreClaudeMcpConfig(): void {
+    const [folderPath] = getFileFolderPaths(
+      vscode.workspace.workspaceFolders ?? []
+    );
+
+    if (
+      !vscode.window.state.focused ||
+      !this._config.isMcpEnabled() ||
+      folderPath == null ||
+      Date.now() - this._claudeMcpFocusCheckLastMs <
+        CLAUDE_MCP_FOCUS_CHECK_THROTTLE_MS
+    ) {
+      return;
+    }
+
+    this._claudeMcpFocusCheckLastMs = Date.now();
+
+    this.queueClaudeMcpConfigTask(async () => {
+      const cliPath = await this.getClaudeCliPath();
+
+      if (
+        cliPath == null ||
+        (await hasClaudeMcpServer(cliPath, folderPath, CLAUDE_MCP_SERVER_NAME))
+      ) {
+        return;
+      }
+
+      logger.info('Claude MCP config is missing. Restoring.');
+      this.syncClaudeMcpConfig();
+    });
   }
 
   /**
@@ -450,4 +544,18 @@ export class McpController extends ControllerBase {
 
     this._mcpStatusBarItem.show();
   }
+}
+
+/**
+ * Get the file system paths of the given workspace folders, excluding
+ * non-`file` folders, since the Claude CLI has to run in a local folder.
+ * @param folders Workspace folders
+ * @returns File system paths of local folders
+ */
+function getFileFolderPaths(
+  folders: readonly vscode.WorkspaceFolder[]
+): string[] {
+  return folders
+    .filter(folder => folder.uri.scheme === 'file')
+    .map(folder => folder.uri.fsPath);
 }

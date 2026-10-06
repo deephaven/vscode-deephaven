@@ -4,6 +4,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import {
+  hasClaudeMcpServer,
   registerClaudeMcpServers,
   resolveClaudeCliPath,
   unregisterClaudeMcpServers,
@@ -17,8 +18,8 @@ vi.mock('node:os');
 
 const mockHomeDir = '/mock/home';
 const cliPath = '/mock/claude';
-const port = 45001;
-const mcpUrl = `http://localhost:${port}/mcp`;
+// Literal `${…}` that Claude expands from its environment
+const mcpUrl = 'http://localhost:${DEEPHAVEN_VSCODE_MCP_PORT}/mcp';
 
 type ExecFileCallback = (
   error: Error | null,
@@ -194,7 +195,7 @@ describe('registerClaudeMcpServers', () => {
   const folders = ['/mock/folderA', '/mock/folderB'];
 
   it('should upsert servers for each folder sequentially', async () => {
-    const result = await registerClaudeMcpServers(cliPath, folders, port, true);
+    const result = await registerClaudeMcpServers(cliPath, folders, true);
 
     expect(result).toBe(true);
     expect(getExecFileCalls()).toEqual(
@@ -208,7 +209,7 @@ describe('registerClaudeMcpServers', () => {
   });
 
   it('should remove docs server if docs are disabled', async () => {
-    await registerClaudeMcpServers(cliPath, ['/mock/folderA'], port, false);
+    await registerClaudeMcpServers(cliPath, ['/mock/folderA'], false);
 
     expect(getExecFileCalls()).toEqual([
       remove('/mock/folderA', 'deephaven-vscode'),
@@ -223,7 +224,6 @@ describe('registerClaudeMcpServers', () => {
     const result = await registerClaudeMcpServers(
       cliPath,
       ['/mock/folderA'],
-      port,
       false
     );
 
@@ -238,18 +238,34 @@ describe('registerClaudeMcpServers', () => {
       (_file, args) => args[1] === 'add' && args.includes('deephaven-vscode')
     );
 
-    expect(await registerClaudeMcpServers(cliPath, folders, port, true)).toBe(
-      true
-    );
+    expect(await registerClaudeMcpServers(cliPath, folders, true)).toBe(true);
   });
 
   it('should return false if add fails for all folders', async () => {
     mockExecFile((_file, args) => args[1] === 'add');
 
-    expect(await registerClaudeMcpServers(cliPath, folders, port, true)).toBe(
-      false
-    );
+    expect(await registerClaudeMcpServers(cliPath, folders, true)).toBe(false);
   });
+});
+
+describe('hasClaudeMcpServer', () => {
+  it.each([
+    ['configured', null, true],
+    ['not configured', 1, false],
+    ['CLI fails to run', 'ENOENT', false],
+  ] as const)(
+    'should return whether the server is configured: %s',
+    async (label, errorCode, expected) => {
+      mockExecFile(() => label !== 'configured', errorCode);
+
+      expect(
+        await hasClaudeMcpServer(cliPath, '/mock/folderA', 'deephaven-vscode')
+      ).toBe(expected);
+      expect(getExecFileCalls()).toEqual([
+        [cliPath, ['mcp', 'get', 'deephaven-vscode'], '/mock/folderA'],
+      ]);
+    }
+  );
 });
 
 describe('unregisterClaudeMcpServers', () => {

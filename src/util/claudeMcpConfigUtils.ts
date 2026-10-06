@@ -5,6 +5,7 @@ import * as path from 'node:path';
 import {
   CLAUDE_MCP_DOCS_SERVER_NAME,
   CLAUDE_MCP_SERVER_NAME,
+  CLAUDE_MCP_SERVER_URL,
   MCP_DOCS_SERVER_URL,
 } from '../common';
 import { Logger } from './Logger';
@@ -198,20 +199,41 @@ async function upsertClaudeMcpServer(
 }
 
 /**
+ * Check if an MCP server is configured for the given folder in any Claude
+ * config scope.
+ * @param cliPath Path to the Claude CLI executable
+ * @param folderPath Folder to check
+ * @param name MCP server name
+ * @returns true if the server is configured
+ */
+export async function hasClaudeMcpServer(
+  cliPath: string,
+  folderPath: string,
+  name: string
+): Promise<boolean> {
+  return (
+    (await runClaudeCli(cliPath, ['mcp', 'get', name], {
+      cwd: folderPath,
+      timeout: CLAUDE_MCP_TIMEOUT_MS,
+    })) === 'success'
+  );
+}
+
+/**
  * Register Deephaven MCP servers in Claude `local` scope config for the given
  * folders. Claude keys `local` scope config by git root (or by the exact folder
  * if not in a git repo). Folders are processed sequentially since concurrent
- * CLI calls can race writing the Claude config file.
+ * CLI calls can race writing the Claude config file. The Deephaven MCP server
+ * URL references the port via an environment variable that Claude expands, so
+ * the config doesn't depend on which window registered it.
  * @param cliPath Path to the Claude CLI executable
  * @param folderPaths Workspace folder paths
- * @param port Port the Deephaven MCP server is running on
  * @param isDocsEnabled Whether to register the Deephaven docs MCP server
  * @returns true if any server was registered for any folder
  */
 export async function registerClaudeMcpServers(
   cliPath: string,
   folderPaths: string[],
-  port: number,
   isDocsEnabled: boolean
 ): Promise<boolean> {
   let isRegistered = false;
@@ -222,7 +244,7 @@ export async function registerClaudeMcpServers(
         cliPath,
         folderPath,
         CLAUDE_MCP_SERVER_NAME,
-        `http://localhost:${port}/mcp`
+        CLAUDE_MCP_SERVER_URL
       )
     ) {
       isRegistered = true;

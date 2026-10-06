@@ -73,22 +73,28 @@ Different IDEs require different MCP server configuration:
 
 #### Claude Code Configuration
 
-If the [Claude Code CLI](https://code.claude.com/docs) (`claude`) is installed, the extension registers its MCP servers with Claude Code using `local` scope for each workspace folder. `local` scope config is stored in `~/.claude.json` keyed by the project directory (the git repository root, or the workspace folder if not in a git repository), so no files are added to your workspace. This applies to Claude Code running in a terminal as well as the Claude Code IDE extension, in any VS Code-based IDE.
+If the [Claude Code CLI](https://code.claude.com/docs) (`claude`) is installed, the extension registers its MCP servers with Claude Code using `local` scope for each workspace folder. `local` scope config is stored in `~/.claude.json` keyed by the project directory (the git repository root, or the workspace folder if not in a git repository), so no files are added to your workspace. This applies to Claude Code running in a VS Code integrated terminal as well as the Claude Code IDE extension, in any VS Code-based IDE.
 
 The following servers are registered (Claude Code doesn't support spaces in MCP server names):
 
-| Server Name        | Registered When                                                    |
-| ------------------ | ------------------------------------------------------------------ |
-| `deephaven-vscode` | `deephaven.mcp.enabled` is `true`                                  |
-| `deephaven-docs`   | `deephaven.mcp.enabled` and `deephaven.mcp.docsEnabled` are `true` |
+| Server Name        | URL                                                         | Registered When                                                    |
+| ------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------ |
+| `deephaven-vscode` | `http://localhost:${DEEPHAVEN_VSCODE_MCP_PORT}/mcp`         | `deephaven.mcp.enabled` is `true`                                  |
+| `deephaven-docs`   | `https://deephaven-mcp-docs-prod.dhc-demo.deephaven.io/mcp` | `deephaven.mcp.enabled` and `deephaven.mcp.docsEnabled` are `true` |
 
-The servers are removed when the corresponding setting is disabled. To verify the configuration, run the following from your workspace folder:
+The servers are removed when the corresponding setting is disabled.
+
+Claude Code expands `${DEEPHAVEN_VSCODE_MCP_PORT}` from its own environment. Each VS Code window sets this variable to the port of its own MCP server, both for its integrated terminals and for the Claude Code IDE extension. This way, Claude Code always talks to the VS Code window it was started from, even when several windows share the same Claude project (e.g. multiple git worktrees of the same repository, which Claude Code configures as a single project).
+
+To verify the configuration, run the following from an integrated terminal in your workspace:
 
 ```sh
 claude mcp get deephaven-vscode
 ```
 
-> **Note:** Claude Code sessions that are already running won't see a new registration or port change until they are restarted or reconnected using the `/mcp` command.
+> **Note:** Claude Code started outside VS Code (e.g. in an external terminal) doesn't have `DEEPHAVEN_VSCODE_MCP_PORT` set, so `deephaven-vscode` fails to connect. To use it from an external terminal, set the variable to the port shown in the status bar first, e.g. `export DEEPHAVEN_VSCODE_MCP_PORT=<port>`.
+
+> **Note:** Claude Code sessions that are already running won't see a new registration or port change until they are restarted or reconnected using the `/mcp` command. Integrated terminals opened before the MCP server started need to be relaunched to pick up the variable.
 
 #### Manual MCP Server Configuration
 
