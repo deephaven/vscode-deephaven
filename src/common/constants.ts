@@ -51,6 +51,8 @@ export const MCP_DOCS_SERVER_NAME = 'Deephaven Documentation' as const;
 export const MCP_DOCS_SERVER_URL =
   'https://deephaven-mcp-docs-prod.dhc-demo.deephaven.io/mcp' as const;
 
+export const CLAUDE_EXTENSION_ID = 'anthropic.claude-code' as const;
+
 // Claude CLI doesn't support spaces in MCP server names
 export const CLAUDE_MCP_SERVER_NAME = 'deephaven-vscode' as const;
 // Claude expands this from its own environment. Claude local scope config is

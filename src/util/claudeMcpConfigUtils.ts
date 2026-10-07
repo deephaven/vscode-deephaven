@@ -106,12 +106,50 @@ function getClaudeCliPathsOnPath(): string[] {
 }
 
 /**
+ * Get the paths of the Claude CLI binary bundled with the Claude Code VS Code
+ * extension. The extension doesn't add it to PATH, so users who only installed
+ * the extension have no other CLI. Mirrors the extension's own lookup, which on
+ * Windows on ARM prefers a bundled x64 binary.
+ * @param claudeExtensionPath Install path of the Claude Code VS Code extension
+ */
+function getBundledClaudeCliPaths(claudeExtensionPath: string): string[] {
+  if (process.platform === 'win32') {
+    return [
+      path.join(
+        claudeExtensionPath,
+        'resources',
+        'native-binaries',
+        'win32-x64',
+        `${CLAUDE_CLI_NAME}.exe`
+      ),
+      path.join(
+        claudeExtensionPath,
+        'resources',
+        'native-binary',
+        `${CLAUDE_CLI_NAME}.exe`
+      ),
+    ];
+  }
+
+  return [
+    path.join(
+      claudeExtensionPath,
+      'resources',
+      'native-binary',
+      CLAUDE_CLI_NAME
+    ),
+  ];
+}
+
+/**
  * Get the absolute paths of installed Claude CLI candidates. The extension
  * host doesn't always inherit the user's shell PATH (e.g. when VS Code is
  * launched from the macOS Dock), so include default install locations as
- * fallbacks.
+ * fallbacks, then the binary bundled with the Claude Code VS Code extension.
+ * @param claudeExtensionPath Install path of the Claude Code VS Code extension,
+ * if installed
  */
-export function getClaudeCliCandidates(): string[] {
+export function getClaudeCliCandidates(claudeExtensionPath?: string): string[] {
   const homeDir = os.homedir();
 
   const fallbacks =
@@ -122,18 +160,27 @@ export function getClaudeCliCandidates(): string[] {
           path.join(homeDir, '.claude', 'local', CLAUDE_CLI_NAME),
         ];
 
-  return [...new Set([...getClaudeCliPathsOnPath(), ...fallbacks])].filter(
-    isExecutableFile
-  );
+  const bundled =
+    claudeExtensionPath == null
+      ? []
+      : getBundledClaudeCliPaths(claudeExtensionPath);
+
+  return [
+    ...new Set([...getClaudeCliPathsOnPath(), ...fallbacks, ...bundled]),
+  ].filter(isExecutableFile);
 }
 
 /**
  * Resolve the path to an installed Claude CLI.
+ * @param claudeExtensionPath Install path of the Claude Code VS Code extension,
+ * if installed
  * @returns The first candidate that successfully runs `--version`, or null if
  * the Claude CLI is not installed.
  */
-export async function resolveClaudeCliPath(): Promise<string | null> {
-  for (const candidate of getClaudeCliCandidates()) {
+export async function resolveClaudeCliPath(
+  claudeExtensionPath?: string
+): Promise<string | null> {
+  for (const candidate of getClaudeCliCandidates(claudeExtensionPath)) {
     const result = await runClaudeCli(candidate, ['--version'], {
       timeout: CLAUDE_VERSION_TIMEOUT_MS,
     });

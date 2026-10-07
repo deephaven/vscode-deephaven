@@ -24,6 +24,7 @@ import {
   unregisterClaudeMcpServers,
 } from '../util';
 import {
+  CLAUDE_EXTENSION_ID,
   CLAUDE_MCP_DOCS_SERVER_NAME,
   CLAUDE_MCP_PORT_ENV_VAR,
   CLAUDE_MCP_REGISTERED_FOLDERS_STORAGE_KEY,
@@ -299,7 +300,9 @@ export class McpController extends ControllerBase {
    * @returns The Claude CLI path, or null if not installed
    */
   private async getClaudeCliPath(): Promise<string | null> {
-    this._claudeCliPath ??= await resolveClaudeCliPath();
+    this._claudeCliPath ??= await resolveClaudeCliPath(
+      vscode.extensions.getExtension(CLAUDE_EXTENSION_ID)?.extensionPath
+    );
 
     if (this._claudeCliPath == null) {
       logger.debug('Claude CLI not found. Skipping Claude MCP config.');

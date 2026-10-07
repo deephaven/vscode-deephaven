@@ -189,6 +189,61 @@ describe('resolveClaudeCliPath', () => {
 
     expect(await resolveClaudeCliPath()).toBe(localBinClaudeExe);
   });
+
+  describe('Claude Code VS Code extension bundled binary', () => {
+    const extensionPath = path.join('/mock', 'claude-code-extension');
+    const nativeBinaryDir = path.join(
+      extensionPath,
+      'resources',
+      'native-binary'
+    );
+
+    it('should fall back to bundled binary', async () => {
+      const bundledClaude = path.join(nativeBinaryDir, 'claude');
+      mockExecutableFiles([bundledClaude]);
+
+      expect(await resolveClaudeCliPath(extensionPath)).toBe(bundledClaude);
+    });
+
+    it('should prefer an installed CLI over the bundled binary', async () => {
+      mockExecutableFiles([
+        localBinClaude,
+        path.join(nativeBinaryDir, 'claude'),
+      ]);
+
+      expect(await resolveClaudeCliPath(extensionPath)).toBe(localBinClaude);
+    });
+
+    it('should ignore bundled binary if extension path is not provided', async () => {
+      mockExecutableFiles([path.join(nativeBinaryDir, 'claude')]);
+
+      expect(await resolveClaudeCliPath()).toBeNull();
+    });
+
+    it.each([
+      [
+        'x64 binary on Windows on ARM',
+        path.join(
+          extensionPath,
+          'resources',
+          'native-binaries',
+          'win32-x64',
+          'claude.exe'
+        ),
+      ],
+      ['native binary', path.join(nativeBinaryDir, 'claude.exe')],
+    ])(
+      'should fall back to bundled `claude.exe` on Windows: %s',
+      async (_label, bundledClaudeExe) => {
+        mockPlatform('win32');
+        mockExecutableFiles([bundledClaudeExe]);
+
+        expect(await resolveClaudeCliPath(extensionPath)).toBe(
+          bundledClaudeExe
+        );
+      }
+    );
+  });
 });
 
 describe('registerClaudeMcpServers', () => {
