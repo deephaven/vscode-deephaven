@@ -96,7 +96,7 @@ claude mcp get deephaven-vscode
 
 > **Note:** Claude Code started outside VS Code (e.g. in an external terminal) doesn't have `DEEPHAVEN_VSCODE_MCP_PORT` set, so `deephaven-vscode` fails to connect. To use it from an external terminal, set the variable to the port shown in the status bar first, e.g. `export DEEPHAVEN_VSCODE_MCP_PORT=<port>`.
 
-> **Note:** Claude Code loads MCP servers when a session starts. To pick up changes, restart `claude` or start a new session. Terminals opened before the MCP server started need to be relaunched.
+> **Note:** Claude Code loads MCP servers when a session starts. To pick up changes, restart `claude` or start a new session. Terminals opened before the MCP server started need to be relaunched first, since they don't have `DEEPHAVEN_VSCODE_MCP_PORT` set.
 
 #### Manual MCP Server Configuration
 
