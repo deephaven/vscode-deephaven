@@ -45,11 +45,21 @@ function runClaudeCli(
   const isWindowsScript =
     process.platform === 'win32' && /\.(bat|cmd)$/i.test(cliPath);
 
+  // npm's `.cmd` shims run a bare `node` when `node.exe` isn't next to the
+  // shim, and `cmd.exe` resolves bare commands from the current directory
+  // first. `cwd` is a workspace folder, so stop `cmd.exe` from searching it
+  // (otherwise a workspace containing `node.exe` would run instead).
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const noCwdSearchEnv = { NoDefaultCurrentDirectoryInExePath: '1' };
+  const env = isWindowsScript
+    ? { ...process.env, ...noCwdSearchEnv }
+    : undefined;
+
   return new Promise(resolve => {
     execFile(
       isWindowsScript ? `"${cliPath}"` : cliPath,
       args,
-      { cwd, timeout, shell: isWindowsScript },
+      { cwd, timeout, shell: isWindowsScript, env },
       (error, _stdout, stderr) => {
         if (error != null) {
           logger.debug(

@@ -135,6 +135,7 @@ describe('resolveClaudeCliPath', () => {
     ]);
     expect(vi.mocked(execFile).mock.calls[0][2]).toMatchObject({
       shell: false,
+      env: undefined,
     });
   });
 
@@ -174,6 +175,8 @@ describe('resolveClaudeCliPath', () => {
     expect(vi.mocked(execFile).mock.calls[0][0]).toBe(`"${binAClaudeCmd}"`);
     expect(vi.mocked(execFile).mock.calls[0][2]).toMatchObject({
       shell: true,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      env: expect.objectContaining({ NoDefaultCurrentDirectoryInExePath: '1' }),
     });
   });
 
