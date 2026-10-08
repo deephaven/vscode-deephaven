@@ -51,6 +51,21 @@ export const MCP_DOCS_SERVER_NAME = 'Deephaven Documentation' as const;
 export const MCP_DOCS_SERVER_URL =
   'https://deephaven-mcp-docs-prod.dhc-demo.deephaven.io/mcp' as const;
 
+export const CLAUDE_EXTENSION_ID = 'anthropic.claude-code' as const;
+
+// Claude CLI doesn't support spaces in MCP server names
+export const CLAUDE_MCP_SERVER_NAME = 'deephaven-vscode' as const;
+// Claude expands this from its own environment. Claude local scope config is
+// shared by all git worktrees of a repo, so the port can't be stored in it.
+export const CLAUDE_MCP_PORT_ENV_VAR = 'DEEPHAVEN_VSCODE_MCP_PORT' as const;
+export const CLAUDE_MCP_SERVER_URL =
+  `http://localhost:\${${CLAUDE_MCP_PORT_ENV_VAR}}/mcp` as const;
+// Distinct from names users are likely to configure themselves (e.g.
+// `deephaven-docs`), so any server with this name was added by the extension
+export const CLAUDE_MCP_DOCS_SERVER_NAME = 'deephaven-vscode-docs' as const;
+export const CLAUDE_MCP_REGISTERED_FOLDERS_STORAGE_KEY =
+  `${EXTENSION_ID}.claudeMcpRegisteredFolders` as const;
+
 /**
  * Minimum milliseconds between `QueryInfo` table update notifications. The table
  * ticks on every row add/remove and status transition, so on a server holding
