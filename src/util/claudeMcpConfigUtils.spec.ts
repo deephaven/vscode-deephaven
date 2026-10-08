@@ -372,4 +372,38 @@ describe('getClaudeFolderPaths', () => {
 
     expect(getClaudeFolderPaths(folders)).toEqual(['/remote/folder']);
   });
+
+  describe('Windows', () => {
+    const windowsFolder = (fsPath: string): vscode.WorkspaceFolder => ({
+      uri: { scheme: 'file', fsPath } as vscode.Uri,
+      name: fsPath,
+      index: 0,
+    });
+
+    beforeEach(() => {
+      mockPlatform('win32');
+    });
+
+    it.each([
+      ['c:\\code\\repo', ['c:\\code\\repo', 'C:\\code\\repo']],
+      ['C:\\code\\repo', ['c:\\code\\repo', 'C:\\code\\repo']],
+    ])('should include both drive letter casings of %s', (fsPath, expected) => {
+      expect(getClaudeFolderPaths([windowsFolder(fsPath)])).toEqual(expected);
+    });
+
+    it('should include paths without a drive letter as is', () => {
+      expect(
+        getClaudeFolderPaths([windowsFolder('\\\\server\\share')])
+      ).toEqual(['\\\\server\\share']);
+    });
+
+    it('should not include duplicate paths', () => {
+      expect(
+        getClaudeFolderPaths([
+          windowsFolder('c:\\code\\repo'),
+          windowsFolder('C:\\code\\repo'),
+        ])
+      ).toEqual(['c:\\code\\repo', 'C:\\code\\repo']);
+    });
+  });
 });

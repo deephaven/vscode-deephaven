@@ -73,7 +73,7 @@ Different IDEs require different MCP server configuration:
 
 #### Claude Code Configuration
 
-If [Claude Code](https://code.claude.com/docs) is installed, either as the `claude` CLI or as the Claude Code VS Code extension (which bundles the CLI), the extension registers its MCP servers with Claude Code using `local` scope for each workspace folder. `local` scope config is stored in `~/.claude.json` keyed by the project directory (the git repository root, or the workspace folder if not in a git repository), so no files are added to your workspace. This applies to Claude Code running in a VS Code integrated terminal as well as the Claude Code IDE extension, in any VS Code-based IDE.
+If [Claude Code](https://code.claude.com/docs) is installed, either as the `claude` CLI or as the Claude Code VS Code extension (which bundles the CLI), the extension registers its MCP servers with Claude Code using `local` scope for each workspace folder. `local` scope config is stored in `~/.claude.json` keyed by the project directory (the git repository root, or the workspace folder if not in a git repository), so no files are added to your workspace. On Windows, Claude Code treats paths that differ only in drive letter case (e.g. `c:\code\repo` and `C:\code\repo`) as different projects, and the Claude Code IDE extension and terminals typically use different casings, so the servers are registered under both. This applies to Claude Code running in a VS Code integrated terminal as well as the Claude Code IDE extension, in any VS Code-based IDE.
 
 The following servers are registered:
 

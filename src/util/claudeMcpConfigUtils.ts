@@ -354,12 +354,36 @@ export async function unregisterClaudeMcpServers(
 }
 
 /**
+ * Get both drive letter casings of a Windows path. Claude keys `local` scope
+ * config by the path without normalizing drive letter case, so `c:\foo` and
+ * `C:\foo` are different Claude projects. VS Code `fsPath` uses a lowercase
+ * drive letter (which the Claude Code VS Code extension uses too), while
+ * terminals typically use an uppercase one, so config is needed under both.
+ * @param folderPath Folder path
+ * @returns The lowercase and uppercase drive letter variants, or just the
+ * given path if not on Windows or it doesn't start with a drive letter
+ */
+function getDriveLetterCaseVariants(folderPath: string): string[] {
+  if (process.platform !== 'win32' || !/^[a-z]:/i.test(folderPath)) {
+    return [folderPath];
+  }
+
+  const rest = folderPath.slice(1);
+  return [
+    folderPath[0].toLowerCase() + rest,
+    folderPath[0].toUpperCase() + rest,
+  ];
+}
+
+/**
  * Get the file system paths of the given workspace folders that the Claude CLI
  * can run in, i.e. folders on the machine the extension is running on. Locally
  * these have the `file` scheme. For remote workspaces (e.g. Dev Containers,
  * Remote - SSH), the extension runs in the remote extension host, where
  * workspace folders have the `vscode-remote` scheme and `fsPath` is a path on
  * the remote machine (a `file` URI would refer to the client machine instead).
+ * On Windows, each folder is included with both drive letter casings, since
+ * Claude treats them as different projects.
  * @param folders Workspace folders
  * @returns File system paths of the folders
  */
@@ -368,7 +392,11 @@ export function getClaudeFolderPaths(
 ): string[] {
   const scheme = vscode.env.remoteName == null ? 'file' : 'vscode-remote';
 
-  return folders
-    .filter(({ uri }) => uri.scheme === scheme)
-    .map(({ uri }) => uri.fsPath);
+  return [
+    ...new Set(
+      folders
+        .filter(({ uri }) => uri.scheme === scheme)
+        .flatMap(({ uri }) => getDriveLetterCaseVariants(uri.fsPath))
+    ),
+  ];
 }
