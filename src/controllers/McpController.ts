@@ -17,6 +17,7 @@ import type { FilteredWorkspace } from '../services';
 import {
   isWindsurf,
   Logger,
+  getClaudeFolderPaths,
   hasClaudeMcpServer,
   OutputChannelWithHistory,
   registerClaudeMcpServers,
@@ -593,25 +594,4 @@ export class McpController extends ControllerBase {
 
     this._mcpStatusBarItem.show();
   }
-}
-
-/**
- * Get the file system paths of the given workspace folders that the Claude CLI
- * can run in. The extension runs in the remote extension host for remote
- * workspaces (e.g. Dev Containers, Remote - SSH), where workspace folders have
- * the `vscode-remote` scheme and `fsPath` is a path on the remote machine.
- * @param folders Workspace folders
- * @returns File system paths of the folders
- */
-function getClaudeFolderPaths(
-  folders: readonly vscode.WorkspaceFolder[]
-): string[] {
-  const isRemote = vscode.env.remoteName != null;
-
-  return folders
-    .filter(
-      ({ uri }) =>
-        uri.scheme === 'file' || (isRemote && uri.scheme === 'vscode-remote')
-    )
-    .map(({ uri }) => uri.fsPath);
 }

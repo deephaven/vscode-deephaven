@@ -1,9 +1,11 @@
+import * as vscode from 'vscode';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { execFile } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import {
+  getClaudeFolderPaths,
   hasClaudeMcpServer,
   registerClaudeMcpServers,
   resolveClaudeCliPath,
@@ -345,4 +347,32 @@ describe('unregisterClaudeMcpServers', () => {
       );
     }
   );
+});
+
+describe('getClaudeFolderPaths', () => {
+  const folder = (uri: string): vscode.WorkspaceFolder => ({
+    uri: vscode.Uri.parse(uri),
+    name: uri,
+    index: 0,
+  });
+
+  const folders = [
+    folder('file:///local/folder'),
+    folder('vscode-remote:///remote/folder'),
+    folder('untitled:///untitled/folder'),
+    folder('vscode-vfs:///virtual/folder'),
+  ];
+
+  it('should only include `file` folders in a local window', () => {
+    expect(getClaudeFolderPaths(folders)).toEqual(['/local/folder']);
+  });
+
+  it('should include `vscode-remote` folders in a remote window', () => {
+    vi.spyOn(vscode.env, 'remoteName', 'get').mockReturnValue('dev-container');
+
+    expect(getClaudeFolderPaths(folders)).toEqual([
+      '/local/folder',
+      '/remote/folder',
+    ]);
+  });
 });
