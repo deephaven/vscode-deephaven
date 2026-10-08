@@ -380,13 +380,6 @@ export class McpController extends ControllerBase {
         return;
       }
 
-      // Record folders before registering so they are cleaned up later even
-      // if registration is interrupted
-      await this.setClaudeMcpRegisteredFolders([
-        ...registeredPaths,
-        ...folderPaths,
-      ]);
-
       for (const folderPath of stalePaths) {
         // The Claude CLI can't run in a deleted folder, so its config can't be
         // removed. Stop tracking it.
@@ -398,12 +391,17 @@ export class McpController extends ControllerBase {
         // on the next sync
         if (isRemoved) {
           registeredPaths.delete(folderPath);
-          await this.setClaudeMcpRegisteredFolders([
-            ...registeredPaths,
-            ...folderPaths,
-          ]);
         }
       }
+
+      // Save removal results, and record current folders before registering so
+      // they are cleaned up later even if registration is interrupted. If
+      // removal is interrupted instead, nothing is saved, so removals are
+      // retried on the next sync (removing missing servers is harmless).
+      await this.setClaudeMcpRegisteredFolders([
+        ...registeredPaths,
+        ...folderPaths,
+      ]);
 
       for (const folderPath of folderPaths) {
         await registerClaudeMcpServers(
