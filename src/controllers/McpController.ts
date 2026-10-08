@@ -232,7 +232,9 @@ export class McpController extends ControllerBase {
         );
       }
 
-      // Claude CLI config is editor independent, so sync in all editors
+      // Configure Claude Code in all editors (VS Code, Windsurf, Cursor, etc.),
+      // since it doesn't use editor MCP APIs. Must run before the Windsurf early
+      // return below.
       this.setClaudeMcpPortEnvVar(actualPort);
       this.syncClaudeMcpConfig();
 
