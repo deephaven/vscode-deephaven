@@ -355,21 +355,20 @@ export async function unregisterClaudeMcpServers(
 
 /**
  * Get the file system paths of the given workspace folders that the Claude CLI
- * can run in. The extension runs in the remote extension host for remote
- * workspaces (e.g. Dev Containers, Remote - SSH), where workspace folders have
- * the `vscode-remote` scheme and `fsPath` is a path on the remote machine.
+ * can run in, i.e. folders on the machine the extension is running on. Locally
+ * these have the `file` scheme. For remote workspaces (e.g. Dev Containers,
+ * Remote - SSH), the extension runs in the remote extension host, where
+ * workspace folders have the `vscode-remote` scheme and `fsPath` is a path on
+ * the remote machine (a `file` URI would refer to the client machine instead).
  * @param folders Workspace folders
  * @returns File system paths of the folders
  */
 export function getClaudeFolderPaths(
   folders: readonly vscode.WorkspaceFolder[]
 ): string[] {
-  const isRemote = vscode.env.remoteName != null;
+  const scheme = vscode.env.remoteName == null ? 'file' : 'vscode-remote';
 
   return folders
-    .filter(
-      ({ uri }) =>
-        uri.scheme === 'file' || (isRemote && uri.scheme === 'vscode-remote')
-    )
+    .filter(({ uri }) => uri.scheme === scheme)
     .map(({ uri }) => uri.fsPath);
 }

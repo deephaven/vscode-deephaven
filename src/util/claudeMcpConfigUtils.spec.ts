@@ -203,7 +203,7 @@ describe('resolveClaudeCliPath', () => {
       'native-binary'
     );
 
-    it('should fall back to bundled binary', async () => {
+    it('should find bundled binary when no other CLI is installed', async () => {
       const bundledClaude = path.join(nativeBinaryDir, 'claude');
       mockExecutableFiles([bundledClaude]);
 
@@ -238,7 +238,7 @@ describe('resolveClaudeCliPath', () => {
       ],
       ['native binary', path.join(nativeBinaryDir, 'claude.exe')],
     ])(
-      'should fall back to bundled `claude.exe` on Windows: %s',
+      'should find bundled `claude.exe` on Windows: %s',
       async (_label, bundledClaudeExe) => {
         mockPlatform('win32');
         mockExecutableFiles([bundledClaudeExe]);
@@ -367,12 +367,9 @@ describe('getClaudeFolderPaths', () => {
     expect(getClaudeFolderPaths(folders)).toEqual(['/local/folder']);
   });
 
-  it('should include `vscode-remote` folders in a remote window', () => {
+  it('should only include `vscode-remote` folders in a remote window', () => {
     vi.spyOn(vscode.env, 'remoteName', 'get').mockReturnValue('dev-container');
 
-    expect(getClaudeFolderPaths(folders)).toEqual([
-      '/local/folder',
-      '/remote/folder',
-    ]);
+    expect(getClaudeFolderPaths(folders)).toEqual(['/remote/folder']);
   });
 });
