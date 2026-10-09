@@ -13,9 +13,9 @@ const spec = {
   title: 'Connect to Server',
   description:
     'Create a connection to a Deephaven server. The server must already be configured in the extension. For DHE (Enterprise) servers, this will create a new worker.',
-  inputSchema: {
+  inputSchema: z.object({
     url: z.string().describe('Server URL (e.g., "http://localhost:10000")'),
-  },
+  }),
   outputSchema: createMcpToolOutputSchema({
     type: z.enum(['DHC', 'DHE']).optional().describe('Server type'),
     url: z.string().optional().describe('Server URL'),

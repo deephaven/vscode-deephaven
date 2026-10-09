@@ -12,14 +12,14 @@ import type { FilteredWorkspace } from '../../services';
 const spec = {
   title: 'List Remote File Sources',
   description: 'List all remote file source folders in the workspace.',
-  inputSchema: {
+  inputSchema: z.object({
     languageId: z
       .string()
       .optional()
       .describe(
         'The language of the remote file sources to list: "python" or "groovy". If not specified, lists both.'
       ),
-  },
+  }),
   outputSchema: createMcpToolOutputSchema({
     folders: z
       .array(

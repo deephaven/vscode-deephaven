@@ -18,7 +18,7 @@ const spec = {
   title: 'Get Table Data',
   description:
     'Fetch paginated data from a Deephaven table. Prefer variableId if available (from runCode or listVariables, must have type "Table"); use tableName when the user specifies a table by name and you have no variableId.',
-  inputSchema: {
+  inputSchema: z.object({
     connectionUrl: z
       .string()
       .describe(
@@ -55,7 +55,7 @@ const spec = {
       .describe(
         'Table name specified by the user. Only use when variableId is not available.'
       ),
-  },
+  }),
   outputSchema: createMcpToolOutputSchema({
     columns: z
       .array(
@@ -69,7 +69,7 @@ const spec = {
     connectionUrl: z.string().optional().describe('Connection URL'),
     externalConsoleUrls: externalConsoleUrlsSchema,
     data: z
-      .array(z.record(z.unknown()))
+      .array(z.record(z.string(), z.unknown()))
       .optional()
       .describe('Array of row objects with column values'),
     hasMore: z

@@ -10,7 +10,7 @@ import { createMcpToolOutputSchema, McpToolResponse } from '../utils';
 const spec = {
   title: 'Open Files in Editor',
   description: 'Open one or more files in the VS Code editor.',
-  inputSchema: {
+  inputSchema: z.object({
     uris: z
       .array(z.string())
       .describe('List of file URIs to open in the editor.'),
@@ -22,7 +22,7 @@ const spec = {
       .boolean()
       .optional()
       .describe('Preserve focus in the current editor group (default: false).'),
-  },
+  }),
   outputSchema: createMcpToolOutputSchema({
     filesOpened: z.number(),
     failedUris: z.array(z.string()).optional(),

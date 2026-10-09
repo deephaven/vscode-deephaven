@@ -19,7 +19,7 @@ const spec = {
   title: 'Get Column Statistics',
   description:
     'Get statistical information for a column in a Deephaven table. Prefer variableId if available (from runCode or listVariables, must have type "Table"); use tableName when the user specifies a table by name and you have no variableId. Returns statistics like min, max, average, and unique value counts.',
-  inputSchema: {
+  inputSchema: z.object({
     connectionUrl: z
       .string()
       .describe(
@@ -38,13 +38,13 @@ const spec = {
         'Table name specified by the user. Only use when variableId is not available.'
       ),
     columnName: z.string().describe('Name of the column to get statistics for'),
-  },
+  }),
   outputSchema: createMcpToolOutputSchema({
     columnName: z.string().optional(),
     connectionUrl: z.string().optional(),
     externalConsoleUrls: externalConsoleUrlsSchema,
     statistics: z
-      .record(z.unknown())
+      .record(z.string(), z.unknown())
       .optional()
       .describe(
         'Map of statistic names to their values (e.g., MIN, MAX, AVG, SUM, etc.)'
@@ -52,7 +52,7 @@ const spec = {
     variableId: z.string().optional().describe('Variable ID'),
     tableName: z.string().optional(),
     uniqueValues: z
-      .record(z.number())
+      .record(z.string(), z.number())
       .optional()
       .describe(
         'Map of unique values to their counts (only included for low-cardinality columns)'
