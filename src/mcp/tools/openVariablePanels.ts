@@ -20,7 +20,7 @@ const spec = {
   title: 'Open Variable Panels',
   description:
     'Open variable panels for a given connection URL and list of variables.',
-  inputSchema: {
+  inputSchema: z.object({
     connectionUrl: z.string().describe('The Deephaven connection URL.'),
     variables: z
       .array(
@@ -30,7 +30,7 @@ const spec = {
         })
       )
       .describe('List of variable definitions to open panels for.'),
-  },
+  }),
   outputSchema: createMcpToolOutputSchema({
     connectionUrl: z.string().optional(),
     externalConsoleUrls: externalConsoleUrlsSchema,

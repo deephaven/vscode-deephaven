@@ -19,7 +19,7 @@ const spec = {
   title: 'Get Table Schema and Statistics',
   description:
     'Get schema information and basic statistics for a Deephaven table. Prefer variableId if available (from runCode or listVariables, must have type "Table"); use tableName when the user specifies a table by name and you have no variableId. Returns column names, types, descriptions, row count, and other table metadata.',
-  inputSchema: {
+  inputSchema: z.object({
     connectionUrl: z
       .string()
       .describe(
@@ -37,7 +37,7 @@ const spec = {
       .describe(
         'Table name specified by the user. Only use when variableId is not available.'
       ),
-  },
+  }),
   outputSchema: createMcpToolOutputSchema({
     columns: z
       .array(

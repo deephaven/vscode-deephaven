@@ -13,7 +13,7 @@ const spec = {
   title: 'Remove Remote File Sources',
   description:
     'Remove one or more remote file source folders from the workspace.',
-  inputSchema: {
+  inputSchema: z.object({
     languageId: z
       .string()
       .describe(
@@ -22,7 +22,7 @@ const spec = {
     folderUris: z
       .array(z.string())
       .describe('List of folder URIs to remove as remote file sources.'),
-  },
+  }),
   outputSchema: createMcpToolOutputSchema({
     foldersRemoved: z.number().optional(),
     folderUris: z.array(z.string()).optional(),

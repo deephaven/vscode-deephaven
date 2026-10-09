@@ -30,11 +30,13 @@ Export from `src/mcp/tools/index.ts`:
 export * from './{toolName}';
 ```
 
-Register in `src/mcp/McpServer.ts` constructor:
+Register in `createSdkServer` in `src/mcp/McpServer.ts`:
 
 ```typescript
-this.registerTool(create{ToolName}Tool(this));
+registerTool(create{ToolName}Tool(this));
 ```
+
+`createSdkServer` builds a fresh SDK server (from `@modelcontextprotocol/server`) for every HTTP request, which is what allows concurrent tool calls. Tool factories are therefore called per request, so keep them cheap and stateless; long-lived state belongs in the services injected into `McpServer`.
 
 ### 2. Tool Implementation Template
 
@@ -52,9 +54,9 @@ import { createMcpToolOutputSchema, McpToolResponse } from '../utils';
 const spec = {
   title: 'Tool Title',
   description: 'What the tool does and when to use it',
-  inputSchema: {
+  inputSchema: z.object({
     param: z.string().describe('Parameter description'),
-  },
+  }),
   outputSchema: createMcpToolOutputSchema({
     result: z.string().optional().describe('Result field'),
   }),
@@ -85,14 +87,14 @@ export function createToolNameTool({
 
 **Input Schema:**
 
-- Use Zod schemas directly as object properties (NOT `z.object()`)
+- Wrap the parameters in `z.object({ ... })` (raw shapes are deprecated in MCP SDK v2)
 - Add descriptive `.describe()` to every parameter
 - Document expected formats (e.g., URLs, language IDs)
 
 **Output Schema:**
 
 - Always use `createMcpToolOutputSchema()` helper
-- Pass optional details shape as object of Zod schemas
+- Pass optional details shape as object of Zod schemas (the helper wraps it in `z.object()`)
 - Include ALL detail properties from every response call (success, error, errorWithHint)
 - Make properties **required** only if present in ALL code paths; otherwise **optional** (missing required fields in error responses cause schema errors)
 - Sort detail properties alphabetically
@@ -105,12 +107,12 @@ const spec = {
   title: 'Get Table Stats',
   description:
     'Get schema information and basic statistics for a Deephaven table',
-  inputSchema: {
+  inputSchema: z.object({
     connectionUrl: z
       .string()
       .describe('Connection URL (e.g., "http://localhost:10000")'),
     tableName: z.string().describe('Name of the table to describe'),
-  },
+  }),
   outputSchema: createMcpToolOutputSchema({
     // Properties sorted alphabetically
     columns: z
@@ -145,6 +147,8 @@ type HandlerResult = McpToolHandlerResult<Spec>;
 type ToolNameTool = McpTool<Spec>;
 ```
 
+`HandlerArg` is the schema _input_ type, so apply defaults when destructuring (e.g. `limit = DEFAULT_LIMIT`). Handlers may take an optional second `ctx: ServerContext` parameter (abort signal `ctx.mcpReq.signal`, etc.); no tool currently uses it.
+
 ### 5. Dependency Injection
 
 Tools receive dependencies via constructor parameters:
@@ -161,7 +165,7 @@ export function createGetTableStatsTool({
 
 **Dependency sources:**
 
-- Check `McpServer.ts` constructor for available services to inject
+- Check the `McpServer.ts` constructor for available services to inject
 - VS Code APIs can be used directly via `import * as vscode from 'vscode'`
 - Commands available via `import { execXxx } from '../../common/commands'`
 - Only request dependencies your tool actually needs
@@ -299,7 +303,7 @@ expect(result.structuredContent).toEqual(mcpErrorResult('Failed', { url }));
 - [ ] Tool file created in `src/mcp/tools/{toolName}.ts`
 - [ ] Test file created in `src/mcp/tools/{toolName}.spec.ts`
 - [ ] Exported from `src/mcp/tools/index.ts`
-- [ ] Registered in `src/mcp/McpServer.ts` constructor
+- [ ] Registered in `createSdkServer` in `src/mcp/McpServer.ts`
 - [ ] Spec follows naming conventions (title, description, schemas)
 - [ ] Input and output schema properties alphabetically sorted
 - [ ] Input and output schema properties all have `.describe()` calls

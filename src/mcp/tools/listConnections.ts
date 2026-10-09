@@ -13,14 +13,14 @@ const spec = {
   title: 'List Connections',
   description:
     'List all active Deephaven connections, optionally filtered by server URL.',
-  inputSchema: {
+  inputSchema: z.object({
     serverUrl: z
       .string()
       .optional()
       .describe(
         'Optional server URL to filter connections (e.g., "http://localhost:10000")'
       ),
-  },
+  }),
   outputSchema: createMcpToolOutputSchema({
     connections: z
       .array(

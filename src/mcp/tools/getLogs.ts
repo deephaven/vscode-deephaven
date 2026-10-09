@@ -9,14 +9,14 @@ const spec = {
   title: 'Get Logs',
   description:
     'Get the log history from the Deephaven output. Returns all accumulated log messages.',
-  inputSchema: {
+  inputSchema: z.object({
     logType: z
       .enum(LOG_TYPES)
       .describe(
         'Which logs to retrieve: "server" for Deephaven server output, or "debug" for detailed debug logs. Recommended: "debug" for troubleshooting.'
       ),
-  },
-  outputSchema: {
+  }),
+  outputSchema: z.object({
     success: z.boolean(),
     message: z.string(),
     executionTimeMs: z.number().describe('Execution time in milliseconds'),
@@ -27,7 +27,7 @@ const spec = {
         .describe('The log messages as an array of strings'),
       logType: z.enum(LOG_TYPES).describe('The type of logs retrieved'),
     }),
-  },
+  }),
 } as const;
 
 type Spec = typeof spec;

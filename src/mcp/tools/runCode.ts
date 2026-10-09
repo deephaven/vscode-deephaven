@@ -17,7 +17,7 @@ const spec = {
   title: 'Run Deephaven Code',
   description:
     'Execute arbitrary code text in a Deephaven session. Use this for ad-hoc script execution. For running code from workspace files, use runCodeFromUri instead.',
-  inputSchema: {
+  inputSchema: z.object({
     code: z.string().describe('The code text to execute.'),
     languageId: z
       .string()
@@ -25,7 +25,7 @@ const spec = {
     connectionUrl: z
       .string()
       .describe('The Deephaven connection URL to use for execution.'),
-  },
+  }),
   outputSchema: runCodeOutputSchema,
 } as const;
 

@@ -13,7 +13,7 @@ const spec = {
   title: 'Add Remote File Sources',
   description:
     'Add folder(s) as remote file sources (allows server to fetch source files on-demand during script execution).',
-  inputSchema: {
+  inputSchema: z.object({
     languageId: z
       .string()
       .describe(
@@ -22,7 +22,7 @@ const spec = {
     folderUris: z
       .array(z.string())
       .describe('List of folder URIs to add as remote file sources.'),
-  },
+  }),
   outputSchema: createMcpToolOutputSchema({
     foldersAdded: z.number().optional(),
     folderUris: z.array(z.string()).optional(),

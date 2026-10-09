@@ -5,6 +5,7 @@ node_modules
 .claude
 .plans
 .vscode-test/
+devc.jsonc
 .DS_Store
 e2e-testing/.resources
 e2e-testing/.test-extensions

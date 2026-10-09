@@ -18,13 +18,13 @@ const spec = {
   title: 'List Panel Variables',
   description:
     'List all panel variables for a given Deephaven connection URL. The response includes a panelUrlFormat in the details to construct panel URLs.',
-  inputSchema: {
+  inputSchema: z.object({
     connectionUrl: z
       .string()
       .describe(
         'The Deephaven Core / Core+ connection URL (e.g., "http://localhost:10000")'
       ),
-  },
+  }),
   outputSchema: createMcpToolOutputSchema({
     connectionUrl: z.string().optional(),
     externalConsoleUrls: externalConsoleUrlsSchema,
