@@ -9,14 +9,14 @@ const spec = {
   title: 'Show Output Panel',
   description:
     'Show a Deephaven output panel in the VS Code UI. Can show either the server output or debug output.',
-  inputSchema: {
+  inputSchema: z.object({
     outputType: z
       .enum(OUTPUT_TYPES)
       .describe(
         'Which output to show: "server" for Deephaven server output, or "debug" for detailed debug output. Recommended: "server" for general use.'
       ),
-  },
-  outputSchema: {
+  }),
+  outputSchema: z.object({
     success: z.boolean(),
     message: z.string(),
     executionTimeMs: z.number().describe('Execution time in milliseconds'),
@@ -25,7 +25,7 @@ const spec = {
         .enum(OUTPUT_TYPES)
         .describe('The type of output panel shown'),
     }),
-  },
+  }),
 } as const;
 
 type Spec = typeof spec;

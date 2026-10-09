@@ -32,7 +32,7 @@ export type McpToolResult<TSuccess extends boolean, TDetails = unknown> = {
  * execution time, optional hint, and optional tool-specific details.
  *
  * @param detailsSchema Optional Zod schema for tool-specific details.
- * @returns Output schema object for use in tool spec.
+ * @returns Zod object schema for use as a tool spec `outputSchema`.
  *
  * @example
  * ```typescript
@@ -40,7 +40,7 @@ export type McpToolResult<TSuccess extends boolean, TDetails = unknown> = {
  * const spec = {
  *   title: 'My Tool',
  *   description: 'Does something',
- *   inputSchema: { ... },
+ *   inputSchema: z.object({ ... }),
  *   outputSchema: createMcpToolOutputSchema(),
  * };
  *
@@ -48,7 +48,7 @@ export type McpToolResult<TSuccess extends boolean, TDetails = unknown> = {
  * const spec = {
  *   title: 'My Tool',
  *   description: 'Does something',
- *   inputSchema: { ... },
+ *   inputSchema: z.object({ ... }),
  *   outputSchema: createMcpToolOutputSchema({
  *     count: z.number(),
  *     items: z.array(z.string()),
@@ -67,22 +67,31 @@ export const externalConsoleUrlsSchema = z
     'Worker URLs for consoles running on the server that this extension did not create. Pass one as the connectionUrl to use it.'
   );
 
-export function createMcpToolOutputSchema<TDetailsShape extends z.ZodRawShape>(
-  detailsShape?: TDetailsShape
-): {
+type McpToolOutputBaseShape = {
   success: z.ZodBoolean;
   message: z.ZodString;
   executionTimeMs: z.ZodNumber;
   hint: z.ZodOptional<z.ZodString>;
-  details?: z.ZodOptional<z.ZodObject<TDetailsShape>>;
-} {
-  return {
+};
+
+export function createMcpToolOutputSchema(): z.ZodObject<McpToolOutputBaseShape>;
+export function createMcpToolOutputSchema<TDetailsShape extends z.ZodRawShape>(
+  detailsShape: TDetailsShape
+): z.ZodObject<
+  McpToolOutputBaseShape & {
+    details: z.ZodOptional<z.ZodObject<TDetailsShape>>;
+  }
+>;
+export function createMcpToolOutputSchema<TDetailsShape extends z.ZodRawShape>(
+  detailsShape?: TDetailsShape
+): z.ZodObject<z.ZodRawShape> {
+  return z.object({
     success: z.boolean(),
     message: z.string(),
     executionTimeMs: z.number().describe('Execution time in milliseconds'),
     hint: z.string().optional(),
     ...(detailsShape ? { details: z.object(detailsShape).optional() } : {}),
-  };
+  });
 }
 
 /**

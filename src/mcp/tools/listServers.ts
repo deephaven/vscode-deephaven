@@ -12,7 +12,7 @@ const spec = {
   title: 'List Servers',
   description:
     'List all Deephaven servers with optional filtering by running status, connection status, or type.',
-  inputSchema: {
+  inputSchema: z.object({
     isRunning: z
       .boolean()
       .optional()
@@ -27,7 +27,7 @@ const spec = {
       .enum(['DHC', 'DHE'])
       .optional()
       .describe('Filter by server type (DHC = Community, DHE = Enterprise)'),
-  },
+  }),
   outputSchema: createMcpToolOutputSchema({
     servers: z.array(serverResultSchema).optional(),
   }),

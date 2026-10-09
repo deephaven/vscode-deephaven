@@ -1271,11 +1271,12 @@
     "@deephaven-enterprise/query-utils": "^2026.1.48",
     "@deephaven/jsapi-nodejs": "^1.28.0",
     "@deephaven/jsapi-utils": "^1.16.0",
-    "@modelcontextprotocol/sdk": "^1.27.1",
+    "@modelcontextprotocol/node": "^2.1.1",
+    "@modelcontextprotocol/server": "^2.3.1",
     "archiver": "^7.0.1",
     "chai": "^4.5.0",
     "nanoid": "^5.0.7",
-    "zod": "^3.25.76"
+    "zod": "^4.2.0"
   },
   "devDependencies": {
     "@cfworker/json-schema": "^4.1.1",
