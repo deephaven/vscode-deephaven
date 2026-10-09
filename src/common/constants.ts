@@ -61,6 +61,7 @@ export const QUERY_INFO_UPDATE_INTERVAL_MS = 250;
 
 export const PIP_SERVER_STATUS_CHECK_INTERVAL = 3000;
 export const PIP_SERVER_STATUS_CHECK_TIMEOUT = 30000;
+export const PIP_SERVER_LIST_PACKAGES_TIMEOUT_MS = 10000;
 
 export const STATUS_BAR_DISCONNECTED_TEXT = 'Deephaven: Disconnected';
 export const STATUS_BAR_DISCONNECT_TEXT = 'Deephaven: Disconnect';
