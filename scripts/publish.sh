@@ -55,9 +55,18 @@ tag="v$next$tagsuffix"
 
 # Fail if the tag or branch already exists locally or on origin
 if git rev-parse -q --verify "refs/tags/$tag" > /dev/null \
-  || git rev-parse -q --verify "refs/heads/$tag" > /dev/null \
-  || git ls-remote --exit-code origin "refs/tags/$tag" "refs/heads/$tag" > /dev/null; then
+  || git rev-parse -q --verify "refs/heads/$tag" > /dev/null; then
   abort "$tag already exists as a tag or branch."
+fi
+
+# `git ls-remote --exit-code` exits 2 when no ref matches. Any other nonzero
+# status means the remote check itself failed (e.g. auth or network).
+remote_status=0
+git ls-remote --exit-code origin "refs/tags/$tag" "refs/heads/$tag" > /dev/null || remote_status=$?
+if [[ $remote_status -eq 0 ]]; then
+  abort "$tag already exists as a tag or branch on origin."
+elif [[ $remote_status -ne 2 ]]; then
+  abort "Failed to check origin for $tag (git ls-remote exit $remote_status)."
 fi
 
 # Releasing a lower version than the latest release is allowed but requires
