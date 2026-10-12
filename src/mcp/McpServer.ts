@@ -51,6 +51,10 @@ const logger = new Logger('McpServer');
 /**
  * MCP Server for Deephaven extension.
  * Provides tools for AI assistants (like GitHub Copilot) to interact with Deephaven.
+ *
+ * Serves both 2026-07-28 protocol requests (`modernHandler`) and 2025-era
+ * requests (`handleLegacyRequest`). See `handleLegacyRequest` for why the
+ * legacy path exists and when it can be removed.
  */
 export class McpServer extends DisposableBase {
   private httpServer: http.Server | null = null;
@@ -152,6 +156,18 @@ export class McpServer extends DisposableBase {
   /**
    * Serve a 2025-era request statelessly with a fresh SDK server and transport
    * and a plain `application/json` response.
+   *
+   * Callers: MCP clients that have not yet adopted the 2026-07-28 protocol
+   * (still `initialize` handshake based), plus direct HTTP callers such as
+   * `.devcontainer/scripts/vscode-dev.sh`, which sends `2025-06-18`.
+   *
+   * Hand-rolled rather than using `createMcpHandler`'s built-in legacy fallback
+   * because that fallback always responds with SSE, which would break callers
+   * that expect a JSON response body.
+   *
+   * Removal: once the clients we support send 2026-07-28 requests, delete this
+   * method and its routing in `handleMcpRequest`, drop the legacy mention in
+   * `stop()`'s comment, and update `vscode-dev.sh` to the modern protocol.
    */
   private handleLegacyRequest = async (request: Request): Promise<Response> => {
     // Stateless server, so no standalone SSE stream (GET) or sessions (DELETE)
