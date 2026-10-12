@@ -34,19 +34,15 @@ abort() {
   exit 1
 }
 
-# Get pattern for git version tags
 if [[ "$1" == "--pre-release" ]]; then
   label="pre-release"
   tagsuffix="-pre"
+  next=$(scripts/nextprereleaseversion.sh)
 else
   label="release"
   tagsuffix="-release"
-fi
-
-if [[ "$1" == "--pre-release" ]]; then
-  # Calculate the next version using nextprereleaseversion.sh
-  next=$(scripts/nextprereleaseversion.sh)
-else
+  # Local tags must be current for the latest release check below
+  git fetch --tags || abort "Failed to fetch tags."
   # Derive the release version from the pre-release tag at HEAD
   next=$(scripts/releaseversionfrompre.sh HEAD)
 fi
@@ -106,7 +102,7 @@ git add package-lock.json
 git commit -m "$tag"
 git push -u origin HEAD
 git tag $tag
-git push --tags
+git push origin "$tag"
 
 # Publish the extension to the Marketplace
 if [[ "$1" == "--pre-release" ]]; then

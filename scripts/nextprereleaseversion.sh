@@ -15,7 +15,7 @@
 git fetch --tags
 current=$(git tag -l "v*.*.*-pre" | sort -V | tail -n 1 | sed -E 's/^v([0-9]+\.[0-9]+\.[0-9]+).*$/\1/')
 if [ -z "$current" ]; then
-  echo "No pre-release tags found. Please create a version tag first."
+  echo "No pre-release tags found. Please create a version tag first." >&2
   exit 1
 fi
 
