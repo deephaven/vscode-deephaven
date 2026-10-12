@@ -11,7 +11,7 @@
 #    - Release: HEAD must be exactly at a pre-release tag. The release version
 #      mirrors it with the minor version decremented (`v1.1.X-pre` ->
 #      `v1.0.X-release`), so every release is a tested pre-release. See
-#      `releasetagfrompre.sh`.
+#      `releaseversionfrompre.sh`.
 # 2. Fail if the tag or branch for the version already exists locally or on
 #    origin. Releasing a version lower than the latest release requires an extra
 #    confirmation, since VS Code will not auto-update users to it.
@@ -45,10 +45,10 @@ fi
 
 if [[ "$1" == "--pre-release" ]]; then
   # Calculate the next version using nextreleasetag.sh
-  next=$(scripts/nextreleasetag.sh "$tagsuffix" false)
+  next=$(scripts/nextreleasetag.sh "$tagsuffix")
 else
   # Derive the release version from the pre-release tag at HEAD
-  next=$(scripts/releasetagfrompre.sh HEAD false)
+  next=$(scripts/releaseversionfrompre.sh HEAD)
 fi
 
 tag="v$next$tagsuffix"
