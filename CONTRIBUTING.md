@@ -173,10 +173,10 @@ Checkout the pre-release tag to release (use `refs/tags/` since a branch with th
 git checkout refs/tags/v1.1.7-pre
 ```
 
-To preview the release tag that will be published for a given pre-release (defaults to `HEAD`):
+To preview the release version that will be published for a given pre-release (defaults to `HEAD`):
 
 ```sh
-./scripts/releasetagfrompre.sh refs/tags/v1.1.7-pre # 1.0.7-release
+./scripts/releaseversionfrompre.sh refs/tags/v1.1.7-pre # 1.0.7
 ```
 
 `publish.sh` will fail if HEAD is not at a pre-release tag or if the release tag / branch already exists. If the release version is lower than the latest release, it will ask for an extra confirmation, since VS Code will not auto-update users to a lower version.
