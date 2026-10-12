@@ -109,14 +109,14 @@ This extension can also be installed directly from a `.vsix`. To get a `.vsix`, 
 
 Download one from the [releases/](releases/) folder.
 
-Alternatively, you can build a `.vsix` locally by running `npm run package:dev`. This will create a version with a `-dev` prerelease identifier and incremental build number (e.g., `1.0.10-dev.0`). Each subsequent run increments the build number.
+Alternatively, you can build a `.vsix` locally by running `npm run package:dev`. This will create a version with a `-dev` prerelease identifier and incremental build number (e.g., `1.1.10-dev.0`). Each subsequent run increments the build number.
 
 You can optionally specify a custom prerelease identifier:
 
 ```sh
-npm run package:dev        # Creates 1.0.10-dev.0
-npm run package:dev alpha  # Creates 1.0.10-alpha.0
-npm run package:dev beta   # Creates 1.0.10-beta.0
+npm run package:dev        # Creates 1.1.10-dev.0
+npm run package:dev alpha  # Creates 1.1.10-alpha.0
+npm run package:dev beta   # Creates 1.1.10-beta.0
 ```
 
 The packaged extension will be saved as `releases/vscode-deephaven-$PACKAGE_VERSION.vsix`.
@@ -165,21 +165,21 @@ This will typically be latest `main`
 
 ##### Release
 
-Releases should be published from a tagged commit for an existing `pre-release`. e.g. To deploy `v1.0.7-release`, we deploy from the `v1.1.7-pre` tag. Since the `publish.sh` script increments based on the previous release tag, it's important to do a release corresponding to every pre-release to keep things in sequence.
+Releases must be published from the tagged commit of an existing `pre-release`. The release version is derived from the pre-release tag, e.g. releasing from the `v1.1.7-pre` tag publishes `v1.0.7-release`. Pre-releases that are not needed can be skipped.
 
-1. Determine what the next release tag will be:
+Checkout the pre-release tag to release (use `refs/tags/` since a branch with the same name also exists):
 
-   ```sh
-   ./scripts/nextreleasetag.sh
-   ```
+```sh
+git checkout refs/tags/v1.1.7-pre
+```
 
-1. Checkout the corresponding pre-release tag (the minor version should be odd)
+To preview the release version that will be published for a given pre-release (defaults to `HEAD`):
 
-   e.g. If the script yields `1.0.7-release`, run
+```sh
+./scripts/releaseversionfrompre.sh refs/tags/v1.1.7-pre # 1.0.7
+```
 
-   ```sh
-   git checkout v1.1.7-pre
-   ```
+`publish.sh` will fail if HEAD is not at a pre-release tag or if the release tag / branch already exists. If the release version is lower than the latest release, it will ask for an extra confirmation, since VS Code will not auto-update users to a lower version.
 
 #### Verify Package Contents
 
