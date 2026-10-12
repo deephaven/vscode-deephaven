@@ -102,7 +102,7 @@ git add package-lock.json
 git commit -m "$tag"
 git push -u origin HEAD
 git tag $tag
-git push origin "$tag"
+git push origin "refs/tags/$tag"
 
 # Publish the extension to the Marketplace
 if [[ "$1" == "--pre-release" ]]; then
