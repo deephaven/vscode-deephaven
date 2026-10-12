@@ -168,12 +168,27 @@ export class McpServer extends DisposableBase {
       enableJsonResponse: true,
     });
 
+    // The transport ignores `request.signal`, and closing it does not settle a
+    // pending `handleRequest`, so race the exchange against client disconnect.
+    // `finally` then closes the per-request server as soon as the client leaves.
+    const { promise: aborted, resolve: resolveAborted } =
+      withResolvers<Response>();
+    const onAbort = (): void =>
+      resolveAborted(new Response(null, { status: 499 }));
+
+    if (request.signal.aborted) {
+      onAbort();
+    } else {
+      request.signal.addEventListener('abort', onAbort, { once: true });
+    }
+
     try {
       await server.connect(transport);
       // With `enableJsonResponse`, the response is only built once the result
       // exists, so the server can be closed as soon as this resolves.
-      return await transport.handleRequest(request);
+      return await Promise.race([transport.handleRequest(request), aborted]);
     } finally {
+      request.signal.removeEventListener('abort', onAbort);
       await server.close();
     }
   };

@@ -1,3 +1,4 @@
+import { McpServer as SdkMcpServer } from '@modelcontextprotocol/server';
 import * as http from 'http';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { McpServer } from './McpServer';
@@ -255,6 +256,37 @@ describe('McpServer', () => {
     });
 
     expect(elapsedMs).toBeLessThan(GET_WORKER_INFO_DELAY_MS * 3);
+  });
+
+  it('should close the legacy SDK server when the client disconnects', async () => {
+    // Tool call that never completes on its own
+    vi.mocked(serverManager.getWorkerInfo).mockReturnValue(
+      new Promise(() => {})
+    );
+    const closeSpy = vi.spyOn(SdkMcpServer.prototype, 'close');
+
+    const req = http.request({
+      host: '127.0.0.1',
+      port,
+      method: 'POST',
+      path: '/mcp',
+      headers: LEGACY_POST_HEADERS,
+    });
+    req.on('error', () => {});
+    req.end(
+      JSON.stringify(
+        jsonRpc(1, 'tools/call', { name: 'listConnections', arguments: {} })
+      )
+    );
+
+    await vi.waitFor(() =>
+      expect(serverManager.getWorkerInfo).toHaveBeenCalled()
+    );
+    expect(closeSpy).not.toHaveBeenCalled();
+
+    req.destroy();
+
+    await vi.waitFor(() => expect(closeSpy).toHaveBeenCalledOnce());
   });
 
   it('should respond to initialize with application/json', async () => {
