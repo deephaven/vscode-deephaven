@@ -265,12 +265,14 @@ export class McpServer extends DisposableBase {
       return;
     }
 
-    await this.modernHandler.close();
+    const httpServer = this.httpServer;
+    this.httpServer = null;
 
     const { resolve, reject, promise } = withResolvers<void>();
 
-    this.httpServer.close(err => {
-      this.httpServer = null;
+    // Stop accepting connections before the first `await`. Callers may not
+    // await `stop()`, and closing `modernHandler` does not stop legacy requests.
+    httpServer.close(err => {
       this.port = null;
 
       if (err) {
@@ -280,6 +282,6 @@ export class McpServer extends DisposableBase {
       }
     });
 
-    return promise;
+    await Promise.all([this.modernHandler.close(), promise]);
   }
 }

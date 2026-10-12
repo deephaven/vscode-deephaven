@@ -47,6 +47,26 @@ const LEGACY_POST_HEADERS = {
   accept: 'application/json, text/event-stream',
   'mcp-protocol-version': '2025-06-18',
 } as const;
+
+const MODERN_PROTOCOL_VERSION = '2026-07-28';
+
+/** Headers a 2026-07-28 client sends on a `tools/call` POST. */
+function modernToolCallHeaders(toolName: string): Record<string, string> {
+  return {
+    'content-type': 'application/json',
+    accept: 'application/json, text/event-stream',
+    'mcp-protocol-version': MODERN_PROTOCOL_VERSION,
+    'mcp-method': 'tools/call',
+    'mcp-name': toolName,
+  };
+}
+
+/** The per-request `_meta` envelope a 2026-07-28 client sends. */
+const MODERN_META = {
+  'io.modelcontextprotocol/protocolVersion': MODERN_PROTOCOL_VERSION,
+  'io.modelcontextprotocol/clientCapabilities': {},
+  'io.modelcontextprotocol/clientInfo': { name: 'test', version: '1.0.0' },
+} as const;
 /* eslint-enable @typescript-eslint/naming-convention */
 
 interface RawResponse {
@@ -104,6 +124,27 @@ function jsonRpc(
   params: Record<string, unknown> = {}
 ): Record<string, unknown> {
   return { jsonrpc: '2.0', id, method, params };
+}
+
+/**
+ * Parse the JSON-RPC response from a `application/json` body, or from the
+ * last `data:` event of a `text/event-stream` body.
+ */
+function parseRpcBody({ headers, body }: RawResponse): {
+  id: number;
+  result: { resultType?: string; structuredContent: unknown };
+} {
+  if (!headers['content-type']?.includes('text/event-stream')) {
+    return JSON.parse(body);
+  }
+
+  const data = body
+    .split('\n')
+    .filter(line => line.startsWith('data:'))
+    .map(line => line.slice('data:'.length).trim())
+    .filter(Boolean);
+
+  return JSON.parse(data[data.length - 1]);
 }
 
 describe('McpServer', () => {
@@ -170,6 +211,41 @@ describe('McpServer', () => {
 
       const { id, result } = JSON.parse(response.body);
       expect(id).toBe(i + 1);
+      expect(result.structuredContent).toMatchObject({
+        success: true,
+        details: {
+          connections: [expect.objectContaining({ label: 'Connection 1' })],
+        },
+      });
+    });
+
+    expect(elapsedMs).toBeLessThan(GET_WORKER_INFO_DELAY_MS * 3);
+  });
+
+  it('should serve overlapping modern (2026-07-28) tool calls concurrently', async () => {
+    const startMs = performance.now();
+
+    const responses = await Promise.all(
+      [1, 2, 3].map(id =>
+        request(port, {
+          headers: modernToolCallHeaders('listConnections'),
+          body: jsonRpc(id, 'tools/call', {
+            name: 'listConnections',
+            arguments: {},
+            _meta: MODERN_META,
+          }),
+        })
+      )
+    );
+
+    const elapsedMs = performance.now() - startMs;
+
+    responses.forEach((response, i) => {
+      expect(response.status).toBe(200);
+      const { id, result } = parseRpcBody(response);
+      expect(id).toBe(i + 1);
+      // Only 2026-07-28 results carry `resultType`
+      expect(result.resultType).toBe('complete');
       expect(result.structuredContent).toMatchObject({
         success: true,
         details: {
