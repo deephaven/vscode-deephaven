@@ -33,7 +33,12 @@ if [ -z "$commit" ]; then
   exit 1
 fi
 
-pretag=$(git tag --points-at "$commit" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+-pre$' | sort -V | tail -n 1)
+# Match tags on origin, not local tags, so an unpublished local tag can't be promoted
+if ! remote_tags=$(git ls-remote --tags origin); then
+  echo "Failed to list tags on origin." >&2
+  exit 1
+fi
+pretag=$(awk -v c="$commit" '$1 == c { sub("^refs/tags/", "", $2); sub("\\^\\{\\}$", "", $2); print $2 }' <<< "$remote_tags" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+-pre$' | sort -V | tail -n 1)
 if [ -z "$pretag" ]; then
   echo "$ref is not at a pre-release tag. Checkout the pre-release to promote first, e.g. 'git checkout refs/tags/v1.1.X-pre'." >&2
   exit 1
