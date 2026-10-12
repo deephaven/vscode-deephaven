@@ -289,6 +289,31 @@ describe('McpServer', () => {
     await vi.waitFor(() => expect(closeSpy).toHaveBeenCalledOnce());
   });
 
+  it('should not wait for in-flight legacy tool calls when stopped', async () => {
+    // Tool call that never completes on its own
+    vi.mocked(serverManager.getWorkerInfo).mockReturnValue(
+      new Promise(() => {})
+    );
+    const closeSpy = vi.spyOn(SdkMcpServer.prototype, 'close');
+
+    const responsePromise = request(port, {
+      headers: LEGACY_POST_HEADERS,
+      body: jsonRpc(1, 'tools/call', {
+        name: 'listConnections',
+        arguments: {},
+      }),
+    });
+
+    await vi.waitFor(() =>
+      expect(serverManager.getWorkerInfo).toHaveBeenCalled()
+    );
+
+    await mcpServer.stop();
+
+    await expect(responsePromise).rejects.toThrow();
+    await vi.waitFor(() => expect(closeSpy).toHaveBeenCalledOnce());
+  });
+
   it('should respond to initialize with application/json', async () => {
     const response = await request(port, {
       headers: LEGACY_POST_HEADERS,

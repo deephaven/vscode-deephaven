@@ -166,8 +166,8 @@ export class McpServer extends DisposableBase {
    * that expect a JSON response body.
    *
    * Removal: once the clients we support send 2026-07-28 requests, delete this
-   * method and its routing in `handleMcpRequest`, drop the legacy mention in
-   * `stop()`'s comment, and update `vscode-dev.sh` to the modern protocol.
+   * method and its routing in `handleMcpRequest`, update the legacy mentions in
+   * `stop()`'s comments, and update `vscode-dev.sh` to the modern protocol.
    */
   private handleLegacyRequest = async (request: Request): Promise<Response> => {
     // Stateless server, so no standalone SSE stream (GET) or sessions (DELETE)
@@ -312,6 +312,12 @@ export class McpServer extends DisposableBase {
         resolve();
       }
     });
+
+    // `close()` waits for in-flight responses, and nothing else tears down a
+    // pending legacy exchange, so a long-running tool call would keep `stop()`
+    // pending. Dropping the connections aborts each request, which closes its
+    // per-request SDK server (see `handleLegacyRequest`).
+    httpServer.closeAllConnections();
 
     await Promise.all([this.modernHandler.close(), promise]);
   }
