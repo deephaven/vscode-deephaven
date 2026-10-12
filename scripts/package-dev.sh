@@ -20,7 +20,7 @@
 # If run multiple times with the same preid, the build number increments:
 #   1.0.10-dev.0 -> 1.0.10-dev.1 -> 1.0.10-dev.2
 
-NEXT=$(scripts/nextreleasetag.sh "-release")
+NEXT=$(scripts/nextreleasetag.sh "-release" false)
 CURRENT_VERSION=$(node -p "require('./package.json').version")
 PREID="${1:-dev}"
 

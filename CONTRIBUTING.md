@@ -165,21 +165,21 @@ This will typically be latest `main`
 
 ##### Release
 
-Releases must be published from the tagged commit of an existing `pre-release`. The release version is derived from the pre-release tag, e.g. releasing from the `v1.1.7-pre` tag publishes `v1.0.7-release`. Pre-releases that are not needed can be skipped.
+Releases should be published from a tagged commit for an existing `pre-release`. e.g. To deploy `v1.0.7-release`, we deploy from the `v1.1.7-pre` tag. Since the `publish.sh` script increments based on the previous release tag, it's important to do a release corresponding to every pre-release to keep things in sequence.
 
-Checkout the pre-release tag to release (use `refs/tags/` since a branch with the same name also exists):
+1. Determine what the next release tag will be:
 
-```sh
-git checkout refs/tags/v1.1.7-pre
-```
+   ```sh
+   ./scripts/nextreleasetag.sh
+   ```
 
-To preview the release tag that will be published for a given pre-release (defaults to `HEAD`):
+1. Checkout the corresponding pre-release tag (the minor version should be odd)
 
-```sh
-./scripts/releasetagfrompre.sh refs/tags/v1.1.7-pre # 1.0.7-release
-```
+   e.g. If the script yields `1.0.7-release`, run
 
-`publish.sh` will fail if HEAD is not at a pre-release tag or if the release tag / branch already exists. If the release version is lower than the latest release, it will ask for an extra confirmation, since VS Code will not auto-update users to a lower version.
+   ```sh
+   git checkout v1.1.7-pre
+   ```
 
 #### Verify Package Contents
 
