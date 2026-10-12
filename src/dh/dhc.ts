@@ -66,7 +66,10 @@ export async function getDhc(
  * loads the api as `esm` via `import(<file path>)`. That fails on Windows,
  * since the ESM loader rejects `C:\...` paths, so load as `cjs` via `getDhc`
  * instead.
- * TODO: Remove once DH-24025 is fixed and use the factories' `loadCorePlusApi`.
+ * TODO: DH-24025 should address the root cause bug. Once it is fixed,
+ * @deephaven/jsapi-nodejs has been published, and @deephaven-enterprise/jsapi-nodejs
+ * has incorporated the update, we should be able to use the factories'
+ * `loadCorePlusApi` instead.
  * @param jsApiUrl The worker's `jsApiUrl` (ends in `jsapi/dh-core.js`).
  * @param storageDir Directory to store downloaded jsapi files.
  * @returns A promise that resolves to the DH Core+ jsapi.
