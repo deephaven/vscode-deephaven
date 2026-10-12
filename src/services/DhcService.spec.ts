@@ -78,7 +78,7 @@ function createTestDhcService({
       show: vi.fn(),
     } as unknown as vscode.OutputChannel,
     toaster: { error: vi.fn(), info: vi.fn() },
-    _isRunningCode: false,
+    _runningCodeCount: 0,
     _onDidChangeRunningCodeStatus: { fire: vi.fn() },
     disposables: { add: vi.fn() },
     serverUrl: new URL('http://localhost:10000/'),
@@ -158,6 +158,101 @@ describe('runCode – importPrefixes setting', () => {
     } else {
       expect(mockSetControllerImportPrefixes).toHaveBeenCalledWith(expected);
     }
+  });
+});
+
+describe('runCode – isRunningCode', () => {
+  /** Session `runCode` mock whose calls stay pending until settled. */
+  function createDeferredSessionRunCode(): {
+    sessionRunCode: ReturnType<typeof vi.fn>;
+    resolveNext: () => void;
+    rejectNext: (err: unknown) => void;
+  } {
+    const pending: {
+      resolve: (value: DhcType.ide.CommandResult) => void;
+      reject: (err: unknown) => void;
+    }[] = [];
+
+    const sessionRunCode = vi.fn(
+      () =>
+        new Promise<DhcType.ide.CommandResult>((resolve, reject) => {
+          pending.push({ resolve, reject });
+        })
+    );
+
+    return {
+      sessionRunCode,
+      resolveNext: (): void =>
+        pending.shift()!.resolve({
+          error: '',
+          changes: { created: [], updated: [], removed: [] },
+        } as unknown as DhcType.ide.CommandResult),
+      rejectNext: (err: unknown): void => pending.shift()!.reject(err),
+    };
+  }
+
+  it('stays true until all overlapping runs have finished', async () => {
+    const { sessionRunCode, resolveNext } = createDeferredSessionRunCode();
+    const service = createTestDhcService({ sessionRunCode });
+
+    const run1 = service.runCode('x = 1', 'python');
+    const run2 = service.runCode('y = 2', 'python');
+
+    await vi.waitFor(() => expect(sessionRunCode).toHaveBeenCalledTimes(2));
+    expect(service.isRunningCode).toBe(true);
+
+    resolveNext();
+    await run1;
+    expect(service.isRunningCode).toBe(true);
+
+    resolveNext();
+    await run2;
+    expect(service.isRunningCode).toBe(false);
+  });
+
+  it('clears once a failed run and its overlapping run have finished', async () => {
+    const { sessionRunCode, resolveNext, rejectNext } =
+      createDeferredSessionRunCode();
+    const service = createTestDhcService({ sessionRunCode });
+
+    const run1 = service.runCode('x = 1', 'python');
+    const run2 = service.runCode('y = 2', 'python');
+
+    await vi.waitFor(() => expect(sessionRunCode).toHaveBeenCalledTimes(2));
+
+    rejectNext(new Error('boom'));
+    await expect(run1).rejects.toThrow();
+    expect(service.isRunningCode).toBe(true);
+
+    resolveNext();
+    await run2;
+    expect(service.isRunningCode).toBe(false);
+  });
+
+  it('fires the status event only when the status changes', async () => {
+    const { sessionRunCode, resolveNext } = createDeferredSessionRunCode();
+    const service = createTestDhcService({ sessionRunCode });
+    const fire = (
+      service as unknown as {
+        _onDidChangeRunningCodeStatus: { fire: ReturnType<typeof vi.fn> };
+      }
+    )._onDidChangeRunningCodeStatus.fire;
+
+    const run1 = service.runCode('x = 1', 'python');
+    const run2 = service.runCode('y = 2', 'python');
+
+    await vi.waitFor(() => expect(sessionRunCode).toHaveBeenCalledTimes(2));
+    expect(fire.mock.calls).toEqual([[true]]);
+    fire.mockClear();
+
+    resolveNext();
+    await run1;
+    expect(fire).not.toHaveBeenCalled();
+
+    resolveNext();
+    await run2;
+
+    expect(fire.mock.calls).toEqual([[false]]);
   });
 });
 

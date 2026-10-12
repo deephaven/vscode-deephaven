@@ -188,14 +188,17 @@ export class DhcService extends DisposableBase implements IDhcService {
     return this.cn != null && this.session != null;
   }
 
-  private _isRunningCode = false;
+  // Count rather than a flag so overlapping `runCode` calls (e.g. concurrent
+  // MCP tool calls) don't clear the status while another run is in flight.
+  private _runningCodeCount = 0;
   get isRunningCode(): boolean {
-    return this._isRunningCode;
+    return this._runningCodeCount > 0;
   }
-  private set isRunningCode(value: boolean) {
-    if (this._isRunningCode !== value) {
-      this._isRunningCode = value;
-      this._onDidChangeRunningCodeStatus.fire(this._isRunningCode);
+  private set runningCodeCount(value: number) {
+    const isChanged = value > 0 !== this.isRunningCode;
+    this._runningCodeCount = value;
+    if (isChanged) {
+      this._onDidChangeRunningCodeStatus.fire(this.isRunningCode);
     }
   }
 
@@ -544,10 +547,10 @@ export class DhcService extends DisposableBase implements IDhcService {
     let result: DhcType.ide.CommandResult | null = null;
     let error: string | null = null;
 
+    this.runningCodeCount = this._runningCodeCount + 1;
+
     try {
       const start = performance.now();
-
-      this.isRunningCode = true;
 
       if (this.pythonRemoteFileSourcePlugin != null) {
         const isDoc = typeof documentOrText !== 'string';
@@ -581,12 +584,14 @@ export class DhcService extends DisposableBase implements IDhcService {
       }
 
       result = await this.session.runCode(text);
-      this.isRunningCode = false;
+      this.runningCodeCount = this._runningCodeCount - 1;
 
       logger.debug('Command took', performance.now() - start, 'ms');
       error = result.error;
     } catch (err) {
-      this.isRunningCode = false;
+      // Decremented here rather than in a `finally` so listeners see the
+      // status change before `dispose()` below tears down the emitter.
+      this.runningCodeCount = this._runningCodeCount - 1;
       error = String(err);
 
       // Grpc UNAUTHENTICATED code. This should not generally happen since we
