@@ -24,7 +24,11 @@
 ref="${1:-HEAD}"
 include_suffix="${2:-true}"
 
-git fetch --tags > /dev/null 2>&1
+if ! fetch_output=$(git fetch --tags 2>&1); then
+  echo "Failed to fetch tags. Refusing to derive a release from unverified tags:" >&2
+  echo "$fetch_output" >&2
+  exit 1
+fi
 
 commit=$(git rev-parse --verify -q "$ref^{commit}" 2> /dev/null)
 if [ -z "$commit" ]; then
