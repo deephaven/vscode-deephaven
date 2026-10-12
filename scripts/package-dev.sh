@@ -2,7 +2,7 @@
 
 # This script packages a development version of the VS Code extension.
 #
-# 1. Determines the next release version using nextreleasetag.sh
+# 1. Determines the next release version using nextreleaseversion.sh
 # 2. Checks if the current package.json version matches the pattern 
 #    <next>-<preid>.<build_num> and increments the build number if so
 # 3. Creates a version in the format: <next>-<preid>.<build_num>
@@ -20,7 +20,7 @@
 # If run multiple times with the same preid, the build number increments:
 #   1.0.10-dev.0 -> 1.0.10-dev.1 -> 1.0.10-dev.2
 
-NEXT=$(scripts/nextreleasetag.sh "-release")
+NEXT=$(scripts/nextreleaseversion.sh "-release")
 CURRENT_VERSION=$(node -p "require('./package.json').version")
 PREID="${1:-dev}"
 

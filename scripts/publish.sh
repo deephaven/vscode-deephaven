@@ -44,8 +44,8 @@ else
 fi
 
 if [[ "$1" == "--pre-release" ]]; then
-  # Calculate the next version using nextreleasetag.sh
-  next=$(scripts/nextreleasetag.sh "$tagsuffix")
+  # Calculate the next version using nextreleaseversion.sh
+  next=$(scripts/nextreleaseversion.sh "$tagsuffix")
 else
   # Derive the release version from the pre-release tag at HEAD
   next=$(scripts/releaseversionfrompre.sh HEAD)

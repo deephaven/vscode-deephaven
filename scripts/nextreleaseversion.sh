@@ -1,22 +1,22 @@
 #!/bin/bash
 
 ###############################################################################
-# Script: nextreleasetag.sh
+# Script: nextreleaseversion.sh
 # Description: Calculates the next version based on the latest git tag
 #              matching the provided suffix pattern. Increments the patch
 #              version using semantic versioning. Outputs the bare version
 #              only; the caller owns the tag suffix.
-# Usage: ./nextreleasetag.sh [tag-suffix]
+# Usage: ./nextreleaseversion.sh [tag-suffix]
 # Arguments:
 #   tag-suffix: Optional. The suffix to match in existing tags (e.g., -pre or -release)
 #               Default: -release
 # Examples:
 #   Latest tag: v1.0.3-release
-#   ./nextreleasetag.sh                   # Output: 1.0.4
-#   ./nextreleasetag.sh -release          # Output: 1.0.4
+#   ./nextreleaseversion.sh                   # Output: 1.0.4
+#   ./nextreleaseversion.sh -release          # Output: 1.0.4
 #
 #   Latest tag: v1.1.10-pre
-#   ./nextreleasetag.sh -pre              # Output: 1.1.11
+#   ./nextreleaseversion.sh -pre              # Output: 1.1.11
 ###############################################################################
 
 tagsuffix="${1:--release}"
