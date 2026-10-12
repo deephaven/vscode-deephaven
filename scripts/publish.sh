@@ -1,26 +1,38 @@
 #!/bin/bash
 
-# This script automates the process of publishing a new version of a VS Code 
+# This script automates the process of publishing a new version of a VS Code
 # extension.
 #
-# 1. Find the latest version tag for the release / pre-release version. This is
-#    determined by whether the optional `--pre-release` flag is passed to the script.
-#    Pre-release versions are tagged as `v1.1.X-pre` and release versions are 
-#    tagged as `v1.0.X-release`.
-# 2. Increment the patch version and use it to create a tag name
+# 1. Determine the version to publish. This is determined by whether the
+#    optional `--pre-release` flag is passed to the script. Pre-release versions
+#    are tagged as `v1.1.X-pre` and release versions are tagged as
+#    `v1.0.X-release`.
+#    - Pre-release: increment the patch version of the latest pre-release tag.
+#    - Release: HEAD must be exactly at a pre-release tag. The release version
+#      mirrors it with the minor version decremented (`v1.1.X-pre` ->
+#      `v1.0.X-release`), so every release is a tested pre-release. See
+#      `releasetagfrompre.sh`.
+# 2. Fail if the tag or branch for the version already exists locally or on
+#    origin. Releasing a version lower than the latest release requires an extra
+#    confirmation, since VS Code will not auto-update users to it.
 # 3. Checkout a new branch named with the tag name
 # 4. Update the npm version in `package.json` and `package-lock.json`
 # 5. Commit the changes and push the branch
 # 6. Tag the commit with the new version tag and push the tag
 #
-# Note: We are following the recommended convention of pre-release versions 
-# using an odd minor version and release versions using an even minor version. 
-# VS Code will automatically update to the latest version regardless of whether 
-# it is a pre-release or a release version, so we always want to keep a 
-# pre-release version that is higher than the latest release version, so that 
+# Note: We are following the recommended convention of pre-release versions
+# using an odd minor version and release versions using an even minor version.
+# VS Code will automatically update to the latest version regardless of whether
+# it is a pre-release or a release version, so we always want to keep a
+# pre-release version that is higher than the latest release version, so that
 # early adopters continue to get pre-release versions.
 
 set -e
+
+abort() {
+  echo "$1" >&2
+  exit 1
+}
 
 # Get pattern for git version tags
 if [[ "$1" == "--pre-release" ]]; then
@@ -31,9 +43,36 @@ else
   tagsuffix="-release"
 fi
 
-# Calculate the next version using nextreleasetag.sh
-next=$(scripts/nextreleasetag.sh "$tagsuffix" false)
+if [[ "$1" == "--pre-release" ]]; then
+  # Calculate the next version using nextreleasetag.sh
+  next=$(scripts/nextreleasetag.sh "$tagsuffix" false)
+else
+  # Derive the release version from the pre-release tag at HEAD
+  next=$(scripts/releasetagfrompre.sh HEAD false)
+fi
+
 tag="v$next$tagsuffix"
+
+# Fail if the tag or branch already exists locally or on origin
+if git rev-parse -q --verify "refs/tags/$tag" > /dev/null \
+  || git rev-parse -q --verify "refs/heads/$tag" > /dev/null \
+  || git ls-remote --exit-code origin "refs/tags/$tag" "refs/heads/$tag" > /dev/null; then
+  abort "$tag already exists as a tag or branch."
+fi
+
+# Releasing a lower version than the latest release is allowed but requires
+# confirmation since VS Code will not auto-update users to it
+if [[ "$1" != "--pre-release" ]]; then
+  latest=$(git tag -l "v*.*.*$tagsuffix" | sort -V | tail -n 1 | sed -E 's/^v([0-9]+\.[0-9]+\.[0-9]+).*$/\1/')
+  if [[ -n "$latest" ]] && ! npx semver -r ">$latest" "$next" > /dev/null; then
+    echo "WARNING: $next is lower than the latest release $latest. VS Code users will not auto-update to it."
+    read -p "Release anyway? (y/n)" -n 1 -r
+    echo # move to a new line
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+      abort "Aborted."
+    fi
+  fi
+fi
 
 # Prompt user to confirm the publish
 echo "Publishing $label version: $tag"
