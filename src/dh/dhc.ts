@@ -61,6 +61,30 @@ export async function getDhc(
 }
 
 /**
+ * Download the DH Core+ jsapi for a worker and return the `dh` object. Drop-in
+ * replacement for the `loadCorePlusApi` from `createJsApiFactories`, which
+ * loads the api as `esm` via `import(<file path>)`. That fails on Windows,
+ * since the ESM loader rejects `C:\...` paths, so load as `cjs` via `getDhc`
+ * instead.
+ * TODO: DH-24025 should address the root cause bug. Once it is fixed,
+ * @deephaven/jsapi-nodejs has been published, and @deephaven-enterprise/jsapi-nodejs
+ * has incorporated the update, we should be able to use the factories'
+ * `loadCorePlusApi` instead.
+ * @param jsApiUrl The worker's `jsApiUrl` (ends in `jsapi/dh-core.js`).
+ * @param storageDir Directory to store downloaded jsapi files.
+ * @returns A promise that resolves to the DH Core+ jsapi.
+ */
+export async function getDhcFromJsApiUrl(
+  jsApiUrl: string,
+  storageDir: string
+): Promise<typeof DhType> {
+  const serverUrl = new URL(jsApiUrl);
+  serverUrl.pathname = serverUrl.pathname.replace(/jsapi\/dh-core\.js$/, '');
+
+  return getDhc(serverUrl, storageDir);
+}
+
+/**
  * Get embed widget url for a widget.
  * @param serverUrl Server URL
  * @param title Widget title
