@@ -229,6 +229,30 @@ describe('runCode – isRunningCode', () => {
     expect(service.isRunningCode).toBe(false);
   });
 
+  it('decrements once when a run throws after execution completes', async () => {
+    const { sessionRunCode, resolveNext } = createDeferredSessionRunCode();
+    const service = createTestDhcService({ sessionRunCode });
+
+    // Throws when `runCode` reads `result.error`, after execution has finished
+    sessionRunCode.mockResolvedValueOnce({
+      get error(): string {
+        throw new Error('boom');
+      },
+      changes: { created: [], updated: [], removed: [] },
+    });
+
+    await service.runCode('x = 1', 'python').catch(() => {});
+    expect(service.isRunningCode).toBe(false);
+
+    const run2 = service.runCode('y = 2', 'python');
+    await vi.waitFor(() => expect(sessionRunCode).toHaveBeenCalledTimes(2));
+    expect(service.isRunningCode).toBe(true);
+
+    resolveNext();
+    await run2;
+    expect(service.isRunningCode).toBe(false);
+  });
+
   it('fires the status event only when the status changes', async () => {
     const { sessionRunCode, resolveNext } = createDeferredSessionRunCode();
     const service = createTestDhcService({ sessionRunCode });

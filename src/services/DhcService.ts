@@ -552,46 +552,48 @@ export class DhcService extends DisposableBase implements IDhcService {
     try {
       const start = performance.now();
 
-      if (this.pythonRemoteFileSourcePlugin != null) {
-        const isDoc = typeof documentOrText !== 'string';
+      try {
+        if (this.pythonRemoteFileSourcePlugin != null) {
+          const isDoc = typeof documentOrText !== 'string';
 
-        // Check for setting override first
-        const configPrefixes = ConfigService.getImportPrefixes();
-        const controllerImportPrefixes =
-          configPrefixes != null
-            ? new Set(configPrefixes)
-            : extractControllerImportPrefixes(text);
+          // Check for setting override first
+          const configPrefixes = ConfigService.getImportPrefixes();
+          const controllerImportPrefixes =
+            configPrefixes != null
+              ? new Set(configPrefixes)
+              : extractControllerImportPrefixes(text);
 
-        // Update prefixes if:
-        // 1. Running full file, OR
-        // 2. Setting or extracted prefixes exist
-        if (isDoc || controllerImportPrefixes.size > 0) {
-          this.remoteFileSourceService.setControllerImportPrefixes(
-            controllerImportPrefixes
+          // Update prefixes if:
+          // 1. Running full file, OR
+          // 2. Setting or extracted prefixes exist
+          if (isDoc || controllerImportPrefixes.size > 0) {
+            this.remoteFileSourceService.setControllerImportPrefixes(
+              controllerImportPrefixes
+            );
+          }
+
+          await this.remoteFileSourceService.setPythonServerExecutionContext(
+            this.cnId,
+            this.session
           );
         }
 
-        await this.remoteFileSourceService.setPythonServerExecutionContext(
-          this.cnId,
-          this.session
-        );
-      }
+        if (this.groovyRemoteFileSourcePluginService != null) {
+          await this.remoteFileSourceService.setGroovyServerExecutionContext(
+            this.groovyRemoteFileSourcePluginService
+          );
+        }
 
-      if (this.groovyRemoteFileSourcePluginService != null) {
-        await this.remoteFileSourceService.setGroovyServerExecutionContext(
-          this.groovyRemoteFileSourcePluginService
-        );
+        result = await this.session.runCode(text);
+      } finally {
+        // Nested `finally` so the count is decremented exactly once per run,
+        // and before the `catch` below may `dispose()` the emitter.
+        this.runningCodeCount = this._runningCodeCount - 1;
       }
-
-      result = await this.session.runCode(text);
-      this.runningCodeCount = this._runningCodeCount - 1;
 
       logger.debug('Command took', performance.now() - start, 'ms');
       error = result.error;
     } catch (err) {
-      // Decremented here rather than in a `finally` so listeners see the
-      // status change before `dispose()` below tears down the emitter.
-      this.runningCodeCount = this._runningCodeCount - 1;
       error = String(err);
 
       // Grpc UNAUTHENTICATED code. This should not generally happen since we
