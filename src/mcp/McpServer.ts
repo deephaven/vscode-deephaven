@@ -49,6 +49,17 @@ import { createConnectToServerTool } from './tools/connectToServer';
 const logger = new Logger('McpServer');
 
 /**
+ * Host header hostnames accepted on the MCP endpoint. `host.docker.internal`
+ * lets agents in a container reach a server running on the Docker host. This
+ * check is DNS rebinding protection, not access control, and allowing it does
+ * not weaken that since the name is not attacker-controlled.
+ */
+const ALLOWED_HOSTNAMES = [
+  ...localhostAllowedHostnames(),
+  'host.docker.internal',
+];
+
+/**
  * MCP Server for Deephaven extension.
  * Provides tools for AI assistants (like GitHub Copilot) to interact with Deephaven.
  *
@@ -131,15 +142,16 @@ export class McpServer extends DisposableBase {
   };
 
   /**
-   * Handle a request on the MCP endpoint. Rejects non-localhost Host / Origin
-   * headers (DNS rebinding protection), then routes by protocol era.
+   * Handle a request on the MCP endpoint. Rejects Host headers outside
+   * `ALLOWED_HOSTNAMES` and non-localhost Origin headers (DNS rebinding
+   * protection), then routes by protocol era.
    */
   private handleMcpRequest = async (
     request: Request,
     options?: McpHandlerRequestOptions
   ): Promise<Response> => {
     const rejected =
-      hostHeaderValidationResponse(request, localhostAllowedHostnames()) ??
+      hostHeaderValidationResponse(request, ALLOWED_HOSTNAMES) ??
       originValidationResponse(request, localhostAllowedOrigins());
 
     if (rejected != null) {

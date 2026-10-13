@@ -357,6 +357,11 @@ describe('McpServer', () => {
   it.each<{ name: string; headers: Record<string, string>; status: number }>([
     { name: 'non-localhost Host', headers: { host: 'evil.com' }, status: 403 },
     {
+      name: 'host.docker.internal Host',
+      headers: { host: 'host.docker.internal:1234' },
+      status: 200,
+    },
+    {
       name: 'non-localhost Origin',
       headers: { origin: 'http://evil.com' },
       status: 403,
