@@ -14,7 +14,9 @@ import {
   REQUIREMENTS_TABLE_NAME_COLUMN_NAME,
   REQUIREMENTS_TABLE_VERSION_COLUMN_NAME,
 } from '../common';
-import { getRemoteFileSourcePlugin, uniqueId } from '../util';
+import { getRemoteFileSourcePlugin, Logger, uniqueId } from '../util';
+
+const logger = new Logger('dhc');
 
 export const AUTH_HANDLER_TYPE_ANONYMOUS =
   'io.deephaven.auth.AnonymousAuthenticationHandler';
@@ -182,13 +184,19 @@ export async function initDhcSession(
   const pythonRemoteFileSourcePlugin =
     type === 'python' ? await getRemoteFileSourcePlugin(cnId, session) : null;
 
-  const groovyRemoteFileSourcePlugin: DhType.remotefilesource.RemoteFileSourceService | null =
-    // The presence of `getRemoteFileSourceService` determines if the Groovy
-    // plugin is available on the server — it is absent until the backing core
-    // PR ships (see `modules.d.ts`).
-    type === 'groovy' && typeof client.getRemoteFileSourceService === 'function'
-      ? await client.getRemoteFileSourceService()
-      : null;
+  let groovyRemoteFileSourcePlugin: DhType.remotefilesource.RemoteFileSourceService | null =
+    null;
+
+  if (
+    type === 'groovy' &&
+    typeof client.getRemoteFileSourceService === 'function'
+  ) {
+    try {
+      groovyRemoteFileSourcePlugin = await client.getRemoteFileSourceService();
+    } catch (err) {
+      logger.info('Groovy remote file sourcing unavailable:', err);
+    }
+  }
 
   return {
     cn,
