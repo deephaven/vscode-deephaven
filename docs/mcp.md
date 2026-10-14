@@ -47,7 +47,14 @@ The extension provides two settings to control MCP functionality:
 
    ![MCP Enabled](assets/mcp-enabled.png)
 
-This automatically sets `"deephaven.mcp.enabled": true` in your workspace settings (`.vscode/settings.json`). The MCP server starts immediately, listening on a local HTTP endpoint. Each workspace gets a unique port.
+This automatically sets `"deephaven.mcp.enabled": true` in your workspace settings (`.vscode/settings.json`). The MCP server starts immediately, listening on a local HTTP endpoint. Each workspace gets its own port (see [Port Assignment](#port-assignment)).
+
+#### Port Assignment
+
+- The first time the MCP server starts in a workspace, the OS assigns it a random free port.
+- The extension saves that port for the workspace and reuses it every time the workspace opens, so manually configured endpoints keep working.
+- If the saved port is in use (e.g. by another VS Code window), the server picks a new random port and saves that one. If you configured the endpoint manually, update it to the new port shown in the status bar. VS Code with GitHub Copilot picks up the change automatically. Windsurf asks before updating its config, unless `deephaven.mcp.autoUpdateConfig` is `true`.
+- There is no setting to choose a specific port.
 
 #### Docs MCP Server Configuration
 
