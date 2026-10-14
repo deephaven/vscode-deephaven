@@ -288,7 +288,7 @@ export class RemoteFileSourceService extends DisposableBase {
       resourcePaths
     );
 
-    await pluginService.setExecutionContext(isDirty, resourcePaths);
+    await pluginService.setRemoteSources(isDirty, resourcePaths);
   }
 
   private _pythonSetExecutionContextI = 0;
