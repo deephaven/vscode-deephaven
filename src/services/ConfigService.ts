@@ -119,6 +119,15 @@ function getMcpAutoUpdateConfig(): boolean {
   return getConfig().get<boolean>(CONFIG_KEY.mcpAutoUpdateConfig, false);
 }
 
+function isGroovyRemoteFileSourcingEnabled(): boolean {
+  return (
+    getConfig().get<boolean>(
+      CONFIG_KEY.experimentalGroovyRemoteFileSourcing,
+      false
+    ) === true
+  );
+}
+
 function isMcpDocsEnabled(): boolean {
   return getConfig().get<boolean>(CONFIG_KEY.mcpDocsEnabled, true);
 }
@@ -257,6 +266,7 @@ export const ConfigService: IConfigService = {
   getEnterpriseServers,
   getImportPrefixes,
   isElectronFetchEnabled,
+  isGroovyRemoteFileSourcingEnabled,
   isMcpDocsEnabled,
   isMcpEnabled,
   getMcpAutoUpdateConfig,

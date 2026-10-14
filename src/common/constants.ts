@@ -20,6 +20,7 @@ export const CONFIG_KEY = {
   root: 'deephaven',
   coreServers: 'coreServers',
   enterpriseServers: 'enterpriseServers',
+  experimentalGroovyRemoteFileSourcing: 'experimental.groovyRemoteFileSourcing',
   importPrefixes: 'importPrefixes',
   mcpAutoUpdateConfig: 'mcp.autoUpdateConfig',
   mcpDocsEnabled: 'mcp.docsEnabled',

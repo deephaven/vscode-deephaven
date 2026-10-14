@@ -165,10 +165,13 @@ export async function getPythonDependencies(
 /**
  * Initialize a connection and session to a DHC server.
  * @param client The authenticated client to use for the connection.
+ * @param isGroovyRemoteFileSourcingEnabled Whether to initialize the Groovy
+ * remote file source plugin (experimental).
  * @returns A promise that resolves to the connection and session.
  */
 export async function initDhcSession(
-  client: CoreAuthenticatedClient
+  client: CoreAuthenticatedClient,
+  isGroovyRemoteFileSourcingEnabled: boolean
 ): Promise<ConnectionAndSession<DhType.IdeConnection, DhType.IdeSession>> {
   const cn = await client.getAsIdeConnection();
   const cnId = uniqueId();
@@ -189,6 +192,7 @@ export async function initDhcSession(
 
   if (
     type === 'groovy' &&
+    isGroovyRemoteFileSourcingEnabled &&
     typeof client.getRemoteFileSourceService === 'function'
   ) {
     try {

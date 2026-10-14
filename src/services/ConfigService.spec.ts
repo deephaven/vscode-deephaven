@@ -410,3 +410,15 @@ describe('getImportPrefixes', () => {
     }
   );
 });
+
+describe('isGroovyRemoteFileSourcingEnabled', () => {
+  it.each([
+    ['Not set', undefined, false],
+    ['Disabled', false, false],
+    ['Enabled', true, true],
+  ])('should return expected value: %s', (_label, given, expected) => {
+    configMap.set(CONFIG_KEY.experimentalGroovyRemoteFileSourcing, given);
+
+    expect(ConfigService.isGroovyRemoteFileSourcingEnabled()).toEqual(expected);
+  });
+});

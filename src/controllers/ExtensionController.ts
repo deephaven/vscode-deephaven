@@ -1004,6 +1004,7 @@ export class ExtensionController implements IDisposable {
 
     // Remote import source tree
     this._remoteImportSourceTreeProvider = new RemoteImportSourceTreeProvider(
+      this._config,
       this._groovyWorkspace,
       this._pythonWorkspace
     );

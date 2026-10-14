@@ -1,8 +1,10 @@
 import * as vscode from 'vscode';
 import { TreeDataProviderBase } from './TreeDataProviderBase';
+import { CONFIG_KEY } from '../common';
 import type { FilteredWorkspace } from '../services';
 import type {
   GroovyPackageName,
+  IConfigService,
   PythonModuleFullname,
   RemoteImportSourceTreeElement,
 } from '../types';
@@ -26,10 +28,23 @@ const PYTHON_LABEL = 'Python';
  */
 export class RemoteImportSourceTreeProvider extends TreeDataProviderBase<RemoteImportSourceTreeElement> {
   constructor(
+    private readonly _config: IConfigService,
     private readonly _groovyWorkspace: FilteredWorkspace<GroovyPackageName>,
     private readonly _pythonWorkspace: FilteredWorkspace<PythonModuleFullname>
   ) {
     super();
+
+    this.disposables.add(
+      vscode.workspace.onDidChangeConfiguration(e => {
+        if (
+          e.affectsConfiguration(
+            `${CONFIG_KEY.root}.${CONFIG_KEY.experimentalGroovyRemoteFileSourcing}`
+          )
+        ) {
+          this.refresh();
+        }
+      })
+    );
 
     this.disposables.add(
       this._groovyWorkspace.onDidUpdate(() => this.refresh())
@@ -56,16 +71,28 @@ export class RemoteImportSourceTreeProvider extends TreeDataProviderBase<RemoteI
     }
 
     if (node.type === 'root') {
+      const isGroovyEnabled = this._config.isGroovyRemoteFileSourcingEnabled();
+
       if (node.name === ACTIVE_SOURCES_LABEL) {
         return [
-          ...this._groovyWorkspace.getTopLevelMarkedFolders(),
+          ...(isGroovyEnabled
+            ? this._groovyWorkspace.getTopLevelMarkedFolders()
+            : []),
           ...this._pythonWorkspace.getTopLevelMarkedFolders(),
         ].sort(sortByStringProp('name'));
       }
 
       if (node.name === WORKSPACE_LABEL) {
         return [
-          { type: 'languageRoot', name: GROOVY_LABEL, languageId: 'groovy' },
+          ...(isGroovyEnabled
+            ? [
+                {
+                  type: 'languageRoot',
+                  name: GROOVY_LABEL,
+                  languageId: 'groovy',
+                } as const,
+              ]
+            : []),
           { type: 'languageRoot', name: PYTHON_LABEL, languageId: 'python' },
         ];
       }
