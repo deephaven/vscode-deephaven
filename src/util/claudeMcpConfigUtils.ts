@@ -81,6 +81,8 @@ function runClaudeCli(
 
 /**
  * Check if the given path is an executable file.
+ * @param filePath Path to check
+ * @returns true if the path is a file the current process can execute
  */
 function isExecutableFile(filePath: string): boolean {
   try {
@@ -98,6 +100,7 @@ function isExecutableFile(filePath: string): boolean {
  * commands run with a workspace folder as `cwd`. That would allow a workspace
  * to contain a `claude.cmd` that runs instead of the real CLI. Relative PATH
  * entries are skipped for the same reason.
+ * @returns Candidate paths, which may not exist
  */
 function getClaudeCliPathsOnPath(): string[] {
   const dirs = (process.env.PATH ?? '')
@@ -122,6 +125,7 @@ function getClaudeCliPathsOnPath(): string[] {
  * the extension have no other CLI. Mirrors the extension's own lookup, which on
  * Windows on ARM prefers a bundled x64 binary.
  * @param claudeExtensionPath Install path of the Claude Code VS Code extension
+ * @returns Candidate paths in preference order, which may not exist
  */
 function getBundledClaudeCliPaths(claudeExtensionPath: string): string[] {
   if (process.platform === 'win32') {
@@ -159,6 +163,7 @@ function getBundledClaudeCliPaths(claudeExtensionPath: string): string[] {
  * fallbacks, then the binary bundled with the Claude Code VS Code extension.
  * @param claudeExtensionPath Install path of the Claude Code VS Code extension,
  * if installed
+ * @returns Executable candidate paths in preference order
  */
 export function getClaudeCliCandidates(claudeExtensionPath?: string): string[] {
   const homeDir = os.homedir();
@@ -208,6 +213,9 @@ export async function resolveClaudeCliPath(
  * Remove an MCP server from Claude `local` scope config. Note that `--scope`
  * must always be specified, otherwise the CLI removes the server from whichever
  * scope it is found in (e.g. a user-scoped server configured by the user).
+ * @param cliPath Path to the Claude CLI executable
+ * @param folderPath Folder whose config to remove the server from
+ * @param name MCP server name
  * @returns The result of running the remove command
  */
 function removeClaudeMcpServer(
@@ -224,6 +232,10 @@ function removeClaudeMcpServer(
 /**
  * Add or replace an HTTP MCP server in Claude `local` scope config. The CLI
  * fails to add a server that already exists, so remove it first.
+ * @param cliPath Path to the Claude CLI executable
+ * @param folderPath Folder whose config to add the server to
+ * @param name MCP server name
+ * @param url MCP server URL
  * @returns true if the server was added, false otherwise
  */
 async function upsertClaudeMcpServer(
