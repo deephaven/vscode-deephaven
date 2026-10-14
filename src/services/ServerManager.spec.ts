@@ -74,6 +74,7 @@ type TestServerManager = PublicOf<ServerManager> & {
   _countedConnections: URLMap<boolean>;
   _workerURLToServerURLMap: URLMap<URL>;
   _detachWorker: (serial: string) => Promise<void>;
+  _secretService: ISecretService;
 };
 
 /** Build a `ServerManager` with minimal mocked dependencies. */
@@ -725,5 +726,47 @@ describe('ServerManager.isServerConnecting', () => {
     );
     expect(manager._dhcServiceFactory.create).toHaveBeenCalledTimes(2);
     expect(manager.isServerConnecting(serverUrl)).toBe(false);
+  });
+});
+
+describe('ServerManager.syncManagedServers', () => {
+  const managedUrl = new URL('http://localhost:10001/');
+
+  let manager: TestServerManager;
+  let pskLookups: PromiseWithResolvers<undefined>[];
+  let storePsk: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    manager = createServerManager();
+    pskLookups = [];
+    storePsk = vi.fn().mockResolvedValue(undefined);
+    manager._secretService = {
+      getPsk: vi.fn(() => {
+        const lookup = withResolvers<undefined>();
+        pskLookups.push(lookup);
+        return lookup.promise;
+      }),
+      storePsk,
+    } as unknown as ISecretService;
+  });
+
+  it('keeps the first PSK when overlapping syncs add the same server', async () => {
+    const syncA = manager.syncManagedServers([managedUrl], true);
+    const syncB = manager.syncManagedServers([managedUrl], true);
+
+    pskLookups[0].resolve(undefined);
+    await syncA;
+    const psk = (
+      manager._serverMap.get(managedUrl) as ServerState & { psk: string }
+    ).psk;
+
+    pskLookups[1].resolve(undefined);
+    await syncB;
+
+    expect(
+      (manager._serverMap.get(managedUrl) as ServerState & { psk: string }).psk
+    ).toBe(psk);
+    expect(storePsk).toHaveBeenCalledTimes(1);
+    expect(storePsk).toHaveBeenCalledWith(managedUrl, psk);
   });
 });

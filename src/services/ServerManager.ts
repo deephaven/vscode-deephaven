@@ -1322,6 +1322,13 @@ export class ServerManager implements IServerManager {
         ? await this._secretService.getPsk(server.url)
         : null;
 
+      // An overlapping sync may have added the server while the PSK lookup
+      // was in flight. Keep its state so the PSK a server was launched with
+      // doesn't get replaced.
+      if (this._serverMap.has(server.url)) {
+        continue;
+      }
+
       if (existingPsk != null) {
         logger.debug('Using existing psk for server:', server.url, existingPsk);
       }
