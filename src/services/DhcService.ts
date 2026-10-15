@@ -188,16 +188,23 @@ export class DhcService extends DisposableBase implements IDhcService {
     return this.cn != null && this.session != null;
   }
 
-  private _isRunningCode = false;
+  // Count rather than a flag so overlapping `runCode` calls (e.g. concurrent
+  // MCP tool calls) don't clear the status while another run is in flight.
+  private _runningCodeCount = 0;
   get isRunningCode(): boolean {
-    return this._isRunningCode;
+    return this._runningCodeCount > 0;
   }
-  private set isRunningCode(value: boolean) {
-    if (this._isRunningCode !== value) {
-      this._isRunningCode = value;
-      this._onDidChangeRunningCodeStatus.fire(this._isRunningCode);
+  private set runningCodeCount(value: number) {
+    const isChanged = value > 0 !== this.isRunningCode;
+    this._runningCodeCount = value;
+    if (isChanged) {
+      this._onDidChangeRunningCodeStatus.fire(this.isRunningCode);
     }
   }
+
+  // Tail of the per-connection run queue. Never rejects, so each run can chain
+  // onto it regardless of how the previous one settled.
+  private _runCodeQueue: Promise<void> = Promise.resolve();
 
   private onDidCoreClientCacheInvalidate = (url: URL): void => {
     if (url.toString() === this.serverUrl.toString()) {
@@ -509,6 +516,68 @@ export class DhcService extends DisposableBase implements IDhcService {
     await this.session.runCode(`del ${variableDefinition.name}`);
   }
 
+  /**
+   * Run `fn` once all previously enqueued runs on this connection have settled.
+   * @param fn The run to enqueue.
+   * @returns The result of `fn`.
+   */
+  private _enqueueRun<T>(fn: () => Promise<T>): Promise<T> {
+    const run = this._runCodeQueue.then(fn);
+    this._runCodeQueue = run.then(
+      () => undefined,
+      () => undefined
+    );
+    return run;
+  }
+
+  /**
+   * Set the remote file source execution context for the code, then run it.
+   * @param documentOrText The document or text being run.
+   * @param text The code text to run.
+   * @param cnId The connection ID.
+   * @param session The session to run the code in.
+   * @returns The command result.
+   */
+  private async _setExecutionContextAndRunCode(
+    documentOrText: vscode.TextDocument | string,
+    text: string,
+    cnId: UniqueID,
+    session: DhcType.IdeSession
+  ): Promise<DhcType.ide.CommandResult> {
+    if (this.pythonRemoteFileSourcePlugin != null) {
+      const isDoc = typeof documentOrText !== 'string';
+
+      // Check for setting override first
+      const configPrefixes = ConfigService.getImportPrefixes();
+      const controllerImportPrefixes =
+        configPrefixes != null
+          ? new Set(configPrefixes)
+          : extractControllerImportPrefixes(text);
+
+      // Update prefixes if:
+      // 1. Running full file, OR
+      // 2. Setting or extracted prefixes exist
+      if (isDoc || controllerImportPrefixes.size > 0) {
+        this.remoteFileSourceService.setControllerImportPrefixes(
+          controllerImportPrefixes
+        );
+      }
+
+      await this.remoteFileSourceService.setPythonServerExecutionContext(
+        cnId,
+        session
+      );
+    }
+
+    if (this.groovyRemoteFileSourcePluginService != null) {
+      await this.remoteFileSourceService.setGroovyServerExecutionContext(
+        this.groovyRemoteFileSourcePluginService
+      );
+    }
+
+    return session.runCode(text);
+  }
+
   async runCode(
     documentOrText: vscode.TextDocument | string,
     languageId: string,
@@ -547,49 +616,35 @@ export class DhcService extends DisposableBase implements IDhcService {
     let result: DhcType.ide.CommandResult | null = null;
     let error: string | null = null;
 
+    this.runningCodeCount = this._runningCodeCount + 1;
+
     try {
       const start = performance.now();
 
-      this.isRunningCode = true;
+      try {
+        const { cnId, session } = this;
 
-      if (this.pythonRemoteFileSourcePlugin != null) {
-        const isDoc = typeof documentOrText !== 'string';
-
-        // Check for setting override first
-        const configPrefixes = ConfigService.getImportPrefixes();
-        const controllerImportPrefixes =
-          configPrefixes != null
-            ? new Set(configPrefixes)
-            : extractControllerImportPrefixes(text);
-
-        // Update prefixes if:
-        // 1. Running full file, OR
-        // 2. Setting or extracted prefixes exist
-        if (isDoc || controllerImportPrefixes.size > 0) {
-          this.remoteFileSourceService.setControllerImportPrefixes(
-            controllerImportPrefixes
-          );
-        }
-
-        await this.remoteFileSourceService.setPythonServerExecutionContext(
-          this.cnId,
-          this.session
+        // The remote file source execution context is shared state, so
+        // overlapping runs on this connection could otherwise run with each
+        // other's context. Queue them so each context update and its code
+        // execute back to back.
+        result = await this._enqueueRun(() =>
+          this._setExecutionContextAndRunCode(
+            documentOrText,
+            text,
+            cnId,
+            session
+          )
         );
+      } finally {
+        // Nested `finally` so the count is decremented exactly once per run,
+        // and before the `catch` below may `dispose()` the emitter.
+        this.runningCodeCount = this._runningCodeCount - 1;
       }
-
-      if (this.groovyRemoteFileSourcePluginService != null) {
-        await this.remoteFileSourceService.setGroovyServerExecutionContext(
-          this.groovyRemoteFileSourcePluginService
-        );
-      }
-
-      result = await this.session.runCode(text);
-      this.isRunningCode = false;
 
       logger.debug('Command took', performance.now() - start, 'ms');
       error = result.error;
     } catch (err) {
-      this.isRunningCode = false;
       error = String(err);
 
       // Grpc UNAUTHENTICATED code. This should not generally happen since we

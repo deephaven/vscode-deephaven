@@ -239,7 +239,7 @@ describe('runCodeFromUri tool', () => {
       {
         name: 'invalid URI',
         uri: 'not-a-uri',
-        connectionUrl: undefined,
+        connectionUrl: MOCK_CONNECTION_URL.href,
         expected: mcpErrorResult('Invalid URI: Invalid URI', {
           uri: 'not-a-uri',
         }),
@@ -247,7 +247,7 @@ describe('runCodeFromUri tool', () => {
       {
         name: 'file does not exist',
         uri: MOCK_URI_STRING,
-        connectionUrl: undefined,
+        connectionUrl: MOCK_CONNECTION_URL.href,
         statResult: new Error('File not found'),
         expected: mcpErrorResult('File not found: File not found', {
           uri: '/path/to/file.py',

@@ -1,7 +1,19 @@
 import * as vscode from 'vscode';
 import type { dh as DhcType } from '@deephaven/jsapi-types';
-import { McpServer as SdkMcpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { toNodeHandler } from '@modelcontextprotocol/node';
+import {
+  createMcpHandler,
+  hostHeaderValidationResponse,
+  isLegacyRequest,
+  localhostAllowedHostnames,
+  localhostAllowedOrigins,
+  McpServer as SdkMcpServer,
+  originValidationResponse,
+  WebStandardStreamableHTTPServerTransport,
+  type McpHandlerRequestOptions,
+  type McpHttpHandler,
+  type ToolCallback,
+} from '@modelcontextprotocol/server';
 import * as http from 'http';
 import type {
   IAsyncCacheService,
@@ -30,18 +42,42 @@ import {
   createRunCodeTool,
   createShowOutputPanelTool,
 } from './tools';
-import { OutputChannelWithHistory, withResolvers } from '../util';
+import { Logger, OutputChannelWithHistory, withResolvers } from '../util';
 import { DisposableBase, type FilteredWorkspace } from '../services';
 import { createConnectToServerTool } from './tools/connectToServer';
+
+const logger = new Logger('McpServer');
+
+/**
+ * Host header hostnames accepted on the MCP endpoint. `host.docker.internal`
+ * lets agents in a container reach a server running on the Docker host. This
+ * check is DNS rebinding protection, not access control, and allowing it does
+ * not weaken that since the name is not attacker-controlled.
+ */
+const ALLOWED_HOSTNAMES = [
+  ...localhostAllowedHostnames(),
+  'host.docker.internal',
+];
 
 /**
  * MCP Server for Deephaven extension.
  * Provides tools for AI assistants (like GitHub Copilot) to interact with Deephaven.
+ *
+ * Serves both 2026-07-28 protocol requests (`modernHandler`) and 2025-era
+ * requests (`handleLegacyRequest`). See `handleLegacyRequest` for why the
+ * legacy path exists and when it can be removed.
  */
 export class McpServer extends DisposableBase {
-  private server: SdkMcpServer;
   private httpServer: http.Server | null = null;
   private port: number | null = null;
+
+  /**
+   * Serves 2026-07-28 (modern) protocol requests. 2025-era requests are routed
+   * to `handleLegacyRequest` instead so that responses stay
+   * `application/json` (`createMcpHandler`'s built-in legacy fallback always
+   * responds with SSE).
+   */
+  private readonly modernHandler: McpHttpHandler;
 
   constructor(
     readonly coreJsApiCache: IAsyncCacheService<URL, typeof DhcType>,
@@ -56,41 +92,138 @@ export class McpServer extends DisposableBase {
   ) {
     super();
 
-    // Create an MCP server
-    this.server = new SdkMcpServer({
+    this.modernHandler = createMcpHandler(this.createSdkServer, {
+      legacy: 'reject',
+      onerror: error => logger.error('MCP request error:', error),
+    });
+  }
+
+  /**
+   * Create a new SDK server with all tools registered. An SDK server can only
+   * be connected to one transport at a time, so a fresh instance is created
+   * for every HTTP request. This is what allows concurrent tool calls.
+   */
+  private createSdkServer = (): SdkMcpServer => {
+    const server = new SdkMcpServer({
       name: MCP_SERVER_NAME,
       version: '1.0.0',
     });
 
-    this.registerTool(createAddRemoteFileSourcesTool());
-    this.registerTool(createConnectToServerTool(this));
-    this.registerTool(createGetColumnStatsTool(this));
-    this.registerTool(createGetLogsTool(this));
-    this.registerTool(createGetTableDataTool(this));
-    this.registerTool(createGetTableStatsTool(this));
-    this.registerTool(createListConnectionsTool(this));
-    this.registerTool(createListVariablesTool(this));
-    this.registerTool(createListRemoteFileSourcesTool(this));
-    this.registerTool(createListServersTool(this));
-    this.registerTool(createOpenFilesInEditorTool());
-    this.registerTool(createOpenVariablePanelsTool(this));
-    this.registerTool(createRemoveRemoteFileSourcesTool());
-    this.registerTool(createRunCodeFromUriTool(this));
-    this.registerTool(createRunCodeTool(this));
-    this.registerTool(createShowOutputPanelTool(this));
-  }
+    const registerTool = <Spec extends McpToolSpec>({
+      name,
+      spec,
+      handler,
+    }: McpTool<Spec>): void => {
+      server.registerTool(
+        name,
+        spec,
+        handler as ToolCallback<Spec['inputSchema']>
+      );
+    };
 
-  private registerTool<Spec extends McpToolSpec>({
-    name,
-    spec,
-    handler,
-  }: McpTool<Spec>): void {
-    this.server.registerTool(name, spec, handler);
-  }
+    registerTool(createAddRemoteFileSourcesTool());
+    registerTool(createConnectToServerTool(this));
+    registerTool(createGetColumnStatsTool(this));
+    registerTool(createGetLogsTool(this));
+    registerTool(createGetTableDataTool(this));
+    registerTool(createGetTableStatsTool(this));
+    registerTool(createListConnectionsTool(this));
+    registerTool(createListVariablesTool(this));
+    registerTool(createListRemoteFileSourcesTool(this));
+    registerTool(createListServersTool(this));
+    registerTool(createOpenFilesInEditorTool());
+    registerTool(createOpenVariablePanelsTool(this));
+    registerTool(createRemoveRemoteFileSourcesTool());
+    registerTool(createRunCodeFromUriTool(this));
+    registerTool(createRunCodeTool(this));
+    registerTool(createShowOutputPanelTool(this));
+
+    return server;
+  };
+
+  /**
+   * Handle a request on the MCP endpoint. Rejects Host headers outside
+   * `ALLOWED_HOSTNAMES` and non-localhost Origin headers (DNS rebinding
+   * protection), then routes by protocol era.
+   */
+  private handleMcpRequest = async (
+    request: Request,
+    options?: McpHandlerRequestOptions
+  ): Promise<Response> => {
+    const rejected =
+      hostHeaderValidationResponse(request, ALLOWED_HOSTNAMES) ??
+      originValidationResponse(request, localhostAllowedOrigins());
+
+    if (rejected != null) {
+      return rejected;
+    }
+
+    if (await isLegacyRequest(request)) {
+      return this.handleLegacyRequest(request);
+    }
+
+    return this.modernHandler.fetch(request, options);
+  };
+
+  /**
+   * Serve a 2025-era request statelessly with a fresh SDK server and transport
+   * and a plain `application/json` response.
+   *
+   * Callers: MCP clients that have not yet adopted the 2026-07-28 protocol
+   * (still `initialize` handshake based), plus direct HTTP callers such as
+   * `.devcontainer/scripts/vscode-dev.sh`, which sends `2025-06-18`.
+   *
+   * Hand-rolled rather than using `createMcpHandler`'s built-in legacy fallback
+   * because that fallback always responds with SSE, which would break callers
+   * that expect a JSON response body.
+   *
+   * Removal: once the clients we support send 2026-07-28 requests, delete this
+   * method and its routing in `handleMcpRequest`, update the legacy mentions in
+   * `stop()`'s comments, and update `vscode-dev.sh` to the modern protocol.
+   */
+  private handleLegacyRequest = async (request: Request): Promise<Response> => {
+    // Stateless server, so no standalone SSE stream (GET) or sessions (DELETE)
+    if (request.method !== 'POST') {
+      return new Response('Method Not Allowed', {
+        status: 405,
+        headers: { allow: 'POST' },
+      });
+    }
+
+    const server = this.createSdkServer();
+    const transport = new WebStandardStreamableHTTPServerTransport({
+      sessionIdGenerator: undefined,
+      enableJsonResponse: true,
+    });
+
+    // The transport ignores `request.signal`, and closing it does not settle a
+    // pending `handleRequest`, so race the exchange against client disconnect.
+    // `finally` then closes the per-request server as soon as the client leaves.
+    const { promise: aborted, resolve: resolveAborted } =
+      withResolvers<Response>();
+    const onAbort = (): void =>
+      resolveAborted(new Response(null, { status: 499 }));
+
+    if (request.signal.aborted) {
+      onAbort();
+    } else {
+      request.signal.addEventListener('abort', onAbort, { once: true });
+    }
+
+    try {
+      await server.connect(transport);
+      // With `enableJsonResponse`, the response is only built once the result
+      // exists, so the server can be closed as soon as this resolves.
+      return await Promise.race([transport.handleRequest(request), aborted]);
+    } finally {
+      request.signal.removeEventListener('abort', onAbort);
+      await server.close();
+    }
+  };
 
   /**
    * Start the MCP server on an HTTP endpoint.
-   * Creates a new transport for each request (stateless operation).
+   * Each request is served by a fresh SDK server (stateless operation).
    *
    * @param preferredPort Optional port to try first. If not provided or unavailable, will auto-allocate.
    * @returns The actual port the server is listening on
@@ -100,54 +233,20 @@ export class McpServer extends DisposableBase {
 
     const { promise, resolve, reject } = withResolvers<number>();
 
-    this.httpServer = http.createServer(async (req, res) => {
-      if (req.url !== '/mcp') {
-        res.writeHead(404, { contentType: 'text/plain' });
-        res.end('Not found');
-      }
+    const nodeHandler = toNodeHandler(
+      { fetch: this.handleMcpRequest },
+      { onerror: error => logger.error('MCP request error:', error) }
+    );
 
-      // Only accept POST requests since we don't currenlty support SSE. TBD
-      // whether we need SSE in the future.
-      if (req.method !== 'POST') {
-        res.writeHead(405, {
-          contentType: 'text/plain',
-          allow: 'POST',
-        });
-        res.end('Method Not Allowed');
+    this.httpServer = http.createServer((req, res) => {
+      if (req.url !== '/mcp') {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        res.writeHead(404, { 'content-type': 'text/plain' });
+        res.end('Not found');
         return;
       }
 
-      // Collect the request body
-      let body = '';
-      req.on('data', chunk => {
-        body += chunk.toString();
-      });
-
-      req.on('end', async () => {
-        try {
-          const requestBody = JSON.parse(body);
-
-          // Create a new transport for each request
-          const transport = new StreamableHTTPServerTransport({
-            sessionIdGenerator: undefined,
-            enableJsonResponse: true,
-          });
-
-          res.on('close', () => {
-            transport.close();
-          });
-
-          await this.server.connect(transport);
-          await transport.handleRequest(req, res, requestBody);
-        } catch (error) {
-          res.writeHead(500, { contentType: 'application/json' });
-          res.end(
-            JSON.stringify({
-              error: `Failed to process request: ${error instanceof Error ? error.message : String(error)}`,
-            })
-          );
-        }
-      });
+      void nodeHandler(req, res);
     });
 
     this.httpServer.listen(portToTry, () => {
@@ -209,10 +308,14 @@ export class McpServer extends DisposableBase {
       return;
     }
 
+    const httpServer = this.httpServer;
+    this.httpServer = null;
+
     const { resolve, reject, promise } = withResolvers<void>();
 
-    this.httpServer.close(err => {
-      this.httpServer = null;
+    // Stop accepting connections before the first `await`. Callers may not
+    // await `stop()`, and closing `modernHandler` does not stop legacy requests.
+    httpServer.close(err => {
       this.port = null;
 
       if (err) {
@@ -222,6 +325,12 @@ export class McpServer extends DisposableBase {
       }
     });
 
-    return promise;
+    // `close()` waits for in-flight responses, and nothing else tears down a
+    // pending legacy exchange, so a long-running tool call would keep `stop()`
+    // pending. Dropping the connections aborts each request, which closes its
+    // per-request SDK server (see `handleLegacyRequest`).
+    httpServer.closeAllConnections();
+
+    await Promise.all([this.modernHandler.close(), promise]);
   }
 }

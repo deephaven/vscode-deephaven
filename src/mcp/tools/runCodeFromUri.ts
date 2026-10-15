@@ -30,7 +30,7 @@ const spec = {
   title: 'Run Deephaven Code from URI',
   description:
     'Execute code from a workspace file URI in a Deephaven session. Can run the entire file or constrain execution to the current selection within the file.',
-  inputSchema: {
+  inputSchema: z.object({
     uri: z.string().describe('The file URI to run.'),
     constrainTo: z
       .enum(['selection'])
@@ -41,7 +41,7 @@ const spec = {
     connectionUrl: z
       .string()
       .describe('The Deephaven connection URL to use for execution.'),
-  },
+  }),
   outputSchema: runCodeOutputSchema,
 } as const;
 

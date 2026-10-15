@@ -241,7 +241,7 @@ describe('getTableData', () => {
       tableName: 'myTable',
     });
 
-    expect(result.structuredContent.success).toBe(true);
+    expect(result.structuredContent).toMatchObject({ success: true });
     expect(MOCK_TABLE.close).toHaveBeenCalled();
   });
 });

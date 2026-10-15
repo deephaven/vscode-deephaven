@@ -49,7 +49,7 @@ export const variableResultSchema = z.object({
 /**
  * Common output schema for MCP tools that run code.
  */
-export const runCodeOutputSchema = {
+export const runCodeOutputSchema = z.object({
   success: z.boolean(),
   message: z.string(),
   executionTimeMs: z.number().describe('Execution time in milliseconds'),
@@ -86,7 +86,7 @@ export const runCodeOutputSchema = {
         .describe('Variables created or updated by the code execution'),
     })
     .optional(),
-};
+});
 
 /**
  * Creates a hint for connection not found errors based on available connections.

@@ -1,9 +1,12 @@
-import type { ToolCallback } from '@modelcontextprotocol/sdk/server/mcp';
-import type { z, ZodRawShape } from 'zod';
+import type {
+  CallToolResult,
+  ServerContext,
+} from '@modelcontextprotocol/server';
+import type { z } from 'zod';
 
 export interface McpToolSpec<
-  InputSchema extends ZodRawShape = ZodRawShape,
-  OutputSchema extends ZodRawShape = ZodRawShape,
+  InputSchema extends z.ZodObject = z.ZodObject,
+  OutputSchema extends z.ZodObject = z.ZodObject,
 > {
   title: string;
   description: string;
@@ -11,16 +14,25 @@ export interface McpToolSpec<
   outputSchema: OutputSchema;
 }
 
-export type McpToolHandler<InputSchema extends ZodRawShape> =
-  ToolCallback<InputSchema>;
+/**
+ * Tool handler. Assignable to the SDK's `ToolCallback`, but `ctx` is optional
+ * since no tool currently uses it.
+ */
+export type McpToolHandler<InputSchema extends z.ZodObject> = (
+  args: z.input<InputSchema>,
+  ctx?: ServerContext
+) => CallToolResult | Promise<CallToolResult>;
 
-export type McpToolHandlerArg<Spec extends McpToolSpec> = {
-  [K in keyof Spec['inputSchema']]: z.infer<Spec['inputSchema'][K]>;
-};
-
-export type McpToolHandlerResult<Spec extends McpToolSpec> = Awaited<
-  ReturnType<McpToolHandler<Spec['inputSchema']>>
+/**
+ * Handler args typed as the schema *input* (pre-parse) so handlers can apply
+ * their own defaults and be called directly in tests. The SDK always passes
+ * the parsed output, which is assignable to this.
+ */
+export type McpToolHandlerArg<Spec extends McpToolSpec> = z.input<
+  Spec['inputSchema']
 >;
+
+export type McpToolHandlerResult<_Spec extends McpToolSpec> = CallToolResult;
 
 export type McpTool<Spec extends McpToolSpec = McpToolSpec> = {
   name: string;
