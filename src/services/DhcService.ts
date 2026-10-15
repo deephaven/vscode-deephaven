@@ -256,7 +256,10 @@ export class DhcService extends DisposableBase implements IDhcService {
 
     if (this.initSessionPromise == null) {
       this.outputChannel.appendLine('Creating session...');
-      this.initSessionPromise = initDhcSession(client);
+      this.initSessionPromise = initDhcSession(
+        client,
+        ConfigService.isGroovyRemoteFileSourcingEnabled()
+      );
 
       try {
         const { cn, session } = await this.initSessionPromise;

@@ -161,6 +161,11 @@
           },
           "default": []
         },
+        "deephaven.experimental.groovyRemoteFileSourcing": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "(Experimental) Enable remote file sourcing for Groovy connections. Requires a Deephaven Core server with Groovy remote file source support. Takes effect for new connections."
+        },
         "deephaven.importPrefixes": {
           "type": [
             "array",
@@ -1010,12 +1015,12 @@
         {
           "command": "vscode-deephaven.addGroovyRemoteFileSource",
           "group": "deephaven",
-          "when": "explorerResourceIsFolder"
+          "when": "config.deephaven.experimental.groovyRemoteFileSourcing && explorerResourceIsFolder"
         },
         {
           "command": "vscode-deephaven.removeGroovyRemoteFileSource",
           "group": "deephaven",
-          "when": "explorerResourceIsFolder"
+          "when": "config.deephaven.experimental.groovyRemoteFileSourcing && explorerResourceIsFolder"
         },
         {
           "command": "vscode-deephaven.addPythonRemoteFileSource",
@@ -1187,12 +1192,12 @@
         },
         {
           "command": "vscode-deephaven.addGroovyRemoteFileSource",
-          "when": "view == vscode-deephaven.view.remoteImportSourceTree && viewItem == canAddRemoteFileSource:groovy",
+          "when": "view == vscode-deephaven.view.remoteImportSourceTree && viewItem == canAddRemoteFileSource:groovy && config.deephaven.experimental.groovyRemoteFileSourcing",
           "group": "inline"
         },
         {
           "command": "vscode-deephaven.removeGroovyRemoteFileSource",
-          "when": "view == vscode-deephaven.view.remoteImportSourceTree && viewItem == canRemoveRemoteFileSource:groovy",
+          "when": "view == vscode-deephaven.view.remoteImportSourceTree && viewItem == canRemoveRemoteFileSource:groovy && config.deephaven.experimental.groovyRemoteFileSourcing",
           "group": "inline"
         },
         {
