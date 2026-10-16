@@ -18,7 +18,7 @@ from my_local_package import my_module
 
 ## Installing the deephaven-plugin-python-remote-file-source Plugin
 
-The `deephaven-plugin-python-remote-file-source` plugin can be installed as a `pip` package on a Deephaven Core or Core+ worker. If you are using the managed pip server within the VS Code extension, you can simply install in the `.venv` associated with your VS Code workspace by adding it to a `requirements.txt` file or by running `pip install deephaven-plugin-python-remote-file-source`.
+The `deephaven-plugin-python-remote-file-source` plugin can be installed as a `pip` package on a Deephaven Core or Core+ worker. If you are using the managed pip server within the VS Code extension, you can simply install it into the Python environment selected by the [Python Environments](https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-python-envs) extension (the same environment the managed server runs in), e.g. by adding it to a `requirements.txt` file or by running `pip install deephaven-plugin-python-remote-file-source` in that environment.
 
 See the [Install and use plugins](https://deephaven.io/core/docs/how-to-guides/install-use-plugins/) for additional options.
 
