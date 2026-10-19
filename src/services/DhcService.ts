@@ -194,11 +194,16 @@ export class DhcService extends DisposableBase implements IDhcService {
   get isRunningCode(): boolean {
     return this._runningCodeCount > 0;
   }
-  private set runningCodeCount(value: number) {
-    const isChanged = value > 0 !== this.isRunningCode;
-    this._runningCodeCount = value;
-    if (isChanged) {
-      this._onDidChangeRunningCodeStatus.fire(this.isRunningCode);
+  private incrementRunningCodeCount(): void {
+    this._runningCodeCount += 1;
+    if (this._runningCodeCount === 1) {
+      this._onDidChangeRunningCodeStatus.fire(true);
+    }
+  }
+  private decrementRunningCodeCount(): void {
+    this._runningCodeCount -= 1;
+    if (this._runningCodeCount === 0) {
+      this._onDidChangeRunningCodeStatus.fire(false);
     }
   }
 
@@ -613,7 +618,7 @@ export class DhcService extends DisposableBase implements IDhcService {
     let result: DhcType.ide.CommandResult | null = null;
     let error: string | null = null;
 
-    this.runningCodeCount = this._runningCodeCount + 1;
+    this.incrementRunningCodeCount();
 
     try {
       const start = performance.now();
@@ -636,7 +641,7 @@ export class DhcService extends DisposableBase implements IDhcService {
       } finally {
         // Nested `finally` so the count is decremented exactly once per run,
         // and before the `catch` below may `dispose()` the emitter.
-        this.runningCodeCount = this._runningCodeCount - 1;
+        this.decrementRunningCodeCount();
       }
 
       logger.debug('Command took', performance.now() - start, 'ms');
