@@ -17,8 +17,10 @@
 #    confirmation, since VS Code will not auto-update users to it.
 # 3. Checkout a new branch named with the tag name
 # 4. Update the npm version in `package.json` and `package-lock.json`
-# 5. Commit the changes and push the branch
-# 6. Tag the commit with the new version tag and push the tag
+# 5. Generate a CycloneDX SBOM at `releases/vscode-deephaven-<version>.cdx.json`
+#    (see `sbom.sh`). It is not committed. If it fails, nothing is published.
+# 6. Commit the changes and push the branch
+# 7. Tag the commit with the new version tag and push the tag
 #
 # Note: We are following the recommended convention of pre-release versions
 # using an odd minor version and release versions using an even minor version.
@@ -95,6 +97,9 @@ git checkout -b $tag
 
 # Update version
 npm version --git-tag-version=false $next
+
+# Generate the SBOM for the new version (not committed)
+scripts/sbom.sh
 
 # Commit and tag the new version
 git add package.json

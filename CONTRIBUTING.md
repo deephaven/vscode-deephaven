@@ -126,6 +126,31 @@ The packaged extension will be saved as `releases/vscode-deephaven-$PACKAGE_VERS
 Then install in `VS Code`:
 ![Install Deephaven VS Code](./docs/assets/install-vsix.png)
 
+## SBOM
+
+`npm run package:dev` and `scripts/publish.sh` both write a CycloneDX 1.6 JSON SBOM to `releases/vscode-deephaven-<version>.cdx.json`. It lists production dependencies only (`dependencies` in `package.json` plus their transitive deps from `package-lock.json`), which is what esbuild bundles into `out/`. SBOMs are not committed.
+
+`scripts/sbom.sh` can generate an SBOM for any `.vsix`, including older ones. It reads the version from the `.vsix`, finds the matching `v<version>-release` or `v<version>-pre` tag, installs that commit's production dependencies into a temp directory and writes `<vsix name>.cdx.json` next to the `.vsix`:
+
+```sh
+./scripts/sbom.sh path/to/vscode-deephaven-1.0.20.vsix   # uses the v1.0.20-release tag
+```
+
+For a `.vsix` with no tag (e.g. a `package:dev` build), pass the commit it was built from. `npm ci` fails if that commit's lockfile doesn't match the `.vsix` dependencies:
+
+```sh
+./scripts/sbom.sh --ref <commit> path/to/vscode-deephaven-1.1.10-dev.0.vsix
+```
+
+Without a `.vsix`, it uses `package.json` from `--ref` or the working tree and writes `releases/vscode-deephaven-<version>.cdx.json`:
+
+```sh
+npm run sbom                              # working tree
+npm run sbom -- --ref v1.0.20-release     # releases/vscode-deephaven-1.0.20.cdx.json
+```
+
+Do not substitute `npm sbom`; its `--omit dev` drops bundled packages that are also reachable from a devDependency.
+
 ## Publishing
 
 ### Configuration
@@ -186,10 +211,12 @@ To preview the release version that will be published for a given pre-release (d
 To verify the package will include what you expect, run:
 
 ```sh
-npm run vscode:prepublish && npx vsce ls
+npm run vscode:prepublish && npx vsce ls && npm run sbom
 ```
 
 `vsce ls` does not run the `vscode:prepublish` build step the way `vsce package` / `vsce publish` do, so it lists whatever is currently in `out/`. Running the prepublish step first cleans and rebuilds `out/` so the listing matches what will actually be packaged.
+
+`npm run sbom` checks that the [SBOM](#sbom) can be generated. `publish.sh` generates it again after bumping the version and aborts before committing if that fails, so fix any failure here first.
 
 1. If expected content is missing or unexpected content is included, the `.vscodeignore` file will likely need to be updated in a separate PR before doing the release (this should not be common).
 1. Optionally run `npm run package:dev` if you want to locally install a `.vsix` for testing before publishing.
