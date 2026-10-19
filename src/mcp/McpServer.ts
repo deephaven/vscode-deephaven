@@ -63,21 +63,21 @@ const ALLOWED_HOSTNAMES = [
  * MCP Server for Deephaven extension.
  * Provides tools for AI assistants (like GitHub Copilot) to interact with Deephaven.
  *
- * Serves both 2026-07-28 protocol requests (`modernHandler`) and 2025-era
- * requests (`handleLegacyRequest`). See `handleLegacyRequest` for why the
- * legacy path exists and when it can be removed.
+ * Serves 2026-07-28 and later protocol requests with `mcpHandler`, and
+ * pre-2026 requests with `handlePre2026Request`. See `handlePre2026Request`
+ * for why the pre-2026 path exists and when it can be removed.
  */
 export class McpServer extends DisposableBase {
   private httpServer: http.Server | null = null;
   private port: number | null = null;
 
   /**
-   * Serves 2026-07-28 (modern) protocol requests. 2025-era requests are routed
-   * to `handleLegacyRequest` instead so that responses stay
+   * Serves 2026-07-28 and later protocol requests. Pre-2026 requests are routed
+   * to `handlePre2026Request` instead so that responses stay
    * `application/json` (`createMcpHandler`'s built-in legacy fallback always
    * responds with SSE).
    */
-  private readonly modernHandler: McpHttpHandler;
+  private readonly mcpHandler: McpHttpHandler;
 
   constructor(
     readonly coreJsApiCache: IAsyncCacheService<URL, typeof DhcType>,
@@ -92,7 +92,7 @@ export class McpServer extends DisposableBase {
   ) {
     super();
 
-    this.modernHandler = createMcpHandler(this.createSdkServer, {
+    this.mcpHandler = createMcpHandler(this.createSdkServer, {
       legacy: 'reject',
       onerror: error => logger.error('MCP request error:', error),
     });
@@ -159,14 +159,14 @@ export class McpServer extends DisposableBase {
     }
 
     if (await isLegacyRequest(request)) {
-      return this.handleLegacyRequest(request);
+      return this.handlePre2026Request(request);
     }
 
-    return this.modernHandler.fetch(request, options);
+    return this.mcpHandler.fetch(request, options);
   };
 
   /**
-   * Serve a 2025-era request statelessly with a fresh SDK server and transport
+   * Serve a pre-2026 request statelessly with a fresh SDK server and transport
    * and a plain `application/json` response.
    *
    * Callers: MCP clients that have not yet adopted the 2026-07-28 protocol
@@ -176,12 +176,10 @@ export class McpServer extends DisposableBase {
    * Hand-rolled rather than using `createMcpHandler`'s built-in legacy fallback
    * because that fallback always responds with SSE, which would break callers
    * that expect a JSON response body.
-   *
-   * Removal: once the clients we support send 2026-07-28 requests, delete this
-   * method and its routing in `handleMcpRequest`, update the legacy mentions in
-   * `stop()`'s comments, and update `vscode-dev.sh` to the modern protocol.
    */
-  private handleLegacyRequest = async (request: Request): Promise<Response> => {
+  private handlePre2026Request = async (
+    request: Request
+  ): Promise<Response> => {
     // Stateless server, so no standalone SSE stream (GET) or sessions (DELETE)
     if (request.method !== 'POST') {
       return new Response('Method Not Allowed', {
@@ -314,7 +312,7 @@ export class McpServer extends DisposableBase {
     const { resolve, reject, promise } = withResolvers<void>();
 
     // Stop accepting connections before the first `await`. Callers may not
-    // await `stop()`, and closing `modernHandler` does not stop legacy requests.
+    // await `stop()`, and closing `mcpHandler` does not stop pre-2026 requests.
     httpServer.close(err => {
       this.port = null;
 
@@ -326,11 +324,11 @@ export class McpServer extends DisposableBase {
     });
 
     // `close()` waits for in-flight responses, and nothing else tears down a
-    // pending legacy exchange, so a long-running tool call would keep `stop()`
+    // pending pre-2026 exchange, so a long-running tool call would keep `stop()`
     // pending. Dropping the connections aborts each request, which closes its
-    // per-request SDK server (see `handleLegacyRequest`).
+    // per-request SDK server (see `handlePre2026Request`).
     httpServer.closeAllConnections();
 
-    await Promise.all([this.modernHandler.close(), promise]);
+    await Promise.all([this.mcpHandler.close(), promise]);
   }
 }

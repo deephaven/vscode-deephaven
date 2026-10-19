@@ -41,30 +41,30 @@ const EXPECTED_TOOL_NAMES = [
   'showOutputPanel',
 ];
 
-/** Headers a 2025-era Streamable HTTP client sends on every POST. */
+/** Headers a pre-2026 Streamable HTTP client sends on every POST. */
 /* eslint-disable @typescript-eslint/naming-convention */
-const LEGACY_POST_HEADERS = {
+const POST_HEADERS_PRE_2026 = {
   'content-type': 'application/json',
   accept: 'application/json, text/event-stream',
   'mcp-protocol-version': '2025-06-18',
 } as const;
 
-const MODERN_PROTOCOL_VERSION = '2026-07-28';
+const PROTOCOL_VERSION_2026_07_28 = '2026-07-28';
 
 /** Headers a 2026-07-28 client sends on a `tools/call` POST. */
-function modernToolCallHeaders(toolName: string): Record<string, string> {
+function toolCallHeaders2026(toolName: string): Record<string, string> {
   return {
     'content-type': 'application/json',
     accept: 'application/json, text/event-stream',
-    'mcp-protocol-version': MODERN_PROTOCOL_VERSION,
+    'mcp-protocol-version': PROTOCOL_VERSION_2026_07_28,
     'mcp-method': 'tools/call',
     'mcp-name': toolName,
   };
 }
 
 /** The per-request `_meta` envelope a 2026-07-28 client sends. */
-const MODERN_META = {
-  'io.modelcontextprotocol/protocolVersion': MODERN_PROTOCOL_VERSION,
+const META_2026 = {
+  'io.modelcontextprotocol/protocolVersion': PROTOCOL_VERSION_2026_07_28,
   'io.modelcontextprotocol/clientCapabilities': {},
   'io.modelcontextprotocol/clientInfo': { name: 'test', version: '1.0.0' },
 } as const;
@@ -195,7 +195,7 @@ describe('McpServer', () => {
     const responses = await Promise.all(
       [1, 2, 3].map(id =>
         request(port, {
-          headers: LEGACY_POST_HEADERS,
+          headers: POST_HEADERS_PRE_2026,
           body: jsonRpc(id, 'tools/call', {
             name: 'listConnections',
             arguments: {},
@@ -223,17 +223,17 @@ describe('McpServer', () => {
     expect(elapsedMs).toBeLessThan(GET_WORKER_INFO_DELAY_MS * 3);
   });
 
-  it('should serve overlapping modern (2026-07-28) tool calls concurrently', async () => {
+  it('should serve overlapping 2026-07-28 tool calls concurrently', async () => {
     const startMs = performance.now();
 
     const responses = await Promise.all(
       [1, 2, 3].map(id =>
         request(port, {
-          headers: modernToolCallHeaders('listConnections'),
+          headers: toolCallHeaders2026('listConnections'),
           body: jsonRpc(id, 'tools/call', {
             name: 'listConnections',
             arguments: {},
-            _meta: MODERN_META,
+            _meta: META_2026,
           }),
         })
       )
@@ -258,7 +258,7 @@ describe('McpServer', () => {
     expect(elapsedMs).toBeLessThan(GET_WORKER_INFO_DELAY_MS * 3);
   });
 
-  it('should close the legacy SDK server when the client disconnects', async () => {
+  it('should close the pre-2026 SDK server when the client disconnects', async () => {
     // Tool call that never completes on its own
     vi.mocked(serverManager.getWorkerInfo).mockReturnValue(
       new Promise(() => {})
@@ -270,7 +270,7 @@ describe('McpServer', () => {
       port,
       method: 'POST',
       path: '/mcp',
-      headers: LEGACY_POST_HEADERS,
+      headers: POST_HEADERS_PRE_2026,
     });
     req.on('error', () => {});
     req.end(
@@ -289,7 +289,7 @@ describe('McpServer', () => {
     await vi.waitFor(() => expect(closeSpy).toHaveBeenCalledOnce());
   });
 
-  it('should not wait for in-flight legacy tool calls when stopped', async () => {
+  it('should not wait for in-flight pre-2026 tool calls when stopped', async () => {
     // Tool call that never completes on its own
     vi.mocked(serverManager.getWorkerInfo).mockReturnValue(
       new Promise(() => {})
@@ -297,7 +297,7 @@ describe('McpServer', () => {
     const closeSpy = vi.spyOn(SdkMcpServer.prototype, 'close');
 
     const responsePromise = request(port, {
-      headers: LEGACY_POST_HEADERS,
+      headers: POST_HEADERS_PRE_2026,
       body: jsonRpc(1, 'tools/call', {
         name: 'listConnections',
         arguments: {},
@@ -316,7 +316,7 @@ describe('McpServer', () => {
 
   it('should respond to initialize with application/json', async () => {
     const response = await request(port, {
-      headers: LEGACY_POST_HEADERS,
+      headers: POST_HEADERS_PRE_2026,
       body: jsonRpc(1, 'initialize', {
         protocolVersion: '2025-06-18',
         capabilities: {},
@@ -331,7 +331,7 @@ describe('McpServer', () => {
 
   it('should list all tools with schema descriptions', async () => {
     const response = await request(port, {
-      headers: LEGACY_POST_HEADERS,
+      headers: POST_HEADERS_PRE_2026,
       body: jsonRpc(1, 'tools/list'),
     });
 
@@ -374,7 +374,7 @@ describe('McpServer', () => {
     { name: 'no Origin', headers: {}, status: 200 },
   ])('should respond $status for $name', async ({ headers, status }) => {
     const response = await request(port, {
-      headers: { ...LEGACY_POST_HEADERS, ...headers },
+      headers: { ...POST_HEADERS_PRE_2026, ...headers },
       body: jsonRpc(1, 'tools/list'),
     });
 
@@ -393,7 +393,7 @@ describe('McpServer', () => {
   it('should respond 415 to non-JSON content type', async () => {
     const response = await request(port, {
       // eslint-disable-next-line @typescript-eslint/naming-convention
-      headers: { ...LEGACY_POST_HEADERS, 'content-type': 'text/plain' },
+      headers: { ...POST_HEADERS_PRE_2026, 'content-type': 'text/plain' },
       body: jsonRpc(1, 'tools/list'),
     });
 
