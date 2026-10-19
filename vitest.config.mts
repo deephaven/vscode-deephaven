@@ -12,8 +12,13 @@ export default defineConfig({
     },
     server: {
       deps: {
-        // Imports of .js files without extensions fail without this
-        inline: ['@deephaven-enterprise/query-utils'],
+        inline: [
+          // Imports of .js files without extensions fail without this
+          '@deephaven-enterprise/query-utils',
+          // Imports `vscode`, which only resolves to the `__mocks__/vscode.ts`
+          // mock when the module goes through Vite's transform
+          '@vscode/python-environments',
+        ],
       },
     },
   },
