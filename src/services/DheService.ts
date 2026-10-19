@@ -39,6 +39,7 @@ import {
   isAttachableWorker,
   listAttachableWorkers,
 } from '../dh/dhe';
+import { getDhcFromJsApiUrl } from '../dh/dhc';
 import {
   CLOSE_CREATE_QUERY_VIEW_CMD,
   CREATE_DHE_AUTHENTICATED_CLIENT_CMD,
@@ -434,13 +435,16 @@ export class DheService implements IDheService {
     const dhe = await this._dheJsApiCache.get(this.serverUrl);
     const { workerKinds } = await dheClient.client.getServerConfigValues();
 
-    // Only the `loadCorePlusApi` (worker api loader) and `createCoreClient`
-    // (construct-only, un-logged-in) hooks are needed — the manager owns worker
-    // login via an auth token off the DHE client.
-    const { loadCorePlusApi, createCoreClient } = createJsApiFactories({
-      storageDir: getTempDir({
-        subDirectory: urlToDirectoryName(this.serverUrl),
-      }),
+    const storageDir = getTempDir({
+      subDirectory: urlToDirectoryName(this.serverUrl),
+    });
+
+    // Only a worker api loader and the `createCoreClient` (construct-only,
+    // un-logged-in) hook are needed — the manager owns worker login via an auth
+    // token off the DHE client. The factories' own `loadCorePlusApi` is not
+    // used since it fails on Windows (see `getDhcFromJsApiUrl`).
+    const { createCoreClient } = createJsApiFactories({
+      storageDir,
       transportFactory: getSharedTransportFactory(),
     });
 
@@ -448,7 +452,7 @@ export class DheService implements IDheService {
       dhe,
       dheClient.client,
       workerKinds,
-      loadCorePlusApi,
+      jsApiUrl => getDhcFromJsApiUrl(jsApiUrl, storageDir),
       createCoreClient
     );
   };

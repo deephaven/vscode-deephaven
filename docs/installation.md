@@ -7,6 +7,8 @@ Install the Deephaven VS Code extension from one of two places:
 
 A search for `Deephaven` in either place will yield the Deephaven VS Code extension as the first result.
 
+[Managed pip Servers](./workspace-setup.md#managed-pip-servers-community-only) require Microsoft's [Python Environments](https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-python-envs) extension. If it isn't already installed, installing the Deephaven extension installs it too.
+
 ![Install Deephaven VS Code Extension](./assets/install-pre-release.png)
 
 Once installed, the Deephaven icon will show up in the activity bar on the left side of VS Code:

@@ -6,7 +6,7 @@ There are three panels in the Deephaven extension. They appear on the left side 
 
 The `SERVERS` panel shows the status of all configured servers.
 
-If the `deephaven-server` pip package is available in your local workspace, the panel will also show a "Managed" servers node (note that managed servers are Community servers that target the current `VS Code` workspace).
+If the `deephaven-server` pip package is installed in the Python environment selected by the [Python Environments](https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-python-envs) extension, the panel will also show a "Managed" servers node (note that managed servers are Community servers that target the current `VS Code` workspace). See [Managed pip Servers](workspace-setup.md#managed-pip-servers-community-only) for details.
 
 ![Servers Panel](./assets/servers-panel.png)
 

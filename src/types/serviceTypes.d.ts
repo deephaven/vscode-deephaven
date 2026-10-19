@@ -79,6 +79,7 @@ export interface IAsyncCacheService<TKey, TValue> extends IDisposable {
  */
 export interface IConfigService {
   isElectronFetchEnabled: () => boolean;
+  isGroovyRemoteFileSourcingEnabled: () => boolean;
   isMcpDocsEnabled: () => boolean;
   isMcpEnabled: () => boolean;
   getCoreServers: () => CoreConnectionConfig[];

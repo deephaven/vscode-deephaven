@@ -29,10 +29,10 @@ declare module '@deephaven/jsapi-types' {
         callback: (e: dh.Event<T>) => void
       ): () => void;
 
-      setExecutionContext(
+      setRemoteSources(
         isDirty: boolean,
         resourcePaths?: string[]
-      ): Promise<boolean>;
+      ): Promise<void>;
       close(): void;
     }
   }

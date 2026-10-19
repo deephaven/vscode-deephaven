@@ -1,9 +1,34 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { dh as DhType } from '@deephaven/jsapi-types';
-import { subscribeToColumns } from './dhc';
+import { loadDhModules } from '@deephaven/jsapi-nodejs';
+import { getDhcFromJsApiUrl, subscribeToColumns } from './dhc';
 
 // See __mocks__/vscode.ts for the mock implementation
 vi.mock('vscode');
+vi.mock('@deephaven/jsapi-nodejs');
+
+describe('getDhcFromJsApiUrl', () => {
+  const mockDh = { name: 'mockDh' } as unknown as typeof DhType;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(loadDhModules).mockResolvedValue(mockDh);
+  });
+
+  it('should load the worker api as cjs from the jsApiUrl base', async () => {
+    const actual = await getDhcFromJsApiUrl(
+      'https://worker.test:8123/worker/1/jsapi/dh-core.js',
+      'mock.storageDir'
+    );
+
+    expect(loadDhModules).toHaveBeenCalledWith({
+      serverUrl: new URL('https://worker.test:8123/worker/1/'),
+      storageDir: 'mock.storageDir',
+      targetModuleType: 'cjs',
+    });
+    expect(actual).toBe(mockDh);
+  });
+});
 
 describe('subscribeToColumns', () => {
   const columns = [{ name: 'Serial' }] as unknown as DhType.Column[];

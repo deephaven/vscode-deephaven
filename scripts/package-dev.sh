@@ -11,11 +11,14 @@
 #    - build_num: Incremental build number (starts at 0)
 # 4. Updates package.json with the new version (without git commit)
 # 5. Packages the extension as a .vsix file in the releases/ directory
+# 6. Optionally installs the .vsix via `code --install-extension` (--install)
 #
 # Usage:
-#   ./scripts/package-dev.sh          # Creates 1.1.10-dev.0
-#   ./scripts/package-dev.sh alpha    # Creates 1.1.10-alpha.0
-#   ./scripts/package-dev.sh beta     # Creates 1.1.10-beta.0
+#   ./scripts/package-dev.sh                  # Creates 1.1.10-dev.0
+#   ./scripts/package-dev.sh alpha            # Creates 1.1.10-alpha.0
+#   ./scripts/package-dev.sh beta             # Creates 1.1.10-beta.0
+#   ./scripts/package-dev.sh --install        # Creates 1.1.10-dev.0 and installs it
+#   ./scripts/package-dev.sh alpha --install  # Creates 1.1.10-alpha.0 and installs it
 #
 # If run multiple times with the same preid, the build number increments:
 #   1.1.10-dev.0 -> 1.1.10-dev.1 -> 1.1.10-dev.2
@@ -24,7 +27,28 @@ set -e
 
 NEXT=$(scripts/nextprereleaseversion.sh)
 CURRENT_VERSION=$(node -p "require('./package.json').version")
-PREID="${1:-dev}"
+
+INSTALL=0
+PREID=""
+for arg in "$@"; do
+  case "$arg" in
+    --install)
+      INSTALL=1
+      ;;
+    -*)
+      echo "Unknown option: $arg" >&2
+      exit 1
+      ;;
+    *)
+      if [[ -n "$PREID" ]]; then
+        echo "Unexpected argument: $arg" >&2
+        exit 1
+      fi
+      PREID="$arg"
+      ;;
+  esac
+done
+PREID="${PREID:-dev}"
 
 # Default build number to 0
 BUILD_NUM=0
@@ -40,4 +64,9 @@ npm version --no-git-tag-version $NEXT-$PREID.$BUILD_NUM
 
 # Package the extension using the updated version
 PACKAGE_VERSION=$(node -p "require('./package.json').version")
-DHC_ALLOW_LOCAL_ALIAS=1 vsce package -o releases/vscode-deephaven-$PACKAGE_VERSION.vsix
+VSIX_PATH=releases/vscode-deephaven-$PACKAGE_VERSION.vsix
+DHC_ALLOW_LOCAL_ALIAS=1 vsce package -o "$VSIX_PATH"
+
+if [[ "$INSTALL" == 1 ]]; then
+  code --install-extension "$VSIX_PATH" --force
+fi

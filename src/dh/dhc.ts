@@ -14,7 +14,9 @@ import {
   REQUIREMENTS_TABLE_NAME_COLUMN_NAME,
   REQUIREMENTS_TABLE_VERSION_COLUMN_NAME,
 } from '../common';
-import { getRemoteFileSourcePlugin, uniqueId } from '../util';
+import { getRemoteFileSourcePlugin, Logger, uniqueId } from '../util';
+
+const logger = new Logger('dhc');
 
 export const AUTH_HANDLER_TYPE_ANONYMOUS =
   'io.deephaven.auth.AnonymousAuthenticationHandler';
@@ -58,6 +60,30 @@ export async function getDhc(
   // @ts-ignore TODO: once deephaven/deephaven-core/pull/7451 merges, we can
   // update to proper jsapi-types and remove this @ts-ignore
   return coreModule;
+}
+
+/**
+ * Download the DH Core+ jsapi for a worker and return the `dh` object. Drop-in
+ * replacement for the `loadCorePlusApi` from `createJsApiFactories`, which
+ * loads the api as `esm` via `import(<file path>)`. That fails on Windows,
+ * since the ESM loader rejects `C:\...` paths, so load as `cjs` via `getDhc`
+ * instead.
+ * TODO: DH-24025 should address the root cause bug. Once it is fixed,
+ * @deephaven/jsapi-nodejs has been published, and @deephaven-enterprise/jsapi-nodejs
+ * has incorporated the update, we should be able to use the factories'
+ * `loadCorePlusApi` instead.
+ * @param jsApiUrl The worker's `jsApiUrl` (ends in `jsapi/dh-core.js`).
+ * @param storageDir Directory to store downloaded jsapi files.
+ * @returns A promise that resolves to the DH Core+ jsapi.
+ */
+export async function getDhcFromJsApiUrl(
+  jsApiUrl: string,
+  storageDir: string
+): Promise<typeof DhType> {
+  const serverUrl = new URL(jsApiUrl);
+  serverUrl.pathname = serverUrl.pathname.replace(/jsapi\/dh-core\.js$/, '');
+
+  return getDhc(serverUrl, storageDir);
 }
 
 /**
@@ -139,10 +165,13 @@ export async function getPythonDependencies(
 /**
  * Initialize a connection and session to a DHC server.
  * @param client The authenticated client to use for the connection.
+ * @param isGroovyRemoteFileSourcingEnabled Whether to initialize the Groovy
+ * remote file source plugin (experimental).
  * @returns A promise that resolves to the connection and session.
  */
 export async function initDhcSession(
-  client: CoreAuthenticatedClient
+  client: CoreAuthenticatedClient,
+  isGroovyRemoteFileSourcingEnabled: boolean
 ): Promise<ConnectionAndSession<DhType.IdeConnection, DhType.IdeSession>> {
   const cn = await client.getAsIdeConnection();
   const cnId = uniqueId();
@@ -158,13 +187,20 @@ export async function initDhcSession(
   const pythonRemoteFileSourcePlugin =
     type === 'python' ? await getRemoteFileSourcePlugin(cnId, session) : null;
 
-  const groovyRemoteFileSourcePlugin: DhType.remotefilesource.RemoteFileSourceService | null =
-    // The presence of `getRemoteFileSourceService` determines if the Groovy
-    // plugin is available on the server — it is absent until the backing core
-    // PR ships (see `modules.d.ts`).
-    type === 'groovy' && typeof client.getRemoteFileSourceService === 'function'
-      ? await client.getRemoteFileSourceService()
-      : null;
+  let groovyRemoteFileSourcePlugin: DhType.remotefilesource.RemoteFileSourceService | null =
+    null;
+
+  if (
+    type === 'groovy' &&
+    isGroovyRemoteFileSourcingEnabled &&
+    typeof client.getRemoteFileSourceService === 'function'
+  ) {
+    try {
+      groovyRemoteFileSourcePlugin = await client.getRemoteFileSourceService();
+    } catch (err) {
+      logger.info('Groovy remote file sourcing unavailable:', err);
+    }
+  }
 
   return {
     cn,

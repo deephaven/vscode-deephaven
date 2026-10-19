@@ -357,6 +357,12 @@ export const workspace = {
   getWorkspaceFolder: vi.fn().mockName('getWorkspaceFolder'),
 };
 
+export const env = {
+  get remoteName(): string | undefined {
+    return undefined;
+  },
+};
+
 export class Uri {
   static file = vi
     .fn()
