@@ -28,10 +28,14 @@ TAG="$1"
 WORK_DIR=$(mktemp -d)
 trap 'rm -rf "$WORK_DIR"' EXIT
 
+# Copy the manifest and lockfile `npm ci` installs from into the temp directory
 for file in package.json package-lock.json; do
   if [[ -n "$TAG" ]]; then
+    # The file as committed at the tag, regardless of what is checked out.
+    # `refs/tags/` because a branch with the same name as each tag exists.
     git -C "$REPO_ROOT" show "refs/tags/$TAG:$file" > "$WORK_DIR/$file"
   else
+    # The working tree as-is, including `publish.sh`'s uncommitted version bump
     cp "$REPO_ROOT/$file" "$WORK_DIR/$file"
   fi
 done
