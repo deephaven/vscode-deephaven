@@ -128,26 +128,21 @@ Then install in `VS Code`:
 
 ## SBOM
 
-`npm run package:dev` and `scripts/publish.sh` both write a CycloneDX 1.6 JSON SBOM to `releases/vscode-deephaven-<version>.cdx.json`. It lists production dependencies only (`dependencies` in `package.json` plus their transitive deps from `package-lock.json`), which is what esbuild bundles into `out/`. SBOMs are not committed.
+`scripts/publish.sh` writes a CycloneDX 1.6 JSON SBOM to `releases/vscode-deephaven-<version>.cdx.json`. It lists production dependencies only (`dependencies` in `package.json` plus their transitive deps from `package-lock.json`), which is what esbuild bundles into `out/`. SBOMs are not committed.
 
-`scripts/sbom.sh` can generate an SBOM for any `.vsix`, including older ones. It reads the version from the `.vsix`, finds the matching `v<version>-release` or `v<version>-pre` tag, installs that commit's production dependencies into a temp directory and writes `<vsix name>.cdx.json` next to the `.vsix`:
+`scripts/sbom.sh` can regenerate the SBOM for any published version from its `v<version>-release` or `v<version>-pre` tag. It installs that tag's production dependencies into a temp directory, so it does not touch your `node_modules`. Given a `.vsix`, it finds the tag from the version in the `.vsix` and writes `<vsix name>.cdx.json` next to it:
 
 ```sh
 ./scripts/sbom.sh path/to/vscode-deephaven-1.0.20.vsix   # uses the v1.0.20-release tag
 ```
 
-For a `.vsix` with no tag (e.g. a `package:dev` build), pass the commit it was built from. `npm ci` fails if that commit's lockfile doesn't match the `.vsix` dependencies:
+Or pass the tag directly to write `releases/vscode-deephaven-<version>.cdx.json`:
 
 ```sh
-./scripts/sbom.sh --ref <commit> path/to/vscode-deephaven-1.1.10-dev.0.vsix
+npm run sbom -- --tag v1.0.20-release     # releases/vscode-deephaven-1.0.20.cdx.json
 ```
 
-Without a `.vsix`, it uses `package.json` from `--ref` or the working tree and writes `releases/vscode-deephaven-<version>.cdx.json`:
-
-```sh
-npm run sbom                              # working tree
-npm run sbom -- --ref v1.0.20-release     # releases/vscode-deephaven-1.0.20.cdx.json
-```
+Untagged builds (e.g. `npm run package:dev`) are not supported, since there is no reliable way to know which lockfile they were built from. With no arguments, `npm run sbom` uses the working tree; `publish.sh` uses this before the release tag exists.
 
 Do not substitute `npm sbom`; its `--omit dev` drops bundled packages that are also reachable from a devDependency.
 

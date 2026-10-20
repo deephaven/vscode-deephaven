@@ -1,37 +1,33 @@
 #!/bin/bash
 
-# This script generates a CycloneDX 1.6 JSON SBOM for a VS Code extension
-# `.vsix`. It works on any `.vsix` built from this repo, including ones built
-# from older commits.
+# This script generates a CycloneDX 1.6 JSON SBOM for a published VS Code
+# extension `.vsix`. It works on any `.vsix` published from this repo,
+# including older versions.
 #
 # A `.vsix` has no `node_modules`; esbuild bundles the production dependency
 # tree into `out/`, so the SBOM lists `dependencies` from `package.json` plus
 # their transitive deps as resolved by `package-lock.json`. devDependencies are
 # omitted.
 #
-# 1. Reads `extension/package.json` from the `.vsix`. This is the SBOM's root
-#    component, so its name and version match the `.vsix`.
-# 2. Determines which source commit's `package-lock.json` to use:
-#    - `--ref <git-ref>` if given
-#    - else the `v<version>-release` or `v<version>-pre` tag if one exists
-#    - else the working tree, if its `package.json` version matches the `.vsix`
-# 3. Installs the production dependency tree into a temp directory with
-#    `npm ci --omit dev`. `npm ci` fails if the `.vsix` dependencies don't match
-#    the lockfile, so a wrong `--ref` is caught.
-# 4. Runs `cyclonedx-npm` against the temp directory and writes the SBOM next
-#    to the `.vsix` as `<vsix name>.cdx.json` (or to `--output`).
-#
-# If no `.vsix` is given, the root component comes from `package.json` at
-# `--ref` (or the working tree), and the SBOM is written to
-# `releases/<name>-<version>.cdx.json`.
+# 1. Determines the source:
+#    - `<vsix>`: the `v<version>-release` or `v<version>-pre` tag for the
+#      version in the `.vsix`. Fails if there is no such tag, so untagged builds
+#      (e.g. `package:dev`) are not supported.
+#    - `--tag <tag>`: that tag.
+#    - Neither: the working tree. `publish.sh` uses this before the release tag
+#      exists.
+# 2. Installs the source's production dependency tree into a temp directory
+#    with `npm ci --omit dev`.
+# 3. Runs `cyclonedx-npm` against the temp directory and writes the SBOM next
+#    to the `.vsix` as `<vsix name>.cdx.json`, or to
+#    `releases/<name>-<version>.cdx.json` when no `.vsix` is given. `--output`
+#    overrides either.
 #
 # Usage:
-#   ./scripts/sbom.sh releases/vscode-deephaven-1.1.10-dev.0.vsix
-#   ./scripts/sbom.sh vscode-deephaven-1.0.20.vsix          # uses v1.0.20-release tag
-#   ./scripts/sbom.sh --ref 1a2b3c4 some-dev-build.vsix     # untagged build
-#   ./scripts/sbom.sh --output /tmp/sbom.json my.vsix
-#   ./scripts/sbom.sh                                       # working tree, no .vsix
-#   ./scripts/sbom.sh --ref v1.0.20-release                 # tag, no .vsix
+#   ./scripts/sbom.sh path/to/vscode-deephaven-1.0.20.vsix  # v1.0.20-release tag
+#   ./scripts/sbom.sh --tag v1.0.20-release
+#   ./scripts/sbom.sh                                      # working tree
+#   ./scripts/sbom.sh --output /tmp/sbom.json --tag v1.1.26-pre
 
 set -e
 
@@ -45,14 +41,14 @@ CYCLONEDX_NPM_VERSION=6.0.1
 
 REPO_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 
-REF=""
+TAG=""
 OUTPUT=""
 VSIX=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --ref)
-      [[ -n "$2" ]] || abort "--ref requires a value"
-      REF="$2"
+    --tag)
+      [[ -n "$2" ]] || abort "--tag requires a value"
+      TAG="${2#refs/tags/}"
       shift 2
       ;;
     -o|--output)
@@ -75,6 +71,8 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+[[ -z "$VSIX" || -z "$TAG" ]] || abort "Pass a .vsix or --tag, not both."
+
 WORK_DIR=$(mktemp -d)
 trap 'rm -rf "$WORK_DIR"' EXIT
 
@@ -83,47 +81,46 @@ pkg_field() {
   node -p "require(process.argv[1])[process.argv[2]] ?? ''" "$1" "$2"
 }
 
-# Writes a file from the source (git ref or working tree) to stdout
+tag_exists() {
+  git -C "$REPO_ROOT" rev-parse -q --verify "refs/tags/$1^{commit}" > /dev/null
+}
+
+# Writes a file from the source (tag or working tree) to stdout
 source_file() {
-  if [[ -n "$REF" ]]; then
-    git -C "$REPO_ROOT" show "$REF:$1"
+  if [[ -n "$TAG" ]]; then
+    git -C "$REPO_ROOT" show "refs/tags/$TAG:$1"
   else
     cat "$REPO_ROOT/$1"
   fi
 }
 
-# 1. Root component manifest
+# 1. Source
 if [[ -n "$VSIX" ]]; then
   [[ -f "$VSIX" ]] || abort "No such file: $VSIX"
-  unzip -p "$VSIX" extension/package.json > "$WORK_DIR/package.json" \
+  VSIX_VERSION=$(unzip -p "$VSIX" extension/package.json | node -p "JSON.parse(require('fs').readFileSync(0)).version") \
     || abort "$VSIX does not contain extension/package.json"
-  VERSION=$(pkg_field "$WORK_DIR/package.json" version)
-fi
-
-# 2. Source commit for the lockfile
-if [[ -n "$REF" ]]; then
-  git -C "$REPO_ROOT" rev-parse -q --verify "$REF^{commit}" > /dev/null \
-    || abort "Unknown git ref: $REF"
-elif [[ -n "$VSIX" ]]; then
-  for tag in "v$VERSION-release" "v$VERSION-pre"; do
-    if git -C "$REPO_ROOT" rev-parse -q --verify "refs/tags/$tag^{commit}" > /dev/null; then
-      REF="refs/tags/$tag"
+  for tag in "v$VSIX_VERSION-release" "v$VSIX_VERSION-pre"; do
+    if tag_exists "$tag"; then
+      TAG="$tag"
       break
     fi
   done
-  if [[ -z "$REF" && "$(pkg_field "$REPO_ROOT/package.json" version)" != "$VERSION" ]]; then
-    abort "No v$VERSION-release or v$VERSION-pre tag, and the working tree is not version $VERSION. Pass --ref <commit> for the commit $VSIX was built from."
-  fi
+  [[ -n "$TAG" ]] \
+    || abort "No v$VSIX_VERSION-release or v$VSIX_VERSION-pre tag. Only published versions are supported (try \`git fetch --tags\`)."
+elif [[ -n "$TAG" ]]; then
+  tag_exists "$TAG" || abort "Unknown tag: $TAG"
 fi
 
-if [[ -z "$VSIX" ]]; then
-  source_file package.json > "$WORK_DIR/package.json"
-fi
+source_file package.json > "$WORK_DIR/package.json"
 source_file package-lock.json > "$WORK_DIR/package-lock.json"
 source_file .npmrc > "$WORK_DIR/.npmrc" 2> /dev/null || rm -f "$WORK_DIR/.npmrc"
 
 NAME=$(pkg_field "$WORK_DIR/package.json" name)
 VERSION=$(pkg_field "$WORK_DIR/package.json" version)
+
+if [[ -n "$VSIX" && "$VERSION" != "$VSIX_VERSION" ]]; then
+  abort "$TAG has version $VERSION, but $VSIX has version $VSIX_VERSION."
+fi
 
 if [[ -z "$OUTPUT" ]]; then
   if [[ -n "$VSIX" ]]; then
@@ -135,13 +132,14 @@ fi
 mkdir -p "$(dirname "$OUTPUT")"
 OUTPUT="$(cd "$(dirname "$OUTPUT")" && pwd)/$(basename "$OUTPUT")"
 
-echo "Generating SBOM for $NAME@$VERSION from ${REF:-working tree}"
+echo "Generating SBOM for $NAME@$VERSION from ${TAG:-working tree}"
 
-# 3. Production dependency tree
-(cd "$WORK_DIR" && npm ci --omit dev --ignore-scripts --no-audit --no-fund --loglevel error) \
-  || abort "npm ci failed. If the .vsix dependencies don't match the lockfile, pass --ref <commit> for the commit it was built from."
+# 2. Production dependency tree. Nothing is run from it, so the `.npmrc`
+# `engine-strict` check against the local Node version doesn't apply.
+(cd "$WORK_DIR" && npm ci --omit dev --ignore-scripts --engine-strict=false --no-audit --no-fund --loglevel error) \
+  || abort "npm ci failed."
 
-# 4. SBOM. Running npx from the repo resolves the pinned devDependency if it is
+# 3. SBOM. Running npx from the repo resolves the pinned devDependency if it is
 # installed.
 (cd "$REPO_ROOT" && npx --yes "@cyclonedx/cyclonedx-npm@$CYCLONEDX_NPM_VERSION" \
   --omit dev \

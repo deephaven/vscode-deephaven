@@ -11,9 +11,7 @@
 #    - build_num: Incremental build number (starts at 0)
 # 4. Updates package.json with the new version (without git commit)
 # 5. Packages the extension as a .vsix file in the releases/ directory
-# 6. Generates a CycloneDX SBOM at
-#    `releases/vscode-deephaven-$PACKAGE_VERSION.cdx.json` (see `sbom.sh`)
-# 7. Optionally installs the .vsix via `code --install-extension` (--install)
+# 6. Optionally installs the .vsix via `code --install-extension` (--install)
 #
 # Usage:
 #   ./scripts/package-dev.sh                  # Creates 1.1.10-dev.0
@@ -68,8 +66,6 @@ npm version --no-git-tag-version $NEXT-$PREID.$BUILD_NUM
 PACKAGE_VERSION=$(node -p "require('./package.json').version")
 VSIX_PATH=releases/vscode-deephaven-$PACKAGE_VERSION.vsix
 DHC_ALLOW_LOCAL_ALIAS=1 vsce package -o "$VSIX_PATH"
-
-scripts/sbom.sh "$VSIX_PATH"
 
 if [[ "$INSTALL" == 1 ]]; then
   code --install-extension "$VSIX_PATH" --force
