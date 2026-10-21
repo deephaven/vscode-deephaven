@@ -126,6 +126,20 @@ The packaged extension will be saved as `releases/vscode-deephaven-$PACKAGE_VERS
 Then install in `VS Code`:
 ![Install Deephaven VS Code](./docs/assets/install-vsix.png)
 
+## SBOM
+
+`scripts/publish.sh` writes a CycloneDX 1.6 JSON SBOM to `releases/vscode-deephaven-<version>.cdx.json`. It lists production dependencies only (`dependencies` in `package.json` plus their transitive deps from `package-lock.json`), which is what esbuild bundles into `out/`. SBOMs are not committed.
+
+To regenerate the SBOM for a published version, pass its tag:
+
+```sh
+npm run sbom -- v1.0.20-release     # releases/vscode-deephaven-1.0.20.cdx.json
+```
+
+With no tag, `npm run sbom` uses the working tree.
+
+Do not substitute `npm sbom`; its `--omit dev` drops bundled packages that are also reachable from a devDependency.
+
 ## Publishing
 
 ### Configuration
@@ -186,10 +200,12 @@ To preview the release version that will be published for a given pre-release (d
 To verify the package will include what you expect, run:
 
 ```sh
-npm run vscode:prepublish && npx vsce ls
+npm run vscode:prepublish && npx vsce ls && npm run sbom
 ```
 
 `vsce ls` does not run the `vscode:prepublish` build step the way `vsce package` / `vsce publish` do, so it lists whatever is currently in `out/`. Running the prepublish step first cleans and rebuilds `out/` so the listing matches what will actually be packaged.
+
+`npm run sbom` checks that the [SBOM](#sbom) can be generated. `publish.sh` generates it again after bumping the version and aborts before committing if that fails, so fix any failure here first.
 
 1. If expected content is missing or unexpected content is included, the `.vscodeignore` file will likely need to be updated in a separate PR before doing the release (this should not be common).
 1. Optionally run `npm run package:dev` if you want to locally install a `.vsix` for testing before publishing.

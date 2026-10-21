@@ -48,6 +48,7 @@
     "report:ctrfsummary": "github-actions-ctrf summary test-reports/ctrf-report.json && github-actions-ctrf failed test-reports/ctrf-report.json",
     "report:junit2ctrf": "junit-to-ctrf test-reports/vitest.junit.xml --output test-reports/ctrf-report.json",
     "report:prcomment": "mkdir -p ./pr-comment && cp $GITHUB_STEP_SUMMARY pr-comment/pr-comment.html",
+    "sbom": "./scripts/sbom.sh",
     "test:ci": "npm run compile && npm run test:lint && npm run test:unit",
     "test:e2e": "npm run build:ts && ./scripts/e2e.sh",
     "test:e2e:docker": "npm run test:e2e -- --core --docker",
@@ -1289,6 +1290,7 @@
   },
   "devDependencies": {
     "@cfworker/json-schema": "^4.1.1",
+    "@cyclonedx/cyclonedx-npm": "6.0.1",
     "@deephaven-enterprise/jsapi-types": "^2026.1.48",
     "@deephaven/jsapi-types": "41.8.0",
     "@react-types/shared": "^3.33.1",

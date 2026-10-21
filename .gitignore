@@ -2,6 +2,7 @@ out
 dist
 node_modules
 /*.vsix
+releases/*.cdx.json
 .claude
 .plans
 .vscode-test/
